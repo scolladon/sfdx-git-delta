@@ -1,0 +1,35 @@
+{
+  "name": "sfdx-git-delta",
+  "version": "0.0.1",
+  "description": "Generate the sfdx content in source format and destructive change from two git commits",
+  "keyword": [
+    "salesforce",
+    "package",
+    "git",
+    "sfdx"
+  ],
+  "main": "index.js",
+  "bin": {
+    "sgs": "./bin/cli"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scolladon/sfdx-git-delta.git"
+  },
+  "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
+  "dependencies": {
+    "commander": "^2.20.0",
+    "xmlbuilder": "^13.0.2"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/scolladon/sfdx-git-delta/issues"
+  },
+  "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
+  "scripts": {
+    "test": "node_modules/.bin/jest"
+  },
+  "devDependencies": {
+    "jest": "^24.8.0"
+  }
+}
