@@ -8,6 +8,7 @@
     "git",
     "sfdx"
   ],
+  "engines" : { "node" : ">=10.16.0" },
   "main": "index.js",
   "bin": {
     "sgs": "./bin/cli"
@@ -19,6 +20,7 @@
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
     "commander": "^2.20.0",
+    "fs-extra": "^8.1.0",
     "xmlbuilder": "^13.0.2"
   },
   "license": "MIT",

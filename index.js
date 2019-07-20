@@ -1,5 +1,5 @@
 'use strict';
-const DiffHandler = require('./lib/gitDiffHandler.js');
+const DiffHandler = require('./lib/diffHandler.js');
 const PackageConstructor = require('./lib/packageConstructor');
 const FileUtils = require('./lib/utils/fileUtils');
 
@@ -21,10 +21,10 @@ module.exports = (config) => {
     const fu = new FileUtils(config);
 
     diffHandler.diff()
-    .then(structuredDiffs=>pc.constructPackage(structuredDiffs))
-    .then(filesContent=>fu.writeAsync(filesContent))
-    .then(res => {
-      resolve(res);
+    //.then(destructiveChangesContent=>pc.constructPackage(destructiveChangesContent))
+    //.then(destructiveChangesContent=>fu.writeDestructiveChangesAsync(destructiveChangesContent))
+    .then(() => {
+      resolve();
     })
     .catch(err=>reject(err))
   });
