@@ -13,7 +13,7 @@
   },
   "main": "index.js",
   "bin": {
-    "sgs": "./bin/cli"
+    "sgd": "./bin/cli"
   },
   "repository": {
     "type": "git",
