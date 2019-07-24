@@ -44,7 +44,7 @@ $ sgd -h
 ```
   var sgd = require('sfdx-git-delta');
 
-  sgp({
+  sgd({
     'to':'', // commit sha to where the diff is done. Default : HEAD
     'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
     'output':'', // source package specific output. Default : ./output
