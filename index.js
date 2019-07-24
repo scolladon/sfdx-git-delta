@@ -21,8 +21,8 @@ module.exports = (config) => {
     const fu = new FileUtils(config);
 
     diffHandler.diff()
-    //.then(destructiveChangesContent=>pc.constructPackage(destructiveChangesContent))
-    //.then(destructiveChangesContent=>fu.writeDestructiveChangesAsync(destructiveChangesContent))
+    .then(destructiveChangesContent=>pc.constructPackage(destructiveChangesContent))
+    .then(destructiveChangesContent=>fu.writeDestructiveChangesAsync(destructiveChangesContent))
     .then(() => {
       resolve();
     })
