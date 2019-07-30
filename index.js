@@ -24,7 +24,7 @@ module.exports = (config) => {
     .then(destructiveChangesContent=>pc.constructPackage(destructiveChangesContent))
     .then(destructiveChangesContent=>fu.writeDestructiveChangesAsync(destructiveChangesContent))
     .then(() => {
-      resolve();
+      resolve()
     })
     .catch(err=>reject(err))
   });
