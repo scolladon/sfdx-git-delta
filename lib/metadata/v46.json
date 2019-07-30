@@ -151,6 +151,78 @@
         "xmlName": "CustomObject"
     },
     {
+        "sourceStructure": true,
+        "directoryName": "businessProcesses",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "businessProcesse",
+        "xmlName": "BusinessProcesse"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "compactLayouts",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "compactLayout",
+        "xmlName": "CompactLayout"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "fields",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "field",
+        "xmlName": "CustomField"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "fieldSets",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "fieldSet",
+        "xmlName": "FieldSet"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "listViews",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "listView",
+        "xmlName": "ListView"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "recordTypes",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "recordType",
+        "xmlName": "RecordType"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "sharingReasons",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "sharingReason",
+        "xmlName": "SharingReason"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "validationRules",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "validationRule",
+        "xmlName": "ValidationRule"
+    },
+    {
+        "sourceStructure": true,
+        "directoryName": "webLinks",
+        "inFolder": false,
+        "metaFile": false,
+        "suffix": "webLink",
+        "xmlName": "WebLink"
+    },
+    {
         "directoryName": "reportTypes",
         "inFolder": false,
         "metaFile": false,
