@@ -1,5 +1,5 @@
 'use strict';
-const DiffHandler = require('./lib/diffHandler.js');
+const DiffHandler = require('./lib/diffHandler');
 const PackageConstructor = require('./lib/packageConstructor');
 const FileUtils = require('./lib/utils/fileUtils');
 
