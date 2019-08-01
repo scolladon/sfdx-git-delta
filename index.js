@@ -3,6 +3,9 @@ const DiffHandler = require('./lib/diffHandler');
 const PackageConstructor = require('./lib/packageConstructor');
 const FileUtils = require('./lib/utils/fileUtils');
 
+const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges.xml'
+const PACKAGE_FILE_NAME = 'package.xml'
+
 module.exports = (config) => {
 
   return new Promise((resolve, reject) => {
@@ -21,8 +24,10 @@ module.exports = (config) => {
     const fu = new FileUtils(config);
 
     diffHandler.diff()
-    .then(destructiveChangesContent=>pc.constructPackage(destructiveChangesContent))
-    .then(destructiveChangesContent=>fu.writeDestructiveChangesAsync(destructiveChangesContent))
+    .then(destructiveChangesJson=>Promise.all([
+      pc.constructPackage(destructiveChangesJson).then(destructiveChangesContent=>fu.writeChangesAsync(destructiveChangesContent,DESTRUCTIVE_CHANGES_FILE_NAME)),
+      pc.constructPackage({}).then(emptyPackageContent=>fu.writeChangesAsync(emptyPackageContent,PACKAGE_FILE_NAME)),
+    ]))
     .then(() => {
       resolve()
     })
