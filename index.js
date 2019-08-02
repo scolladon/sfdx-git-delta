@@ -10,12 +10,12 @@ module.exports = (config) => {
 
   return new Promise((resolve, reject) => {
 
-    if(typeof config.to === 'undefined'
-    || typeof config.from === 'undefined'
-    || typeof config.apiVersion === 'undefined'
-    || typeof config.output === 'undefined'
-    || typeof config.repo === 'undefined') {
-      return reject('Not enough config options');
+    if(typeof config.to === null
+    || typeof config.from === null
+    || typeof config.apiVersion === null
+    || typeof config.output === null
+    || typeof config.repo === null) {
+      return reject(new Error(`Not enough parameter. Execute -h to better understand how to execute`))
     }
     
 
@@ -28,9 +28,7 @@ module.exports = (config) => {
       pc.constructPackage(destructiveChangesJson).then(destructiveChangesContent=>fu.writeChangesAsync(destructiveChangesContent,DESTRUCTIVE_CHANGES_FILE_NAME)),
       pc.constructPackage({}).then(emptyPackageContent=>fu.writeChangesAsync(emptyPackageContent,PACKAGE_FILE_NAME)),
     ]))
-    .then(() => {
-      resolve()
-    })
+    .then(()=>resolve())
     .catch(err=>reject(err))
   });
 };

@@ -16,11 +16,7 @@ program
   .parse(process.argv);
 
 orchestrator(program)
-.then(res=>{
-  if(res){
-    res.forEach(name=>console.log(name + ' created'));
-  }
-})
+.then(res=>console.log(`check ${program.output}`))
 .catch(err =>{
-  console.log(err.message);
+  console.error(`Error terminating the process during sfdx-git-delta : ${err.message}`)
 });
