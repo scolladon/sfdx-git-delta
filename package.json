@@ -19,6 +19,21 @@
     "type": "git",
     "url": "git+https://github.com/scolladon/sfdx-git-delta.git"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --write",
+      "git add"
+    ],
+    ".js": [
+      "npm run lint:fix",
+      "npm run lint"
+    ]
+  },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
     "commander": "^2.20.0",
@@ -31,9 +46,16 @@
   },
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
-    "test": "node_modules/.bin/jest"
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint:fix": "eslint --fix .",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "jest": "^24.8.0"
+    "eslint": "^6.1.0",
+    "husky": "^3.0.2",
+    "jest": "^24.8.0",
+    "lint-staged": "^9.2.1",
+    "prettier": "^1.18.2"
   }
 }
