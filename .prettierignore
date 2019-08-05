@@ -1,3 +1,4 @@
 package-lock.json
 .next
-node_modules/
+node_modules
+output
