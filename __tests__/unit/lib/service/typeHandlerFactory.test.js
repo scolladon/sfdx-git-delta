@@ -13,10 +13,10 @@ test('typeHandlerFactory-aura', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/aura/AuraComponent/AuraComponent.cmp'
   )
-  expect(builder).toBeInstanceOf(Lightning)
+  expect(handler).toBeInstanceOf(Lightning)
 })
 
 test('typeHandlerFactory-businessProcesses', () => {
@@ -25,10 +25,10 @@ test('typeHandlerFactory-businessProcesses', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/objects/Account/businessProcesses/awesome.businessProcesse-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-compactLayouts', () => {
@@ -37,10 +37,10 @@ test('typeHandlerFactory-compactLayouts', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/objects/Account/compactLayouts/awesome.compactLayout-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-dashboards', () => {
@@ -49,10 +49,10 @@ test('typeHandlerFactory-dashboards', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/dashboards/Folder/awesome.dashboard-meta.xml'
   )
-  expect(builder).toBeInstanceOf(InFolder)
+  expect(handler).toBeInstanceOf(InFolder)
 })
 
 test('typeHandlerFactory-documents', () => {
@@ -61,10 +61,10 @@ test('typeHandlerFactory-documents', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/documents/Folder/awesome.document-meta.xml'
   )
-  expect(builder).toBeInstanceOf(InFolder)
+  expect(handler).toBeInstanceOf(InFolder)
 })
 
 test('typeHandlerFactory-fieldSets', () => {
@@ -73,10 +73,10 @@ test('typeHandlerFactory-fieldSets', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/fieldSets/awesome.fieldSet-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-fields', () => {
@@ -85,10 +85,10 @@ test('typeHandlerFactory-fields', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/fields/awesome.field-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-listViews', () => {
@@ -97,10 +97,10 @@ test('typeHandlerFactory-listViews', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/listViews/awesome.listView-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-lwc', () => {
@@ -109,10 +109,10 @@ test('typeHandlerFactory-lwc', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/lwc/LightningWebComponent/LightningWebComponent.js'
   )
-  expect(builder).toBeInstanceOf(Lightning)
+  expect(handler).toBeInstanceOf(Lightning)
 })
 
 test('typeHandlerFactory-recordTypes', () => {
@@ -121,10 +121,10 @@ test('typeHandlerFactory-recordTypes', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/recordTypes/awesome.recordType-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-reportTypes', () => {
@@ -133,10 +133,10 @@ test('typeHandlerFactory-reportTypes', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/reportTypes/awesome.reportType-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-reports', () => {
@@ -145,10 +145,10 @@ test('typeHandlerFactory-reports', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/reports/Folder/awesome.report-meta.xml'
   )
-  expect(builder).toBeInstanceOf(InFolder)
+  expect(handler).toBeInstanceOf(InFolder)
 })
 
 test('typeHandlerFactory-sharingReasons', () => {
@@ -157,10 +157,10 @@ test('typeHandlerFactory-sharingReasons', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/sharingReasons/awesome.sharingReason-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-staticresources', () => {
@@ -169,10 +169,10 @@ test('typeHandlerFactory-staticresources', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/staticresources/resourceName.resource-meta.xml'
   )
-  expect(builder).toBeInstanceOf(InResource)
+  expect(handler).toBeInstanceOf(InResource)
 })
 
 test('typeHandlerFactory-validationRules', () => {
@@ -181,10 +181,10 @@ test('typeHandlerFactory-validationRules', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/validationRules/awesome.validationRule-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-webLinks', () => {
@@ -193,10 +193,10 @@ test('typeHandlerFactory-webLinks', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander(
+  const handler = typeHandlerFactory.getTypeHander(
     'A       force-app/main/default/Account/webLinks/awesome.webLink-meta.xml'
   )
-  expect(builder).toBeInstanceOf(SubCustomObject)
+  expect(handler).toBeInstanceOf(SubCustomObject)
 })
 
 test('typeHandlerFactory-other', () => {
@@ -205,6 +205,6 @@ test('typeHandlerFactory-other', () => {
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander('')
-  expect(builder).toBeInstanceOf(Standard)
+  const handler = typeHandlerFactory.getTypeHander('')
+  expect(handler).toBeInstanceOf(Standard)
 })
