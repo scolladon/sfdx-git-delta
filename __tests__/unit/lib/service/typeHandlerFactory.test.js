@@ -7,57 +7,199 @@ const InFolder = require('../../../../lib/service/inFolderHandler')
 const Standard = require('../../../../lib/service/standardHandler')
 const TypeHandlerFactory = require('../../../../lib/service/typeHandlerFactory')
 
-test('typeHandlerFactory-SubCustomObject', () => {
+test('typeHandlerFactory-aura', () => {
   const typeHandlerFactory = new TypeHandlerFactory({
     config: {},
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander('')
-  expect(builder).toBeInstanceOf(SubCustomObject)
-})
-
-test('typeHandlerFactory-InResource', () => {
-  const typeHandlerFactory = new TypeHandlerFactory({
-    config: {},
-    diffs: {},
-    promises: [],
-  })
-  const builder = typeHandlerFactory.getTypeHander('')
-  expect(builder).toBeInstanceOf(InResource)
-})
-
-test('typeHandlerFactory-Lightning', () => {
-  const typeHandlerFactory = new TypeHandlerFactory({
-    config: {},
-    diffs: {},
-    promises: [],
-  })
-  const builder = typeHandlerFactory.getTypeHander('')
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/aura/AuraComponent/AuraComponent.cmp'
+  )
   expect(builder).toBeInstanceOf(Lightning)
 })
 
-test('typeHandlerFactory-InFolder', () => {
+test('typeHandlerFactory-businessProcesses', () => {
   const typeHandlerFactory = new TypeHandlerFactory({
     config: {},
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander('')
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/objects/Account/businessProcesses/awesome.businessProcesse-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-compactLayouts', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/objects/Account/compactLayouts/awesome.compactLayout-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-dashboards', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/dashboards/Folder/awesome.dashboard-meta.xml'
+  )
   expect(builder).toBeInstanceOf(InFolder)
 })
 
-test('typeHandlerFactory-Standard', () => {
+test('typeHandlerFactory-documents', () => {
   const typeHandlerFactory = new TypeHandlerFactory({
     config: {},
     diffs: {},
     promises: [],
   })
-  const builder = typeHandlerFactory.getTypeHander('')
-  expect(builder).toBeInstanceOf(Standard)
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/documents/Folder/awesome.document-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(InFolder)
 })
 
-test('permissionHandlerFactory-unknown', () => {
+test('typeHandlerFactory-fieldSets', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/fieldSets/awesome.fieldSet-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-fields', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/fields/awesome.field-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-listViews', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/listViews/awesome.listView-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-lwc', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/lwc/LightningWebComponent/LightningWebComponent.js'
+  )
+  expect(builder).toBeInstanceOf(Lightning)
+})
+
+test('typeHandlerFactory-recordTypes', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/recordTypes/awesome.recordType-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-reportTypes', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/reportTypes/awesome.reportType-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-reports', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/reports/Folder/awesome.report-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(InFolder)
+})
+
+test('typeHandlerFactory-sharingReasons', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/sharingReasons/awesome.sharingReason-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-staticresources', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/staticresources/resourceName.resource-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(InResource)
+})
+
+test('typeHandlerFactory-validationRules', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/validationRules/awesome.validationRule-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-webLinks', () => {
+  const typeHandlerFactory = new TypeHandlerFactory({
+    config: {},
+    diffs: {},
+    promises: [],
+  })
+  const builder = typeHandlerFactory.getTypeHander(
+    'A       force-app/main/default/Account/webLinks/awesome.webLink-meta.xml'
+  )
+  expect(builder).toBeInstanceOf(SubCustomObject)
+})
+
+test('typeHandlerFactory-other', () => {
   const typeHandlerFactory = new TypeHandlerFactory({
     config: {},
     diffs: {},
