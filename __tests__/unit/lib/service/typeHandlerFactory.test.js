@@ -37,7 +37,7 @@ describe('the type handler factory', () => {
     [InResource, ['staticresources']],
     [Standard, ['objects']],
   ])('give %p handler', (handler, types) => {
-    test.each(types)('for %s', type => {
+    test.each(types)('for %s folder', type => {
       expect(
         typeHandlerFactory.getTypeHander(
           `Z       force-app/main/default/${type}/folder/file`
