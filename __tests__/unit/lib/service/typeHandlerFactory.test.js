@@ -8,8 +8,6 @@ const Standard = require('../../../../lib/service/standardHandler')
 const TypeHandlerFactory = require('../../../../lib/service/typeHandlerFactory')
 
 describe('the type handler factory', () => {
-  const pathTemplate = type =>
-    `Z       force-app/main/default/${type}/folder/file`
   let typeHandlerFactory
   beforeAll(() => {
     typeHandlerFactory = new TypeHandlerFactory({
@@ -18,27 +16,33 @@ describe('the type handler factory', () => {
       promises: [],
     })
   })
-  test.each([
-    [Lightning, 'aura'],
-    [SubCustomObject, 'businessProcesses'],
-    [SubCustomObject, 'compactLayouts'],
-    [InFolder, 'dashboards'],
-    [InFolder, 'documents'],
-    [SubCustomObject, 'fieldSets'],
-    [SubCustomObject, 'fields'],
-    [SubCustomObject, 'listViews'],
-    [Lightning, 'lwc'],
-    [SubCustomObject, 'recordTypes'],
-    [SubCustomObject, 'reportTypes'],
-    [InFolder, 'reports'],
-    [SubCustomObject, 'sharingReasons'],
-    [InResource, 'staticresources'],
-    [SubCustomObject, 'validationRules'],
-    [SubCustomObject, 'webLinks'],
-    [Standard, 'objects'],
-  ])('give %o handler for %s', (handler, type) => {
-    expect(typeHandlerFactory.getTypeHander(pathTemplate(type))).toBeInstanceOf(
-      handler
-    )
+  describe.each([
+    [Lightning, ['aura', 'lwc']],
+    [
+      SubCustomObject,
+      [
+        'businessProcesses',
+        'compactLayouts',
+        'fieldSets',
+        'fields',
+        'listViews',
+        'recordTypes',
+        'reportTypes',
+        'sharingReasons',
+        'validationRules',
+        'webLinks',
+      ],
+    ],
+    [InFolder, ['dashboards', 'documents', 'reports']],
+    [InResource, ['staticresources']],
+    [Standard, ['objects']],
+  ])('give %p handler', (handler, types) => {
+    test.each(types)('for %s', type => {
+      expect(
+        typeHandlerFactory.getTypeHander(
+          `Z       force-app/main/default/${type}/folder/file`
+        )
+      ).toBeInstanceOf(handler)
+    })
   })
 })
