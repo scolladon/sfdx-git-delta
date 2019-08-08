@@ -1,8 +1,10 @@
-# sfdx-git-delta
+[![NPM](https://nodei.co/npm/sfdx-git-delta.png)](https://nodei.co/npm/sfdx-git-delta/) [![HitCount](http://hits.dwyl.com/scolladon/sfdx-git-delta.svg)](http://hits.dwyl.com/scolladon/sfdx-git-delta)
+
+# sfdx-git-delta [![Build Status](https://travis-ci.org/scolladon/sfdx-git-delta.svg?branch=master)](https://travis-ci.org/scolladon/sfdx-git-delta) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Coverage Status](https://coveralls.io/repos/github/scolladon/sfdx-git-delta/badge.svg?branch=master)](https://coveralls.io/github/scolladon/sfdx-git-delta?branch=master) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
 
 Generate the sfdx content in source format and destructive change from two git commits
 
-## Getting Started
+## Getting Started [![npm version](https://badge.fury.io/js/sfdx-git-delta.svg)](https://badge.fury.io/js/sfdx-git-delta)
 
 Works in Unix like system.
 Windows is not tested.
@@ -53,20 +55,19 @@ $ sgd -h
   }, console.log);
 ```
 
+## Built With [![dependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/status.svg)](https://david-dm.org/scolladon/sfdx-git-delta) [![devDependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/dev-status.svg)](https://david-dm.org/scolladon/sfdx-git-delta?type=dev)
 
-## Built With
-
-* [commander](https://github.com/tj/commander.js/) - The complete solution for node.js command-line interfaces, inspired by Ruby's commander.
-* [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) - An XML builder for node.js similar to java-xmlbuilder.
-* [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
+- [commander](https://github.com/tj/commander.js/) - The complete solution for node.js command-line interfaces, inspired by Ruby's commander.
+- [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) - An XML builder for node.js similar to java-xmlbuilder.
+- [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 
 ## Versioning
 
 [SemVer](http://semver.org/) is used for versioning.
 
-## Authors
+## Authors [![Join the chat at https://gitter.im/scolladon/sfdx-git-delta](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dwyl/?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-* **Sebastien Colladon** - *Initial work* - [scolladon](https://github.com/scolladon)
+- **Sebastien Colladon** - _Initial work_ - [scolladon](https://github.com/scolladon)
 
 ## License
 
