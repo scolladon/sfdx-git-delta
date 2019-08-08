@@ -2,4 +2,4 @@ package-lock.json
 .next
 node_modules
 output
-coverage
+__tests__/__coverage__

@@ -1,2 +1,2 @@
 output
-coverage
+__tests__/__coverage__

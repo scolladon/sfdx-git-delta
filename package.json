@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
-    "coveralls": "jest --coverage && cat ./tests/coverage/lcov.info | coveralls",
+    "coveralls": "npm run test:coverage && cat ./__tests__/__coverage__/lcov.info | coveralls",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint:fix": "eslint --fix .",
