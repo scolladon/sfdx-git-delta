@@ -51,10 +51,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint:fix": "eslint --fix .",
-    "lint": "eslint .",
-    "postversion": "git push && git push --tags",
-    "prepublishOnly": "npm ci",
-    "preversion": "npm ci"
+    "lint": "eslint ."
   },
   "devDependencies": {
     "coveralls": "^3.0.6",
