@@ -47,12 +47,17 @@
   },
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
+    "coveralls": "jest --coverage && cat ./tests/coverage/lcov.info | coveralls",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint:fix": "eslint --fix .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postversion": "git push && git push --tags",
+    "prepublishOnly": "npm ci",
+    "preversion": "npm ci"
   },
   "devDependencies": {
+    "coveralls": "^3.0.6",
     "eslint": "^6.1.0",
     "eslint-config-prettier": "^6.0.0",
     "eslint-plugin-prettier": "^3.1.0",
@@ -62,5 +67,8 @@
     "mock-spawn": "^0.2.6",
     "prettier": "^1.18.2",
     "prettier-eslint": "^9.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
