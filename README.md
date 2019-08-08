@@ -67,7 +67,8 @@ $ sgd -h
 
 ## Authors [![Join the chat at https://gitter.im/scolladon/sfdx-git-delta](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dwyl/?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-- **Sebastien Colladon** - _Initial work_ - [scolladon](https://github.com/scolladon)
+- **Sebastien Colladon** - Developer - [scolladon](https://github.com/scolladon)
+- **Mehdi Cherfaoui** - Tester - [mehdisfdc](https://github.com/mehdisfdc)
 
 ## License
 
