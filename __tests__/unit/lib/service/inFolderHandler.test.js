@@ -1,5 +1,6 @@
 'use strict'
 const InFolder = require('../../../../lib/service/inFolderHandler')
+jest.mock('fs')
 
 const testContext = {
   handler: InFolder,
@@ -17,4 +18,5 @@ const testContext = {
   },
 }
 
+// eslint-disable-next-line no-undef
 testHandlerHelper(testContext)

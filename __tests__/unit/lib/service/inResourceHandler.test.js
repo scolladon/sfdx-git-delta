@@ -1,15 +1,15 @@
 'use strict'
 const InResource = require('../../../../lib/service/inResourceHandler')
-
-// TODO follow tuto here
+jest.mock('fs')
+jest.mock('fs-extra')
 
 const testContext = {
   handler: InResource,
   testData: [
     [
       'staticresources',
-      'force-app/main/default/staticresources/resource.resource-meta.xml',
-      {},
+      'force-app/main/default/staticresources/test/content',
+      new Set(['test']),
     ],
   ],
   work: {
@@ -19,4 +19,14 @@ const testContext = {
   },
 }
 
-testHandlerHelper(testContext)
+// eslint-disable-next-line no-undef
+describe('test inResourceHandler', () => {
+  beforeAll(() => {
+    require('fs').__setMockFiles({
+      'force-app/main/default/staticresources/test/content': 'test',
+    })
+  })
+
+  // eslint-disable-next-line no-undef
+  testHandlerHelper(testContext)
+})

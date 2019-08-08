@@ -1,5 +1,6 @@
 'use strict'
 const Lightning = require('../../../../lib/service/lightningHandler')
+jest.mock('fs')
 
 const testContext = {
   handler: Lightning,
@@ -22,4 +23,5 @@ const testContext = {
   },
 }
 
+// eslint-disable-next-line no-undef
 testHandlerHelper(testContext)

@@ -1,10 +1,9 @@
 'use strict'
-const InResource = require('../../../../lib/service/inResourceHandler')
-
-// TODO follow tuto here
+const StandardHandler = require('../../../../lib/service/standardHandler')
+jest.mock('fs')
 
 const testContext = {
-  handler: InResource,
+  handler: StandardHandler,
   testData: [
     [
       'objects',
@@ -19,4 +18,5 @@ const testContext = {
   },
 }
 
+// eslint-disable-next-line no-undef
 testHandlerHelper(testContext)

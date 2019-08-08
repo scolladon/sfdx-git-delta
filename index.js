@@ -10,7 +10,6 @@ module.exports = config => {
   return new Promise((resolve, reject) => {
     if (
       typeof config.to !== 'string' ||
-      typeof config.from !== 'string' ||
       typeof config.apiVersion !== 'string' ||
       typeof config.output !== 'string' ||
       typeof config.repo !== 'string'
