@@ -20,7 +20,7 @@ script:
   - npm run lint:fix
   - npm run test:coverage
 after_script:
-  - ./cc-test-reporter after-build
+  - ./cc-test-reporter after-build -t lcov
 deploy:
   provider: npm
   email: '$NPM_EMAIL'

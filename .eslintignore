@@ -1,4 +1,4 @@
 node_modules
 .next
 output
-__tests__/__coverage__
+coverage

@@ -4,15 +4,15 @@ engines:
     enabled: true
     config:
       languages:
-      - javascript
+        - javascript
   eslint:
     enabled: true
   fixme:
     enabled: true
 ratings:
   paths:
-  - "**.js"
+    - '**.js'
 exclude_paths:
-- node_modules/**/*
-- __tests__/**/*
-- __mpcks__/**/*
+  - node_modules/**/*
+  - __tests__/**/*
+  - __mocks__/**/*
