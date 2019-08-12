@@ -6,15 +6,21 @@ branches:
   only:
     - master
     - /^v[0-9]+.*$/
+    - code-quality
 cache:
   directories:
     - node_modules
 install:
   - npm ci
 before_script:
-  - npm run lint:fix
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 script:
-  - npm run coveralls
+  - npm run lint:fix
+  - npm run test:coverage
+after_script:
+  - ./cc-test-reporter after-build
 deploy:
   provider: npm
   email: '$NPM_EMAIL'
