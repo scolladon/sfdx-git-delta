@@ -6,7 +6,6 @@ branches:
   only:
     - master
     - /^v[0-9]+.*$/
-    - code-quality
 cache:
   directories:
     - node_modules
