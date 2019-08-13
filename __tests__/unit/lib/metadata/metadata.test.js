@@ -1,5 +1,5 @@
 'use strict'
-const metadata = require('../../../../lib/metadata/v46')
+const metadata = require('../../../../lib/metadata/metadata')
 
 describe(`test if metadata`, () => {
   test('when grouped per directoryName, have classes', () => {
