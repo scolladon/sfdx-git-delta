@@ -19,11 +19,7 @@ describe(`test if the appli`, () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     await expect(
       app({ output: '', repo: '', apiVersion: '46.0' })
-    ).rejects.toStrictEqual(
-      new Error(
-        `Not enough parameter. Execute -h to better understand how to execute`
-      )
-    )
+    ).rejects.toStrictEqual(new Error(`Not enough parameter`))
   })
 
   test('can execute with simple parameters and an Addition', async () => {
