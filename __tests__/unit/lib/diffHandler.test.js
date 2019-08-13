@@ -16,7 +16,8 @@ describe(`test if diffHandler`, () => {
 
   test('can parse git correctly', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
-    await expect(diffHandler.diff()).resolves.toStrictEqual({})
+    const work = await diffHandler.diff()
+    expect(work.diffs).toStrictEqual({})
   })
 
   test('can resolve destructive change', async () => {
@@ -26,8 +27,8 @@ describe(`test if diffHandler`, () => {
         'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
       )
     )
-
-    await expect(diffHandler.diff()).resolves.toMatchObject({
+    const work = await diffHandler.diff()
+    expect(work.diffs).toMatchObject({
       fields: new Set(['Account.awesome']),
     })
   })
@@ -39,8 +40,8 @@ describe(`test if diffHandler`, () => {
         'A      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
       )
     )
-
-    await expect(diffHandler.diff()).resolves.toStrictEqual({})
+    const work = await diffHandler.diff()
+    expect(work.diffs).toStrictEqual({})
   })
 
   test('can resolve file copy when file is modified', async () => {
@@ -50,14 +51,18 @@ describe(`test if diffHandler`, () => {
         'M      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
       )
     )
-
-    await expect(diffHandler.diff()).resolves.toStrictEqual({})
+    const work = await diffHandler.diff()
+    expect(work.diffs).toStrictEqual({})
   })
 
   test('can reject in case of error', async () => {
     const expected = 'Test Error'
     mySpawn.setDefault(mySpawn.simple(1, null, expected))
 
-    await expect(diffHandler.diff()).rejects.toBe(expected)
+    try {
+      await diffHandler.diff()
+    } catch (e) {
+      expect(e).toBe(expected)
+    }
   })
 })

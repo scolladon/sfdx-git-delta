@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-'use strict';
+'use strict'
 
-const program = require('commander');
-const orchestrator = require('../index.js');
-const pjson = require('../package.json');
+const program = require('commander')
+const orchestrator = require('../index.js')
+const pjson = require('../package.json')
 
 program
   .description(pjson.description)
@@ -13,10 +13,15 @@ program
   .option('-o, --output [dir]', 'source package specific output [./output]', './output')
   .option('-a, --api-version [version]', 'salesforce API version [46.0]', '46.0')
   .option('-r, --repo [dir]', 'git repository location [./repo]', './repo')
-  .parse(process.argv);
+  .parse(process.argv)
 
 orchestrator(program)
-.then(res=>console.log(`check ${program.output}`))
-.catch(err =>{
-  console.error(`Error terminating the process during sfdx-git-delta : ${err.message}`)
-});
+  .then(qwaks => {
+    qwaks.forEach(qwak => console.log(qwak.message))
+    console.log(`check ${program.output}`)
+  })
+  .catch(err => {
+    console.error(
+      `Error terminating the process during sfdx-git-delta : ${err.message}`
+    )
+  })

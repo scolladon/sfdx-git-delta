@@ -21,10 +21,10 @@ module.exports = config => {
     const diffHandler = new DiffHandler(config)
     diffHandler
       .diff()
-      .then(destructiveChangesJson =>
-        Promise.all(treatPackages(destructiveChangesJson, config))
+      .then(work =>
+        Promise.all(treatPackages(work.diffs, config)).then(() => work)
       )
-      .then(() => resolve())
+      .then(work => resolve(work.qwaks))
       .catch(err => reject(err))
   })
 }

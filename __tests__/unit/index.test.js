@@ -12,7 +12,7 @@ describe(`test if the appli`, () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     await expect(
       app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
-    ).resolves.toBeUndefined()
+    ).resolves.toStrictEqual([])
   })
 
   test('throw errors when parameters are not filled', async () => {
@@ -31,7 +31,7 @@ describe(`test if the appli`, () => {
     )
     await expect(
       app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
-    ).resolves.toBeUndefined()
+    ).resolves.toStrictEqual([])
   })
 
   test('can execute with simple parameters and a Deletion', async () => {
@@ -43,7 +43,7 @@ describe(`test if the appli`, () => {
     )
     await expect(
       app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
-    ).resolves.toBeUndefined()
+    ).resolves.toStrictEqual([])
   })
 
   test('can execute with simple parameters and a Modification', async () => {
@@ -55,6 +55,6 @@ describe(`test if the appli`, () => {
     )
     await expect(
       app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
-    ).resolves.toBeUndefined()
+    ).resolves.toStrictEqual([])
   })
 })

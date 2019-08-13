@@ -33,6 +33,6 @@ describe(`test if the appli`, () => {
         to: 'test',
         apiVersion: '46.0',
       })
-    ).resolves.toBeUndefined()
+    ).resolves.toStrictEqual([])
   })
 })
