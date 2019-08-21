@@ -50,7 +50,7 @@ $ sgd -h
     'to':'', // commit sha to where the diff is done. Default : HEAD
     'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
     'output':'', // source package specific output. Default : ./output
-    'apiVersion':'', // salesforce API version. Default : 46.0
+    'apiVersion':'', // salesforce API version. Default : 46
     'repo':'' // git repository location. Default : ./repo
   }, console.log);
 ```

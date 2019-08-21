@@ -31,7 +31,7 @@ describe(`test if the appli`, () => {
         output: 'output/',
         repo: 'repo/path',
         to: 'test',
-        apiVersion: '46.0',
+        apiVersion: '46',
       })
     ).resolves.toStrictEqual([])
   })

@@ -19,7 +19,12 @@ fs.__setMockFiles = newMockFiles => {
   }
 }
 
-fs.readdirSync = directoryPath => mockFiles[directoryPath] || []
+fs.readdirSync = directoryPath => {
+  if (directoryPath.endsWith('metadata')) {
+    return ['v46.json']
+  }
+  return mockFiles[directoryPath] || []
+}
 
 fs.existsSync = filePath => filePathList.has(filePath)
 

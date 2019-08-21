@@ -11,14 +11,14 @@ describe(`test if the appli`, () => {
   test('can execute with simple parameters and no diff', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
+      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 
   test('throw errors when parameters are not filled', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     await expect(
-      app({ output: '', repo: '', apiVersion: '46.0' })
+      app({ output: '', repo: '', apiVersion: '46' })
     ).rejects.toStrictEqual(new Error(`Not enough parameter`))
   })
 
@@ -30,7 +30,7 @@ describe(`test if the appli`, () => {
       )
     )
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
+      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 
@@ -42,7 +42,7 @@ describe(`test if the appli`, () => {
       )
     )
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
+      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 
@@ -54,7 +54,7 @@ describe(`test if the appli`, () => {
       )
     )
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46.0' })
+      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 })

@@ -1,7 +1,7 @@
 'use strict'
 const PackageConstructor = require('../../../lib/packageConstructor')
 
-const options = { apiVersion: '46.0' }
+const options = { apiVersion: '46' }
 const tests = [
   [
     'Object',
@@ -12,7 +12,7 @@ const tests = [
         <members>Object</members>
         <name>CustomObject</name>
     </types>
-    <version>${options.apiVersion}</version>
+    <version>${options.apiVersion}.0</version>
 </Package>`,
   ],
   [
@@ -20,7 +20,7 @@ const tests = [
     {},
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <version>${options.apiVersion}</version>
+    <version>${options.apiVersion}.0</version>
 </Package>`,
   ],
   [
@@ -54,7 +54,7 @@ const tests = [
         <members>Object</members>
         <name>CustomObject</name>
     </types>
-    <version>${options.apiVersion}</version>
+    <version>${options.apiVersion}.0</version>
 </Package>`,
   ],
 ]
