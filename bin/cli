@@ -26,8 +26,6 @@ program
   .option('-r, --repo [dir]', 'git repository location [./repo]', './repo')
   .parse(process.argv)
 
-// TODO Validate the format for appi-version file.match(/\d+/)[0]
-
 orchestrator(program)
   .then(qwaks => {
     qwaks.forEach(qwak => console.log(qwak.message))
