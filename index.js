@@ -13,11 +13,10 @@ const checkConfig = config => {
   if (typeof config.to !== 'string') {
     errors.push(`to ${config.to} is not a sha`)
   }
-  if (typeof config.apiVersion !== 'string' && isNaN(config.apiVersion)) {
+  if (isNaN(config.apiVersion)) {
     errors.push(`api-version ${config.apiVersion} is not a number`)
   }
   if (
-    typeof config.output !== 'string' ||
     !fs.existsSync(config.output) ||
     !fs.statSync(config.output).isDirectory()
   ) {
