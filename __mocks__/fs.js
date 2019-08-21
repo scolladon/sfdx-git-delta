@@ -28,6 +28,12 @@ fs.readdirSync = directoryPath => {
 
 fs.existsSync = filePath => filePathList.has(filePath)
 
+fs.statSync = () => ({
+  isDirectory() {
+    return true
+  },
+})
+
 fs.writeFile = (_filePath, _content, _encoding, cb) =>
   errorMode ? cb(new Error()) : cb(null)
 

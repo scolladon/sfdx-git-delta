@@ -39,6 +39,7 @@
   "dependencies": {
     "commander": "^2.20.0",
     "fs-extra": "^8.1.0",
+    "git-state": "^4.1.0",
     "xmlbuilder": "^13.0.2"
   },
   "license": "MIT",

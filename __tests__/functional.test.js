@@ -24,11 +24,16 @@ const lines = [
 ]
 
 describe(`test if the appli`, () => {
+  beforeAll(() => {
+    require('fs').__setMockFiles({
+      output: '',
+    })
+  })
   test('can execute with rich parameters and big diff', async () => {
     mySpawn.setDefault(mySpawn.simple(0, lines.join(os.EOL)))
     await expect(
       app({
-        output: 'output/',
+        output: 'output',
         repo: 'repo/path',
         to: 'test',
         apiVersion: '46',

@@ -8,18 +8,24 @@ const mySpawn = require('mock-spawn')()
 require('child_process').spawn = mySpawn
 
 describe(`test if the appli`, () => {
+  beforeAll(() => {
+    require('fs').__setMockFiles({
+      output: '',
+    })
+  })
+
   test('can execute with simple parameters and no diff', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
+      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 
   test('throw errors when parameters are not filled', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     await expect(
-      app({ output: '', repo: '', apiVersion: '46' })
-    ).rejects.toStrictEqual(new Error(`Not enough parameter`))
+      app({ output: 'output', repo: '', apiVersion: '46' })
+    ).rejects.toBeTruthy()
   })
 
   test('can execute with simple parameters and an Addition', async () => {
@@ -30,7 +36,7 @@ describe(`test if the appli`, () => {
       )
     )
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
+      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 
@@ -42,7 +48,7 @@ describe(`test if the appli`, () => {
       )
     )
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
+      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 
@@ -54,7 +60,7 @@ describe(`test if the appli`, () => {
       )
     )
     await expect(
-      app({ output: '', repo: '', to: 'test', apiVersion: '46' })
+      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
   })
 })
