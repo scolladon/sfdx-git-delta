@@ -5,6 +5,7 @@ global.testHandlerHelper = testContext => {
     describe.each(testContext.testData)(
       'handles',
       (type, changePath, expected) => {
+        beforeEach(() => (testContext.work.diffs = {}))
         test('addition', () => {
           const handler = new testContext.handler(
             `A       ${changePath}`,

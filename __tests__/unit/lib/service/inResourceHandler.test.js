@@ -11,6 +11,16 @@ const testContext = {
       'force-app/main/default/staticresources/test/content',
       new Set(['test']),
     ],
+    [
+      'staticresources',
+      'force-app/main/default/staticresources/resource.js',
+      new Set(['resource']),
+    ],
+    [
+      'staticresources',
+      'force-app/main/default/staticresources/erase.resource-meta.xml',
+      new Set(['erase']),
+    ],
   ],
   work: {
     config: { output: '', repo: '' },
@@ -24,6 +34,8 @@ describe('test inResourceHandler', () => {
   beforeAll(() => {
     require('fs').__setMockFiles({
       'force-app/main/default/staticresources/test/content': 'test',
+      'force-app/main/default/staticresources/resource.resource-meta.xml':
+        'resource',
     })
   })
 
