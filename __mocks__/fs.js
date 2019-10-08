@@ -34,6 +34,8 @@ fs.statSync = () => ({
   },
 })
 
+fs.readFileSync = () => '<type>MasterDetail</type>'
+
 fs.writeFile = (_filePath, _content, _encoding, cb) =>
   errorMode ? cb(new Error()) : cb(null)
 
