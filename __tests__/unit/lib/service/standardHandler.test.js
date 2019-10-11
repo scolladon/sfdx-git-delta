@@ -7,7 +7,7 @@ const testContext = {
   testData: [
     [
       'objects',
-      'force-app/main/default/objects/Account.object-meta.xml',
+      'force-app/main/default/objects/Account/Account.object-meta.xml',
       new Set(['Account']),
     ],
   ],
