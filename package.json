@@ -21,7 +21,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged",
+      "pre-commit": "lint-staged && npm run analysis",
       "pre-push": "npm run test:coverage"
     }
   },
@@ -51,7 +51,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint:fix": "eslint --fix .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "analysis": "codeclimate analyze"
   },
   "devDependencies": {
     "eslint": "^6.1.0",

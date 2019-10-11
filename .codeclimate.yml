@@ -17,3 +17,5 @@ exclude_paths:
   - node_modules/**/*
   - __tests__/**/*
   - __mocks__/**/*
+  - output/**/*
+  - coverage/**/*
