@@ -9,12 +9,9 @@ fs.__setMockFiles = newMockFiles => {
   mockFiles = {}
   filePathList = new Set()
   for (const file in newMockFiles) {
-    filePathList.add(file)
+    filePathList.add(path.basename(file))
     const dir = path.basename(path.dirname(file))
-
-    if (!mockFiles[dir]) {
-      mockFiles[dir] = mockFiles[dir] || []
-    }
+    mockFiles[dir] = mockFiles[dir] || []
     mockFiles[dir].push(path.basename(file))
   }
 }
@@ -23,10 +20,10 @@ fs.readdirSync = directoryPath => {
   if (directoryPath.endsWith('metadata')) {
     return ['v46.json']
   }
-  return mockFiles[path.basename(path.dirname(directoryPath))] || []
+  return mockFiles[path.basename(directoryPath)] || []
 }
 
-fs.existsSync = filePath => filePathList.has(filePath)
+fs.existsSync = filePath => filePathList.has(path.basename(filePath))
 
 fs.statSync = () => ({
   isDirectory() {
