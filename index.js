@@ -5,8 +5,9 @@ const FileUtils = require('./lib/utils/fileUtils')
 const git = require('git-state')
 const fs = require('fs')
 
-const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges.xml'
-const PACKAGE_FILE_NAME = 'package.xml'
+const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
+const PACKAGE_FILE_NAME = 'package'
+const XML_FILE_EXTENSION = 'xml'
 
 const checkConfig = config => {
   const errors = []
@@ -51,19 +52,11 @@ module.exports = config => {
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
   const fu = new FileUtils(config)
-  return [
+  return [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
     pc
-      .constructPackage(dcJson)
-      .then(destructiveChangesContent =>
-        fu.writeChangesAsync(
-          destructiveChangesContent,
-          DESTRUCTIVE_CHANGES_FILE_NAME
-        )
-      ),
-    pc
-      .constructPackage({})
-      .then(emptyPackageContent =>
-        fu.writeChangesAsync(emptyPackageContent, PACKAGE_FILE_NAME)
-      ),
-  ]
+      .constructPackage(dcJson[op])
+      .then(content =>
+        fu.writeChangesAsync(content, `${op}.${XML_FILE_EXTENSION}`)
+      )
+  )
 }

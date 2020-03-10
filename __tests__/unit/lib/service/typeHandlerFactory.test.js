@@ -12,7 +12,7 @@ describe('the type handler factory', () => {
   beforeAll(() => {
     typeHandlerFactory = new TypeHandlerFactory({
       config: { apiVersion: '46' },
-      diffs: {},
+      diffs: { package: {}, destructiveChanges: {} },
       promises: [],
     })
   })

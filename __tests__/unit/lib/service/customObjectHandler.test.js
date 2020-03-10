@@ -14,7 +14,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '' },
-    diffs: {},
+    diffs: { package: {}, destructiveChanges: {} },
     promises: [],
   },
 }

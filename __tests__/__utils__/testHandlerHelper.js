@@ -5,7 +5,10 @@ global.testHandlerHelper = testContext => {
     describe.each(testContext.testData)(
       'handles',
       (type, changePath, expected) => {
-        beforeEach(() => (testContext.work.diffs = {}))
+        beforeEach(
+          () =>
+            (testContext.work.diffs = { package: {}, destructiveChanges: {} })
+        )
         test('addition', () => {
           const handler = new testContext.handler(
             `A       ${changePath}`,
@@ -21,7 +24,10 @@ global.testHandlerHelper = testContext => {
             testContext.work
           )
           handler.handle()
-          expect(testContext.work.diffs).toHaveProperty(type, expected)
+          expect(testContext.work.diffs.destructiveChanges).toHaveProperty(
+            type,
+            expected
+          )
         })
         test('modification', () => {
           const handler = new testContext.handler(

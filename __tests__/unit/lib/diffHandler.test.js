@@ -17,7 +17,7 @@ describe(`test if diffHandler`, () => {
   test('can parse git correctly', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
     const work = await diffHandler.diff()
-    expect(work.diffs).toStrictEqual({})
+    expect(work.diffs).toStrictEqual({ package: {}, destructiveChanges: {} })
   })
 
   test('can resolve destructive change', async () => {
@@ -29,7 +29,10 @@ describe(`test if diffHandler`, () => {
     )
     const work = await diffHandler.diff()
     expect(work.diffs).toMatchObject({
-      fields: new Set(['Account.awesome']),
+      package: {},
+      destructiveChanges: {
+        fields: new Set(['Account.awesome']),
+      },
     })
   })
 
@@ -41,7 +44,10 @@ describe(`test if diffHandler`, () => {
       )
     )
     const work = await diffHandler.diff()
-    expect(work.diffs).toStrictEqual({})
+    expect(work.diffs).toStrictEqual({
+      package: { fields: new Set(['Account.awesome']) },
+      destructiveChanges: {},
+    })
   })
 
   test('can resolve file copy when file is modified', async () => {
@@ -52,7 +58,10 @@ describe(`test if diffHandler`, () => {
       )
     )
     const work = await diffHandler.diff()
-    expect(work.diffs).toStrictEqual({})
+    expect(work.diffs).toStrictEqual({
+      package: { fields: new Set(['Account.awesome']) },
+      destructiveChanges: {},
+    })
   })
 
   test('can reject in case of error', async () => {

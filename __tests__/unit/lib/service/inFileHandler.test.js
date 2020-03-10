@@ -1,14 +1,14 @@
 'use strict'
-const SubCustomObject = require('../../../../lib/service/subCustomObjectHandler')
+const InFile = require('../../../../lib/service/inFileHandler')
 jest.mock('fs')
 
 const testContext = {
-  handler: SubCustomObject,
+  handler: InFile,
   testData: [
     [
-      'fields',
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-      new Set(['Account.awesome']),
+      'objects',
+      'force-app/main/default/workflows/Account.workflow-meta.xml',
+      new Set(['Account']),
     ],
   ],
   work: {
