@@ -1,7 +1,7 @@
 'use strict'
 const DiffHandler = require('./lib/diffHandler')
-const PackageConstructor = require('./lib/packageConstructor')
 const FileUtils = require('./lib/utils/fileUtils')
+const PackageConstructor = require('./lib/packageConstructor')
 const git = require('git-state')
 const fs = require('fs')
 
@@ -40,7 +40,7 @@ module.exports = config => {
     config.apiVersion = parseInt(config.apiVersion)
     const diffHandler = new DiffHandler(config)
     diffHandler
-      .diff()
+      .fullDiff()
       .then(work =>
         Promise.all(treatPackages(work.diffs, config)).then(() => work)
       )

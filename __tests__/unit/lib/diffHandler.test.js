@@ -16,7 +16,7 @@ describe(`test if diffHandler`, () => {
 
   test('can parse git correctly', async () => {
     mySpawn.setDefault(mySpawn.simple(0, ''))
-    const work = await diffHandler.diff()
+    const work = await diffHandler.fullDiff()
     expect(work.diffs).toStrictEqual({ package: {}, destructiveChanges: {} })
   })
 
@@ -27,7 +27,7 @@ describe(`test if diffHandler`, () => {
         'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
       )
     )
-    const work = await diffHandler.diff()
+    const work = await diffHandler.fullDiff()
     expect(work.diffs).toMatchObject({
       package: {},
       destructiveChanges: {
@@ -43,7 +43,7 @@ describe(`test if diffHandler`, () => {
         'A      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
       )
     )
-    const work = await diffHandler.diff()
+    const work = await diffHandler.fullDiff()
     expect(work.diffs).toStrictEqual({
       package: { fields: new Set(['Account.awesome']) },
       destructiveChanges: {},
@@ -57,7 +57,7 @@ describe(`test if diffHandler`, () => {
         'M      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
       )
     )
-    const work = await diffHandler.diff()
+    const work = await diffHandler.fullDiff()
     expect(work.diffs).toStrictEqual({
       package: { fields: new Set(['Account.awesome']) },
       destructiveChanges: {},
@@ -69,7 +69,7 @@ describe(`test if diffHandler`, () => {
     mySpawn.setDefault(mySpawn.simple(1, null, expected))
 
     try {
-      await diffHandler.diff()
+      await diffHandler.fullDiff()
     } catch (e) {
       expect(e).toBe(expected)
     }
