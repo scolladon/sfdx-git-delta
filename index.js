@@ -1,7 +1,10 @@
 'use strict'
-const DiffHandler = require('./lib/diffHandler')
 const FileUtils = require('./lib/utils/fileUtils')
 const PackageConstructor = require('./lib/packageConstructor')
+const TypeHandlerFactory = require('./lib/service/typeHandlerFactory')
+const repoSetup = require('./lib/utils/repoSetup')
+const repoGitDiff = require('./lib/utils/repoGitDiff')
+
 const git = require('git-state')
 const fs = require('fs')
 
@@ -32,15 +35,34 @@ const checkConfig = config => {
 }
 
 module.exports = config => {
+  const treatDiff = lines => {
+    return new Promise(resolve => {
+      const work = {
+        config: config,
+        diffs: { package: {}, destructiveChanges: {} },
+        promises: [],
+        qwaks: [],
+      }
+
+      const typeHandlerFactory = new TypeHandlerFactory(work)
+
+      lines.forEach(line => typeHandlerFactory.getTypeHander(line).handle())
+
+      Promise.all(
+        work.promises.map(promise => promise.catch(err => work.qwaks.push(err)))
+      ).then(() => resolve(work))
+    })
+  }
   return new Promise((resolve, reject) => {
     const inputError = checkConfig(config)
     if (inputError.length > 0) {
       return reject(new Error(inputError))
     }
     config.apiVersion = parseInt(config.apiVersion)
-    const diffHandler = new DiffHandler(config)
-    diffHandler
-      .fullDiff()
+    repoSetup(config)
+
+    repoGitDiff(config)
+      .then(treatDiff)
       .then(work =>
         Promise.all(treatPackages(work.diffs, config)).then(() => work)
       )
