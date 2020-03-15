@@ -905,5 +905,85 @@
     "metaFile": false,
     "suffix": "settings",
     "xmlName": "Settings"
+  },
+  {
+    "directoryName": "alerts",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowAlert",
+    "xmlTag": "alerts"
+  },
+  {
+    "directoryName": "fieldUpdates",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowFieldUpdate",
+    "xmlTag": "fieldUpdates"
+  },
+  {
+    "directoryName": "label",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomLabels",
+    "xmlName": "CustomLabel",
+    "xmlTag": "labels"
+  },
+  {
+    "directoryName": "outboundMessages",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowOutboundMessage",
+    "xmlTag": "outboundMessages"
+  },
+  {
+    "directoryName": "rules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowRule",
+    "xmlTag": "rules"
+  },
+  {
+    "directoryName": "sharingCriteriaRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingCriteriaRule",
+    "xmlTag": "sharingCriteriaRules"
+  },
+  {
+    "directoryName": "sharingGuestRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingGuestRule",
+    "xmlTag": "sharingGuestRules"
+  },
+  {
+    "directoryName": "sharingOwnerRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingOwnerRule",
+    "xmlTag": "sharingOwnerRules"
+  },
+  {
+    "directoryName": "sharingTerritoryRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingTerritoryRule",
+    "xmlTag": "sharingTerritoryRules"
+  },
+  {
+    "directoryName": "tasks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowTask",
+    "xmlTag": "tasks"
   }
 ]
