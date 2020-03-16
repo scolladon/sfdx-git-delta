@@ -1,5 +1,5 @@
 'use strict'
-const DiffHandler = require('../../../lib/diffHandler')
+const fileGitDiff = require('../../../../lib/utils/fileGitDiff')
 jest.mock('child_process')
 jest.mock('fs-extra')
 jest.mock('fs')
@@ -7,61 +7,38 @@ jest.mock('fs')
 const mySpawn = require('mock-spawn')()
 require('child_process').spawn = mySpawn
 
-describe(`test if diffHandler`, () => {
-  let diffHandler
+const TEST_PATH = 'path/to/file'
 
-  beforeEach(() => {
-    diffHandler = new DiffHandler({ output: '', repo: '' })
+describe(`test if fileGitDiff`, () => {
+  test('can parse git diff header', async () => {
+    const output = '@git diff'
+    mySpawn.setDefault(mySpawn.simple(0, output))
+    const result = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    expect(result).toStrictEqual(output)
   })
 
-  test('can parse git correctly', async () => {
-    mySpawn.setDefault(mySpawn.simple(0, ''))
-    const work = await diffHandler.fullDiff()
-    expect(work.diffs).toStrictEqual({ package: {}, destructiveChanges: {} })
+  test('can parse git diff addition', async () => {
+    const output = '+ line added'
+
+    mySpawn.setDefault(mySpawn.simple(0, output))
+    const work = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    expect(work).toStrictEqual(output)
   })
 
-  test('can resolve destructive change', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
-      )
-    )
-    const work = await diffHandler.fullDiff()
-    expect(work.diffs).toMatchObject({
-      package: {},
-      destructiveChanges: {
-        fields: new Set(['Account.awesome']),
-      },
-    })
+  test('can parse git diff deletion', async () => {
+    const output = '- line deleted'
+
+    mySpawn.setDefault(mySpawn.simple(0, output))
+    const work = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    expect(work).toStrictEqual(output)
   })
 
-  test('can resolve file copy when new file is added', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'A      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
-      )
-    )
-    const work = await diffHandler.fullDiff()
-    expect(work.diffs).toStrictEqual({
-      package: { fields: new Set(['Account.awesome']) },
-      destructiveChanges: {},
-    })
-  })
+  test('can parse git diff contexte line', async () => {
+    const output = 'context line'
 
-  test('can resolve file copy when file is modified', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'M      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
-      )
-    )
-    const work = await diffHandler.fullDiff()
-    expect(work.diffs).toStrictEqual({
-      package: { fields: new Set(['Account.awesome']) },
-      destructiveChanges: {},
-    })
+    mySpawn.setDefault(mySpawn.simple(0, output))
+    const work = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    expect(work).toStrictEqual(output)
   })
 
   test('can reject in case of error', async () => {
@@ -69,7 +46,7 @@ describe(`test if diffHandler`, () => {
     mySpawn.setDefault(mySpawn.simple(1, null, expected))
 
     try {
-      await diffHandler.fullDiff()
+      await fileGitDiff(TEST_PATH, { output: '', repo: '' })
     } catch (e) {
       expect(e).toBe(expected)
     }
