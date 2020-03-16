@@ -7,7 +7,7 @@ jest.mock('fs')
 const mySpawn = require('mock-spawn')()
 require('child_process').spawn = mySpawn
 
-describe(`test if diffHandler`, () => {
+describe(`test if repoGitDiff`, () => {
   test('can parse git correctly', async () => {
     const output = []
     mySpawn.setDefault(mySpawn.simple(0, ''))
@@ -15,7 +15,7 @@ describe(`test if diffHandler`, () => {
     expect(work).toStrictEqual(output)
   })
 
-  test('can resolve destructive change', async () => {
+  test('can resolve deletion', async () => {
     const output = [
       'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
