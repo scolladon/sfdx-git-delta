@@ -69,4 +69,9 @@ describe(`test if package constructor`, () => {
       )
     }
   )
+  test('can handle null diff', async () => {
+    await expect(packageConstructor.constructPackage(null)).resolves.toBe(
+      undefined
+    )
+  })
 })

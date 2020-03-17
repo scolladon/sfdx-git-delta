@@ -25,9 +25,9 @@ fs.readdirSync = directoryPath => {
 
 fs.existsSync = filePath => filePathList.has(path.basename(filePath))
 
-fs.statSync = () => ({
+fs.statSync = elem => ({
   isDirectory() {
-    return true
+    return elem !== 'file'
   },
 })
 
