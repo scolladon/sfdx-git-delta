@@ -46,7 +46,7 @@ module.exports = config => {
 
       const typeHandlerFactory = new TypeHandlerFactory(work)
 
-      lines.forEach(line => typeHandlerFactory.getTypeHander(line).handle())
+      lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
 
       Promise.all(
         work.promises.map(promise => promise.catch(err => work.qwaks.push(err)))

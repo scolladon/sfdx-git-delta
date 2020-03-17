@@ -39,7 +39,7 @@ describe('the type handler factory', () => {
   ])('give %p handler', (handler, types) => {
     test.each(types)('for %s folder', type => {
       expect(
-        typeHandlerFactory.getTypeHander(
+        typeHandlerFactory.getTypeHandler(
           `Z       force-app/main/default/${type}/folder/file`
         )
       ).toBeInstanceOf(handler)
