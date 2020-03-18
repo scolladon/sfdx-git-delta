@@ -1,5 +1,7 @@
 'use strict'
+const metadataManager = require('../../lib/metadata/metadataManager')
 
+global.globalMetadata = metadataManager.getDefinition('directoryName', 48)
 global.testHandlerHelper = testContext => {
   describe(`test if ${testContext.handler.name}`, () => {
     describe.each(testContext.testData)(
@@ -13,7 +15,9 @@ global.testHandlerHelper = testContext => {
           const handler = new testContext.handler(
             `A       ${changePath}`,
             type,
-            testContext.work
+            testContext.work,
+            // eslint-disable-next-line no-undef
+            globalMetadata
           )
           handler.handle()
         })
@@ -21,7 +25,9 @@ global.testHandlerHelper = testContext => {
           const handler = new testContext.handler(
             `D       ${changePath}`,
             type,
-            testContext.work
+            testContext.work,
+            // eslint-disable-next-line no-undef
+            globalMetadata
           )
           handler.handle()
           expect(testContext.work.diffs.destructiveChanges).toHaveProperty(
@@ -33,7 +39,9 @@ global.testHandlerHelper = testContext => {
           const handler = new testContext.handler(
             `M       ${changePath}`,
             type,
-            testContext.work
+            testContext.work,
+            // eslint-disable-next-line no-undef
+            globalMetadata
           )
           handler.handle()
         })

@@ -48,7 +48,9 @@ describe('test inResourceHandler', () => {
     const handler = new testContext.handler(
       `D       ${data[1]}`,
       data[0],
-      testContext.work
+      testContext.work,
+      // eslint-disable-next-line no-undef
+      globalMetadata
     )
     handler.handle()
     expect([...testContext.work.diffs.package[data[0]]]).toEqual(

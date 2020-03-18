@@ -77,7 +77,9 @@ describe(`test if inFileHandler`, () => {
         const handler = new testContext.handler(
           `A       ${changePath}`,
           expectedType,
-          testContext.work
+          testContext.work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
         )
         handler.handle()
       })
@@ -85,7 +87,9 @@ describe(`test if inFileHandler`, () => {
         const handler = new testContext.handler(
           `D       ${changePath}`,
           'workflows',
-          testContext.work
+          testContext.work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
         )
         handler.handle()
         await Promise.all(testContext.work.promises)
@@ -98,7 +102,9 @@ describe(`test if inFileHandler`, () => {
         const handler = new testContext.handler(
           `M       ${changePath}`,
           expectedType,
-          testContext.work
+          testContext.work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
         )
         handler.handle()
       })
