@@ -10,11 +10,14 @@ const TypeHandlerFactory = require('../../../../lib/service/typeHandlerFactory')
 describe('the type handler factory', () => {
   let typeHandlerFactory
   beforeAll(() => {
-    typeHandlerFactory = new TypeHandlerFactory({
-      config: { apiVersion: '46' },
-      diffs: { package: {}, destructiveChanges: {} },
-      promises: [],
-    })
+    typeHandlerFactory = new TypeHandlerFactory(
+      {
+        config: { apiVersion: '46' },
+        diffs: { package: {}, destructiveChanges: {} },
+        promises: [],
+      }, // eslint-disable-next-line no-undef
+      globalMetadata
+    )
   })
   describe.each([
     [Lightning, ['aura', 'lwc']],
