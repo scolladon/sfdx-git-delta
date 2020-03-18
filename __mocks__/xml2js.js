@@ -14,7 +14,7 @@ xml2js.__setMockContent = contents => {
 
 xml2js.Parser = class Parser {
   parseStringPromise(content) {
-    return new Promise(resolve => resolve(xml2json[content]))
+    return new Promise(resolve => resolve(JSON.parse(xml2json[content])))
   }
 }
 

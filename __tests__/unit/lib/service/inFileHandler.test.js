@@ -32,7 +32,7 @@ const testContext = {
       'force-app/main/default/sharingRules/Account.sharingRules-meta.xml',
       new Set(['Account.TestCBS']),
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${os.EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${os.EOL}<sharingCriteriaRules>${os.EOL}<fullName>TestCBS</fullName>${os.EOL}</sharingCriteriaRules>${os.EOL}<sharingOwnerRules>${os.EOL}<fullName>TestOBS</fullName>${os.EOL}</sharingOwnerRules>${os.EOL}</SharingRules>`,
-      '{"SharingRules":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"sharingCriteriaRules":[{"fullName":["TestCBS"]},],"sharingOwnerRules":[{"fullName":["TestOBS"],}]}}',
+      '{"SharingRules":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"sharingCriteriaRules":[{"fullName":["TestCBS"]}],"sharingOwnerRules":[{"fullName":["TestOBS"]}]}}',
     ],
   ],
   work: {
