@@ -4,12 +4,14 @@ jest.mock('child_process')
 jest.mock('fs-extra')
 jest.mock('fs')
 jest.mock('git-state')
+jest.mock('xml2js')
 
 const mySpawn = require('mock-spawn')()
 require('child_process').spawn = mySpawn
 
 describe(`test if the appli`, () => {
   beforeAll(() => {
+    require('fs').errorMode = false
     require('fs').__setMockFiles({
       output: '',
     })
@@ -56,6 +58,25 @@ describe(`test if the appli`, () => {
     await expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     ).resolves.toStrictEqual([])
+  })
+
+  test('catch and reject big issues', async () => {
+    require('fs').errorMode = true
+    await expect(
+      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
+    ).rejects.toBeTruthy()
+  })
+
+  test('catch internal qwaks', async () => {
+    mySpawn.setDefault(
+      mySpawn.simple(
+        0,
+        'A      force-app/main/default/workflows/Account.workflow-meta.xml'
+      )
+    )
+    await expect(
+      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
+    ).rejects.toBeTruthy()
   })
 
   test('throw errors when to parameter is not filled', async () => {

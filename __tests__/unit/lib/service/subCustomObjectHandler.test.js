@@ -20,3 +20,15 @@ const testContext = {
 
 // eslint-disable-next-line no-undef
 testHandlerHelper(testContext)
+
+test('field is not a master detail', () => {
+  const handler = new testContext.handler(
+    `A       ${testContext.testData[0][1]}`,
+    testContext.testData[0][0],
+    testContext.work,
+    // eslint-disable-next-line no-undef
+    globalMetadata
+  )
+  require('fs').__setMockFiles({ [testContext.testData[0][1]]: '' })
+  handler.handle()
+})

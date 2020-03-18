@@ -1,12 +1,12 @@
 'use strict'
-const FileUtils = require('./lib/utils/fileUtils')
 const PackageConstructor = require('./lib/packageConstructor')
 const TypeHandlerFactory = require('./lib/service/typeHandlerFactory')
 const repoSetup = require('./lib/utils/repoSetup')
 const repoGitDiff = require('./lib/utils/repoGitDiff')
 
-const git = require('git-state')
 const fs = require('fs')
+const git = require('git-state')
+const path = require('path')
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
@@ -73,12 +73,15 @@ module.exports = config => {
 
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
-  const fu = new FileUtils(config)
   return [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
     pc
       .constructPackage(dcJson[op])
       .then(content =>
-        fu.writeChangesAsync(content, `${op}.${XML_FILE_EXTENSION}`)
+        fs.writeFileSync(
+          path.join(config.output, `${op}.${XML_FILE_EXTENSION}`),
+          content,
+          'utf8'
+        )
       )
   )
 }

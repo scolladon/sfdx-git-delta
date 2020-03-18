@@ -2,7 +2,7 @@
 const path = require('path')
 const fs = jest.genMockFromModule('fs')
 
-let errorMode = false
+fs.errorMode = false
 let mockFiles = {}
 let mockContent = {}
 let filePathList = new Set()
@@ -19,16 +19,9 @@ fs.__setMockFiles = newMockFiles => {
   }
 }
 
-fs.readdirSync = directoryPath => {
-  if (directoryPath.endsWith('metadata')) {
-    return ['v48.json']
-  }
-  return mockFiles[path.basename(directoryPath)] || []
-}
+fs.readdirSync = directoryPath => mockFiles[path.basename(directoryPath)] || []
 
-fs.existsSync = filePath => {
-  return filePathList.has(path.basename(filePath))
-}
+fs.existsSync = filePath => filePathList.has(path.basename(filePath))
 
 fs.statSync = elem => ({
   isDirectory() {
@@ -36,12 +29,15 @@ fs.statSync = elem => ({
   },
 })
 
-fs.readFileSync = path =>
-  Object.prototype.hasOwnProperty.call(mockContent, path)
+fs.readFileSync = path => {
+  if (fs.errorMode) throw new Error()
+  return Object.prototype.hasOwnProperty.call(mockContent, path)
     ? mockContent[path]
     : '<type>MasterDetail</type>'
+}
 
-fs.writeFile = (_filePath, _content, _encoding, cb) =>
-  errorMode ? cb(new Error()) : cb(null)
+fs.writeFileSync = () => {
+  if (fs.errorMode) throw new Error()
+}
 
 module.exports = fs

@@ -17,7 +17,7 @@ const testContext = {
       'alerts',
       'force-app/main/default/workflows/Account.workflow-meta.xml',
       new Set(['Account.TestEA']),
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${os.EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${os.EOL}<alerts>${os.EOL}<fullName>TestEA</fullName>${os.EOL}</alerts>${os.EOL}<fieldUpdates>${os.EOL}<fullName>TestFU</fullName>${os.EOL}</fieldUpdates>${os.EOL}<rules>${os.EOL}<fullName>TestRule</fullName>${os.EOL}</rules>${os.EOL}</Workflow>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${os.EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${os.EOL}<alerts>${os.EOL}<fullName>TestEA</fullName>${os.EOL}</alerts>${os.EOL}<fieldUpdates>${os.EOL}<fullName>TestFU</fullName>${os.EOL}</fieldUpdates>${os.EOL}<rules>${os.EOL}<fullName>TestRule</fullName>${os.EOL}</rules>${os.EOL}${os.EOL}</Workflow>`,
       '{"Workflow":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"alerts":[{"fullName":["TestEA"]}],"fieldUpdates":[{"fullName":["TestFU"]}],"rules":[{"fullName":["TestRule"]}]}}',
     ],
     [

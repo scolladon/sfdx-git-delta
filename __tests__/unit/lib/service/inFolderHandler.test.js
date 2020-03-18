@@ -12,7 +12,7 @@ const testContext = {
     ],
   ],
   work: {
-    config: { output: '', repo: '' },
+    config: { output: '', repo: '.' },
     diffs: { package: {}, destructiveChanges: {} },
     promises: [],
   },
