@@ -1,12 +1,17 @@
 'use strict'
-const DiffHandler = require('./lib/diffHandler')
 const PackageConstructor = require('./lib/packageConstructor')
-const FileUtils = require('./lib/utils/fileUtils')
-const git = require('git-state')
-const fs = require('fs')
+const TypeHandlerFactory = require('./lib/service/typeHandlerFactory')
+const metadataManager = require('./lib/metadata/metadataManager')
+const repoSetup = require('./lib/utils/repoSetup')
+const repoGitDiff = require('./lib/utils/repoGitDiff')
 
-const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges.xml'
-const PACKAGE_FILE_NAME = 'package.xml'
+const fs = require('fs')
+const git = require('git-state')
+const path = require('path')
+
+const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
+const PACKAGE_FILE_NAME = 'package'
+const XML_FILE_EXTENSION = 'xml'
 
 const checkConfig = config => {
   const errors = []
@@ -37,33 +42,53 @@ module.exports = config => {
       return reject(new Error(inputError))
     }
     config.apiVersion = parseInt(config.apiVersion)
-    const diffHandler = new DiffHandler(config)
-    diffHandler
-      .diff()
+    repoSetup(config)
+
+    const metadata = metadataManager.getDefinition(
+      'directoryName',
+      config.apiVersion
+    )
+
+    repoGitDiff(config, metadata)
+      .then(lines => treatDiff(config, lines, metadata))
       .then(work =>
         Promise.all(treatPackages(work.diffs, config)).then(() => work)
       )
       .then(work => resolve(work.qwaks))
-      .catch(err => reject(err))
+      .catch(reject)
+  })
+}
+
+const treatDiff = (config, lines, metadata) => {
+  return new Promise(resolve => {
+    const work = {
+      config: config,
+      diffs: { package: {}, destructiveChanges: {} },
+      promises: [],
+      qwaks: [],
+    }
+
+    const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
+
+    lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
+
+    Promise.all(
+      work.promises.map(promise => promise.catch(err => work.qwaks.push(err)))
+    ).then(() => resolve(work))
   })
 }
 
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
-  const fu = new FileUtils(config)
-  return [
+  return [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
     pc
-      .constructPackage(dcJson)
-      .then(destructiveChangesContent =>
-        fu.writeChangesAsync(
-          destructiveChangesContent,
-          DESTRUCTIVE_CHANGES_FILE_NAME
+      .constructPackage(dcJson[op])
+      .then(content =>
+        fs.writeFileSync(
+          path.join(config.output, `${op}.${XML_FILE_EXTENSION}`),
+          content,
+          'utf8'
         )
-      ),
-    pc
-      .constructPackage({})
-      .then(emptyPackageContent =>
-        fu.writeChangesAsync(emptyPackageContent, PACKAGE_FILE_NAME)
-      ),
-  ]
+      )
+  )
 }

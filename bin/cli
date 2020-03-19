@@ -22,8 +22,9 @@ program
     'source package specific output [./output]',
     './output'
   )
-  .option('-a, --api-version [version]', 'salesforce API version [46]', '46')
+  .option('-a, --api-version [version]', 'salesforce API version [48]', '48')
   .option('-r, --repo [dir]', 'git repository location [./repo]', './repo')
+  .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
 
 orchestrator(program)
@@ -31,8 +32,8 @@ orchestrator(program)
     qwaks.forEach(qwak => console.log(qwak.message))
     console.log(`check ${program.output}`)
   })
-  .catch(err => {
+  .catch(err =>
     console.error(
       `Error terminating the process during sfdx-git-delta : ${err.message}`
     )
-  })
+  )

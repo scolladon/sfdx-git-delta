@@ -13,8 +13,8 @@ const testContext = {
     ],
   ],
   work: {
-    config: { output: '', repo: '' },
-    diffs: {},
+    config: { output: '', repo: '', generateDelta: true },
+    diffs: { package: {}, destructiveChanges: {} },
     promises: [],
   },
 }
@@ -31,4 +31,16 @@ describe('test CustomObjectHandler', () => {
 
   // eslint-disable-next-line no-undef
   testHandlerHelper(testContext)
+
+  test('addition', () => {
+    testContext.work.config.generateDelta = false
+    const handler = new testContext.handler(
+      'A       force-app/main/default/objects/Account/Account.object-meta.xml',
+      'objects',
+      testContext.work,
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    handler.handle()
+  })
 })

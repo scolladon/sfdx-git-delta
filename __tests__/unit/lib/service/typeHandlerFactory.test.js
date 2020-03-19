@@ -10,11 +10,14 @@ const TypeHandlerFactory = require('../../../../lib/service/typeHandlerFactory')
 describe('the type handler factory', () => {
   let typeHandlerFactory
   beforeAll(() => {
-    typeHandlerFactory = new TypeHandlerFactory({
-      config: { apiVersion: '46' },
-      diffs: {},
-      promises: [],
-    })
+    typeHandlerFactory = new TypeHandlerFactory(
+      {
+        config: { apiVersion: '46' },
+        diffs: { package: {}, destructiveChanges: {} },
+        promises: [],
+      }, // eslint-disable-next-line no-undef
+      globalMetadata
+    )
   })
   describe.each([
     [Lightning, ['aura', 'lwc']],
@@ -39,7 +42,7 @@ describe('the type handler factory', () => {
   ])('give %p handler', (handler, types) => {
     test.each(types)('for %s folder', type => {
       expect(
-        typeHandlerFactory.getTypeHander(
+        typeHandlerFactory.getTypeHandler(
           `Z       force-app/main/default/${type}/folder/file`
         )
       ).toBeInstanceOf(handler)

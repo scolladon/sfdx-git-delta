@@ -23,8 +23,8 @@ const testContext = {
     ],
   ],
   work: {
-    config: { output: '', repo: '' },
-    diffs: {},
+    config: { output: '', repo: '', generateDelta: true },
+    diffs: { package: {}, destructiveChanges: {} },
     promises: [],
   },
 }
@@ -41,4 +41,21 @@ describe('test inResourceHandler', () => {
 
   // eslint-disable-next-line no-undef
   testHandlerHelper(testContext)
+
+  test('if deletion of sub element handle', () => {
+    testContext.work.config.generateDelta = false
+    const data = testContext.testData[1]
+    require('fs').__setMockFiles({ [data[1]]: '' })
+    const handler = new testContext.handler(
+      `D       ${data[1]}`,
+      data[0],
+      testContext.work,
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    handler.handle()
+    expect([...testContext.work.diffs.package[data[0]]]).toEqual(
+      expect.arrayContaining([...data[2]])
+    )
+  })
 })
