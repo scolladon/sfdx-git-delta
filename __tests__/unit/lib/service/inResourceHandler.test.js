@@ -23,7 +23,7 @@ const testContext = {
     ],
   ],
   work: {
-    config: { output: '', repo: '' },
+    config: { output: '', repo: '', generateDelta: true },
     diffs: { package: {}, destructiveChanges: {} },
     promises: [],
   },
@@ -43,6 +43,7 @@ describe('test inResourceHandler', () => {
   testHandlerHelper(testContext)
 
   test('if deletion of sub element handle', () => {
+    testContext.work.config.generateDelta = false
     const data = testContext.testData[1]
     require('fs').__setMockFiles({ [data[1]]: '' })
     const handler = new testContext.handler(

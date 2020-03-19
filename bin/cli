@@ -24,6 +24,7 @@ program
   )
   .option('-a, --api-version [version]', 'salesforce API version [48]', '48')
   .option('-r, --repo [dir]', 'git repository location [./repo]', './repo')
+  .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
 
 orchestrator(program)
