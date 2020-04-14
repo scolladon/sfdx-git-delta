@@ -4,54 +4,7 @@
 
 Generate the sfdx content in source format and destructive change from two git commits
 
-## Getting Started [![npm version](https://badge.fury.io/js/sfdx-git-delta.svg)](https://badge.fury.io/js/sfdx-git-delta)
-
-Works in Unix like system.
-Windows is not tested.
-
-### Prerequisites
-
-Git command line is required on the system where the command line is running.
-
-### Installing
-
-```
-npm install -g sfdx-git-delta
-```
-
-## Usage
-
-### Command Line
-
-To see the full list and description of the sgd options, run `sgd --help`
-
-```
--V, --version output the version number
--t, --to [sha] commit sha to where the diff is done [HEAD] (default: "HEAD")
--f, --from [sha] commit sha from where the diff is done [git rev-list —max-parents=0 HEAD]
--o, --output [dir] source package specific output [./output] (default: "./output")
--a, --api-version [version] salesforce API version [48] (default: "48")
--r, --repo [dir] git repository location [./repo] (default: "./repo")
--d, --generate-delta generate delta files in [./output] folder
--h, --help output usage information
-```
-
-### Module
-
-```
-  var sgd = require('sfdx-git-delta');
-
-  sgd({
-    'to':'', // commit sha to where the diff is done. Default : HEAD
-    'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
-    'output':'', // source package specific output. Default : ./output
-    'apiVersion':'', // salesforce API version. Default : 46
-    'repo':'' // git repository location. Default : ./repo
-  }, console.log);
-```
-
-
-## What is SFDX-Git-Delta?
+## What is SFDX-Git-Delta? [![npm version](https://badge.fury.io/js/sfdx-git-delta.svg)](https://badge.fury.io/js/sfdx-git-delta)
 
 **SFDX-Git-Delta** (*a.k.a. **sgd***) helps Technical Architects accomplish 2 things with their CI deployments:
 
@@ -66,7 +19,7 @@ If you are a Technical Architect, then it’s a very useful tool for you, _when 
 
         Your Salesforce project uses a git repo as the source of truth.
                 ➕
-        You use the new **Source (DX) format in the repo.
+        You use the new Source (DX) format in the repo.
                 ➕
         You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI...) that handles the deployment of the sources to the salesforce org(s).
 
@@ -100,6 +53,12 @@ To see the full list and description of the sgd options, run `sgd --help`
 -h, --help output usage information
 ```
 
+### Prerequisites
+
+Works in Unix like system.
+Windows is not tested.
+
+Git command line is required on the system where the command line is running.
 
 
 ## How to use it?
@@ -112,10 +71,10 @@ sgd --to HEAD --from HEAD^ --repo . --output .
 
 ```
 echo "--- package.xml generated with added and modified metadata ---"
-cat packages/package.xml
+cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x packages/package.xml
+sfdx force:source:deploy -x package/package.xml
 ```
 
 ```
@@ -130,7 +89,7 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 ### Scenario:
 
-Let’s take to following scenario: 
+Let’s take a look at the following scenario: 
 
 > ***The CI pipelines deploys the sources to Production anytime there is a new commit in the master branch.***
 
@@ -186,10 +145,10 @@ The CI pipeline can use the `package/package.xml` file to deploy only this subse
 
 ```
 echo "--- package.xml generated with added and modified metadata ---"
-cat packages/package.xml
+cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x packages/package.xml
+sfdx force:source:deploy -x package/package.xml
 ```
 
 
@@ -209,7 +168,19 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 And voilà! 🥳
 
+## Javascript Module
 
+```
+  var sgd = require('sfdx-git-delta');
+
+  sgd({
+    'to':'', // commit sha to where the diff is done. Default : HEAD
+    'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
+    'output':'', // source package specific output. Default : ./output
+    'apiVersion':'', // salesforce API version. Default : 46
+    'repo':'' // git repository location. Default : ./repo
+  }, console.log);
+```
 
 ## Built With [![dependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/status.svg)](https://david-dm.org/scolladon/sfdx-git-delta) [![devDependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/dev-status.svg)](https://david-dm.org/scolladon/sfdx-git-delta?type=dev)
 
