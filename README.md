@@ -89,7 +89,7 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 ### Scenario:
 
-Let’s take to following scenario: 
+Let’s take a look at the following scenario: 
 
 > ***The CI pipelines deploys the sources to Production anytime there is a new commit in the master branch.***
 
