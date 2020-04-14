@@ -81,29 +81,36 @@ const treatDiff = (config, lines, metadata) => {
 
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
-  const promises = [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
-    pc
-      .constructPackage(dcJson[op])
-      .then(content =>
-        fse.outputFileSync(
-          path.join(config.output, op, `${op}.${XML_FILE_EXTENSION}`),
-          content
-        )
+  return [
+    {
+      filename: DESTRUCTIVE_CHANGES_FILE_NAME,
+      folder: DESTRUCTIVE_CHANGES_FILE_NAME,
+      jsonContent: dcJson[DESTRUCTIVE_CHANGES_FILE_NAME],
+    },
+    {
+      filename: PACKAGE_FILE_NAME,
+      folder: PACKAGE_FILE_NAME,
+      jsonContent: dcJson[PACKAGE_FILE_NAME],
+    },
+    {
+      filename: PACKAGE_FILE_NAME,
+      folder: DESTRUCTIVE_CHANGES_FILE_NAME,
+      jsonContent: {},
+    },
+  ].map(op => treatPackage(op, pc, config))
+}
+
+const treatPackage = (op, pc, config) => {
+  return pc
+    .constructPackage(op.jsonContent)
+    .then(content =>
+      fse.outputFileSync(
+        path.join(
+          config.output,
+          op.folder,
+          `${op.filename}.${XML_FILE_EXTENSION}`
+        ),
+        content
       )
-  )
-  promises.push(
-    pc
-      .constructPackage({})
-      .then(content =>
-        fse.outputFileSync(
-          path.join(
-            config.output,
-            DESTRUCTIVE_CHANGES_FILE_NAME,
-            `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`
-          ),
-          content
-        )
-      )
-  )
-  return promises
+    )
 }
