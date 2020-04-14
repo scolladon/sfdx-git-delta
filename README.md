@@ -13,28 +13,7 @@ Windows is not tested.
 
 Git command line is required on the system where the command line is running.
 
-### Installing
-
-```
-npm install -g sfdx-git-delta
-```
-
-## Usage
-
-### Command Line
-
-To see the full list and description of the sgd options, run `sgd --help`
-
-```
--V, --version output the version number
--t, --to [sha] commit sha to where the diff is done [HEAD] (default: "HEAD")
--f, --from [sha] commit sha from where the diff is done [git rev-list —max-parents=0 HEAD]
--o, --output [dir] source package specific output [./output] (default: "./output")
--a, --api-version [version] salesforce API version [48] (default: "48")
--r, --repo [dir] git repository location [./repo] (default: "./repo")
--d, --generate-delta generate delta files in [./output] folder
--h, --help output usage information
-```
+## Module to Javascript Module
 
 ### Module
 
@@ -115,7 +94,7 @@ echo "--- package.xml generated with added and modified metadata ---"
 cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x packages/package.xml
+sfdx force:source:deploy -x package/package.xml
 ```
 
 ```
