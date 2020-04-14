@@ -23,22 +23,17 @@ npm install -g sfdx-git-delta
 
 ### Command Line
 
+To see the full list and description of the sgd options, run `sgd --help`
+
 ```
-$ sgd -h
-
-  Usage: sgd [options]
-
-  Create Package.xml and destructiveChangesPre.xml from git
-
-  Options:
-
-    -h, --help                   output usage information
-    -V, --version                output the version number
-    -t, --to [sha]               commit sha to where the diff is done [HEAD]
-    -f, --from [sha]             commit sha from where the diff is done [git rev-list --max-parents=0 HEAD]
-    -o, --output [dir]           source package specific output [./output]
-    -a, --api-version [version]  salesforce API version [46.0]
-    -r, --repo [dir]             git repository location [./repo]
+-V, --version output the version number
+-t, --to [sha] commit sha to where the diff is done [HEAD] (default: "HEAD")
+-f, --from [sha] commit sha from where the diff is done [git rev-list —max-parents=0 HEAD]
+-o, --output [dir] source package specific output [./output] (default: "./output")
+-a, --api-version [version] salesforce API version [48] (default: "48")
+-r, --repo [dir] git repository location [./repo] (default: "./repo")
+-d, --generate-delta generate delta files in [./output] folder
+-h, --help output usage information
 ```
 
 ### Module
@@ -81,6 +76,30 @@ If you are a Technical Architect, then it’s a very useful tool for you, _when 
 ⚠️ **SFDX-Git-Delta is _not_ an officially supported tool ⚠️**
 
 👷 Use it at your own risk, wear a helmet, and do not let non-technical people play with it 🔥
+
+
+## How to install it?
+
+```
+npm install sfdx-git-delta@latest -g
+```
+
+If you run your CI jobs inside a Docker image (which is very common), you can add sgd to you image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
+
+
+To see the full list and description of the sgd options, run `sgd --help`
+
+```
+-V, --version output the version number
+-t, --to [sha] commit sha to where the diff is done [HEAD] (default: "HEAD")
+-f, --from [sha] commit sha from where the diff is done [git rev-list —max-parents=0 HEAD]
+-o, --output [dir] source package specific output [./output] (default: "./output")
+-a, --api-version [version] salesforce API version [48] (default: "48")
+-r, --repo [dir] git repository location [./repo] (default: "./repo")
+-d, --generate-delta generate delta files in [./output] folder
+-h, --help output usage information
+```
+
 
 
 ## How to use it?
