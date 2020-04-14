@@ -6,6 +6,7 @@ const repoSetup = require('./lib/utils/repoSetup')
 const repoGitDiff = require('./lib/utils/repoGitDiff')
 
 const fs = require('fs')
+const fse = require('fs-extra')
 const git = require('git-state')
 const path = require('path')
 
@@ -80,15 +81,29 @@ const treatDiff = (config, lines, metadata) => {
 
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
-  return [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
+  const promises = [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
     pc
       .constructPackage(dcJson[op])
       .then(content =>
-        fs.writeFileSync(
-          path.join(config.output, `${op}.${XML_FILE_EXTENSION}`),
-          content,
-          'utf8'
+        fse.outputFileSync(
+          path.join(config.output, op, `${op}.${XML_FILE_EXTENSION}`),
+          content
         )
       )
   )
+  promises.push(
+    pc
+      .constructPackage({})
+      .then(content =>
+        fse.outputFileSync(
+          path.join(
+            config.output,
+            DESTRUCTIVE_CHANGES_FILE_NAME,
+            `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`
+          ),
+          content
+        )
+      )
+  )
+  return promises
 }

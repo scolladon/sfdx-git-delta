@@ -7,12 +7,14 @@ jest.mock('git-state')
 jest.mock('xml2js')
 
 const fsMocked = require('fs')
+const fseMocked = require('fs-extra')
 const mySpawn = require('mock-spawn')()
 require('child_process').spawn = mySpawn
 
 describe(`test if the appli`, () => {
   beforeAll(() => {
     fsMocked.errorMode = false
+    fseMocked.errorMode = false
     fsMocked.__setMockFiles({
       output: '',
     })
@@ -63,6 +65,7 @@ describe(`test if the appli`, () => {
 
   test('catch and reject big issues', async () => {
     fsMocked.errorMode = true
+    fseMocked.errorMode = true
     await expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     ).rejects.toBeTruthy()
