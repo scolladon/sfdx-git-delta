@@ -19,7 +19,7 @@ If you are a Technical Architect, then it’s a very useful tool for you, _when 
 
         Your Salesforce project uses a git repo as the source of truth.
                 ➕
-        You use the new **Source (DX) format in the repo.
+        You use the new Source (DX) format in the repo.
                 ➕
         You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI...) that handles the deployment of the sources to the salesforce org(s).
 
