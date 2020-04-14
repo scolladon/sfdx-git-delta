@@ -4,33 +4,7 @@
 
 Generate the sfdx content in source format and destructive change from two git commits
 
-## Getting Started [![npm version](https://badge.fury.io/js/sfdx-git-delta.svg)](https://badge.fury.io/js/sfdx-git-delta)
-
-Works in Unix like system.
-Windows is not tested.
-
-### Prerequisites
-
-Git command line is required on the system where the command line is running.
-
-## Module to Javascript Module
-
-### Module
-
-```
-  var sgd = require('sfdx-git-delta');
-
-  sgd({
-    'to':'', // commit sha to where the diff is done. Default : HEAD
-    'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
-    'output':'', // source package specific output. Default : ./output
-    'apiVersion':'', // salesforce API version. Default : 46
-    'repo':'' // git repository location. Default : ./repo
-  }, console.log);
-```
-
-
-## What is SFDX-Git-Delta?
+## What is SFDX-Git-Delta? [![npm version](https://badge.fury.io/js/sfdx-git-delta.svg)](https://badge.fury.io/js/sfdx-git-delta)
 
 **SFDX-Git-Delta** (*a.k.a. **sgd***) helps Technical Architects accomplish 2 things with their CI deployments:
 
@@ -79,6 +53,12 @@ To see the full list and description of the sgd options, run `sgd --help`
 -h, --help output usage information
 ```
 
+### Prerequisites
+
+Works in Unix like system.
+Windows is not tested.
+
+Git command line is required on the system where the command line is running.
 
 
 ## How to use it?
@@ -188,7 +168,19 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 And voilà! 🥳
 
+## Javascript Module
 
+```
+  var sgd = require('sfdx-git-delta');
+
+  sgd({
+    'to':'', // commit sha to where the diff is done. Default : HEAD
+    'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
+    'output':'', // source package specific output. Default : ./output
+    'apiVersion':'', // salesforce API version. Default : 46
+    'repo':'' // git repository location. Default : ./repo
+  }, console.log);
+```
 
 ## Built With [![dependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/status.svg)](https://david-dm.org/scolladon/sfdx-git-delta) [![devDependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/dev-status.svg)](https://david-dm.org/scolladon/sfdx-git-delta?type=dev)
 
