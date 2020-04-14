@@ -6,6 +6,7 @@ const repoSetup = require('./lib/utils/repoSetup')
 const repoGitDiff = require('./lib/utils/repoGitDiff')
 
 const fs = require('fs')
+const fse = require('fs-extra')
 const git = require('git-state')
 const path = require('path')
 
@@ -80,15 +81,36 @@ const treatDiff = (config, lines, metadata) => {
 
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
-  return [DESTRUCTIVE_CHANGES_FILE_NAME, PACKAGE_FILE_NAME].map(op =>
-    pc
-      .constructPackage(dcJson[op])
-      .then(content =>
-        fs.writeFileSync(
-          path.join(config.output, `${op}.${XML_FILE_EXTENSION}`),
-          content,
-          'utf8'
-        )
+  return [
+    {
+      filename: DESTRUCTIVE_CHANGES_FILE_NAME,
+      folder: DESTRUCTIVE_CHANGES_FILE_NAME,
+      jsonContent: dcJson[DESTRUCTIVE_CHANGES_FILE_NAME],
+    },
+    {
+      filename: PACKAGE_FILE_NAME,
+      folder: PACKAGE_FILE_NAME,
+      jsonContent: dcJson[PACKAGE_FILE_NAME],
+    },
+    {
+      filename: PACKAGE_FILE_NAME,
+      folder: DESTRUCTIVE_CHANGES_FILE_NAME,
+      jsonContent: {},
+    },
+  ].map(op => treatPackage(op, pc, config))
+}
+
+const treatPackage = (op, pc, config) => {
+  return pc
+    .constructPackage(op.jsonContent)
+    .then(content =>
+      fse.outputFileSync(
+        path.join(
+          config.output,
+          op.folder,
+          `${op.filename}.${XML_FILE_EXTENSION}`
+        ),
+        content
       )
-  )
+    )
 }
