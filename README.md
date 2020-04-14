@@ -112,7 +112,7 @@ sgd --to HEAD --from HEAD^ --repo . --output .
 
 ```
 echo "--- package.xml generated with added and modified metadata ---"
-cat packages/package.xml
+cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
 sfdx force:source:deploy -x packages/package.xml
@@ -186,10 +186,10 @@ The CI pipeline can use the `package/package.xml` file to deploy only this subse
 
 ```
 echo "--- package.xml generated with added and modified metadata ---"
-cat packages/package.xml
+cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x packages/package.xml
+sfdx force:source:deploy -x package/package.xml
 ```
 
 
