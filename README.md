@@ -37,7 +37,7 @@ If you are a Technical Architect, then it’s a very useful tool for you, _when 
 npm install sfdx-git-delta@latest -g
 ```
 
-If you run your CI jobs inside a Docker image (which is very common), you can add sgd to you image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
+If you run your CI jobs inside a Docker image (which is very common), you can add sgd to your image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
 
 
 To see the full list and description of the sgd options, run `sgd --help`
@@ -123,7 +123,7 @@ which means:
 > Analyse the difference between HEAD (latest commit) and HEAD^ (previous commit), from the current folder, and output the result in the same folder.
 
 
-_This will generate 2 very usefull artefacts :_
+The `sgd` command will produces 2 usefull artefacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This package.xml file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
@@ -135,8 +135,7 @@ _This will generate 2 very usefull artefacts :_
 *Content of the `destructivePackage.xml` file in our scenario:*
 ![destructivePackage](/img/example_destructiveChange.png)
 
-If needed, we could also have generated a copy of the force-app folder with only the added and changed metadata, by using the `--generate-delta` option. Run `sgd --help` to review all the options that `sgd` accepts.
-
+In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta` option.
 
 
 ### Deploy only the added/modified metadata:
