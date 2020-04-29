@@ -52,8 +52,12 @@ module.exports = config => {
 
     repoGitDiff(config, metadata)
       .then(lines => treatDiff(config, lines, metadata))
-      .then(work =>
-        Promise.all(treatPackages(work.diffs, config)).then(() => work)
+      .then(
+        work =>
+          //
+          treatPackages(work.diffs, config).then(() => work)
+        //
+        //Promise.all(treatPackages(work.diffs, config)).then(() => work)
       )
       .then(work => resolve(work.qwaks))
       .catch(reject)
@@ -72,10 +76,13 @@ const treatDiff = (config, lines, metadata) => {
     const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
 
     lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
-
-    Promise.all(
-      work.promises.map(promise => promise.catch(err => work.qwaks.push(err)))
-    ).then(() => resolve(work))
+    work.promises
+      .map(promise => promise.catch(err => work.qwaks.push(err)))
+      .reduce(
+        (promiseChain, nextPromise) => promiseChain.then(nextPromise),
+        Promise.resolve()
+      )
+      .then(() => resolve(work))
   })
 }
 
@@ -97,7 +104,10 @@ const treatPackages = (dcJson, config) => {
       folder: DESTRUCTIVE_CHANGES_FILE_NAME,
       jsonContent: {},
     },
-  ].map(op => treatPackage(op, pc, config))
+  ].reduce(
+    (promiseChain, op) => promiseChain.then(() => treatPackage(op, pc, config)),
+    Promise.resolve()
+  )
 }
 
 const treatPackage = (op, pc, config) => {
