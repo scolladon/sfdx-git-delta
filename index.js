@@ -52,13 +52,7 @@ module.exports = config => {
 
     repoGitDiff(config, metadata)
       .then(lines => treatDiff(config, lines, metadata))
-      .then(
-        work =>
-          //
-          treatPackages(work.diffs, config).then(() => work)
-        //
-        //Promise.all(treatPackages(work.diffs, config)).then(() => work)
-      )
+      .then(work => treatPackages(work.diffs, config).then(() => work))
       .then(work => resolve(work.qwaks))
       .catch(reject)
   })
