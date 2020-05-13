@@ -154,8 +154,8 @@
     "directoryName": "businessProcesses",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "businessProcesse",
-    "xmlName": "BusinessProcesse"
+    "suffix": "businessProcess",
+    "xmlName": "BusinessProcess"
   },
   {
     "directoryName": "compactLayouts",
