@@ -777,6 +777,13 @@
     "xmlName": "DelegateGroup"
   },
   {
+    "directoryName": "experiences",
+    "inFolder": false,
+    "metaFile": true,
+    "suffix": "",
+    "xmlName": "ExperienceBundle"
+  },
+  {
     "directoryName": "siteDotComSites",
     "inFolder": false,
     "metaFile": true,
