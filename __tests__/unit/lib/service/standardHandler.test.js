@@ -10,6 +10,16 @@ const testContext = {
       'force-app/main/default/objects/Account/Account.object-meta.xml',
       new Set(['Account']),
     ],
+    [
+      'quickActions',
+      'force-app/main/default/quickActions/Account.New.quickAction-meta.xml',
+      new Set(['Account.New']),
+    ],
+    [
+      'quickActions',
+      'force-app/main/default/quickActions/NewGlobal.quickAction-meta.xml',
+      new Set(['NewGlobal']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
