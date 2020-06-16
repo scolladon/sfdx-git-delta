@@ -1,12 +1,10 @@
 'use strict'
-const os = require('os')
 const app = require('../index')
-jest.mock('child_process')
+const child_process = require('child_process')
+const os = require('os')
+jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
-
-const mySpawn = require('mock-spawn')()
-require('child_process').spawn = mySpawn
 
 const lines = [
   'D      force-app/main/default/objects/Account/fields/deleted.field-meta.xml',
@@ -29,15 +27,17 @@ describe(`test if the appli`, () => {
       output: '',
     })
   })
-  test('can execute with rich parameters and big diff', async () => {
-    mySpawn.setDefault(mySpawn.simple(0, lines.join(os.EOL)))
-    await expect(
+  test('can execute with rich parameters and big diff', () => {
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: lines.join(os.EOL),
+    }))
+    expect(
       app({
         output: 'output',
         repo: 'repo/path',
         to: 'test',
         apiVersion: '46',
       })
-    ).resolves.toStrictEqual([])
+    ).toBeUndefined()
   })
 })

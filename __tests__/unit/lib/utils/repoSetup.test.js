@@ -1,22 +1,24 @@
 'use strict'
 const repoSetup = require('../../../../lib/utils/repoSetup')
-jest.mock('child_process')
+const child_process = require('child_process')
+jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
 
-const mySpawn = require('mock-spawn')()
-require('child_process').spawn = mySpawn
-
 describe(`test if repoSetup`, () => {
-  test('can set config.from if not defined', async () => {
+  test('can set config.from if not defined', () => {
     const config = { repo: '.' }
-    mySpawn.setDefault(mySpawn.simple(0, ''))
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: '',
+    }))
     repoSetup(config)
     expect(config.from).not.toBeUndefined()
   })
-  test('can set core.quotepath to off', async () => {
+  test('can set core.quotepath to off', () => {
     const config = { repo: '.', from: 'HEAD' }
-    mySpawn.setDefault(mySpawn.simple(0, ''))
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: '',
+    }))
     repoSetup(config)
     expect(config.from).not.toBeUndefined()
   })

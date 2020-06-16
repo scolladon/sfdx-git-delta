@@ -1,52 +1,60 @@
 'use strict'
 const fileGitDiff = require('../../../../lib/utils/fileGitDiff')
-jest.mock('child_process')
+const child_process = require('child_process')
+jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
-
-const mySpawn = require('mock-spawn')()
-require('child_process').spawn = mySpawn
 
 const TEST_PATH = 'path/to/file'
 
 describe(`test if fileGitDiff`, () => {
-  test('can parse git diff header', async () => {
+  test('can parse git diff header', () => {
     const output = '@git diff'
-    mySpawn.setDefault(mySpawn.simple(0, output))
-    const result = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output,
+    }))
+    const result = fileGitDiff(TEST_PATH, { output: '', repo: '' })
     expect(result).toStrictEqual(output)
   })
 
-  test('can parse git diff addition', async () => {
+  test('can parse git diff addition', () => {
     const output = '+ line added'
 
-    mySpawn.setDefault(mySpawn.simple(0, output))
-    const work = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output,
+    }))
+    const work = fileGitDiff(TEST_PATH, { output: '', repo: '' })
     expect(work).toStrictEqual(output)
   })
 
-  test('can parse git diff deletion', async () => {
+  test('can parse git diff deletion', () => {
     const output = '- line deleted'
 
-    mySpawn.setDefault(mySpawn.simple(0, output))
-    const work = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output,
+    }))
+    const work = fileGitDiff(TEST_PATH, { output: '', repo: '' })
     expect(work).toStrictEqual(output)
   })
 
-  test('can parse git diff contexte line', async () => {
+  test('can parse git diff contexte line', () => {
     const output = 'context line'
 
-    mySpawn.setDefault(mySpawn.simple(0, output))
-    const work = await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output,
+    }))
+    const work = fileGitDiff(TEST_PATH, { output: '', repo: '' })
     expect(work).toStrictEqual(output)
   })
 
-  test('can reject in case of error', async () => {
-    const expected = 'Test Error'
-    mySpawn.setDefault(mySpawn.simple(1, null, expected))
+  test('can reject in case of error', () => {
+    const expected = new Error('Test Error')
+    child_process.spawnSync.mockImplementation(() => {
+      throw expected
+    })
 
     try {
-      await fileGitDiff(TEST_PATH, { output: '', repo: '' })
+      fileGitDiff(TEST_PATH, { output: '', repo: '' })
     } catch (e) {
       expect(e).toBe(expected)
     }

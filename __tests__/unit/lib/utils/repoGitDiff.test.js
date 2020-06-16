@@ -1,53 +1,60 @@
 'use strict'
 const repoGitDiff = require('../../../../lib/utils/repoGitDiff')
-jest.mock('child_process')
+const child_process = require('child_process')
+jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
 
-const mySpawn = require('mock-spawn')()
-require('child_process').spawn = mySpawn
-
 describe(`test if repoGitDiff`, () => {
-  test('can parse git correctly', async () => {
+  test('can parse git correctly', () => {
     const output = []
-    mySpawn.setDefault(mySpawn.simple(0, ''))
-    const work = await repoGitDiff({ output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: '',
+    }))
+    const work = repoGitDiff({ output: '', repo: '' })
     expect(work).toStrictEqual(output)
   })
 
-  test('can resolve deletion', async () => {
+  test('can resolve deletion', () => {
     const output = [
       'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mySpawn.setDefault(mySpawn.simple(0, output[0]))
-    const work = await repoGitDiff({ output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff({ output: '', repo: '' })
     expect(work).toMatchObject(output)
   })
 
-  test('can resolve file copy when new file is added', async () => {
+  test('can resolve file copy when new file is added', () => {
     const output = [
       'A      force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mySpawn.setDefault(mySpawn.simple(0, output[0]))
-    const work = await repoGitDiff({ output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff({ output: '', repo: '' })
     expect(work).toStrictEqual(output)
   })
 
-  test('can resolve file copy when file is modified', async () => {
+  test('can resolve file copy when file is modified', () => {
     const output = [
       'M      force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mySpawn.setDefault(mySpawn.simple(0, output[0]))
-    const work = await repoGitDiff({ output: '', repo: '' })
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff({ output: '', repo: '' })
     expect(work).toStrictEqual(output)
   })
 
-  test('can reject in case of error', async () => {
-    const expected = 'Test Error'
-    mySpawn.setDefault(mySpawn.simple(1, null, expected))
-
+  test('can reject in case of error', () => {
+    const expected = new Error('Test Error')
+    child_process.spawnSync.mockImplementation(() => {
+      throw expected
+    })
     try {
-      await repoGitDiff({ output: '', repo: '' })
+      repoGitDiff({ output: '', repo: '' })
     } catch (e) {
       expect(e).toBe(expected)
     }
