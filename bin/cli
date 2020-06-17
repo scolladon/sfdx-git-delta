@@ -27,13 +27,9 @@ program
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
 
-orchestrator(program)
-  .then(qwaks => {
-    qwaks.forEach(qwak => console.log(qwak.message))
-    console.log(`check ${program.output}`)
-  })
-  .catch(err =>
-    console.error(
-      `Error terminating the process during sfdx-git-delta : ${err.message}`
-    )
-  )
+try {
+  orchestrator(program)
+  console.log(`check ${program.output}`)
+} catch (err) {
+  console.error(`Error terminating the process during sfdx-git-delta : ${err}`)
+}

@@ -63,15 +63,11 @@ describe(`test if package constructor`, () => {
   const packageConstructor = new PackageConstructor(options)
   test.each(tests)(
     'can build %s destructiveChanges.xml',
-    async (type, diff, expected) => {
-      await expect(packageConstructor.constructPackage(diff)).resolves.toBe(
-        expected
-      )
+    (type, diff, expected) => {
+      expect(packageConstructor.constructPackage(diff)).toBe(expected)
     }
   )
-  test('can handle null diff', async () => {
-    await expect(packageConstructor.constructPackage(null)).resolves.toBe(
-      undefined
-    )
+  test('can handle null diff', () => {
+    expect(packageConstructor.constructPackage(null)).toBe(undefined)
   })
 })

@@ -37,84 +37,55 @@ const checkConfig = config => {
 }
 
 module.exports = config => {
-  return new Promise((resolve, reject) => {
-    const inputError = checkConfig(config)
-    if (inputError.length > 0) {
-      return reject(new Error(inputError))
-    }
-    config.apiVersion = parseInt(config.apiVersion)
-    repoSetup(config)
+  const inputError = checkConfig(config)
+  if (inputError.length > 0) {
+    throw new Error(inputError)
+  }
+  config.apiVersion = parseInt(config.apiVersion)
+  repoSetup(config)
 
-    const metadata = metadataManager.getDefinition(
-      'directoryName',
-      config.apiVersion
-    )
+  const metadata = metadataManager.getDefinition(
+    'directoryName',
+    config.apiVersion
+  )
 
-    repoGitDiff(config, metadata)
-      .then(lines => treatDiff(config, lines, metadata))
-      .then(work => treatPackages(work.diffs, config).then(() => work))
-      .then(work => resolve(work.qwaks))
-      .catch(reject)
-  })
+  const lines = repoGitDiff(config, metadata)
+  const work = treatDiff(config, lines, metadata)
+  treatPackages(work.diffs, config)
 }
 
 const treatDiff = (config, lines, metadata) => {
-  return new Promise(resolve => {
-    const work = {
-      config: config,
-      diffs: { package: {}, destructiveChanges: {} },
-      promises: [],
-      qwaks: [],
-    }
+  const work = {
+    config: config,
+    diffs: { package: {}, destructiveChanges: {} },
+  }
 
-    const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
+  const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
 
-    lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
-    work.promises
-      .map(promise => promise.catch(err => work.qwaks.push(err)))
-      .reduce(
-        (promiseChain, nextPromise) => promiseChain.then(nextPromise),
-        Promise.resolve()
-      )
-      .then(() => resolve(work))
-  })
+  lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
+  return work
 }
 
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
-  return [
+  ;[
     {
-      filename: DESTRUCTIVE_CHANGES_FILE_NAME,
+      filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
       folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-      jsonContent: dcJson[DESTRUCTIVE_CHANGES_FILE_NAME],
+      xmlContent: pc.constructPackage(dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]),
     },
     {
-      filename: PACKAGE_FILE_NAME,
+      filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
       folder: PACKAGE_FILE_NAME,
-      jsonContent: dcJson[PACKAGE_FILE_NAME],
+      xmlContent: pc.constructPackage(dcJson[PACKAGE_FILE_NAME]),
     },
     {
-      filename: PACKAGE_FILE_NAME,
+      filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
       folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-      jsonContent: {},
+      xmlContent: pc.constructPackage({}),
     },
-  ].reduce(
-    (promiseChain, op) => promiseChain.then(() => treatPackage(op, pc, config)),
-    Promise.resolve()
-  )
-}
-
-const treatPackage = (op, pc, config) => {
-  return pc
-    .constructPackage(op.jsonContent)
-    .then(content =>
-      fse.outputFileSync(
-        path.join(
-          config.output,
-          op.folder,
-          `${op.filename}.${XML_FILE_EXTENSION}`
-        ),
-        content
-      )
-    )
+  ].forEach(op => {
+    const location = path.join(config.output, op.folder, op.filename)
+    fse.outputFileSync(location, op.xmlContent)
+  })
 }

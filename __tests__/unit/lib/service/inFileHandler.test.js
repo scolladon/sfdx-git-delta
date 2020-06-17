@@ -1,14 +1,15 @@
 'use strict'
 const InFile = require('../../../../lib/service/inFileHandler')
-const mySpawn = require('mock-spawn')()
+const gc = require('../../../../lib/utils/gitConstants')
+const child_process = require('child_process')
 const fsMocked = require('fs')
 const os = require('os')
-const xml2jsMocked = require('xml2js')
+const xml2jsMocked = require('fast-xml-parser')
 
-require('child_process').spawn = mySpawn
+jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs')
 jest.mock('fs-extra')
-jest.mock('xml2js')
+jest.mock('fast-xml-parser')
 
 const testContext = {
   handler: InFile,
@@ -39,18 +40,6 @@ const testContext = {
   },
 }
 
-testContext.testData.forEach(data => {
-  const lines = data[2].split(os.EOL)
-
-  mySpawn.sequence.add(mySpawn.simple(0, lines.map(x => `-${x}`).join(os.EOL)))
-  let i = 2
-  for (; i < 8; ++i) {
-    lines[i] = `${i < 5 ? '-' : '+'}${lines[i]}`
-  }
-  mySpawn.sequence.add(mySpawn.simple(0, lines.join(os.EOL)))
-  mySpawn.sequence.add(mySpawn.simple(0, lines.join(os.EOL)))
-})
-
 fsMocked.__setMockFiles({
   [testContext.testData[0][1]]: testContext.testData[0][2],
   [testContext.testData[1][1]]: testContext.testData[1][2],
@@ -65,68 +54,105 @@ xml2jsMocked.__setMockContent({
 
 // eslint-disable-next-line no-undef
 describe(`test if inFileHandler`, () => {
-  describe.each(testContext.testData)('handles', (expectedType, changePath) => {
-    test('addition', () => {
-      const handler = new testContext.handler(
-        `A       ${changePath}`,
-        expectedType,
-        {
+  describe.each(testContext.testData)(
+    'handles',
+    (expectedType, changePath, xmlContent) => {
+      test('addition', () => {
+        const work = {
           config: { output: '', repo: '', generateDelta: true },
           diffs: { package: {}, destructiveChanges: {} },
-          promises: [],
-        },
-        // eslint-disable-next-line no-undef
-        globalMetadata
-      )
-      handler.handle()
-    })
-    test('deletion', async () => {
-      const work = {
-        config: { output: '', repo: '', generateDelta: true },
-        diffs: { package: {}, destructiveChanges: {} },
-        promises: [],
-      }
-      const handler = new testContext.handler(
-        `D       ${changePath}`,
-        expectedType,
-        work,
-        // eslint-disable-next-line no-undef
-        globalMetadata
-      )
-      handler.handle()
-      await Promise.all(work.promises)
-      expect(work.diffs.destructiveChanges).toMatchObject(
-        testContext.expectedData[expectedType]
-      )
-    })
-    test('modification', () => {
-      const handler = new testContext.handler(
-        `M       ${changePath}`,
-        expectedType,
-        {
-          config: { output: '', repo: '', generateDelta: true },
-          diffs: { package: {}, destructiveChanges: {} },
-          promises: [],
-        },
-        // eslint-disable-next-line no-undef
-        globalMetadata
-      )
-      handler.handle()
-    })
+        }
+        const handler = new testContext.handler(
+          `A       ${changePath}`,
+          expectedType,
+          work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
+        )
+        child_process.spawnSync.mockImplementation(() => ({
+          stdout: xmlContent
+            .split(os.EOL)
+            .map(x => `${gc.PLUS} ${x}`)
+            .join(os.EOL),
+        }))
+        handler.handle()
 
-    test('modification without delta generation', () => {
-      const handler = new testContext.handler(
-        `M       ${changePath}`,
-        expectedType,
-        {
+        expect(work.diffs.package).toMatchObject(
+          testContext.expectedData[expectedType]
+        )
+      })
+      test('deletion', () => {
+        const work = {
+          config: { output: '', repo: '', generateDelta: true },
+          diffs: { package: {}, destructiveChanges: {} },
+        }
+        const handler = new testContext.handler(
+          `D       ${changePath}`,
+          expectedType,
+          work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
+        )
+        child_process.spawnSync.mockImplementation(() => ({
+          stdout: xmlContent
+            .split(os.EOL)
+            .map(x => `${gc.MINUS} ${x}`)
+            .join(os.EOL),
+        }))
+        handler.handle()
+        expect(work.diffs.destructiveChanges).toMatchObject(
+          testContext.expectedData[expectedType]
+        )
+      })
+      test('modification', () => {
+        const work = {
+          config: { output: '', repo: '', generateDelta: true },
+          diffs: { package: {}, destructiveChanges: {} },
+        }
+        const handler = new testContext.handler(
+          `M       ${changePath}`,
+          expectedType,
+          work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
+        )
+        child_process.spawnSync.mockImplementation(() => ({
+          stdout: xmlContent
+            .split(os.EOL)
+            .map(
+              x => `${Math.floor(Math.random() * 2) ? gc.PLUS : gc.MINUS} ${x}`
+            )
+            .join(os.EOL),
+        }))
+        handler.handle()
+
+        expect(work.diffs.package).toBeDefined()
+        expect(work.diffs.destructiveChanges).toBeDefined()
+      })
+
+      test('modification without delta generation', () => {
+        const work = {
           config: { output: '', repo: '', generateDelta: false },
           diffs: { package: {}, destructiveChanges: {} },
-          promises: [],
-        },
-        // eslint-disable-next-line no-undef
-        globalMetadata
-      )
-      handler.handle()
-    })
-  })
+        }
+        const handler = new testContext.handler(
+          `M       ${changePath}`,
+          expectedType,
+          work,
+          // eslint-disable-next-line no-undef
+          globalMetadata
+        )
+        child_process.spawnSync.mockImplementation(() => ({
+          stdout: xmlContent
+            .split(os.EOL)
+            .map(x => `${gc.PLUS} ${x}`)
+            .join(os.EOL),
+        }))
+        handler.handle()
+        expect(work.diffs.package).toMatchObject(
+          testContext.expectedData[expectedType]
+        )
+      })
+    }
+  )
 })

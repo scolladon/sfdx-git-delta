@@ -4,12 +4,10 @@ jest.mock('child_process')
 jest.mock('fs-extra')
 jest.mock('fs')
 jest.mock('git-state')
-jest.mock('xml2js')
+jest.mock('fast-xml-parser')
 
 const fsMocked = require('fs')
 const fseMocked = require('fs-extra')
-const mySpawn = require('mock-spawn')()
-require('child_process').spawn = mySpawn
 
 describe(`test if the appli`, () => {
   beforeAll(() => {
@@ -20,106 +18,81 @@ describe(`test if the appli`, () => {
     })
   })
 
-  test('can execute with simple parameters and no diff', async () => {
-    mySpawn.setDefault(mySpawn.simple(0, ''))
-    await expect(
+  test('can execute with simple parameters and no diff', () => {
+    expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).resolves.toStrictEqual([])
+    ).toBeUndefined()
   })
 
-  test('can execute with simple parameters and an Addition', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
-      )
-    )
-    await expect(
+  test('can execute with simple parameters and an Addition', () => {
+    expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).resolves.toStrictEqual([])
+    ).toBeUndefined()
   })
 
-  test('can execute with simple parameters and a Deletion', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
-      )
-    )
-    await expect(
+  test('can execute with simple parameters and a Deletion', () => {
+    expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).resolves.toStrictEqual([])
+    ).toBeUndefined()
   })
 
-  test('can execute with simple parameters and a Modification', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
-      )
-    )
-    await expect(
+  test('can execute with simple parameters and a Modification', () => {
+    expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).resolves.toStrictEqual([])
+    ).toBeUndefined()
   })
 
-  test('catch and reject big issues', async () => {
+  test('catch and reject big issues', () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
-    await expect(
+    expect(() => {
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 
-  test('catch internal qwaks', async () => {
-    mySpawn.setDefault(
-      mySpawn.simple(
-        0,
-        'A      force-app/main/default/workflows/Account.workflow-meta.xml'
-      )
-    )
-    await expect(
+  test('catch internal qwaks', () => {
+    expect(() => {
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 
-  test('throw errors when to parameter is not filled', async () => {
-    await expect(
+  test('throw errors when to parameter is not filled', () => {
+    expect(() => {
       app({ output: 'output', repo: '', apiVersion: '46' })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 
-  test('throw errors when apiVersion parameter is NaN', async () => {
-    await expect(
+  test('throw errors when apiVersion parameter is NaN', () => {
+    expect(() => {
       app({ output: 'output', repo: '', to: 'test', apiVersion: 'NotANumber' })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 
-  test('throw errors when output folder does not exist', async () => {
-    await expect(
+  test('throw errors when output folder does not exist', () => {
+    expect(() => {
       app({
         output: 'not/exist/folder',
         repo: '',
         to: 'test',
         apiVersion: '46',
       })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 
-  test('throw errors when output is not a folder', async () => {
-    await expect(
+  test('throw errors when output is not a folder', () => {
+    expect(() => {
       app({ output: 'file', repo: '', to: 'test', apiVersion: '46' })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 
-  test('throw errors when repo is not git repository', async () => {
-    await expect(
+  test('throw errors when repo is not git repository', () => {
+    expect(() => {
       app({
         output: 'output',
         repo: 'not/git/folder',
         to: 'test',
         apiVersion: '46',
       })
-    ).rejects.toBeTruthy()
+    }).toThrow()
   })
 })

@@ -23,13 +23,11 @@ If you are a Technical Architect, then it’s a very useful tool for you, _when 
                 ➕
         You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI...) that handles the deployment of the sources to the salesforce org(s).
 
-
 **DISCLAIMER:**
 
 ⚠️ **SFDX-Git-Delta is _not_ an officially supported tool ⚠️**
 
 👷 Use it at your own risk, wear a helmet, and do not let non-technical people play with it 🔥
-
 
 ## How to install it?
 
@@ -38,7 +36,6 @@ npm install sfdx-git-delta@latest -g
 ```
 
 If you run your CI jobs inside a Docker image (which is very common), you can add sgd to your image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
-
 
 To see the full list and description of the sgd options, run `sgd --help`
 
@@ -60,7 +57,6 @@ Windows is not tested.
 
 Git command line is required on the system where the command line is running.
 
-
 ## How to use it?
 
 ### **TLDR;**
@@ -81,15 +77,13 @@ sfdx force:source:deploy -x package/package.xml
 echo "--- destructiveChanges.xml generated with deleted metadata ---"
 cat destructiveChanges/destructiveChanges.xml
 echo
-echo "--- Deleting removed metadata ---"     
+echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
-
-
 ### Scenario:
 
-Let’s take a look at the following scenario: 
+Let’s take a look at the following scenario:
 
 > ***The CI pipelines deploys the sources to Production anytime there is a new commit in the master branch.***
 
@@ -109,7 +103,6 @@ In this situation, we would expect the CI pipeline to:
 
 So let’s do it!
 
-
 ### Run the sgd command:
 
 From the project repo folder, the CI pipeline will run the following command
@@ -122,21 +115,19 @@ which means:
 
 > Analyse the difference between HEAD (latest commit) and HEAD^ (previous commit), from the current folder, and output the result in the same folder.
 
-
 The `sgd` command will produces 2 usefull artefacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This package.xml file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
-*Content of the `package.xml` file in our scenario:*
+_Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
 **2) A `destructivePackage.xml` file, inside a `destructivePackage` folder.** This destructivePackage.xml file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org.
 
-*Content of the `destructivePackage.xml` file in our scenario:*
+_Content of the `destructivePackage.xml` file in our scenario:_
 ![destructivePackage](/img/example_destructiveChange.png)
 
 In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta` option.
-
 
 ### Deploy only the added/modified metadata:
 
@@ -150,8 +141,6 @@ echo "---- Deploying added and modified metadata ----"
 sfdx force:source:deploy -x package/package.xml
 ```
 
-
-
 ### Delete the removed metadata:
 
 The CI pipeline can use the `destructiveChanges` folder to deploy the corresponding destructive change:
@@ -160,10 +149,9 @@ The CI pipeline can use the `destructiveChanges` folder to deploy the correspond
 echo "--- destructiveChanges.xml generated with deleted metadata ---"
 cat destructiveChanges/destructiveChanges.xml
 echo
-echo "--- Deleting removed metadata ---"     
+echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
-
 
 And voilà! 🥳
 
@@ -184,8 +172,9 @@ And voilà! 🥳
 ## Built With [![dependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/status.svg)](https://david-dm.org/scolladon/sfdx-git-delta) [![devDependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/dev-status.svg)](https://david-dm.org/scolladon/sfdx-git-delta?type=dev)
 
 - [commander](https://github.com/tj/commander.js/) - The complete solution for node.js command-line interfaces, inspired by Ruby's commander.
-- [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) - An XML builder for node.js similar to java-xmlbuilder.
+- [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - Validate XML, Parse XML to JS/JSON and vise versa, or parse XML to Nimn rapidly without C/C++ based libraries and no callback
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
+- [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) - An XML builder for node.js similar to java-xmlbuilder.
 
 ## Versioning
 
