@@ -69,7 +69,7 @@ const treatDiff = (config, lines, metadata) => {
 const treatPackages = (dcJson, config) => {
   const pc = new PackageConstructor(config)
   ;[
-    ({
+    {
       filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
       folder: DESTRUCTIVE_CHANGES_FILE_NAME,
       xmlContent: pc.constructPackage(dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]),
@@ -83,7 +83,7 @@ const treatPackages = (dcJson, config) => {
       filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
       folder: DESTRUCTIVE_CHANGES_FILE_NAME,
       xmlContent: pc.constructPackage({}),
-    }),
+    },
   ].forEach(op => {
     const location = path.join(config.output, op.folder, op.filename)
     fse.outputFileSync(location, op.xmlContent)
