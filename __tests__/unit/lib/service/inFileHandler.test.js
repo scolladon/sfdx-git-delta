@@ -40,18 +40,6 @@ const testContext = {
   },
 }
 
-/*testContext.testData.forEach(data => {
-  const lines = data[2].split(os.EOL)
-
-  mySpawn.sequence.add(mySpawn.simple(0, lines.map(x => `-${x}`).join(os.EOL)))
-  let i = 2
-  for (; i < 8; ++i) {
-    lines[i] = `${i < 5 ? '-' : '+'}${lines[i]}`
-  }
-  mySpawn.sequence.add(mySpawn.simple(0, lines.join(os.EOL)))
-  mySpawn.sequence.add(mySpawn.simple(0, lines.join(os.EOL)))
-})*/
-
 fsMocked.__setMockFiles({
   [testContext.testData[0][1]]: testContext.testData[0][2],
   [testContext.testData[1][1]]: testContext.testData[1][2],
