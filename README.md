@@ -122,7 +122,7 @@ The `sgd` command will produces 2 usefull artefacts:
 _Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
-**2) A `destructivePackage.xml` file, inside a `destructivePackage` folder.** This destructivePackage.xml file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org.
+**2) A `destructivePackage.xml` file, inside a `destructivePackage` folder.** This destructivePackage.xml file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. (`destructivePackage` folder contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload)
 
 _Content of the `destructivePackage.xml` file in our scenario:_
 ![destructivePackage](/img/example_destructiveChange.png)
