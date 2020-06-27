@@ -30,6 +30,8 @@ program
 try {
   orchestrator(program)
   console.log(`check ${program.output}`)
+  process.exitCode = 0
 } catch (err) {
   console.error(`Error terminating the process during sfdx-git-delta : ${err}`)
+  process.exitCode = 1
 }
