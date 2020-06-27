@@ -13,6 +13,7 @@ describe(`test if the appli`, () => {
   beforeAll(() => {
     fsMocked.errorMode = false
     fseMocked.errorMode = false
+    fseMocked.outputFileSyncError = false
     fsMocked.__setMockFiles({
       output: '',
     })
@@ -45,12 +46,7 @@ describe(`test if the appli`, () => {
   test('catch and reject big issues', () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
-    expect(() => {
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    }).toThrow()
-  })
-
-  test('catch internal qwaks', () => {
+    fseMocked.outputFileSyncError = true
     expect(() => {
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     }).toThrow()

@@ -2,13 +2,16 @@
 const fse = jest.genMockFromModule('fs-extra')
 
 fse.errorMode = false
+fse.outputFileSyncError = false
 
 fse.pathExistsSync = () => true
 
-fse.copySync = () => {}
+fse.copySync = () => {
+  if (fse.errorMode) throw new Error()
+}
 
 fse.outputFileSync = () => {
-  if (fse.errorMode) throw new Error()
+  if (fse.outputFileSyncError) throw new Error()
 }
 
 module.exports = fse
