@@ -38,6 +38,6 @@ describe(`test if the appli`, () => {
         to: 'test',
         apiVersion: '46',
       })
-    ).toBeUndefined()
+    ).toHaveProperty('warnings', [])
   })
 })
