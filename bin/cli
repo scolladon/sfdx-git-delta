@@ -27,9 +27,21 @@ program
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
 
-try {
-  orchestrator(program)
-  console.log(`check ${program.output}`)
-} catch (err) {
-  console.error(`Error terminating the process during sfdx-git-delta : ${err}`)
+const output = {
+  error: null,
+  output: program.output,
+  success: true,
+  warnings: null,
 }
+try {
+  const jobResult = orchestrator(program)
+  if (jobResult.warnings && jobResult.warnings.length) {
+    output.warnings = jobResult.warnings.map(warning => warning.message)
+  }
+  process.exitCode = 0
+} catch (err) {
+  output.success = false
+  output.error = err.message
+  process.exitCode = 1
+}
+console.log(JSON.stringify(output, null, 2))
