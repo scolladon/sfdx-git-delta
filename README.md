@@ -167,7 +167,7 @@ Let's use this option with our previous example:
 
 ```
 mkdir changed-sources
-sgd --to HEAD --from HEAD^ --repo . --output changed-sources --generate-delta
+sgd --to HEAD --from HEAD^ --repo . --output changed-sources/ --generate-delta
 ```
 
 In addition to the `package` and `destructiveChanges` folders, the `sgd` command will also produce a copy of the added/changed files in the ouput folder.
