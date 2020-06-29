@@ -11,23 +11,23 @@ Generate the sfdx content in source format and destructive change from two git c
 1. **Make deployments faster,** by identifying the metadata that has been changed since a reference commit.
 2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructivePackage.xml
 
-## Is it for me?
+## Is it for you?
 
-If you are not a Salesforce Architect, probably not, _sorry_.
+If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
-If you are a Technical Architect, then it’s a very useful tool for you, _when the 3 conditions below are met:_
+If you are a Technical Architect or Developer, then it’s a very useful tool for you, when the 3 conditions below are met:
 
         Your Salesforce project uses a git repo as the source of truth.
                 ➕
-        You use the new Source (DX) format in the repo.
+        You use the Source (DX) format in the repo.
                 ➕
-        You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI...) that handles the deployment of the sources to the salesforce org(s).
+        You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure Devops...) that handles the deployment of the sources to the Salesforce org(s).
 
 **DISCLAIMER:**
 
 ⚠️ **SFDX-Git-Delta is _not_ an officially supported tool ⚠️**
 
-👷 Use it at your own risk, wear a helmet, and do not let non-technical people play with it 🔥
+👷 Use it at your own risk, wear a helmet, and test it first before adding it to your pipeline 🔥
 
 ## How to install it?
 
@@ -115,19 +115,19 @@ which means:
 
 > Analyse the difference between HEAD (latest commit) and HEAD^ (previous commit), from the current folder, and output the result in the same folder.
 
-The `sgd` command will produces 2 usefull artefacts:
+The `sgd` command produces 2 usefull artefacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This package.xml file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
 _Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
-**2) A `destructivePackage.xml` file, inside a `destructivePackage` folder.** This destructivePackage.xml file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. (`destructivePackage` folder contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload)
+**2) A `destructivePackage.xml` file, inside a `destructivePackage` folder.** This destructivePackage.xml file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. Note: the `destructivePackage` folder also contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload.
 
 _Content of the `destructivePackage.xml` file in our scenario:_
 ![destructivePackage](/img/example_destructiveChange.png)
 
-In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta` option.
+In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
 
 ### Deploy only the added/modified metadata:
 
@@ -154,6 +154,28 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
 And voilà! 🥳
+
+### Advanced use-case: Generating a folder containing only the added/modified sources
+
+Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
+
+One example is to speed up object deployments: the package.xml approach will result on the entire sub-folder for a given object to be deployed. On the opposite, having a copy of the actual sources added/modified allows you to chirchugically deploy only the modified components.
+
+This is where the `--generate-delta (-d)` option comes handy!
+
+Let's use this option with our previous example:
+
+```
+mkdir changed-sources
+sgd --to HEAD --from HEAD^ --repo . --output changed-sources --generate-delta
+```
+
+In addition to the `package` and `destructiveChanges` folders, the `sgd` command will also produce a copy of the added/changed files in the ouput folder.
+
+_Content of the output folder when using the --generate-delta option, with the same scenario as above:_
+![delta-source](/img/example_generateDelta.png)
+
+
 
 ## Javascript Module
 
