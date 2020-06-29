@@ -115,7 +115,7 @@ which means:
 
 > Analyse the difference between HEAD (latest commit) and HEAD^ (previous commit), from the current folder, and output the result in the same folder.
 
-The `sgd` command will produces usefull artefacts:
+The `sgd` command will produces 2 usefull artefacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This package.xml file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
@@ -127,7 +127,7 @@ _Content of the `package.xml` file in our scenario:_
 _Content of the `destructivePackage.xml` file in our scenario:_
 ![destructivePackage](/img/example_destructiveChange.png)
 
-**3) A copy of the source folder** containing the added and changed metadata, by using the `--generate-delta (-d)` option.
+In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option.
 
 ### Deploy only the added/modified metadata:
 
