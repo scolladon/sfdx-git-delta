@@ -36,12 +36,12 @@ const output = {
 try {
   const jobResult = orchestrator(program)
   if (jobResult.warnings && jobResult.warnings.length) {
-    output.warnings = jobResult.warnings
+    output.warnings = jobResult.warnings.map(warning => warning.message)
   }
   process.exitCode = 0
 } catch (err) {
   output.success = false
-  output.error = err
+  output.error = err.message
   process.exitCode = 1
 }
 console.log(JSON.stringify(output, null, 2))
