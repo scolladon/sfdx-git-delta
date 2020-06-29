@@ -21,7 +21,7 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
                 ➕
         You use the Source (DX) format in the repo.
                 ➕
-        You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure Devops...) that handles the deployment of the sources to the Salesforce org(s).
+        You have a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
 **DISCLAIMER:**
 
