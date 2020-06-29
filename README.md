@@ -6,7 +6,7 @@ Generate the sfdx content in source format and destructive change from two git c
 
 ## What is SFDX-Git-Delta? [![npm version](https://badge.fury.io/js/sfdx-git-delta.svg)](https://badge.fury.io/js/sfdx-git-delta)
 
-**SFDX-Git-Delta** (*a.k.a. **sgd***) helps Technical Architects accomplish 2 things with their CI deployments:
+**SFDX-Git-Delta** (\*a.k.a. **sgd\***) helps Technical Architects accomplish 2 things with their CI deployments:
 
 1. **Make deployments faster,** by identifying the metadata that has been changed since a reference commit.
 2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructivePackage.xml
@@ -85,14 +85,14 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 Let’s take a look at the following scenario:
 
-> ***The CI pipelines deploys the sources to Production anytime there is a new commit in the master branch.***
-
+> **_The CI pipelines deploys the sources to Production anytime there is a new commit in the master branch._**
 
 In our example, the latest commit to master is composed of:
-+ _Apex Class added:_ TriggerHandler
-+ _Apex Class added:_ TriggerHandler_Test
-+ _Apex Class modified:_ TestDataFactory
-+ _Apex Class deleted:_ AnotherTriggerFramework
+
+- _Apex Class added:_ TriggerHandler
+- _Apex Class added:_ TriggerHandler_Test
+- _Apex Class modified:_ TestDataFactory
+- _Apex Class deleted:_ AnotherTriggerFramework
 
 ![commit](/img/example_commit.png)
 
@@ -126,6 +126,7 @@ _Content of the `package.xml` file in our scenario:_
 
 _Content of the `destructivePackage.xml` file in our scenario:_
 ![destructivePackage](/img/example_destructiveChange.png)
+
 
 In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
 
@@ -182,13 +183,21 @@ _Content of the output folder when using the --generate-delta option, with the s
 ```
   var sgd = require('sfdx-git-delta');
 
-  sgd({
+  const work = sgd({
     'to':'', // commit sha to where the diff is done. Default : HEAD
     'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
     'output':'', // source package specific output. Default : ./output
     'apiVersion':'', // salesforce API version. Default : 46
     'repo':'' // git repository location. Default : ./repo
-  }, console.log);
+  });
+
+console.log(JSON.stringify(work));
+/* {
+ *   config: config,
+ *   diffs: { package: {...}, destructiveChanges: {...} },
+ *   warnings: []
+ * }
+ */
 ```
 
 ## Built With [![dependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/status.svg)](https://david-dm.org/scolladon/sfdx-git-delta) [![devDependencies Status](https://david-dm.org/scolladon/sfdx-git-delta/dev-status.svg)](https://david-dm.org/scolladon/sfdx-git-delta?type=dev)

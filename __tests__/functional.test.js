@@ -6,6 +6,9 @@ jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
 
+const fsMocked = require('fs')
+const fseMocked = require('fs-extra')
+
 const lines = [
   'D      force-app/main/default/objects/Account/fields/deleted.field-meta.xml',
   'A      force-app/main/default/objects/Account/fields/added.field-meta.xml',
@@ -38,6 +41,23 @@ describe(`test if the appli`, () => {
         to: 'test',
         apiVersion: '46',
       })
-    ).toBeUndefined()
+    ).toHaveProperty('warnings', [])
+  })
+
+  test('catch internal warnings', () => {
+    fsMocked.errorMode = true
+    fseMocked.errorMode = true
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: lines.join(os.EOL),
+    }))
+    expect(
+      app({
+        output: 'output',
+        repo: '',
+        to: 'test',
+        apiVersion: '46',
+        generateDelta: true,
+      }).warnings
+    ).not.toHaveLength(0)
   })
 })

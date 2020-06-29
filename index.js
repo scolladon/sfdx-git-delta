@@ -52,12 +52,14 @@ module.exports = config => {
   const lines = repoGitDiff(config, metadata)
   const work = treatDiff(config, lines, metadata)
   treatPackages(work.diffs, config)
+  return work
 }
 
 const treatDiff = (config, lines, metadata) => {
   const work = {
     config: config,
     diffs: { package: {}, destructiveChanges: {} },
+    warnings: [],
   }
 
   const typeHandlerFactory = new TypeHandlerFactory(work, metadata)

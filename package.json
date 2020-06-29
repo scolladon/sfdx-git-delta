@@ -50,6 +50,7 @@
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
     "test": "jest --runInBand",
+    "test:debug": "node --inspect node_modules/.bin/jest --runInBand",
     "test:coverage": "jest --coverage --runInBand",
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",

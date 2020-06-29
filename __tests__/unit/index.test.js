@@ -13,6 +13,7 @@ describe(`test if the appli`, () => {
   beforeAll(() => {
     fsMocked.errorMode = false
     fseMocked.errorMode = false
+    fseMocked.outputFileSyncError = false
     fsMocked.__setMockFiles({
       output: '',
     })
@@ -21,36 +22,31 @@ describe(`test if the appli`, () => {
   test('can execute with simple parameters and no diff', () => {
     expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toBeUndefined()
+    ).toHaveProperty('warnings', [])
   })
 
   test('can execute with simple parameters and an Addition', () => {
     expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toBeUndefined()
+    ).toHaveProperty('warnings', [])
   })
 
   test('can execute with simple parameters and a Deletion', () => {
     expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toBeUndefined()
+    ).toHaveProperty('warnings', [])
   })
 
   test('can execute with simple parameters and a Modification', () => {
     expect(
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toBeUndefined()
+    ).toHaveProperty('warnings', [])
   })
 
   test('catch and reject big issues', () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
-    expect(() => {
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    }).toThrow()
-  })
-
-  test('catch internal qwaks', () => {
+    fseMocked.outputFileSyncError = true
     expect(() => {
       app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
     }).toThrow()
