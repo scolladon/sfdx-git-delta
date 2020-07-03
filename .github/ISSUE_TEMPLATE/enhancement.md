@@ -1,3 +1,12 @@
+---
+name: Enhancement request
+about: Use this template for tracking new features.
+title: "[FEATURE NAME]"
+labels: enhancement
+assignees: scolladon
+---
+
+
 ### Is your proposal related to a problem?
 
 ---

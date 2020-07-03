@@ -1,3 +1,11 @@
+---
+name: Log an issue
+about: Use this template for tracking new bugs.
+title: "[BUG NAME]"
+labels: bug
+assignees: scolladon
+---
+
 Issue verification check :
 
 [] does the current repository is fully deployable at the commit sha given to the from parameter of the command ?
