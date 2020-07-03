@@ -1,4 +1,6 @@
-(Thanks for sending a pull request! Please make sure you click the link above to view the contribution guidelines, then fill out the blanks below.)
+<!--
+Thanks for sending a pull request! Please make sure you click the link above to view the contribution guidelines, then fill out the blanks below.
+-->
 
 ## What does this pull request contains? Explain your changes.
 
@@ -8,17 +10,12 @@
   Check all that apply
 -->
 
-[] Added for new features.
-
-[] Changed for changes in existing functionality.
-
-[] Deprecated for soon-to-be removed features.
-
-[] Removed for now removed features.
-
-[] Fixed for any bug fixes.
-
-[] Security in case of vulnerabilities.
+- [ ] Added for new features.
+- [ ] Changed for changes in existing functionality.
+- [ ] Deprecated for soon-to-be removed features.
+- [ ] Removed for now removed features.
+- [ ] Fixed for any bug fixes.
+- [ ] Security in case of vulnerabilities.
 
 ## Explain your changes
 
@@ -40,7 +37,7 @@ _(Write your answer here.)_
 -->
 
 _(Write your answer here.)_
-[] Jest test to check the fix is applied are added.
+- [ ] Jest test to check the fix is applied are added.
 
 ## Any particular element to being able to test locally
 
