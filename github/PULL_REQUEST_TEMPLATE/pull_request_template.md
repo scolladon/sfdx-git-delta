@@ -35,11 +35,12 @@ _(Write your answer here.)_
 ---
 
 <!--
-  Provide the issue link
+  Provide the issue link or remove this section
   EX : #<issue-number>
 -->
 
 _(Write your answer here.)_
+[] Jest test to check the fix is applied are added.
 
 ## Any particular element to being able to test locally
 
