@@ -127,7 +127,6 @@ _Content of the `package.xml` file in our scenario:_
 _Content of the `destructivePackage.xml` file in our scenario:_
 ![destructivePackage](/img/example_destructiveChange.png)
 
-
 In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
 
 ### Deploy only the added/modified metadata:
@@ -176,8 +175,6 @@ In addition to the `package` and `destructiveChanges` folders, the `sgd` command
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
 
-
-
 ## Javascript Module
 
 ```
@@ -215,6 +212,12 @@ console.log(JSON.stringify(work));
 
 - **Sebastien Colladon** - Developer - [scolladon](https://github.com/scolladon)
 - **Mehdi Cherfaoui** - Tester - [mehdisfdc](https://github.com/mehdisfdc)
+
+## Contributing
+
+Contributions are what make the trailblazer community such an amazing place. I regard this component as a way to inspire and learn from others. Any contributions you make are **greatly appreciated**.
+
+See [contributing.md](/CONTRIBUTING.md) for lwcc principles.
 
 ## License
 
