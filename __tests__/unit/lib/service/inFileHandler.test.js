@@ -103,6 +103,9 @@ describe(`test if inFileHandler`, () => {
         expect(work.diffs.destructiveChanges).toMatchObject(
           testContext.expectedData[expectedType]
         )
+        expect(work.diffs.destructiveChanges).not.toHaveProperty('workflows')
+        expect(work.diffs.destructiveChanges).not.toHaveProperty('labels')
+        expect(work.diffs.destructiveChanges).not.toHaveProperty('sharingRules')
       })
       test('modification', () => {
         const work = {
