@@ -37,6 +37,7 @@ _(Write your answer here.)_
 -->
 
 _(Write your answer here.)_
+
 - [ ] Jest test to check the fix is applied are added.
 
 ## Any particular element to being able to test locally
@@ -73,3 +74,5 @@ _(Write your answer here.)_
 **Node version:** …
 
 **sgd version:** …
+
+**git version:** …
