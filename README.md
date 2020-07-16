@@ -25,7 +25,7 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 
 **DISCLAIMER:**
 
-⚠️ **SFDX-Git-Delta is _not_ an officially supported tool ⚠️**
+⚠️ **SFDX-Git-Delta is not an officially supported tool ⚠️**
 
 👷 Use it at your own risk, wear a helmet, and test it first before adding it to your pipeline 🔥
 
@@ -59,7 +59,7 @@ Git command line is required on the system where the command line is running.
 
 ## How to use it?
 
-### **TLDR;**
+### TL;DR:
 
 ```
 sgd --to HEAD --from HEAD^ --repo . --output .
