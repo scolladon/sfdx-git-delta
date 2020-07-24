@@ -840,6 +840,13 @@
     "xmlName": "NavigationMenu"
   },
   {
+    "directoryName": "audience",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "audience",
+    "xmlName": "Audience"
+  },
+  {
     "directoryName": "flowCategories",
     "inFolder": false,
     "metaFile": false,
