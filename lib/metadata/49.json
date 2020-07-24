@@ -76,6 +76,13 @@
     "xmlName": "Queue"
   },
   {
+    "directoryName": "CaseSubjectParticles",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "CaseSubjectParticle",
+    "xmlName": "CaseSubjectParticle"
+  },
+  {
     "directoryName": "dataSources",
     "inFolder": false,
     "metaFile": false,
@@ -318,6 +325,13 @@
     "xmlName": "CustomApplication"
   },
   {
+    "directoryName": "portals",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "portal",
+    "xmlName": "Portal"
+  },
+  {
     "directoryName": "customMetadata",
     "inFolder": false,
     "metaFile": false,
@@ -346,6 +360,7 @@
       "WorkflowAlert",
       "WorkflowSend",
       "WorkflowOutboundMessage",
+      "WorkflowFlowAction",
       "WorkflowRule"
     ],
     "directoryName": "workflows",
@@ -604,6 +619,13 @@
     "xmlName": "PresenceUserConfig"
   },
   {
+    "directoryName": "workSkillRoutings",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "workSkillRouting",
+    "xmlName": "WorkSkillRouting"
+  },
+  {
     "directoryName": "authproviders",
     "inFolder": false,
     "metaFile": false,
@@ -726,6 +748,13 @@
     "metaFile": false,
     "suffix": "timeSheetTemplate",
     "xmlName": "TimeSheetTemplate"
+  },
+  {
+    "directoryName": "appointmentSchedulingPolicies",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "policy",
+    "xmlName": "AppointmentSchedulingPolicy"
   },
   {
     "directoryName": "Canvases",
@@ -922,6 +951,34 @@
     "metaFile": false,
     "suffix": "managedContentType",
     "xmlName": "ManagedContentType"
+  },
+  {
+    "directoryName": "territory2Types",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Type",
+    "xmlName": "Territory2Type"
+  },
+  {
+    "directoryName": "territory2Models",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Model",
+    "xmlName": "Territory2Model"
+  },
+  {
+    "directoryName": "territory2Models",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Rule",
+    "xmlName": "Territory2Rule"
+  },
+  {
+    "directoryName": "territory2Models",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2",
+    "xmlName": "Territory2"
   },
   {
     "directoryName": "campaignInfluenceModels",
