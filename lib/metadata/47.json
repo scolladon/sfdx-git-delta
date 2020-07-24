@@ -76,6 +76,13 @@
     "xmlName": "Queue"
   },
   {
+    "directoryName": "CaseSubjectParticles",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "CaseSubjectParticle",
+    "xmlName": "CaseSubjectParticle"
+  },
+  {
     "directoryName": "dataSources",
     "inFolder": false,
     "metaFile": false,
@@ -318,6 +325,13 @@
     "xmlName": "CustomApplication"
   },
   {
+    "directoryName": "portals",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "portal",
+    "xmlName": "Portal"
+  },
+  {
     "directoryName": "customMetadata",
     "inFolder": false,
     "metaFile": false,
@@ -346,6 +360,7 @@
       "WorkflowAlert",
       "WorkflowSend",
       "WorkflowOutboundMessage",
+      "WorkflowFlowAction",
       "WorkflowRule"
     ],
     "directoryName": "workflows",
@@ -922,6 +937,34 @@
     "metaFile": false,
     "suffix": "managedContentType",
     "xmlName": "ManagedContentType"
+  },
+  {
+    "directoryName": "territory2Types",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Type",
+    "xmlName": "Territory2Type"
+  },
+  {
+    "directoryName": "territory2Models",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Model",
+    "xmlName": "Territory2Model"
+  },
+  {
+    "directoryName": "rules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Rule",
+    "xmlName": "Territory2Rule"
+  },
+  {
+    "directoryName": "territories",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2",
+    "xmlName": "Territory2"
   },
   {
     "directoryName": "campaignInfluenceModels",
