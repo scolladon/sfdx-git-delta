@@ -11,6 +11,11 @@ const testContext = {
       'force-app/main/default/objects/Account/Account.object-meta.xml',
       new Set(['Account']),
     ],
+    [
+      'territory2Models',
+      'force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
+      new Set(['EU']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
