@@ -325,6 +325,13 @@
     "xmlName": "CustomApplication"
   },
   {
+    "directoryName": "portals",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "portal",
+    "xmlName": "Portal"
+  },
+  {
     "directoryName": "customMetadata",
     "inFolder": false,
     "metaFile": false,
@@ -353,6 +360,7 @@
       "WorkflowAlert",
       "WorkflowSend",
       "WorkflowOutboundMessage",
+      "WorkflowFlowAction",
       "WorkflowRule"
     ],
     "directoryName": "workflows",
@@ -611,6 +619,13 @@
     "xmlName": "PresenceUserConfig"
   },
   {
+    "directoryName": "workSkillRoutings",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "workSkillRouting",
+    "xmlName": "WorkSkillRouting"
+  },
+  {
     "directoryName": "authproviders",
     "inFolder": false,
     "metaFile": false,
@@ -663,6 +678,13 @@
     "metaFile": false,
     "suffix": "sharingSet",
     "xmlName": "SharingSet"
+  },
+  {
+    "directoryName": "iframeWhiteListUrlSettings",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "iframeWhiteListUrlSettings",
+    "xmlName": "IframeWhiteListUrlSettings"
   },
   {
     "directoryName": "communities",
@@ -726,6 +748,13 @@
     "metaFile": false,
     "suffix": "timeSheetTemplate",
     "xmlName": "TimeSheetTemplate"
+  },
+  {
+    "directoryName": "appointmentSchedulingPolicies",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "policy",
+    "xmlName": "AppointmentSchedulingPolicy"
   },
   {
     "directoryName": "Canvases",
@@ -840,6 +869,13 @@
     "xmlName": "NavigationMenu"
   },
   {
+    "directoryName": "audience",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "audience",
+    "xmlName": "Audience"
+  },
+  {
     "directoryName": "flowCategories",
     "inFolder": false,
     "metaFile": false,
@@ -923,6 +959,34 @@
     "metaFile": false,
     "suffix": "managedContentType",
     "xmlName": "ManagedContentType"
+  },
+  {
+    "directoryName": "territory2Types",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Type",
+    "xmlName": "Territory2Type"
+  },
+  {
+    "directoryName": "territory2Models",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Model",
+    "xmlName": "Territory2Model"
+  },
+  {
+    "directoryName": "rules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2Rule",
+    "xmlName": "Territory2Rule"
+  },
+  {
+    "directoryName": "territories",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "territory2",
+    "xmlName": "Territory2"
   },
   {
     "directoryName": "campaignInfluenceModels",
@@ -1093,7 +1157,7 @@
     "xmlName": "Settings"
   },
   {
-    "directoryName": "alerts",
+    "directoryName": "WorkflowAlerts",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1101,7 +1165,7 @@
     "xmlTag": "alerts"
   },
   {
-    "directoryName": "fieldUpdates",
+    "directoryName": "WorkflowFieldUpdates",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1109,7 +1173,7 @@
     "xmlTag": "fieldUpdates"
   },
   {
-    "directoryName": "label",
+    "directoryName": "CustomLabels",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "CustomLabels",
@@ -1117,7 +1181,7 @@
     "xmlTag": "labels"
   },
   {
-    "directoryName": "outboundMessages",
+    "directoryName": "WorkflowOutboundMessages",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1125,7 +1189,7 @@
     "xmlTag": "outboundMessages"
   },
   {
-    "directoryName": "rules",
+    "directoryName": "WorkflowRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1133,7 +1197,7 @@
     "xmlTag": "rules"
   },
   {
-    "directoryName": "sharingCriteriaRules",
+    "directoryName": "SharingCriteriaRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1141,7 +1205,7 @@
     "xmlTag": "sharingCriteriaRules"
   },
   {
-    "directoryName": "sharingGuestRules",
+    "directoryName": "SharingGuestRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1149,7 +1213,7 @@
     "xmlTag": "sharingGuestRules"
   },
   {
-    "directoryName": "sharingOwnerRules",
+    "directoryName": "SharingOwnerRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1157,7 +1221,7 @@
     "xmlTag": "sharingOwnerRules"
   },
   {
-    "directoryName": "sharingTerritoryRules",
+    "directoryName": "SharingTerritoryRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1165,7 +1229,7 @@
     "xmlTag": "sharingTerritoryRules"
   },
   {
-    "directoryName": "tasks",
+    "directoryName": "WorkflowTasks",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",

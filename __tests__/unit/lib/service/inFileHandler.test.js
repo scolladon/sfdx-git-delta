@@ -1,6 +1,7 @@
 'use strict'
 const InFile = require('../../../../lib/service/inFileHandler')
 const gc = require('../../../../lib/utils/gitConstants')
+const mc = require('../../../../lib/utils/metadataConstants')
 const child_process = require('child_process')
 const fsMocked = require('fs')
 const os = require('os')
@@ -35,10 +36,14 @@ const testContext = {
   ],
   expectedData: {
     workflows: { alerts: new Set(['Account.TestEA']) },
-    labels: { label: new Set(['TestLabel1', 'TestLabel2']) },
+    labels: {},
     sharingRules: { sharingCriteriaRules: new Set(['Account.TestCBS']) },
   },
 }
+testContext.expectedData.labels[mc.LABEL_DIRECTORY_NAME] = new Set([
+  'TestLabel1',
+  'TestLabel2',
+])
 
 fsMocked.__setMockFiles({
   [testContext.testData[0][1]]: testContext.testData[0][2],
