@@ -9,7 +9,7 @@
     "sfdx"
   ],
   "engines": {
-    "node": ">=10.16.0"
+    "node": ">=14.6.0"
   },
   "main": "index.js",
   "bin": {
