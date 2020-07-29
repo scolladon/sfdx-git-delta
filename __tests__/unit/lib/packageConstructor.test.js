@@ -60,7 +60,8 @@ const tests = [
 ]
 
 describe(`test if package constructor`, () => {
-  const packageConstructor = new PackageConstructor(options)
+  // eslint-disable-next-line no-undef
+  const packageConstructor = new PackageConstructor(options, globalMetadata)
   test.each(tests)(
     'can build %s destructiveChanges.xml',
     (type, diff, expected) => {

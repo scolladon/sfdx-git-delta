@@ -39,9 +39,9 @@
   "dependencies": {
     "commander": "^2.20.0",
     "fast-xml-parser": "^3.17.4",
-    "fs-extra": "^8.1.0",
+    "fs-extra": "^9.0.1",
     "git-state": "^4.1.0",
-    "xmlbuilder": "^13.0.2"
+    "xmlbuilder": "^15.1.1"
   },
   "license": "MIT",
   "bugs": {
@@ -57,14 +57,14 @@
     "analysis": "codeclimate analyze"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
-    "eslint-config-prettier": "^6.10.0",
-    "eslint-plugin-prettier": "^3.1.2",
-    "husky": "^3.0.2",
-    "jest": "^26.0.1",
-    "lint-staged": "^9.2.1",
-    "prettier": "^1.19.1",
-    "prettier-eslint": "^9.0.0"
+    "eslint": "^7.5.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "husky": "^4.2.5",
+    "jest": "^26.1.0",
+    "lint-staged": "^10.2.11",
+    "prettier": "^2.0.5",
+    "prettier-eslint": "^11.0.0"
   },
   "publishConfig": {
     "access": "public"

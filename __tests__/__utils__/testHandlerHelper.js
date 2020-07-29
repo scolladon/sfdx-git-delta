@@ -1,7 +1,7 @@
 'use strict'
 const metadataManager = require('../../lib/metadata/metadataManager')
 
-global.globalMetadata = metadataManager.getDefinition('directoryName', 48)
+global.globalMetadata = metadataManager.getDefinition('directoryName', 49)
 global.testHandlerHelper = testContext => {
   describe(`test if ${testContext.handler.name}`, () => {
     describe.each(testContext.testData)(

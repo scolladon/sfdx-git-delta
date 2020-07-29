@@ -35,7 +35,7 @@ const output = {
 }
 try {
   const jobResult = orchestrator(program)
-  if (jobResult.warnings && jobResult.warnings.length) {
+  if (jobResult?.warnings?.length) {
     output.warnings = jobResult.warnings.map(warning => warning.message)
   }
   process.exitCode = 0
