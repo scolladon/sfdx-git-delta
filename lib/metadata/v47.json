@@ -1135,7 +1135,7 @@
     "xmlName": "Settings"
   },
   {
-    "directoryName": "WorkflowAlerts",
+    "directoryName": "workflows.alerts",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1143,7 +1143,7 @@
     "xmlTag": "alerts"
   },
   {
-    "directoryName": "WorkflowFieldUpdates",
+    "directoryName": "workflows.fieldUpdates",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1151,7 +1151,7 @@
     "xmlTag": "fieldUpdates"
   },
   {
-    "directoryName": "CustomLabels",
+    "directoryName": "labels.labels",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "CustomLabels",
@@ -1159,7 +1159,7 @@
     "xmlTag": "labels"
   },
   {
-    "directoryName": "WorkflowOutboundMessages",
+    "directoryName": "workflows.outboundMessages",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1167,7 +1167,7 @@
     "xmlTag": "outboundMessages"
   },
   {
-    "directoryName": "WorkflowRules",
+    "directoryName": "workflows.rules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
@@ -1175,7 +1175,7 @@
     "xmlTag": "rules"
   },
   {
-    "directoryName": "SharingCriteriaRules",
+    "directoryName": "sharingRules.sharingCriteriaRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1183,7 +1183,7 @@
     "xmlTag": "sharingCriteriaRules"
   },
   {
-    "directoryName": "SharingGuestRules",
+    "directoryName": "sharingRules.sharingGuestRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1191,7 +1191,7 @@
     "xmlTag": "sharingGuestRules"
   },
   {
-    "directoryName": "SharingOwnerRules",
+    "directoryName": "sharingRules.sharingOwnerRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1199,7 +1199,7 @@
     "xmlTag": "sharingOwnerRules"
   },
   {
-    "directoryName": "SharingTerritoryRules",
+    "directoryName": "sharingRules.sharingTerritoryRules",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "SharingRules",
@@ -1207,7 +1207,7 @@
     "xmlTag": "sharingTerritoryRules"
   },
   {
-    "directoryName": "WorkflowTasks",
+    "directoryName": "workflows.tasks",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",

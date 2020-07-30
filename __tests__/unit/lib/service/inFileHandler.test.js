@@ -35,9 +35,11 @@ const testContext = {
     ],
   ],
   expectedData: {
-    workflows: { alerts: new Set(['Account.TestEA']) },
+    workflows: { 'workflows.alerts': new Set(['Account.TestEA']) },
     labels: {},
-    sharingRules: { sharingCriteriaRules: new Set(['Account.TestCBS']) },
+    sharingRules: {
+      'sharingRules.sharingCriteriaRules': new Set(['Account.TestCBS']),
+    },
   },
 }
 testContext.expectedData.labels[mc.LABEL_DIRECTORY_NAME] = new Set([

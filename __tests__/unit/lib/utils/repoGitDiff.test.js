@@ -11,7 +11,8 @@ describe(`test if repoGitDiff`, () => {
     child_process.spawnSync.mockImplementation(() => ({
       stdout: '',
     }))
-    const work = repoGitDiff({ output: '', repo: '' })
+    // eslint-disable-next-line no-undef
+    const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
     expect(work).toStrictEqual(output)
   })
 
@@ -22,7 +23,8 @@ describe(`test if repoGitDiff`, () => {
     child_process.spawnSync.mockImplementation(() => ({
       stdout: output[0],
     }))
-    const work = repoGitDiff({ output: '', repo: '' })
+    // eslint-disable-next-line no-undef
+    const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
     expect(work).toMatchObject(output)
   })
 
@@ -33,7 +35,8 @@ describe(`test if repoGitDiff`, () => {
     child_process.spawnSync.mockImplementation(() => ({
       stdout: output[0],
     }))
-    const work = repoGitDiff({ output: '', repo: '' })
+    // eslint-disable-next-line no-undef
+    const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
     expect(work).toStrictEqual(output)
   })
 
@@ -44,7 +47,8 @@ describe(`test if repoGitDiff`, () => {
     child_process.spawnSync.mockImplementation(() => ({
       stdout: output[0],
     }))
-    const work = repoGitDiff({ output: '', repo: '' })
+    // eslint-disable-next-line no-undef
+    const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
     expect(work).toStrictEqual(output)
   })
 

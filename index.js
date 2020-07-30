@@ -51,7 +51,7 @@ module.exports = config => {
 
   const lines = repoGitDiff(config, metadata)
   const work = treatDiff(config, lines, metadata)
-  treatPackages(work.diffs, config)
+  treatPackages(work.diffs, config, metadata)
   return work
 }
 
@@ -68,8 +68,8 @@ const treatDiff = (config, lines, metadata) => {
   return work
 }
 
-const treatPackages = (dcJson, config) => {
-  const pc = new PackageConstructor(config)
+const treatPackages = (dcJson, config, metadata) => {
+  const pc = new PackageConstructor(config, metadata)
   ;[
     {
       filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,

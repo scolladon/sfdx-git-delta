@@ -4,7 +4,6 @@ We encourage the developer community to contribute to this repository. This guid
 
 - [Requirements](#requirements)
 - [Installation](#installation)
-- [Building LWC](#building-lwc)
 - [Testing](#testing)
 - [Git Workflow](#git-workflow)
 
@@ -60,7 +59,7 @@ Configuring your editor to use our lint and code style rules will make the code 
 The process of submitting a pull request is fairly straightforward and
 generally follows the same pattern each time:
 
-1. [Fork the LWC repo](#fork-the-lwc-repo)
+1. [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
 1. [Create a feature branch](#create-a-feature-branch)
 1. [Make your changes](#make-your-changes)
 1. [Rebase](#rebase)
@@ -68,7 +67,7 @@ generally follows the same pattern each time:
 1. [Create a pull request](#create-a-pull-request)
 1. [Update the pull request](#update-the-pull-request)
 
-### Fork the LWC repo
+### Fork the sfdx-git-delta repo
 
 [Fork][fork-a-repo] the [scolladon/sfdx-git-delta](https://github.com/scolladon/sfdx-git-delta) repo. Clone your fork in your local workspace and [configure][configuring-a-remote-for-a-fork] your remote repository settings.
 
@@ -138,7 +137,7 @@ Test your change by running the unit tests and integration tests. Instructions [
 ### Create a pull request
 
 If you've never created a pull request before, follow [these
-instructions][creating-a-pull-request]. Pull request samples can be found [here](https://github.com/salesforce/lwc/pulls)
+instructions][creating-a-pull-request]. Pull request samples can be found [here](https://github.com/salesforce/sfdx-git-delta/pulls)
 
 ### Update the pull request
 

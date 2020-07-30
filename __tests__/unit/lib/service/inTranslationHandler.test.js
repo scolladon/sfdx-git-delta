@@ -24,7 +24,7 @@ const testContext = {
 }
 
 // eslint-disable-next-line no-undef
-describe('test inTranslation', () => {
+describe('test inTranslation with delta generation', () => {
   beforeAll(() => {
     require('fs').__setMockFiles({
       'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml':
@@ -32,6 +32,16 @@ describe('test inTranslation', () => {
       'force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml':
         'test',
     })
+  })
+
+  // eslint-disable-next-line no-undef
+  testHandlerHelper(testContext)
+})
+
+// eslint-disable-next-line no-undef
+describe('test inTranslation without delta generation', () => {
+  beforeAll(() => {
+    testContext.work.config.generateDelta = false
   })
 
   // eslint-disable-next-line no-undef
