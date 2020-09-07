@@ -45,6 +45,7 @@ To see the full list and description of the sgd options, run `sgd --help`
 -f, --from [sha] commit sha from where the diff is done [git rev-list —max-parents=0 HEAD]
 -o, --output [dir] source package specific output [./output] (default: "./output")
 -a, --api-version [version] salesforce API version [48] (default: "48")
+-i, --ignore specify the ignore file (default: ".forceignore")
 -r, --repo [dir] git repository location [./repo] (default: "./repo")
 -d, --generate-delta generate delta files in [./output] folder
 -h, --help output usage information

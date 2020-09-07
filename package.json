@@ -37,10 +37,12 @@
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
+    "codeclimate": "0.0.32",
     "commander": "^2.20.0",
     "fast-xml-parser": "^3.17.4",
     "fs-extra": "^9.0.1",
     "git-state": "^4.1.0",
+    "ignore": "^5.1.8",
     "xmlbuilder": "^15.1.1"
   },
   "license": "MIT",
