@@ -28,7 +28,7 @@ const testContext = {
     [
       'weblinks',
       'force-app/main/default/weblinks/ClientStore.custompageweblink-meta.xml',
-      new Set(['ClientStore']) // previously it would come out as GraphicsPackImages_png
+      new Set(['ClientStore']) // previously it would come out as 'ClientStore.custompag'
     ],
   ],
   work: {
