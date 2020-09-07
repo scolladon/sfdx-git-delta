@@ -265,7 +265,7 @@
     "directoryName": "weblinks",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "weblink",
+    "suffix": "custompageweblink",
     "xmlName": "CustomPageWebLink"
   },
   {
