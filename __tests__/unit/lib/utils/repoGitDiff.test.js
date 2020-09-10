@@ -3,7 +3,6 @@ const repoGitDiff = require('../../../../lib/utils/repoGitDiff')
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
-//jest.mock('fs')
 
 describe(`test if repoGitDiff`, () => {
   test('can parse git correctly', () => {
