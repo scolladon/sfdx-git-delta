@@ -30,7 +30,6 @@ describe('the type handler factory', () => {
         'fields',
         'listViews',
         'recordTypes',
-        'reportTypes',
         'sharingReasons',
         'validationRules',
         'webLinks',
