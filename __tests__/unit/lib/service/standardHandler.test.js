@@ -23,12 +23,12 @@ const testContext = {
     [
       'customMetadata',
       'force-app/main/default/customMetadata/GraphicsPackImages.md_png.md-meta.xml',
-      new Set(['GraphicsPackImages.md_png']) // previously it would come out as GraphicsPackImages_png
+      new Set(['GraphicsPackImages.md_png']),
     ],
     [
       'weblinks',
-      'force-app/main/default/weblinks/ClientStore.custompageweblink-meta.xml',
-      new Set(['ClientStore']) // previously it would come out as 'ClientStore.custompag'
+      'force-app/main/default/objects/Account/weblinks/ClientStore.weblink-meta.xml',
+      new Set(['ClientStore']),
     ],
   ],
   work: {
