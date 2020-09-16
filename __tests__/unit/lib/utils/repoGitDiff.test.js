@@ -3,7 +3,8 @@ const repoGitDiff = require('../../../../lib/utils/repoGitDiff')
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
-jest.mock('fs')
+
+const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
 
 describe(`test if repoGitDiff`, () => {
   test('can parse git correctly', () => {
@@ -11,8 +12,11 @@ describe(`test if repoGitDiff`, () => {
     child_process.spawnSync.mockImplementation(() => ({
       stdout: '',
     }))
-    // eslint-disable-next-line no-undef
-    const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
+    const work = repoGitDiff(
+      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
     expect(work).toStrictEqual(output)
   })
 
@@ -23,8 +27,11 @@ describe(`test if repoGitDiff`, () => {
     child_process.spawnSync.mockImplementation(() => ({
       stdout: output[0],
     }))
-    // eslint-disable-next-line no-undef
-    const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
+    const work = repoGitDiff(
+      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
     expect(work).toMatchObject(output)
   })
 
@@ -50,6 +57,21 @@ describe(`test if repoGitDiff`, () => {
     // eslint-disable-next-line no-undef
     const work = repoGitDiff({ output: '', repo: '' }, globalMetadata)
     expect(work).toStrictEqual(output)
+  })
+
+  test('can filter ignored files', () => {
+    const output = ['M      force-app/main/default/lwc/jsconfig.json']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    //should be empty
+    const expected = []
+    expect(work).toStrictEqual(expected)
   })
 
   test('can reject in case of error', () => {
