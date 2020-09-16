@@ -61,11 +61,11 @@ Git command line is required on the system where the command line is running.
 
 ### TL;DR:
 
-```
+```sh
 sgd --to HEAD --from HEAD^ --repo . --output .
 ```
 
-```
+```sh
 echo "--- package.xml generated with added and modified metadata ---"
 cat package/package.xml
 echo
@@ -73,7 +73,7 @@ echo "---- Deploying added and modified metadata ----"
 sfdx force:source:deploy -x package/package.xml
 ```
 
-```
+```sh
 echo "--- destructiveChanges.xml generated with deleted metadata ---"
 cat destructiveChanges/destructiveChanges.xml
 echo
@@ -107,7 +107,7 @@ So let’s do it!
 
 From the project repo folder, the CI pipeline will run the following command
 
-```
+```sh
 sgd --to HEAD --from HEAD^ --repo . --output .
 ```
 
@@ -133,7 +133,7 @@ In addition, we could also have generated a copy of the **force-app** folder wit
 
 The CI pipeline can use the `package/package.xml` file to deploy only this subset of metadata:
 
-```
+```sh
 echo "--- package.xml generated with added and modified metadata ---"
 cat package/package.xml
 echo
@@ -145,7 +145,7 @@ sfdx force:source:deploy -x package/package.xml
 
 The CI pipeline can use the `destructiveChanges` folder to deploy the corresponding destructive change:
 
-```
+```sh
 echo "--- destructiveChanges.xml generated with deleted metadata ---"
 cat destructiveChanges/destructiveChanges.xml
 echo
@@ -165,7 +165,7 @@ This is where the `--generate-delta (-d)` option comes handy!
 
 Let's use this option with our previous example:
 
-```
+```sh
 mkdir changed-sources
 sgd --to HEAD --from HEAD^ --repo . --output changed-sources/ --generate-delta
 ```
@@ -177,16 +177,16 @@ _Content of the output folder when using the --generate-delta option, with the s
 
 ## Javascript Module
 
-```
-  var sgd = require('sfdx-git-delta');
+```js
+var sgd = require('sfdx-git-delta');
 
-  const work = sgd({
-    'to':'', // commit sha to where the diff is done. Default : HEAD
-    'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
-    'output':'', // source package specific output. Default : ./output
-    'apiVersion':'', // salesforce API version. Default : 46
-    'repo':'' // git repository location. Default : ./repo
-  });
+const work = sgd({
+  'to':'', // commit sha to where the diff is done. Default : HEAD
+  'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
+  'output':'', // source package specific output. Default : ./output
+  'apiVersion':'', // salesforce API version. Default : 46
+  'repo':'' // git repository location. Default : ./repo
+});
 
 console.log(JSON.stringify(work));
 /* {
