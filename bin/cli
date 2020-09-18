@@ -22,15 +22,13 @@ program
     'source package specific output [./output]',
     './output'
   )
-  .option (
-    '-i, --ignore [file]',
-     'ignore file to use [./.forceignore]',
-     './.forceignore'
-  )
+  .option('-i, --ignore [file]', 'ignore file to use [./.forceignore]')
   .option('-a, --api-version [version]', 'salesforce API version [49]', '49')
   .option('-r, --repo [dir]', 'git repository location [./repo]', './repo')
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
+
+program.ignore = program.ignore === true ? './.forceignore' : program.ignore
 
 const output = {
   error: null,
