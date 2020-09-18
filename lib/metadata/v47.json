@@ -1135,6 +1135,47 @@
     "xmlName": "Settings"
   },
   {
+    "directoryName": "wave",
+    "inFolder": false,
+    "metaFile": true,
+    "content": [
+      {
+        "suffix": "wapp",
+        "xmlName": "WaveApplication"
+      },
+      {
+        "suffix": "wdf",
+        "xmlName": "WaveDataflow"
+      },
+      {
+        "suffix": "wdash",
+        "xmlName": "WaveDashboard"
+      },
+      {
+        "suffix": "wds",
+        "xmlName": "WaveDataset"
+      },
+      {
+        "suffix": "wlens",
+        "xmlName": "WaveLens"
+      },
+      {
+        "suffix": "wdpr",
+        "xmlName": "WaveRecipe"
+      },
+      {
+        "suffix": "xmd",
+        "xmlName": "WaveXmd"
+      }
+    ]
+  },
+  {
+    "directoryName": "waveTemplates",
+    "inFolder": true,
+    "metaFile": false,
+    "xmlName": "WaveTemplateBundle"
+  },
+  {
     "directoryName": "workflows.alerts",
     "inFolder": false,
     "metaFile": false,
