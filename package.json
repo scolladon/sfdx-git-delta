@@ -53,6 +53,7 @@
     "test": "jest --runInBand",
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand",
     "test:coverage": "jest --coverage --runInBand",
+    "test:clear:cache": "jest --clearCache",
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
     "analysis": "codeclimate analyze"
