@@ -6,7 +6,7 @@ global.testHandlerHelper = testContext => {
   describe(`test if ${testContext.handler.name}`, () => {
     describe.each(testContext.testData)(
       'handles',
-      (type, changePath, expected) => {
+      (type, changePath, expected, expectedType) => {
         beforeEach(
           () =>
             (testContext.work.diffs = { package: {}, destructiveChanges: {} })
@@ -31,7 +31,7 @@ global.testHandlerHelper = testContext => {
           )
           handler.handle()
           expect(testContext.work.diffs.destructiveChanges).toHaveProperty(
-            type,
+            expectedType ?? type,
             expected
           )
         })
