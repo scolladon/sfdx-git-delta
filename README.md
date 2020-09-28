@@ -1,6 +1,6 @@
 [![NPM](https://nodei.co/npm/sfdx-git-delta.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/sfdx-git-delta/) [![NPM](https://nodei.co/npm-dl/sfdx-git-delta.png)](https://nodei.co/npm/sfdx-git-delta/) [![HitCount](http://hits.dwyl.com/scolladon/sfdx-git-delta.svg)](http://hits.dwyl.com/scolladon/sfdx-git-delta)
 
-# sfdx-git-delta [![Build Status](https://travis-ci.org/scolladon/sfdx-git-delta.svg?branch=master)](https://travis-ci.org/scolladon/sfdx-git-delta) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/test_coverage)](https://codeclimate.com/github/scolladon/sfdx-git-delta/test_coverage) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
+# sfdx-git-delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/test_coverage)](https://codeclimate.com/github/scolladon/sfdx-git-delta/test_coverage) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
 
 Generate the sfdx content in source format and destructive change from two git commits
 
@@ -179,17 +179,17 @@ _Content of the output folder when using the --generate-delta option, with the s
 ## Javascript Module
 
 ```js
-var sgd = require('sfdx-git-delta');
+var sgd = require('sfdx-git-delta')
 
 const work = sgd({
-  'to':'', // commit sha to where the diff is done. Default : HEAD
-  'from':'', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
-  'output':'', // source package specific output. Default : ./output
-  'apiVersion':'', // salesforce API version. Default : 46
-  'repo':'' // git repository location. Default : ./repo
-});
+  to: '', // commit sha to where the diff is done. Default : HEAD
+  from: '', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
+  output: '', // source package specific output. Default : ./output
+  apiVersion: '', // salesforce API version. Default : 46
+  repo: '', // git repository location. Default : ./repo
+})
 
-console.log(JSON.stringify(work));
+console.log(JSON.stringify(work))
 /* {
  *   config: config,
  *   diffs: { package: {...}, destructiveChanges: {...} },
