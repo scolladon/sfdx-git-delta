@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  check-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+
+      - name: Setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 'Install npm dependencies'
+        run: npm install
+
+      - name: 'Install Code Climate Reporter'
+        run: |
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+          ./cc-test-reporter before-build
+
+      - name: 'ESlint'
+        run: npm run lint:fix
+
+      - name: 'Test coverage'
+        run: npm run test:coverage
+
+      - name: 'Code Climate coverage publishing'
+        run: ./cc-test-reporter after-build -t lcov -r ${{ secrets.CC_TEST_REPORTER_ID }}
