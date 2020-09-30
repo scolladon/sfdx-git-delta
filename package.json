@@ -21,8 +21,8 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged && npm run analysis",
-      "pre-push": "npm run test:coverage"
+      "pre-commit": "lint-staged && yarn analysis",
+      "pre-push": "yarn test:coverage"
     }
   },
   "lint-staged": {
@@ -31,8 +31,8 @@
       "git add"
     ],
     ".js": [
-      "npm run lint:fix",
-      "npm run lint"
+      "yarn lint:fix",
+      "yarn lint"
     ]
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
@@ -59,13 +59,13 @@
     "analysis": "codeclimate analyze"
   },
   "devDependencies": {
-    "eslint": "^7.5.0",
-    "eslint-config-prettier": "^6.11.0",
+    "eslint": "^7.10.0",
+    "eslint-config-prettier": "^6.12.0",
     "eslint-plugin-prettier": "^3.1.4",
-    "husky": "^4.2.5",
-    "jest": "^26.1.0",
-    "lint-staged": "^10.2.11",
-    "prettier": "^2.0.5",
+    "husky": "^4.3.0",
+    "jest": "^26.4.2",
+    "lint-staged": "^10.4.0",
+    "prettier": "^2.1.2",
     "prettier-eslint": "^11.0.0"
   },
   "publishConfig": {
