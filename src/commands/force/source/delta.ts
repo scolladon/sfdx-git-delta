@@ -27,8 +27,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     protected static requiresProject = true;
 
     public async run(): Promise<AnyJson> {
-      const project = await SfdxProject.resolve();
-      const basePath = project.getPath();
+      const basePath = (await SfdxProject.resolve()).getPath();
 
       const output = {
         error: null,
@@ -46,16 +45,11 @@ export default class SourceDeltaGenerate extends SfdxCommand {
           repo: basePath,
           generateDelta: this.flags['generate-delta']
         });
-        if (jobResult?.warnings?.length) {
-          output.warnings = jobResult.warnings.map(warning => warning.message);
-        }
-        process.exitCode = 0;
+        output.warnings = jobResult?.warnings?.map(warning => warning.message);
       } catch (err) {
         output.success = false;
         output.error = err.message;
-        this.ux.log(err);
         process.exitCode = 1;
-      } finally {
       }
       this.ux.log(JSON.stringify(output, null, 2));
       return null;
