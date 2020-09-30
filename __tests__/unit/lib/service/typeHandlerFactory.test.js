@@ -1,11 +1,11 @@
 'use strict'
 
-const SubCustomObject = require('../../../../lib/service/subCustomObjectHandler')
-const InResource = require('../../../../lib/service/inResourceHandler')
-const Lightning = require('../../../../lib/service/lightningHandler')
-const InFolder = require('../../../../lib/service/inFolderHandler')
-const Standard = require('../../../../lib/service/standardHandler')
-const TypeHandlerFactory = require('../../../../lib/service/typeHandlerFactory')
+const SubCustomObject = require('../../../../src/service/subCustomObjectHandler')
+const InResource = require('../../../../src/service/inResourceHandler')
+const Lightning = require('../../../../src/service/lightningHandler')
+const InFolder = require('../../../../src/service/inFolderHandler')
+const Standard = require('../../../../src/service/standardHandler')
+const TypeHandlerFactory = require('../../../../src/service/typeHandlerFactory')
 
 describe('the type handler factory', () => {
   let typeHandlerFactory

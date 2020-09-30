@@ -6,11 +6,18 @@
     "salesforce",
     "package",
     "git",
-    "sfdx"
+    "sfdx",
+    "sfdx-plugin"
   ],
   "engines": {
     "node": ">=14.6.0"
   },
+  "files": [
+    "/lib",
+    "/messages",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
   "main": "index.js",
   "bin": {
     "sgd": "./bin/cli"
@@ -42,7 +49,13 @@
     "fs-extra": "^9.0.1",
     "git-state": "^4.1.0",
     "ignore": "^5.1.8",
-    "xmlbuilder": "^15.1.1"
+    "xmlbuilder": "^15.1.1",
+    "@oclif/command": "^1",
+    "@oclif/config": "^1",
+    "@oclif/errors": "^1",
+    "@salesforce/command": "^2",
+    "@salesforce/core": "^2",
+    "tslib": "^1"
   },
   "license": "MIT",
   "bugs": {
@@ -55,8 +68,12 @@
     "test:coverage": "jest --coverage --runInBand",
     "test:clear:cache": "jest --clearCache",
     "lint:fix": "eslint --fix .",
-    "lint": "eslint .",
-    "analysis": "codeclimate analyze"
+    "lint": "eslint . ; tslint --project . --config tslint.json --format stylish",
+    "analysis": "codeclimate analyze",
+    "postpack": "rm -f oclif.manifest.json",
+    "posttest": "tslint -p test -t stylish",
+    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "version": "oclif-dev readme && git add README.md"
   },
   "devDependencies": {
     "eslint": "^7.10.0",
@@ -66,7 +83,32 @@
     "jest": "^26.4.2",
     "lint-staged": "^10.4.0",
     "prettier": "^2.1.2",
-    "prettier-eslint": "^11.0.0"
+    "prettier-eslint": "^11.0.0",
+    "@oclif/dev-cli": "^1",
+    "@oclif/plugin-help": "^2",
+    "@oclif/test": "^1",
+    "@salesforce/dev-config": "1.4.1",
+    "@types/chai": "^4",
+    "@types/mocha": "^5",
+    "@types/node": "^10",
+    "chai": "^4",
+    "globby": "^8",
+    "mocha": "^5",
+    "nyc": "^14",
+    "ts-node": "^8",
+    "tslint": "^5"
+  },
+  "oclif": {
+    "commands": "./lib/commands",
+    "bin": "sfdx",
+    "topics": {
+      "hello": {
+        "description": "Commands to say hello."
+      }
+    },
+    "devPlugins": [
+      "@oclif/plugin-help"
+    ]
   },
   "publishConfig": {
     "access": "public"

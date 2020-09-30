@@ -1,5 +1,5 @@
 'use strict'
-const metadataManager = require('../../lib/metadata/metadataManager')
+const metadataManager = require('../../src/metadata/metadataManager')
 
 global.globalMetadata = metadataManager.getDefinition('directoryName', 49)
 global.testHandlerHelper = testContext => {

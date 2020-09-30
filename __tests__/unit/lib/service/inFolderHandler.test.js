@@ -1,5 +1,5 @@
 'use strict'
-const InFolder = require('../../../../lib/service/inFolderHandler')
+const InFolder = require('../../../../src/service/inFolderHandler')
 jest.mock('fs')
 
 const testContext = {

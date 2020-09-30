@@ -1,7 +1,7 @@
 'use strict'
-const InFile = require('../../../../lib/service/inFileHandler')
-const gc = require('../../../../lib/utils/gitConstants')
-const mc = require('../../../../lib/utils/metadataConstants')
+const InFile = require('../../../../src/service/inFileHandler')
+const gc = require('../../../../src/utils/gitConstants')
+const mc = require('../../../../src/utils/metadataConstants')
 const child_process = require('child_process')
 const fsMocked = require('fs')
 const os = require('os')

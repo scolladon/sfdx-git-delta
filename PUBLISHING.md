@@ -11,10 +11,10 @@ $ git pull origin master
 ```
 
 Create the new version
-This will create a new tag and new draft release on github
+_This will create a new tag and new draft release on github_
 
 ```sh
-$ npm version major|minor|patch -m '<Release Title>'
+$ yarn version --major|--minor|--patch --message '<Release Title>'
 $ git push origin master --tags
 ```
 

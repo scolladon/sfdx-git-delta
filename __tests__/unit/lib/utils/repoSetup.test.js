@@ -1,5 +1,5 @@
 'use strict'
-const repoSetup = require('../../../../lib/utils/repoSetup')
+const repoSetup = require('../../../../src/utils/repoSetup')
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')

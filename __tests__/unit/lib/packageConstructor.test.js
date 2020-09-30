@@ -1,5 +1,5 @@
 'use strict'
-const PackageConstructor = require('../../../lib/packageConstructor')
+const PackageConstructor = require('../../../src/packageConstructor')
 
 const options = { apiVersion: '46' }
 const tests = [

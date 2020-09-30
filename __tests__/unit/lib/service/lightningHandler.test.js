@@ -1,5 +1,5 @@
 'use strict'
-const Lightning = require('../../../../lib/service/lightningHandler')
+const Lightning = require('../../../../src/service/lightningHandler')
 jest.mock('fs')
 
 const testContext = {

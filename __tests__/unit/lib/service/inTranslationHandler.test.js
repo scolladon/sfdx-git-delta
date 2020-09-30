@@ -1,5 +1,5 @@
 'use strict'
-const InTranslation = require('../../../../lib/service/inTranslationHandler')
+const InTranslation = require('../../../../src/service/inTranslationHandler')
 jest.mock('fs')
 jest.mock('fs-extra')
 
