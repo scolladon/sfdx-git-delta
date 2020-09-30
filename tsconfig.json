@@ -3,9 +3,12 @@
   "compilerOptions": {
     "declaration": true,
     "outDir": "./lib",
-    "importHelpers": true
+    "importHelpers": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
   },
   "include": [
-    "./src/**/*"
+    "./src/**/*",
+    "./src/**/*.json"
   ]
 }

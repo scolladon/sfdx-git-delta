@@ -20,3 +20,4 @@ exclude_paths:
   - output/**/*
   - coverage/**/*
   - .github/**/*
+  - lib/**/*

@@ -1,7 +1,7 @@
 'use strict'
 const xmlbuilder = require('xmlbuilder')
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
-const mc = require('./utils/metadataConstants')
+const mc = require('./metadataConstants')
 
 module.exports = class PackageConstructor {
   constructor(config, metadata) {

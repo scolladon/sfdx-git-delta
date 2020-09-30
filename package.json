@@ -18,7 +18,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "main": "src/index.js",
+  "main": "src/main.js",
   "bin": {
     "sgd": "./bin/cli"
   },
@@ -67,11 +67,10 @@
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand",
     "test:coverage": "jest --coverage --runInBand",
     "test:clear:cache": "jest --clearCache",
-    "lint:fix": "eslint --fix .",
+    "lint:fix": "eslint --fix . ; tslint --fix --project . --config tslint.json --format stylish",
     "lint": "eslint . ; tslint --project . --config tslint.json --format stylish",
     "analysis": "codeclimate analyze",
     "postpack": "rm -f oclif.manifest.json",
-    "posttest": "tslint -p test -t stylish",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
     "version": "oclif-dev readme && git add README.md"
   },
@@ -91,21 +90,13 @@
     "@types/chai": "^4",
     "@types/mocha": "^5",
     "@types/node": "^10",
-    "chai": "^4",
     "globby": "^8",
-    "mocha": "^5",
     "nyc": "^14",
-    "ts-node": "^8",
-    "tslint": "^5"
+    "ts-node": "^8"
   },
   "oclif": {
     "commands": "./lib/commands",
     "bin": "sfdx",
-    "topics": {
-      "hello": {
-        "description": "Commands to say hello."
-      }
-    },
     "devPlugins": [
       "@oclif/plugin-help"
     ]

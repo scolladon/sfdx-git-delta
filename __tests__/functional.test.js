@@ -1,5 +1,5 @@
 'use strict'
-const app = require('../src/index')
+const app = require('../src/main')
 const child_process = require('child_process')
 const os = require('os')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))

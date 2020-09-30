@@ -1,5 +1,5 @@
 'use strict'
-const app = require('../../src/index')
+const app = require('../../src/main')
 jest.mock('child_process')
 jest.mock('fs-extra')
 jest.mock('fs')
