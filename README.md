@@ -32,7 +32,7 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 ## How to install it?
 
 ```
-npm install sfdx-git-delta@latest -g
+yarn sfdx-git-delta@latest -g
 ```
 
 If you run your CI jobs inside a Docker image (which is very common), you can add sgd to your image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile

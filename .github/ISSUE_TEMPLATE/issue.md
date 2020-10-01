@@ -69,18 +69,18 @@ _(Write your answer here.)_
 <!--
   Mac version / Window version / Linux version and distribution
   Node version ($ node -v)
-  NPM version ($ npm -v)
+  Yarn version ($ yarn -v)
   sgd version ($ sgd -V)
   Ex :
   Mac OS Mojave Version 10.14.6
   node v14.5.0
-  npm 6.14.5
+  Yarn 1.22.5
   sgd 3.1.2
 -->
 
 **Operating System:** …
 
-**NPM version:** …
+**Yarn version:** …
 
 **Node version:** …
 
