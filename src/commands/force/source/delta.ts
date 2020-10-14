@@ -1,5 +1,5 @@
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxProject } from '@salesforce/core';
+import { Messages } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import * as sgd from '../../../main.js';
 
@@ -18,16 +18,14 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     protected static flagsConfig = {
         to: flags.string({ char: 't', description: messages.getMessage('toFlag'), default: 'HEAD' }),
         from: flags.string({ char: 'f', description: messages.getMessage('fromFlag'), required: true }),
+        repo: flags.filepath({ char: 'r', description: messages.getMessage('repoFlag'), default: '.' }),
         ignore: flags.filepath({ char: 'i', description: messages.getMessage('ignoreFlag')}),
         output: flags.filepath({ char: 'o', description: messages.getMessage('outputFlag'), default: './output' }),
         'api-version': flags.number({ char: 'a', description: messages.getMessage('apiVersionFlag'), default: 49.0 }),
         'generate-delta': flags.boolean({ char: 'd', description: messages.getMessage('deltaFlag')})
     };
 
-    protected static requiresProject = true;
-
     public async run(): Promise<AnyJson> {
-      const basePath = (await SfdxProject.resolve()).getPath();
 
       const output = {
         error: null,
@@ -42,7 +40,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
           output: this.flags.output,
           ignore: this.flags.ignore,
           apiVersion: this.flags['api-version'],
-          repo: basePath,
+          repo: this.flags.repo,
           generateDelta: this.flags['generate-delta']
         });
         output.warnings = jobResult?.warnings?.map(warning => warning.message);

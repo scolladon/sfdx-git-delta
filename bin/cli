@@ -24,7 +24,7 @@ program
   )
   .option('-i, --ignore [file]', 'ignore file to use [./.forceignore]')
   .option('-a, --api-version [version]', 'salesforce API version [49]', '49')
-  .option('-r, --repo [dir]', 'git repository location [./repo]', './repo')
+  .option('-r, --repo [dir]', 'git repository location [.]', '.')
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
 
