@@ -21,7 +21,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         repo: flags.filepath({ char: 'r', description: messages.getMessage('repoFlag'), default: '.' }),
         ignore: flags.filepath({ char: 'i', description: messages.getMessage('ignoreFlag')}),
         output: flags.filepath({ char: 'o', description: messages.getMessage('outputFlag'), default: './output' }),
-        'api-version': flags.number({ char: 'a', description: messages.getMessage('apiVersionFlag'), default: 49.0 }),
+        'api-version': flags.number({ char: 'a', description: messages.getMessage('apiVersionFlag'), default: 50.0 }),
         'generate-delta': flags.boolean({ char: 'd', description: messages.getMessage('deltaFlag')})
     };
 
