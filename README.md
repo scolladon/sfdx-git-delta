@@ -1,6 +1,6 @@
-[![NPM](https://nodei.co/npm/sfdx-git-delta.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/sfdx-git-delta/) [![NPM](https://nodei.co/npm-dl/sfdx-git-delta.png)](https://nodei.co/npm/sfdx-git-delta/) [![HitCount](http://hits.dwyl.com/scolladon/sfdx-git-delta.svg)](http://hits.dwyl.com/scolladon/sfdx-git-delta)
+[![NPM](https://nodei.co/npm-dl/sfdx-git-delta.png)](https://nodei.co/npm/sfdx-git-delta/) [![HitCount](http://hits.dwyl.com/scolladon/sfdx-git-delta.svg)](http://hits.dwyl.com/scolladon/sfdx-git-delta)
 
-# sfdx-git-delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/test_coverage)](https://codeclimate.com/github/scolladon/sfdx-git-delta/test_coverage) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
+# SFDX-Git-Delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/test_coverage)](https://codeclimate.com/github/scolladon/sfdx-git-delta/test_coverage) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
 
 Generate the sfdx content in source format and destructive change from two git commits
 
@@ -21,11 +21,11 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
                 ➕
         You use the Source (DX) format in the repo.
                 ➕
-        Your metadata is not packaged (in other words: your repo contains all the unmanaged metadata of the project)
+        Your metadata is not packaged (in other words: your repo contains all the unmanaged metadata of the project).
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functionnal pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also a good idea to implement a bypass in your pipeline, to have to hability to fallback to full deployments in case the delta deployements is not behaving the way you expected it.
+Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functionnal pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also a good idea to implement a bypass in your pipeline, to have to hability to fallback to full deployment in case the delta deployement is not behaving the way you expected it.
 
 **DISCLAIMER:**
 
@@ -35,17 +35,17 @@ Pro tips: If you are in the process of building your CI/CD pipeline, make sure y
 
 ## How to install it?
 
-### Option #1 (recommended) - Install as a Salesforce CLI plugin (force:source:delta):
+### Option #1 (recommended) - Install as a Salesforce CLI plugin (sgd:source:delta):
 
-You can use SGD as a Salesforce CLI plugin (`sfdx force:source:delta`), and this is now the recommended approach to install SGD:
+You can use SGD as a Salesforce CLI plugin (`sfdx sgd:source:delta`), and this is now the recommended approach to get SGD:
 
 ```
 sfdx plugins:install sfdx-git-delta
 ```
 
-If you run your CI jobs inside a Docker image, you can add the plugin to your image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
+If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
 
-To view the full list and description of the sgd options, run `sfdx force:source:delta --help`
+To view the full list and description of the sgd options, run `sfdx sgd:source:delta --help`
 
 ```
 -t, --to [sha] commit sha to where the diff is done [HEAD] (default: "HEAD")
@@ -60,12 +60,8 @@ To view the full list and description of the sgd options, run `sfdx force:source
 
 ### Option #2 (legacy) - Install as the sgd command
 
-Before the Salesforce CLI plugin was available, the old way to use this tool was through the `sgd` command (as described in the [old README](https://github.com/scolladon/sfdx-git-delta/blob/1093db6bd19eb48905db8f9aa5db086aa6707613/README.md))
-
-Is now recommended to use `sfdx force:source:delta`, but if you feel nostalgic about the `sgd` command, you can still get it through yarn (or npm):
-```
-yarn sfdx-git-delta@latest -g
-```
+Before the Salesforce CLI plugin was available, the old way to use this tool was through the `sgd` command (as described in the [old README](https://github.com/scolladon/sfdx-git-delta/blob/1093db6bd19eb48905db8f9aa5db086aa6707613/README.md)).
+It is now recommended to use `sfdx sgd:source:delta`, but if you feel nostalgic about the `sgd` command, you can still get it through yarn (or npm): `yarn sfdx-git-delta@latest -g`
 
 ### Prerequisites
 
@@ -79,7 +75,7 @@ Git command line is required on the system where the command line is running.
 ### TL;DR:
 
 ```sh
-sfdx force:source:delta --to HEAD --from HEAD^ --output .
+sfdx sgd:source:delta --to HEAD --from HEAD^ --output .
 ```
 
 ```sh
@@ -125,14 +121,14 @@ So let’s do it!
 From the project repo folder, the CI pipeline will run the following command:
 
 ```sh
-sfdx force:source:delta force:source:delta --to HEAD --from HEAD^ --output .
+sfdx sgd:source:delta --to HEAD --from HEAD^ --output .
 ```
 
 which means:
 
 > Analyse the difference between HEAD (latest commit) and HEAD^ (previous commit), and output the result in the current folder.
 
-The `sfdx force:source:delta` command produces 2 usefull artefacts:
+The `sfdx sgd:source:delta` command produces 2 usefull artefacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This package.xml file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
@@ -184,10 +180,10 @@ Let's use this option with our previous example:
 
 ```sh
 mkdir changed-sources
-sfdx force:source:delta --to HEAD --from HEAD^ --output changed-sources/ --generate-delta
+sfdx sgd:source:delta --to HEAD --from HEAD^ --output changed-sources/ --generate-delta
 ```
 
-In addition to the `package` and `destructiveChanges` folders, the `sfdx force:source:delta` command will also produce a copy of the added/changed files in the ouput folder.
+In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the ouput folder.
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
