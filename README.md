@@ -231,7 +231,7 @@ console.log(JSON.stringify(work))
 
 Contributions are what make the trailblazer community such an amazing place. I regard this component as a way to inspire and learn from others. Any contributions you make are **greatly appreciated**.
 
-See [contributing.md](/CONTRIBUTING.md) for lwcc principles.
+See [contributing.md](/CONTRIBUTING.md) for sgd contribution principles.
 
 ## License
 
