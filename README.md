@@ -43,6 +43,8 @@ You can use SGD as a Salesforce CLI plugin (`sfdx sgd:source:delta`), and this i
 sfdx plugins:install sfdx-git-delta
 ```
 
+Because this plugin is not signed, you will get a warning saying that "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed with the installation.
+
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image, such as in this example: https://hub.docker.com/r/mehdisfdc/sfdx-cli-gitlab/dockerfile
 
 To view the full list and description of the sgd options, run `sfdx sgd:source:delta --help`
