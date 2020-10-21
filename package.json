@@ -1,6 +1,6 @@
 {
   "name": "sfdx-git-delta",
-  "version": "3.4.0",
+  "version": "4.0.0",
   "description": "Generate the sfdx content in source format and destructive change from two git commits",
   "keyword": [
     "salesforce",
@@ -44,18 +44,18 @@
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
-    "commander": "^2.20.0",
-    "fast-xml-parser": "^3.17.4",
-    "fs-extra": "^9.0.1",
-    "git-state": "^4.1.0",
-    "ignore": "^5.1.8",
-    "xmlbuilder": "^15.1.1",
     "@oclif/command": "^1",
     "@oclif/config": "^1",
     "@oclif/errors": "^1",
     "@salesforce/command": "^2",
     "@salesforce/core": "^2",
-    "tslib": "^1"
+    "commander": "^2.20.0",
+    "fast-xml-parser": "^3.17.4",
+    "fs-extra": "^9.0.1",
+    "git-state": "^4.1.0",
+    "ignore": "^5.1.8",
+    "tslib": "^1",
+    "xmlbuilder": "^15.1.1"
   },
   "license": "MIT",
   "bugs": {
@@ -75,14 +75,6 @@
     "version": "oclif-dev readme && git add README.md"
   },
   "devDependencies": {
-    "eslint": "^7.10.0",
-    "eslint-config-prettier": "^6.12.0",
-    "eslint-plugin-prettier": "^3.1.4",
-    "husky": "^4.3.0",
-    "jest": "^26.4.2",
-    "lint-staged": "^10.4.0",
-    "prettier": "^2.1.2",
-    "prettier-eslint": "^11.0.0",
     "@oclif/dev-cli": "^1",
     "@oclif/plugin-help": "^2",
     "@oclif/test": "^1",
@@ -90,8 +82,16 @@
     "@types/chai": "^4",
     "@types/mocha": "^5",
     "@types/node": "^10",
+    "eslint": "^7.10.0",
+    "eslint-config-prettier": "^6.12.0",
+    "eslint-plugin-prettier": "^3.1.4",
     "globby": "^8",
+    "husky": "^4.3.0",
+    "jest": "^26.4.2",
+    "lint-staged": "^10.4.0",
     "nyc": "^14",
+    "prettier": "^2.1.2",
+    "prettier-eslint": "^11.0.0",
     "ts-node": "^8"
   },
   "oclif": {
