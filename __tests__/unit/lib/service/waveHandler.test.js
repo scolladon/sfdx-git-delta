@@ -1,5 +1,5 @@
 'use strict'
-const WaveHandler = require('../../../../lib/service/waveHandler')
+const WaveHandler = require('../../../../src/service/waveHandler')
 jest.mock('fs')
 
 const testContext = {

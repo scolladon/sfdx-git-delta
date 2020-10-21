@@ -1,5 +1,5 @@
 'use strict'
-const StandardHandler = require('../../../../lib/service/standardHandler')
+const StandardHandler = require('../../../../src/service/standardHandler')
 jest.mock('fs')
 
 const testContext = {

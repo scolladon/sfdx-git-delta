@@ -1,5 +1,5 @@
 'use strict'
-const repoGitDiff = require('../../../../lib/utils/repoGitDiff')
+const repoGitDiff = require('../../../../src/utils/repoGitDiff')
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')

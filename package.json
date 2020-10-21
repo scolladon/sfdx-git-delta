@@ -6,12 +6,19 @@
     "salesforce",
     "package",
     "git",
-    "sfdx"
+    "sfdx",
+    "sfdx-plugin"
   ],
   "engines": {
     "node": ">=14.6.0"
   },
-  "main": "index.js",
+  "files": [
+    "/lib",
+    "/messages",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "main": "src/main.js",
   "bin": {
     "sgd": "./bin/cli"
   },
@@ -21,8 +28,8 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged && npm run analysis",
-      "pre-push": "npm run test:coverage"
+      "pre-commit": "lint-staged && yarn analysis",
+      "pre-push": "yarn test:coverage"
     }
   },
   "lint-staged": {
@@ -31,8 +38,8 @@
       "git add"
     ],
     ".js": [
-      "npm run lint:fix",
-      "npm run lint"
+      "yarn lint:fix",
+      "yarn lint"
     ]
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
@@ -42,7 +49,13 @@
     "fs-extra": "^9.0.1",
     "git-state": "^4.1.0",
     "ignore": "^5.1.8",
-    "xmlbuilder": "^15.1.1"
+    "xmlbuilder": "^15.1.1",
+    "@oclif/command": "^1",
+    "@oclif/config": "^1",
+    "@oclif/errors": "^1",
+    "@salesforce/command": "^2",
+    "@salesforce/core": "^2",
+    "tslib": "^1"
   },
   "license": "MIT",
   "bugs": {
@@ -54,19 +67,39 @@
     "test:debug": "node --inspect node_modules/.bin/jest --runInBand",
     "test:coverage": "jest --coverage --runInBand",
     "test:clear:cache": "jest --clearCache",
-    "lint:fix": "eslint --fix .",
-    "lint": "eslint .",
-    "analysis": "codeclimate analyze"
+    "lint:fix": "eslint --fix . ; tslint --fix --project . --config tslint.json --format stylish",
+    "lint": "eslint . ; tslint --project . --config tslint.json --format stylish",
+    "analysis": "codeclimate analyze",
+    "postpack": "rm -f oclif.manifest.json",
+    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "version": "oclif-dev readme && git add README.md"
   },
   "devDependencies": {
-    "eslint": "^7.5.0",
-    "eslint-config-prettier": "^6.11.0",
+    "eslint": "^7.10.0",
+    "eslint-config-prettier": "^6.12.0",
     "eslint-plugin-prettier": "^3.1.4",
-    "husky": "^4.2.5",
-    "jest": "^26.1.0",
-    "lint-staged": "^10.2.11",
-    "prettier": "^2.0.5",
-    "prettier-eslint": "^11.0.0"
+    "husky": "^4.3.0",
+    "jest": "^26.4.2",
+    "lint-staged": "^10.4.0",
+    "prettier": "^2.1.2",
+    "prettier-eslint": "^11.0.0",
+    "@oclif/dev-cli": "^1",
+    "@oclif/plugin-help": "^2",
+    "@oclif/test": "^1",
+    "@salesforce/dev-config": "1.4.1",
+    "@types/chai": "^4",
+    "@types/mocha": "^5",
+    "@types/node": "^10",
+    "globby": "^8",
+    "nyc": "^14",
+    "ts-node": "^8"
+  },
+  "oclif": {
+    "commands": "./lib/commands",
+    "bin": "sfdx",
+    "devPlugins": [
+      "@oclif/plugin-help"
+    ]
   },
   "publishConfig": {
     "access": "public"

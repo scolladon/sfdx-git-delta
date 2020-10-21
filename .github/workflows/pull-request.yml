@@ -16,15 +16,20 @@ jobs:
         with:
           node-version: '14.x'
 
-      - uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - name: 'Install npm dependencies'
-        run: npm install
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: 'Install dependencies'
+        run: yarn install
 
       - name: 'Install Code Climate Reporter'
         run: |
@@ -33,10 +38,10 @@ jobs:
           ./cc-test-reporter before-build
 
       - name: 'ESlint'
-        run: npm run lint:fix
+        run: yarn lint:fix
 
       - name: 'Test coverage'
-        run: npm run test:coverage
+        run: yarn test:coverage
 
       - name: 'Code Climate coverage publishing'
         run: ./cc-test-reporter after-build -t lcov -r ${{ secrets.CC_TEST_REPORTER_ID }}

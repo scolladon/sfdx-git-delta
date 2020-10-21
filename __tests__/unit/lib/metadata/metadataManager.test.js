@@ -1,5 +1,5 @@
 'use strict'
-const metadataManager = require('../../../../lib/metadata/metadataManager')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 
 describe(`test if metadata`, () => {
   test('when grouped per directoryName, have classes', () => {

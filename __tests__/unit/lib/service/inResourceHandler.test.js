@@ -1,5 +1,5 @@
 'use strict'
-const InResource = require('../../../../lib/service/inResourceHandler')
+const InResource = require('../../../../src/service/inResourceHandler')
 jest.mock('fs')
 jest.mock('fs-extra')
 

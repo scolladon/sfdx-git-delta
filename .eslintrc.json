@@ -17,5 +17,6 @@
   },
   "rules": {
     "prettier/prettier": "error"
-  }
+  },
+  "ignorePatterns": ["lib/**/*"]
 }

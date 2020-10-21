@@ -9,8 +9,8 @@ We encourage the developer community to contribute to this repository. This guid
 
 ## Requirements
 
-- [Node](https://nodejs.org/) >= 10
-- [NPM](https://www.npmjs.com// >= 6.14
+- [Node](https://nodejs.org/) >= 14
+- [yarn](https://yarnpkg.com/ >= 1.22.5
 
 ## Installation
 
@@ -23,7 +23,7 @@ git clone git@github.com:scolladon/sfdx-git-delta.git
 ### 2) Install Dependencies
 
 ```bash
-npm install
+yarn install
 ```
 
 ## Testing
@@ -33,13 +33,13 @@ npm install
 When developing, utilize [jest](https://jestjs.io/en/) unit testing to provide test coverage for new functionality. To run the jest tests use the following command from the root directory:
 
 ```bash
-npm run test
+yarn test
 ```
 
 To execute a particular test, use the following command:
 
 ```bash
-npm run test -- <path_to_test>
+yarn test -- <path_to_test>
 ```
 
 ## Editor Configurations
@@ -120,7 +120,7 @@ _note: If no conflicts arise, these commands will ensure that your changes are a
 #### Lint your changes
 
 ```bash
-npm run lint
+yarn lint
 ```
 
 The above command may display lint issues that are unrelated to your changes.

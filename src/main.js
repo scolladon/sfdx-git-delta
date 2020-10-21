@@ -1,9 +1,9 @@
 'use strict'
-const PackageConstructor = require('./lib/packageConstructor')
-const TypeHandlerFactory = require('./lib/service/typeHandlerFactory')
-const metadataManager = require('./lib/metadata/metadataManager')
-const repoSetup = require('./lib/utils/repoSetup')
-const repoGitDiff = require('./lib/utils/repoGitDiff')
+const PackageConstructor = require('./utils/packageConstructor')
+const TypeHandlerFactory = require('./service/typeHandlerFactory')
+const metadataManager = require('./metadata/metadataManager')
+const repoSetup = require('./utils/repoSetup')
+const repoGitDiff = require('./utils/repoGitDiff')
 
 const fs = require('fs')
 const fse = require('fs-extra')

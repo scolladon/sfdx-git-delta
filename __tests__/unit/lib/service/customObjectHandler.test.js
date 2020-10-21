@@ -1,6 +1,6 @@
 'use strict'
-const CustomObjectHandler = require('../../../../lib/service/customObjectHandler')
-const SubCustomObjectHandler = require('../../../../lib/service/subCustomObjectHandler')
+const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
+const SubCustomObjectHandler = require('../../../../src/service/subCustomObjectHandler')
 jest.mock('fs')
 
 const testContext = {

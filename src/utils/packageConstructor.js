@@ -1,7 +1,7 @@
 'use strict'
 const xmlbuilder = require('xmlbuilder')
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
-const mc = require('./utils/metadataConstants')
+const mc = require('./metadataConstants')
 
 module.exports = class PackageConstructor {
   constructor(config, metadata) {
@@ -22,6 +22,7 @@ module.exports = class PackageConstructor {
           Object.prototype.hasOwnProperty.call(this.metadata, type) ||
           type.startsWith(mc.WAVE_SUB_TYPES_PREFIX)
       )
+      .sort()
       .forEach(metadataType =>
         [...strucDiffPerType[metadataType]] // transform set to array
           .reduce((type, member) => {

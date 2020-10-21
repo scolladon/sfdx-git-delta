@@ -7,7 +7,7 @@ engines:
         - javascript
   eslint:
     enabled: true
-    channel: eslint-6
+    channel: eslint-7
   fixme:
     enabled: true
 ratings:
@@ -20,3 +20,4 @@ exclude_paths:
   - output/**/*
   - coverage/**/*
   - .github/**/*
+  - lib/**/*
