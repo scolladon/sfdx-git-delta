@@ -13,6 +13,7 @@
     "node": ">=14.6.0"
   },
   "files": [
+    "/bin",
     "/lib",
     "/messages",
     "/npm-shrinkwrap.json",
