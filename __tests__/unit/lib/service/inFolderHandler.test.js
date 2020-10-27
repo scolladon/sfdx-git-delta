@@ -10,6 +10,11 @@ const testContext = {
       'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
       new Set(['folder/file']),
     ],
+    [
+      'reports',
+      'force-app/main/default/reports/folder.reportFolder-meta.xml',
+      new Set(['folder']),
+    ],
   ],
   work: {
     config: { output: '', repo: '.', generateDelta: true },
