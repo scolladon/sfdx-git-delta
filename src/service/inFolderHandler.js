@@ -27,7 +27,8 @@ class InFolderHandler extends StandardHandler {
       )
     folderName = `${folderName}.${
       this.metadata[this.type].xmlName.toLowerCase() +
-      mc.INFOLDER_METAFILE_SUFFIX
+      mc.INFOLDER_SUFFIX +
+      mc.METAFILE_SUFFIX
     }`
 
     this._copyFiles(
@@ -39,14 +40,13 @@ class InFolderHandler extends StandardHandler {
   _fillPackage(packageObject) {
     packageObject[this.type] = packageObject[this.type] ?? new Set()
 
-    const suffixRegex = new RegExp(`\\.${this.metadata[this.type].suffix}$`)
-
     packageObject[this.type].add(
       this.splittedLine
         .slice(this.splittedLine.indexOf(this.type) + 1)
         .join(path.sep)
-        .replace(META_REGEX, '')
-        .replace(suffixRegex, '')
+        .replace(mc.META_REGEX, '')
+        .replace(INFOLDER_SUFFIX_REGEX, '')
+        .replace(this.suffixRegex, '')
     )
   }
 }
