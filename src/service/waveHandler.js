@@ -3,7 +3,6 @@ const StandardHandler = require('./standardHandler')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
 
-const META_REGEX = new RegExp(`${mc.METAFILE_SUFFIX}$`)
 const WAVE_SUBTYPE = {}
 
 const isEmpty = obj => {
@@ -21,13 +20,14 @@ class WaveHandler extends StandardHandler {
       }, WAVE_SUBTYPE)
     }
     this.ext = path.parse(this.line).ext.substring(1)
+    this.extRegex = new RegExp(`\\.${this.ext}$`)
   }
 
   _getParsedPath() {
     return path.parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
-        .replace(META_REGEX, '')
-        .replace(new RegExp(`\\.${this.ext}$`), '')
+        .replace(mc.META_REGEX, '')
+        .replace(this.extRegex, '')
     )
   }
 

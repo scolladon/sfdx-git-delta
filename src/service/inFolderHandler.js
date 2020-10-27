@@ -3,7 +3,7 @@ const StandardHandler = require('./standardHandler')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
 
-const META_REGEX = new RegExp(`${mc.METAFILE_SUFFIX}$`)
+const INFOLDER_SUFFIX_REGEX = new RegExp(`${mc.INFOLDER_SUFFIX}$`)
 class InFolderHandler extends StandardHandler {
   handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
