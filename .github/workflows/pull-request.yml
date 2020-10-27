@@ -31,6 +31,9 @@ jobs:
       - name: 'Install dependencies'
         run: yarn install
 
+      - name: 'Build sgd'
+        run: yarn pack
+
       - name: 'Install Code Climate Reporter'
         run: |
           curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
