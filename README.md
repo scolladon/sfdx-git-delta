@@ -72,6 +72,10 @@ Windows is not tested.
 
 Git command line is required on the system where the command line is running.
 
+**Node v14.6.0 or above is required**. 
+To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first. 
+If you encounter this issue while having installed the correct version of node on your system, try to install the Salesforce CLI via npm (`npm install sfdx-cli --global`) rather than with another installer.
+
 ## How to use it?
 
 ### TL;DR:
