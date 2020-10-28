@@ -3,8 +3,6 @@ const path = require('path')
 const fse = require('fs-extra')
 const mc = require('../utils/metadataConstants')
 
-const META_REGEX = new RegExp(`${mc.METAFILE_SUFFIX}$`)
-
 const FSE_COPYSYNC_OPTION = {
   overwrite: true,
   errorOnExist: false,
@@ -26,6 +24,8 @@ class StandardHandler {
     if (this.metadata[this.type].metaFile === true) {
       this.line = this.line.replace(mc.METAFILE_SUFFIX, '')
     }
+
+    this.suffixRegex = new RegExp(`\\.${this.metadata[this.type].suffix}$`)
 
     this.handlerMap = {
       A: this.handleAddition,
@@ -69,8 +69,8 @@ class StandardHandler {
   _getParsedPath() {
     return path.parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
-        .replace(META_REGEX, '')
-        .replace(new RegExp(`\\.${this.metadata[this.type].suffix}$`), '')
+        .replace(mc.META_REGEX, '')
+        .replace(this.suffixRegex, '')
     )
   }
 
