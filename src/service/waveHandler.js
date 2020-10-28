@@ -1,6 +1,5 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const mc = require('../utils/metadataConstants')
 const path = require('path')
 
 const WAVE_SUBTYPE = {}
@@ -20,15 +19,7 @@ class WaveHandler extends StandardHandler {
       }, WAVE_SUBTYPE)
     }
     this.ext = path.parse(this.line).ext.substring(1)
-    this.extRegex = new RegExp(`\\.${this.ext}$`)
-  }
-
-  _getParsedPath() {
-    return path.parse(
-      this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
-        .replace(mc.META_REGEX, '')
-        .replace(this.extRegex, '')
-    )
+    this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
   _fillPackage(packageObject) {
