@@ -23,8 +23,16 @@ git clone git@github.com:scolladon/sfdx-git-delta.git
 ### 2) Install Dependencies
 
 ```bash
-yarn install
+yarn pack
 ```
+
+### 2) Build application
+
+```bash
+yarn pack
+```
+
+Rebuild every time you need to test locally
 
 ## Testing
 
