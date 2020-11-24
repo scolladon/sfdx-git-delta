@@ -31,7 +31,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         error: null,
         output: this.flags.output,
         success: true,
-        warnings: null
+        warnings: []
       };
       try {
         const jobResult = sgd({
