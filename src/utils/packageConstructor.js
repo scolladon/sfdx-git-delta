@@ -23,6 +23,8 @@ module.exports = class PackageConstructor {
           type.startsWith(mc.WAVE_SUB_TYPES_PREFIX)
       )
       .sort()
+      // @deprecated To remove when the order will not impact the result of the deployment
+      .sort((x, y) => (x === 'objects' ? -1 : x.localeCompare(y)))
       .forEach(metadataType =>
         [...strucDiffPerType[metadataType]] // transform set to array
           .reduce((type, member) => {
