@@ -34,7 +34,7 @@ const output = {
   error: null,
   output: program.output,
   success: true,
-  warnings: null,
+  warnings: [],
 }
 try {
   const jobResult = orchestrator(program)

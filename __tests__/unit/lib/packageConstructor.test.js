@@ -35,6 +35,10 @@ const tests = [
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
+        <members>Object</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
         <members>Dashboard</members>
         <name>Dashboard</name>
     </types>
@@ -49,10 +53,6 @@ const tests = [
     <types>
         <members>Component</members>
         <name>LightningComponentBundle</name>
-    </types>
-    <types>
-        <members>Object</members>
-        <name>CustomObject</name>
     </types>
     <version>${options.apiVersion}.0</version>
 </Package>`,
