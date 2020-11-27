@@ -9,7 +9,7 @@ Generate the sfdx content in source format and destructive change from two git c
 **SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers accomplish 2 things with their source deployments:
 
 1. **Make deployments faster**, by identifying the metadata that has been changed since a reference commit.
-2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructivePackage.xml
+2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructiveChanges.xml
 
 ## Is SGD for you?
 
@@ -136,15 +136,15 @@ which means:
 
 The `sfdx sgd:source:delta` command produces 2 usefull artefacts:
 
-**1) A `package.xml` file, inside a `package` folder.** This package.xml file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
+**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
 _Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
-**2) A `destructivePackage.xml` file, inside a `destructivePackage` folder.** This destructivePackage.xml file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. Note: the `destructivePackage` folder also contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload.
+**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload.
 
-_Content of the `destructivePackage.xml` file in our scenario:_
-![destructivePackage](/img/example_destructiveChange.png)
+_Content of the `destructiveChanges.xml` file in our scenario:_
+![destructiveChange](/img/example_destructiveChange.png)
 
 In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
 
