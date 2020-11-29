@@ -2,7 +2,7 @@
 'use strict'
 
 const program = require('commander')
-const orchestrator = require('../lib/main')
+const orchestrator = require('../src/main')
 const pjson = require('../package.json')
 
 program
