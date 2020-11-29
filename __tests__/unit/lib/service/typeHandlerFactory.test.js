@@ -6,6 +6,7 @@ const Lightning = require('../../../../src/service/lightningHandler')
 const InFolder = require('../../../../src/service/inFolderHandler')
 const Standard = require('../../../../src/service/standardHandler')
 const TypeHandlerFactory = require('../../../../src/service/typeHandlerFactory')
+const SubFolderElementHandler = require('../../../../src/service/subFolderElementHandler')
 
 describe('the type handler factory', () => {
   let typeHandlerFactory
@@ -38,6 +39,7 @@ describe('the type handler factory', () => {
     [InFolder, ['dashboards', 'documents', 'reports']],
     [InResource, ['staticresources']],
     [Standard, ['objects']],
+    [SubFolderElementHandler, ['classes']],
   ])('give %p handler', (handler, types) => {
     test.each(types)('for %s folder', type => {
       expect(

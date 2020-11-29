@@ -3,7 +3,7 @@ const StandardHandler = require('./standardHandler')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
 
-class subFolderElementHandler extends StandardHandler {
+class SubFolderElementHandler extends StandardHandler {
   handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
   }
@@ -12,7 +12,9 @@ class subFolderElementHandler extends StandardHandler {
     super.handleAddition()
     if (!this.config.generateDelta) return
 
-    const fileName = this.splittedLine.slice((this.splittedLine.length) - 1).join(path.sep)
+    const fileName = this.splittedLine
+      .slice(this.splittedLine.length - 1)
+      .join(path.sep)
 
     this._copyFiles(
       path.join(this.config.repo, fileName),
@@ -21,11 +23,14 @@ class subFolderElementHandler extends StandardHandler {
   }
 
   _fillPackage(packageObject) {
-  packageObject[this.type] = packageObject[this.type] ?? new Set()
-  packageObject[this.type].add(this.splittedLine
-      .slice((this.splittedLine.length) - 1)
-      .join(path.sep)
-      .replace(mc.META_REGEX, ''));
+    packageObject[this.type] = packageObject[this.type] ?? new Set()
+    packageObject[this.type].add(
+      this.splittedLine
+        .slice(this.splittedLine.length - 1)
+        .join(path.sep)
+        .replace(mc.META_REGEX, '')
+    )
   }
 }
+
 module.exports = SubFolderElementHandler
