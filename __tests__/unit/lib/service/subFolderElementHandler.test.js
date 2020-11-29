@@ -7,13 +7,15 @@ const testContext = {
   testData: [
     [
       'classes',
-      'force-app/main/default/classes/controller.cls-meta.xml',
-      new Set(['apexclass']),
+      'force-app/main/default/classes/Controller.cls-meta.xml',
+      new Set(['Controller.cls']),
+      'classes',
     ],
     [
-      'subFolderClasses',
-      'force-app/main/default/classes/controllers/controller.cls-meta.xml',
-      new Set(['apexclass']),
+      'classes',
+      'force-app/main/default/classes/controllers/Controller.cls-meta.xml',
+      new Set(['Controller.cls']),
+      'classes',
     ],
   ],
   work: {
