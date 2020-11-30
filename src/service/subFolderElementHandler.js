@@ -13,7 +13,10 @@ class SubFolderElementHandler extends StandardHandler {
       .join(path.sep)
 
     if (this.metadata[this.type].metaFile === true) {
-      this._copyFiles(path.join(this.config.repo, fileName + mc.METAFILE_SUFFIX), path.join(this.config.output, fileName + mc.METAFILE_SUFFIX))
+      this._copyFiles(
+        path.join(this.config.repo, fileName + mc.METAFILE_SUFFIX),
+        path.join(this.config.output, fileName + mc.METAFILE_SUFFIX)
+      )
     }
   }
 
