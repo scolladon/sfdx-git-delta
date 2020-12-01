@@ -8,13 +8,13 @@ const testContext = {
     [
       'classes',
       'force-app/main/default/classes/Controller.cls-meta.xml',
-      new Set(['Controller.cls']),
+      new Set(['Controller']),
       'classes',
     ],
     [
       'classes',
       'force-app/main/default/classes/controllers/Controller.cls-meta.xml',
-      new Set(['Controller.cls']),
+      new Set(['Controller']),
       'classes',
     ],
   ],
