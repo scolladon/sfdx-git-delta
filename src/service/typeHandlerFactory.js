@@ -6,6 +6,7 @@ const InResource = require('./inResourceHandler')
 const Lightning = require('./lightningHandler')
 const Standard = require('./standardHandler')
 const SubCustomObject = require('./subCustomObjectHandler')
+const SubFolderElementHandler = require('./subFolderElementHandler')
 const InTranslation = require('./inTranslationHandler')
 const Wave = require('./waveHandler')
 
@@ -14,6 +15,7 @@ const path = require('path')
 const classes = {
   aura: Lightning,
   businessProcesses: SubCustomObject,
+  class: SubFolderElementHandler,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
   documents: InFolder,
