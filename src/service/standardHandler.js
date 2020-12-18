@@ -68,7 +68,12 @@ class StandardHandler {
 
   _getParsedPath() {
     return path.parse(
-      this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
+      this.splittedLine
+        .slice(
+          this.splittedLine.findIndex(x => x.includes(mc.METAFILE_SUFFIX)) - 1
+        )
+        .join(path.sep)
+
         .replace(mc.META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
@@ -76,7 +81,7 @@ class StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return parsedPath.dir + parsedPath.base
+    return parsedPath.base
   }
 
   _fillPackage(packageObject) {
