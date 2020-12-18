@@ -2,6 +2,7 @@
 const StandardHandler = require('./standardHandler')
 const path = require('path')
 const fs = require('fs')
+const mc = require('../utils/metadataConstants')
 
 const elementSrc = {}
 
@@ -54,7 +55,15 @@ class ResourceHandler extends StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return parsedPath.dir + parsedPath.name
+    return parsedPath.name
+  }
+
+  _getParsedPath() {
+    return path.parse(
+      this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
+        .replace(mc.META_REGEX, '')
+        .replace(this.suffixRegex, '')
+    )
   }
 }
 
