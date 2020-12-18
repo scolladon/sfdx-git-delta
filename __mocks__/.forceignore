@@ -4,6 +4,7 @@
 
 package.xml
 **/jsconfig.json
+force-app/main/default/pages/*
 
 
 # LWC Jest

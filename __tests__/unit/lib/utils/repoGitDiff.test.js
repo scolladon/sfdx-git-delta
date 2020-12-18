@@ -74,6 +74,21 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(expected)
   })
 
+  test('can filter sub folders', () => {
+    const output = ['M      force-app/main/default/pages/Account.page']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    //should be empty
+    const expected = []
+    expect(work).toStrictEqual(expected)
+  })
+
   test('can reject in case of error', () => {
     const expected = new Error('Test Error')
     child_process.spawnSync.mockImplementation(() => {
