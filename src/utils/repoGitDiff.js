@@ -27,7 +27,7 @@ module.exports = (config, metadata) => {
 const treatResult = (repoDiffResult, metadata) =>
   repoDiffResult
     .split(os.EOL)
-    .filter(line => !!line && !ig.ignores(line))
+    .filter(line => !!line && !ig.ignores(line.replace(/^.\s+/u, '')))
     .filter(line =>
       line
         .split(path.sep)
