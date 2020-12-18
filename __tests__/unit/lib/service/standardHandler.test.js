@@ -30,6 +30,11 @@ const testContext = {
       'force-app/main/default/objects/Account/weblinks/ClientStore.weblink-meta.xml',
       new Set(['ClientStore']),
     ],
+    [
+      'classes',
+      'force-app/main/default/classes/controllers/Controller.cls-meta.xml',
+      new Set(['Controller']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
