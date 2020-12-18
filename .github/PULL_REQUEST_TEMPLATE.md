@@ -67,6 +67,10 @@ _(Write your answer here.)_
 
 ---
 
+<!--
+$ uname -v ; yarn -v ; node -v ; sgd --version ; git --version
+-->
+
 **Operating System:** …
 
 **Yarn version:** …
