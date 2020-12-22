@@ -13,7 +13,7 @@ const FSE_COPYSYNC_OPTION = {
 class StandardHandler {
   constructor(line, type, work, metadata) {
     ;[this.changeType] = line
-    this.line = line.replace(/^.\s*/u, '')
+    this.line = line.replace(/^.\s+/u, '')
     this.type = type
     this.diffs = work.diffs
     this.config = work.config
