@@ -15,7 +15,7 @@ const path = require('path')
 const classes = {
   aura: Lightning,
   businessProcesses: SubCustomObject,
-  class: SubFolderElementHandler,
+  classes: SubFolderElementHandler,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
   documents: InFolder,
