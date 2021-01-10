@@ -12,6 +12,11 @@ const testContext = {
       new Set(['Account']),
     ],
     [
+      'objects',
+      'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
+      new Set(['Account']),
+    ],
+    [
       'territory2Models',
       'force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
       new Set(['EU']),
@@ -29,6 +34,10 @@ describe('test CustomObjectHandler', () => {
     require('fs').__setMockFiles({
       'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
       'force-app/main/default/objects/Account/fields/test__c.field-meta.xml':
+        SubCustomObjectHandler.MASTER_DETAIL_TAG,
+      'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
+        'test',
+      'force-app/main/default/objects/Test/Account/fields/test__c.field-meta.xml':
         SubCustomObjectHandler.MASTER_DETAIL_TAG,
     })
   })
