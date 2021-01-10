@@ -27,10 +27,8 @@ const testContext = {
 describe('test inTranslation with delta generation', () => {
   beforeAll(() => {
     require('fs').__setMockFiles({
-      'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml':
-        'test',
-      'force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml':
-        'test',
+      [testContext.testData[0][1]]: 'test',
+      [testContext.testData[1][1]]: 'test',
     })
   })
 
