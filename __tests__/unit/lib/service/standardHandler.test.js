@@ -30,6 +30,41 @@ const testContext = {
       'force-app/main/default/objects/Account/weblinks/ClientStore.weblink-meta.xml',
       new Set(['ClientStore']),
     ],
+    [
+      'classes',
+      'force-app/main/default/classes/controllers/Controller.cls-meta.xml',
+      new Set(['Controller']),
+    ],
+    [
+      'objects',
+      'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
+      new Set(['Account']),
+    ],
+    [
+      'quickActions',
+      'force-app/main/default/quickActions/Test/Account.New.quickAction-meta.xml',
+      new Set(['Account.New']),
+    ],
+    [
+      'quickActions',
+      'force-app/main/default/quickActions/Test/NewGlobal.quickAction-meta.xml',
+      new Set(['NewGlobal']),
+    ],
+    [
+      'customMetadata',
+      'force-app/main/default/customMetadata/Test/GraphicsPackImages.md_png.md-meta.xml',
+      new Set(['GraphicsPackImages.md_png']),
+    ],
+    [
+      'weblinks',
+      'force-app/main/default/objects/Test/Account/weblinks/ClientStore.weblink-meta.xml',
+      new Set(['ClientStore']),
+    ],
+    [
+      'classes',
+      'force-app/main/default/classes/Test/Controller.cls-meta.xml',
+      new Set(['Controller']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },

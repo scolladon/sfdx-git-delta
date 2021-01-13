@@ -26,6 +26,16 @@ const testContext = {
       'force-app/main/default/waveTemplates/WaveTemplateTest/template-info.json',
       new Set(['WaveTemplateTest']),
     ],
+    [
+      'lwc',
+      'force-app/main/default/lwc/component/component.js-meta.xml',
+      new Set(['component']),
+    ],
+    [
+      'aura',
+      'force-app/main/default/aura/component/component.cmp-meta.xml',
+      new Set(['component']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },

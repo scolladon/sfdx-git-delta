@@ -3,19 +3,16 @@ const CustomObject = require('./customObjectHandler')
 const InFile = require('./inFileHandler')
 const InFolder = require('./inFolderHandler')
 const InResource = require('./inResourceHandler')
-const Lightning = require('./lightningHandler')
 const Standard = require('./standardHandler')
 const SubCustomObject = require('./subCustomObjectHandler')
-const SubFolderElementHandler = require('./subFolderElementHandler')
 const InTranslation = require('./inTranslationHandler')
 const Wave = require('./waveHandler')
 
 const path = require('path')
 
 const classes = {
-  aura: Lightning,
+  aura: InResource,
   businessProcesses: SubCustomObject,
-  classes: SubFolderElementHandler,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
   documents: InFolder,
@@ -25,7 +22,7 @@ const classes = {
   fields: SubCustomObject,
   labels: InFile,
   listViews: SubCustomObject,
-  lwc: Lightning,
+  lwc: InResource,
   objects: CustomObject,
   objectTranslations: InTranslation,
   recordTypes: SubCustomObject,

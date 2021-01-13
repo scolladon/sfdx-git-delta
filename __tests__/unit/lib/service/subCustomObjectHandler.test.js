@@ -20,6 +20,21 @@ const testContext = {
       'force-app/main/default/territory2Models/EU/territories/France.territory2-meta.xml',
       new Set(['EU.France']),
     ],
+    [
+      'fields',
+      'force-app/main/default/objects/Test/Account/fields/awesome.field-meta.xml',
+      new Set(['Account.awesome']),
+    ],
+    [
+      'rules',
+      'force-app/main/default/territory2Models/Test/EU/rules/Location.territory2Rule-meta.xml',
+      new Set(['EU.Location']),
+    ],
+    [
+      'territories',
+      'force-app/main/default/territory2Models/Test/EU/territories/France.territory2-meta.xml',
+      new Set(['EU.France']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },

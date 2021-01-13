@@ -47,6 +47,48 @@ const testContext = {
       new Set(['WaveXmdTest']),
       'WaveXmd',
     ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveApplicationTest.wapp',
+      new Set(['WaveApplicationTest']),
+      'WaveApplication',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveDataflowTest.wdf',
+      new Set(['WaveDataflowTest']),
+      'WaveDataflow',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveDashboardTest.wdash',
+      new Set(['WaveDashboardTest']),
+      'WaveDashboard',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveDatasetTest.wds',
+      new Set(['WaveDatasetTest']),
+      'WaveDataset',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveLensTest.wlens',
+      new Set(['WaveLensTest']),
+      'WaveLens',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveRecipeTest.wdpr',
+      new Set(['WaveRecipeTest']),
+      'WaveRecipe',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveXmdTest.xmd',
+      new Set(['WaveXmdTest']),
+      'WaveXmd',
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
