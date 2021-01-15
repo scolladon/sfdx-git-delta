@@ -11,7 +11,7 @@ Generate the sfdx content in source format and destructive change from two git c
 1. **Make deployments faster**, by identifying the metadata that has been changed since a reference commit.
 2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructiveChanges.xml
 
-To get a better understanding og what SGD is for, take a look at this post on the Salesforce Developers Blog: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
+To get a better understanding of what SGD is for, take a look at this post on the Salesforce Developers Blog: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
 
 ![delta_principle](/img/delta_principles.png)
 
