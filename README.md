@@ -11,6 +11,10 @@ Generate the sfdx content in source format and destructive change from two git c
 1. **Make deployments faster**, by identifying the metadata that has been changed since a reference commit.
 2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructiveChanges.xml
 
+To get a better understanding og what SGD is for, take a look at this post on the Salesforce Developers Blog: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
+
+![delta_principle](/img/delta_principles.png)
+
 ## Is SGD for you?
 
 If you are not a Salesforce Architect or Developer, probably not, _sorry_.
@@ -21,11 +25,11 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
                 ➕
         You use the Source (DX) format in the repo.
                 ➕
-        Your metadata is not packaged (in other words: your repo contains all the unmanaged metadata of the project).
+        Your metadata is not packaged (in other words, your repo contains all the unmanaged metadata of the project).
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functionnal pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also a good idea to implement a bypass in your pipeline, to have to hability to fallback to full deployment in case the delta deployement is not behaving the way you expected it.
+Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functionnal pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also important to implement a bypass in your pipeline, to have to hability to fallback to full deployment in case the delta deployement is not behaving the way you expected it.
 
 **DISCLAIMER:**
 
@@ -132,9 +136,9 @@ sfdx sgd:source:delta --to HEAD --from HEAD^ --output .
 
 which means:
 
-> Analyse the difference between HEAD (latest commit) and HEAD^ (previous commit), and output the result in the current folder.
+> Analyze the difference between HEAD (latest commit) and HEAD^ (previous commit), and output the result in the current folder.
 
-The `sfdx sgd:source:delta` command produces 2 usefull artefacts:
+The `sfdx sgd:source:delta` command produces 2 usefull artifacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
 
@@ -146,7 +150,7 @@ _Content of the `package.xml` file in our scenario:_
 _Content of the `destructiveChanges.xml` file in our scenario:_
 ![destructiveChange](/img/example_destructiveChange.png)
 
-In addition, we could also have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
+In addition, we also could have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
 
 ### Deploy only the added/modified metadata:
 
