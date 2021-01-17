@@ -1,5 +1,5 @@
 'use strict'
-const XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n'
+const XML_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n'
 const XML_PARSER_OPTION = {
   ignoreAttributes: false,
   ignoreNameSpace: false,
