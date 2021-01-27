@@ -178,6 +178,23 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 And voilà! 🥳
 
+### Diff between branches:
+
+SGD works with any git sha pointer: commit sha, branch, tag, git expression (HEAD, etc.).
+
+Here are 2 examples showing how you can compare the content of different branches:
+
+**1) Comparing commits in different branches**
+(from example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`)
+```
+sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
+```
+
+**2) Comparing branches**
+```
+sfdx sgd:source:delta --to develop --from master --output .
+```
+
 ### Advanced use-case: Generating a folder containing only the added/modified sources
 
 Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
@@ -197,6 +214,7 @@ In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:sou
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
+
 
 ## Javascript Module
 
