@@ -185,7 +185,7 @@ SGD works with any git sha pointer: commit sha, branch, tag, git expression (HEA
 Here are 2 examples showing how you can compare the content of different branches:
 
 **1) Comparing commits in different branches**
-(from example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`)
+(for example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`)
 ```
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
