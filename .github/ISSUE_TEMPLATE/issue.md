@@ -1,7 +1,7 @@
 ---
 name: Log an issue
 about: Use this template for tracking new bugs.
-title: "[BUG NAME]"
+title: '[BUG NAME]'
 labels: bug
 assignees: scolladon
 ---
@@ -76,6 +76,9 @@ _(Write your answer here.)_
   node v14.5.0
   Yarn 1.22.5
   sgd 3.1.2
+  git 2.30.0
+
+$ uname -v ; yarn -v ; node -v ; sgd --version ; git --version
 -->
 
 **Operating System:** …
@@ -86,7 +89,7 @@ _(Write your answer here.)_
 
 **sgd version:** …
 
-**SDK Version:** …
+**git version:** …
 
 ## Optional more information
 
