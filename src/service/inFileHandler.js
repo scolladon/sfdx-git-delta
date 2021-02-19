@@ -37,7 +37,9 @@ class InFileHandler extends StandardHandler {
   }
 
   handleAddition() {
-    super.handleAddition()
+    if (this.type !== mc.LABEL_EXTENSION) {
+      super.handleAddition()
+    }
     this._fillPackageFromFile(this.diffs.package)
   }
 
