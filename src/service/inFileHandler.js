@@ -46,6 +46,9 @@ class InFileHandler extends StandardHandler {
   }
 
   handleModification() {
+    if (this.type !== mc.LABEL_EXTENSION) {
+      super.handleAddition()
+    }
     const toAdd = this._handleInFile()
     this._handleFileWriting(toAdd)
   }
