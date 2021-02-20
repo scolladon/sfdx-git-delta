@@ -103,7 +103,9 @@ describe(`test if inFileHandler`, () => {
         expect(work.diffs.package).toMatchObject(
           testContext.expectedData[expectedType]
         )
-        if (expectedType !== mc.LABEL_EXTENSION) {
+        if (expectedType === mc.LABEL_EXTENSION) {
+          expect(work.diffs.package).not.toHaveProperty(expectedType)
+        } else {
           expect(work.diffs.package).toHaveProperty(expectedType)
         }
       })
@@ -159,7 +161,9 @@ describe(`test if inFileHandler`, () => {
 
         expect(work.diffs.package).toBeDefined()
         expect(work.diffs.destructiveChanges).toBeDefined()
-        if (expectedType !== mc.LABEL_EXTENSION) {
+        if (expectedType === mc.LABEL_EXTENSION) {
+          expect(work.diffs.package).not.toHaveProperty(expectedType)
+        } else {
           expect(work.diffs.package).toHaveProperty(expectedType)
         }
       })
@@ -186,7 +190,9 @@ describe(`test if inFileHandler`, () => {
         expect(work.diffs.package).toMatchObject(
           testContext.expectedData[expectedType]
         )
-        if (expectedType !== mc.LABEL_EXTENSION) {
+        if (expectedType === mc.LABEL_EXTENSION) {
+          expect(work.diffs.package).not.toHaveProperty(expectedType)
+        } else {
           expect(work.diffs.package).toHaveProperty(expectedType)
         }
       })
