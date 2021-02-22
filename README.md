@@ -182,17 +182,24 @@ And voilà! 🥳
 
 SGD works with any git sha pointer: commit sha, branch, tag, git expression (HEAD, etc.).
 
-Here are 2 examples showing how you can compare the content of different branches:
+Here are 3 examples showing how you can compare the content of different branches:
 
-**1) Comparing commits in different branches**
-(for example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`)
+**1) Comparing between commits in different branches**
+For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`:
 ```
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
-**2) Comparing branches**
+**2) Comparing branches (all changes)**
+Comparing all changes between the `develop` branch and the `master` branch: 
 ```
 sfdx sgd:source:delta --to develop --from master --output .
+```
+
+**3) Comparing branches (from a common ancestor)**
+Comparing changes performed in the `develop` branch since its common ancestor with the `master` branch (i.e. ignoring the changes performed in the `master` branch after `develop` was created): 
+```
+sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --output .
 ```
 
 ### Advanced use-case: Generating a folder containing only the added/modified sources
