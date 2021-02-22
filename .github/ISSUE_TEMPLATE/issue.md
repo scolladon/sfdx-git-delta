@@ -67,29 +67,20 @@ _(Write your answer here.)_
 ---
 
 <!--
-  Mac version / Window version / Linux version and distribution
-  Node version ($ node -v)
-  Yarn version ($ yarn -v)
-  sgd version ($ sgd -V)
-  Ex :
-  Mac OS Mojave Version 10.14.6
-  node v14.5.0
-  Yarn 1.22.5
-  sgd 3.1.2
-  git 2.30.0
-
-$ uname -v ; yarn -v ; node -v ; sgd --version ; git --version
+$ uname -v ; yarn -v ; node -v ; git --version ; sfdx --version ; sfdx plugins
 -->
 
 **Operating System:** …
 
-**Yarn version:** …
+**yarn version:** …
 
-**Node version:** …
-
-**sgd version:** …
+**node version:** …
 
 **git version:** …
+
+**sfdx version:** …
+
+**sgd plugin version:** …
 
 ## Optional more information
 
