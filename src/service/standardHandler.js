@@ -1,6 +1,7 @@
 'use strict'
 const path = require('path')
 const fse = require('fs-extra')
+const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 
 const FSE_COPYSYNC_OPTION = {
@@ -13,7 +14,7 @@ const FSE_COPYSYNC_OPTION = {
 class StandardHandler {
   constructor(line, type, work, metadata) {
     ;[this.changeType] = line
-    this.line = line.replace(/^.\s+/u, '')
+    this.line = line.replace(gc.GIT_DIFF_TYPE_REGEX, '')
     this.type = type
     this.diffs = work.diffs
     this.config = work.config
