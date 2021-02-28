@@ -1,4 +1,5 @@
 'use strict'
+const os = require('os')
 const repoGitDiff = require('../../../../src/utils/repoGitDiff')
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
@@ -86,6 +87,24 @@ describe(`test if repoGitDiff`, () => {
     )
     //should be empty
     const expected = []
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('can filter moved files', () => {
+    const output = [
+      'D      force-app/main/default/pages/Account.page',
+      'A      force-app/account/domain/pages/Account.page',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '' },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    //should be empty
+    const expected = [output[1]]
     expect(work).toStrictEqual(expected)
   })
 
