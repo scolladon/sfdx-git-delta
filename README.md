@@ -76,8 +76,8 @@ Windows is not tested.
 
 Git command line is required on the system where the command line is running.
 
-**Node v14.6.0 or above is required**. 
-To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first. 
+**Node v14.6.0 or above is required**.
+To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first.
 If you encounter this issue while having installed the correct version of node on your system, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`) rather than with another installer.
 
 ## How to use it?
@@ -186,20 +186,72 @@ Here are 3 examples showing how you can compare the content of different branche
 
 **1) Comparing between commits in different branches**
 For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`:
+
 ```
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
 **2) Comparing branches (all changes)**
-Comparing all changes between the `develop` branch and the `master` branch: 
+Comparing all changes between the `develop` branch and the `master` branch:
+
 ```
 sfdx sgd:source:delta --to develop --from master --output .
 ```
 
 **3) Comparing branches (from a common ancestor)**
-Comparing changes performed in the `develop` branch since its common ancestor with the `master` branch (i.e. ignoring the changes performed in the `master` branch after `develop` was created): 
+Comparing changes performed in the `develop` branch since its common ancestor with the `master` branch (i.e. ignoring the changes performed in the `master` branch after `develop` was created):
+
 ```
 sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --output .
+```
+
+### Renaming and Moving use cases
+
+Because the metadata is based on the name of the elements SGD will generate an entry for both package/package.xml and destructiveChanges/destructiveChanges.xml When renaming a metadata component.
+This will allow you to create the new component and delete the old one, avoiding duplicates at the same time. We leverage the `--no-renames` git parameters to treat those use cases atomically
+
+Ex : A force-app/main/default/AccountTest.cls -> D force-app/main/default/Account_Test.cls
+
+```xml
+<!-- package/package.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>AccountTest</members>
+        <name>ApexClass</name>
+    </types>
+    <version>50.0</version>
+</Package>
+
+<!-- destructiveChanges/destructiveChanges.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Account_Test</members>
+        <name>ApexClass</name>
+    </types>
+    <version>50.0</version>
+</Package>
+```
+
+Git deal with path changing like a renaming when using the `--no-renames` git parameters, even if the file content has been changed in the process.
+In order to deal with that, the plugin generates an entry only in the package.xml when detecting a path change.
+This allow to move files in different file structure, change them and detect delta using the plugin.
+The drawback is when a file is moved and not changed it will be putted in the package.xml anyway. For sharing rules and workflow it means the whole content will be redeployed.
+Currently there is no change detection in file to exclude unchanged files and address this drawback.
+
+Ex : A force-app/domain/Account/AccountTest.cls -> D force-app/main/default/AccountTest.cls
+
+```xml
+<!-- package/package.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>AccountTest</members>
+        <name>ApexClass</name>
+    </types>
+    <version>50.0</version>
+</Package>
 ```
 
 ### Advanced use-case: Generating a folder containing only the added/modified sources
@@ -222,11 +274,10 @@ In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:sou
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
 
-
 ## Javascript Module
 
 ```js
-var sgd = require('sfdx-git-delta')
+const sgd = require('sfdx-git-delta')
 
 const work = sgd({
   to: '', // commit sha to where the diff is done. Default : HEAD
@@ -257,7 +308,7 @@ console.log(JSON.stringify(work))
 
 [SemVer](http://semver.org/) is used for versioning.
 
-## Authors [![Join the chat at https://gitter.im/scolladon/sfdx-git-delta](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dwyl/?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+## Authors [![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
 
 - **Sebastien Colladon** - Developer - [scolladon](https://github.com/scolladon)
 - **Mehdi Cherfaoui** - Tester - [mehdisfdc](https://github.com/mehdisfdc)
