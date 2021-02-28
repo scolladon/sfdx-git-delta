@@ -3,7 +3,6 @@ const fileGitDiff = require('../utils/fileGitDiff')
 const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
-const fs = require('fs')
 const fse = require('fs-extra')
 const os = require('os')
 const path = require('path')
@@ -123,10 +122,7 @@ class InFileHandler extends StandardHandler {
   }
 
   _parseFile() {
-    const xmlData = fs.readFileSync(path.join(this.config.repo, this.line), {
-      encoding: gc.UTF8_ENCODING,
-    })
-    const result = fxp.parse(xmlData, XML_PARSER_OPTION)
+    const result = fxp.parse(this._readFileSync(), XML_PARSER_OPTION)
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(x =>
       Object.prototype.hasOwnProperty.call(this.xmlObjectToPackageType, x)
     )

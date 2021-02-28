@@ -1,4 +1,5 @@
 'use strict'
+const fs = require('fs')
 const path = require('path')
 const fse = require('fs-extra')
 const gc = require('../utils/gitConstants')
@@ -94,6 +95,12 @@ class StandardHandler {
     if (fse.pathExistsSync(src)) {
       fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
     }
+  }
+
+  _readFileSync() {
+    return fs.readFileSync(path.join(this.config.repo, this.line), {
+      encoding: gc.UTF8_ENCODING,
+    })
   }
 }
 

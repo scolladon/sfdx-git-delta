@@ -1,9 +1,7 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
-const fs = require('fs')
 
 class SubCustomObjectHandler extends StandardHandler {
   handleDeletion() {
@@ -14,9 +12,7 @@ class SubCustomObjectHandler extends StandardHandler {
     super.handleAddition()
     if (!this.config.generateDelta) return
 
-    const data = fs.readFileSync(path.join(this.config.repo, this.line), {
-      encoding: gc.UTF8_ENCODING,
-    })
+    const data = this._readFileSync()
     if (data?.includes(mc.MASTER_DETAIL_TAG)) {
       const customObjectDirPath = this.splittedLine
         .slice(0, [this.splittedLine.indexOf(this.type)])
