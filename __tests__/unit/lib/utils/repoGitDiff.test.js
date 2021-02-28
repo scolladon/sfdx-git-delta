@@ -92,8 +92,8 @@ describe(`test if repoGitDiff`, () => {
 
   test('can filter moved files', () => {
     const output = [
-      'D      force-app/main/default/pages/Account.page',
-      'A      force-app/account/domain/pages/Account.page',
+      'D      force-app/main/default/classes/Account.cls',
+      'A      force-app/account/domain/classes/Account.cls',
     ]
     child_process.spawnSync.mockImplementation(() => ({
       stdout: output.join(os.EOL),
@@ -103,9 +103,24 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    //should be empty
     const expected = [output[1]]
     expect(work).toStrictEqual(expected)
+  })
+
+  test('cannot filter renamed files', () => {
+    const output = [
+      'D      force-app/main/default/classes/Account.cls',
+      'A      force-app/main/default/classes/RenamedAccount.cls',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '' },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    expect(work).toStrictEqual(output)
   })
 
   test('can reject in case of error', () => {
