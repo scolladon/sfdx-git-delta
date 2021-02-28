@@ -25,29 +25,26 @@ module.exports = (config, metadata) => {
 }
 
 const treatResult = (repoDiffResult, metadata) => {
-  const lines = repoDiffResult.split(os.EOL),
-    AD = {
-      A: [],
-      D: [],
-    }
-
-  lines.forEach(line => AD[line.charAt(0)]?.push(line))
-
-  const AfileName = new Set(
-      AD.A.map(
-        line => path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
-      )
-    ),
-    moved = new Set(
-      AD.D.filter(line =>
-        AfileName.has(path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base)
-      )
+  const lines = repoDiffResult.split(os.EOL)
+  const linesPerDiffType = lines.reduce(
+    (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
+    { [gc.ADDITION]: [], [gc.DELETION]: [] }
+  )
+  const AfileNames = new Set(
+    linesPerDiffType[gc.ADDITION].map(
+      line => path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
     )
+  )
+  const deletedRenamed = new Set(
+    linesPerDiffType[gc.DELETION].filter(line =>
+      AfileNames.has(path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base)
+    )
+  )
 
   return lines.filter(
     line =>
       !!line &&
-      !moved.has(line) &&
+      !deletedRenamed.has(line) &&
       !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')) &&
       line
         .split(path.sep)
