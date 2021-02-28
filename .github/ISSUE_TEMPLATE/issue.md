@@ -18,16 +18,12 @@ Issue verification check :
   Provide a clear and concise description of what the problem is.
 -->
 
-_(Write your answer here.)_
-
 ### What is parameter and their value you used
 
 <!--
   Provide the command you used and the parameters
   Ex : $ sgd -r . -f HEAD^
 -->
-
-_(Write your answer here.)_
 
 ### What is the expected result
 
@@ -36,16 +32,12 @@ _(Write your answer here.)_
   Provide the expected content of the output folder
 -->
 
-_(Write your answer here.)_
-
 ### What is the actual result
 
 <!--
   Provide the actual output of the command
   Provide the actual content of the output folder
 -->
-
-_(Write your answer here.)_
 
 ## Steps to reproduce
 
@@ -59,8 +51,6 @@ _(Write your answer here.)_
   https://github.com/<gh-username>/<sgd-issue-reproducible-repo-name>
   sgd -d -r . -f HEAD^
 -->
-
-_(Write your answer here.)_
 
 ## Execution context
 
@@ -87,10 +77,8 @@ $ uname -v ; yarn -v ; node -v ; git --version ; sfdx --version ; sfdx plugins
 ---
 
 <!--
-  Provide the output of those command line if allowed :
+  Provide the output of those command line :
   $ git diff --name-status --no-renames <from> <to>
   And for each SharingRule, WorkflowRule and CustomLabel files :
   $ git diff --no-prefix <from> <to> -- <file-path>
 -->
-
-_(Write your answer here.)_

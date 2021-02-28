@@ -25,8 +25,6 @@ Thanks for sending a pull request! Please make sure you click the link above to 
   Describe with your own words the content of the Pull Request
 -->
 
-_(Write your answer here.)_
-
 ## Does this close any currently open issues?
 
 ---
@@ -36,7 +34,7 @@ _(Write your answer here.)_
   EX : #<issue-number>
 -->
 
-_(Write your answer here.)_
+closes #
 
 - [ ] Jest test to check the fix is applied are added.
 
@@ -48,8 +46,6 @@ _(Write your answer here.)_
   Provide any new parameters or behaviour with current parameters
 -->
 
-_(Write your answer here.)_
-
 ## Any other comments?
 
 ---
@@ -60,8 +56,6 @@ _(Write your answer here.)_
   Target Release
   ...
 -->
-
-_(Write your answer here.)_
 
 ## Where has this been tested?
 
