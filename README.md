@@ -205,55 +205,6 @@ Comparing changes performed in the `develop` branch since its common ancestor wi
 sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --output .
 ```
 
-### Renaming and Moving use cases
-
-Because the metadata is based on the name of the elements SGD will generate an entry for both package/package.xml and destructiveChanges/destructiveChanges.xml When renaming a metadata component.
-This will allow you to create the new component and delete the old one, avoiding duplicates at the same time. We leverage the `--no-renames` git parameters to treat those use cases atomically
-
-Ex : A force-app/main/default/AccountTest.cls -> D force-app/main/default/Account_Test.cls
-
-```xml
-<!-- package/package.xml -->
-<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>AccountTest</members>
-        <name>ApexClass</name>
-    </types>
-    <version>50.0</version>
-</Package>
-
-<!-- destructiveChanges/destructiveChanges.xml -->
-<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>Account_Test</members>
-        <name>ApexClass</name>
-    </types>
-    <version>50.0</version>
-</Package>
-```
-
-Git deal with path changing like a renaming when using the `--no-renames` git parameters, even if the file content has been changed in the process.
-In order to deal with that, the plugin generates an entry only in the package.xml when detecting a path change.
-This allow to move files in different file structure, change them and detect delta using the plugin.
-The drawback is when a file is moved and not changed it will be putted in the package.xml anyway. For sharing rules and workflow it means the whole content will be redeployed.
-Currently there is no change detection in file to exclude unchanged files and address this drawback.
-
-Ex : A force-app/domain/Account/AccountTest.cls -> D force-app/main/default/AccountTest.cls
-
-```xml
-<!-- package/package.xml -->
-<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>AccountTest</members>
-        <name>ApexClass</name>
-    </types>
-    <version>50.0</version>
-</Package>
-```
-
 ### Advanced use-case: Generating a folder containing only the added/modified sources
 
 Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
