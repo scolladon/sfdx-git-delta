@@ -1,4 +1,5 @@
 'use strict'
+const os = require('os')
 const repoGitDiff = require('../../../../src/utils/repoGitDiff')
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
@@ -87,6 +88,39 @@ describe(`test if repoGitDiff`, () => {
     //should be empty
     const expected = []
     expect(work).toStrictEqual(expected)
+  })
+
+  test('can filter moved files', () => {
+    const output = [
+      'D      force-app/main/default/classes/Account.cls',
+      'A      force-app/account/domain/classes/Account.cls',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '' },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    const expected = [output[1]]
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('cannot filter renamed files', () => {
+    const output = [
+      'D      force-app/main/default/classes/Account.cls',
+      'A      force-app/main/default/classes/RenamedAccount.cls',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '' },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    expect(work).toStrictEqual(output)
   })
 
   test('can reject in case of error', () => {

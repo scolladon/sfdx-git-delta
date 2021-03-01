@@ -24,12 +24,30 @@ module.exports = (config, metadata) => {
   return treatResult(cpUtils.treatDataFromSpawn(diff), metadata)
 }
 
-const treatResult = (repoDiffResult, metadata) =>
-  repoDiffResult
-    .split(os.EOL)
-    .filter(line => !!line && !ig.ignores(line.replace(/^.\s+/u, '')))
-    .filter(line =>
+const treatResult = (repoDiffResult, metadata) => {
+  const lines = repoDiffResult.split(os.EOL)
+  const linesPerDiffType = lines.reduce(
+    (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
+    { [gc.ADDITION]: [], [gc.DELETION]: [] }
+  )
+  const AfileNames = new Set(
+    linesPerDiffType[gc.ADDITION].map(
+      line => path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
+    )
+  )
+  const deletedRenamed = new Set(
+    linesPerDiffType[gc.DELETION].filter(line =>
+      AfileNames.has(path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base)
+    )
+  )
+
+  return lines.filter(
+    line =>
+      !!line &&
+      !deletedRenamed.has(line) &&
+      !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')) &&
       line
         .split(path.sep)
         .some(part => Object.prototype.hasOwnProperty.call(metadata, part))
-    )
+  )
+}
