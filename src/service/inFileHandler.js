@@ -36,9 +36,7 @@ class InFileHandler extends StandardHandler {
   }
 
   handleAddition() {
-    if (this.type !== mc.LABEL_EXTENSION) {
-      super.handleAddition()
-    }
+    super.handleAddition()
     this._fillPackageFromFile(this.diffs.package)
   }
 
@@ -47,9 +45,7 @@ class InFileHandler extends StandardHandler {
   }
 
   handleModification() {
-    if (this.type !== mc.LABEL_EXTENSION) {
-      super.handleAddition()
-    }
+    super.handleAddition()
     const toAdd = this._handleInFile()
     this._handleFileWriting(toAdd)
   }
@@ -129,6 +125,12 @@ class InFileHandler extends StandardHandler {
     return {
       authorizedKeys: authorizedKeys,
       fileContent: result,
+    }
+  }
+
+  _fillPackage(packageObject) {
+    if (this.type !== mc.LABEL_EXTENSION) {
+      super._fillPackage(packageObject)
     }
   }
 
