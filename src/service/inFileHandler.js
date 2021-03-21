@@ -83,6 +83,7 @@ class InFileHandler extends StandardHandler {
       const xmlTagMatchResult = line.match(XML_TAG)
       if (!!xmlTagMatchResult && !!xmlTagMatchResult[1]) {
         potentialType = xmlTagMatchResult[1]
+        fullName = null
       }
       if (!subType || !fullName) return
       if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
