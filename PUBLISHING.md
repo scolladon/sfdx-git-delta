@@ -16,11 +16,10 @@ _This will create a new tag and new draft release on github_
 
 ```sh
 $ yarn version --major|--minor|--patch --message '<Release Title>'
-# remember the new version X.X.X
-$ git push origin <vX.X.X>
+$ git push -f origin master --tags
 ```
 
 Go to gihub and finish the new release
-Fill the name (vX.X.X)
+Fill the name (select the tag created by `yarn version` <vX.X.X>)
 Fill the title with the tag message value (<Release Title>)
 Fill the release body following [keep a changelog](https://keepachangelog.com/en/1.0.0/) best practices
