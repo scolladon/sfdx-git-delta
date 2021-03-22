@@ -36,9 +36,7 @@ class InFileHandler extends StandardHandler {
   }
 
   handleAddition() {
-    if (this.type !== mc.LABEL_EXTENSION) {
-      super.handleAddition()
-    }
+    super.handleAddition()
     this._fillPackageFromFile(this.diffs.package)
   }
 
@@ -47,9 +45,7 @@ class InFileHandler extends StandardHandler {
   }
 
   handleModification() {
-    if (this.type !== mc.LABEL_EXTENSION) {
-      super.handleAddition()
-    }
+    super.handleAddition()
     const toAdd = this._handleInFile()
     this._handleFileWriting(toAdd)
   }
@@ -87,6 +83,7 @@ class InFileHandler extends StandardHandler {
       const xmlTagMatchResult = line.match(XML_TAG)
       if (!!xmlTagMatchResult && !!xmlTagMatchResult[1]) {
         potentialType = xmlTagMatchResult[1]
+        fullName = null
       }
       if (!subType || !fullName) return
       if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
@@ -129,6 +126,12 @@ class InFileHandler extends StandardHandler {
     return {
       authorizedKeys: authorizedKeys,
       fileContent: result,
+    }
+  }
+
+  _fillPackage(packageObject) {
+    if (this.type !== mc.LABEL_EXTENSION) {
+      super._fillPackage(packageObject)
     }
   }
 
