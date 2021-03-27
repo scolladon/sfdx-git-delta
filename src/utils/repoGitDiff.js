@@ -51,12 +51,15 @@ const treatResult = (repoDiffResult, metadata, config) => {
 const filterIgnore = config => line => {
   const ig = ignore()
   const dig = ignore()
-  if (config.ignore && fs.existsSync(config.ignore)) {
-    ig.add(fs.readFileSync(config.ignore).toString())
-  }
-  if (config.ignoreDestructive && fs.existsSync(config.ignoreDestructive)) {
-    dig.add(fs.readFileSync(config.ignoreDestructive).toString())
-  }
+  ;[
+    { ignore: config.ignore, helper: ig },
+    { ignore: config.ignoreDestructive, helper: dig },
+  ].forEach(
+    ign =>
+      ign.ignore &&
+      fs.existsSync(ign.ignore) &&
+      ign.helper.add(fs.readFileSync(ign.ignore).toString())
+  )
   return config.ignoreDestructive
     ? line.startsWith(gc.DELETION)
       ? !dig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
