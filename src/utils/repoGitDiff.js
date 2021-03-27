@@ -45,23 +45,21 @@ const treatResult = (repoDiffResult, metadata, config) => {
           .split(path.sep)
           .some(part => Object.prototype.hasOwnProperty.call(metadata, part))
     )
-    .filter(line => {
-      const ig = ignore()
-      const dig = ignore()
-      if (config.ignore && fs.existsSync(config.ignore)) {
-        ig.add(fs.readFileSync(config.ignore).toString())
-      }
-      if (config.ignoreDestructive && fs.existsSync(config.ignoreDestructive)) {
-        dig.add(fs.readFileSync(config.ignoreDestructive).toString())
-      }
-      if (config.ignoreDestructive) {
-        if (line.startsWith(gc.DELETION)) {
-          return !dig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-        } else {
-          return !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-        }
-      } else {
-        return !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-      }
-    })
+    .filter(filterIgnore(config))
+}
+
+const filterIgnore = config => line => {
+  const ig = ignore()
+  const dig = ignore()
+  if (config.ignore && fs.existsSync(config.ignore)) {
+    ig.add(fs.readFileSync(config.ignore).toString())
+  }
+  if (config.ignoreDestructive && fs.existsSync(config.ignoreDestructive)) {
+    dig.add(fs.readFileSync(config.ignoreDestructive).toString())
+  }
+  return config.ignoreDestructive
+    ? line.startsWith(gc.DELETION)
+      ? !dig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+      : !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+    : !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
 }
