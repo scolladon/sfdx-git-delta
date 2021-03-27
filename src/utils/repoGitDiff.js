@@ -8,7 +8,6 @@ const os = require('os')
 const path = require('path')
 
 const fullDiffParams = ['--no-pager', 'diff', '--name-status', '--no-renames']
-const ig = ignore()
 
 module.exports = (config, metadata) => {
   const { stdout: diff } = childProcess.spawnSync(
@@ -17,14 +16,10 @@ module.exports = (config, metadata) => {
     { cwd: config.repo, encoding: gc.UTF8_ENCODING }
   )
 
-  if (config.ignore && fs.existsSync(config.ignore)) {
-    ig.add(fs.readFileSync(config.ignore).toString())
-  }
-
-  return treatResult(cpUtils.treatDataFromSpawn(diff), metadata)
+  return treatResult(cpUtils.treatDataFromSpawn(diff), metadata, config)
 }
 
-const treatResult = (repoDiffResult, metadata) => {
+const treatResult = (repoDiffResult, metadata, config) => {
   const lines = repoDiffResult.split(os.EOL)
   const linesPerDiffType = lines.reduce(
     (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
@@ -41,13 +36,32 @@ const treatResult = (repoDiffResult, metadata) => {
     )
   )
 
-  return lines.filter(
-    line =>
-      !!line &&
-      !deletedRenamed.has(line) &&
-      !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')) &&
-      line
-        .split(path.sep)
-        .some(part => Object.prototype.hasOwnProperty.call(metadata, part))
-  )
+  return lines
+    .filter(
+      line =>
+        !!line &&
+        !deletedRenamed.has(line) &&
+        line
+          .split(path.sep)
+          .some(part => Object.prototype.hasOwnProperty.call(metadata, part))
+    )
+    .filter(line => {
+      const ig = ignore()
+      const dig = ignore()
+      if (config.ignore && fs.existsSync(config.ignore)) {
+        ig.add(fs.readFileSync(config.ignore).toString())
+      }
+      if (config.ignoreDestructive && fs.existsSync(config.ignoreDestructive)) {
+        dig.add(fs.readFileSync(config.ignoreDestructive).toString())
+      }
+      if (config.ignoreDestructive) {
+        if (line.startsWith(gc.DELETION)) {
+          return !dig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+        } else {
+          return !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+        }
+      } else {
+        return !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+      }
+    })
 }
