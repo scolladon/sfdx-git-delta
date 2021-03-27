@@ -49,3 +49,11 @@ jobs:
       - name: 'Code Climate coverage publishing'
         run: ./cc-test-reporter after-build -t lcov -r ${{ secrets.CC_TEST_REPORTER_ID }}
         continue-on-error: true
+
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v2

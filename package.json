@@ -29,6 +29,7 @@
   },
   "husky": {
     "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
       "pre-commit": "lint-staged && yarn analysis",
       "pre-push": "yarn test:coverage"
     }
@@ -73,9 +74,12 @@
     "analysis": "codeclimate analyze",
     "postpack": "rm -f oclif.manifest.json",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
-    "version": "oclif-dev readme && git add README.md"
+    "commit": "commit"
   },
   "devDependencies": {
+    "@commitlint/cli": "^12.0.1",
+    "@commitlint/config-conventional": "^12.0.1",
+    "@commitlint/prompt-cli": "^12.0.1",
     "@oclif/dev-cli": "^1",
     "@oclif/plugin-help": "^2",
     "@oclif/test": "^1",
