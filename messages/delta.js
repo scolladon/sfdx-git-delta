@@ -7,6 +7,7 @@ module.exports = {
   repoFlag: 'git repository location',
   outputFlag: 'source package specific output',
   ignoreFlag: 'ignore file to use',
+  ignoreDestructiveFlag: 'ignore file to use',
   apiVersionFlag: 'salesforce API version',
   deltaFlag: 'generate delta files in [--output] folder',
 }
