@@ -1,3 +1,4 @@
+.envrc
 *-debug.log
 *-error.log
 /.nyc_output

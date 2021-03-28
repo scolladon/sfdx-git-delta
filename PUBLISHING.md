@@ -2,24 +2,22 @@
 
 Here are the steps to publish a version
 
-## Update local repository with the latest version of the master branch
+## Prerequisites
+
+1. Create a [github personal token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)
+2. Set the CONVENTIONAL_GITHUB_RELEASER_TOKEN environment variable with the github personal token value (you can use [direnv](https://direnv.net/))
+
+## Create a new Release
 
 ```sh
-$ git fetch -pPt --all
-$ git checkout master
-$ git pull origin master
+$ yarn release
 ```
 
-## Create the new version
+It will :
 
-_This will create a new tag and new draft release on github_
-
-```sh
-$ yarn version --major|--minor|--patch --message '<Release Title>'
-$ git push -f origin master --tags
-```
-
-Go to gihub and finish the new release
-Fill the name (select the tag created by `yarn version` <vX.X.X>)
-Fill the title with the tag message value (<Release Title>)
-Fill the release body following [keep a changelog](https://keepachangelog.com/en/1.0.0/) best practices
+- Create a new version based on the commit types from head and package.json version
+- Create the changelog with all the commit from head and the last tag version following [keepachangelog](https://keepachangelog.com/en/1.0.0/)
+- Create a new commit with the generated changelog, update package.json
+- Create a new tag following the semver
+- Push this tag to the remote
+- Trigger the new version publish
