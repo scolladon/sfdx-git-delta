@@ -206,9 +206,9 @@ Comparing changes performed in the `develop` branch since its common ancestor wi
 sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --output .
 ```
 
-### Advanced use-case:
+### Advanced use-cases:
 
-#### Generating a folder containing only the added/modified sources
+#### Generating a folder containing only the added/modified sources:
 
 Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
 
@@ -228,15 +228,17 @@ In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:sou
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
 
-#### Excluding some metadata only from destructiveChanges.xml
+#### Excluding some metadata only from destructiveChanges.xml:
 
-Using `--ignore [-i]` parameter allow you to specify an [ignore file](https://git-scm.com/docs/gitignore) which will be used to filter the
-line from the diff. Every diff line matching the pattern from the ignore file specified in the `--ignore [-i]` will be excluded from treatment
-and will not be used to add member in `package.xml` neither `destructiveChanges.xml` (and also be ignored by `--delta-generate`parameter)
+The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) used to filter the
+element on the diff to ignore. Every diff line matching the pattern from the ignore file specified in the `--ignore [-i]` will be ignored by SGD,
+and will not be used to add member in `package.xml` nor `destructiveChanges.xml` (and will also be ignored when using the `--delta-generate` parameter).
 
-But, sometimes we need to have a different ignore policy for `package.xml` and `destructiveChanges.xml`, this is where `--ignore-destructive [-D]` comes handy! Using this parameter tells the plugin to ignore file deletion using a different ignore file, enabling you to have a more precise flow. This will override the `--ignore [-i]`parameter just for deletion. If only `--ignore [-i]`is specified `--ignore-destructive [-D]` is not specified then the plugin will ignore any line matching `--ignore [-i]` parameter (Addition, Modification and Deletion as before the introduction of `--ignore-destructive [-D]`)
+But, sometimes you may need to have two different ignore policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
 
-Per example consider a repository containing multiple sub folder (force-app/main,force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. Then the Custom\_\_c object will appear in the `package.xml` and in `destructiveChanges.xml` which is a little bit inconsistent and can break the CI/CD. This is a perfect situation for `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter.
+Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). In orther words, this will override the `--ignore [-i]` parameter for deleted items.
+
+For example, consider a repository containing multiple sub-folders (force-app/main,force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. By default, the Custom\_\_c object would appear in the `package.xml` and in `destructiveChanges.xml`, which could be a little bit inconsistent and can break the CI/CD build. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
 ```sh
 # destructiveignore
@@ -245,6 +247,8 @@ Per example consider a repository containing multiple sub folder (force-app/main
 $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 ```
+
+Note that in a situatrion where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
 
 ## Javascript Module
 
