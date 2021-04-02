@@ -73,7 +73,7 @@ class InFileHandler extends StandardHandler {
 
   _handleInDiff() {
     const diffContent = fileGitDiff(this.line, this.config),
-      toRemove = {},
+      toDel = {},
       toAdd = {}
     let potentialType, subType, fullName
     diffContent.split(os.EOL).forEach(line => {
@@ -88,15 +88,13 @@ class InFileHandler extends StandardHandler {
       }
       if (!subType || !fullName) return
       if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
-        toRemove[subType] = toRemove[subType] ?? new Set()
-        toRemove[subType].add(fullName)
+        toDel[subType] = toDel[subType]?.add(fullName) ?? new Set([fullName])
         subType = fullName = null
       } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
-        toAdd[subType] = toAdd[subType] ?? new Set()
-        toAdd[subType].add(fullName)
+        toAdd[subType] = toAdd[subType]?.add(fullName) ?? new Set([fullName])
       }
     })
-    this._treatInFileResult(toRemove, toAdd)
+    this._treatInFileResult(toDel, toAdd)
     return toAdd
   }
 
