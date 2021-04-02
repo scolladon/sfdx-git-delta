@@ -37,16 +37,17 @@ class InFileHandler extends StandardHandler {
 
   handleAddition() {
     super.handleAddition()
-    this._fillPackageFromFile(this.diffs.package)
+    const toAdd = this._handleInDiff()
+    this._handleFileWriting(toAdd)
   }
 
   handleDeletion() {
-    this._handleInFile()
+    this._handleInDiff()
   }
 
   handleModification() {
     super.handleAddition()
-    const toAdd = this._handleInFile()
+    const toAdd = this._handleInDiff()
     this._handleFileWriting(toAdd)
   }
 
@@ -70,7 +71,7 @@ class InFileHandler extends StandardHandler {
     fse.outputFileSync(path.join(this.config.output, this.line), xmlContent)
   }
 
-  _handleInFile() {
+  _handleInDiff() {
     const diffContent = fileGitDiff(this.line, this.config),
       toRemove = {},
       toAdd = {}
@@ -133,24 +134,6 @@ class InFileHandler extends StandardHandler {
     if (this.type !== mc.LABEL_EXTENSION) {
       super._fillPackage(packageObject)
     }
-  }
-
-  _fillPackageFromFile(packageObject) {
-    const result = this._parseFile()
-    const metadataContent = Object.values(result.fileContent)[0]
-
-    result.authorizedKeys.forEach(subType => {
-      const meta = Array.isArray(metadataContent[subType])
-        ? metadataContent[subType]
-        : [metadataContent[subType]]
-      meta.forEach(value =>
-        this._fillPackageFromDiff(
-          packageObject,
-          `${this.parentMetadata.directoryName}.${subType}`,
-          value.fullName
-        )
-      )
-    })
   }
 
   _fillPackageFromDiff(packageObject, subType, value) {
