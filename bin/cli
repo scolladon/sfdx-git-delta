@@ -5,7 +5,7 @@ const program = require('commander')
 const orchestrator = require('../lib/main')
 const pjson = require('../package.json')
 
-program
+const options = program
   .description(pjson.description)
   .version(pjson.version)
   .option(
@@ -31,17 +31,18 @@ program
   .option('-r, --repo [dir]', 'git repository location [.]', '.')
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
+  .opts()
 
-program.ignore = program.ignore === true ? './.forceignore' : program.ignore
+options.ignore = options.ignore === true ? './.forceignore' : options.ignore
 
 const output = {
   error: null,
-  output: program.output,
+  output: options.output,
   success: true,
   warnings: [],
 }
 try {
-  const jobResult = orchestrator(program)
+  const jobResult = orchestrator(options)
   output.warnings = jobResult?.warnings?.map(warning => warning.message)
 } catch (err) {
   output.success = false
