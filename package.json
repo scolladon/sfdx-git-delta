@@ -27,23 +27,6 @@
     "type": "git",
     "url": "git+https://github.com/scolladon/sfdx-git-delta.git"
   },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "lint-staged && yarn analysis",
-      "pre-push": "yarn test:coverage"
-    }
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ],
-    ".js": [
-      "yarn lint:fix",
-      "yarn lint"
-    ]
-  },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
     "@oclif/command": "^1",
@@ -76,6 +59,7 @@
     "postpack": "rm -f oclif.manifest.json",
     "postrelease": "npm run release:tags && npm run release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "prepare": "husky install",
     "release": "standard-version",
     "release:github": "conventional-github-releaser -p angular",
     "release:tags": "git push --follow-tags origin master"
