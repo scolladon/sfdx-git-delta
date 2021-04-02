@@ -34,8 +34,8 @@ jobs:
       - name: 'Build sgd'
         run: yarn pack
 
-      - name: 'ESlint'
-        run: yarn lint:fix
+      - name: 'Linting'
+        run: yarn lint
 
       - name: 'Test coverage'
         run: yarn test:coverage
