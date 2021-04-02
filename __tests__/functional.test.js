@@ -27,6 +27,7 @@ const lines = [
   'D      force-app/main/default/staticressources/Added/deleted.png',
   'A      force-app/main/default/documents/Added/doc.document',
   'A      force-app/main/default/lwc/Added/component.js`',
+  'D      force-app/main/sample/objects/Account/fields/changed.field-meta.xml',
 ]
 
 describe(`test if the appli`, () => {
@@ -64,5 +65,23 @@ describe(`test if the appli`, () => {
         generateDelta: true,
       }).warnings
     ).not.toHaveLength(0)
+  })
+
+  test('do not generate destructiveChanges.xml and package.xml with same element', () => {
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: lines.join(os.EOL),
+    }))
+    const work = app({
+      output: 'output',
+      repo: '',
+      to: 'test',
+      apiVersion: '46',
+      generateDelta: true,
+    })
+
+    expect(work.diffs.package.fields).toContain('Account.changed')
+    expect(work.diffs.destructiveChanges.fields).not.toContain(
+      'Account.changed'
+    )
   })
 })

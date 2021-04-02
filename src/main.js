@@ -69,6 +69,7 @@ const treatDiff = (config, lines, metadata) => {
 }
 
 const treatPackages = (dcJson, config, metadata) => {
+  cleanPackages(dcJson)
   const pc = new PackageConstructor(config, metadata)
   ;[
     {
@@ -90,4 +91,17 @@ const treatPackages = (dcJson, config, metadata) => {
     const location = path.join(config.output, op.folder, op.filename)
     fse.outputFileSync(location, op.xmlContent)
   })
+}
+
+const cleanPackages = dcJson => {
+  const additive = dcJson[PACKAGE_FILE_NAME]
+  const destructive = dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]
+  Object.keys(additive)
+    .filter(type => Object.prototype.hasOwnProperty.call(destructive, type))
+    .forEach(
+      type =>
+        (destructive[type] = new Set(
+          [...destructive[type]].filter(element => !additive[type].has(element))
+        ))
+    )
 }
