@@ -75,6 +75,72 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(expected)
   })
 
+  test('can filter ignored destructive files', () => {
+    const output = ['D      force-app/main/default/lwc/jsconfig.json']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '', ignoreDestructive: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    //should be empty
+    const expected = []
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('can filter ignored and ignored destructive files', () => {
+    const output = [
+      'M      force-app/main/default/lwc/jsconfig.json',
+      'D      force-app/main/default/lwc/jsconfig.json',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff(
+      {
+        output: '',
+        repo: '',
+        ignore: FORCEIGNORE_MOCK_PATH,
+        ignoreDestructive: FORCEIGNORE_MOCK_PATH,
+      },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    //should be empty
+    const expected = []
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('can filter deletion if only ignored is specified files', () => {
+    const output = ['D      force-app/main/default/lwc/jsconfig.json']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    //should be empty
+    const expected = []
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('cannot filter non deletion if only ignored destructive is specified files', () => {
+    const output = ['A      force-app/main/default/lwc/jsconfig.json']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '', ignoreDestructive: FORCEIGNORE_MOCK_PATH },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    expect(work).toStrictEqual(output)
+  })
+
   test('can filter sub folders', () => {
     const output = ['M      force-app/main/default/pages/Account.page']
     child_process.spawnSync.mockImplementation(() => ({
