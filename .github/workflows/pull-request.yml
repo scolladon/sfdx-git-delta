@@ -34,18 +34,14 @@ jobs:
       - name: 'Build sgd'
         run: yarn pack
 
-      - name: 'Install Code Climate Reporter'
-        run: |
-          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-          chmod +x ./cc-test-reporter
-          ./cc-test-reporter before-build
-
       - name: 'ESlint'
         run: yarn lint:fix
 
       - name: 'Test coverage'
         run: yarn test:coverage
 
-      - name: 'Code Climate coverage publishing'
-        run: ./cc-test-reporter after-build -t lcov -r ${{ secrets.CC_TEST_REPORTER_ID }}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
