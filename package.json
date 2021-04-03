@@ -27,36 +27,19 @@
     "type": "git",
     "url": "git+https://github.com/scolladon/sfdx-git-delta.git"
   },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "lint-staged && yarn analysis",
-      "pre-push": "yarn test:coverage"
-    }
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ],
-    ".js": [
-      "yarn lint:fix",
-      "yarn lint"
-    ]
-  },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
     "@oclif/command": "^1",
     "@oclif/config": "^1",
     "@oclif/errors": "^1",
-    "@salesforce/command": "^2",
+    "@salesforce/command": "^3",
     "@salesforce/core": "^2",
-    "commander": "^2.20.0",
-    "fast-xml-parser": "^3.17.4",
-    "fs-extra": "^9.0.1",
+    "commander": "^7.2.0",
+    "fast-xml-parser": "^3.19.0",
+    "fs-extra": "^9.1.0",
     "git-state": "^4.1.0",
     "ignore": "^5.1.8",
-    "tslib": "^1",
+    "tslib": "^2",
     "xmlbuilder": "^15.1.1"
   },
   "license": "MIT",
@@ -67,8 +50,8 @@
   "scripts": {
     "analysis": "codeclimate analyze",
     "commit": "commit",
-    "lint": "eslint . ; tslint --project . --config tslint.json --format stylish",
-    "lint:fix": "eslint --fix . ; tslint --fix --project . --config tslint.json --format stylish",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
     "test": "jest --runInBand",
     "test:clear:cache": "jest --clearCache",
     "test:coverage": "jest --coverage --runInBand",
@@ -76,35 +59,41 @@
     "postpack": "rm -f oclif.manifest.json",
     "postrelease": "npm run release:tags && npm run release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "prepare": "husky install",
     "release": "standard-version",
     "release:github": "conventional-github-releaser -p angular",
     "release:tags": "git push --follow-tags origin master"
   },
   "devDependencies": {
-    "@commitlint/cli": "^12.0.1",
-    "@commitlint/config-angular": "^12.0.1",
-    "@commitlint/prompt-cli": "^12.0.1",
+    "@commitlint/cli": "^12.1.1",
+    "@commitlint/config-angular": "^12.1.1",
+    "@commitlint/prompt-cli": "^12.1.1",
     "@oclif/dev-cli": "^1",
-    "@oclif/plugin-help": "^2",
+    "@oclif/plugin-help": "^3",
     "@oclif/test": "^1",
-    "@salesforce/dev-config": "1.4.1",
+    "@salesforce/dev-config": "2.1.0",
     "@types/chai": "^4",
-    "@types/mocha": "^5",
-    "@types/node": "^10",
+    "@types/mocha": "^8",
+    "@types/node": "^14",
+    "@typescript-eslint/eslint-plugin": "^4.20.0",
+    "@typescript-eslint/parser": "^4.20.0",
     "conventional-github-releaser": "^3.1.5",
-    "eslint": "^7.10.0",
-    "eslint-config-prettier": "^6.12.0",
-    "eslint-plugin-prettier": "^3.1.4",
-    "globby": "^8",
-    "husky": "^4.3.0",
-    "jest": "^26.4.2",
-    "lint-staged": "^10.4.0",
-    "nyc": "^14",
-    "prettier": "^2.1.2",
-    "prettier-eslint": "^11.0.0",
+    "eslint": "^7.23.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-config-salesforce-typescript": "^0.2.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jsdoc": "^32.3.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "globby": "^11",
+    "husky": "^6.0.0",
+    "jest": "^26.6.3",
+    "lint-staged": "^10.5.4",
+    "nyc": "^15",
+    "prettier": "^2.2.1",
+    "prettier-eslint": "^12.0.0",
     "standard-version": "^9.1.1",
-    "ts-node": "^8",
-    "typescript": "^4.0.5"
+    "ts-node": "^9",
+    "typescript": "^4.2.3"
   },
   "oclif": {
     "commands": "./lib/commands",
