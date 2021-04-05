@@ -8,7 +8,7 @@ assignees: scolladon
 
 Issue verification check :
 
-[] does the current repository is fully deployable at the commit sha given to the from parameter of the command ?
+- [ ] does the current repository is fully deployable at the commit sha given to the from parameter of the command ?
 
 ## What is the problem
 
@@ -44,12 +44,14 @@ Issue verification check :
 ---
 
 <!--
-  Isolate the issue and create a repository to reproduce the actual result
+  Isolate the issue and create a branch in the playground repository
+  to help reproducing the actual result
   Provide the repository url to access the reproducible state
   Provide the sgd command to execute to reproduce
   Ex :
-  https://github.com/<gh-username>/<sgd-issue-reproducible-repo-name>
+  https://github.com/scolladon/sfdx-git-delta-reproduction-playground
   sgd -d -r . -f HEAD^
+  sfdx sgd:source:delta -d -f HEAD^
 -->
 
 ## Execution context
