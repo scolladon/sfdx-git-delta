@@ -22,8 +22,10 @@ git clone git@github.com:scolladon/sfdx-git-delta.git
 
 ### 2) Install Dependencies
 
+This will install all the tools needed to contribute
+
 ```bash
-yarn pack
+yarn
 ```
 
 ### 2) Build application
@@ -32,16 +34,20 @@ yarn pack
 yarn pack
 ```
 
-Rebuild every time you need to test locally
+Rebuild every time you made a change in the source and you need to test locally
 
 ## Testing
 
 ### Unit Testing sgd
 
-When developing, utilize [jest](https://jestjs.io/en/) unit testing to provide test coverage for new functionality. To run the jest tests use the following command from the root directory:
+When developing, use [jest](https://jestjs.io/en/) unit testing to provide test coverage for new functionality. To run the jest tests use the following command from the root directory:
 
 ```bash
+# just run test
 yarn test
+
+# run test with coverage details
+yarn test:coverage
 ```
 
 To execute a particular test, use the following command:
@@ -61,6 +67,24 @@ Configuring your editor to use our lint and code style rules will make the code 
 ### Code linting
 
 [ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. The [.eslintignore](/.eslintignore) file is provided as part of this repository to exclude specific files from the linting process.
+
+### Commit linting
+
+[Commitlint](https://github.com/conventional-changelog/commitlint) is used to ensure commit respect our commit convention.
+We follow the [angular](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-angular) commit convention.
+Commit convention are enforced at pre-commit git hook using husky and at the pull request for each commit
+
+You can use an interactive command line to help you create supported commit message
+
+```bash
+yarn commit
+```
+
+### PR linting
+
+PR name is used to create the squash and merge commit message when the PR is validated.
+Release creation is based on the commit convention in order to auto-generate the content and the type
+It needs to follow our commit lint convention and it will be check at the PR level
 
 ## Git Workflow
 
