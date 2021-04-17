@@ -40,13 +40,15 @@ class InFolderHandler extends StandardHandler {
   _fillPackage(packageObject) {
     packageObject[this.type] = packageObject[this.type] ?? new Set()
 
+    const packageMember = this.splittedLine
+      .slice(this.splittedLine.indexOf(this.type) + 1)
+      .join(path.sep)
+      .replace(mc.META_REGEX, '')
+      .replace(INFOLDER_SUFFIX_REGEX, '')
+      .replace(this.suffixRegex, '')
+
     packageObject[this.type].add(
-      this.splittedLine
-        .slice(this.splittedLine.indexOf(this.type) + 1)
-        .join(path.sep)
-        .replace(mc.META_REGEX, '')
-        .replace(INFOLDER_SUFFIX_REGEX, '')
-        .replace(this.suffixRegex, '')
+      StandardHandler.cleanUpPackageMember(packageMember)
     )
   }
 }

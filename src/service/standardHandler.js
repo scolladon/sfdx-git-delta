@@ -5,6 +5,8 @@ const fse = require('fs-extra')
 const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 
+const PACKAGE_MEMBER_PATH_SEP = '/'
+
 const FSE_COPYSYNC_OPTION = {
   overwrite: true,
   errorOnExist: false,
@@ -83,7 +85,7 @@ class StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return parsedPath.base
+    return StandardHandler.cleanUpPackageMember(parsedPath.base)
   }
 
   _fillPackage(packageObject) {
@@ -102,6 +104,11 @@ class StandardHandler {
       encoding: gc.UTF8_ENCODING,
     })
   }
+
+  static cleanUpPackageMember(packageMember) {
+    return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
+  }
 }
 
+StandardHandler.PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
 module.exports = StandardHandler

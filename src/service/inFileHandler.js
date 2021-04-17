@@ -142,7 +142,9 @@ class InFileHandler extends StandardHandler {
     }`
 
     packageObject[subType] = packageObject[subType] ?? new Set()
-    packageObject[subType].add(elementFullName)
+    packageObject[subType].add(
+      StandardHandler.cleanUpPackageMember(elementFullName)
+    )
   }
 }
 
