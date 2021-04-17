@@ -5,15 +5,19 @@ on:
     types: [published]
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Setup node
+        uses: actions/setup-node@v1
         with:
           node-version: 14.x
           registry-url: https://registry.npmjs.org/
-      - name: 'Install dependencies'
+
+      - name: Install dependencies
         run: yarn install
 
       - name: 'Publish to npm'
