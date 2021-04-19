@@ -55,7 +55,7 @@ class ResourceHandler extends StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return parsedPath.name
+    return StandardHandler.cleanUpPackageMember(parsedPath.name)
   }
 
   _getParsedPath() {
