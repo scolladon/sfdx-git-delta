@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 4.4.0 (2021-04-20)
+
+
+### Features
+
+* filter deletion for case insensitive file renaming ([#133](https://github.com/scolladon/sfdx-git-delta/issues/133)) ([d8c8fbf](https://github.com/scolladon/sfdx-git-delta/commit/d8c8fbf6d279559547add2bceb38d8a799959493))
+
 ### [4.3.2](https://github.com/scolladon/sfdx-git-delta/compare/v4.3.1...v4.3.2) (2021-04-19)
 
 
