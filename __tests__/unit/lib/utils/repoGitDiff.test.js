@@ -173,6 +173,23 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(expected)
   })
 
+  test('can filter case changed files', () => {
+    const output = [
+      'D      force-app/main/default/objects/Account/fields/TEST__c.field-meta.xml',
+      'A      force-app/main/default/objects/Account/fields/Test__c.field-meta.xml',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '' },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    const expected = [output[1]]
+    expect(work).toStrictEqual(expected)
+  })
+
   test('cannot filter renamed files', () => {
     const output = [
       'D      force-app/main/default/classes/Account.cls',
