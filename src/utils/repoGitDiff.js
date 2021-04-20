@@ -8,6 +8,9 @@ const os = require('os')
 const path = require('path')
 
 const fullDiffParams = ['--no-pager', 'diff', '--name-status', '--no-renames']
+const lcSensitivity = {
+  sensitivity: 'accent',
+}
 
 module.exports = (config, metadata) => {
   const { stdout: diff } = childProcess.spawnSync(
@@ -25,22 +28,21 @@ const treatResult = (repoDiffResult, metadata, config) => {
     (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
     { [gc.ADDITION]: [], [gc.DELETION]: [] }
   )
-  const AfileNames = new Set(
-    linesPerDiffType[gc.ADDITION].map(
-      line => path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
-    )
+  const AfileNames = linesPerDiffType[gc.ADDITION].map(
+    line => path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
   )
-  const deletedRenamed = new Set(
-    linesPerDiffType[gc.DELETION].filter(line =>
-      AfileNames.has(path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base)
+  const deletedRenamed = linesPerDiffType[gc.DELETION].filter(line => {
+    const dEl = path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
+    return AfileNames.some(
+      aEl => !aEl.localeCompare(dEl, undefined, lcSensitivity)
     )
-  )
+  })
 
   return lines
     .filter(
       line =>
         !!line &&
-        !deletedRenamed.has(line) &&
+        !deletedRenamed.includes(line) &&
         line
           .split(path.sep)
           .some(part => Object.prototype.hasOwnProperty.call(metadata, part))
