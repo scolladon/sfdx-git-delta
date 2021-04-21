@@ -1,8 +1,7 @@
 name: Publish
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -10,6 +9,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{secrets.ADMIN_TOKEN}}
 
       - name: Setup node
         uses: actions/setup-node@v1
@@ -34,6 +36,11 @@ jobs:
         run: yarn install
 
       - name: Publish to npm
-        run: yarn publish --access public
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          yarn release
+          yarn publish --access public
         env:
+          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{secrets.GITHUB_TOKEN}}
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

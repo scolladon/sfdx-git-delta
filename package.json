@@ -60,9 +60,9 @@
     "postrelease": "npm run release:tags && npm run release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky install",
-    "release": "standard-version",
+    "release": "standard-version --no-verify",
     "release:github": "conventional-github-releaser -p angular",
-    "release:tags": "git push --follow-tags origin master"
+    "release:tags": "git push --follow-tags origin master -f --no-verify"
   },
   "devDependencies": {
     "@commitlint/cli": "^12.1.1",
