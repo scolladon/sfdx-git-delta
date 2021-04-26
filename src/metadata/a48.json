@@ -266,6 +266,7 @@
     "directoryName": "documents",
     "inFolder": true,
     "metaFile": true,
+    "suffix": "document",
     "xmlName": "Document"
   },
   {
