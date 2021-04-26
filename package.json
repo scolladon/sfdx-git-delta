@@ -104,5 +104,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "sfdc": {
+    "latestApiVersion": "50"
   }
 }

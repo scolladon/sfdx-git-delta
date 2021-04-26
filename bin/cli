@@ -27,7 +27,11 @@ const options = program
     '-D, --ignore-destructive [file]',
     'ignore file to use [./.forceignore]'
   )
-  .option('-a, --api-version [version]', 'salesforce API version [50]', '50')
+  .option(
+    '-a, --api-version [version]',
+    `salesforce API version [${pjson.sfdc.latestApiVersion}]`,
+    pjson.sfdc.latestApiVersion
+  )
   .option('-r, --repo [dir]', 'git repository location [.]', '.')
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
   .parse(process.argv)
