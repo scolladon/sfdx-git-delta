@@ -5,10 +5,6 @@ const path = require('path')
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${mc.INFOLDER_SUFFIX}$`)
 class InFolderHandler extends StandardHandler {
-  handleDeletion() {
-    this._fillPackage(this.diffs.destructiveChanges)
-  }
-
   handleAddition() {
     super.handleAddition()
     if (!this.config.generateDelta) return
