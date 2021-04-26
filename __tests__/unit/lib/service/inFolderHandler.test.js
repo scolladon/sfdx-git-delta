@@ -22,13 +22,13 @@ const testContext = {
     ],
     [
       'documents',
-      'force-app/main/default/documents/folder/document.ext',
-      new Set(['folder/document']),
+      'force-app/main/default/documents/folder/document.test.ext',
+      new Set(['folder/document.test']),
     ],
     [
       'documents',
-      'force-app/main/default/documents/folder/document.document-meta.xml',
-      new Set(['folder/document']),
+      'force-app/main/default/documents/folder/document.test.document-meta.xml',
+      new Set(['folder/document.test']),
     ],
   ],
   work: {
