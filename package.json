@@ -107,6 +107,6 @@
     "access": "public"
   },
   "sfdc": {
-    "latestApiVersion": "50"
+    "latestApiVersion": "51"
   }
 }
