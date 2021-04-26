@@ -4,6 +4,7 @@ const mc = require('../utils/metadataConstants')
 const path = require('path')
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${mc.INFOLDER_SUFFIX}$`)
+const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
 class InFolderHandler extends StandardHandler {
   handleAddition() {
     super.handleAddition()
@@ -41,7 +42,7 @@ class InFolderHandler extends StandardHandler {
       .join(path.sep)
       .replace(mc.META_REGEX, '')
       .replace(INFOLDER_SUFFIX_REGEX, '')
-      .replace(this.suffixRegex, '')
+      .replace(EXTENSION_SUFFIX_REGEX, '')
 
     packageObject[this.type].add(
       StandardHandler.cleanUpPackageMember(packageMember)
