@@ -259,6 +259,7 @@
     "directoryName": "documents",
     "inFolder": true,
     "metaFile": true,
+    "suffix": "document",
     "xmlName": "Document"
   },
   {
@@ -569,7 +570,10 @@
     "xmlName": "ContentAsset"
   },
   {
-    "childXmlNames": ["SharingOwnerRule", "SharingCriteriaRule"],
+    "childXmlNames": [
+      "SharingOwnerRule",
+      "SharingCriteriaRule"
+    ],
     "directoryName": "sharingRules",
     "inFolder": false,
     "metaFile": false,

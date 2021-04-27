@@ -15,6 +15,21 @@ const testContext = {
       'force-app/main/default/reports/folder.reportFolder-meta.xml',
       new Set(['folder']),
     ],
+    [
+      'documents',
+      'force-app/main/default/documents/folder.documentFolder-meta.xml',
+      new Set(['folder']),
+    ],
+    [
+      'documents',
+      'force-app/main/default/documents/folder/document.test.ext',
+      new Set(['folder/document.test']),
+    ],
+    [
+      'documents',
+      'force-app/main/default/documents/folder/document.test.document-meta.xml',
+      new Set(['folder/document.test']),
+    ],
   ],
   work: {
     config: { output: '', repo: '.', generateDelta: true },

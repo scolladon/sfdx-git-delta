@@ -20,6 +20,10 @@ global.testHandlerHelper = testContext => {
             globalMetadata
           )
           handler.handle()
+          expect(testContext.work.diffs.package).toHaveProperty(
+            expectedType ?? type,
+            expected
+          )
         })
         test('deletion', () => {
           const handler = new testContext.handler(
@@ -44,6 +48,10 @@ global.testHandlerHelper = testContext => {
             globalMetadata
           )
           handler.handle()
+          expect(testContext.work.diffs.package).toHaveProperty(
+            expectedType ?? type,
+            expected
+          )
         })
       }
     )
