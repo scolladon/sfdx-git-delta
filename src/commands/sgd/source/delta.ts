@@ -3,6 +3,8 @@ import { Messages } from '@salesforce/core'
 import { AnyJson } from '@salesforce/ts-types'
 import * as sgd from '../../../main.js'
 
+const pjson = require('../../../../package.json')
+
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
 const COMMAND_NAME = 'delta'
@@ -46,7 +48,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     'api-version': flags.number({
       char: 'a',
       description: messages.getMessage('apiVersionFlag'),
-      default: 50.0,
+      default: parseFloat(pjson.sfdc.latestApiVersion),
     }),
     'generate-delta': flags.boolean({
       char: 'd',
