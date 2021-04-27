@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.5.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.4.0...v4.5.0) (2021-04-27)
+
+
+### Features
+
+* add api version 51 ([#137](https://github.com/scolladon/sfdx-git-delta/issues/137)) ([1d4fc25](https://github.com/scolladon/sfdx-git-delta/commit/1d4fc2535bae0e9b5eb2c7ecc164c64c565e2fdc))
+
+
+### Bug Fixes
+
+* document extension handling ([#136](https://github.com/scolladon/sfdx-git-delta/issues/136)) ([fea248c](https://github.com/scolladon/sfdx-git-delta/commit/fea248cb583f3ee5c3a4aeea9772a568f3e4dcaa))
+
 ## 4.4.0 (2021-04-20)
 
 
