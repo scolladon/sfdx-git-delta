@@ -21,11 +21,11 @@ If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
 If you are a Technical Architect or Developer, then it’s a very useful tool for you, when the 3 conditions below are met:
 
-        Your Salesforce project uses a git repo as the source of truth.
-                ➕
-        You use the Source (DX) format in the repo.
-                ➕
-        Your metadata is not packaged (in other words, your repo contains all the unmanaged metadata of the project).
+    Your Salesforce project uses a git repo as the source of truth.
+            ➕
+    You use the Source (DX) format in the repo.
+            ➕
+    Your metadata is not packaged (in other words, your repo contains all the unmanaged metadata of the project).
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
@@ -103,6 +103,12 @@ cat destructiveChanges/destructiveChanges.xml
 echo
 echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
+```
+
+### Important note for Windows users:
+If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134):
+```sh
+sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output .
 ```
 
 ### Scenario:
