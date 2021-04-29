@@ -2,7 +2,7 @@
 
 # SFDX-Git-Delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/test_coverage)](https://codeclimate.com/github/scolladon/sfdx-git-delta/test_coverage) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
 
-Generate the sfdx content in source format and destructive change from two git commits
+Generate the sfdx content in source format and destructive change from two git commits.
 
 ## What is SFDX-Git-Delta?
 
@@ -214,7 +214,7 @@ sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --out
 
 ### Advanced use-cases:
 
-#### Generating a folder containing only the added/modified sources:
+#### Generate a folder containing only the added/modified sources:
 
 Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
 
@@ -234,7 +234,7 @@ In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:sou
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
 
-#### Excluding some metadata only from destructiveChanges.xml:
+#### Exclude some metadata only from destructiveChanges.xml:
 
 The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) used to filter the
 element on the diff to ignore. Every diff line matching the pattern from the ignore file specified in the `--ignore [-i]` will be ignored by SGD,
@@ -254,7 +254,15 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 ```
 
-Note that in a situatrion where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
+Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
+
+#### Generate a comma-separated list of the added and modified Apex classes:
+
+Depending on your testing strategy, [you may be interested in generating a a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
+
+To cover this requirement, you can use a tool such as [yq](https://github.com/kislyuk/yq) to parse the content of the package.xml file produced by SGD:
+
+`cat package/package.xml | xq . | jq '.Package.types | select(.name=="ApexClass") | .members | join(",")'`
 
 ## Javascript Module
 
