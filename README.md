@@ -262,7 +262,7 @@ Depending on your testing strategy, [you may be interested in generating a a com
 
 To cover this requirement, you can use a tool such as [yq](https://github.com/kislyuk/yq) to parse the content of the package.xml file produced by SGD:
 
-`cat package/package.xml | xq . | jq '.Package.types | select(.name=="ApexClass") | .members | join(",")'`
+`xq . < package/package.xml | jq '.Package.types | if type=="array" then .[] else . end | select(.name=="ApexClass") | .members | join(",")'`
 
 ## Javascript Module
 
