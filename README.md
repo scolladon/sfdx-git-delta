@@ -54,14 +54,14 @@ If you run your CI/CD jobs inside a Docker image, you can add the plugin to your
 To view the full list and description of the sgd options, run `sfdx sgd:source:delta --help`
 
 ```
--t, --to [sha] commit sha to where the diff is done [HEAD] (default: "HEAD")
--f, --from [sha] commit sha from where the diff is done [git rev-list —max-parents=0 HEAD]
--o, --output [dir] source package specific output [./output] (default: "./output")
--a, --api-version [version] salesforce API version [50] (default: "50")
--i, --ignore specify the ignore file (default: ".forceignore")
--D, --ignore-destructive specify the ignore file (default: ".forceignore")
--r, --repo [dir] git repository location [.] (default: ".")
--d, --generate-delta generate delta files in [./output] folder
+-D, --ignore-destructive=ignore-destructive                                       ignore file to use
+-a, --api-version=api-version                                                     [default: $package.json => sfdc.latestApiVersion] salesforce API version
+-d, --generate-delta                                                              generate delta files in [--output] folder
+-f, --from=from                                                                   (required) commit sha from where the diff is done [git rev-list --max-parents=0 HEAD]
+-i, --ignore=ignore                                                               ignore file to use
+-o, --output=output                                                               [default: ./output] source package specific output
+-r, --repo=repo                                                                   [default: .] git repository location
+-t, --to=to                                                                       [default: HEAD] commit sha to where the diff is done
 -h, --help output usage information
 ```
 
@@ -106,7 +106,9 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
 ### Important note for Windows users:
+
 If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134):
+
 ```sh
 sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output .
 ```
@@ -270,11 +272,11 @@ To cover this requirement, you can use a tool such as [yq](https://github.com/ki
 const sgd = require('sfdx-git-delta')
 
 const work = sgd({
-  to: '', // commit sha to where the diff is done. Default : HEAD
-  from: '', // commit sha from where the diff is done. Default : git rev-list --max-parents=0 HEAD
-  output: '', // source package specific output. Default : ./output
-  apiVersion: '', // salesforce API version. Default : 46
-  repo: '', // git repository location. Default : ./repo
+  to: '', // commit sha to where the diff is done. [default : "HEAD"]
+  from: '', // (required) commit sha from where the diff is done. [default : git rev-list --max-parents=0 HEAD]
+  output: '', // source package specific output. [default : "./output"]
+  apiVersion: '', // salesforce API version. [default : $package.json => sfdc.latestApiVersions]
+  repo: '', // git repository location. [default : "."]
 })
 
 console.log(JSON.stringify(work))
