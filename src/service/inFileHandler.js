@@ -23,16 +23,20 @@ const JSON_PARSER_OPTION = {
 }
 
 class InFileHandler extends StandardHandler {
+  static xmlObjectToPackageType
+
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = this.metadata[this.type]
-    this.xmlObjectToPackageType = Object.keys(this.metadata)
-      .filter(meta => !!this.metadata[meta].xmlTag)
-      .reduce((acc, meta) => {
-        acc[this.metadata[meta].xmlTag] = this.metadata[meta]
+    this.xmlObjectToPackageType =
+      this.xmlObjectToPackageType ??
+      Object.keys(this.metadata)
+        .filter(meta => !!this.metadata[meta].xmlTag)
+        .reduce((acc, meta) => {
+          acc[this.metadata[meta].xmlTag] = this.metadata[meta]
 
-        return acc
-      }, {})
+          return acc
+        }, {})
   }
 
   handleAddition() {
@@ -82,7 +86,7 @@ class InFileHandler extends StandardHandler {
         subType = `${this.parentMetadata.directoryName}.${potentialType}`
       }
       const xmlTagMatchResult = line.match(XML_TAG)
-      if (!!xmlTagMatchResult && !!xmlTagMatchResult[1]) {
+      if (this._matchAllowedXmlTag(xmlTagMatchResult)) {
         potentialType = xmlTagMatchResult[1]
         fullName = null
       }
@@ -96,6 +100,17 @@ class InFileHandler extends StandardHandler {
     })
     this._treatInFileResult(toDel, toAdd)
     return toAdd
+  }
+
+  _matchAllowedXmlTag(matchResult) {
+    return (
+      !!matchResult &&
+      !!matchResult[1] &&
+      Object.prototype.hasOwnProperty.call(
+        this.xmlObjectToPackageType,
+        matchResult[1]
+      )
+    )
   }
 
   _treatInFileResult(toRemove, toAdd) {
