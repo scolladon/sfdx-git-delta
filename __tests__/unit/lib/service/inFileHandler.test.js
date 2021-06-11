@@ -45,12 +45,21 @@ const testContext = {
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${os.EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${os.EOL}<sharingCriteriaRules>${os.EOL}<fullName>TestCBS</fullName>${os.EOL}</sharingCriteriaRules>${os.EOL}<sharingOwnerRules>${os.EOL}<fullName>TestOBS</fullName>${os.EOL}</sharingOwnerRules>${os.EOL}</SharingRules>`,
       '{"SharingRules":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"sharingCriteriaRules":[{"fullName":["TestCBS"]}],"sharingOwnerRules":[{"fullName":["TestOBS"]}]}}',
     ],
+    [
+      'bot',
+      'force-app/main/default/bot/Test.bot-meta.xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${os.EOL}<Bot xmlns="http://soap.sforce.com/2006/04/metadata">${os.EOL}<botVersions>${os.EOL}<fullName>v1</fullName>${os.EOL}</botVersions></Bot>`,
+      '{"Bot":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"BotVersion":[{"fullName":["v1"]}]}}',
+    ],
   ],
   expectedData: {
     workflows: { 'workflows.alerts': new Set(['Account.TestEA']) },
     labels: {},
     sharingRules: {
       'sharingRules.sharingCriteriaRules': new Set(['Account.TestCBS']),
+    },
+    bot: {
+      'bot.botVersions': new Set(['Test.v1']),
     },
   },
 }
@@ -65,6 +74,7 @@ fsMocked.__setMockFiles({
   [testContext.testData[2][1]]: testContext.testData[2][2],
   [testContext.testData[3][1]]: testContext.testData[3][2],
   [testContext.testData[4][1]]: testContext.testData[4][2],
+  [testContext.testData[5][1]]: testContext.testData[5][2],
 })
 
 xml2jsMocked.__setMockContent({
@@ -73,6 +83,7 @@ xml2jsMocked.__setMockContent({
   [testContext.testData[2][2]]: testContext.testData[2][3],
   [testContext.testData[3][2]]: testContext.testData[3][3],
   [testContext.testData[4][2]]: testContext.testData[4][3],
+  [testContext.testData[5][2]]: testContext.testData[5][3],
 })
 
 // eslint-disable-next-line no-undef
