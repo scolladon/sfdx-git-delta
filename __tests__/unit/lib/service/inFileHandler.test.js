@@ -88,14 +88,18 @@ xml2jsMocked.__setMockContent({
 
 // eslint-disable-next-line no-undef
 describe(`test if inFileHandler`, () => {
+  let work
+  beforeEach(() => {
+    work = {
+      config: { output: '', repo: '', generateDelta: true },
+      diffs: { package: {}, destructiveChanges: {} },
+      warnings: [],
+    }
+  })
   describe.each(testContext.testData)(
     'handles',
     (expectedType, changePath, xmlContent) => {
       test('addition', () => {
-        const work = {
-          config: { output: '', repo: '', generateDelta: true },
-          diffs: { package: {}, destructiveChanges: {} },
-        }
         const handler = new testContext.handler(
           `A       ${changePath}`,
           expectedType,
@@ -121,10 +125,6 @@ describe(`test if inFileHandler`, () => {
         }
       })
       test('deletion', () => {
-        const work = {
-          config: { output: '', repo: '', generateDelta: true },
-          diffs: { package: {}, destructiveChanges: {} },
-        }
         const handler = new testContext.handler(
           `D       ${changePath}`,
           expectedType,
@@ -149,10 +149,6 @@ describe(`test if inFileHandler`, () => {
         expect(work.diffs.destructiveChanges).not.toHaveProperty('sharingRules')
       })
       test('modification', () => {
-        const work = {
-          config: { output: '', repo: '', generateDelta: true },
-          diffs: { package: {}, destructiveChanges: {} },
-        }
         const handler = new testContext.handler(
           `M       ${changePath}`,
           expectedType,
