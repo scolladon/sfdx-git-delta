@@ -952,6 +952,24 @@
     "xmlName": "WaveTemplateBundle"
   },
   {
+    "childXmlNames": [
+      "BotVersion"
+    ],
+    "directoryName": "bot",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "bot",
+    "xmlName": "Bot"
+  },
+  {
+    "directoryName": "bot.botVersions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Bot",
+    "xmlName": "BotVersion",
+    "xmlTag": "botVersions"
+  },
+  {
     "directoryName": "workflows.alerts",
     "inFolder": false,
     "metaFile": false,
