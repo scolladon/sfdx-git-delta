@@ -28,8 +28,8 @@ class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = this.metadata[this.type]
-    this.xmlObjectToPackageType =
-      this.xmlObjectToPackageType ??
+    InFileHandler.xmlObjectToPackageType =
+      InFileHandler.xmlObjectToPackageType ??
       Object.keys(this.metadata)
         .filter(meta => !!this.metadata[meta].xmlTag)
         .reduce((acc, meta) => {
@@ -65,7 +65,7 @@ class InFileHandler extends StandardHandler {
         ? metadataContent[subType]
         : [metadataContent[subType]]
       metadataContent[subType] = meta.filter(elem =>
-        toAdd[this.xmlObjectToPackageType[subType].directoryName]?.has(
+        toAdd[InFileHandler.xmlObjectToPackageType[subType].directoryName]?.has(
           elem.fullName
         )
       )
@@ -107,7 +107,7 @@ class InFileHandler extends StandardHandler {
       !!matchResult &&
       !!matchResult[1] &&
       Object.prototype.hasOwnProperty.call(
-        this.xmlObjectToPackageType,
+        InFileHandler.xmlObjectToPackageType,
         matchResult[1]
       )
     )
@@ -134,8 +134,11 @@ class InFileHandler extends StandardHandler {
 
   _parseFile() {
     const result = fxp.parse(this._readFileSync(), XML_PARSER_OPTION)
-    const authorizedKeys = Object.keys(Object.values(result)[0]).filter(x =>
-      Object.prototype.hasOwnProperty.call(this.xmlObjectToPackageType, x)
+    const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
+      Object.prototype.hasOwnProperty.call(
+        InFileHandler.xmlObjectToPackageType,
+        tag
+      )
     )
     return {
       authorizedKeys: authorizedKeys,
