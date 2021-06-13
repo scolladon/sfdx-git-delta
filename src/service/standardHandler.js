@@ -15,21 +15,25 @@ const FSE_COPYSYNC_OPTION = {
 }
 
 class StandardHandler {
+  static metadata
+
   constructor(line, type, work, metadata) {
+    StandardHandler.metadata = StandardHandler.metadata ?? metadata
     ;[this.changeType] = line
     this.line = line.replace(gc.GIT_DIFF_TYPE_REGEX, '')
     this.type = type
     this.diffs = work.diffs
     this.config = work.config
     this.splittedLine = this.line.split(path.sep)
-    this.metadata = metadata
     this.warnings = work.warnings
 
-    if (this.metadata[this.type].metaFile === true) {
+    if (StandardHandler.metadata[this.type].metaFile === true) {
       this.line = this.line.replace(mc.METAFILE_SUFFIX, '')
     }
 
-    this.suffixRegex = new RegExp(`\\.${this.metadata[this.type].suffix}$`)
+    this.suffixRegex = new RegExp(
+      `\\.${StandardHandler.metadata[this.type].suffix}$`
+    )
 
     this.handlerMap = {
       A: this.handleAddition,
@@ -57,7 +61,7 @@ class StandardHandler {
     const target = path.join(this.config.output, this.line)
 
     this._copyFiles(source, target)
-    if (this.metadata[this.type].metaFile === true) {
+    if (StandardHandler.metadata[this.type].metaFile === true) {
       this._copyFiles(source + mc.METAFILE_SUFFIX, target + mc.METAFILE_SUFFIX)
     }
   }

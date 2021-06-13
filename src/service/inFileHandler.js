@@ -27,13 +27,14 @@ class InFileHandler extends StandardHandler {
 
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    this.parentMetadata = this.metadata[this.type]
+    this.parentMetadata = StandardHandler.metadata[this.type]
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
-      Object.keys(this.metadata)
-        .filter(meta => !!this.metadata[meta].xmlTag)
+      Object.keys(StandardHandler.metadata)
+        .filter(meta => !!StandardHandler.metadata[meta].xmlTag)
         .reduce((acc, meta) => {
-          acc[this.metadata[meta].xmlTag] = this.metadata[meta]
+          acc[StandardHandler.metadata[meta].xmlTag] =
+            StandardHandler.metadata[meta]
 
           return acc
         }, {})

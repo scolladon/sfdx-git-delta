@@ -16,14 +16,14 @@ class InFolderHandler extends StandardHandler {
       .join(this.config.repo, this.line)
       .match(
         new RegExp(
-          `(${RegExp.escape(regexRepo)})(?<path>.*[/\\\\]${RegExp.escape(
-            this.metadata[this.type].directoryName
+          `(${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
+            StandardHandler.metadata[this.type].directoryName
           )})[/\\\\](?<name>[^/\\\\]*)+`,
           'u'
         )
       )
     folderName = `${folderName}.${
-      this.metadata[this.type].xmlName.toLowerCase() +
+      StandardHandler.metadata[this.type].xmlName.toLowerCase() +
       mc.INFOLDER_SUFFIX +
       mc.METAFILE_SUFFIX
     }`
@@ -52,4 +52,4 @@ class InFolderHandler extends StandardHandler {
 
 module.exports = InFolderHandler
 
-RegExp.escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
