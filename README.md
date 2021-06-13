@@ -4,6 +4,30 @@
 
 Generate the sfdx content in source format and destructive change from two git commits.
 
+## TL;DR:
+
+```sh
+cd repo/path
+mkdir output
+sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output output
+```
+
+```sh
+echo "--- package.xml generated with added and modified metadata ---"
+cat output/package/package.xml
+echo
+echo "---- Deploying added and modified metadata ----"
+sfdx force:source:deploy -x output/package/package.xml
+```
+
+```sh
+echo "--- destructiveChanges.xml generated with deleted metadata ---"
+cat output/destructiveChanges/destructiveChanges.xml
+echo
+echo "--- Deleting removed metadata ---"
+sfdx force:mdapi:deploy -d output/destructiveChanges --ignorewarnings
+```
+
 ## What is SFDX-Git-Delta?
 
 **SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers accomplish 2 things with their source deployments:
@@ -43,7 +67,7 @@ Pro tips: If you are in the process of building your CI/CD pipeline, make sure y
 
 You can use SGD as a Salesforce CLI plugin (`sfdx sgd:source:delta`), and this is now the recommended approach to get SGD:
 
-```
+```sh
 sfdx plugins:install sfdx-git-delta
 ```
 
@@ -51,29 +75,12 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is an example of a Dockerfile including the SGD plugin: https://github.com/mehdisfdc/sfdx-cli-gitlab
 
-To view the full list and description of the sgd options, run `sfdx sgd:source:delta --help`
-
-```
--D, --ignore-destructive=ignore-destructive                                       ignore file to use
--a, --api-version=api-version                                                     [default: $package.json => sfdc.latestApiVersion] salesforce API version
--d, --generate-delta                                                              generate delta files in [--output] folder
--f, --from=from                                                                   (required) commit sha from where the diff is done [git rev-list --max-parents=0 HEAD]
--i, --ignore=ignore                                                               ignore file to use
--o, --output=output                                                               [default: ./output] source package specific output
--r, --repo=repo                                                                   [default: .] git repository location
--t, --to=to                                                                       [default: HEAD] commit sha to where the diff is done
--h, --help output usage information
-```
-
 ### Option #2 (legacy) - Install as the sgd command
 
 Before the Salesforce CLI plugin was available, the old way to use this tool was through the `sgd` command (as described in the [old README](https://github.com/scolladon/sfdx-git-delta/blob/1093db6bd19eb48905db8f9aa5db086aa6707613/README.md)).
 It is now recommended to use `sfdx sgd:source:delta`, but if you feel nostalgic about the `sgd` command, you can still get it through yarn (or npm): `yarn sfdx-git-delta@latest -g`
 
 ### Prerequisites
-
-Works in Unix like system.
-Windows is not tested.
 
 Git command line is required on the system where the command line is running.
 
@@ -83,27 +90,47 @@ If you encounter this issue while having installed the correct version of node o
 
 ## How to use it?
 
-### TL;DR:
+<!-- commands -->
+* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-```sh
-sfdx sgd:source:delta --to HEAD --from HEAD^ --output .
+## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+
+Generate the sfdx content in source format and destructive change from two git commits
+
+```
+USAGE
+  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a 
+  <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+
+OPTIONS
+  -D, --ignore-destructive=ignore-destructive                                       ignore file to use
+  -a, --api-version=api-version                                                     [default: 51] salesforce API version
+
+  -d, --generate-delta                                                              generate delta files in [--output]
+                                                                                    folder
+
+  -f, --from=from                                                                   (required) commit sha from where the
+                                                                                    diff is done [git rev-list
+                                                                                    --max-parents=0 HEAD]
+
+  -i, --ignore=ignore                                                               ignore file to use
+
+  -o, --output=output                                                               [default: ./output] source package
+                                                                                    specific output
+
+  -r, --repo=repo                                                                   [default: .] git repository location
+
+  -t, --to=to                                                                       [default: HEAD] commit sha to where
+                                                                                    the diff is done
+
+  --json                                                                            format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
+                                                                                    this command invocation
 ```
 
-```sh
-echo "--- package.xml generated with added and modified metadata ---"
-cat package/package.xml
-echo
-echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x package/package.xml
-```
-
-```sh
-echo "--- destructiveChanges.xml generated with deleted metadata ---"
-cat destructiveChanges/destructiveChanges.xml
-echo
-echo "--- Deleting removed metadata ---"
-sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
-```
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.5.0/src/commands/sgd/source/delta.ts)_
+<!-- commandsstop -->
 
 ### Important note for Windows users:
 
@@ -113,7 +140,7 @@ If you run SGD on a Windows system, make sure to use double quotes [to prevent t
 sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output .
 ```
 
-### Scenario:
+## Scenario:
 
 Let’s take a look at the following scenario:
 
@@ -140,7 +167,7 @@ So let’s do it!
 From the project repo folder, the CI pipeline will run the following command:
 
 ```sh
-sfdx sgd:source:delta --to HEAD --from HEAD^ --output .
+sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output .
 ```
 
 which means:
@@ -214,9 +241,9 @@ Comparing changes performed in the `develop` branch since its common ancestor wi
 sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --output .
 ```
 
-### Advanced use-cases:
+## Advanced use-cases:
 
-#### Generate a folder containing only the added/modified sources:
+### Generate a folder containing only the added/modified sources:
 
 Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
 
@@ -228,7 +255,7 @@ Let's use this option with our previous example:
 
 ```sh
 mkdir changed-sources
-sfdx sgd:source:delta --to HEAD --from HEAD^ --output changed-sources/ --generate-delta
+sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta
 ```
 
 In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the ouput folder.
@@ -236,7 +263,7 @@ In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:sou
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 ![delta-source](/img/example_generateDelta.png)
 
-#### Exclude some metadata only from destructiveChanges.xml:
+### Exclude some metadata only from destructiveChanges.xml:
 
 The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) used to filter the
 element on the diff to ignore. Every diff line matching the pattern from the ignore file specified in the `--ignore [-i]` will be ignored by SGD,
@@ -258,7 +285,7 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
 
-#### Generate a comma-separated list of the added and modified Apex classes:
+### Generate a comma-separated list of the added and modified Apex classes:
 
 Depending on your testing strategy, [you may be interested in generating a a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
 
@@ -266,16 +293,25 @@ To cover this requirement, you can use a tool such as [yq](https://github.com/ki
 
 `xq . < package/package.xml | jq '.Package.types | if type=="array" then .[] else . end | select(.name=="ApexClass") | .members | join(",")'`
 
-## Javascript Module
+### Use the module in your own application
+
+Install it has a dependency for your application
+
+```sh
+yarn add --dev sfdx-git-delta
+```
+
+Then use the javascript module
 
 ```js
+// sample/app.js
 const sgd = require('sfdx-git-delta')
 
 const work = sgd({
   to: '', // commit sha to where the diff is done. [default : "HEAD"]
   from: '', // (required) commit sha from where the diff is done. [default : git rev-list --max-parents=0 HEAD]
   output: '', // source package specific output. [default : "./output"]
-  apiVersion: '', // salesforce API version. [default : $package.json => sfdc.latestApiVersions]
+  apiVersion: '', // salesforce API version. [default : latest]
   repo: '', // git repository location. [default : "."]
 })
 
