@@ -7,25 +7,27 @@ Generate the sfdx content in source format and destructive change from two git c
 ## TL;DR:
 
 ```sh
-cd repo/path
-mkdir output
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output output
+sfdx plugins:install sfdx-git-delta
+```
+
+```sh
+sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
 ```
 
 ```sh
 echo "--- package.xml generated with added and modified metadata ---"
-cat output/package/package.xml
+cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x output/package/package.xml
+sfdx force:source:deploy -x package/package.xml
 ```
 
 ```sh
 echo "--- destructiveChanges.xml generated with deleted metadata ---"
-cat output/destructiveChanges/destructiveChanges.xml
+cat destructiveChanges/destructiveChanges.xml
 echo
 echo "--- Deleting removed metadata ---"
-sfdx force:mdapi:deploy -d output/destructiveChanges --ignorewarnings
+sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
 ## What is SFDX-Git-Delta?
@@ -91,7 +93,8 @@ If you encounter this issue while having installed the correct version of node o
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+
+- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
 ## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -99,7 +102,7 @@ Generate the sfdx content in source format and destructive change from two git c
 
 ```
 USAGE
-  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a 
+  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a
   <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
@@ -130,15 +133,12 @@ OPTIONS
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.5.0/src/commands/sgd/source/delta.ts)_
+
 <!-- commandsstop -->
 
 ### Important note for Windows users:
 
 If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134):
-
-```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output .
-```
 
 ## Scenario:
 
@@ -293,12 +293,12 @@ To cover this requirement, you can use a tool such as [yq](https://github.com/ki
 
 `xq . < package/package.xml | jq '.Package.types | if type=="array" then .[] else . end | select(.name=="ApexClass") | .members | join(",")'`
 
-### Use the module in your own application
+### Use the module in your own node application
 
-Install it has a dependency for your application
+If you want to embed sgd in your node application, install it has a dependency for your application
 
 ```sh
-yarn add --dev sfdx-git-delta
+yarn add sfdx-git-delta
 ```
 
 Then use the javascript module
