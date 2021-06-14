@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.6.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.5.0...v4.6.0) (2021-06-14)
+
+
+### Features
+
+* add configuration for Bot metadata ([#148](https://github.com/scolladon/sfdx-git-delta/issues/148)) ([fa60587](https://github.com/scolladon/sfdx-git-delta/commit/fa60587b327fdf26d65a4680f1647ddf0486de9f))
+* upgrade api version to v52 ([#151](https://github.com/scolladon/sfdx-git-delta/issues/151)) ([d0c5d68](https://github.com/scolladon/sfdx-git-delta/commit/d0c5d681ec5ae7c01085721adcc8c6f0c6520b58))
+
 ## [4.5.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.4.0...v4.5.0) (2021-04-27)
 
 
