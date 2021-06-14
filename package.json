@@ -63,7 +63,7 @@
     "release": "standard-version --no-verify",
     "release:github": "conventional-github-releaser -p angular",
     "release:tags": "git push --follow-tags origin master -f --no-verify",
-    "increment:apiversion": "jq '.sfdc.latestApiVersion = (.sfdc.latestApiVersion|tonumber + 1 |tostring)' package.json | sponge package.json && filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname"
+    "increment:apiversion": "jq '.sfdc.latestApiVersion = (.sfdc.latestApiVersion|tonumber + 1 |tostring)' package.json | sponge package.json && filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname && yarn pack"
   },
   "devDependencies": {
     "@commitlint/cli": "^12.1.1",
@@ -107,6 +107,6 @@
     "access": "public"
   },
   "sfdc": {
-    "latestApiVersion": "51"
+    "latestApiVersion": "52"
   }
 }

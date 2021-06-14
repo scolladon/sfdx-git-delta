@@ -193,3 +193,11 @@ CI validates prettifying, linting and tests
 [setup-github-ssh]: https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/
 [creating-a-pull-request]: https://help.github.com/articles/creating-a-pull-request/
 [eslint-integrations]: http://eslint.org/docs/user-guide/integrations
+
+## Update Salesforce API version
+
+The repo contains a script to increment the Salesforce API version supported by SGD.
+To upgrade the API version, run the following command:
+```
+yarn && yarn increment:apiversion
+```
