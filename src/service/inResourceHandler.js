@@ -11,7 +11,7 @@ class ResourceHandler extends StandardHandler {
     super(line, type, work, metadata)
     this.elementRegex = new RegExp(
       `(?<path>.*[/\\\\]${
-        this.metadata[this.type].directoryName
+        StandardHandler.metadata[this.type].directoryName
       })[/\\\\](?<name>[^/\\\\]*)+`,
       'u'
     )
@@ -23,7 +23,10 @@ class ResourceHandler extends StandardHandler {
       .join(this.config.repo, this.line)
       .match(this.elementRegex)
     const [targetPath] = `${path.join(this.config.output, this.line)}`.match(
-      new RegExp(`.*[/\\\\]${this.metadata[this.type].directoryName}`, 'u')
+      new RegExp(
+        `.*[/\\\\]${StandardHandler.metadata[this.type].directoryName}`,
+        'u'
+      )
     )
 
     const parsedElementName = path.parse(elementName)

@@ -19,7 +19,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "main": "src/main.js",
+  "main": "lib/main.js",
   "bin": {
     "sgd": "./bin/cli"
   },

@@ -13,7 +13,7 @@ class WaveHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     if (isEmpty(WAVE_SUBTYPE)) {
-      this.metadata[this.type].content.reduce((acc, val) => {
+      StandardHandler.metadata[this.type].content.reduce((acc, val) => {
         acc[val.suffix] = val.xmlName
         return acc
       }, WAVE_SUBTYPE)

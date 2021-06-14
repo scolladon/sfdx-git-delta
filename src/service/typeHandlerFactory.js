@@ -12,6 +12,7 @@ const path = require('path')
 
 const classes = {
   aura: InResource,
+  bot: InFile,
   businessProcesses: SubCustomObject,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
