@@ -12,5 +12,5 @@ module.exports = (filePath, config) => {
     { cwd: config.repo, encoding: gc.UTF8_ENCODING }
   )
 
-  return cpUtils.treatDataFromSpawn(diff)
+  return cpUtils.treatEOL(diff)
 }
