@@ -60,7 +60,7 @@
     "postrelease": "npm run release:tags && npm run release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky install",
-    "release": "standard-version --no-verify",
+    "release": "standard-version --no-verify --commit-all",
     "release:github": "conventional-github-releaser -p angular",
     "release:tags": "git push --follow-tags origin master -f --no-verify",
     "increment:apiversion": "jq '.sfdc.latestApiVersion = (.sfdc.latestApiVersion|tonumber + 1 |tostring)' package.json | sponge package.json && filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname && yarn pack"
@@ -105,6 +105,11 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "standard-version": {
+    "scripts": {
+      "postbump": "yarn pack && git add README.md"
+    }
   },
   "sfdc": {
     "latestApiVersion": "52"
