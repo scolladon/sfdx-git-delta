@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.6.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.6.0...v4.6.1) (2021-06-24)
+
+
+### Bug Fixes
+
+* issue with path separator conversion in xml file and path portability ([#153](https://github.com/scolladon/sfdx-git-delta/issues/153)) ([549addf](https://github.com/scolladon/sfdx-git-delta/commit/549addf0357f4b6e6f77000210c06ed2d5fb9748))
+
 ## [4.6.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.5.0...v4.6.0) (2021-06-14)
 
 
