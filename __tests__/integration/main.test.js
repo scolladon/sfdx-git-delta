@@ -43,6 +43,45 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
+  test('can execute with posix  path', () => {
+    expect(
+      app({ output: './output', repo: '', to: 'test', apiVersion: '46' })
+    ).toHaveProperty('warnings', [])
+  })
+
+  test('can execute with posix relative path', () => {
+    expect(
+      app({
+        output: './output/../output',
+        repo: '',
+        to: 'test',
+        apiVersion: '46',
+      })
+    ).toHaveProperty('warnings', [])
+  })
+
+  test('can execute with windows path', () => {
+    expect(
+      app({
+        output: '.\\output',
+        repo: '',
+        to: 'test',
+        apiVersion: '46',
+      })
+    ).toHaveProperty('warnings', [])
+  })
+
+  test('can execute with windows relative path', () => {
+    expect(
+      app({
+        output: '.\\output\\..\\output',
+        repo: '',
+        to: 'test',
+        apiVersion: '46',
+      })
+    ).toHaveProperty('warnings', [])
+  })
+
   test('catch and reject big issues', () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true

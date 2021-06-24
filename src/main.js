@@ -1,6 +1,7 @@
 'use strict'
 const PackageConstructor = require('./utils/packageConstructor')
 const TypeHandlerFactory = require('./service/typeHandlerFactory')
+const { sanitizePath } = require('./utils/childProcessUtils')
 const metadataManager = require('./metadata/metadataManager')
 const repoSetup = require('./utils/repoSetup')
 const repoGitDiff = require('./utils/repoGitDiff')
@@ -36,13 +37,23 @@ const checkConfig = config => {
   return errors
 }
 
+const sanitizeConfig = config => {
+  config.apiVersion = parseInt(config.apiVersion)
+  repoSetup(config)
+  config.repo = config.repo ? sanitizePath(config.repo) : config.repo
+  config.output = config.output ? sanitizePath(config.output) : config.output
+  config.ignore = config.ignore ? sanitizePath(config.ignore) : config.ignore
+  config.ignoreDestructive = config.ignoreDestructive
+    ? sanitizePath(config.ignoreDestructive)
+    : config.ignoreDestructive
+}
+
 module.exports = config => {
+  sanitizeConfig(config)
   const inputError = checkConfig(config)
   if (inputError.length > 0) {
     throw new Error(inputError)
   }
-  config.apiVersion = parseInt(config.apiVersion)
-  repoSetup(config)
 
   const metadata = metadataManager.getDefinition(
     'directoryName',
