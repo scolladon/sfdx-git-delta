@@ -43,6 +43,19 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
+  test('can execute with complex parameters and a Modification', () => {
+    expect(
+      app({
+        output: 'output',
+        repo: '',
+        to: 'test',
+        apiVersion: '46',
+        ignore: '.forceignore',
+        ignoreDestructive: '.forceignore',
+      })
+    ).toHaveProperty('warnings', [])
+  })
+
   test('can execute with posix  path', () => {
     expect(
       app({ output: './output', repo: '', to: 'test', apiVersion: '46' })

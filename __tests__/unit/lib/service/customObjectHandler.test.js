@@ -29,16 +29,43 @@ const testContext = {
 }
 
 // eslint-disable-next-line no-undef
-describe('test CustomObjectHandler', () => {
+describe('test CustomObjectHandler with fields', () => {
   beforeAll(() => {
     require('fs').__setMockFiles({
       'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
+      'force-app/main/default/objects/Account/fields': '',
       'force-app/main/default/objects/Account/fields/test__c.field-meta.xml':
         SubCustomObjectHandler.MASTER_DETAIL_TAG,
       'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
         'test',
       'force-app/main/default/objects/Test/Account/fields/test__c.field-meta.xml':
         SubCustomObjectHandler.MASTER_DETAIL_TAG,
+    })
+  })
+
+  // eslint-disable-next-line no-undef
+  testHandlerHelper(testContext)
+
+  test('addition', () => {
+    testContext.work.config.generateDelta = false
+    const handler = new testContext.handler(
+      'A       force-app/main/default/objects/Account/Account.object-meta.xml',
+      'objects',
+      testContext.work,
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    handler.handle()
+  })
+})
+
+// eslint-disable-next-line no-undef
+describe('test CustomObjectHandler without fields', () => {
+  beforeAll(() => {
+    require('fs').__setMockFiles({
+      'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
+      'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
+        'test',
     })
   })
 
