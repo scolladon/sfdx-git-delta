@@ -27,11 +27,14 @@ class RepoSetup {
     childProcess.spawnSync('git', gitConfig, {
       cwd: this.config.repo,
     })
-    this.referenceSHA = _bufToStr(
-      childProcess.spawnSync('git', revparseParams, {
-        cwd: this.config.repo,
-      }).stdout
-    )
+    this.referenceSHA =
+      this.config.to === HEAD
+        ? HEAD
+        : _bufToStr(
+            childProcess.spawnSync('git', revparseParams, {
+              cwd: this.config.repo,
+            }).stdout
+          )
   }
 
   getFirstSHA() {
@@ -47,12 +50,18 @@ class RepoSetup {
   }
 
   checkoutTo() {
+    if (this.referenceSHA === HEAD) {
+      return
+    }
     childProcess.spawnSync('git', [...checkout, this.config.to], {
       cwd: this.config.repo,
     })
   }
 
   checkoutRef() {
+    if (this.referenceSHA === HEAD) {
+      return
+    }
     childProcess.spawnSync('git', stashUntracked, {
       cwd: this.config.repo,
     }).stdout
