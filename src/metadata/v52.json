@@ -1149,6 +1149,13 @@
     "xmlName": "Settings"
   },
   {
+    "directoryName": "mlDomains",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "mlDomain",
+    "xmlName": "MlDomain"
+  },
+  {
     "directoryName": "wave",
     "inFolder": false,
     "metaFile": true,
