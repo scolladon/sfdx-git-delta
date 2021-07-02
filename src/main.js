@@ -3,7 +3,7 @@ const PackageConstructor = require('./utils/packageConstructor')
 const TypeHandlerFactory = require('./service/typeHandlerFactory')
 const { sanitizePath } = require('./utils/childProcessUtils')
 const metadataManager = require('./metadata/metadataManager')
-const repoSetup = require('./utils/repoSetup')
+const RepoSetup = require('./utils/repoSetup')
 const repoGitDiff = require('./utils/repoGitDiff')
 
 const fs = require('fs')
@@ -39,7 +39,6 @@ const checkConfig = config => {
 
 const sanitizeConfig = config => {
   config.apiVersion = parseInt(config.apiVersion)
-  repoSetup(config)
   config.repo = config.repo ? sanitizePath(config.repo) : config.repo
   config.output = sanitizePath(config.output)
   config.ignore = config.ignore ? sanitizePath(config.ignore) : config.ignore
@@ -55,6 +54,11 @@ module.exports = config => {
     throw new Error(inputError)
   }
 
+  const repoSetup = new RepoSetup(config)
+  repoSetup.repoConfiguration()
+  config.from = repoSetup.getFirstSHA()
+  repoSetup.checkoutTo()
+
   const metadata = metadataManager.getDefinition(
     'directoryName',
     config.apiVersion
@@ -63,6 +67,7 @@ module.exports = config => {
   const lines = repoGitDiff(config, metadata)
   const work = treatDiff(config, lines, metadata)
   treatPackages(work.diffs, config, metadata)
+  repoSetup.checkoutRef()
   return work
 }
 
