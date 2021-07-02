@@ -205,4 +205,31 @@ describe(`test if inFileHandler`, () => {
       })
     }
   )
+
+  describe('with bad xml', () => {
+    const [expectedType, changePath, xmlContent, expectedResult] = [
+      'labels',
+      'force-app/main/default/labels/CustomLabels.labels-meta.xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${os.EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${os.EOL}<labels>${os.EOL}<fullName>TestLabel1</fullName>${os.EOL}</labels>${os.EOL}</labels>${os.EOL}<labels>${os.EOL}<fullName>TestLabel2</fullName>${os.EOL}</labels>${os.EOL}</CustomLabels>`,
+      {},
+    ]
+    test('generate proper warning', () => {
+      const handler = new testContext.handler(
+        `A       ${changePath}`,
+        expectedType,
+        work,
+        // eslint-disable-next-line no-undef
+        globalMetadata
+      )
+      child_process.spawnSync.mockImplementation(() => ({
+        stdout: xmlContent
+          .split(os.EOL)
+          .map(x => `${gc.PLUS} ${x}`)
+          .join(os.EOL),
+      }))
+      handler.handle()
+      expect(work.diffs.package).toMatchObject(expectedResult)
+      expect(work.warnings).toHaveLength(1)
+    })
+  })
 })
