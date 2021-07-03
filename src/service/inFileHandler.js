@@ -134,12 +134,7 @@ class InFileHandler extends StandardHandler {
   }
 
   _parseFile() {
-    const xmlContent = this._readFileSync()
-    const xmlValidation = fxp.validate(xmlContent)
-    if (xmlValidation !== true) {
-      throw new Error(xmlValidation?.err?.msg)
-    }
-    const result = fxp.parse(xmlContent, XML_PARSER_OPTION)
+    const result = fxp.parse(this._readFileSync(), XML_PARSER_OPTION, true)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
       Object.prototype.hasOwnProperty.call(

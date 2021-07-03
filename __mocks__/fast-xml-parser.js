@@ -12,10 +12,6 @@ fxp.__setMockContent = contents => {
   }
 }
 
-fxp.validate = content => {
-  return Object.prototype.hasOwnProperty.call(xml2json, content)
-}
-
 fxp.parse = content => {
   return JSON.parse(xml2json[content])
 }
