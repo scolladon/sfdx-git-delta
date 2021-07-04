@@ -9,7 +9,7 @@ const CHECKOUT = 'checkout'
 const stashUntracked = [STASH, '-u']
 const stashDrop = [STASH, 'drop']
 const checkoutStash = ['stash', '--', '.']
-const revparseParams = ['rev-parse', HEAD]
+const revparseParams = ['rev-parse']
 const checkout = [CHECKOUT]
 const revlistParams = ['rev-list', '--max-parents=0', HEAD]
 const gitConfig = ['config', 'core.quotepath', 'off']
@@ -27,14 +27,20 @@ class RepoSetup {
     childProcess.spawnSync('git', gitConfig, {
       cwd: this.config.repo,
     })
-    this.referenceSHA =
-      this.config.to === HEAD
-        ? HEAD
-        : _bufToStr(
-            childProcess.spawnSync('git', revparseParams, {
-              cwd: this.config.repo,
-            }).stdout
-          )
+
+    const headSHA = _bufToStr(
+      childProcess.spawnSync('git', [...revparseParams, HEAD], {
+        cwd: this.config.repo,
+      }).stdout
+    )
+
+    this.referenceSHA = _bufToStr(
+      childProcess.spawnSync('git', [...revparseParams, this.config.to], {
+        cwd: this.config.repo,
+      }).stdout
+    )
+
+    this.isToEqualHead = this.referenceSHA === headSHA
   }
 
   getFirstSHA() {
@@ -50,7 +56,7 @@ class RepoSetup {
   }
 
   checkoutTo() {
-    if (this.referenceSHA === HEAD) {
+    if (this.isToEqualHead) {
       return
     }
     childProcess.spawnSync('git', [...checkout, this.config.to], {
@@ -59,7 +65,7 @@ class RepoSetup {
   }
 
   checkoutRef() {
-    if (this.referenceSHA === HEAD) {
+    if (this.isToEqualHead) {
       return
     }
     childProcess.spawnSync('git', stashUntracked, {
