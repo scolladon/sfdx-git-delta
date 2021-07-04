@@ -6,6 +6,9 @@
     "importHelpers": true,
     "allowJs": true,
     "resolveJsonModule": true,
+    "lib": ["es2020"],
+    "module": "commonjs",
+    "target": "es2019",
   },
   "include": [
     "./src/**/*",
