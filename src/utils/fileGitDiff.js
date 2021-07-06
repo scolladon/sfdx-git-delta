@@ -3,7 +3,7 @@ const childProcess = require('child_process')
 const cpUtils = require('./childProcessUtils')
 const gc = require('./gitConstants')
 
-const unitDiffParams = ['--no-pager', 'diff', '--no-prefix', '-U10000000000']
+const unitDiffParams = ['--no-pager', 'diff', '--no-prefix', '-U200']
 
 module.exports = (filePath, config) => {
   const { stdout: diff } = childProcess.spawnSync(
