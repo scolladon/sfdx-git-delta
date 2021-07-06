@@ -41,7 +41,7 @@ const sanitizeConfig = config => {
   config.apiVersion = parseInt(config.apiVersion)
   repoSetup(config)
   config.repo = config.repo ? sanitizePath(config.repo) : config.repo
-  config.output = config.output ? sanitizePath(config.output) : config.output
+  config.output = sanitizePath(config.output)
   config.ignore = config.ignore ? sanitizePath(config.ignore) : config.ignore
   config.ignoreDestructive = config.ignoreDestructive
     ? sanitizePath(config.ignoreDestructive)
