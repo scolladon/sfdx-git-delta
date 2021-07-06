@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.7.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.6.1...v4.7.0) (2021-07-06)
+
+
+### Features
+
+* add MLDomain metadata ([#157](https://github.com/scolladon/sfdx-git-delta/issues/157)) ([98af61d](https://github.com/scolladon/sfdx-git-delta/commit/98af61d2096584d5ae75618d0c677aa8aa7349e9))
+
+
+### Bug Fixes
+
+* git context to not exceed spawn sync buffer for very large inFile metadata ([#161](https://github.com/scolladon/sfdx-git-delta/issues/161)) ([21a31f8](https://github.com/scolladon/sfdx-git-delta/commit/21a31f8aecd33720623a6214e06a7d028946c418))
+* handle xml parsing issues gracefully ([#158](https://github.com/scolladon/sfdx-git-delta/issues/158)) ([0fa4a49](https://github.com/scolladon/sfdx-git-delta/commit/0fa4a49388c4d65bb5e8ce7156674e1fb5b8b021))
+
 ### [4.6.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.6.0...v4.6.1) (2021-06-24)
 
 
