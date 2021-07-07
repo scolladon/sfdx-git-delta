@@ -36,7 +36,7 @@ const checkConfig = (config, repoSetup) => {
 
   if (!repoSetup.isToEqualHead() && config.generateDelta) {
     errors.push(
-      `--generate-delta (-d) parameter cannot be set when --to (-t) parameter is not equivalent to HEAD`
+      `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
     )
   }
 
