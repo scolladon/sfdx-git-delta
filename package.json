@@ -12,6 +12,7 @@
   "engines": {
     "node": ">=12.22.2"
   },
+  "type": "module",
   "files": [
     "/bin",
     "/lib",
@@ -19,7 +20,8 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "main": "lib/main.js",
+  "main": "./lib/main.js",
+  "exports": "./lib/main.js",
   "bin": {
     "sgd": "./bin/cli"
   },
