@@ -259,7 +259,18 @@ sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --gen
 In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the ouput folder.
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
+
 ![delta-source](/img/example_generateDelta.png)
+
+> /!\ the `--generate-delta (-d)` can only be used when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
+> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", just checkout that commit first and then use `--generate-delta (-d)`. Exemple:
+>
+> ```sh
+> # move HEAD to past commit we are interested in
+> $ git checkout <not-HEAD-commit-sha>
+> # You can omit --to, it will take "HEAD" as default value
+> $ sfdx sgd:source:delta --from "HEAD^" --output changed-sources/ --generate-delta
+> ```
 
 ### Exclude some metadata only from destructiveChanges.xml:
 
