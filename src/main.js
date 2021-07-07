@@ -15,7 +15,7 @@ const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
-const checkConfig = config => {
+const checkConfig = (config, repoSetup) => {
   const errors = []
   if (typeof config.to !== 'string') {
     errors.push(`to ${config.to} is not a sha`)
@@ -34,10 +34,16 @@ const checkConfig = config => {
     errors.push(`${config.repo} is not a git repository`)
   }
 
+  if (!repoSetup.isToEqualHead() && config.generateDelta) {
+    errors.push(
+      `--generate-delta (-d) parameter cannot be set when --to (-t) parameter is not equivalent to HEAD`
+    )
+  }
+
   return errors
 }
 
-const sanitizeConfig = config => {
+const sanitizeConfig = (config, repoSetup) => {
   config.apiVersion = parseInt(config.apiVersion)
   config.repo = config.repo ? sanitizePath(config.repo) : config.repo
   config.output = sanitizePath(config.output)
@@ -45,19 +51,18 @@ const sanitizeConfig = config => {
   config.ignoreDestructive = config.ignoreDestructive
     ? sanitizePath(config.ignoreDestructive)
     : config.ignoreDestructive
+  config.from = repoSetup.computeFromRef()
 }
 
 module.exports = config => {
-  sanitizeConfig(config)
-  const inputError = checkConfig(config)
+  const repoSetup = new RepoSetup(config)
+  sanitizeConfig(config, repoSetup)
+  const inputError = checkConfig(config, repoSetup)
   if (inputError.length > 0) {
     throw new Error(inputError)
   }
 
-  const repoSetup = new RepoSetup(config)
   repoSetup.repoConfiguration()
-  config.from = repoSetup.getFirstSHA()
-  repoSetup.checkoutTo()
 
   const metadata = metadataManager.getDefinition(
     'directoryName',
@@ -67,7 +72,6 @@ module.exports = config => {
   const lines = repoGitDiff(config, metadata)
   const work = treatDiff(config, lines, metadata)
   treatPackages(work.diffs, config, metadata)
-  repoSetup.checkoutRef()
   return work
 }
 
