@@ -97,6 +97,7 @@ class InFileHandler extends StandardHandler {
         subType = fullName = null
       } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
         toAdd[subType] = toAdd[subType]?.add(fullName) ?? new Set([fullName])
+        subType = fullName = null
       }
     })
     this._treatInFileResult(toDel, toAdd)
