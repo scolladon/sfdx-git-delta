@@ -28,6 +28,7 @@ class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = StandardHandler.metadata[this.type]
+    this.customLabelElementName = `${path.basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
       Object.keys(StandardHandler.metadata)
@@ -157,9 +158,8 @@ class InFileHandler extends StandardHandler {
 
   _fillPackageFromDiff(packageObject, subType, value) {
     const elementFullName = `${
-      (subType !== mc.LABEL_DIRECTORY_NAME
-        ? `${path.basename(this.line).split('.')[0]}.`
-        : '') + value
+      (subType !== mc.LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
+      value
     }`
 
     packageObject[subType] = packageObject[subType] ?? new Set()
