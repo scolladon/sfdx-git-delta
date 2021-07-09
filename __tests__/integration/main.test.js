@@ -1,6 +1,9 @@
 'use strict'
 const app = require('../../src/main')
-jest.mock('child_process')
+const gc = require('../../src/utils/gitConstants')
+
+const child_process = require('child_process')
+jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
 jest.mock('git-state')
@@ -17,6 +20,7 @@ describe(`test if the appli`, () => {
     fsMocked.__setMockFiles({
       output: '',
     })
+    child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
   })
 
   test('can execute with simple parameters and no diff', () => {
@@ -139,6 +143,26 @@ describe(`test if the appli`, () => {
         output: 'output',
         repo: 'not/git/folder',
         to: 'test',
+        apiVersion: '46',
+      })
+    }).toThrow()
+  })
+
+  test('throw errors when "-t" and "-d" are set', () => {
+    const notHeadSHA = 'test'
+    /*const child_process = require('child_process')
+    jest.mock('child_process', () => ({ spawnSync: jest.fn() }))*/
+    child_process.spawnSync
+      .mockReturnValueOnce({ stdout: Buffer.from('HEAD', gc.UTF8_ENCODING) })
+      .mockReturnValueOnce({
+        stdout: Buffer.from(notHeadSHA, gc.UTF8_ENCODING),
+      })
+    expect(() => {
+      app({
+        output: 'output',
+        repo: '',
+        to: notHeadSHA,
+        generateDelta: true,
         apiVersion: '46',
       })
     }).toThrow()

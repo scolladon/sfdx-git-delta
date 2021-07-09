@@ -207,5 +207,5 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
 1. uninstall the previous version you may have `sfdx plugins:uninstall sfdx-git-delta`
 2. clone the repository
 3. checkout the branch to test
-3. run `sfdx plugins:link` from that local repository
-4. test the plugin!
+4. run `yarn pack`, followed by `sfdx plugins:link`, from that local repository
+5. test the plugin!
