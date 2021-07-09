@@ -262,7 +262,7 @@ _Content of the output folder when using the --generate-delta option, with the s
 
 ![delta-source](/img/example_generateDelta.png)
 
-> /!\ the `--generate-delta (-d)` can only be used when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
+> ⚠️ the `--generate-delta (-d)` can only be used when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
 > If you need to use it with `--to (-t)` pointing to another commit than "HEAD", just checkout that commit first and then use `--generate-delta (-d)`. Exemple:
 >
 > ```sh
