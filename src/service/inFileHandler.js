@@ -28,6 +28,7 @@ class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = StandardHandler.metadata[this.type]
+    this.customLabelElementName = `${path.basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
       Object.keys(StandardHandler.metadata)
@@ -77,41 +78,47 @@ class InFileHandler extends StandardHandler {
   }
 
   _handleInDiff() {
-    const diffContent = fileGitDiff(this.line, this.config),
-      toDel = {},
-      toAdd = {}
-    let potentialType, subType, fullName
+    const diffContent = fileGitDiff(this.line, this.config)
+    const data = {
+      toDel: {},
+      toAdd: {},
+      potentialType: null,
+      subType: null,
+      fullName: null,
+    }
     diffContent.split(os.EOL).forEach(line => {
-      if (FULLNAME_XML_TAG.test(line)) {
-        fullName = line.match(FULLNAME_XML_TAG)[1]
-        subType = `${this.parentMetadata.directoryName}.${potentialType}`
-      }
-      const xmlTagMatchResult = line.match(XML_TAG)
-      if (this._matchAllowedXmlTag(xmlTagMatchResult)) {
-        potentialType = xmlTagMatchResult[1]
-        fullName = null
-      }
-      if (!subType || !fullName) return
-      if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
-        toDel[subType] = toDel[subType]?.add(fullName) ?? new Set([fullName])
-        subType = fullName = null
-      } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
-        toAdd[subType] = toAdd[subType]?.add(fullName) ?? new Set([fullName])
-      }
+      this._preProcessHandleInDiff(line, data)
+      if (!data.subType || !data.fullName) return
+      this._postProcessHandleInDiff(line, data)
     })
-    this._treatInFileResult(toDel, toAdd)
-    return toAdd
+    this._treatInFileResult(data.toDel, data.toAdd)
+    return data.toAdd
   }
 
-  _matchAllowedXmlTag(matchResult) {
-    return (
-      !!matchResult &&
-      !!matchResult[1] &&
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        matchResult[1]
-      )
-    )
+  _preProcessHandleInDiff(line, data) {
+    if (FULLNAME_XML_TAG.test(line)) {
+      data.fullName = line.match(FULLNAME_XML_TAG)[1]
+      data.subType = `${this.parentMetadata.directoryName}.${data.potentialType}`
+    }
+    const xmlTagMatchResult = line.match(XML_TAG)
+    if (InFileHandler._matchAllowedXmlTag(xmlTagMatchResult)) {
+      data.potentialType = xmlTagMatchResult[1]
+      data.fullName = null
+    }
+  }
+
+  _postProcessHandleInDiff(line, data) {
+    let tempMap
+    if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
+      tempMap = data.toDel
+    } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
+      tempMap = data.toAdd
+    }
+    if (tempMap) {
+      tempMap[data.subType] =
+        tempMap[data.subType]?.add(data.fullName) ?? new Set([data.fullName])
+      data.subType = data.fullName = null
+    }
   }
 
   _treatInFileResult(toRemove, toAdd) {
@@ -156,14 +163,24 @@ class InFileHandler extends StandardHandler {
 
   _fillPackageFromDiff(packageObject, subType, value) {
     const elementFullName = `${
-      (subType !== mc.LABEL_DIRECTORY_NAME
-        ? `${path.basename(this.line).split('.')[0]}.`
-        : '') + value
+      (subType !== mc.LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
+      value
     }`
 
     packageObject[subType] = packageObject[subType] ?? new Set()
     packageObject[subType].add(
       StandardHandler.cleanUpPackageMember(elementFullName)
+    )
+  }
+
+  static _matchAllowedXmlTag(matchResult) {
+    return (
+      !!matchResult &&
+      !!matchResult[1] &&
+      Object.prototype.hasOwnProperty.call(
+        InFileHandler.xmlObjectToPackageType,
+        matchResult[1]
+      )
     )
   }
 }
