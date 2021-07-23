@@ -1,56 +1,74 @@
 'use strict'
-const cpUtils = require('./childProcessUtils')
-const gc = require('./gitConstants')
-const childProcess = require('child_process')
-const fs = require('fs')
-const ignore = require('ignore')
-const os = require('os')
-const path = require('path')
+import { treatDataFromSpawn } from './childProcessUtils'
+import {
+  ADDITION,
+  DELETION,
+  GIT_DIFF_TYPE_REGEX,
+  UTF8_ENCODING,
+} from './gitConstants'
+import { Config } from '../model/Config'
+import { spawnSync, SpawnSyncOptionsWithStringEncoding } from 'child_process'
+import { existsSync, readFileSync } from 'fs'
+import ignore from 'ignore'
+import { EOL } from 'os'
+import { sep, parse } from 'path'
 
 const fullDiffParams = ['--no-pager', 'diff', '--name-status', '--no-renames']
 const lcSensitivity = {
   sensitivity: 'accent',
 }
 
-module.exports = (config, metadata) => {
-  const { stdout: diff } = childProcess.spawnSync(
-    'git',
-    [...fullDiffParams, config.from, config.to, config.source],
-    { cwd: config.repo, encoding: gc.UTF8_ENCODING }
-  )
-
-  return treatResult(cpUtils.treatDataFromSpawn(diff), metadata, config)
+type LineTypeMap = {
+  A: string[]
+  D: string[]
 }
 
-const treatResult = (repoDiffResult, metadata, config) => {
-  const lines = repoDiffResult.split(os.EOL)
-  const linesPerDiffType = lines.reduce(
-    (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
-    { [gc.ADDITION]: [], [gc.DELETION]: [] }
+module.exports = (config: Config, metadata: any) => {
+  const { stdout: diff } = spawnSync(
+    'git',
+    [...fullDiffParams, config.from, config.to, config.source],
+    {
+      cwd: config.repo,
+      encoding: UTF8_ENCODING,
+    } as SpawnSyncOptionsWithStringEncoding
   )
-  const AfileNames = linesPerDiffType[gc.ADDITION].map(
-    line => path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
+
+  return treatResult(treatDataFromSpawn(diff), metadata, config)
+}
+
+const treatResult = (repoDiffResult: string, metadata: any, config: Config) => {
+  const lines = repoDiffResult.split(EOL)
+  const linesPerDiffType: LineTypeMap = lines.reduce(
+    (acc: LineTypeMap, line: string) => (
+      acc[line.charAt(0) as keyof LineTypeMap]?.push(line), acc
+    ),
+    ({ [ADDITION]: [], [DELETION]: [] } as unknown) as LineTypeMap
   )
-  const deletedRenamed = linesPerDiffType[gc.DELETION].filter(line => {
-    const dEl = path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, '')).base
-    return AfileNames.some(
-      aEl => !aEl.localeCompare(dEl, undefined, lcSensitivity)
-    )
-  })
+  const AfileNames = linesPerDiffType[ADDITION as keyof LineTypeMap].map(
+    (line: string) => parse(line.replace(GIT_DIFF_TYPE_REGEX, '')).base
+  )
+  const deletedRenamed = linesPerDiffType[DELETION as keyof LineTypeMap].filter(
+    (line: string) => {
+      const dEl = parse(line.replace(GIT_DIFF_TYPE_REGEX, '')).base
+      return AfileNames.some(
+        (aEl: string) => !aEl.localeCompare(dEl, undefined, lcSensitivity)
+      )
+    }
+  )
 
   return lines
     .filter(
-      line =>
+      (line: string) =>
         !!line &&
         !deletedRenamed.includes(line) &&
         line
-          .split(path.sep)
+          .split(sep)
           .some(part => Object.prototype.hasOwnProperty.call(metadata, part))
     )
     .filter(filterIgnore(config))
 }
 
-const filterIgnore = config => line => {
+const filterIgnore = (config: Config) => (line: string) => {
   const ig = ignore()
   const dig = ignore()
   ;[
@@ -59,12 +77,12 @@ const filterIgnore = config => line => {
   ].forEach(
     ign =>
       ign.ignore &&
-      fs.existsSync(ign.ignore) &&
-      ign.helper.add(fs.readFileSync(ign.ignore).toString())
+      existsSync(ign.ignore) &&
+      ign.helper.add(readFileSync(ign.ignore).toString())
   )
   return config.ignoreDestructive
-    ? line.startsWith(gc.DELETION)
-      ? !dig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-      : !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-    : !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+    ? line.startsWith(DELETION)
+      ? !dig.ignores(line.replace(GIT_DIFF_TYPE_REGEX, ''))
+      : !ig.ignores(line.replace(GIT_DIFF_TYPE_REGEX, ''))
+    : !ig.ignores(line.replace(GIT_DIFF_TYPE_REGEX, ''))
 }

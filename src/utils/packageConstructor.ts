@@ -1,7 +1,7 @@
 'use strict'
-const xmlbuilder = require('xmlbuilder')
+import * as xmlbuilder from 'xmlbuilder'
+import { WAVE_SUB_TYPES_PREFIX } from './metadataConstants'
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
-const mc = require('./metadataConstants')
 
 module.exports = class PackageConstructor {
   constructor(config, metadata) {
@@ -20,7 +20,7 @@ module.exports = class PackageConstructor {
       .filter(
         type =>
           Object.prototype.hasOwnProperty.call(this.metadata, type) ||
-          type.startsWith(mc.WAVE_SUB_TYPES_PREFIX)
+          type.startsWith(WAVE_SUB_TYPES_PREFIX)
       )
       .sort()
       // @deprecated To remove when the order will not impact the result of the deployment
