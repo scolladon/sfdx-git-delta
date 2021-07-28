@@ -41,6 +41,8 @@ const classes = {
   workflows: InFile,
 }
 
+const haveSubTypes = [CustomObject.OBJECT_TYPE, '']
+
 module.exports = class HandlerFactory {
   constructor(work, metadata) {
     this.work = work
@@ -52,7 +54,8 @@ module.exports = class HandlerFactory {
       .split(path.sep)
       .reduce(
         (acc, value) =>
-          Object.prototype.hasOwnProperty.call(this.metadata, value)
+          Object.prototype.hasOwnProperty.call(this.metadata, value) &&
+          haveSubTypes.includes(acc)
             ? value
             : acc,
         ''

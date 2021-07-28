@@ -5,12 +5,14 @@ const mc = require('../utils/metadataConstants')
 const path = require('path')
 const fs = require('fs')
 
-const OBJECT_TYPE = 'objects'
-
 class CustomObjectHandler extends StandardHandler {
   handleAddition() {
     super.handleAddition()
-    if (!this.config.generateDelta || this.type !== OBJECT_TYPE) return
+    if (
+      !this.config.generateDelta ||
+      this.type !== CustomObjectHandler.OBJECT_TYPE
+    )
+      return
     const fieldsFolder = path.resolve(
       this.config.repo,
       path.join(path.parse(this.line).dir, mc.FIELD_DIRECTORY_NAME)
@@ -35,6 +37,8 @@ class CustomObjectHandler extends StandardHandler {
         )
     }
   }
+
+  static OBJECT_TYPE = 'objects'
 }
 
 module.exports = CustomObjectHandler
