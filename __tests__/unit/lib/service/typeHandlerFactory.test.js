@@ -35,7 +35,7 @@ describe('the type handler factory', () => {
     ],
     [InFolder, ['dashboards', 'documents', 'reports']],
     [InResource, ['staticresources', 'aura', 'lwc']],
-    [Standard, ['objects']],
+    [Standard, ['classes']],
   ])('give %p handler', (handler, types) => {
     test.each(types)('for %s folder', type => {
       expect(
