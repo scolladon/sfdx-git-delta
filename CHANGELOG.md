@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.7.2](https://github.com/scolladon/sfdx-git-delta/compare/v4.7.1...v4.7.2) (2021-07-29)
+
+
+### Bug Fixes
+
+* wrong type detection in subfolders ([#172](https://github.com/scolladon/sfdx-git-delta/issues/172)) ([c722481](https://github.com/scolladon/sfdx-git-delta/commit/c7224818702e1b0ea72d9c7fdeb2cdb77f7f10ea))
+
 ### [4.7.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.7.0...v4.7.1) (2021-07-09)
 
 
