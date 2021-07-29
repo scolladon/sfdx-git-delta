@@ -35,7 +35,7 @@ describe('the type handler factory', () => {
     ],
     [InFolder, ['dashboards', 'documents', 'reports']],
     [InResource, ['staticresources', 'aura', 'lwc']],
-    [Standard, ['objects']],
+    [Standard, ['classes']],
   ])('give %p handler', (handler, types) => {
     test.each(types)('for %s folder', type => {
       expect(
@@ -44,5 +44,29 @@ describe('the type handler factory', () => {
         )
       ).toBeInstanceOf(handler)
     })
+  })
+
+  test('can handle SubCustomObject', () => {
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/objects/Account/fields/Test__c`
+      )
+    ).toBeInstanceOf(SubCustomObject)
+  })
+
+  test('can handle sub folder with SubCustomObject', () => {
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/objects/folder/Account/fields/Test__c`
+      )
+    ).toBeInstanceOf(SubCustomObject)
+  })
+
+  test('can handle sub folder with non SubCustomObject', () => {
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/documents/classes/TestDocument`
+      )
+    ).toBeInstanceOf(InFolder)
   })
 })

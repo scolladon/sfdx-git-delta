@@ -41,6 +41,9 @@ const classes = {
   workflows: InFile,
 }
 
+const EMPTY_STRING = ''
+const haveSubTypes = [CustomObject.OBJECT_TYPE, EMPTY_STRING]
+
 module.exports = class HandlerFactory {
   constructor(work, metadata) {
     this.work = work
@@ -48,15 +51,13 @@ module.exports = class HandlerFactory {
   }
 
   getTypeHandler(line) {
-    const type = line
-      .split(path.sep)
-      .reduce(
-        (acc, value) =>
-          Object.prototype.hasOwnProperty.call(this.metadata, value)
-            ? value
-            : acc,
-        ''
-      )
+    const type = line.split(path.sep).reduce((acc, value, _, arr) => {
+      acc = Object.prototype.hasOwnProperty.call(this.metadata, value)
+        ? value
+        : acc
+      if (!haveSubTypes.includes(acc)) arr.splice(1)
+      return acc
+    }, EMPTY_STRING)
 
     return classes[type]
       ? new classes[type](line, type, this.work, this.metadata)
