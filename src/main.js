@@ -16,30 +16,31 @@ const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
 const checkConfig = (config, repoSetup) => {
-  const errors = []
+  let errors = []
   if (typeof config.to !== 'string') {
     errors.push(`to ${config.to} is not a sha`)
   }
   if (isNaN(config.apiVersion)) {
     errors.push(`api-version ${config.apiVersion} is not a number`)
   }
-  if (
-    !fs.existsSync(config.output) ||
-    !fs.statSync(config.output).isDirectory()
-  ) {
-    errors.push(`${config.output} folder does not exist`)
-  }
-
   if (!git.isGitSync(config.repo)) {
     errors.push(`${config.repo} is not a git repository`)
   }
-
   if (!repoSetup.isToEqualHead() && config.generateDelta) {
     errors.push(
       `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
     )
+    errors = chkIfDirExist(config.output, errors)
+    errors = chkIfDirExist(config.source, errors)
   }
 
+  return errors
+}
+
+function chkIfDirExist(dir, errors) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    errors.push(`${dir} folder does not exist`)
+  }
   return errors
 }
 
@@ -47,6 +48,7 @@ const sanitizeConfig = (config, repoSetup) => {
   config.apiVersion = parseInt(config.apiVersion)
   config.repo = config.repo ? sanitizePath(config.repo) : config.repo
   config.output = sanitizePath(config.output)
+  config.source = sanitizePath(config.source)
   config.ignore = config.ignore ? sanitizePath(config.ignore) : config.ignore
   config.ignoreDestructive = config.ignoreDestructive
     ? sanitizePath(config.ignoreDestructive)

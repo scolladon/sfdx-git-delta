@@ -8,6 +8,13 @@ const pjson = require('../../../../package.json')
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
 const COMMAND_NAME = 'delta'
+// Initialize Messages with the current plugin directory
+const output = {
+  error: null,
+  output: null,
+  success: true,
+  warnings: [],
+}
 
 // Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
 // or any library that is using the messages framework can also be loaded this way.
@@ -40,10 +47,15 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       char: 'D',
       description: messages.getMessage('ignoreDestructiveFlag'),
     }),
+    source: flags.filepath({
+      char: 's',
+      description: messages.getMessage('sourceFlag'),
+      default: '.',
+    }),
     output: flags.filepath({
       char: 'o',
       description: messages.getMessage('outputFlag'),
-      default: './output',
+      default: '.',
     }),
     'api-version': flags.number({
       char: 'a',
@@ -57,17 +69,14 @@ export default class SourceDeltaGenerate extends SfdxCommand {
   }
 
   public async run(): Promise<AnyJson> {
-    const output = {
-      error: null,
-      output: this.flags.output,
-      success: true,
-      warnings: [],
-    }
+    const output = this.output;
+    output.output = this.flags.output;
     try {
       const jobResult = sgd({
         to: this.flags.to,
         from: this.flags.from,
         output: this.flags.output,
+        source: this.flags.source,
         ignore: this.flags.ignore,
         ignoreDestructive: this.flags['ignore-destructive'],
         apiVersion: this.flags['api-version'],
