@@ -1,69 +1,20 @@
 'use strict'
 const PackageConstructor = require('./utils/packageConstructor')
 const TypeHandlerFactory = require('./service/typeHandlerFactory')
-const { sanitizePath } = require('./utils/childProcessUtils')
 const metadataManager = require('./metadata/metadataManager')
-const RepoSetup = require('./utils/repoSetup')
+const CLIHelper = require('./utils/cliHelper')
 const repoGitDiff = require('./utils/repoGitDiff')
 
-const fs = require('fs')
 const fse = require('fs-extra')
-const git = require('git-state')
 const path = require('path')
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
-const checkConfig = (config, repoSetup) => {
-  const errors = []
-  if (typeof config.to !== 'string') {
-    errors.push(`to ${config.to} is not a sha`)
-  }
-  if (isNaN(config.apiVersion)) {
-    errors.push(`api-version ${config.apiVersion} is not a number`)
-  }
-  if (!dirExist(config.output)) {
-    errors.push(`${config.output} folder does not exist`)
-  }
-  if (!git.isGitSync(config.repo)) {
-    errors.push(`${config.repo} is not a git repository`)
-  }
-  if (!dirExist(config.source)) {
-    errors.push(`${config.source} folder does not exist`)
-  }
-  if (!repoSetup.isToEqualHead() && config.generateDelta) {
-    errors.push(
-      `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
-    )
-  }
-
-  return errors
-}
-
-const dirExist = dir => fs.existsSync(dir) && fs.statSync(dir).isDirectory()
-
-const sanitizeConfig = (config, repoSetup) => {
-  config.apiVersion = parseInt(config.apiVersion)
-  config.repo = sanitizePath(config.repo)
-  config.source = sanitizePath(config.source)
-  config.output = sanitizePath(config.output)
-  config.ignore = config.ignore ? sanitizePath(config.ignore) : config.ignore
-  config.ignoreDestructive = config.ignoreDestructive
-    ? sanitizePath(config.ignoreDestructive)
-    : config.ignoreDestructive
-  config.from = repoSetup.computeFromRef()
-}
-
 module.exports = config => {
-  const repoSetup = new RepoSetup(config)
-  sanitizeConfig(config, repoSetup)
-  const inputError = checkConfig(config, repoSetup)
-  if (inputError.length > 0) {
-    throw new Error(inputError)
-  }
-
-  repoSetup.repoConfiguration()
+  const cliHelper = new CLIHelper(config)
+  cliHelper.validateConfig()
 
   const metadata = metadataManager.getDefinition(
     'directoryName',
