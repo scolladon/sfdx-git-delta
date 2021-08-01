@@ -1,7 +1,7 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
 import { AnyJson } from '@salesforce/ts-types'
-import * as sgd from '../../../main.js'
+import * as sgd from '../../../main'
 
 const pjson = require('../../../../package.json')
 

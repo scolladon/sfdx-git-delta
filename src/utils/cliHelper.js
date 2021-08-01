@@ -23,15 +23,14 @@ class CLIHelper {
     if (isNaN(this.config.apiVersion)) {
       errors.push(`api-version ${this.config.apiVersion} is not a number`)
     }
-    if (!dirExist(this.config.output)) {
-      errors.push(`${this.config.output} folder does not exist`)
-    }
+    ;[this.config.output, this.config.source]
+      .filter(dir => !dirExist(dir))
+      .forEach(dir => errors.push(`${dir} folder does not exist`))
+
     if (!git.isGitSync(this.config.repo)) {
       errors.push(`${this.config.repo} is not a git repository`)
     }
-    if (!dirExist(this.config.source)) {
-      errors.push(`${this.config.source} folder does not exist`)
-    }
+
     if (!this.repoSetup.isToEqualHead() && this.config.generateDelta) {
       errors.push(
         `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
@@ -59,12 +58,8 @@ class CLIHelper {
     this.config.repo = sanitizePath(this.config.repo)
     this.config.source = sanitizePath(this.config.source)
     this.config.output = sanitizePath(this.config.output)
-    this.config.ignore = this.config.ignore
-      ? sanitizePath(this.config.ignore)
-      : this.config.ignore
-    this.config.ignoreDestructive = this.config.ignoreDestructive
-      ? sanitizePath(this.config.ignoreDestructive)
-      : this.config.ignoreDestructive
+    this.config.ignore = sanitizePath(this.config.ignore)
+    this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)
     this.config.from = this.repoSetup.computeFromRef()
   }
 }
