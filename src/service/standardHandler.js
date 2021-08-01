@@ -112,7 +112,8 @@ class StandardHandler {
   static cleanUpPackageMember(packageMember) {
     return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
   }
+
+  static PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
 }
 
-StandardHandler.PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
 module.exports = StandardHandler
