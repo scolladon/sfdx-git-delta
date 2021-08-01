@@ -1,6 +1,5 @@
 'use strict'
 const app = require('../../src/main')
-const gc = require('../../src/utils/gitConstants')
 
 const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
@@ -95,58 +94,6 @@ describe(`test if the appli`, () => {
     fseMocked.outputFileSyncError = true
     expect(() => {
       app(testConfig)
-    }).toThrow()
-  })
-
-  test('throw errors when to parameter is not filled', () => {
-    expect(() => {
-      app({ ...testConfig, to: undefined })
-    }).toThrow()
-  })
-
-  test('throw errors when apiVersion parameter is NaN', () => {
-    expect(() => {
-      app({ ...testConfig, apiVersion: 'NotANumber' })
-    }).toThrow()
-  })
-
-  test('throw errors when output folder does not exist', () => {
-    expect(() => {
-      app({
-        ...testConfig,
-        output: 'not/exist/folder',
-      })
-    }).toThrow()
-  })
-
-  test('throw errors when output is not a folder', () => {
-    expect(() => {
-      app({ ...testConfig, output: 'file' })
-    }).toThrow()
-  })
-
-  test('throw errors when repo is not git repository', () => {
-    expect(() => {
-      app({
-        ...testConfig,
-        repo: 'not/git/folder',
-      })
-    }).toThrow()
-  })
-
-  test('throw errors when "-t" and "-d" are set', () => {
-    const notHeadSHA = 'test'
-    child_process.spawnSync
-      .mockReturnValueOnce({ stdout: Buffer.from('HEAD', gc.UTF8_ENCODING) })
-      .mockReturnValueOnce({
-        stdout: Buffer.from(notHeadSHA, gc.UTF8_ENCODING),
-      })
-    expect(() => {
-      app({
-        ...testConfig,
-        to: notHeadSHA,
-        generateDelta: true,
-      })
     }).toThrow()
   })
 })
