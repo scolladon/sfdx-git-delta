@@ -5,6 +5,13 @@ import * as sgd from '../../../main.js'
 
 const pjson = require('../../../../package.json')
 
+const {
+  TO_DEFAULT_VALUE,
+  OUTPUT_DEFAULT_VALUE,
+  SOURCE_DEFAULT_VALUE,
+  REPO_DEFAULT_VALUE,
+} = require('../../../utils/cliHelper')
+
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
 const COMMAND_NAME = 'delta'
@@ -20,7 +27,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     to: flags.string({
       char: 't',
       description: messages.getMessage('toFlag'),
-      default: 'HEAD',
+      default: TO_DEFAULT_VALUE,
     }),
     from: flags.string({
       char: 'f',
@@ -30,7 +37,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     repo: flags.filepath({
       char: 'r',
       description: messages.getMessage('repoFlag'),
-      default: '.',
+      default: REPO_DEFAULT_VALUE,
     }),
     ignore: flags.filepath({
       char: 'i',
@@ -43,12 +50,12 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     source: flags.filepath({
       char: 's',
       description: messages.getMessage('sourceFlag'),
-      default: '.',
+      default: SOURCE_DEFAULT_VALUE,
     }),
     output: flags.filepath({
       char: 'o',
       description: messages.getMessage('outputFlag'),
-      default: './output',
+      default: OUTPUT_DEFAULT_VALUE,
     }),
     'api-version': flags.number({
       char: 'a',
