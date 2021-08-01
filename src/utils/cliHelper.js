@@ -3,6 +3,7 @@ const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
 
 const fs = require('fs')
+const path = require('path')
 const git = require('git-state')
 
 const dirExist = dir => fs.existsSync(dir) && fs.statSync(dir).isDirectory()
@@ -37,6 +38,15 @@ class CLIHelper {
       )
     }
 
+    if (
+      this.config.generateDelta &&
+      path.resolve(this.config.output) === path.resolve(this.config.repo)
+    ) {
+      errors.push(
+        `--generate-delta (-d) parameter cannot be used when --output (-o) parameter is equal to --repo (-r). Side effect would be to override repo content`
+      )
+    }
+
     if (errors.length > 0) {
       throw new Error(errors)
     }
@@ -60,7 +70,7 @@ class CLIHelper {
 }
 
 module.exports.TO_DEFAULT_VALUE = 'HEAD'
-module.exports.OUTPUT_DEFAULT_VALUE = './output'
+module.exports.OUTPUT_DEFAULT_VALUE = '.'
 module.exports.SOURCE_DEFAULT_VALUE = '.'
 module.exports.REPO_DEFAULT_VALUE = '.'
 module.exports.IGNORE_DEFAULT_VALUE = '.'
