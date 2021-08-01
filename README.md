@@ -298,6 +298,34 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
 
+
+### Scoping delta generation to a specific folder
+
+The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
+It means the delta generation will only focus on the dedicated folder.
+
+For example, consider a repository containing multiple sub-folders (force-app/package,force-app/unpackaged, etc).
+This repository contains sources deployed in a packaged (force-app/package folder) and sources deployed unpackaged (force-app/unpackaged)
+You only want to apply delta generation for the unpackaged sources.
+
+```sh
+$ tree
+.
+├── force-app
+    ├── packaged
+    │    └── classes
+    │        └── PackagedClass.cls
+    └── unpackaged
+        └── classes
+            └── UnpackagedClass.cls
+├── ...
+
+# scope the delta generation only to the unpackaged folder
+$ sfdx sgd:source:delta --from commit --source force-app/unpackaged
+```
+
+>The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
+
 ### Generate a comma-separated list of the added and modified Apex classes:
 
 Depending on your testing strategy, [you may be interested in generating a a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
