@@ -12,6 +12,14 @@ jest.mock('fast-xml-parser')
 const fsMocked = require('fs')
 const fseMocked = require('fs-extra')
 
+const testConfig = {
+  output: 'output',
+  repo: '',
+  source: '',
+  to: 'test',
+  apiVersion: '46',
+}
+
 describe(`test if the appli`, () => {
   beforeAll(() => {
     fsMocked.errorMode = false
@@ -19,41 +27,31 @@ describe(`test if the appli`, () => {
     fseMocked.outputFileSyncError = false
     fsMocked.__setMockFiles({
       output: '',
+      '.': '',
     })
     child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
   })
 
   test('can execute with simple parameters and no diff', () => {
-    expect(
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toHaveProperty('warnings', [])
+    expect(app(testConfig)).toHaveProperty('warnings', [])
   })
 
   test('can execute with simple parameters and an Addition', () => {
-    expect(
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toHaveProperty('warnings', [])
+    expect(app(testConfig)).toHaveProperty('warnings', [])
   })
 
   test('can execute with simple parameters and a Deletion', () => {
-    expect(
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toHaveProperty('warnings', [])
+    expect(app(testConfig)).toHaveProperty('warnings', [])
   })
 
   test('can execute with simple parameters and a Modification', () => {
-    expect(
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
-    ).toHaveProperty('warnings', [])
+    expect(app(testConfig)).toHaveProperty('warnings', [])
   })
 
   test('can execute with complex parameters and a Modification', () => {
     expect(
       app({
-        output: 'output',
-        repo: '',
-        to: 'test',
-        apiVersion: '46',
+        ...testConfig,
         ignore: '.forceignore',
         ignoreDestructive: '.forceignore',
       })
@@ -61,18 +59,14 @@ describe(`test if the appli`, () => {
   })
 
   test('can execute with posix  path', () => {
-    expect(
-      app({ output: './output', repo: '', to: 'test', apiVersion: '46' })
-    ).toHaveProperty('warnings', [])
+    expect(app(testConfig)).toHaveProperty('warnings', [])
   })
 
   test('can execute with posix relative path', () => {
     expect(
       app({
+        ...testConfig,
         output: './output/../output',
-        repo: '',
-        to: 'test',
-        apiVersion: '46',
       })
     ).toHaveProperty('warnings', [])
   })
@@ -80,10 +74,8 @@ describe(`test if the appli`, () => {
   test('can execute with windows path', () => {
     expect(
       app({
+        ...testConfig,
         output: '.\\output',
-        repo: '',
-        to: 'test',
-        apiVersion: '46',
       })
     ).toHaveProperty('warnings', [])
   })
@@ -91,10 +83,8 @@ describe(`test if the appli`, () => {
   test('can execute with windows relative path', () => {
     expect(
       app({
+        ...testConfig,
         output: '.\\output\\..\\output',
-        repo: '',
-        to: 'test',
-        apiVersion: '46',
       })
     ).toHaveProperty('warnings', [])
   })
@@ -104,54 +94,48 @@ describe(`test if the appli`, () => {
     fseMocked.errorMode = true
     fseMocked.outputFileSyncError = true
     expect(() => {
-      app({ output: 'output', repo: '', to: 'test', apiVersion: '46' })
+      app(testConfig)
     }).toThrow()
   })
 
   test('throw errors when to parameter is not filled', () => {
     expect(() => {
-      app({ output: 'output', repo: '', apiVersion: '46' })
+      app({ ...testConfig, to: undefined })
     }).toThrow()
   })
 
   test('throw errors when apiVersion parameter is NaN', () => {
     expect(() => {
-      app({ output: 'output', repo: '', to: 'test', apiVersion: 'NotANumber' })
+      app({ ...testConfig, apiVersion: 'NotANumber' })
     }).toThrow()
   })
 
   test('throw errors when output folder does not exist', () => {
     expect(() => {
       app({
+        ...testConfig,
         output: 'not/exist/folder',
-        repo: '',
-        to: 'test',
-        apiVersion: '46',
       })
     }).toThrow()
   })
 
   test('throw errors when output is not a folder', () => {
     expect(() => {
-      app({ output: 'file', repo: '', to: 'test', apiVersion: '46' })
+      app({ ...testConfig, output: 'file' })
     }).toThrow()
   })
 
   test('throw errors when repo is not git repository', () => {
     expect(() => {
       app({
-        output: 'output',
+        ...testConfig,
         repo: 'not/git/folder',
-        to: 'test',
-        apiVersion: '46',
       })
     }).toThrow()
   })
 
   test('throw errors when "-t" and "-d" are set', () => {
     const notHeadSHA = 'test'
-    /*const child_process = require('child_process')
-    jest.mock('child_process', () => ({ spawnSync: jest.fn() }))*/
     child_process.spawnSync
       .mockReturnValueOnce({ stdout: Buffer.from('HEAD', gc.UTF8_ENCODING) })
       .mockReturnValueOnce({
@@ -159,11 +143,9 @@ describe(`test if the appli`, () => {
       })
     expect(() => {
       app({
-        output: 'output',
-        repo: '',
+        ...testConfig,
         to: notHeadSHA,
         generateDelta: true,
-        apiVersion: '46',
       })
     }).toThrow()
   })

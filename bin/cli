@@ -20,6 +20,11 @@ const options = program
   .option(
     '-o, --output [dir]',
     'source package specific output [./output]',
+    './output'
+  )
+  .option(
+    '-s, --source [dir]',
+    'source folder focus location related to --repo [.]',
     '.'
   )
   .option('-i, --ignore [file]', 'ignore file to use [./.forceignore]')
@@ -34,7 +39,6 @@ const options = program
   )
   .option('-r, --repo [dir]', 'git repository location [.]', '.')
   .option('-d, --generate-delta', 'generate delta files in [./output] folder')
-  .option('-s, --source [dir]', 'source metadata directory [.]','.')
   .parse(process.argv)
   .opts()
 
