@@ -90,15 +90,4 @@ describe(`test if the appli`, () => {
       cliHelper.validateConfig()
     }).toThrow()
   })
-
-  test('throw errors when "-d" is set and "-r" equals "-o', () => {
-    cliHelper = new CLIHelper({
-      ...testConfig,
-      output: '',
-      generateDelta: true,
-    })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
-  })
 })
