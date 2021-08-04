@@ -52,11 +52,11 @@ class CLIHelper {
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)
     this.config.from = this.repoSetup.computeFromRef()
   }
-}
 
-module.exports.TO_DEFAULT_VALUE = 'HEAD'
-module.exports.OUTPUT_DEFAULT_VALUE = './output'
-module.exports.SOURCE_DEFAULT_VALUE = '.'
-module.exports.REPO_DEFAULT_VALUE = '.'
-module.exports.IGNORE_DEFAULT_VALUE = '.'
+  static TO_DEFAULT_VALUE = 'HEAD'
+  static OUTPUT_DEFAULT_VALUE = './output'
+  static SOURCE_DEFAULT_VALUE = '.'
+  static REPO_DEFAULT_VALUE = '.'
+  static IGNORE_DEFAULT_VALUE = '.'
+}
 module.exports = CLIHelper

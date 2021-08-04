@@ -5,21 +5,23 @@ const program = require('commander')
 const orchestrator = require('../lib/main')
 const messages = require('../messages/delta')
 const pjson = require('../package.json')
-const {
-  TO_DEFAULT_VALUE,
-  OUTPUT_DEFAULT_VALUE,
-  SOURCE_DEFAULT_VALUE,
-  REPO_DEFAULT_VALUE,
-  IGNORE_DEFAULT_VALUE,
-} = require('../src/utils/cliHelper')
+const CliHelper = require('../lib/utils/cliHelper')
 
 const options = program
   .description(messages.command)
   .version(pjson.version)
-  .option('-t, --to [sha]', messages.toFlag, TO_DEFAULT_VALUE)
+  .option('-t, --to [sha]', messages.toFlag, CliHelper.TO_DEFAULT_VALUE)
   .option('-f, --from [sha]', messages.fromFlag)
-  .option('-o, --output [dir]', messages.outputFlag, OUTPUT_DEFAULT_VALUE)
-  .option('-s, --source [dir]', messages.sourceFlag, SOURCE_DEFAULT_VALUE)
+  .option(
+    '-o, --output [dir]',
+    messages.outputFlag,
+    CliHelper.OUTPUT_DEFAULT_VALUE
+  )
+  .option(
+    '-s, --source [dir]',
+    messages.sourceFlag,
+    CliHelper.SOURCE_DEFAULT_VALUE
+  )
   .option('-i, --ignore [file]', messages.ignoreFlag)
   .option('-D, --ignore-destructive [file]', messages.ignoreDestructiveFlag)
   .option(
@@ -27,12 +29,13 @@ const options = program
     messages.apiVersionFlag,
     pjson.sfdc.latestApiVersion
   )
-  .option('-r, --repo [dir]', messages.repoFlag, REPO_DEFAULT_VALUE)
+  .option('-r, --repo [dir]', messages.repoFlag, CliHelper.REPO_DEFAULT_VALUE)
   .option('-d, --generate-delta', messages.deltaFlag)
   .parse(process.argv)
   .opts()
 
-options.ignore = options.ignore === true ? IGNORE_DEFAULT_VALUE : options.ignore
+options.ignore =
+  options.ignore === true ? CliHelper.IGNORE_DEFAULT_VALUE : options.ignore
 
 const output = {
   error: null,

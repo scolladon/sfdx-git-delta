@@ -118,14 +118,16 @@ OPTIONS
 
   -i, --ignore=ignore                                                               ignore file to use
 
-  -o, --output=output                                                               source package specific output
+  -o, --output=output                                                               [default: ./output] source package
+                                                                                    specific output
 
-  -r, --repo=repo                                                                   git repository location
+  -r, --repo=repo                                                                   [default: .] git repository location
 
-  -s, --source=source                                                               source folder focus location related
-                                                                                    to --repo
+  -s, --source=source                                                               [default: .] source folder focus
+                                                                                    location related to --repo
 
-  -t, --to=to                                                                       commit sha to where the diff is done
+  -t, --to=to                                                                       [default: HEAD] commit sha to where
+                                                                                    the diff is done
 
   --json                                                                            format output as json
 
