@@ -93,16 +93,17 @@ If you encounter this issue while having installed the correct version of node o
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Generate the sfdx content in source format and destructive change from two git commits
 
 ```
 USAGE
-  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-o <filepath>] [-a 
-  <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-o 
+  <filepath>] [-a <number>] [-d] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
   -D, --ignore-destructive=ignore-destructive                                       ignore file to use
@@ -121,6 +122,9 @@ OPTIONS
                                                                                     specific output
 
   -r, --repo=repo                                                                   [default: .] git repository location
+
+  -s, --source=source                                                               [default: .] source folder focus
+                                                                                    location related to --repo
 
   -t, --to=to                                                                       [default: HEAD] commit sha to where
                                                                                     the diff is done
@@ -293,6 +297,34 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 ```
 
 Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
+
+
+### Scoping delta generation to a specific folder
+
+The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
+It means the delta generation will only focus on the dedicated folder.
+
+For example, consider a repository containing multiple sub-folders (force-app/package,force-app/unpackaged, etc).
+This repository contains sources deployed in a packaged (force-app/package folder) and sources deployed unpackaged (force-app/unpackaged)
+You only want to apply delta generation for the unpackaged sources.
+
+```sh
+$ tree
+.
+├── force-app
+    ├── packaged
+    │    └── classes
+    │        └── PackagedClass.cls
+    └── unpackaged
+        └── classes
+            └── UnpackagedClass.cls
+├── ...
+
+# scope the delta generation only to the unpackaged folder
+$ sfdx sgd:source:delta --from commit --source force-app/unpackaged
+```
+
+>The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
 
 ### Generate a comma-separated list of the added and modified Apex classes:
 

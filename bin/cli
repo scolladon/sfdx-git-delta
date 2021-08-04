@@ -3,41 +3,39 @@
 
 const program = require('commander')
 const orchestrator = require('../lib/main')
+const messages = require('../messages/delta')
 const pjson = require('../package.json')
+const CliHelper = require('../lib/utils/cliHelper')
 
 const options = program
-  .description(pjson.description)
+  .description(messages.command)
   .version(pjson.version)
-  .option(
-    '-t, --to [sha]',
-    'commit sha to where the diff is done [HEAD]',
-    'HEAD'
-  )
-  .option(
-    '-f, --from [sha]',
-    'commit sha from where the diff is done [git rev-list --max-parents=0 HEAD]'
-  )
+  .option('-t, --to [sha]', messages.toFlag, CliHelper.TO_DEFAULT_VALUE)
+  .option('-f, --from [sha]', messages.fromFlag)
   .option(
     '-o, --output [dir]',
-    'source package specific output [./output]',
-    './output'
+    messages.outputFlag,
+    CliHelper.OUTPUT_DEFAULT_VALUE
   )
-  .option('-i, --ignore [file]', 'ignore file to use [./.forceignore]')
   .option(
-    '-D, --ignore-destructive [file]',
-    'ignore file to use [./.forceignore]'
+    '-s, --source [dir]',
+    messages.sourceFlag,
+    CliHelper.SOURCE_DEFAULT_VALUE
   )
+  .option('-i, --ignore [file]', messages.ignoreFlag)
+  .option('-D, --ignore-destructive [file]', messages.ignoreDestructiveFlag)
   .option(
     '-a, --api-version [version]',
-    `salesforce API version [${pjson.sfdc.latestApiVersion}]`,
+    messages.apiVersionFlag,
     pjson.sfdc.latestApiVersion
   )
-  .option('-r, --repo [dir]', 'git repository location [.]', '.')
-  .option('-d, --generate-delta', 'generate delta files in [./output] folder')
+  .option('-r, --repo [dir]', messages.repoFlag, CliHelper.REPO_DEFAULT_VALUE)
+  .option('-d, --generate-delta', messages.deltaFlag)
   .parse(process.argv)
   .opts()
 
-options.ignore = options.ignore === true ? './.forceignore' : options.ignore
+options.ignore =
+  options.ignore === true ? CliHelper.IGNORE_DEFAULT_VALUE : options.ignore
 
 const output = {
   error: null,

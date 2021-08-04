@@ -1,8 +1,8 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
 import { AnyJson } from '@salesforce/ts-types'
-import * as sgd from '../../../main.js'
-
+import * as sgd from '../../../main'
+const CliHelper = require('../../../utils/cliHelper')
 const pjson = require('../../../../package.json')
 
 // Initialize Messages with the current plugin directory
@@ -20,7 +20,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     to: flags.string({
       char: 't',
       description: messages.getMessage('toFlag'),
-      default: 'HEAD',
+      default: CliHelper.TO_DEFAULT_VALUE,
     }),
     from: flags.string({
       char: 'f',
@@ -30,7 +30,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     repo: flags.filepath({
       char: 'r',
       description: messages.getMessage('repoFlag'),
-      default: '.',
+      default: CliHelper.REPO_DEFAULT_VALUE,
     }),
     ignore: flags.filepath({
       char: 'i',
@@ -40,10 +40,15 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       char: 'D',
       description: messages.getMessage('ignoreDestructiveFlag'),
     }),
+    source: flags.filepath({
+      char: 's',
+      description: messages.getMessage('sourceFlag'),
+      default: CliHelper.SOURCE_DEFAULT_VALUE,
+    }),
     output: flags.filepath({
       char: 'o',
       description: messages.getMessage('outputFlag'),
-      default: './output',
+      default: CliHelper.OUTPUT_DEFAULT_VALUE,
     }),
     'api-version': flags.number({
       char: 'a',
@@ -68,6 +73,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         to: this.flags.to,
         from: this.flags.from,
         output: this.flags.output,
+        source: this.flags.source,
         ignore: this.flags.ignore,
         ignoreDestructive: this.flags['ignore-destructive'],
         apiVersion: this.flags['api-version'],

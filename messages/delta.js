@@ -6,6 +6,7 @@ module.exports = {
     'commit sha from where the diff is done [git rev-list --max-parents=0 HEAD]',
   repoFlag: 'git repository location',
   outputFlag: 'source package specific output',
+  sourceFlag: 'source folder focus location related to --repo',
   ignoreFlag: 'ignore file to use',
   ignoreDestructiveFlag: 'ignore file to use',
   apiVersionFlag: 'salesforce API version',

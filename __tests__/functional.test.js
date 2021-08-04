@@ -34,6 +34,7 @@ describe(`test if the appli`, () => {
   beforeAll(() => {
     require('fs').__setMockFiles({
       output: '',
+      '.': '',
     })
   })
   test('can execute with rich parameters and big diff', () => {
@@ -44,6 +45,7 @@ describe(`test if the appli`, () => {
       app({
         output: 'output',
         repo: 'repo/path',
+        source: '',
         to: 'test',
         apiVersion: '46',
       })
@@ -60,6 +62,7 @@ describe(`test if the appli`, () => {
       app({
         output: 'output',
         repo: '',
+        source: '',
         to: 'test',
         apiVersion: '46',
         generateDelta: true,
@@ -74,6 +77,7 @@ describe(`test if the appli`, () => {
     const work = app({
       output: 'output',
       repo: '',
+      source: '',
       to: 'test',
       apiVersion: '46',
       generateDelta: true,
