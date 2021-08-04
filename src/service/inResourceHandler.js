@@ -4,7 +4,6 @@ const path = require('path')
 const fs = require('fs')
 const mc = require('../utils/metadataConstants')
 
-const STATIC_RESOURCE_TYPE = 'staticresources'
 const elementSrc = {}
 
 class ResourceHandler extends StandardHandler {
@@ -28,11 +27,7 @@ class ResourceHandler extends StandardHandler {
     }
 
     elementSrc[srcPath]
-      .filter(src =>
-        this.type === STATIC_RESOURCE_TYPE
-          ? src.startsWith(parsedElementName.name)
-          : src === parsedElementName.name
-      )
+      .filter(src => path.parse(src).name === parsedElementName.name)
       .forEach(src =>
         this._copyFiles(
           path.normalize(path.join(srcPath, src)),
