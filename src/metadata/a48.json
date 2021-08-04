@@ -810,7 +810,7 @@
     "directoryName": "experiences",
     "inFolder": false,
     "metaFile": true,
-    "suffix": "",
+    "suffix": "site",
     "xmlName": "ExperienceBundle"
   },
   {

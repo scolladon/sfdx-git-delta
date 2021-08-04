@@ -14,6 +14,8 @@ const FSE_COPYSYNC_OPTION = {
   preserveTimestamps: false,
 }
 
+const copiedFiles = new Set()
+
 class StandardHandler {
   static metadata
 
@@ -98,8 +100,9 @@ class StandardHandler {
   }
 
   _copyFiles(src, dst) {
-    if (fse.pathExistsSync(src)) {
+    if (!copiedFiles.has(src) && fse.pathExistsSync(src)) {
       fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
+      copiedFiles.add(src)
     }
   }
 
