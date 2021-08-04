@@ -15,6 +15,9 @@ const XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n'
 const XML_PARSER_OPTION = {
   ignoreAttributes: false,
   ignoreNameSpace: false,
+  parseNodeValue: false,
+  parseAttributeValue: false,
+  trimValues: true,
 }
 const JSON_PARSER_OPTION = {
   ...XML_PARSER_OPTION,
