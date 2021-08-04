@@ -9,19 +9,11 @@ const elementSrc = {}
 class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    this.elementRegex = new RegExp(
-      `(?<path>.*[/\\\\]${
-        StandardHandler.metadata[this.type].directoryName
-      })[/\\\\](?<name>[^/\\\\]*)+`,
-      'u'
-    )
   }
   handleAddition() {
     super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, srcPath, elementName] = path
-      .join(this.config.repo, this.line)
-      .match(this.elementRegex)
+    const [, srcPath, elementName] = this._parseLine()
     const [targetPath] = `${path.join(this.config.output, this.line)}`.match(
       new RegExp(
         `.*[/\\\\]${StandardHandler.metadata[this.type].directoryName}`,
@@ -30,12 +22,12 @@ class ResourceHandler extends StandardHandler {
     )
 
     const parsedElementName = path.parse(elementName)
-
     if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
       elementSrc[srcPath] = fs.readdirSync(srcPath)
     }
+
     elementSrc[srcPath]
-      .filter(src => src.indexOf(parsedElementName.name) !== -1)
+      .filter(src => path.parse(src).name === parsedElementName.name)
       .forEach(src =>
         this._copyFiles(
           path.normalize(path.join(srcPath, src)),
@@ -45,15 +37,25 @@ class ResourceHandler extends StandardHandler {
   }
 
   handleDeletion() {
-    const [, srcPath, elementName] = path
-      .join(this.config.repo, this.line)
-      .match(this.elementRegex)
-
+    const [, srcPath, elementName] = this._parseLine()
     if (fs.existsSync(path.join(srcPath, elementName))) {
       this.handleModification(this)
     } else {
       super.handleDeletion()
     }
+  }
+
+  _parseLine() {
+    return path
+      .join(this.config.repo, this.line)
+      .match(
+        new RegExp(
+          `(?<path>.*[/\\\\]${
+            StandardHandler.metadata[this.type].directoryName
+          })[/\\\\](?<name>[^/\\\\]*)+`,
+          'u'
+        )
+      )
   }
 
   _getElementName() {

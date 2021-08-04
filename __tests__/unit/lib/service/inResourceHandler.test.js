@@ -36,6 +36,16 @@ const testContext = {
       'force-app/main/default/aura/component/component.cmp-meta.xml',
       new Set(['component']),
     ],
+    [
+      'experiences',
+      'force-app/main/default/experiences/component/subfolder/file.json',
+      new Set(['component']),
+    ],
+    [
+      'experiences',
+      'force-app/main/default/experiences/component-meta.xml',
+      new Set(['component']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
