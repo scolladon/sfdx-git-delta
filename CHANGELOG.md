@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.8.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.7.2...v4.8.0) (2021-08-04)
+
+
+### Features
+
+* delta analysis scoped by source parameter ([#174](https://github.com/scolladon/sfdx-git-delta/issues/174)) ([62f0cf2](https://github.com/scolladon/sfdx-git-delta/commit/62f0cf2609dbbf036cece11cf0304083edede01d))
+
+
+### Bug Fixes
+
+* inResource file identification ([#178](https://github.com/scolladon/sfdx-git-delta/issues/178)) ([dda6327](https://github.com/scolladon/sfdx-git-delta/commit/dda63278aa9ca796d5ed2a1d36f17d08f1cc0a22))
+* truncated xml values ([#177](https://github.com/scolladon/sfdx-git-delta/issues/177)) ([d0f99b8](https://github.com/scolladon/sfdx-git-delta/commit/d0f99b823dea9d6b43377e2974c28df797e65c22))
+
 ### [4.7.2](https://github.com/scolladon/sfdx-git-delta/compare/v4.7.1...v4.7.2) (2021-07-29)
 
 
