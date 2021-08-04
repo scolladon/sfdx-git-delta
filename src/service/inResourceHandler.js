@@ -4,6 +4,7 @@ const path = require('path')
 const fs = require('fs')
 const mc = require('../utils/metadataConstants')
 
+const STATICRESOURCE_TYPE = 'staticresources'
 const elementSrc = {}
 
 class ResourceHandler extends StandardHandler {
@@ -20,14 +21,16 @@ class ResourceHandler extends StandardHandler {
         'u'
       )
     )
+    this._buildElementMap(srcPath)
 
-    const parsedElementName = path.parse(elementName)
-    if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
-      elementSrc[srcPath] = fs.readdirSync(srcPath)
-    }
-
+    const matchingFiles = this._buildMatchingFiles(elementName)
     elementSrc[srcPath]
-      .filter(src => path.parse(src).name === parsedElementName.name)
+      .filter(
+        src =>
+          (this.type === STATICRESOURCE_TYPE &&
+            src.startsWith(path.parse(elementName).name)) ||
+          matchingFiles.includes(src)
+      )
       .forEach(src =>
         this._copyFiles(
           path.normalize(path.join(srcPath, src)),
@@ -69,6 +72,25 @@ class ResourceHandler extends StandardHandler {
         .replace(mc.META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
+  }
+
+  _buildMatchingFiles(elementName) {
+    const parsedElementName = path.parse(elementName).name
+    const matchingFiles = [parsedElementName]
+    if (StandardHandler.metadata[this.type].suffix) {
+      matchingFiles.push(
+        `${parsedElementName}.${StandardHandler.metadata[this.type].suffix}${
+          mc.METAFILE_SUFFIX
+        }`
+      )
+    }
+    return matchingFiles
+  }
+
+  _buildElementMap(srcPath) {
+    if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
+      elementSrc[srcPath] = fs.readdirSync(srcPath)
+    }
   }
 }
 
