@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.8.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.8.0...v4.8.1) (2021-08-04)
+
+
+### Bug Fixes
+
+* issue with inResource meta file not copied for corner cases ([#179](https://github.com/scolladon/sfdx-git-delta/issues/179)) ([909eba3](https://github.com/scolladon/sfdx-git-delta/commit/909eba3cdd685e98de435b115e1779f3a839ad6b))
+
 ## [4.8.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.7.2...v4.8.0) (2021-08-04)
 
 

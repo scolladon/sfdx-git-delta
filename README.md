@@ -135,7 +135,7 @@ OPTIONS
                                                                                     this command invocation
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.8.0/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.8.1/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Important note for Windows users:
