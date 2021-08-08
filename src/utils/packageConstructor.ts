@@ -1,15 +1,26 @@
 'use strict'
-import * as xmlbuilder from 'xmlbuilder'
+import * as xmlBuilder from 'xmlbuilder'
+import { Config } from '../model/Config'
 import { WAVE_SUB_TYPES_PREFIX } from './metadataConstants'
+import { MetadataRepository } from '../model/Metadata'
+import { Package } from '../model/Package'
+
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
 
-module.exports = class PackageConstructor {
-  constructor(config, metadata) {
+type Package = {
+  [key: string]: Set<string>
+}
+
+export class PackageConstructor {
+  config: Config
+  metadata: MetadataRepository
+
+  constructor(config: Config, metadata: {}) {
     this.config = config
     this.metadata = metadata
   }
 
-  constructPackage(strucDiffPerType) {
+  constructPackage(strucDiffPerType: Package) {
     if (!strucDiffPerType) {
       return
     }
@@ -25,7 +36,7 @@ module.exports = class PackageConstructor {
       .sort()
       // @deprecated To remove when the order will not impact the result of the deployment
       .sort((x, y) => (x === 'objects' ? -1 : x.localeCompare(y)))
-      .forEach(metadataType =>
+      .forEach((metadataType: string) =>
         [...strucDiffPerType[metadataType]] // transform set to array
           .reduce((type, member) => {
             type.ele('members').t(member)
@@ -40,7 +51,7 @@ module.exports = class PackageConstructor {
 }
 
 const getXML = () =>
-  xmlbuilder
+  xmlBuilder
     .create('Package')
     .att('xmlns', 'http://soap.sforce.com/2006/04/metadata')
     .dec('1.0', 'UTF-8')

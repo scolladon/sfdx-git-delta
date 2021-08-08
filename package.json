@@ -39,7 +39,6 @@
     "commander": "^8.1.0",
     "fast-xml-parser": "^3.19.0",
     "fs-extra": "^10.0.0",
-    "git-state": "^4.1.0",
     "ignore": "^5.1.8",
     "tslib": "^2.3.1",
     "xmlbuilder": "^15.1.1"
@@ -77,6 +76,7 @@
     "@oclif/test": "^1",
     "@salesforce/dev-config": "2.1.2",
     "@types/chai": "^4.2.21",
+    "@types/fs-extra": "^9.0.12",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.6.2",
     "@typescript-eslint/eslint-plugin": "^4.29.2",

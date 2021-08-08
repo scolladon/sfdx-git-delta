@@ -23,7 +23,7 @@ type LineTypeMap = {
   D: string[]
 }
 
-module.exports = (config: Config, metadata: any) => {
+export const getDiff = (config: Config, metadata: any): string[] => {
   const { stdout: diff } = spawnSync(
     'git',
     [...fullDiffParams, config.from, config.to, config.source],
@@ -36,7 +36,11 @@ module.exports = (config: Config, metadata: any) => {
   return treatResult(treatDataFromSpawn(diff), metadata, config)
 }
 
-const treatResult = (repoDiffResult: string, metadata: any, config: Config) => {
+const treatResult = (
+  repoDiffResult: string,
+  metadata: any,
+  config: Config
+): string[] => {
   const lines = repoDiffResult.split(EOL)
   const linesPerDiffType: LineTypeMap = lines.reduce(
     (acc: LineTypeMap, line: string) => (

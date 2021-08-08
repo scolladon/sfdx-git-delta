@@ -6,7 +6,7 @@ import { Config } from '../model/Config'
 
 const unitDiffParams = ['--no-pager', 'diff', '--no-prefix', '-U200']
 
-module.exports = (filePath: string, config: Config) => {
+export const getFileDiff = (filePath: string, config: Config): string => {
   const { stdout: diff } = spawnSync(
     'git',
     [...unitDiffParams, config.from, config.to, '--', filePath],

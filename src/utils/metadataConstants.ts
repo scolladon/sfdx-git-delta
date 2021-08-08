@@ -1,13 +1,13 @@
 const METAFILE_SUFFIX: string = '-meta.xml'
-const META_REGEX = new RegExp(`${METAFILE_SUFFIX}$`)
-const OBJECT_META_XML_SUFFIX = `object${METAFILE_SUFFIX}`
-const MASTER_DETAIL_TAG = '<type>MasterDetail</type>'
-const FIELD_DIRECTORY_NAME = 'fields'
+const META_REGEX: RegExp = new RegExp(`${METAFILE_SUFFIX}$`)
+const OBJECT_META_XML_SUFFIX: string = `object${METAFILE_SUFFIX}`
+const MASTER_DETAIL_TAG: string = '<type>MasterDetail</type>'
+const FIELD_DIRECTORY_NAME: string = 'fields'
 const LABEL_EXTENSION: string = 'labels'
-const LABEL_DIRECTORY_NAME = `labels.${LABEL_EXTENSION}`
-const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_SUFFIX}`
-const INFOLDER_SUFFIX = `Folder`
-const WAVE_SUB_TYPES_PREFIX = 'Wave'
+const LABEL_DIRECTORY_NAME: string = `labels.${LABEL_EXTENSION}`
+const OBJECT_TRANSLATION_META_XML_SUFFIX: string = `objectTranslation${METAFILE_SUFFIX}`
+const INFOLDER_SUFFIX: string = `Folder`
+const WAVE_SUB_TYPES_PREFIX: string = 'Wave'
 
 export {
   METAFILE_SUFFIX,
