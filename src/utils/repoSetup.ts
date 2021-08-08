@@ -20,18 +20,20 @@ export default class RepoSetup {
     if (this.config.to === HEAD) {
       return true
     }
-    const { stdout: headSHA } = spawnSync('git', [...revparseParams, HEAD], {
+    const { stdout: headSHA } = spawnSync('git', [...revparseParams, HEAD], <
+      SpawnSyncOptionsWithStringEncoding
+    >{
       cwd: this.config.repo,
       encoding: UTF8_ENCODING,
-    } as SpawnSyncOptionsWithStringEncoding)
+    })
 
     const { stdout: toSHA } = spawnSync(
       'git',
       [...revparseParams, this.config.to],
-      {
+      <SpawnSyncOptionsWithStringEncoding>{
         cwd: this.config.repo,
         encoding: UTF8_ENCODING,
-      } as SpawnSyncOptionsWithStringEncoding
+      }
     )
 
     return toSHA === headSHA
@@ -46,10 +48,12 @@ export default class RepoSetup {
   computeFromRef() {
     let firstCommitSHA = this.config.from
     if (!firstCommitSHA) {
-      firstCommitSHA = spawnSync('git', revlistParams, {
+      firstCommitSHA = spawnSync('git', revlistParams, <
+        SpawnSyncOptionsWithStringEncoding
+      >{
         cwd: this.config.repo,
         encoding: UTF8_ENCODING,
-      } as SpawnSyncOptionsWithStringEncoding).stdout
+      }).stdout
     }
     return firstCommitSHA
   }

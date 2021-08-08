@@ -10,10 +10,10 @@ export const getFileDiff = (filePath: string, config: Config): string => {
   const { stdout: diff } = spawnSync(
     'git',
     [...unitDiffParams, config.from, config.to, '--', filePath],
-    {
+    <SpawnSyncOptionsWithStringEncoding>{
       cwd: config.repo,
       encoding: UTF8_ENCODING,
-    } as SpawnSyncOptionsWithStringEncoding
+    }
   )
 
   return treatEOL(diff)

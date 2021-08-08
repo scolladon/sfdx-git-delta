@@ -27,10 +27,10 @@ export const getDiff = (config: Config, metadata: any): string[] => {
   const { stdout: diff } = spawnSync(
     'git',
     [...fullDiffParams, config.from, config.to, config.source],
-    {
+    <SpawnSyncOptionsWithStringEncoding>{
       cwd: config.repo,
       encoding: UTF8_ENCODING,
-    } as SpawnSyncOptionsWithStringEncoding
+    }
   )
 
   return treatResult(treatDataFromSpawn(diff), metadata, config)
@@ -46,7 +46,7 @@ const treatResult = (
     (acc: LineTypeMap, line: string) => (
       acc[line.charAt(0) as keyof LineTypeMap]?.push(line), acc
     ),
-    ({ [ADDITION]: [], [DELETION]: [] } as unknown) as LineTypeMap
+    <LineTypeMap>(<unknown>{ [ADDITION]: [], [DELETION]: [] })
   )
   const AfileNames = linesPerDiffType[ADDITION as keyof LineTypeMap].map(
     (line: string) => parse(line.replace(GIT_DIFF_TYPE_REGEX, '')).base

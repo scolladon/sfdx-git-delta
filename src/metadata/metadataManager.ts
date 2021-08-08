@@ -23,7 +23,7 @@ export class MetadataManager {
               !acc.latest || acc.latest < version ? version : acc.latest
           }
           return acc
-        }, {} as MetadataMap)
+        }, <MetadataMap>{})
       MetadataManager._apiMap.latest =
         MetadataManager._apiMap[MetadataManager._apiMap.latest]
     }
@@ -45,7 +45,7 @@ export class MetadataManager {
         ] = element
         return metadata
       },
-      {} as MetadataRepository
+      <MetadataRepository>{}
     )
   }
 }
