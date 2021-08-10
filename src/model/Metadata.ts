@@ -6,10 +6,16 @@ type MetadataElement = {
   suffix?: string
   xmlName: string
   xmlTag?: string
+  content?: Array<WaveMetadataType>
+}
+
+type WaveMetadataType = {
+  suffix: string
+  xmlName: string
 }
 
 type MetadataRepository = {
   [key: string]: MetadataElement
 }
 
-export type { MetadataRepository, MetadataElement }
+export type { MetadataRepository, MetadataElement, WaveMetadataType }

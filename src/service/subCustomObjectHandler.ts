@@ -1,46 +1,47 @@
-'use strict'
-const StandardHandler = require('./standardHandler')
-const mc = require('../utils/metadataConstants')
-const path = require('path')
+import StandardHandler from './standardHandler'
+import {
+  MASTER_DETAIL_TAG,
+  OBJECT_META_XML_SUFFIX,
+} from '../utils/metadataConstants'
+import { join, sep } from 'path'
+import { Package } from '../model/Package'
 
-class SubCustomObjectHandler extends StandardHandler {
-  handleDeletion() {
-    this._fillPackage(this.diffs.destructiveChanges)
+export default class SubCustomObjectHandler extends StandardHandler {
+  override handleDeletion(): void {
+    this.fillPackage(this.diffs.destructiveChanges)
   }
 
-  handleAddition() {
+  override handleAddition(): void {
     super.handleAddition()
     if (!this.config.generateDelta) return
 
-    const data = this._readFileSync()
-    if (data?.includes(mc.MASTER_DETAIL_TAG)) {
+    const data = this.readFileSync()
+    if (data?.includes(MASTER_DETAIL_TAG)) {
       const customObjectDirPath = this.splittedLine
-        .slice(0, [this.splittedLine.indexOf(this.type)])
-        .join(path.sep)
+        .slice(0, this.splittedLine.indexOf(this.type))
+        .join(sep)
       const customObjectName = this.splittedLine[
         this.splittedLine.indexOf(this.type) - 1
       ]
 
-      const customObjectPath = path.join(
+      const customObjectPath = join(
         customObjectDirPath,
-        `${customObjectName}.${mc.OBJECT_META_XML_SUFFIX}`
+        `${customObjectName}.${OBJECT_META_XML_SUFFIX}`
       )
 
-      this._copyFiles(
-        path.join(this.config.repo, customObjectPath),
-        path.join(this.config.output, customObjectPath)
+      this.copyFiles(
+        join(this.config.repo, customObjectPath),
+        join(this.config.output, customObjectPath)
       )
     }
   }
 
-  _fillPackage(packageObject) {
+  override fillPackage(packageObject: Package): void {
     packageObject[this.type] = packageObject[this.type] ?? new Set()
     const prefix = this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
 
-    const elementName = this._getElementName()
+    const elementName = this.getElementName()
 
     packageObject[this.type].add(`${prefix}.${elementName}`)
   }
 }
-
-module.exports = SubCustomObjectHandler

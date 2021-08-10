@@ -1,48 +1,47 @@
 'use strict'
-const StandardHandler = require('./standardHandler')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
-const path = require('path')
-const fs = require('fs')
+import StandardHandler from './standardHandler'
+import { UTF8_ENCODING } from '../utils/gitConstants'
+import {
+  FIELD_DIRECTORY_NAME,
+  MASTER_DETAIL_TAG,
+} from '../utils/metadataConstants'
+import { join, parse, resolve } from 'path'
+import { existsSync, readdirSync, readFileSync } from 'fs'
 
 const readFileSyncOptions = {
-  encoding: gc.UTF8_ENCODING,
+  encoding: UTF8_ENCODING,
 }
 
-class CustomObjectHandler extends StandardHandler {
-  handleAddition() {
+export default class CustomObjectHandler extends StandardHandler {
+  override handleAddition(): void {
     super.handleAddition()
     if (!this.config.generateDelta) return
     this._handleMasterDetailException()
   }
 
-  _handleMasterDetailException() {
+  private _handleMasterDetailException(): void {
     if (this.type !== CustomObjectHandler.OBJECT_TYPE) return
 
-    const fieldsFolder = path.resolve(
+    const fieldsFolder = resolve(
       this.config.repo,
-      path.join(path.parse(this.line).dir, mc.FIELD_DIRECTORY_NAME)
+      join(parse(this.line).dir, FIELD_DIRECTORY_NAME)
     )
-    if (!fs.existsSync(fieldsFolder)) return
+    if (!existsSync(fieldsFolder)) return
 
-    fs.readdirSync(fieldsFolder)
-      .filter(fieldPath =>
-        fs
-          .readFileSync(
-            path.resolve(this.config.repo, fieldsFolder, fieldPath),
-            readFileSyncOptions
-          )
-          .includes(mc.MASTER_DETAIL_TAG)
+    readdirSync(fieldsFolder)
+      .filter((fieldPath: string): boolean =>
+        readFileSync(
+          resolve(this.config.repo, fieldsFolder, fieldPath),
+          readFileSyncOptions
+        ).includes(MASTER_DETAIL_TAG)
       )
-      .forEach(field =>
-        this._copyFiles(
-          path.resolve(this.config.repo, fieldsFolder, field),
-          path.resolve(this.config.output, fieldsFolder, field)
+      .forEach((field: string): void =>
+        this.copyFiles(
+          resolve(this.config.repo, fieldsFolder, field),
+          resolve(this.config.output, fieldsFolder, field)
         )
       )
   }
 
-  static OBJECT_TYPE = 'objects'
+  static OBJECT_TYPE: string = 'objects'
 }
-
-module.exports = CustomObjectHandler

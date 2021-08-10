@@ -1,56 +1,63 @@
-'use strict'
-const StandardHandler = require('./standardHandler')
-const path = require('path')
-const fs = require('fs')
-const mc = require('../utils/metadataConstants')
+import StandardHandler from './standardHandler'
+import { join, normalize, parse } from 'path'
+import {existsSync,readdirSync} from 'fs'
+import {META_REGEX, METAFILE_SUFFIX} from '../utils/metadataConstants'
+import { ParsedPath } from 'path'
 
-const STATICRESOURCE_TYPE = 'staticresources'
-const elementSrc = {}
+type FileTree = {
+  [key: string]: Array<string>
+}
 
-class ResourceHandler extends StandardHandler {
-  constructor(line, type, work, metadata) {
-    super(line, type, work, metadata)
-  }
-  handleAddition() {
+const STATICRESOURCE_TYPE: string = 'staticresources'
+const elementSrc: FileTree = {}
+
+export default class ResourceHandler extends StandardHandler {
+  override handleAddition(): void {
     super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, srcPath, elementName] = this._parseLine()
-    const [targetPath] = `${path.join(this.config.output, this.line)}`.match(
+
+    const parseLineResult: RegExpMatchArray | null = this._parseLine()
+    const parseTargetResult: RegExpMatchArray | null = `${join(this.config.output, this.line)}`.match(
       new RegExp(
         `.*[/\\\\]${StandardHandler.metadata[this.type].directoryName}`,
         'u'
       )
     )
+    if(parseLineResult === null || parseTargetResult === null) return
+    const [, srcPath, elementName] = parseLineResult
+    const [targetPath] = parseTargetResult
     this._buildElementMap(srcPath)
 
     const matchingFiles = this._buildMatchingFiles(elementName)
     elementSrc[srcPath]
       .filter(
-        src =>
+        (src: string): boolean =>
           (this.type === STATICRESOURCE_TYPE &&
-            src.startsWith(path.parse(elementName).name)) ||
+            src.startsWith(parse(elementName).name)) ||
           matchingFiles.includes(src)
       )
-      .forEach(src =>
-        this._copyFiles(
-          path.normalize(path.join(srcPath, src)),
-          path.normalize(path.join(targetPath, src))
+      .forEach((src: string): void =>
+        this.copyFiles(
+          normalize(join(srcPath, src)),
+          normalize(join(targetPath, src))
         )
       )
   }
 
-  handleDeletion() {
-    const [, srcPath, elementName] = this._parseLine()
-    if (fs.existsSync(path.join(srcPath, elementName))) {
-      this.handleModification(this)
+  override handleDeletion(): void {
+    const parseLineResult: RegExpMatchArray | null = this._parseLine()
+    if(parseLineResult === null) return
+    const [, srcPath, elementName] = parseLineResult
+    if (
+      existsSync(join(srcPath, elementName))) {
+      this.handleModification()
     } else {
       super.handleDeletion()
     }
   }
 
-  _parseLine() {
-    return path
-      .join(this.config.repo, this.line)
+  _parseLine(): RegExpMatchArray | null {
+    return join(this.config.repo, this.line)
       .match(
         new RegExp(
           `(?<path>.*[/\\\\]${
@@ -61,37 +68,36 @@ class ResourceHandler extends StandardHandler {
       )
   }
 
-  _getElementName() {
-    const parsedPath = this._getParsedPath()
+  override getElementName(): string {
+    const parsedPath = this.getParsedPath()
     return StandardHandler.cleanUpPackageMember(parsedPath.name)
   }
 
-  _getParsedPath() {
-    return path.parse(
+  override getParsedPath(): ParsedPath {
+    return parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
-        .replace(mc.META_REGEX, '')
+        .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
   }
 
-  _buildMatchingFiles(elementName) {
-    const parsedElementName = path.parse(elementName).name
+  _buildMatchingFiles(elementName: string): string[] {
+    const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
     if (StandardHandler.metadata[this.type].metaFile) {
       matchingFiles.push(
         `${parsedElementName}.${StandardHandler.metadata[this.type].suffix}${
-          mc.METAFILE_SUFFIX
+          METAFILE_SUFFIX
         }`
       )
     }
     return matchingFiles
   }
 
-  _buildElementMap(srcPath) {
+  _buildElementMap(srcPath: string): void {
     if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
-      elementSrc[srcPath] = fs.readdirSync(srcPath)
+      elementSrc[srcPath] = 
+      readdirSync(srcPath)
     }
   }
 }
-
-module.exports = ResourceHandler

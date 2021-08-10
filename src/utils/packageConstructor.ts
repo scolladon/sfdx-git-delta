@@ -7,10 +7,6 @@ import { Package } from '../model/Package'
 
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
 
-type Package = {
-  [key: string]: Set<string>
-}
-
 export class PackageConstructor {
   config: Config
   metadata: MetadataRepository
@@ -20,9 +16,9 @@ export class PackageConstructor {
     this.metadata = metadata
   }
 
-  constructPackage(strucDiffPerType: Package) {
+  constructPackage(strucDiffPerType: Package): string {
     if (!strucDiffPerType) {
-      return
+      return ''
     }
 
     const xml = getXML()
@@ -35,10 +31,10 @@ export class PackageConstructor {
       )
       .sort()
       // @deprecated To remove when the order will not impact the result of the deployment
-      .sort((x, y) => (x === 'objects' ? -1 : x.localeCompare(y)))
+      .sort((x, y): number => (x === 'objects' ? -1 : x.localeCompare(y)))
       .forEach((metadataType: string) =>
         [...strucDiffPerType[metadataType]] // transform set to array
-          .reduce((type, member) => {
+          .reduce((type, member): xmlBuilder.XMLElement => {
             type.ele('members').t(member)
             return type
           }, xml.ele('types'))

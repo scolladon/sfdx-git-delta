@@ -1,135 +1,168 @@
-'use strict'
-const fileGitDiff = require('../utils/fileGitDiff')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
-const StandardHandler = require('./standardHandler')
-const fse = require('fs-extra')
-const os = require('os')
-const path = require('path')
-const fxp = require('fast-xml-parser')
+import {getFileDiff}from '../utils/fileGitDiff'
+import { MINUS, PLUS } from '../utils/gitConstants'
+import {LABEL_DIRECTORY_NAME, LABEL_EXTENSION}from '../utils/metadataConstants'
+import StandardHandler from './standardHandler'
+import {outputFileSync}from 'fs-extra'
+import {EOL} from 'os'
+import { basename, join } from 'path'
+import {j2xParser, parse, X2jOptionsOptional, J2xOptionsOptional}from 'fast-xml-parser'
+import { Result } from '../model/Result'
+import { MetadataElement, MetadataRepository } from '../model/Metadata'
+import { Package } from '../model/Package'
 
-const FULLNAME = 'fullName'
-const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
-const XML_TAG = new RegExp(`^[${gc.MINUS}${gc.PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
-const XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n'
-const XML_PARSER_OPTION = {
+const FULLNAME: string = 'fullName'
+const FULLNAME_XML_TAG: RegExp = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
+const XML_TAG: RegExp = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
+const XML_HEADER: string = '<?xml version="1.0" encoding="utf-8"?>\n'
+const XML_PARSER_OPTION:X2jOptionsOptional = {
   ignoreAttributes: false,
   ignoreNameSpace: false,
   parseNodeValue: false,
   parseAttributeValue: false,
   trimValues: true,
 }
-const JSON_PARSER_OPTION = {
-  ...XML_PARSER_OPTION,
+const JSON_PARSER_OPTION:J2xOptionsOptional = {
+  ignoreAttributes: false,
   format: true,
   indentBy: '    ',
 }
 
-class InFileHandler extends StandardHandler {
-  static xmlObjectToPackageType
+type ParsedXml = {
+  authorizedKeys: Array<string>
+  fileContent: JSONMetadataFile
+}
 
-  constructor(line, type, work, metadata) {
+type DiffAlgoData = {
+  toDel: Package,
+  toAdd: Package,
+  potentialType: string,
+  subType: string,
+  fullName: string,
+}
+
+type JSONMetadataFile = {
+  [key: string]: {}
+}
+
+export default class InFileHandler extends StandardHandler {
+  private static xmlObjectToPackageType:MetadataRepository
+
+  private readonly parentMetadata: MetadataElement
+  private readonly customLabelElementName: string
+
+  constructor(
+    line: string,
+    type: string,
+    work: Result,
+    metadata: MetadataRepository
+  ) {
     super(line, type, work, metadata)
     this.parentMetadata = StandardHandler.metadata[this.type]
-    this.customLabelElementName = `${path.basename(this.line).split('.')[0]}.`
+    this.customLabelElementName = `${basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
-      InFileHandler.xmlObjectToPackageType ??
-      Object.keys(StandardHandler.metadata)
-        .filter(meta => !!StandardHandler.metadata[meta].xmlTag)
-        .reduce((acc, meta) => {
-          acc[StandardHandler.metadata[meta].xmlTag] =
-            StandardHandler.metadata[meta]
-
-          return acc
-        }, {})
+      InFileHandler.xmlObjectToPackageType ?? this.buildObjectToPackage()
   }
 
-  handleAddition() {
+  public override handleAddition(): void {
     super.handleAddition()
-    const toAdd = this._handleInDiff()
-    this._handleFileWriting(toAdd)
+    const toAdd = this.handleInDiff()
+    this.handleFileWriting(toAdd)
   }
 
-  handleDeletion() {
-    this._handleInDiff()
+  protected override handleDeletion(): void {
+    this.handleInDiff()
   }
 
-  handleModification() {
+  protected override handleModification(): void {
     super.handleAddition()
-    const toAdd = this._handleInDiff()
-    this._handleFileWriting(toAdd)
+    const toAdd = this.handleInDiff()
+    this.handleFileWriting(toAdd)
   }
 
-  _handleFileWriting(toAdd) {
+  private buildObjectToPackage(): MetadataRepository {
+    return Object.keys(StandardHandler.metadata)
+    .filter(meta => !!StandardHandler.metadata[meta].xmlTag)
+    .reduce((acc, meta) => {
+      acc[StandardHandler.metadata[meta].xmlTag as keyof MetadataRepository] =
+        StandardHandler.metadata[meta]
+
+      return acc
+    }, {} as MetadataRepository)
+  }
+
+  private handleFileWriting(toAdd: Package): void {
     if (!this.config.generateDelta) return
-    const result = this._parseFile()
-    const metadataContent = Object.values(result.fileContent)[0]
+    const result = this.parseFile()
+    const metadataContent: any = Object.values(result.fileContent)[0]
 
-    result.authorizedKeys.forEach(subType => {
+    result.authorizedKeys.forEach((subType:string) => {
       const meta = Array.isArray(metadataContent[subType])
         ? metadataContent[subType]
         : [metadataContent[subType]]
-      metadataContent[subType] = meta.filter(elem =>
-        toAdd[InFileHandler.xmlObjectToPackageType[subType].directoryName]?.has(
-          elem.fullName
-        )
+      metadataContent[subType] = meta.filter((elem: any) =>
+        toAdd[
+          InFileHandler.xmlObjectToPackageType[subType].directoryName
+        ]?.has(elem.fullName)
       )
     })
-    const xmlBuilder = new fxp.j2xParser(JSON_PARSER_OPTION)
+    const xmlBuilder = new j2xParser(JSON_PARSER_OPTION)
     const xmlContent = XML_HEADER + xmlBuilder.parse(result.fileContent)
-    fse.outputFileSync(path.join(this.config.output, this.line), xmlContent)
+    outputFileSync(join(this.config.output, this.line), xmlContent)
   }
 
-  _handleInDiff() {
-    const diffContent = fileGitDiff(this.line, this.config)
-    const data = {
+  private handleInDiff(): Package {
+    const diffContent = getFileDiff(this.line, this.config)
+    const data: DiffAlgoData = {
       toDel: {},
       toAdd: {},
-      potentialType: null,
-      subType: null,
-      fullName: null,
+      potentialType: '',
+      subType: '',
+      fullName: '',
     }
-    diffContent.split(os.EOL).forEach(line => {
-      this._preProcessHandleInDiff(line, data)
+    diffContent.split(EOL).forEach(line => {
+      this.preProcessHandleInDiff(line, data)
       if (!data.subType || !data.fullName) return
-      this._postProcessHandleInDiff(line, data)
+      this.postProcessHandleInDiff(line, data)
     })
-    this._treatInFileResult(data.toDel, data.toAdd)
+    this.treatInFileResult(data.toDel, data.toAdd)
     return data.toAdd
   }
 
-  _preProcessHandleInDiff(line, data) {
+  private preProcessHandleInDiff(line: string, data:DiffAlgoData): void {
     if (FULLNAME_XML_TAG.test(line)) {
-      data.fullName = line.match(FULLNAME_XML_TAG)[1]
-      data.subType = `${this.parentMetadata.directoryName}.${data.potentialType}`
+      const parsedFullName = line.match(FULLNAME_XML_TAG)
+      if(parsedFullName !== null) {
+        data.fullName = parsedFullName[1]
+        data.subType = `${this.parentMetadata.directoryName}.${data.potentialType}`
+      }
     }
     const xmlTagMatchResult = line.match(XML_TAG)
-    if (InFileHandler._matchAllowedXmlTag(xmlTagMatchResult)) {
+    if (xmlTagMatchResult !== null && InFileHandler._matchAllowedXmlTag(xmlTagMatchResult)) {
       data.potentialType = xmlTagMatchResult[1]
-      data.fullName = null
+      data.fullName = ''
     }
   }
 
-  _postProcessHandleInDiff(line, data) {
+  private postProcessHandleInDiff(line: string, data:DiffAlgoData): void {
     let tempMap
-    if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
+    if (line.startsWith(MINUS) && line.includes(FULLNAME)) {
       tempMap = data.toDel
-    } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
+    } else if (line.startsWith(PLUS) || line.startsWith(MINUS)) {
       tempMap = data.toAdd
     }
     if (tempMap) {
       tempMap[data.subType] =
         tempMap[data.subType]?.add(data.fullName) ?? new Set([data.fullName])
-      data.subType = data.fullName = null
+      data.subType = data.fullName = ''
     }
   }
 
-  _treatInFileResult(toRemove, toAdd) {
+  private treatInFileResult(toRemove: Package, toAdd: Package): void {
     Object.keys(toRemove).forEach(type =>
       [...toRemove[type]]
         .filter(elem => !toAdd[type] || !toAdd[type].has(elem))
         .forEach(fullName =>
-          this._fillPackageFromDiff(
+          this.fillPackageFromDiff(
             this.diffs.destructiveChanges,
             type,
             fullName
@@ -137,16 +170,15 @@ class InFileHandler extends StandardHandler {
         )
     )
     Object.keys(toAdd).forEach(type =>
-      toAdd[type].forEach(fullName =>
-        this._fillPackageFromDiff(this.diffs.package, type, fullName)
+      toAdd[type].forEach((fullName: string) =>
+        this.fillPackageFromDiff(this.diffs.package, type, fullName)
       )
     )
   }
 
-  _parseFile() {
-    const result = fxp.parse(this._readFileSync(), XML_PARSER_OPTION, true)
-
-    const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
+  private parseFile(): ParsedXml {
+    const result: JSONMetadataFile = parse(this.readFileSync(), XML_PARSER_OPTION, true)
+    const authorizedKeys = Object.keys(Object.values(result)?.[0]).filter(tag =>
       Object.prototype.hasOwnProperty.call(
         InFileHandler.xmlObjectToPackageType,
         tag
@@ -158,15 +190,15 @@ class InFileHandler extends StandardHandler {
     }
   }
 
-  _fillPackage(packageObject) {
-    if (this.type !== mc.LABEL_EXTENSION) {
-      super._fillPackage(packageObject)
+  protected override fillPackage(packageObject: Package): void {
+    if (this.type !== LABEL_EXTENSION) {
+      super.fillPackage(packageObject)
     }
   }
 
-  _fillPackageFromDiff(packageObject, subType, value) {
+  private fillPackageFromDiff(packageObject: Package, subType: string, value: string): void {
     const elementFullName = `${
-      (subType !== mc.LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
+      (subType !== LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
       value
     }`
 
@@ -176,16 +208,12 @@ class InFileHandler extends StandardHandler {
     )
   }
 
-  static _matchAllowedXmlTag(matchResult) {
+  private static _matchAllowedXmlTag(matchResult: RegExpMatchArray): boolean {
     return (
-      !!matchResult &&
-      !!matchResult[1] &&
       Object.prototype.hasOwnProperty.call(
         InFileHandler.xmlObjectToPackageType,
-        matchResult[1]
+        matchResult?.[1]
       )
     )
   }
 }
-
-module.exports = InFileHandler

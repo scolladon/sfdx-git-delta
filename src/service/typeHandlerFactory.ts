@@ -1,16 +1,22 @@
-'use strict'
-const CustomObject = require('./customObjectHandler')
-const InFile = require('./inFileHandler')
-const InFolder = require('./inFolderHandler')
-const InResource = require('./inResourceHandler')
-const Standard = require('./standardHandler')
-const SubCustomObject = require('./subCustomObjectHandler')
-const InTranslation = require('./inTranslationHandler')
-const Wave = require('./waveHandler')
+import { MetadataRepository } from '../model/Metadata'
+import { Result } from '../model/Result'
 
-const path = require('path')
+import CustomObject from './customObjectHandler'
+import InFile from './inFileHandler'
+import InFolder from './inFolderHandler'
+import InResource from './inResourceHandler'
+import Standard from './standardHandler'
+import SubCustomObject from './subCustomObjectHandler'
+import InTranslation from './inTranslationHandler'
+import Wave from './waveHandler'
 
-const classes = {
+import { sep } from 'path'
+
+type HandlerMap = {
+  [key: string]: typeof Standard
+}
+
+const handlerMap: HandlerMap = {
   aura: InResource,
   bot: InFile,
   businessProcesses: SubCustomObject,
@@ -44,23 +50,27 @@ const classes = {
 const EMPTY_STRING = ''
 const haveSubTypes = [CustomObject.OBJECT_TYPE, EMPTY_STRING]
 
-module.exports = class HandlerFactory {
-  constructor(work, metadata) {
+export default class HandlerFactory {
+  metadata: MetadataRepository
+  work: Result
+  constructor(work: Result, metadata: MetadataRepository) {
     this.work = work
     this.metadata = metadata
   }
 
-  getTypeHandler(line) {
-    const type = line.split(path.sep).reduce((acc, value, _, arr) => {
-      acc = Object.prototype.hasOwnProperty.call(this.metadata, value)
-        ? value
-        : acc
-      if (!haveSubTypes.includes(acc)) arr.splice(1)
-      return acc
-    }, EMPTY_STRING)
+  getTypeHandler(line: string) {
+    const type = line
+      .split(sep)
+      .reduce((acc: string, value: string, _: number, arr: Array<string>) => {
+        acc = Object.prototype.hasOwnProperty.call(this.metadata, value)
+          ? value
+          : acc
+        if (!haveSubTypes.includes(acc)) arr.splice(1)
+        return acc
+      }, '')
 
-    return classes[type]
-      ? new classes[type](line, type, this.work, this.metadata)
+    return handlerMap[type]
+      ? new handlerMap[type](line, type, this.work, this.metadata)
       : new Standard(line, type, this.work, this.metadata)
   }
 }

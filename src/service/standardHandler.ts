@@ -1,36 +1,69 @@
 'use strict'
-const fs = require('fs')
-const path = require('path')
-const fse = require('fs-extra')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
+import { readFileSync } from 'fs'
+import { join, parse, ParsedPath, sep } from 'path'
+import { copySync, CopyOptionsSync, pathExistsSync } from 'fs-extra'
+import { GIT_DIFF_TYPE_REGEX, UTF8_ENCODING } from '../utils/gitConstants'
+import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
+import { MetadataRepository } from '../model/Metadata'
+import { Deploy, Result } from '../model/Result'
+import { Config } from '../model/Config'
+import { Package } from '../model/Package'
 
-const PACKAGE_MEMBER_PATH_SEP = '/'
-
-const FSE_COPYSYNC_OPTION = {
+const COPYSYNC_OPTION: CopyOptionsSync = {
   overwrite: true,
   errorOnExist: false,
   dereference: true,
   preserveTimestamps: false,
 }
 
-const copiedFiles = new Set()
+const copiedFiles: Set<string> = new Set()
 
-class StandardHandler {
-  static metadata
+type GitChange = 'A' | 'D' | 'M'
 
-  constructor(line, type, work, metadata) {
+type HandlerMap = {
+  A: () => void
+  D: () => void
+  M: () => void
+}
+
+export default class StandardHandler {
+  protected readonly config: Config
+  protected readonly diffs: Deploy
+  protected readonly line: string
+  protected readonly type: string
+  protected readonly splittedLine: Array<string>
+  protected suffixRegex: RegExp
+
+  private readonly changeType: GitChange
+  private readonly handlerMap: HandlerMap
+  private readonly warnings: Array<string>
+
+  protected static metadata: MetadataRepository
+  private static PACKAGE_MEMBER_PATH_SEP: string = '/'
+  public static cleanUpPackageMember(packageMember: string): string {
+    return `${packageMember}`.replace(
+      /\\+/g,
+      StandardHandler.PACKAGE_MEMBER_PATH_SEP
+    )
+  }
+
+  constructor(
+    line: string,
+    type: string,
+    work: Result,
+    metadata: MetadataRepository
+  ) {
     StandardHandler.metadata = StandardHandler.metadata ?? metadata
-    ;[this.changeType] = line
-    this.line = line.replace(gc.GIT_DIFF_TYPE_REGEX, '')
+    this.changeType = line[0] as GitChange
+    this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
     this.diffs = work.diffs
     this.config = work.config
-    this.splittedLine = this.line.split(path.sep)
+    this.splittedLine = this.line.split(sep)
     this.warnings = work.warnings
 
     if (StandardHandler.metadata[this.type].metaFile === true) {
-      this.line = this.line.replace(mc.METAFILE_SUFFIX, '')
+      this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
     this.suffixRegex = new RegExp(
@@ -44,7 +77,7 @@ class StandardHandler {
     }
   }
 
-  handle() {
+  public handle(): void {
     if (this.handlerMap[this.changeType]) {
       try {
         this.handlerMap[this.changeType].apply(this)
@@ -55,68 +88,60 @@ class StandardHandler {
     }
   }
 
-  handleAddition() {
-    this._fillPackage(this.diffs.package)
+  public handleAddition(): void {
+    this.fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
-    const source = path.join(this.config.repo, this.line)
-    const target = path.join(this.config.output, this.line)
+    const source = join(this.config.repo, this.line)
+    const target = join(this.config.output, this.line)
 
-    this._copyFiles(source, target)
+    this.copyFiles(source, target)
     if (StandardHandler.metadata[this.type].metaFile === true) {
-      this._copyFiles(source + mc.METAFILE_SUFFIX, target + mc.METAFILE_SUFFIX)
+      this.copyFiles(source + METAFILE_SUFFIX, target + METAFILE_SUFFIX)
     }
   }
 
-  handleDeletion() {
-    this._fillPackage(this.diffs.destructiveChanges)
+  protected handleDeletion(): void {
+    this.fillPackage(this.diffs.destructiveChanges)
   }
 
-  handleModification() {
+  protected handleModification(): void {
     this.handleAddition()
   }
 
-  _getParsedPath() {
-    return path.parse(
+  protected getParsedPath(): ParsedPath {
+    return parse(
       this.splittedLine
         .slice(
-          this.splittedLine.findIndex(x => x.includes(mc.METAFILE_SUFFIX)) - 1
+          this.splittedLine.findIndex(x => x.includes(METAFILE_SUFFIX)) - 1
         )
-        .join(path.sep)
+        .join(sep)
 
-        .replace(mc.META_REGEX, '')
+        .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
   }
 
-  _getElementName() {
-    const parsedPath = this._getParsedPath()
+  protected getElementName(): string {
+    const parsedPath = this.getParsedPath()
     return StandardHandler.cleanUpPackageMember(parsedPath.base)
   }
 
-  _fillPackage(packageObject) {
+  protected fillPackage(packageObject: Package): void {
     packageObject[this.type] = packageObject[this.type] ?? new Set()
-    packageObject[this.type].add(this._getElementName())
+    packageObject[this.type].add(this.getElementName())
   }
 
-  _copyFiles(src, dst) {
-    if (!copiedFiles.has(src) && fse.pathExistsSync(src)) {
-      fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
+  protected copyFiles(src: string, dst: string): void {
+    if (!copiedFiles.has(src) && pathExistsSync(src)) {
+      copySync(src, dst, COPYSYNC_OPTION)
       copiedFiles.add(src)
     }
   }
 
-  _readFileSync() {
-    return fs.readFileSync(path.join(this.config.repo, this.line), {
-      encoding: gc.UTF8_ENCODING,
+  protected readFileSync(): string {
+    return readFileSync(join(this.config.repo, this.line), {
+      encoding: UTF8_ENCODING,
     })
   }
-
-  static cleanUpPackageMember(packageMember) {
-    return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
-  }
-
-  static PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
 }
-
-module.exports = StandardHandler

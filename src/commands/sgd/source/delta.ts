@@ -1,10 +1,10 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
 import { AnyJson } from '@salesforce/ts-types'
-import * as sgd from '../../../main'
-const CliHelper = require('../../../utils/cliHelper')
-const pjson = require('../../../../package.json')
-
+import {execute} from '../../../main'
+import { Output } from '../../../model/Output'
+import CliHelper from '../../../utils/cliHelper'
+import { parseFile } from '../../../utils/jsonFileHelper'
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
 const COMMAND_NAME = 'delta'
@@ -12,11 +12,12 @@ const COMMAND_NAME = 'delta'
 // Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
 // or any library that is using the messages framework can also be loaded this way.
 const messages = Messages.loadMessages('sfdx-git-delta', COMMAND_NAME)
+const pack = parseFile(__dirname, '../../../../package.json')
 
 export default class SourceDeltaGenerate extends SfdxCommand {
-  public static description = messages.getMessage('command', [])
+  public static override description = messages.getMessage('command', [])
 
-  protected static flagsConfig = {
+  protected static override flagsConfig = {
     to: flags.string({
       char: 't',
       description: messages.getMessage('toFlag'),
@@ -53,7 +54,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     'api-version': flags.number({
       char: 'a',
       description: messages.getMessage('apiVersionFlag'),
-      default: parseFloat(pjson.sfdc.latestApiVersion),
+      default: parseFloat(pack.sfdc.latestApiVersion),
     }),
     'generate-delta': flags.boolean({
       char: 'd',
@@ -62,14 +63,14 @@ export default class SourceDeltaGenerate extends SfdxCommand {
   }
 
   public async run(): Promise<AnyJson> {
-    const output = {
-      error: null,
+    const output: Output = {
+      error: '',
       output: this.flags.output,
       success: true,
       warnings: [],
     }
     try {
-      const jobResult = sgd({
+      const jobResult = execute({
         to: this.flags.to,
         from: this.flags.from,
         output: this.flags.output,
@@ -80,7 +81,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         repo: this.flags.repo,
         generateDelta: this.flags['generate-delta'],
       })
-      output.warnings = jobResult?.warnings?.map(warning => warning.message)
+      output.warnings = jobResult?.warnings?.map((warning: any)  => warning.message)
     } catch (err) {
       output.success = false
       output.error = err.message

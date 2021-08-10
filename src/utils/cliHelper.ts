@@ -2,6 +2,7 @@ import { Config } from '../model/Config'
 import RepoSetup from './repoSetup'
 import { sanitizePath } from './childProcessUtils'
 import { existsSync, statSync } from 'fs'
+import { join } from 'path'
 export default class CLIHelper {
   config: Config
   repoSetup: RepoSetup
@@ -56,7 +57,7 @@ export default class CLIHelper {
   }
 
   static _isGit(dir: string): boolean {
-    return existsSync(path.join(dir, '.git'))
+    return existsSync(join(dir, '.git'))
   }
 
   static IGNORE_DEFAULT_VALUE: string = '.'

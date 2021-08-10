@@ -1,32 +1,47 @@
 'use strict'
-const StandardHandler = require('./standardHandler')
-const path = require('path')
+import { MetadataRepository, WaveMetadataType } from '../model/Metadata'
+import { Result } from '../model/Result'
+import StandardHandler from './standardHandler'
+import { parse } from 'path'
+import { Package } from '../model/Package'
 
-const WAVE_SUBTYPE = {}
+type WaveSubType = {
+  [key: string]: string
+}
 
-const isEmpty = obj => {
-  for (let i in obj) return false
+const isEmpty = (obj: any): boolean => {
+  for (let _ in obj) return false
   return true
 }
 
-class WaveHandler extends StandardHandler {
-  constructor(line, type, work, metadata) {
+export default class WaveHandler extends StandardHandler {
+  ext: string
+
+  constructor(
+    line: string,
+    type: string,
+    work: Result,
+    metadata: MetadataRepository
+  ) {
     super(line, type, work, metadata)
-    if (isEmpty(WAVE_SUBTYPE)) {
-      StandardHandler.metadata[this.type].content.reduce((acc, val) => {
-        acc[val.suffix] = val.xmlName
-        return acc
-      }, WAVE_SUBTYPE)
+    if (isEmpty(WaveHandler._WAVE_SUBTYPE)) {
+      StandardHandler.metadata[this.type].content?.reduce(
+        (acc: WaveSubType, val: WaveMetadataType) => {
+          acc[val.suffix] = val.xmlName
+          return acc
+        },
+        WaveHandler._WAVE_SUBTYPE
+      )
     }
-    this.ext = path.parse(this.line).ext.substring(1)
+    this.ext = parse(this.line).ext.substring(1)
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
-  _fillPackage(packageObject) {
-    const type = WAVE_SUBTYPE[this.ext]
+  override fillPackage(packageObject: Package) {
+    const type: string = WaveHandler._WAVE_SUBTYPE[this.ext]
     packageObject[type] = packageObject[type] ?? new Set()
-    packageObject[type].add(this._getElementName())
+    packageObject[type].add(this.getElementName())
   }
-}
 
-module.exports = WaveHandler
+  private static _WAVE_SUBTYPE: WaveSubType = {}
+}

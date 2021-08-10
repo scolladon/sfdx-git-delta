@@ -1,46 +1,63 @@
 'use strict'
-const PackageConstructor = require('./utils/packageConstructor')
-const TypeHandlerFactory = require('./service/typeHandlerFactory')
-const metadataManager = require('./metadata/metadataManager')
-const CLIHelper = require('./utils/cliHelper')
-const repoGitDiff = require('./utils/repoGitDiff')
+import { PackageConstructor } from './utils/packageConstructor'
+import TypeHandlerFactory from './service/typeHandlerFactory'
+import MetadataManager from './metadata/metadataManager'
+import CLIHelper from './utils/cliHelper'
+import { Config } from './model/Config'
+import { Deploy, Result } from './model/Result'
+import { getDiff } from './utils/repoGitDiff'
 
-const fse = require('fs-extra')
-const path = require('path')
+import { outputFileSync } from 'fs-extra'
+import { join } from 'path'
+import { MetadataRepository } from './model/Metadata'
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
-module.exports = config => {
+export const execute = (config: Config): Result => {
   const cliHelper = new CLIHelper(config)
   cliHelper.validateConfig()
 
+  const metadataManager = new MetadataManager()
   const metadata = metadataManager.getDefinition(
     'directoryName',
     config.apiVersion
   )
 
-  const lines = repoGitDiff(config, metadata)
+  const lines = getDiff(config, metadata)
   const work = treatDiff(config, lines, metadata)
   treatPackages(work.diffs, config, metadata)
   return work
 }
 
-const treatDiff = (config, lines, metadata) => {
-  const work = {
+const treatDiff = (
+  config: Config,
+  lines: Array<string>,
+  metadata: MetadataRepository
+): Result => {
+  const work: Result = {
     config: config,
     diffs: { package: {}, destructiveChanges: {} },
     warnings: [],
   }
 
-  const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
+  const typeHandlerFactory: TypeHandlerFactory = new TypeHandlerFactory(
+    work,
+    metadata
+  )
 
-  lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
+  lines.forEach((line: string) =>
+    typeHandlerFactory.getTypeHandler(line).handle()
+  )
   return work
 }
 
-const treatPackages = (dcJson, config, metadata) => {
+const treatPackages = (
+  dcJson: Deploy,
+  config: Config,
+  metadata: MetadataRepository
+) => {
   cleanPackages(dcJson)
   const pc = new PackageConstructor(config, metadata)
   ;[
@@ -60,12 +77,12 @@ const treatPackages = (dcJson, config, metadata) => {
       xmlContent: pc.constructPackage({}),
     },
   ].forEach(op => {
-    const location = path.join(config.output, op.folder, op.filename)
-    fse.outputFileSync(location, op.xmlContent)
+    const location = join(config.output, op.folder, op.filename)
+    outputFileSync(location, op.xmlContent)
   })
 }
 
-const cleanPackages = dcJson => {
+const cleanPackages = (dcJson: Deploy) => {
   const additive = dcJson[PACKAGE_FILE_NAME]
   const destructive = dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]
   Object.keys(additive)

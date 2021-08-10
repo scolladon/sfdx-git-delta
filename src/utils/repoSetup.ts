@@ -16,7 +16,7 @@ export default class RepoSetup {
     this.config = config
   }
 
-  isToEqualHead() {
+  isToEqualHead(): boolean {
     if (this.config.to === HEAD) {
       return true
     }
@@ -39,13 +39,13 @@ export default class RepoSetup {
     return toSHA === headSHA
   }
 
-  repoConfiguration() {
+  repoConfiguration(): void {
     spawnSync('git', gitConfig, {
       cwd: this.config.repo,
     })
   }
 
-  computeFromRef() {
+  computeFromRef(): string {
     let firstCommitSHA = this.config.from
     if (!firstCommitSHA) {
       firstCommitSHA = spawnSync('git', revlistParams, <

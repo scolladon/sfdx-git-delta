@@ -43,26 +43,27 @@ const treatResult = (
 ): string[] => {
   const lines = repoDiffResult.split(EOL)
   const linesPerDiffType: LineTypeMap = lines.reduce(
-    (acc: LineTypeMap, line: string) => (
+    (acc: LineTypeMap, line: string): LineTypeMap => (
       acc[line.charAt(0) as keyof LineTypeMap]?.push(line), acc
     ),
     <LineTypeMap>(<unknown>{ [ADDITION]: [], [DELETION]: [] })
   )
   const AfileNames = linesPerDiffType[ADDITION as keyof LineTypeMap].map(
-    (line: string) => parse(line.replace(GIT_DIFF_TYPE_REGEX, '')).base
+    (line: string): string => parse(line.replace(GIT_DIFF_TYPE_REGEX, '')).base
   )
   const deletedRenamed = linesPerDiffType[DELETION as keyof LineTypeMap].filter(
-    (line: string) => {
+    (line: string): boolean => {
       const dEl = parse(line.replace(GIT_DIFF_TYPE_REGEX, '')).base
       return AfileNames.some(
-        (aEl: string) => !aEl.localeCompare(dEl, undefined, lcSensitivity)
+        (aEl: string): boolean =>
+          !aEl.localeCompare(dEl, undefined, lcSensitivity)
       )
     }
   )
 
   return lines
     .filter(
-      (line: string) =>
+      (line: string): boolean =>
         !!line &&
         !deletedRenamed.includes(line) &&
         line
@@ -72,7 +73,7 @@ const treatResult = (
     .filter(filterIgnore(config))
 }
 
-const filterIgnore = (config: Config) => (line: string) => {
+const filterIgnore = (config: Config) => (line: string): boolean => {
   const ig = ignore()
   const dig = ignore()
   ;[

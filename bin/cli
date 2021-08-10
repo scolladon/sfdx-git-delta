@@ -2,10 +2,10 @@
 'use strict'
 
 const program = require('commander')
-const orchestrator = require('../lib/main')
+const main = require('../lib/main')
 const messages = require('../messages/delta')
 const pjson = require('../package.json')
-const CliHelper = require('../lib/utils/cliHelper')
+const CliHelper = require('../lib/utils/cliHelper').default
 
 const options = program
   .description(messages.command)
@@ -44,7 +44,7 @@ const output = {
   warnings: [],
 }
 try {
-  const jobResult = orchestrator(options)
+  const jobResult = main.execute(options)
   output.warnings = jobResult?.warnings?.map(warning => warning.message)
 } catch (err) {
   output.success = false
