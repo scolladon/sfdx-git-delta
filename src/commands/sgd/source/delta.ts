@@ -45,6 +45,11 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       description: messages.getMessage('sourceFlag'),
       default: CliHelper.SOURCE_DEFAULT_VALUE,
     }),
+    permissivediff: flags.boolean({
+      char: 'P',
+      description: messages.getMessage('permissivediffFlag'),
+      default: false,
+    }),
     output: flags.filepath({
       char: 'o',
       description: messages.getMessage('outputFlag'),
@@ -78,6 +83,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         ignoreDestructive: this.flags['ignore-destructive'],
         apiVersion: this.flags['api-version'],
         repo: this.flags.repo,
+        permissivediff: this.flags.permissivediff,
         generateDelta: this.flags['generate-delta'],
       })
       output.warnings = jobResult?.warnings?.map(warning => warning.message)

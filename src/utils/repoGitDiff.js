@@ -13,6 +13,18 @@ const lcSensitivity = {
 }
 
 module.exports = (config, metadata) => {
+  // If --permissivediff argument, allow spaces, blank lines and other indentation stuff to NOT be considered as diff
+  if (config.permissivediff === true) {
+    fullDiffParams.push(
+      ...[
+        '--ignore-all-space',
+        '--ignore-blank-lines',
+        '--ignore-cr-at-eol',
+        '--word-diff-regex',
+      ]
+    )
+  }
+  // Call git diff
   const { stdout: diff } = childProcess.spawnSync(
     'git',
     [...fullDiffParams, config.from, config.to, config.source],
