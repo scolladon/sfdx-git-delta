@@ -1,7 +1,7 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
 import { AnyJson } from '@salesforce/ts-types'
-import * as sgd from '../../../main'
+const sgd = require('../../../main')
 const CliHelper = require('../../../utils/cliHelper')
 const pjson = require('../../../../package.json')
 
@@ -80,7 +80,9 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         repo: this.flags.repo,
         generateDelta: this.flags['generate-delta'],
       })
-      output.warnings = jobResult?.warnings?.map(warning => warning.message)
+      output.warnings = jobResult?.warnings?.map(
+        (warning: any) => warning.message
+      )
     } catch (err) {
       output.success = false
       output.error = err.message
