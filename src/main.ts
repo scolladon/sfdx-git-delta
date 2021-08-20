@@ -1,5 +1,5 @@
 'use strict'
-import { PackageConstructor } from './utils/packageConstructor'
+import PackageConstructor from './utils/packageConstructor'
 import TypeHandlerFactory from './service/typeHandlerFactory'
 import MetadataManager from './metadata/metadataManager'
 import CLIHelper from './utils/cliHelper'

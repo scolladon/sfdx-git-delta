@@ -7,7 +7,7 @@ import { Package } from '../model/Package'
 
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
 
-export class PackageConstructor {
+export default class PackageConstructor {
   config: Config
   metadata: MetadataRepository
 
