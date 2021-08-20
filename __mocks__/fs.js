@@ -13,7 +13,7 @@ fs.__setMockFiles = newMockFiles => {
   for (const file in newMockFiles) {
     filePathList.add(path.basename(file))
     const dir = path.basename(path.dirname(file))
-    mockFiles[dir] = mockFiles[dir] ?? []
+    mockFiles[dir] = mockFiles[dir] || []
     mockFiles[dir].push(path.basename(file))
     mockContent[file] = newMockFiles[file]
   }

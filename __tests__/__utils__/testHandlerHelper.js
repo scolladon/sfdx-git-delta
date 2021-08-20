@@ -21,7 +21,7 @@ global.testHandlerHelper = testContext => {
           )
           handler.handle()
           expect(testContext.work.diffs.package).toHaveProperty(
-            expectedType ?? type,
+            expectedType || type,
             expected
           )
         })
@@ -35,7 +35,7 @@ global.testHandlerHelper = testContext => {
           )
           handler.handle()
           expect(testContext.work.diffs.destructiveChanges).toHaveProperty(
-            expectedType ?? type,
+            expectedType || type,
             expected
           )
         })
@@ -49,7 +49,7 @@ global.testHandlerHelper = testContext => {
           )
           handler.handle()
           expect(testContext.work.diffs.package).toHaveProperty(
-            expectedType ?? type,
+            expectedType || type,
             expected
           )
         })
