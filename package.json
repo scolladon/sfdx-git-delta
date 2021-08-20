@@ -10,7 +10,7 @@
     "sfdx-plugin"
   ],
   "engines": {
-    "node": ">=14.6.0"
+    "node": ">=12.22.2"
   },
   "files": [
     "/bin",
