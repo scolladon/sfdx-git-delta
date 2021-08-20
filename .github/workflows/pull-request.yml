@@ -6,7 +6,12 @@ on:
 
 jobs:
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: [12, 14]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -14,7 +19,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v1
         with:
-          node-version: '14.x'
+          node-version: ${{ matrix.node }}
 
       - name: Cache prep
         id: yarn-cache-dir-path
