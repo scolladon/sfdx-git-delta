@@ -37,7 +37,21 @@ describe(`test if fileGitDiff`, () => {
     expect(work).toStrictEqual(output)
   })
 
-  test('can parse git diff contexte line', () => {
+  test('can apply permissive git diff', () => {
+    const output = 'diff'
+
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output,
+    }))
+    const work = fileGitDiff(TEST_PATH, {
+      output: '',
+      repo: '',
+      permissiveDiff: true,
+    })
+    expect(work).toStrictEqual(output)
+  })
+
+  test('can parse git diff context line', () => {
     const output = 'context line'
 
     child_process.spawnSync.mockImplementation(() => ({
