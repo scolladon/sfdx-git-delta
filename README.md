@@ -93,20 +93,24 @@ If you encounter this issue while having installed the correct version of node o
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-P] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--p--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-P] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Generate the sfdx content in source format and destructive change from two git commits
 
 ```
 USAGE
-  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-o 
-  <filepath>] [-a <number>] [-d] [--json] [--loglevel 
+  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-P] 
+  [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel 
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
   -D, --ignore-destructive=ignore-destructive                                       ignore file to use
+
+  -P, --permissive-diff                                                             ignore git diff white char (space,
+                                                                                    tab, eol) changes
+
   -a, --api-version=api-version                                                     [default: 52] salesforce API version
 
   -d, --generate-delta                                                              generate delta files in [--output]
