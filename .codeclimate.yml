@@ -1,5 +1,5 @@
 ---
-engines:
+plugins:
   duplication:
     enabled: true
     config:
@@ -8,12 +8,14 @@ engines:
   eslint:
     enabled: true
     channel: eslint-7
+    config:
+      config: .eslintrc.js
+      extensions:
+        - .js
+        - .ts
   fixme:
     enabled: true
-ratings:
-  paths:
-    - '**.js'
-exclude_paths:
+exclude_patterns:
   - node_modules/**/*
   - __tests__/**/*
   - __mocks__/**/*
