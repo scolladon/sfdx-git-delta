@@ -6,14 +6,14 @@ const gc = require('./gitConstants')
 const unitDiffParams = ['--no-pager', 'diff', '--no-prefix', '-U200']
 
 module.exports = (filePath, config) => {
-  const permissiveDiffParams = config.permissiveDiff
-    ? gc.PERMISSIVE_DIFF_PARAMS
+  const ignoreWhitespaceParams = config.ignoreWhitespace
+    ? gc.IGNORE_WHITESPACE_PARAMS
     : []
   const { stdout: diff } = childProcess.spawnSync(
     'git',
     [
       ...unitDiffParams,
-      ...permissiveDiffParams,
+      ...ignoreWhitespaceParams,
       config.from,
       config.to,
       '--',

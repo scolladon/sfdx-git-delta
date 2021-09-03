@@ -31,7 +31,7 @@ describe(`test if repoGitDiff`, () => {
         output: '',
         repo: '',
         ignore: FORCEIGNORE_MOCK_PATH,
-        permissiveDiff: true,
+        ignoreWhitespace: true,
       },
       // eslint-disable-next-line no-undef
       globalMetadata

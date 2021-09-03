@@ -11,5 +11,5 @@ module.exports = {
   ignoreDestructiveFlag: 'ignore file to use',
   apiVersionFlag: 'salesforce API version',
   deltaFlag: 'generate delta files in [--output] folder',
-  permissiveDiffFlag: 'ignore git diff white char (space, tab, eol) changes',
+  ignoreWhitespaceFlag: 'ignore git diff whitespace (space, tab, eol) changes',
 }

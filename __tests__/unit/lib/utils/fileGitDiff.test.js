@@ -46,7 +46,7 @@ describe(`test if fileGitDiff`, () => {
     const work = fileGitDiff(TEST_PATH, {
       output: '',
       repo: '',
-      permissiveDiff: true,
+      ignoreWhitespace: true,
     })
     expect(work).toStrictEqual(output)
   })
