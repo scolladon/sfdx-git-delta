@@ -97,7 +97,7 @@ module.exports = {
   // notifyMode: "failure-change",
 
   // A preset that is used as a base for Jest's configuration
-  // preset: null,
+  preset: 'ts-jest',
 
   // Run tests from one or more projects
   // projects: null,
@@ -129,7 +129,7 @@ module.exports = {
   // runner: "jest-runner",
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
-  setupFiles: ['./__tests__/__utils__/testHandlerHelper.js'],
+  setupFiles: ['./__tests__/__utils__/testHandlerHelper.ts'],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
   // setupFilesAfterEnv: [],
@@ -175,7 +175,7 @@ module.exports = {
   // timers: "real",
 
   // A map from regular expressions to paths to transformers
-  // transform: null,
+  // transform: {},
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [

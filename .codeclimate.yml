@@ -5,16 +5,6 @@ plugins:
     config:
       languages:
         - javascript
-  eslint:
-    enabled: true
-    channel: eslint-7
-    config:
-      config: .eslintrc.js
-      extensions:
-        - .js
-        - .ts
-  fixme:
-    enabled: true
 exclude_patterns:
   - node_modules/**/*
   - __tests__/**/*
