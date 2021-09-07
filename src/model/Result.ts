@@ -9,7 +9,7 @@ type Deploy = {
 type Result = {
   config: Config
   diffs: Deploy
-  warnings: Array<string>
+  warnings: Array<Error>
 }
 
 export type { Result, Deploy }

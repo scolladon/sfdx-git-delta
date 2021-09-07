@@ -36,7 +36,7 @@ export default class StandardHandler {
 
   private readonly changeType: GitChange
   private readonly handlerMap: HandlerMap
-  private readonly warnings: Array<string>
+  private readonly warnings: Array<Error>
 
   protected static metadata: MetadataRepository
   private static PACKAGE_MEMBER_PATH_SEP: string = '/'
@@ -82,8 +82,9 @@ export default class StandardHandler {
       try {
         this.handlerMap[this.changeType].apply(this)
       } catch (error) {
-        error.message = `${this.line}: ${error.message}`
-        this.warnings.push(error)
+        const err: Error = error as Error
+        err.message = `${this.line}: ${err.message}`
+        this.warnings.push(err)
       }
     }
   }

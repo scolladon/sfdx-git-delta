@@ -82,7 +82,8 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         generateDelta: this.flags['generate-delta'],
       })
       output.warnings = jobResult?.warnings?.map((warning: any)  => warning.message)
-    } catch (err) {
+    } catch (error) {
+      const err: Error = error as Error
       output.success = false
       output.error = err.message
       process.exitCode = 1
