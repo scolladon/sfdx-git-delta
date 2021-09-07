@@ -5,7 +5,6 @@ const child_process = require('child_process')
 jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 jest.mock('fs')
-jest.mock('git-state')
 jest.mock('fast-xml-parser')
 
 const fsMocked = require('fs')
