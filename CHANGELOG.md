@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.9.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.8.1...v4.9.0) (2021-09-10)
+
+
+### Features
+
+* permissive git diff parameter ([#185](https://github.com/scolladon/sfdx-git-delta/issues/185)) ([6d57783](https://github.com/scolladon/sfdx-git-delta/commit/6d57783e9adb8a879f553718c862e76ccb1124b3))
+
 ### [4.8.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.8.0...v4.8.1) (2021-08-04)
 
 
