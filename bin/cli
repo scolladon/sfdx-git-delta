@@ -22,6 +22,7 @@ const options = program
     messages.sourceFlag,
     CliHelper.SOURCE_DEFAULT_VALUE
   )
+  .option('-W, --ignore-whitespace', messages.ignoreWhitespaceFlag)
   .option('-i, --ignore [file]', messages.ignoreFlag)
   .option('-D, --ignore-destructive [file]', messages.ignoreDestructiveFlag)
   .option(

@@ -13,9 +13,18 @@ const lcSensitivity = {
 }
 
 module.exports = (config, metadata) => {
+  const ignoreWhitespaceParams = config.ignoreWhitespace
+    ? gc.IGNORE_WHITESPACE_PARAMS
+    : []
   const { stdout: diff } = childProcess.spawnSync(
     'git',
-    [...fullDiffParams, config.from, config.to, config.source],
+    [
+      ...fullDiffParams,
+      ...ignoreWhitespaceParams,
+      config.from,
+      config.to,
+      config.source,
+    ],
     { cwd: config.repo, encoding: gc.UTF8_ENCODING }
   )
 

@@ -45,6 +45,10 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       description: messages.getMessage('sourceFlag'),
       default: CliHelper.SOURCE_DEFAULT_VALUE,
     }),
+    'ignore-whitespace': flags.boolean({
+      char: 'W',
+      description: messages.getMessage('ignoreWhitespaceFlag'),
+    }),
     output: flags.filepath({
       char: 'o',
       description: messages.getMessage('outputFlag'),
@@ -78,6 +82,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         ignoreDestructive: this.flags['ignore-destructive'],
         apiVersion: this.flags['api-version'],
         repo: this.flags.repo,
+        ignoreWhitespace: this.flags['ignore-whitespace'],
         generateDelta: this.flags['generate-delta'],
       })
       output.warnings = jobResult?.warnings?.map(warning => warning.message)

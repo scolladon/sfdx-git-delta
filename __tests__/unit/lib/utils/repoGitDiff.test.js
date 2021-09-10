@@ -21,6 +21,24 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(output)
   })
 
+  test('can parse git permissively', () => {
+    const output = []
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: '',
+    }))
+    const work = repoGitDiff(
+      {
+        output: '',
+        repo: '',
+        ignore: FORCEIGNORE_MOCK_PATH,
+        ignoreWhitespace: true,
+      },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    expect(work).toStrictEqual(output)
+  })
+
   test('can resolve deletion', () => {
     const output = [
       'D      force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
