@@ -17,9 +17,8 @@ class SubCustomObjectHandler extends StandardHandler {
       const customObjectDirPath = this.splittedLine
         .slice(0, [this.splittedLine.indexOf(this.type)])
         .join(path.sep)
-      const customObjectName = this.splittedLine[
-        this.splittedLine.indexOf(this.type) - 1
-      ]
+      const customObjectName =
+        this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
 
       const customObjectPath = path.join(
         customObjectDirPath,
