@@ -62,17 +62,18 @@ class RepoGitDiff {
     })
 
     return lines
-      .filter(
-        line =>
-          !!line &&
-          !deletedRenamed.includes(line) &&
-          line
-            .split(path.sep)
-            .some(part =>
-              Object.prototype.hasOwnProperty.call(this.metadata, part)
-            )
-      )
+      .filter(line => this._filterInternal(line, deletedRenamed))
       .filter(line => this._filterIgnore(line))
+  }
+
+  _filterInternal(line, deletedRenamed) {
+    return (
+      !!line &&
+      !deletedRenamed.includes(line) &&
+      line
+        .split(path.sep)
+        .some(part => Object.prototype.hasOwnProperty.call(this.metadata, part))
+    )
   }
 
   _filterIgnore(line) {
