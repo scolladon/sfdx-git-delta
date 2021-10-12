@@ -224,6 +224,22 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(output)
   })
 
+  test('cannot filter same name file with different metadata', () => {
+    const output = [
+      'D      force-app/main/default/objects/Account/fields/CustomField__c.field-meta.xml',
+      'A      force-app/main/default/objects/Opportunity/fields/CustomField__c.field-meta.xml',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const work = repoGitDiff(
+      { output: '', repo: '' },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    expect(work).toStrictEqual(output)
+  })
+
   test('can reject in case of error', () => {
     const expected = new Error('Test Error')
     child_process.spawnSync.mockImplementation(() => {
