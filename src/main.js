@@ -3,7 +3,7 @@ const PackageConstructor = require('./utils/packageConstructor')
 const TypeHandlerFactory = require('./service/typeHandlerFactory')
 const metadataManager = require('./metadata/metadataManager')
 const CLIHelper = require('./utils/cliHelper')
-const repoGitDiff = require('./utils/repoGitDiff')
+const RepoGitDiff = require('./utils/repoGitDiff')
 
 const fse = require('fs-extra')
 const path = require('path')
@@ -20,8 +20,9 @@ module.exports = config => {
     'directoryName',
     config.apiVersion
   )
+  const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  const lines = repoGitDiff(config, metadata)
+  const lines = repoGitDiffHelper.getDiff(config, metadata)
   const work = treatDiff(config, lines, metadata)
   treatPackages(work.diffs, config, metadata)
   return work
