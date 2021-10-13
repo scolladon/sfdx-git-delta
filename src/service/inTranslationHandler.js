@@ -16,6 +16,8 @@ class TranslationHandler extends ResourceHandler {
       path.normalize(path.join(this.config.output, objectTranslationName))
     )
   }
+
+  static OBJECT_TRANSLATION_TYPE = 'objectTranslations'
 }
 
 module.exports = TranslationHandler
