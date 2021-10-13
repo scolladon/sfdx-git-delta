@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.9.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.9.0...v4.9.1) (2021-10-13)
+
+
+### Bug Fixes
+
+* issue when filtering same file name for different metadata ([#196](https://github.com/scolladon/sfdx-git-delta/issues/196)) ([ca7488b](https://github.com/scolladon/sfdx-git-delta/commit/ca7488b2a4c566dec3094b9f37300ba72ccfb0e8))
+
 ## [4.9.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.8.1...v4.9.0) (2021-09-10)
 
 
