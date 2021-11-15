@@ -715,6 +715,13 @@
     "xmlName": "PlatformEventChannelMember"
   },
   {
+    "directoryName": "PlatformEventSubscriberConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "platformEventSubscriberConfig",
+    "xmlName": "PlatformEventSubscriberConfig"
+  },
+  {
     "directoryName": "callCenters",
     "inFolder": false,
     "metaFile": false,
