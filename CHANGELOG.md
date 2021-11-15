@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.10.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.9.1...v4.10.0) (2021-11-15)
+
+
+### Features
+
+* add CODEOWNERS and branch protection ([#204](https://github.com/scolladon/sfdx-git-delta/issues/204)) ([07ce5d6](https://github.com/scolladon/sfdx-git-delta/commit/07ce5d67a35c2028d00fabb4500c0f2dc0a71774))
+* add PlatformEventSubscriberConfig support for APIs 51 and above ([#203](https://github.com/scolladon/sfdx-git-delta/issues/203)) ([0a7a59e](https://github.com/scolladon/sfdx-git-delta/commit/0a7a59e1ddf55d1db017ac51307d6a582edb1f54))
+
 ### [4.9.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.9.0...v4.9.1) (2021-10-13)
 
 
