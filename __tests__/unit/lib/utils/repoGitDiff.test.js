@@ -298,7 +298,7 @@ describe(`test if repoGitDiff`, () => {
     )
     const work = repoGitDiff.getIncludedFiles()
     //should be empty
-    const expected = ['D     force-app/main/default/lwc/jsconfig.json']
+    const expected = ['D      force-app/main/default/lwc/jsconfig.json']
     expect(work).toStrictEqual(expected)
   })
 
@@ -348,8 +348,8 @@ describe(`test if repoGitDiff`, () => {
     const work = repoGitDiff.getIncludedFiles()
     //should be empty
     const expected = [
-      'D     force-app/main/default/lwc/jsconfig.json',
-      'D     force-app/main/default/staticresources/jsconfig.json',
+      'D      force-app/main/default/lwc/jsconfig.json',
+      'D      force-app/main/default/staticresources/jsconfig.json',
     ]
     expect(work).toStrictEqual(expected)
   })

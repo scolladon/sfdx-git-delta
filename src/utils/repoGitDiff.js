@@ -88,27 +88,21 @@ class RepoGitDiff {
   }
 
   _addIncludes(lines) {
-    let includes = this.config.include
-      ? micromatch(
-          lines.split(os.EOL),
-          fs
-            .readFileSync(this.config.include)
-            .toString()
-            .split(os.EOL)
-            .filter(i => i)
-        ).map(include => `A      ${include}`)
-      : []
-    let includeDestructives = this.config.includeDestructive
-      ? micromatch(
-          lines.split(os.EOL),
-          fs
-            .readFileSync(this.config.includeDestructive)
-            .toString()
-            .split(os.EOL)
-            .filter(i => i)
-        ).map(includeD => `D     ${includeD}`)
-      : []
-    return [...includes, ...includeDestructives]
+    return [
+      { include: this.config.include, prefix: 'A' },
+      { include: this.config.includeDestructive, prefix: 'D' },
+    ].flatMap(obj => {
+      return obj.include
+        ? micromatch(
+            lines.split(os.EOL),
+            fs
+              .readFileSync(obj.include)
+              .toString()
+              .split(os.EOL)
+              .filter(i => i)
+          ).map(include => `${obj.prefix}      ${include}`)
+        : []
+    })
   }
 
   _filterIgnore(line) {
