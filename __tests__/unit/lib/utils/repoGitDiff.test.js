@@ -6,6 +6,7 @@ jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
 jest.mock('fs-extra')
 
 const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
+const FORCEINCLUDE_MOCK_PATH = '__mocks__/.forceinclude'
 
 describe(`test if repoGitDiff`, () => {
   test('can parse git correctly', () => {
@@ -18,7 +19,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
   })
 
@@ -37,7 +38,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
   })
 
@@ -53,7 +54,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toMatchObject(output)
   })
 
@@ -69,7 +70,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
   })
 
@@ -85,7 +86,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
   })
 
@@ -99,7 +100,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     //should be empty
     const expected = []
     expect(work).toStrictEqual(expected)
@@ -115,7 +116,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     //should be empty
     const expected = []
     expect(work).toStrictEqual(expected)
@@ -139,7 +140,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     //should be empty
     const expected = []
     expect(work).toStrictEqual(expected)
@@ -155,7 +156,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     //should be empty
     const expected = []
     expect(work).toStrictEqual(expected)
@@ -171,7 +172,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
   })
 
@@ -185,7 +186,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     //should be empty
     const expected = []
     expect(work).toStrictEqual(expected)
@@ -204,7 +205,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     const expected = [output[1]]
     expect(work).toStrictEqual(expected)
   })
@@ -222,7 +223,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     const expected = [output[1]]
     expect(work).toStrictEqual(expected)
   })
@@ -240,7 +241,7 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
   })
 
@@ -257,8 +258,100 @@ describe(`test if repoGitDiff`, () => {
       // eslint-disable-next-line no-undef
       globalMetadata
     )
-    const work = repoGitDiff.getDiff()
+    const work = repoGitDiff.getFilteredDiff()
     expect(work).toStrictEqual(output)
+  })
+
+  test('can explicitly include files', () => {
+    const output = ['force-app/main/default/lwc/jsconfig.json']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const repoGitDiff = new RepoGitDiff(
+      {
+        output: '',
+        repo: '',
+        include: FORCEINCLUDE_MOCK_PATH,
+      },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    const work = repoGitDiff.getIncludedFiles()
+    //should be empty
+    const expected = ['A      force-app/main/default/lwc/jsconfig.json']
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('can explicitly include destructive files', () => {
+    const output = ['force-app/main/default/lwc/jsconfig.json']
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output[0],
+    }))
+    const repoGitDiff = new RepoGitDiff(
+      {
+        output: '',
+        repo: '',
+        includeDestructive: FORCEINCLUDE_MOCK_PATH,
+      },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    const work = repoGitDiff.getIncludedFiles()
+    //should be empty
+    const expected = ['D     force-app/main/default/lwc/jsconfig.json']
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('can explicitly include multiple files', () => {
+    const output = [
+      'force-app/main/default/lwc/jsconfig.json',
+      'force-app/main/default/staticresources/jsconfig.json',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const repoGitDiff = new RepoGitDiff(
+      {
+        output: '',
+        repo: '',
+        include: FORCEINCLUDE_MOCK_PATH,
+      },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    const work = repoGitDiff.getIncludedFiles()
+    //should be empty
+    const expected = [
+      'A      force-app/main/default/lwc/jsconfig.json',
+      'A      force-app/main/default/staticresources/jsconfig.json',
+    ]
+    expect(work).toStrictEqual(expected)
+  })
+
+  test('can explicitly include destructive multiple files', () => {
+    const output = [
+      'force-app/main/default/lwc/jsconfig.json',
+      'force-app/main/default/staticresources/jsconfig.json',
+    ]
+    child_process.spawnSync.mockImplementation(() => ({
+      stdout: output.join(os.EOL),
+    }))
+    const repoGitDiff = new RepoGitDiff(
+      {
+        output: '',
+        repo: '',
+        includeDestructive: FORCEINCLUDE_MOCK_PATH,
+      },
+      // eslint-disable-next-line no-undef
+      globalMetadata
+    )
+    const work = repoGitDiff.getIncludedFiles()
+    //should be empty
+    const expected = [
+      'D     force-app/main/default/lwc/jsconfig.json',
+      'D     force-app/main/default/staticresources/jsconfig.json',
+    ]
+    expect(work).toStrictEqual(expected)
   })
 
   test('can reject in case of error', () => {
@@ -268,7 +361,7 @@ describe(`test if repoGitDiff`, () => {
     })
     try {
       const repoGitDiff = new RepoGitDiff({ output: '', repo: '' }, null)
-      repoGitDiff.getDiff()
+      repoGitDiff.getFilteredDiff()
     } catch (e) {
       expect(e).toBe(expected)
     }

@@ -32,6 +32,8 @@ const options = program
   )
   .option('-r, --repo [dir]', messages.repoFlag, CliHelper.REPO_DEFAULT_VALUE)
   .option('-d, --generate-delta', messages.deltaFlag)
+  .option('-I, --include', messages.includeFlag)
+  .option('-N, --include-destructive', messages.includeDestructiveFlag)
   .parse(process.argv)
   .opts()
 

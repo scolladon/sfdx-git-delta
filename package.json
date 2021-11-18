@@ -39,6 +39,7 @@
     "fs-extra": "^10.0.0",
     "git-state": "^4.1.0",
     "ignore": "^5.1.8",
+    "micromatch": "^4.0.4",
     "tslib": "^2.3.1",
     "xmlbuilder": "^15.1.1"
   },
@@ -79,6 +80,8 @@
     "@types/node": "^16.10.3",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
+    "chai": "^4.3.4",
+    "codeclimate": "^0.0.32",
     "conventional-github-releaser": "^3.1.5",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^8.3.0",

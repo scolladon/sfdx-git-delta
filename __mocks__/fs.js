@@ -27,6 +27,9 @@ fs.statSync = elem => ({
   isDirectory() {
     return elem !== 'file'
   },
+  isFile() {
+    return filePathList.has(elem)
+  },
 })
 
 fs.readFileSync = path => {

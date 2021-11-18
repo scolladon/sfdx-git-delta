@@ -27,6 +27,8 @@ describe(`test if the appli`, () => {
     fsMocked.__setMockFiles({
       output: '',
       '.': '',
+      '.forceignore': '',
+      '.forceinclude': '',
     })
     child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
   })
@@ -53,6 +55,7 @@ describe(`test if the appli`, () => {
         ...testConfig,
         ignore: '.forceignore',
         ignoreDestructive: '.forceignore',
+        include: '.forceinclude',
       })
     ).toHaveProperty('warnings', [])
   })
