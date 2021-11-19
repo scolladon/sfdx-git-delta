@@ -80,7 +80,6 @@
     "@types/node": "^16.10.3",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
-    "chai": "^4.3.4",
     "codeclimate": "^0.0.32",
     "conventional-github-releaser": "^3.1.5",
     "eslint": "^8.0.0",

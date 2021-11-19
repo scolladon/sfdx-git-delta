@@ -64,7 +64,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       description: messages.getMessage('deltaFlag'),
     }),
     include: flags.filepath({
-      char: 'I',
+      char: 'n',
       description: messages.getMessage('includeFlag'),
     }),
     'include-destructive': flags.filepath({
@@ -92,7 +92,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         repo: this.flags.repo,
         ignoreWhitespace: this.flags['ignore-whitespace'],
         generateDelta: this.flags['generate-delta'],
-        include: this.flags['include'],
+        include: this.flags.include,
         includeDestructive: this.flags['include-destructive'],
       })
       output.warnings = jobResult?.warnings?.map(warning => warning.message)

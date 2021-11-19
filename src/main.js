@@ -22,8 +22,8 @@ module.exports = config => {
   )
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  let filteredLines = repoGitDiffHelper.getFilteredDiff(config, metadata)
-  let includedLines = repoGitDiffHelper.getIncludedFiles()
+  const filteredLines = repoGitDiffHelper.getFilteredDiff()
+  const includedLines = repoGitDiffHelper.getIncludedFiles()
   const lines = [...filteredLines, ...includedLines]
   const work = treatDiff(config, lines, metadata)
   treatPackages(work.diffs, config, metadata)

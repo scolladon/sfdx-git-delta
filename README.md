@@ -91,24 +91,22 @@ If you encounter this issue while having installed the correct version of node o
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-I <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--i-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-I <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+
+## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Generate the sfdx content in source format and destructive change from two git commits
 
 ```
 USAGE
-  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] 
-  [-o <filepath>] [-a <number>] [-d] [-I <filepath>] [-N <filepath>] [--json] [--loglevel 
+  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
+  [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
   -D, --ignore-destructive=ignore-destructive                                       file listing paths to explicitly
                                                                                     ignore for any destructive actions
-
-  -I, --include=include                                                             file listing paths to explicitly
-                                                                                    include for any diff actions
 
   -N, --include-destructive=include-destructive                                     file listing paths to explicitly
                                                                                     include for any destructive actions
@@ -128,6 +126,9 @@ OPTIONS
   -i, --ignore=ignore                                                               file listing paths to explicitly
                                                                                     ignore for any diff actions
 
+  -n, --include=include                                                             file listing paths to explicitly
+                                                                                    include for any diff actions
+
   -o, --output=output                                                               [default: ./output] source package
                                                                                     specific output
 
@@ -146,6 +147,7 @@ OPTIONS
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.10.0/src/commands/sgd/source/delta.ts)_
+
 <!-- commandsstop -->
 
 ### Important note for Windows users:
@@ -310,7 +312,7 @@ Note that in a situation where only the `--ignore [-i]` parameter is specified (
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff:
 
-The `--include [-I]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) used to explicitly include the specific files, regardless whether they have diffed or not. Similar to the `--ignore` flag, this file defines a list of glob file matchers to indicate which `git` aware files should always be included in the `package.xml` package. Every matching the pattern from the include file specified in the `--include [-I]` will be included by SGD.
+The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) used to explicitly include the specific files, regardless whether they have diffed or not. Similar to the `--ignore` flag, this file defines a list of glob file matchers to indicate which `git` aware files should always be included in the `package.xml` package. Every matching the pattern from the include file specified in the `--include [-n]` will be included by SGD.
 
 As with `--ignore`, sometimes you may need to have two different include policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
 
@@ -399,6 +401,7 @@ console.log(JSON.stringify(work))
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
 - [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) - An XML builder for node.js similar to java-xmlbuilder.
+- [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
 
 ## Versioning
 
