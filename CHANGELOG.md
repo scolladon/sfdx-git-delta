@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.11.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.10.0...v4.11.0) (2021-11-24)
+
+
+### Features
+
+* add support for defining an --include file ([#210](https://github.com/scolladon/sfdx-git-delta/issues/210)) ([a1f2738](https://github.com/scolladon/sfdx-git-delta/commit/a1f273806c91f9d8c12f8aeabc44dd5b02247736))
+
 ## [4.10.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.9.1...v4.10.0) (2021-11-15)
 
 
