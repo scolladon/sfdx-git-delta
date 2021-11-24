@@ -6,6 +6,7 @@ const fs = require('fs')
 const git = require('git-state')
 
 const dirExist = dir => fs.existsSync(dir) && fs.statSync(dir).isDirectory()
+const fileExist = file => fs.statSync(file).isFile()
 
 class CLIHelper {
   constructor(config) {
@@ -25,6 +26,14 @@ class CLIHelper {
     ;[this.config.output, this.config.source]
       .filter(dir => !dirExist(dir))
       .forEach(dir => errors.push(`${dir} folder does not exist`))
+    ;[
+      this.config.ignore,
+      this.config.ignoreDestructive,
+      this.config.include,
+      this.config.includeDestructive,
+    ]
+      .filter(file => file && !fileExist(file))
+      .forEach(file => errors.push(`${file} file does not exist`))
 
     if (!git.isGitSync(this.config.repo)) {
       errors.push(`${this.config.repo} is not a git repository`)
@@ -37,7 +46,7 @@ class CLIHelper {
     }
 
     if (errors.length > 0) {
-      throw new Error(errors)
+      throw new Error(errors.join(', '))
     }
 
     this.repoSetup.repoConfiguration()
@@ -51,6 +60,10 @@ class CLIHelper {
     this.config.ignore = sanitizePath(this.config.ignore)
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)
     this.config.from = this.repoSetup.computeFromRef()
+    this.config.include = sanitizePath(this.config.include)
+    this.config.includeDestructive = sanitizePath(
+      this.config.includeDestructive
+    )
   }
 
   static TO_DEFAULT_VALUE = 'HEAD'

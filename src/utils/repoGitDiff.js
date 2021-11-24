@@ -8,10 +8,13 @@ const gc = require('./gitConstants')
 const childProcess = require('child_process')
 const fs = require('fs')
 const ignore = require('ignore')
+const micromatch = require('micromatch')
+
 const os = require('os')
 const path = require('path')
 
 const fullDiffParams = ['--no-pager', 'diff', '--name-status', '--no-renames']
+const allFilesParams = ['ls-files']
 const lcSensitivity = {
   sensitivity: 'accent',
 }
@@ -27,7 +30,15 @@ class RepoGitDiff {
     this.metadata = metadata
   }
 
-  getDiff() {
+  getIncludedFiles() {
+    const { stdout: ls } = childProcess.spawnSync('git', [...allFilesParams], {
+      cwd: this.config.repo,
+      encoding: gc.UTF8_ENCODING,
+    })
+    return this._addIncludes(cpUtils.treatDataFromSpawn(ls))
+  }
+
+  getFilteredDiff() {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? gc.IGNORE_WHITESPACE_PARAMS
       : []
@@ -76,12 +87,30 @@ class RepoGitDiff {
     )
   }
 
+  _addIncludes(lines) {
+    return [
+      { include: this.config.include, prefix: 'A' },
+      { include: this.config.includeDestructive, prefix: 'D' },
+    ].flatMap(obj => {
+      return obj.include
+        ? micromatch(
+            lines.split(os.EOL),
+            fs
+              .readFileSync(obj.include)
+              .toString()
+              .split(os.EOL)
+              .filter(i => i)
+          ).map(include => `${obj.prefix}      ${include}`)
+        : []
+    })
+  }
+
   _filterIgnore(line) {
-    const ig = ignore()
-    const dig = ignore()
+    const fileIgnorer = ignore()
+    const fileDestIgnorer = ignore()
     ;[
-      { ignore: this.config.ignore, helper: ig },
-      { ignore: this.config.ignoreDestructive, helper: dig },
+      { ignore: this.config.ignore, helper: fileIgnorer },
+      { ignore: this.config.ignoreDestructive, helper: fileDestIgnorer },
     ].forEach(
       ign =>
         ign.ignore &&
@@ -90,9 +119,9 @@ class RepoGitDiff {
     )
     return this.config.ignoreDestructive
       ? line.startsWith(gc.DELETION)
-        ? !dig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-        : !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-      : !ig.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+        ? !fileDestIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+        : !fileIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+      : !fileIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
   }
 
   _extractComparisonName(line) {

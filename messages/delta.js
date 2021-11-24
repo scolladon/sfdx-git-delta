@@ -7,9 +7,13 @@ module.exports = {
   repoFlag: 'git repository location',
   outputFlag: 'source package specific output',
   sourceFlag: 'source folder focus location related to --repo',
-  ignoreFlag: 'ignore file to use',
-  ignoreDestructiveFlag: 'ignore file to use',
+  ignoreFlag: 'file listing paths to explicitly ignore for any diff actions',
+  ignoreDestructiveFlag:
+    'file listing paths to explicitly ignore for any destructive actions',
   apiVersionFlag: 'salesforce API version',
   deltaFlag: 'generate delta files in [--output] folder',
   ignoreWhitespaceFlag: 'ignore git diff whitespace (space, tab, eol) changes',
+  includeFlag: 'file listing paths to explicitly include for any diff actions',
+  includeDestructiveFlag:
+    'file listing paths to explicitly include for any destructive actions',
 }

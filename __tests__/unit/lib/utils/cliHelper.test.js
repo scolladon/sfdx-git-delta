@@ -74,6 +74,46 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
+  test('throw errors when file is not found for --ignore', () => {
+    cliHelper = new CLIHelper({
+      ...testConfig,
+      ignore: 'not-a-file',
+    })
+    expect(() => {
+      cliHelper.validateConfig()
+    }).toThrow()
+  })
+
+  test('throw errors when file is not found for --ignore-destructive', () => {
+    cliHelper = new CLIHelper({
+      ...testConfig,
+      ignoreDestructive: 'not-a-file',
+    })
+    expect(() => {
+      cliHelper.validateConfig()
+    }).toThrow()
+  })
+
+  test('throw errors when file is not found for --include', () => {
+    cliHelper = new CLIHelper({
+      ...testConfig,
+      include: 'not-a-file',
+    })
+    expect(() => {
+      cliHelper.validateConfig()
+    }).toThrow()
+  })
+
+  test('throw errors when file is not found for --include-destructive', () => {
+    cliHelper = new CLIHelper({
+      ...testConfig,
+      includeDestructive: 'not-a-file',
+    })
+    expect(() => {
+      cliHelper.validateConfig()
+    }).toThrow()
+  })
+
   test('throw errors when "-t" and "-d" are set', () => {
     const notHeadSHA = 'test'
     child_process.spawnSync

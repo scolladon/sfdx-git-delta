@@ -91,20 +91,24 @@ If you encounter this issue while having installed the correct version of node o
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Generate the sfdx content in source format and destructive change from two git commits
 
 ```
 USAGE
   $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] 
-  [-o <filepath>] [-a <number>] [-d] [--json] [--loglevel 
+  [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
-  -D, --ignore-destructive=ignore-destructive                                       ignore file to use
+  -D, --ignore-destructive=ignore-destructive                                       file listing paths to explicitly
+                                                                                    ignore for any destructive actions
+
+  -N, --include-destructive=include-destructive                                     file listing paths to explicitly
+                                                                                    include for any destructive actions
 
   -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
                                                                                     tab, eol) changes
@@ -118,7 +122,11 @@ OPTIONS
                                                                                     diff is done [git rev-list
                                                                                     --max-parents=0 HEAD]
 
-  -i, --ignore=ignore                                                               ignore file to use
+  -i, --ignore=ignore                                                               file listing paths to explicitly
+                                                                                    ignore for any diff actions
+
+  -n, --include=include                                                             file listing paths to explicitly
+                                                                                    include for any diff actions
 
   -o, --output=output                                                               [default: ./output] source package
                                                                                     specific output
@@ -286,7 +294,7 @@ and will not be used to add member in `package.xml` nor `destructiveChanges.xml`
 
 But, sometimes you may need to have two different ignore policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
 
-Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). In orther words, this will override the `--ignore [-i]` parameter for deleted items.
+Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). In other words, this will override the `--ignore [-i]` parameter for deleted items.
 
 For example, consider a repository containing multiple sub-folders (force-app/main,force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. By default, the Custom\_\_c object would appear in the `package.xml` and in `destructiveChanges.xml`, which could be a little bit inconsistent and can break the CI/CD build. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
@@ -299,6 +307,24 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 ```
 
 Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
+
+### Explicitly including specific files for inclusion or destruction regardless of diff:
+
+The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) used to explicitly include the specific files, regardless whether they have diffed or not. Similar to the `--ignore` flag, this file defines a list of glob file matchers to indicate which `git` aware files should always be included in the `package.xml` package. Every matching the pattern from the include file specified in the `--include [-n]` will be included by SGD.
+
+As with `--ignore`, sometimes you may need to have two different include policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
+
+Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). Here, you will indicate which files explicitly should be included in the `destructiveChanges.xml`.
+
+For example, consider a repository containing multiple sub-folders (force-app/main,force-app/sample, etc) and the CI/CD platform generates a new file `force-app/generated/foo` that should not be included in the `source:deploy` command. You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
+
+```sh
+# destructiveinclude
+*generated/foo
+
+$ sfdx sgd:source:delta --from commit --include-destructive destructiveinclude
+
+```
 
 ### Scoping delta generation to a specific folder
 
@@ -373,6 +399,7 @@ console.log(JSON.stringify(work))
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
 - [xmlbuilder](https://github.com/oozcitak/xmlbuilder-js) - An XML builder for node.js similar to java-xmlbuilder.
+- [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
 
 ## Versioning
 

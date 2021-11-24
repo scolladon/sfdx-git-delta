@@ -2025,6 +2025,11 @@ code-point-at@^1.0.0:
   resolved "https://registry.yarnpkg.com/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
   integrity sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=
 
+codeclimate@^0.0.32:
+  version "0.0.32"
+  resolved "https://registry.yarnpkg.com/codeclimate/-/codeclimate-0.0.32.tgz#3e8fab6e59debb64c71bb899fceff7f1a829cb8a"
+  integrity sha1-Po+rblneu2THG7iZ/O/38agpy4o=
+
 coffeescript@^1.10.0:
   version "1.12.7"
   resolved "https://registry.yarnpkg.com/coffeescript/-/coffeescript-1.12.7.tgz#e57ee4c4867cf7f606bfc4a0f2d550c0981ddd27"

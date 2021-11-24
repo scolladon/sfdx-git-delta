@@ -63,6 +63,14 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       char: 'd',
       description: messages.getMessage('deltaFlag'),
     }),
+    include: flags.filepath({
+      char: 'n',
+      description: messages.getMessage('includeFlag'),
+    }),
+    'include-destructive': flags.filepath({
+      char: 'N',
+      description: messages.getMessage('includeDestructiveFlag'),
+    }),
   }
 
   public async run(): Promise<AnyJson> {
@@ -84,6 +92,8 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         repo: this.flags.repo,
         ignoreWhitespace: this.flags['ignore-whitespace'],
         generateDelta: this.flags['generate-delta'],
+        include: this.flags.include,
+        includeDestructive: this.flags['include-destructive'],
       })
       output.warnings = jobResult?.warnings?.map(warning => warning.message)
     } catch (err) {
