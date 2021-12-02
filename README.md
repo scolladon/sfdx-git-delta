@@ -63,9 +63,9 @@ Pro tips: If you are in the process of building your CI/CD pipeline, make sure y
 
 ## How to install it?
 
-### Option #1 (recommended) - Install as a Salesforce CLI plugin (sgd:source:delta):
+### Install as a Salesforce CLI plugin (sgd:source:delta):
 
-You can use SGD as a Salesforce CLI plugin (`sfdx sgd:source:delta`), and this is now the recommended approach to get SGD:
+SGD is a Salesforce CLI plugin (`sfdx sgd:source:delta`). Run the following command to install it:
 
 ```sh
 sfdx plugins:install sfdx-git-delta
@@ -75,10 +75,7 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is an example of a Dockerfile including the SGD plugin: https://github.com/mehdisfdc/sfdx-cli-gitlab
 
-### Option #2 (legacy) - Install as the sgd command
-
-Before the Salesforce CLI plugin was available, the old way to use this tool was through the `sgd` command (as described in the [old README](https://github.com/scolladon/sfdx-git-delta/blob/1093db6bd19eb48905db8f9aa5db086aa6707613/README.md)).
-It is now recommended to use `sfdx sgd:source:delta`, but if you feel nostalgic about the `sgd` command, you can still get it through yarn (or npm): `yarn sfdx-git-delta@latest -g`
+⚠️  The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npn. The legacy `sgd` command is now deprecated and will be decommissioned soon.
 
 ### Prerequisites
 
