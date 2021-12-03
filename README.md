@@ -75,7 +75,7 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is an example of a Dockerfile including the SGD plugin: https://github.com/mehdisfdc/sfdx-cli-gitlab
 
-⚠️  The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npn. The legacy `sgd` command is now deprecated and will be decommissioned soon.
+⚠️  The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npm. The legacy `sgd` command is now deprecated and will be decommissioned soon.
 
 ### Prerequisites
 
