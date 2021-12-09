@@ -918,6 +918,21 @@
     "xmlName": "MlDomain"
   },
   {
+    "directoryName": "discovery",
+    "inFolder": false,
+    "metaFile": true,
+    "content": [
+      {
+        "suffix": "model",
+        "xmlName": "DiscoveryAIModel"
+      },
+      {
+        "suffix": "goal",
+        "xmlName": "DiscoveryGoal"
+      }
+    ]
+  },
+  {
     "directoryName": "wave",
     "inFolder": false,
     "metaFile": true,

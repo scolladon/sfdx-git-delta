@@ -13,6 +13,12 @@ const testContext = {
     ],
     [
       'wave',
+      'force-app/main/default/wave/WaveComponentTest.wcomp',
+      new Set(['WaveComponentTest']),
+      'WaveComponent',
+    ],
+    [
+      'wave',
       'force-app/main/default/wave/WaveDataflowTest.wdf',
       new Set(['WaveDataflowTest']),
       'WaveDataflow',
@@ -52,6 +58,12 @@ const testContext = {
       'force-app/main/default/wave/Test/WaveApplicationTest.wapp',
       new Set(['WaveApplicationTest']),
       'WaveApplication',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/WaveComponentTest.wcomp',
+      new Set(['WaveComponentTest']),
+      'WaveComponent',
     ],
     [
       'wave',
@@ -98,6 +110,7 @@ const testContext = {
 
 require('fs').__setMockFiles({
   'force-app/main/default/wave/WaveApplicationTest.wapp': 'test',
+  'force-app/main/default/wave/WaveComponentTest.wcomp': 'test',
   'force-app/main/default/wave/WaveDataflowTest.wdf': 'test',
   'force-app/main/default/wave/WaveDashboardTest.wdash': 'test',
   'force-app/main/default/wave/WaveDatasetTest.wds': 'test',
