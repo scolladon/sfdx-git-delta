@@ -1167,6 +1167,10 @@
         "xmlName": "WaveApplication"
       },
       {
+        "suffix": "wcomp",
+        "xmlName": "WaveComponent"
+      },
+      {
         "suffix": "wdf",
         "xmlName": "WaveDataflow"
       },
