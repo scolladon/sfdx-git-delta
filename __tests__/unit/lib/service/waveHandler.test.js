@@ -6,6 +6,18 @@ const testContext = {
   handler: WaveHandler,
   testData: [
     [
+      'discovery',
+      'force-app/main/default/discovery/DiscoveryAIModelTest.model',
+      new Set(['DiscoveryAIModelTest']),
+      'DiscoveryAIModel',
+    ],
+    [
+      'discovery',
+      'force-app/main/default/discovery/DiscoveryGoalTest.goal',
+      new Set(['DiscoveryGoalTest']),
+      'DiscoveryGoal',
+    ],
+    [
       'wave',
       'force-app/main/default/wave/WaveApplicationTest.wapp',
       new Set(['WaveApplicationTest']),
@@ -54,6 +66,18 @@ const testContext = {
       'WaveXmd',
     ],
     [
+      'discovery',
+      'force-app/main/default/discovery/Test/DiscoveryAIModelTest.model',
+      new Set(['DiscoveryAIModelTest']),
+      'DiscoveryAIModel',
+    ],
+    [
+      'discovery',
+      'force-app/main/default/discovery/Test/DiscoveryGoalTest.goal',
+      new Set(['DiscoveryGoalTest']),
+      'DiscoveryGoal',
+    ],
+    [
       'wave',
       'force-app/main/default/wave/Test/WaveApplicationTest.wapp',
       new Set(['WaveApplicationTest']),
@@ -61,7 +85,7 @@ const testContext = {
     ],
     [
       'wave',
-      'force-app/main/default/wave/WaveComponentTest.wcomp',
+      'force-app/main/default/wave/Test/WaveComponentTest.wcomp',
       new Set(['WaveComponentTest']),
       'WaveComponent',
     ],
@@ -109,6 +133,8 @@ const testContext = {
 }
 
 require('fs').__setMockFiles({
+  'force-app/main/default/discovery/DiscoveryAIModelTest.model': 'test',
+  'force-app/main/default/discovery/DiscoveryGoalTest.goal': 'test',
   'force-app/main/default/wave/WaveApplicationTest.wapp': 'test',
   'force-app/main/default/wave/WaveComponentTest.wcomp': 'test',
   'force-app/main/default/wave/WaveDataflowTest.wdf': 'test',
