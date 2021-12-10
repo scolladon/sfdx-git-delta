@@ -7,7 +7,6 @@ const WAVE_SUBTYPE = {}
 class WaveHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    console.log(this.type)
 
     StandardHandler.metadata[this.type].content.reduce((acc, val) => {
       acc[val.suffix] = val.xmlName
