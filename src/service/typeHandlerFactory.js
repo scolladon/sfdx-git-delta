@@ -1,4 +1,5 @@
 'use strict'
+const Bot = require('./botHandler')
 const CustomObject = require('./customObjectHandler')
 const InFile = require('./inFileHandler')
 const InFolder = require('./inFolderHandler')
@@ -12,7 +13,7 @@ const typeUtils = require('../utils/typeUtils')
 
 const classes = {
   aura: InResource,
-  bot: InFile,
+  bots: Bot,
   businessProcesses: SubCustomObject,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
