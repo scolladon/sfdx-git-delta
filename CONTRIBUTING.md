@@ -194,16 +194,32 @@ CI validates prettifying, linting and tests
 [creating-a-pull-request]: https://help.github.com/articles/creating-a-pull-request/
 [eslint-integrations]: http://eslint.org/docs/user-guide/integrations
 
+### Collaborate on the pull request
+
+[Conventional Comment](https://conventionalcomments.org/) is used to ensure every comments express intention and are easy to understand.
+Pull Request comments are not enforced it is more a way to help the reviewers and contributors to collaborate on the pull request.
+
 ## Update Salesforce API version
 
 The repo contains a script to increment the Salesforce API version supported by SGD.
 To upgrade the API version, run the following command:
+
 ```
 yarn && yarn increment:apiversion
 ```
+
+## CLI parameters convention
+
+[Apache Commons CLI](https://commons.apache.org/proper/commons-cli/index.html) parameters convention is used to define parameters for the CLI.
+When long parameter is one word then take the first character to define the short parameter. Ex: `--word` `-w`
+When long parameter is multiple words then take the first character of the last word to define the short parameter. Ex: `--long-phrase` `-p`
+When the short parameter is already taken then put the short parameter uppercase. Ex: `--with` `-W`, `--long-paragraph` `-P`
+When the character you should take following the rule above for the short parameter is already taken then choose another character, explain your choice in the PR description and let's discuss it!
+
 ## Testing the plugin from a pull request
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
+
 1. uninstall the previous version you may have `sfdx plugins:uninstall sfdx-git-delta`
 2. clone the repository
 3. checkout the branch to test
