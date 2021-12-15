@@ -33,4 +33,38 @@ require('fs').__setMockFiles({
 describe('test BotHandler', () => {
   // eslint-disable-next-line no-undef
   testHandlerHelper(testContext)
+
+  describe('when adding a botVersion', () => {
+    it('includes the related bot', () => {
+      const handler = new BotHandler(
+        `A       'force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`,
+        'bots',
+        testContext.work,
+        // eslint-disable-next-line no-undef
+        globalMetadata
+      )
+      handler.handle()
+      expect(testContext.work.diffs.package).toHaveProperty(
+        'bots',
+        new Set(['TestBot'])
+      )
+    })
+  })
+
+  describe('when modifying a botVersion', () => {
+    it('includes the related bot', () => {
+      const handler = new BotHandler(
+        `M       'force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`,
+        'bots',
+        testContext.work,
+        // eslint-disable-next-line no-undef
+        globalMetadata
+      )
+      handler.handle()
+      expect(testContext.work.diffs.package).toHaveProperty(
+        'bots',
+        new Set(['TestBot'])
+      )
+    })
+  })
 })
