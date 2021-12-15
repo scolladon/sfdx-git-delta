@@ -62,10 +62,7 @@ class StandardHandler {
     const source = path.join(this.config.repo, this.line)
     const target = path.join(this.config.output, this.line)
 
-    this._copyFiles(source, target)
-    if (StandardHandler.metadata[this.type].metaFile === true) {
-      this._copyFiles(source + mc.METAFILE_SUFFIX, target + mc.METAFILE_SUFFIX)
-    }
+    this._copyWithMetaFile(source, target)
   }
 
   handleDeletion() {
@@ -95,8 +92,23 @@ class StandardHandler {
   }
 
   _fillPackage(packageObject) {
-    packageObject[this.type] = packageObject[this.type] ?? new Set()
-    packageObject[this.type].add(this._getElementName())
+    this._fillPackageWithParameter({
+      package: packageObject,
+      type: this.type,
+      elementName: this._getElementName(),
+    })
+  }
+
+  _fillPackageWithParameter(params) {
+    params.package[params.type] = params.package[params.type] ?? new Set()
+    params.package[params.type].add(params.elementName)
+  }
+
+  _copyWithMetaFile(src, dst) {
+    this._copyFiles(src, dst)
+    if (StandardHandler.metadata[this.type].metaFile === true) {
+      this._copyFiles(src + mc.METAFILE_SUFFIX, dst + mc.METAFILE_SUFFIX)
+    }
   }
 
   _copyFiles(src, dst) {
