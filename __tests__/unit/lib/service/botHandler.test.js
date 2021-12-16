@@ -45,7 +45,7 @@ describe('test BotHandler', () => {
       )
       handler.handle()
       expect(testContext.work.diffs.package).toHaveProperty(
-        'bots',
+        'Bot',
         new Set(['TestBot'])
       )
     })
@@ -62,7 +62,7 @@ describe('test BotHandler', () => {
       )
       handler.handle()
       expect(testContext.work.diffs.package).toHaveProperty(
-        'bots',
+        'Bot',
         new Set(['TestBot'])
       )
     })

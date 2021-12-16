@@ -2,7 +2,7 @@
 const WaveHandler = require('./waveHandler')
 const path = require('path')
 
-const BOT_TYPE = 'bots'
+const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
 
 class BotHandler extends WaveHandler {
