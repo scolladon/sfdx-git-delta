@@ -6,10 +6,28 @@ const testContext = {
   handler: WaveHandler,
   testData: [
     [
+      'discovery',
+      'force-app/main/default/discovery/DiscoveryAIModelTest.model',
+      new Set(['DiscoveryAIModelTest']),
+      'DiscoveryAIModel',
+    ],
+    [
+      'discovery',
+      'force-app/main/default/discovery/DiscoveryGoalTest.goal',
+      new Set(['DiscoveryGoalTest']),
+      'DiscoveryGoal',
+    ],
+    [
       'wave',
       'force-app/main/default/wave/WaveApplicationTest.wapp',
       new Set(['WaveApplicationTest']),
       'WaveApplication',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/WaveComponentTest.wcomp',
+      new Set(['WaveComponentTest']),
+      'WaveComponent',
     ],
     [
       'wave',
@@ -48,10 +66,28 @@ const testContext = {
       'WaveXmd',
     ],
     [
+      'discovery',
+      'force-app/main/default/discovery/Test/DiscoveryAIModelTest.model',
+      new Set(['DiscoveryAIModelTest']),
+      'DiscoveryAIModel',
+    ],
+    [
+      'discovery',
+      'force-app/main/default/discovery/Test/DiscoveryGoalTest.goal',
+      new Set(['DiscoveryGoalTest']),
+      'DiscoveryGoal',
+    ],
+    [
       'wave',
       'force-app/main/default/wave/Test/WaveApplicationTest.wapp',
       new Set(['WaveApplicationTest']),
       'WaveApplication',
+    ],
+    [
+      'wave',
+      'force-app/main/default/wave/Test/WaveComponentTest.wcomp',
+      new Set(['WaveComponentTest']),
+      'WaveComponent',
     ],
     [
       'wave',
@@ -97,7 +133,10 @@ const testContext = {
 }
 
 require('fs').__setMockFiles({
+  'force-app/main/default/discovery/DiscoveryAIModelTest.model': 'test',
+  'force-app/main/default/discovery/DiscoveryGoalTest.goal': 'test',
   'force-app/main/default/wave/WaveApplicationTest.wapp': 'test',
+  'force-app/main/default/wave/WaveComponentTest.wcomp': 'test',
   'force-app/main/default/wave/WaveDataflowTest.wdf': 'test',
   'force-app/main/default/wave/WaveDashboardTest.wdash': 'test',
   'force-app/main/default/wave/WaveDatasetTest.wds': 'test',

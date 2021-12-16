@@ -1144,6 +1144,21 @@
     "xmlName": "MlDomain"
   },
   {
+    "directoryName": "discovery",
+    "inFolder": false,
+    "metaFile": true,
+    "content": [
+      {
+        "suffix": "model",
+        "xmlName": "DiscoveryAIModel"
+      },
+      {
+        "suffix": "goal",
+        "xmlName": "DiscoveryGoal"
+      }
+    ]
+  },
+  {
     "directoryName": "wave",
     "inFolder": false,
     "metaFile": true,
@@ -1151,6 +1166,10 @@
       {
         "suffix": "wapp",
         "xmlName": "WaveApplication"
+      },
+      {
+        "suffix": "wcomp",
+        "xmlName": "WaveComponent"
       },
       {
         "suffix": "wdf",

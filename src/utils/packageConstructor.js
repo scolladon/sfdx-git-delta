@@ -1,12 +1,16 @@
 'use strict'
 const xmlbuilder = require('xmlbuilder')
 const xmlConf = { indent: '    ', newline: '\n', pretty: true }
-const mc = require('./metadataConstants')
 
 module.exports = class PackageConstructor {
   constructor(config, metadata) {
     this.config = config
     this.metadata = metadata
+    this.looseMetadata = Object.keys(this.metadata)
+      .filter(type => this.metadata[type].content)
+      .flatMap(type =>
+        this.metadata[type].content.map(content => content.xmlName)
+      )
   }
 
   constructPackage(strucDiffPerType) {
@@ -20,7 +24,7 @@ module.exports = class PackageConstructor {
       .filter(
         type =>
           Object.prototype.hasOwnProperty.call(this.metadata, type) ||
-          type.startsWith(mc.WAVE_SUB_TYPES_PREFIX)
+          this.looseMetadata.includes(type)
       )
       .sort()
       // @deprecated To remove when the order will not impact the result of the deployment

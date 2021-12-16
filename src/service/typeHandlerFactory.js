@@ -16,6 +16,7 @@ const classes = {
   businessProcesses: SubCustomObject,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
+  discovery: Wave,
   documents: InFolder,
   email: InFolder,
   experiences: InResource,
