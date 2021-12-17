@@ -1,9 +1,8 @@
-name: Check-Dependencies
+name: 'Check Dependencies'
 
 on:
-  on:
-    schedule:
-      - cron: '0 0 * * *'
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   build-test:
