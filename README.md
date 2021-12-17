@@ -96,8 +96,8 @@ Generate the sfdx content in source format and destructive change from two git c
 
 ```
 USAGE
-  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] 
-  [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
+  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
+   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
@@ -110,7 +110,7 @@ OPTIONS
   -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
                                                                                     tab, eol) changes
 
-  -a, --api-version=api-version                                                     [default: 52] salesforce API version
+  -a, --api-version=api-version                                                     [default: 53] salesforce API version
 
   -d, --generate-delta                                                              generate delta files in [--output]
                                                                                     folder
