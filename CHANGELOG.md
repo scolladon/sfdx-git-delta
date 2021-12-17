@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.11.0...v4.12.0) (2021-12-17)
+
+
+### Features
+
+* add WaveComponent ([#220](https://github.com/scolladon/sfdx-git-delta/issues/220)) ([bcacdaa](https://github.com/scolladon/sfdx-git-delta/commit/bcacdaaa2c65675b9afbe5e8c51886528fa43c5e))
+
+
+### Bug Fixes
+
+* implement new metadata handling for Bot ([#226](https://github.com/scolladon/sfdx-git-delta/issues/226)) ([cd8267e](https://github.com/scolladon/sfdx-git-delta/commit/cd8267e4d83219aab2746b808968b6c4c8186f5b))
+
 ## [4.11.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.10.0...v4.11.0) (2021-11-24)
 
 
