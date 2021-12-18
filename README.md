@@ -1,4 +1,4 @@
-# SFDX-Git-Delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/master/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json) [![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
+# SFDX-Git-Delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json) [![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
 
 Generate the sfdx content in source format and destructive change from two git commits.
 
@@ -88,7 +88,8 @@ If you encounter this issue while having installed the correct version of node o
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+
+- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
 ## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -97,7 +98,7 @@ Generate the sfdx content in source format and destructive change from two git c
 ```
 USAGE
   $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
-   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
+   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
@@ -143,6 +144,7 @@ OPTIONS
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.12.0/src/commands/sgd/source/delta.ts)_
+
 <!-- commandsstop -->
 
 ### Important note for Windows users:
@@ -153,9 +155,9 @@ If you run SGD on a Windows system, make sure to use double quotes [to prevent t
 
 Let’s take a look at the following scenario:
 
-> **_The CI pipelines deploys the sources to Production anytime there is a new commit in the master branch._**
+> **_The CI pipelines deploys the sources to Production anytime there is a new commit in the main branch._**
 
-In our example, the latest commit to master is composed of:
+In our example, the latest commit to main is composed of:
 
 - _Apex Class added:_ TriggerHandler
 - _Apex Class added:_ TriggerHandler_Test
@@ -230,24 +232,24 @@ SGD works with any git sha pointer: commit sha, branch, tag, git expression (HEA
 Here are 3 examples showing how you can compare the content of different branches:
 
 **1) Comparing between commits in different branches**
-For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `master`:
+For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
 
 ```
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
 **2) Comparing branches (all changes)**
-Comparing all changes between the `develop` branch and the `master` branch:
+Comparing all changes between the `develop` branch and the `main` branch:
 
 ```
-sfdx sgd:source:delta --to develop --from master --output .
+sfdx sgd:source:delta --to develop --from main --output .
 ```
 
 **3) Comparing branches (from a common ancestor)**
-Comparing changes performed in the `develop` branch since its common ancestor with the `master` branch (i.e. ignoring the changes performed in the `master` branch after `develop` was created):
+Comparing changes performed in the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` was created):
 
 ```
-sfdx sgd:source:delta --to develop --from $(git merge-base develop master) --output .
+sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
 ```
 
 ## Advanced use-cases:
