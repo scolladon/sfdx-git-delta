@@ -46,12 +46,14 @@ const output = {
   success: true,
   warnings: [],
 }
-try {
-  const jobResult = orchestrator(options)
-  output.warnings = jobResult?.warnings?.map(warning => warning.message)
-} catch (err) {
-  output.success = false
-  output.error = err.message
-  process.exitCode = 1
-}
-console.log(JSON.stringify(output, null, 2))
+;(async () => {
+  try {
+    const jobResult = await orchestrator(options)
+    output.warnings = jobResult?.warnings?.map(warning => warning.message)
+  } catch (err) {
+    output.success = false
+    output.error = err.message
+    process.exitCode = 1
+  }
+  console.log(JSON.stringify(output, null, 2))
+})()

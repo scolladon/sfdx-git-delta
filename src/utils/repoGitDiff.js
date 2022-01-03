@@ -35,31 +35,44 @@ class RepoGitDiff {
     }
   }
 
-  getIncludedFiles() {
-    const { stdout: ls } = childProcess.spawnSync(
-      'git',
-      [...allFilesParams],
-      this.spawnConfig
-    )
-    return this._addIncludes(cpUtils.treatDataFromSpawn(ls))
+  async getIncludedFiles() {
+    return new Promise(resolve => {
+      const git = childProcess.spawn('git', [...allFilesParams], {
+        cwd: this.config.repo,
+        encoding: gc.UTF8_ENCODING,
+      })
+
+      const buffer = []
+      git.stdout.on('data', data => buffer.push(data))
+      git.on('close', () =>
+        resolve(this._addIncludes(cpUtils.treatDataFromSpawn(buffer.join(''))))
+      )
+    })
   }
 
-  getFilteredDiff() {
+  async getFilteredDiff() {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? gc.IGNORE_WHITESPACE_PARAMS
       : []
-    const { stdout: diff } = childProcess.spawnSync(
-      'git',
-      [
-        ...fullDiffParams,
-        ...ignoreWhitespaceParams,
-        this.config.from,
-        this.config.to,
-        this.config.source,
-      ],
-      this.spawnConfig
-    )
-    return this._treatResult(cpUtils.treatDataFromSpawn(diff))
+    return new Promise(resolve => {
+      const git = childProcess.spawn(
+        'git',
+        [
+          ...fullDiffParams,
+          ...ignoreWhitespaceParams,
+          this.config.from,
+          this.config.to,
+          this.config.source,
+        ],
+        { cwd: this.config.repo, encoding: gc.UTF8_ENCODING }
+      )
+
+      const buffer = []
+      git.stdout.on('data', data => buffer.push(data))
+      git.on('close', () =>
+        resolve(this._treatResult(cpUtils.treatDataFromSpawn(buffer.join(''))))
+      )
+    })
   }
 
   _treatResult(repoDiffResult) {

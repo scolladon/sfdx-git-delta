@@ -81,7 +81,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       warnings: [],
     }
     try {
-      const jobResult = sgd({
+      const jobResult = await sgd({
         to: this.flags.to,
         from: this.flags.from,
         output: this.flags.output,

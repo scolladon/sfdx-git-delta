@@ -12,7 +12,7 @@ const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
-module.exports = config => {
+module.exports = async config => {
   const cliHelper = new CLIHelper(config)
   cliHelper.validateConfig()
 
@@ -22,11 +22,10 @@ module.exports = config => {
   )
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  const filteredLines = repoGitDiffHelper.getFilteredDiff()
-  const includedLines = repoGitDiffHelper.getIncludedFiles()
+  const filteredLines = await repoGitDiffHelper.getFilteredDiff()
+  const includedLines = await repoGitDiffHelper.getIncludedFiles()
   const lines = [...filteredLines, ...includedLines]
   const work = treatDiff(config, lines, metadata)
-  treatPackages(work.diffs, config, metadata)
   return work
 }
 
@@ -40,6 +39,7 @@ const treatDiff = (config, lines, metadata) => {
   const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
 
   lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
+  treatPackages(work.diffs, config, metadata)
   return work
 }
 
