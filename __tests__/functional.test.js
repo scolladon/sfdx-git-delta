@@ -1,8 +1,14 @@
 'use strict'
 const app = require('../src/main')
-const child_process = require('child_process')
 const os = require('os')
-jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
+const { EventEmitter, Readable } = require('stream')
+const child_process = require('child_process')
+jest.mock('child_process', () => ({
+  spawnSync: () => ({
+    stdout: '1stsha',
+  }),
+  spawn: jest.fn(),
+}))
 jest.mock('fs-extra')
 jest.mock('fs')
 
@@ -31,18 +37,26 @@ const lines = [
 ]
 
 describe(`test if the appli`, () => {
-  beforeAll(() => {
+  beforeEach(() => {
     require('fs').__setMockFiles({
       output: '',
       '.': '',
     })
   })
-  test('can execute with rich parameters and big diff', () => {
-    child_process.spawnSync.mockImplementation(() => ({
-      stdout: lines.join(os.EOL),
-    }))
+  test('can execute with rich parameters and big diff', async () => {
+    child_process.spawn.mockImplementation(() => {
+      const mock = new EventEmitter()
+      mock.stdout = new Readable({
+        read() {
+          this.push(lines.join(os.EOL))
+          this.push(null)
+          mock.emit('close')
+        },
+      })
+      return mock
+    })
     expect(
-      app({
+      await app({
         output: 'output',
         repo: 'repo/path',
         source: '',
@@ -52,29 +66,44 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
-  test('catch internal warnings', () => {
+  test('catch internal warnings', async () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
-    child_process.spawnSync.mockImplementation(() => ({
-      stdout: lines.join(os.EOL),
-    }))
-    expect(
-      app({
-        output: 'output',
-        repo: '',
-        source: '',
-        to: 'test',
-        apiVersion: '46',
-        generateDelta: true,
-      }).warnings
-    ).not.toHaveLength(0)
+    child_process.spawn.mockImplementation(() => {
+      const mock = new EventEmitter()
+      mock.stdout = new Readable({
+        read() {
+          this.push(lines.join(os.EOL))
+          this.push(null)
+          mock.emit('close')
+        },
+      })
+      return mock
+    })
+    const work = await app({
+      output: 'output',
+      repo: '',
+      source: '',
+      to: 'test',
+      apiVersion: '46',
+      generateDelta: true,
+    })
+    expect(work.warnings).not.toHaveLength(0)
   })
 
-  test('do not generate destructiveChanges.xml and package.xml with same element', () => {
-    child_process.spawnSync.mockImplementation(() => ({
-      stdout: lines.join(os.EOL),
-    }))
-    const work = app({
+  test('do not generate destructiveChanges.xml and package.xml with same element', async () => {
+    child_process.spawn.mockImplementation(() => {
+      const mock = new EventEmitter()
+      mock.stdout = new Readable({
+        read() {
+          this.push(lines.join(os.EOL))
+          this.push(null)
+          mock.emit('close')
+        },
+      })
+      return mock
+    })
+    const work = await app({
       output: 'output',
       repo: '',
       source: '',

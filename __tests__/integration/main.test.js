@@ -1,8 +1,14 @@
 'use strict'
 const app = require('../../src/main')
+const { EventEmitter, Readable } = require('stream')
 
 const child_process = require('child_process')
-jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
+jest.mock('child_process', () => ({
+  spawnSync: () => ({
+    stdout: '1stsha',
+  }),
+  spawn: jest.fn(),
+}))
 jest.mock('fs-extra')
 jest.mock('fs')
 jest.mock('git-state')
@@ -31,27 +37,38 @@ describe(`test if the appli`, () => {
       '.forceinclude': '',
     })
     child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
+    child_process.spawn.mockImplementation(() => {
+      const mock = new EventEmitter()
+      mock.stdout = new Readable({
+        read() {
+          this.push('')
+          this.push(null)
+          mock.emit('close')
+        },
+      })
+      return mock
+    })
   })
 
-  test('can execute with simple parameters and no diff', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and no diff', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with simple parameters and an Addition', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and an Addition', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with simple parameters and a Deletion', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and a Deletion', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with simple parameters and a Modification', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and a Modification', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with complex parameters and a Modification', () => {
+  test('can execute with complex parameters and a Modification', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         ignore: '.forceignore',
         ignoreDestructive: '.forceignore',
@@ -60,31 +77,31 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
-  test('can execute with posix  path', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with posix  path', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with posix relative path', () => {
+  test('can execute with posix relative path', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         output: './output/../output',
       })
     ).toHaveProperty('warnings', [])
   })
 
-  test('can execute with windows path', () => {
+  test('can execute with windows path', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         output: '.\\output',
       })
     ).toHaveProperty('warnings', [])
   })
 
-  test('can execute with windows relative path', () => {
+  test('can execute with windows relative path', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         output: '.\\output\\..\\output',
       })
@@ -95,8 +112,6 @@ describe(`test if the appli`, () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
     fseMocked.outputFileSyncError = true
-    expect(() => {
-      app(testConfig)
-    }).toThrow()
+    expect(async () => await app(testConfig)).toThrow()
   })
 })

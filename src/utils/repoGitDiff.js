@@ -36,7 +36,7 @@ class RepoGitDiff {
   }
 
   async getIncludedFiles() {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const git = childProcess.spawn('git', [...allFilesParams], {
         cwd: this.config.repo,
         encoding: gc.UTF8_ENCODING,
@@ -47,6 +47,7 @@ class RepoGitDiff {
       git.on('close', () =>
         resolve(this._addIncludes(cpUtils.treatDataFromSpawn(buffer.join(''))))
       )
+      git.on('error', reject)
     })
   }
 
@@ -54,7 +55,7 @@ class RepoGitDiff {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? gc.IGNORE_WHITESPACE_PARAMS
       : []
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const git = childProcess.spawn(
         'git',
         [
@@ -72,6 +73,7 @@ class RepoGitDiff {
       git.on('close', () =>
         resolve(this._treatResult(cpUtils.treatDataFromSpawn(buffer.join(''))))
       )
+      git.on('error', reject)
     })
   }
 
