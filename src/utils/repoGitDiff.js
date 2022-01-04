@@ -105,7 +105,7 @@ class RepoGitDiff {
               .readFileSync(obj.include)
               .toString()
               .split(os.EOL)
-              .filter(i => i)
+              .filter(Boolean)
           ).map(include => `${obj.prefix}      ${include}`)
         : []
     })
