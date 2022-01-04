@@ -19,7 +19,7 @@ module.exports = (filePath, config) => {
       '--',
       filePath,
     ],
-    { cwd: config.repo, encoding: gc.UTF8_ENCODING }
+    { cwd: config.repo, encoding: gc.UTF8_ENCODING, maxBuffer: 1024 * 10240 }
   )
 
   return cpUtils.treatEOL(diff)

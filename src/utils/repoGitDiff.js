@@ -28,13 +28,19 @@ class RepoGitDiff {
   constructor(config, metadata) {
     this.config = config
     this.metadata = metadata
+    this.spawnConfig = {
+      cwd: this.config.repo,
+      encoding: gc.UTF8_ENCODING,
+      maxBuffer: 1024 * 10240,
+    }
   }
 
   getIncludedFiles() {
-    const { stdout: ls } = childProcess.spawnSync('git', [...allFilesParams], {
-      cwd: this.config.repo,
-      encoding: gc.UTF8_ENCODING,
-    })
+    const { stdout: ls } = childProcess.spawnSync(
+      'git',
+      [...allFilesParams],
+      this.spawnConfig
+    )
     return this._addIncludes(cpUtils.treatDataFromSpawn(ls))
   }
 
@@ -51,7 +57,7 @@ class RepoGitDiff {
         this.config.to,
         this.config.source,
       ],
-      { cwd: this.config.repo, encoding: gc.UTF8_ENCODING }
+      this.spawnConfig
     )
     return this._treatResult(cpUtils.treatDataFromSpawn(diff))
   }
