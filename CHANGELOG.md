@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.12.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.12.0...v4.12.1) (2022-01-05)
+
+
+### Bug Fixes
+
+* spawn buffer size ([#236](https://github.com/scolladon/sfdx-git-delta/issues/236)) ([9944c43](https://github.com/scolladon/sfdx-git-delta/commit/9944c43a470c53fd3796e8d9f79f55a205695f2b))
+
 ## [4.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.11.0...v4.12.0) (2021-12-17)
 
 
