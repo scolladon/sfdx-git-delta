@@ -2,6 +2,7 @@
 const StandardHandler = require('./standardHandler')
 const path = require('path')
 const fs = require('fs')
+const fse = require('fs-extra')
 const mc = require('../utils/metadataConstants')
 
 const STATICRESOURCE_TYPE = 'staticresources'
@@ -11,7 +12,7 @@ class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
   }
-  handleAddition() {
+  async handleAddition() {
     super.handleAddition()
     if (!this.config.generateDelta) return
     const [, srcPath, elementName] = this._parseLine()
@@ -21,28 +22,31 @@ class ResourceHandler extends StandardHandler {
         'u'
       )
     )
-    this._buildElementMap(srcPath)
+    await this._buildElementMap(srcPath)
 
     const matchingFiles = this._buildMatchingFiles(elementName)
-    elementSrc[srcPath]
-      .filter(
-        src =>
-          (this.type === STATICRESOURCE_TYPE &&
-            src.startsWith(path.parse(elementName).name)) ||
-          matchingFiles.includes(src)
-      )
-      .forEach(src =>
-        this._copyFiles(
-          path.normalize(path.join(srcPath, src)),
-          path.normalize(path.join(targetPath, src))
+    await Promise.all(
+      elementSrc[srcPath]
+        .filter(
+          src =>
+            (this.type === STATICRESOURCE_TYPE &&
+              src.startsWith(path.parse(elementName).name)) ||
+            matchingFiles.includes(src)
         )
-      )
+        .map(src =>
+          this._copyFiles(
+            path.normalize(path.join(srcPath, src)),
+            path.normalize(path.join(targetPath, src))
+          )
+        )
+    )
   }
 
-  handleDeletion() {
+  async handleDeletion() {
     const [, srcPath, elementName] = this._parseLine()
-    if (fs.existsSync(path.join(srcPath, elementName))) {
-      this.handleModification(this)
+    const exists = await fse.pathExists(path.join(srcPath, elementName))
+    if (exists) {
+      await this.handleModification(this)
     } else {
       super.handleDeletion()
     }
@@ -87,9 +91,9 @@ class ResourceHandler extends StandardHandler {
     return matchingFiles
   }
 
-  _buildElementMap(srcPath) {
+  async _buildElementMap(srcPath) {
     if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
-      elementSrc[srcPath] = fs.readdirSync(srcPath)
+      elementSrc[srcPath] = await fs.promises.readdir(srcPath)
     }
   }
 }

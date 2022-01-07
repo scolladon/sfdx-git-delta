@@ -112,18 +112,18 @@ class RepoGitDiff {
     return [
       { include: this.config.include, prefix: 'A' },
       { include: this.config.includeDestructive, prefix: 'D' },
-    ].flatMap(obj => {
-      return obj.include
-        ? micromatch(
-            lines.split(os.EOL),
-            fs
-              .readFileSync(obj.include)
-              .toString()
-              .split(os.EOL)
-              .filter(Boolean)
-          ).map(include => `${obj.prefix}      ${include}`)
-        : []
-    })
+    ]
+      .filter(obj => obj.include)
+      .flatMap(async obj =>
+        micromatch(
+          lines.split(os.EOL),
+          await fs.promises
+            .readFile(obj.include)
+            .toString()
+            .split(os.EOL)
+            .filter(Boolean)
+        ).map(include => `${obj.prefix}      ${include}`)
+      )
   }
 
   _filterIgnore(line) {
@@ -132,12 +132,18 @@ class RepoGitDiff {
     ;[
       { ignore: this.config.ignore, helper: fileIgnorer },
       { ignore: this.config.ignoreDestructive, helper: fileDestIgnorer },
-    ].forEach(
-      ign =>
-        ign.ignore &&
-        fs.existsSync(ign.ignore) &&
-        ign.helper.add(fs.readFileSync(ign.ignore).toString())
-    )
+    ]
+      .filter(ign => ign.ignore)
+      .forEach(async ign => {
+        try {
+          const ignoreContent = await fs.promises
+            .readFile(ign.ignore)
+            .toString()
+          ign.helper.add(ignoreContent)
+        } catch (err) {
+          // TODO handle the error here ?
+        }
+      })
     return this.config.ignoreDestructive
       ? line.startsWith(gc.DELETION)
         ? !fileDestIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))

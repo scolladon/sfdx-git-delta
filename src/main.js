@@ -14,22 +14,22 @@ const XML_FILE_EXTENSION = 'xml'
 
 module.exports = async config => {
   const cliHelper = new CLIHelper(config)
-  cliHelper.validateConfig()
+  await cliHelper.validateConfig()
 
-  const metadata = metadataManager.getDefinition(
+  const metadata = await metadataManager.getDefinition(
     'directoryName',
     config.apiVersion
   )
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  const filteredLines = await repoGitDiffHelper.getFilteredDiff()
-  const includedLines = await repoGitDiffHelper.getIncludedFiles()
-  const lines = [...filteredLines, ...includedLines]
-  const work = treatDiff(config, lines, metadata)
+  const filteredLines = repoGitDiffHelper.getFilteredDiff()
+  const includedLines = repoGitDiffHelper.getIncludedFiles()
+  const lines = await Promise.all([filteredLines, includedLines])
+  const work = await treatDiff(config, lines.flat(), metadata)
   return work
 }
 
-const treatDiff = (config, lines, metadata) => {
+const treatDiff = async (config, lines, metadata) => {
   const work = {
     config: config,
     diffs: { package: {}, destructiveChanges: {} },
@@ -38,34 +38,38 @@ const treatDiff = (config, lines, metadata) => {
 
   const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
 
-  lines.forEach(line => typeHandlerFactory.getTypeHandler(line).handle())
-  treatPackages(work.diffs, config, metadata)
+  await Promise.all(
+    lines.map(line => typeHandlerFactory.getTypeHandler(line).handle())
+  )
+  await treatPackages(work.diffs, config, metadata)
   return work
 }
 
-const treatPackages = (dcJson, config, metadata) => {
+const treatPackages = async (dcJson, config, metadata) => {
   cleanPackages(dcJson)
   const pc = new PackageConstructor(config, metadata)
-  ;[
-    {
-      filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
-      folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-      xmlContent: pc.constructPackage(dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]),
-    },
-    {
-      filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
-      folder: PACKAGE_FILE_NAME,
-      xmlContent: pc.constructPackage(dcJson[PACKAGE_FILE_NAME]),
-    },
-    {
-      filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
-      folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-      xmlContent: pc.constructPackage({}),
-    },
-  ].forEach(op => {
-    const location = path.join(config.output, op.folder, op.filename)
-    fse.outputFileSync(location, op.xmlContent)
-  })
+  await Promise.all(
+    [
+      {
+        filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
+        folder: DESTRUCTIVE_CHANGES_FILE_NAME,
+        xmlContent: pc.constructPackage(dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]),
+      },
+      {
+        filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
+        folder: PACKAGE_FILE_NAME,
+        xmlContent: pc.constructPackage(dcJson[PACKAGE_FILE_NAME]),
+      },
+      {
+        filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
+        folder: DESTRUCTIVE_CHANGES_FILE_NAME,
+        xmlContent: pc.constructPackage({}),
+      },
+    ].map(async op => {
+      const location = path.join(config.output, op.folder, op.filename)
+      fse.outputFile(location, op.xmlContent)
+    })
+  )
 }
 
 const cleanPackages = dcJson => {

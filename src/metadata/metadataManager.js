@@ -5,10 +5,10 @@ const fs = require('fs')
 let _apiMap
 const describeMetadata = {}
 
-const getApiMap = () => {
+const getApiMap = async () => {
   if (!_apiMap) {
-    _apiMap = fs
-      .readdirSync(__dirname)
+    const dir = await fs.promises.readdir(__dirname)
+    _apiMap = dir
       .filter(file => /^[a-z]+\d+\.json$/.test(file))
       .reduce((accu, file) => {
         const version = file.match(/\d+/)[0]
@@ -23,9 +23,9 @@ const getApiMap = () => {
 }
 
 module.exports = {
-  getDefinition: (grouping, apiVersion) => {
+  getDefinition: async (grouping, apiVersion) => {
     if (!describeMetadata[apiVersion]) {
-      const apiMap = getApiMap()
+      const apiMap = await getApiMap()
       const apiFile =
         !!apiVersion && Object.prototype.hasOwnProperty.call(apiMap, apiVersion)
           ? apiMap[apiVersion]

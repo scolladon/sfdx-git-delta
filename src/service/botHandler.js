@@ -14,7 +14,7 @@ class BotHandler extends WaveHandler {
     ])
     return [...elementName].join('.')
   }
-  handleAddition() {
+  async handleAddition() {
     super.handleAddition()
 
     const botName = this._getParsedPath().dir.split(path.sep).pop()
@@ -30,7 +30,7 @@ class BotHandler extends WaveHandler {
     const source = path.join(this.config.repo, botPath)
     const target = path.join(this.config.output, botPath)
 
-    this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(source, target)
   }
 }
 

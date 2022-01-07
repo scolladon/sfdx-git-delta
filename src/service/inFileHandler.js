@@ -44,25 +44,25 @@ class InFileHandler extends StandardHandler {
         }, {})
   }
 
-  handleAddition() {
-    super.handleAddition()
+  async handleAddition() {
+    const addition = super.handleAddition()
     const toAdd = this._handleInDiff()
-    this._handleFileWriting(toAdd)
+
+    await this._handleFileWriting(toAdd)
+    await addition
   }
 
   handleDeletion() {
     this._handleInDiff()
   }
 
-  handleModification() {
-    super.handleAddition()
-    const toAdd = this._handleInDiff()
-    this._handleFileWriting(toAdd)
+  async handleModification() {
+    await this.handleAddition()
   }
 
-  _handleFileWriting(toAdd) {
+  async _handleFileWriting(toAdd) {
     if (!this.config.generateDelta) return
-    const result = this._parseFile()
+    const result = await this._parseFile()
     const metadataContent = Object.values(result.fileContent)[0]
 
     result.authorizedKeys.forEach(subType => {
@@ -77,7 +77,7 @@ class InFileHandler extends StandardHandler {
     })
     const xmlBuilder = new fxp.j2xParser(JSON_PARSER_OPTION)
     const xmlContent = XML_HEADER + xmlBuilder.parse(result.fileContent)
-    fse.outputFileSync(path.join(this.config.output, this.line), xmlContent)
+    await fse.outputFile(path.join(this.config.output, this.line), xmlContent)
   }
 
   _handleInDiff() {
@@ -143,8 +143,8 @@ class InFileHandler extends StandardHandler {
     )
   }
 
-  _parseFile() {
-    const result = fxp.parse(this._readFileSync(), XML_PARSER_OPTION, true)
+  async _parseFile() {
+    const result = fxp.parse(await this._readFile(), XML_PARSER_OPTION, true)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
       Object.prototype.hasOwnProperty.call(

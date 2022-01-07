@@ -4,42 +4,52 @@ const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
 const fs = require('fs')
+const fse = require('fs-extra')
 
 const readFileSyncOptions = {
   encoding: gc.UTF8_ENCODING,
 }
 
+const asyncFilter = async (arr, predicate) =>
+  arr.reduce(
+    async (memo, e) => ((await predicate(e)) ? [...(await memo), e] : memo),
+    []
+  )
+
 class CustomObjectHandler extends StandardHandler {
-  handleAddition() {
+  async handleAddition() {
     super.handleAddition()
     if (!this.config.generateDelta) return
-    this._handleMasterDetailException()
+    await this._handleMasterDetailException()
   }
 
-  _handleMasterDetailException() {
+  async _handleMasterDetailException() {
     if (this.type !== CustomObjectHandler.OBJECT_TYPE) return
 
     const fieldsFolder = path.resolve(
       this.config.repo,
       path.join(path.parse(this.line).dir, mc.FIELD_DIRECTORY_NAME)
     )
-    if (!fs.existsSync(fieldsFolder)) return
+    const exists = await fse.pathExists(fieldsFolder)
+    if (!exists) return
 
-    fs.readdirSync(fieldsFolder)
-      .filter(fieldPath =>
-        fs
-          .readFileSync(
-            path.resolve(this.config.repo, fieldsFolder, fieldPath),
-            readFileSyncOptions
-          )
-          .includes(mc.MASTER_DETAIL_TAG)
+    const fields = await fs.promises.readdir(fieldsFolder)
+    const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
+      const content = await fs.promises.readFile(
+        path.resolve(this.config.repo, fieldsFolder, fieldPath),
+        readFileSyncOptions
       )
-      .forEach(field =>
+      return content.includes(mc.MASTER_DETAIL_TAG)
+    })
+
+    await Promise.all(
+      masterDetailsFields.map(field =>
         this._copyFiles(
           path.resolve(this.config.repo, fieldsFolder, field),
           path.resolve(this.config.output, fieldsFolder, field)
         )
       )
+    )
   }
 
   static OBJECT_TYPE = 'objects'

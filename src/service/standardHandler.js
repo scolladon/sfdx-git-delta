@@ -44,10 +44,10 @@ class StandardHandler {
     }
   }
 
-  handle() {
+  async handle() {
     if (this.handlerMap[this.changeType]) {
       try {
-        this.handlerMap[this.changeType].apply(this)
+        await this.handlerMap[this.changeType].apply(this)
       } catch (error) {
         error.message = `${this.line}: ${error.message}`
         this.warnings.push(error)
@@ -55,22 +55,22 @@ class StandardHandler {
     }
   }
 
-  handleAddition() {
+  async handleAddition() {
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
     const source = path.join(this.config.repo, this.line)
     const target = path.join(this.config.output, this.line)
 
-    this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(source, target)
   }
 
   handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
-  handleModification() {
-    this.handleAddition()
+  async handleModification() {
+    await this.handleAddition()
   }
 
   _getParsedPath() {
@@ -104,22 +104,35 @@ class StandardHandler {
     params.package[params.type].add(params.elementName)
   }
 
-  _copyWithMetaFile(src, dst) {
-    this._copyFiles(src, dst)
+  async _copyWithMetaFile(src, dst) {
+    const file = this._copyFiles(src, dst)
     if (StandardHandler.metadata[this.type].metaFile === true) {
-      this._copyFiles(src + mc.METAFILE_SUFFIX, dst + mc.METAFILE_SUFFIX)
+      await this._copyFiles(src + mc.METAFILE_SUFFIX, dst + mc.METAFILE_SUFFIX)
     }
+    await file
   }
 
-  _copyFiles(src, dst) {
-    if (!copiedFiles.has(src) && fse.pathExistsSync(src)) {
-      fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
+  async _copyFiles(src, dst) {
+    if (copiedFiles.has(src)) return
+    const exists = await fse.pathExists(src)
+    if (!copiedFiles.has(src) && exists) {
       copiedFiles.add(src)
+      try {
+        await fse.copy(src, dst, FSE_COPYSYNC_OPTION)
+      } catch (error) {
+        if (error.message === 'Source and destination must not be the same.') {
+          // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
+          await fs.promises.copyFile(src, dst)
+        } else {
+          // Retry sync in case of async error
+          fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
+        }
+      }
     }
   }
 
-  _readFileSync() {
-    return fs.readFileSync(path.join(this.config.repo, this.line), {
+  async _readFile() {
+    return await fs.promises.readFile(path.join(this.config.repo, this.line), {
       encoding: gc.UTF8_ENCODING,
     })
   }

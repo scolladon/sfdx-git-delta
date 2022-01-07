@@ -8,11 +8,11 @@ class SubCustomObjectHandler extends StandardHandler {
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
-  handleAddition() {
+  async handleAddition() {
     super.handleAddition()
     if (!this.config.generateDelta) return
 
-    const data = this._readFileSync()
+    const data = await this._readFile()
     if (data?.includes(mc.MASTER_DETAIL_TAG)) {
       const customObjectDirPath = this.splittedLine
         .slice(0, [this.splittedLine.indexOf(this.type)])

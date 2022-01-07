@@ -1,20 +1,42 @@
 'use strict'
 const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
-
 const fs = require('fs')
-const git = require('git-state')
+const path = require('path')
 
-const dirExist = dir => fs.existsSync(dir) && fs.statSync(dir).isDirectory()
-const fileExist = file => fs.statSync(file).isFile()
+const dirExist = async dir => {
+  try {
+    const stat = await fs.promises.stat(dir)
+    return stat.isDirectory()
+  } catch {
+    return false
+  }
+}
+const fileExist = async file => {
+  try {
+    const stat = await fs.promises.stat(file)
+    return stat.isFile()
+  } catch {
+    return false
+  }
+}
 
+const isGit = async dir => {
+  return await dirExist(path.join(dir, '.git'))
+}
+
+const asyncFilter = async (arr, predicate) =>
+  arr.reduce(
+    async (memo, e) => ((await predicate(e)) ? [...(await memo), e] : memo),
+    []
+  )
 class CLIHelper {
   constructor(config) {
     this.config = config
     this.repoSetup = new RepoSetup(config)
   }
 
-  validateConfig() {
+  async validateConfig() {
     this._sanitizeConfig()
     const errors = []
     if (typeof this.config.to !== 'string') {
@@ -23,19 +45,32 @@ class CLIHelper {
     if (isNaN(this.config.apiVersion)) {
       errors.push(`api-version ${this.config.apiVersion} is not a number`)
     }
-    ;[this.config.output, this.config.source]
-      .filter(dir => !dirExist(dir))
-      .forEach(dir => errors.push(`${dir} folder does not exist`))
-    ;[
-      this.config.ignore,
-      this.config.ignoreDestructive,
-      this.config.include,
-      this.config.includeDestructive,
-    ]
-      .filter(file => file && !fileExist(file))
-      .forEach(file => errors.push(`${file} file does not exist`))
 
-    if (!git.isGitSync(this.config.repo)) {
+    const isGitPromise = isGit(this.config.repo)
+    const directories = await asyncFilter(
+      [this.config.output, this.config.source].filter(Boolean),
+      async dir => {
+        const exist = await dirExist(dir)
+        return !exist
+      }
+    )
+    const files = await asyncFilter(
+      [
+        this.config.ignore,
+        this.config.ignoreDestructive,
+        this.config.include,
+        this.config.includeDestructive,
+      ].filter(Boolean),
+      async file => {
+        const exist = await fileExist(file)
+        return !exist
+      }
+    )
+
+    directories.forEach(dir => errors.push(`${dir} folder does not exist`))
+    files.forEach(file => errors.push(`${file} file does not exist`))
+    const isGitRepo = await isGitPromise
+    if (!isGitRepo) {
       errors.push(`${this.config.repo} is not a git repository`)
     }
 
