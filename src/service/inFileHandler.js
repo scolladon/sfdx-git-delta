@@ -4,7 +4,6 @@ const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
 const fse = require('fs-extra')
-const os = require('os')
 const path = require('path')
 const fxp = require('fast-xml-parser')
 
@@ -46,7 +45,7 @@ class InFileHandler extends StandardHandler {
 
   async handleAddition() {
     const addition = super.handleAddition()
-    const toAdd = this._handleInDiff()
+    const toAdd = await this._handleInDiff()
 
     await this._handleFileWriting(toAdd)
     await addition
@@ -80,7 +79,7 @@ class InFileHandler extends StandardHandler {
     await fse.outputFile(path.join(this.config.output, this.line), xmlContent)
   }
 
-  _handleInDiff() {
+  async _handleInDiff() {
     const diffContent = fileGitDiff(this.line, this.config)
     const data = {
       toDel: {},
@@ -89,7 +88,7 @@ class InFileHandler extends StandardHandler {
       subType: null,
       fullName: null,
     }
-    diffContent.split(os.EOL).forEach(line => {
+    diffContent.forEach(line => {
       this._preProcessHandleInDiff(line, data)
       if (!data.subType || !data.fullName) return
       this._postProcessHandleInDiff(line, data)

@@ -6,7 +6,7 @@ const path = require('path')
 const fs = require('fs')
 const fse = require('fs-extra')
 
-const readFileSyncOptions = {
+const readFileOptions = {
   encoding: gc.UTF8_ENCODING,
 }
 
@@ -37,7 +37,7 @@ class CustomObjectHandler extends StandardHandler {
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
       const content = await fs.promises.readFile(
         path.resolve(this.config.repo, fieldsFolder, fieldPath),
-        readFileSyncOptions
+        readFileOptions
       )
       return content.includes(mc.MASTER_DETAIL_TAG)
     })

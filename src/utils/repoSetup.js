@@ -1,6 +1,5 @@
 'use strict'
 const childProcess = require('child_process')
-const gc = require('./gitConstants')
 
 const HEAD = 'HEAD'
 
@@ -8,8 +7,12 @@ const revparseParams = ['rev-parse']
 const revlistParams = ['rev-list', '--max-parents=0', HEAD]
 const gitConfig = ['config', 'core.quotepath', 'off']
 
-const _bufToStr = buf => {
-  return Buffer.from(buf).toString(gc.UTF8_ENCODING).trim()
+const _getStreamContent = async stream => {
+  const content = []
+  for await (const chunk of stream) {
+    content.push(chunk)
+  }
+  return content.join('')
 }
 
 class RepoSetup {
@@ -18,18 +21,19 @@ class RepoSetup {
     this.config.generateDelta
   }
 
-  isToEqualHead() {
+  async isToEqualHead() {
     if (this.config.to === HEAD) {
       return true
     }
-    const headSHA = _bufToStr(
-      childProcess.spawnSync('git', [...revparseParams, HEAD], {
+
+    const headSHA = await _getStreamContent(
+      childProcess.spawn('git', [...revparseParams, HEAD], {
         cwd: this.config.repo,
       }).stdout
     )
 
-    const toSHA = _bufToStr(
-      childProcess.spawnSync('git', [...revparseParams, this.config.to], {
+    const toSHA = await _getStreamContent(
+      childProcess.spawn('git', [...revparseParams, this.config.to], {
         cwd: this.config.repo,
       }).stdout
     )
@@ -37,17 +41,19 @@ class RepoSetup {
     return toSHA === headSHA
   }
 
-  repoConfiguration() {
-    childProcess.spawnSync('git', gitConfig, {
-      cwd: this.config.repo,
-    })
+  async repoConfiguration() {
+    await _getStreamContent(
+      childProcess.spawn('git', gitConfig, {
+        cwd: this.config.repo,
+      }).stdout
+    )
   }
 
-  computeFromRef() {
+  async computeFromRef() {
     let firstCommitSHA = this.config.from
     if (!firstCommitSHA) {
-      firstCommitSHA = _bufToStr(
-        childProcess.spawnSync('git', revlistParams, {
+      firstCommitSHA = await _getStreamContent(
+        childProcess.spawn('git', revlistParams, {
           cwd: this.config.repo,
         }).stdout
       )

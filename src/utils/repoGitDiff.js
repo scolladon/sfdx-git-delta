@@ -36,49 +36,44 @@ class RepoGitDiff {
   }
 
   async getIncludedFiles() {
-    return new Promise((resolve, reject) => {
-      const git = childProcess.spawn('git', [...allFilesParams], {
-        cwd: this.config.repo,
-        encoding: gc.UTF8_ENCODING,
-      })
-
-      const buffer = []
-      git.stdout.on('data', data => buffer.push(data))
-      git.on('close', () =>
-        resolve(this._addIncludes(cpUtils.treatDataFromSpawn(buffer.join(''))))
-      )
-      git.on('error', reject)
+    const gitLs = childProcess.spawn('git', [...allFilesParams], {
+      cwd: this.config.repo,
+      encoding: gc.UTF8_ENCODING,
     })
+
+    const lines = []
+    for await (const line of cpUtils.linify(gitLs.stdout)) {
+      lines.push(cpUtils.treatPathSep(line))
+    }
+
+    return this._addIncludes(lines)
   }
 
   async getFilteredDiff() {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? gc.IGNORE_WHITESPACE_PARAMS
       : []
-    return new Promise((resolve, reject) => {
-      const git = childProcess.spawn(
-        'git',
-        [
-          ...fullDiffParams,
-          ...ignoreWhitespaceParams,
-          this.config.from,
-          this.config.to,
-          this.config.source,
-        ],
-        { cwd: this.config.repo, encoding: gc.UTF8_ENCODING }
-      )
+    const gitDiff = childProcess.spawn(
+      'git',
+      [
+        ...fullDiffParams,
+        ...ignoreWhitespaceParams,
+        this.config.from,
+        this.config.to,
+        this.config.source,
+      ],
+      { cwd: this.config.repo, encoding: gc.UTF8_ENCODING }
+    )
 
-      const buffer = []
-      git.stdout.on('data', data => buffer.push(data))
-      git.on('close', () =>
-        resolve(this._treatResult(cpUtils.treatDataFromSpawn(buffer.join(''))))
-      )
-      git.on('error', reject)
-    })
+    const lines = []
+    for await (const line of cpUtils.linify(gitDiff.stdout)) {
+      lines.push(cpUtils.treatPathSep(line))
+    }
+
+    return this._treatResult(lines)
   }
 
-  _treatResult(repoDiffResult) {
-    const lines = repoDiffResult.split(os.EOL)
+  _treatResult(lines) {
     const linesPerDiffType = lines.reduce(
       (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
       { [gc.ADDITION]: [], [gc.DELETION]: [] }
@@ -116,7 +111,7 @@ class RepoGitDiff {
       .filter(obj => obj.include)
       .flatMap(async obj =>
         micromatch(
-          lines.split(os.EOL),
+          lines,
           await fs.promises
             .readFile(obj.include)
             .toString()

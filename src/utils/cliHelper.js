@@ -37,7 +37,7 @@ class CLIHelper {
   }
 
   async validateConfig() {
-    this._sanitizeConfig()
+    await this._sanitizeConfig()
     const errors = []
     if (typeof this.config.to !== 'string') {
       errors.push(`to ${this.config.to} is not a sha`)
@@ -74,7 +74,8 @@ class CLIHelper {
       errors.push(`${this.config.repo} is not a git repository`)
     }
 
-    if (!this.repoSetup.isToEqualHead() && this.config.generateDelta) {
+    const isToEqualHead = await this.repoSetup.isToEqualHead()
+    if (!isToEqualHead && this.config.generateDelta) {
       errors.push(
         `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
       )
@@ -84,17 +85,17 @@ class CLIHelper {
       throw new Error(errors.join(', '))
     }
 
-    this.repoSetup.repoConfiguration()
+    await this.repoSetup.repoConfiguration()
   }
 
-  _sanitizeConfig() {
+  async _sanitizeConfig() {
     this.config.apiVersion = parseInt(this.config.apiVersion)
     this.config.repo = sanitizePath(this.config.repo)
     this.config.source = sanitizePath(this.config.source)
     this.config.output = sanitizePath(this.config.output)
     this.config.ignore = sanitizePath(this.config.ignore)
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)
-    this.config.from = this.repoSetup.computeFromRef()
+    this.config.from = await this.repoSetup.computeFromRef()
     this.config.include = sanitizePath(this.config.include)
     this.config.includeDestructive = sanitizePath(
       this.config.includeDestructive
