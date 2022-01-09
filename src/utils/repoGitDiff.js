@@ -35,21 +35,33 @@ class RepoGitDiff {
     }
   }
 
-  async getIncludedFiles() {
+  async getLines() {
+    const lines = await Promise.all([
+      this._getIncludedFiles(),
+      this._getFilteredDiff(),
+    ])
+
+    return Array.from(new Set([...lines.flat().filter(Boolean)]))
+  }
+
+  async _getIncludedFiles() {
+    const includeSetup = await RepoGitDiff._setupIncludes(this.config)
+    if (includeSetup.length === 0) {
+      return
+    }
+
     const gitLs = childProcess.spawn('git', [...allFilesParams], {
       cwd: this.config.repo,
       encoding: gc.UTF8_ENCODING,
     })
-
     const lines = []
     for await (const line of cpUtils.linify(gitLs.stdout)) {
       lines.push(cpUtils.treatPathSep(line))
     }
-
-    return this._addIncludes(lines)
+    return RepoGitDiff._addIncludes(lines, includeSetup)
   }
 
-  async getFilteredDiff() {
+  async _getFilteredDiff() {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? gc.IGNORE_WHITESPACE_PARAMS
       : []
@@ -70,10 +82,11 @@ class RepoGitDiff {
       lines.push(cpUtils.treatPathSep(line))
     }
 
-    return this._treatResult(lines)
+    const treatedLines = await this._treatResult(lines)
+    return treatedLines
   }
 
-  _treatResult(lines) {
+  async _treatResult(lines) {
     const linesPerDiffType = lines.reduce(
       (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
       { [gc.ADDITION]: [], [gc.DELETION]: [] }
@@ -88,14 +101,16 @@ class RepoGitDiff {
       )
     })
 
+    const ignoreSetup = await RepoGitDiff._setupIgnore(this.config)
+
     return lines
+      .filter(Boolean)
       .filter(line => this._filterInternal(line, deletedRenamed))
-      .filter(line => this._filterIgnore(line))
+      .filter(line => this._filterIgnore(line, ignoreSetup))
   }
 
   _filterInternal(line, deletedRenamed) {
     return (
-      !!line &&
       !deletedRenamed.includes(line) &&
       line
         .split(path.sep)
@@ -103,47 +118,57 @@ class RepoGitDiff {
     )
   }
 
-  _addIncludes(lines) {
-    return [
-      { include: this.config.include, prefix: 'A' },
-      { include: this.config.includeDestructive, prefix: 'D' },
-    ]
-      .filter(obj => obj.include)
-      .flatMap(async obj =>
-        micromatch(
-          lines,
-          await fs.promises
-            .readFile(obj.include)
-            .toString()
-            .split(os.EOL)
-            .filter(Boolean)
-        ).map(include => `${obj.prefix}      ${include}`)
+  static _addIncludes(lines, setup) {
+    return setup.flatMap(obj =>
+      micromatch(lines, obj.content).map(
+        include => `${obj.prefix}      ${include}`
       )
+    )
   }
 
-  _filterIgnore(line) {
-    const fileIgnorer = ignore()
-    const fileDestIgnorer = ignore()
-    ;[
-      { ignore: this.config.ignore, helper: fileIgnorer },
-      { ignore: this.config.ignoreDestructive, helper: fileDestIgnorer },
-    ]
-      .filter(ign => ign.ignore)
-      .forEach(async ign => {
-        try {
-          const ignoreContent = await fs.promises
-            .readFile(ign.ignore)
-            .toString()
-          ign.helper.add(ignoreContent)
-        } catch (err) {
-          // TODO handle the error here ?
-        }
-      })
+  static async _setupIncludes(config) {
+    const setup = await Promise.all(
+      [
+        { include: config.include, prefix: 'A' },
+        { include: config.includeDestructive, prefix: 'D' },
+      ]
+        .filter(obj => obj.include)
+        .map(async obj => {
+          const content = await fs.promises.readFile(obj.include)
+          return {
+            ...obj,
+            content: content.toString().split(os.EOL).filter(Boolean),
+          }
+        })
+    )
+    return setup
+  }
+
+  static async _setupIgnore(config) {
+    const setup = await Promise.all(
+      [
+        { ignore: config.ignore, helper: ignore() },
+        { ignore: config.ignoreDestructive, helper: ignore() },
+      ]
+        .filter(obj => obj.ignore)
+        .map(async obj => {
+          if (obj.ignore) {
+            const content = await fs.promises.readFile(obj.ignore)
+            obj.helper.add(content.toString())
+          }
+          return obj
+        })
+    )
+    return setup
+  }
+
+  _filterIgnore(line, ignoreSetup) {
+    const filePath = line.replace(gc.GIT_DIFF_TYPE_REGEX, '')
     return this.config.ignoreDestructive
       ? line.startsWith(gc.DELETION)
-        ? !fileDestIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-        : !fileIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
-      : !fileIgnorer.ignores(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+        ? !ignoreSetup[1]?.helper?.ignores(filePath)
+        : !ignoreSetup[0]?.helper?.ignores(filePath)
+      : !ignoreSetup[0]?.helper?.ignores(filePath)
   }
 
   _extractComparisonName(line) {

@@ -22,10 +22,8 @@ module.exports = async config => {
   )
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  const filteredLines = repoGitDiffHelper.getFilteredDiff()
-  const includedLines = repoGitDiffHelper.getIncludedFiles()
-  const lines = await Promise.all([filteredLines, includedLines])
-  const work = await treatDiff(config, lines.flat(), metadata)
+  const lines = await repoGitDiffHelper.getLines()
+  const work = await treatDiff(config, lines, metadata)
   return work
 }
 
