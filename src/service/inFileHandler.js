@@ -80,7 +80,6 @@ class InFileHandler extends StandardHandler {
   }
 
   async _handleInDiff() {
-    const diffContent = fileGitDiff(this.line, this.config)
     const data = {
       toDel: {},
       toAdd: {},
@@ -88,11 +87,13 @@ class InFileHandler extends StandardHandler {
       subType: null,
       fullName: null,
     }
-    diffContent.forEach(line => {
+
+    const diffContentIterator = fileGitDiff(this.line, this.config)
+    for await (const line of diffContentIterator) {
       this._preProcessHandleInDiff(line, data)
-      if (!data.subType || !data.fullName) return
+      if (!data.subType || !data.fullName) continue
       this._postProcessHandleInDiff(line, data)
-    })
+    }
     this._treatInFileResult(data.toDel, data.toAdd)
     return data.toAdd
   }

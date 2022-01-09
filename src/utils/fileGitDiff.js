@@ -5,7 +5,7 @@ const gc = require('./gitConstants')
 
 const unitDiffParams = ['--no-pager', 'diff', '--no-prefix', '-U200']
 
-module.exports = async (filePath, config) => {
+module.exports = (filePath, config) => {
   const ignoreWhitespaceParams = config.ignoreWhitespace
     ? gc.IGNORE_WHITESPACE_PARAMS
     : []
@@ -22,10 +22,5 @@ module.exports = async (filePath, config) => {
     { cwd: config.repo, encoding: gc.UTF8_ENCODING, maxBuffer: 1024 * 10240 }
   )
 
-  const lines = []
-  for await (const line of cpUtils.linify(gitDiff.stdout)) {
-    lines.push(line)
-  }
-
-  return lines
+  return cpUtils.linify(gitDiff.stdout)
 }
