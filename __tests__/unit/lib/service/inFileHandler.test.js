@@ -2,6 +2,7 @@
 const InFile = require('../../../../src/service/inFileHandler')
 const gc = require('../../../../src/utils/gitConstants')
 const mc = require('../../../../src/utils/metadataConstants')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 const child_process = require('child_process')
 const fsMocked = require('fs')
 const os = require('os')
@@ -78,6 +79,12 @@ xml2jsMocked.__setMockContent({
 // eslint-disable-next-line no-undef
 describe(`test if inFileHandler`, () => {
   let work
+  let globalMetadata
+  beforeAll(async () => {
+    console.log('test')
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    console.log('test')
+  })
   beforeEach(() => {
     work = {
       config: { output: '', repo: '', generateDelta: true },
@@ -88,7 +95,7 @@ describe(`test if inFileHandler`, () => {
   describe.each(testContext.testData)(
     'handles',
     (expectedType, changePath, xmlContent) => {
-      test('addition', () => {
+      test('addition', async () => {
         const handler = new testContext.handler(
           `A       ${changePath}`,
           expectedType,
@@ -102,7 +109,7 @@ describe(`test if inFileHandler`, () => {
             .map(x => `${gc.PLUS} ${x}`)
             .join(os.EOL),
         }))
-        handler.handle()
+        await handler.handle()
 
         expect(work.diffs.package).toMatchObject(
           testContext.expectedData[expectedType]
@@ -113,7 +120,7 @@ describe(`test if inFileHandler`, () => {
           expect(work.diffs.package).toHaveProperty(expectedType)
         }
       })
-      test('deletion', () => {
+      test('deletion', async () => {
         const handler = new testContext.handler(
           `D       ${changePath}`,
           expectedType,
@@ -127,7 +134,7 @@ describe(`test if inFileHandler`, () => {
             .map(x => `${gc.MINUS} ${x}`)
             .join(os.EOL),
         }))
-        handler.handle()
+        await handler.handle()
         expect(work.diffs.destructiveChanges).toMatchObject(
           testContext.expectedData[expectedType]
         )
@@ -137,7 +144,7 @@ describe(`test if inFileHandler`, () => {
         )
         expect(work.diffs.destructiveChanges).not.toHaveProperty('sharingRules')
       })
-      test('modification', () => {
+      test('modification', async () => {
         const handler = new testContext.handler(
           `M       ${changePath}`,
           expectedType,
@@ -153,7 +160,7 @@ describe(`test if inFileHandler`, () => {
             )
             .join(os.EOL),
         }))
-        handler.handle()
+        await handler.handle()
 
         expect(work.diffs.package).toBeDefined()
         expect(work.diffs.destructiveChanges).toBeDefined()
@@ -164,7 +171,7 @@ describe(`test if inFileHandler`, () => {
         }
       })
 
-      test('modification without delta generation', () => {
+      test('modification without delta generation', async () => {
         const work = {
           config: { output: '', repo: '', generateDelta: false },
           diffs: { package: {}, destructiveChanges: {} },
@@ -182,7 +189,7 @@ describe(`test if inFileHandler`, () => {
             .map(x => `${gc.PLUS} ${x}`)
             .join(os.EOL),
         }))
-        handler.handle()
+        await handler.handle()
         expect(work.diffs.package).toMatchObject(
           testContext.expectedData[expectedType]
         )
