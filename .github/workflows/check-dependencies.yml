@@ -32,5 +32,9 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Check Dependencies
-        run: npm outdated
+      - name: Check Dependencies version
+        continue-on-error: true
+        run: yarn outdated
+
+      - name: Audit Dependencies version
+        run: yarn audit
