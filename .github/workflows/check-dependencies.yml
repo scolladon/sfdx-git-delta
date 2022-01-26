@@ -30,7 +30,11 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --immutable --immutable-cache --check-cache
 
-      - name: Check Dependencies
-        run: npm outdated
+      - name: Check Dependencies version
+        continue-on-error: true
+        run: yarn outdated
+
+      - name: Audit Dependencies version
+        run: yarn audit
