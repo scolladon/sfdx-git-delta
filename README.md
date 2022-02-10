@@ -53,7 +53,7 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functionnal pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also important to implement a bypass in your pipeline, to have to hability to fallback to full deployment in case the delta deployement is not behaving the way you expected it.
+Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functional pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also important to implement a bypass in your pipeline, to have the ability to fallback to full deployment in case the delta deployment is not behaving the way you expected it.
 
 **DISCLAIMER:**
 
@@ -167,7 +167,7 @@ In our example, the latest commit to main is composed of:
 In this situation, we would expect the CI pipeline to:
 
 1. **Deploy to Production only 3 classes** (no matter how much metadata is present in the force-app folder): `TriggerHandler`, `TriggerHandler_Test`, and `TestDataFactory`
-2. **Delete from Production 1 classe**: `AnotherTriggerFramework`
+2. **Delete from Production 1 class**: `AnotherTriggerFramework`
 
 So let’s do it!
 
@@ -254,9 +254,9 @@ sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --outpu
 
 ### Generate a folder containing only the added/modified sources:
 
-Using a package.xml file to deploy a subset of the metadata is propably the simpliest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
+Using a package.xml file to deploy a subset of the metadata is probably the simplest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
 
-One example is to speed up object deployments: the package.xml approach will result on the entire sub-folder for a given object to be deployed. On the opposite, having a copy of the actual sources added/modified allows you to chirchugically deploy only the modified components.
+One example is to speed up object deployments: the package.xml approach will result on the entire sub-folder for a given object to be deployed. On the opposite, having a copy of the actual sources added/modified allows you to chirurgically deploy only the modified components.
 
 This is where the `--generate-delta (-d)` option comes handy!
 
@@ -267,7 +267,7 @@ mkdir changed-sources
 sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta
 ```
 
-In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the ouput folder.
+In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the output folder.
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 
@@ -293,7 +293,7 @@ But, sometimes you may need to have two different ignore policies for generating
 
 Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). In other words, this will override the `--ignore [-i]` parameter for deleted items.
 
-For example, consider a repository containing multiple sub-folders (force-app/main,force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. By default, the Custom\_\_c object would appear in the `package.xml` and in `destructiveChanges.xml`, which could be a little bit inconsistent and can break the CI/CD build. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
+For example, consider a repository containing multiple sub-folders (force-app/main, force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. By default, the Custom\_\_c object would appear in the `package.xml` and in `destructiveChanges.xml`, which could be a little bit inconsistent and can break the CI/CD build. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
 ```sh
 # destructiveignore
@@ -328,7 +328,7 @@ $ sfdx sgd:source:delta --from commit --include-destructive destructiveinclude
 The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
 It means the delta generation will only focus on the dedicated folder.
 
-For example, consider a repository containing multiple sub-folders (force-app/package,force-app/unpackaged, etc).
+For example, consider a repository containing multiple sub-folders (force-app/package, force-app/unpackaged, etc).
 This repository contains sources deployed in a packaged (force-app/package folder) and sources deployed unpackaged (force-app/unpackaged)
 You only want to apply delta generation for the unpackaged sources.
 
@@ -352,7 +352,7 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 
 ### Generate a comma-separated list of the added and modified Apex classes:
 
-Depending on your testing strategy, [you may be interested in generating a a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
+Depending on your testing strategy, [you may be interested in generating a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
 
 To cover this requirement, you can use a tool such as [yq](https://github.com/kislyuk/yq) to parse the content of the package.xml file produced by SGD:
 
@@ -366,7 +366,7 @@ If you want to embed sgd in your node application, install it has a dependency f
 yarn add sfdx-git-delta
 ```
 
-Then use the javascript module
+Then use the JavaScript module
 
 ```js
 // sample/app.js

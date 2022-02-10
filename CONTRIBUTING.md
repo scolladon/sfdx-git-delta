@@ -70,9 +70,9 @@ Configuring your editor to use our lint and code style rules will make the code 
 
 ### Commit linting
 
-[Commitlint](https://github.com/conventional-changelog/commitlint) is used to ensure commit respect our commit convention.
+[Commitlint](https://github.com/conventional-changelog/commitlint) is used to ensure commits respect our commit convention.
 We follow the [angular](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-angular) commit convention.
-Commit convention are enforced at pre-commit git hook using husky and at the pull request for each commit
+Commit convention is enforced at pre-commit git hook using husky and at the pull request for each commit.
 
 You can use an interactive command line to help you create supported commit message
 
@@ -196,8 +196,8 @@ CI validates prettifying, linting and tests
 
 ### Collaborate on the pull request
 
-[Conventional Comment](https://conventionalcomments.org/) is used to ensure every comments express intention and are easy to understand.
-Pull Request comments are not enforced it is more a way to help the reviewers and contributors to collaborate on the pull request.
+[Conventional Comments](https://conventionalcomments.org/) is used to ensure every comment expresses the intention and is easy to understand.
+Pull Request comments are not enforced, it is more a way to help the reviewers and contributors to collaborate on the pull request.
 
 ## Update Salesforce API version
 
