@@ -5,7 +5,7 @@ Here are the steps to publish a version
 ## Prerequisites
 
 1. Create a [github personal token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)
-2. Set the CONVENTIONAL_GITHUB_RELEASER_TOKEN environment variable with the github personal token value (you can use [direnv](https://direnv.net/))
+2. Set the CONVENTIONAL_GITHUB_RELEASER_TOKEN environment variable with the GitHub personal token value (you can use [direnv](https://direnv.net/))
 
 ## Create a new Release
 
