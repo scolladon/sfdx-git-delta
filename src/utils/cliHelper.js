@@ -1,21 +1,21 @@
 'use strict'
 const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
-const fs = require('fs')
+const { stat } = require('fs').promises
 const path = require('path')
 
 const dirExist = async dir => {
   try {
-    const stat = await fs.promises.stat(dir)
-    return stat.isDirectory()
+    const st = await stat(dir)
+    return st.isDirectory()
   } catch {
     return false
   }
 }
 const fileExist = async file => {
   try {
-    const stat = await fs.promises.stat(file)
-    return stat.isFile()
+    const st = await stat(file)
+    return st.isFile()
   } catch {
     return false
   }

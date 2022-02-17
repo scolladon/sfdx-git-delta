@@ -1,5 +1,5 @@
 'use strict'
-const fs = require('fs')
+const { copyFile, readFile } = require('fs').promises
 const path = require('path')
 const fse = require('fs-extra')
 const gc = require('../utils/gitConstants')
@@ -122,7 +122,7 @@ class StandardHandler {
       } catch (error) {
         if (error.message === 'Source and destination must not be the same.') {
           // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
-          await fs.promises.copyFile(src, dst)
+          await copyFile(src, dst)
         } else {
           // Retry sync in case of async error
           fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
@@ -132,7 +132,7 @@ class StandardHandler {
   }
 
   async _readFile() {
-    return await fs.promises.readFile(path.join(this.config.repo, this.line), {
+    return await readFile(path.join(this.config.repo, this.line), {
       encoding: gc.UTF8_ENCODING,
     })
   }

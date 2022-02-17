@@ -1,7 +1,7 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
 const path = require('path')
-const fs = require('fs')
+const { readdir } = require('fs').promises
 const fse = require('fs-extra')
 const mc = require('../utils/metadataConstants')
 
@@ -93,7 +93,7 @@ class ResourceHandler extends StandardHandler {
 
   async _buildElementMap(srcPath) {
     if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
-      elementSrc[srcPath] = await fs.promises.readdir(srcPath)
+      elementSrc[srcPath] = await readdir(srcPath)
     }
   }
 }

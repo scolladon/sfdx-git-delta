@@ -6,7 +6,7 @@ const SubCustomObject = require('../service/subCustomObjectHandler')
 const typeUtils = require('../utils/typeUtils')
 const gc = require('./gitConstants')
 const childProcess = require('child_process')
-const fs = require('fs')
+const { readFile } = require('fs').promises
 const ignore = require('ignore')
 const micromatch = require('micromatch')
 
@@ -134,7 +134,7 @@ class RepoGitDiff {
       ]
         .filter(obj => obj.include)
         .map(async obj => {
-          const content = await fs.promises.readFile(obj.include)
+          const content = await readFile(obj.include)
           return {
             ...obj,
             content: content.toString().split(os.EOL).filter(Boolean),
@@ -153,7 +153,7 @@ class RepoGitDiff {
         .filter(obj => obj.ignore)
         .map(async obj => {
           if (obj.ignore) {
-            const content = await fs.promises.readFile(obj.ignore)
+            const content = await readFile(obj.ignore)
             obj.helper.add(content.toString())
           }
           return obj

@@ -3,7 +3,7 @@ const StandardHandler = require('./standardHandler')
 const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
-const fs = require('fs')
+const { readdir, readFile } = require('fs').promises
 const fse = require('fs-extra')
 
 const readFileOptions = {
@@ -33,9 +33,9 @@ class CustomObjectHandler extends StandardHandler {
     const exists = await fse.pathExists(fieldsFolder)
     if (!exists) return
 
-    const fields = await fs.promises.readdir(fieldsFolder)
+    const fields = await readdir(fieldsFolder)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
-      const content = await fs.promises.readFile(
+      const content = await readFile(
         path.resolve(this.config.repo, fieldsFolder, fieldPath),
         readFileOptions
       )

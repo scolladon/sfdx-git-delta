@@ -1,13 +1,13 @@
 'use strict'
 const path = require('path')
-const fs = require('fs')
+const { readdir } = require('fs').promises
 
 let _apiMap
 const describeMetadata = {}
 
 const getApiMap = async () => {
   if (!_apiMap) {
-    const dir = await fs.promises.readdir(__dirname)
+    const dir = await readdir(__dirname)
     _apiMap = dir
       .filter(file => /^[a-z]+\d+\.json$/.test(file))
       .reduce((accu, file) => {
