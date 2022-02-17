@@ -89,7 +89,6 @@
     "husky": "^7.0.2",
     "jest": "^27.2.5",
     "lint-staged": "^12.1.2",
-    "mock-spawn": "^0.2.6",
     "nyc": "^15.1.0",
     "prettier": "^2.4.1",
     "prettier-eslint": "^13.0.0",

@@ -1,8 +1,7 @@
 'use strict'
 const RepoSetup = require('../../../../src/utils/repoSetup')
-const mockSpawn = require('mock-spawn')
-const mySpawn = mockSpawn()
-require('child_process').spawn = mySpawn
+jest.mock('child_process')
+const child_process = require('child_process')
 
 describe(`test if repoSetup`, () => {
   test('say "to" equal "HEAD"', async () => {
@@ -15,8 +14,7 @@ describe(`test if repoSetup`, () => {
 
   test('say when "to" do not equals "HEAD"', async () => {
     const config = { repo: '.', to: 'not HEAD' }
-    mySpawn.sequence.add(mySpawn.simple(0, 'HEAD'))
-    mySpawn.sequence.add(mySpawn.simple(0, 'not HEAD'))
+    child_process.__setOutput([['not HEAD'], ['HEAD']])
     const repoSetup = new RepoSetup(config)
     const toEqualHead = await repoSetup.isToEqualHead()
 
@@ -25,7 +23,7 @@ describe(`test if repoSetup`, () => {
 
   test('can set config.from if not defined', async () => {
     const config = { repo: '.' }
-    mySpawn.setDefault(mySpawn.simple(0, 'firstSha'))
+    child_process.__setOutput([['firstSha']])
     const repoSetup = new RepoSetup(config)
     const firsSha = await repoSetup.computeFromRef()
 
@@ -34,7 +32,7 @@ describe(`test if repoSetup`, () => {
 
   test('can set config.from if defined', async () => {
     const config = { repo: '.', from: 'HEAD~1' }
-    mySpawn.setDefault(mySpawn.simple(0, 'firstSha'))
+    child_process.__setOutput([['firstSha']])
     const repoSetup = new RepoSetup(config)
     const firsSha = await repoSetup.computeFromRef()
 
@@ -43,7 +41,7 @@ describe(`test if repoSetup`, () => {
 
   test('can set core.quotepath to off', async () => {
     const config = { repo: '.', from: 'HEAD~1' }
-    mySpawn.setDefault(mySpawn.simple(0, ''))
+    child_process.__setOutput([['']])
     const repoSetup = new RepoSetup(config)
     await repoSetup.repoConfiguration()
   })
