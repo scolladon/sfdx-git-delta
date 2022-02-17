@@ -5679,6 +5679,13 @@ mkdirp@~0.5.1:
   dependencies:
     minimist "^1.2.5"
 
+mock-spawn@^0.2.6:
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/mock-spawn/-/mock-spawn-0.2.6.tgz#b39c15a1c067504310144151f2c1de344d03937f"
+  integrity sha1-s5wVocBnUEMQFEFR8sHeNE0Dk38=
+  dependencies:
+    through "2.3.x"
+
 mock-stdin@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/mock-stdin/-/mock-stdin-1.0.0.tgz#efcfaf4b18077e14541742fd758b9cae4e5365ea"
@@ -7360,7 +7367,7 @@ through2@^4.0.0:
   dependencies:
     readable-stream "3"
 
-through@2, "through@>=2.2.7 <3", through@^2.3.6, through@^2.3.8:
+through@2, through@2.3.x, "through@>=2.2.7 <3", through@^2.3.6, through@^2.3.8:
   version "2.3.8"
   resolved "https://registry.yarnpkg.com/through/-/through-2.3.8.tgz#0dd4c9ffaabc357960b1b724115d7e0e86a2e1f5"
   integrity sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU=

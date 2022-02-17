@@ -1,5 +1,5 @@
 'use strict'
-const childProcess = require('child_process')
+const { spawn } = require('child_process')
 
 const HEAD = 'HEAD'
 
@@ -26,13 +26,13 @@ class RepoSetup {
     }
 
     const headSHA = await _getStreamContent(
-      childProcess.spawn('git', [...revparseParams, HEAD], {
+      spawn('git', [...revparseParams, HEAD], {
         cwd: this.config.repo,
       }).stdout
     )
 
     const toSHA = await _getStreamContent(
-      childProcess.spawn('git', [...revparseParams, this.config.to], {
+      spawn('git', [...revparseParams, this.config.to], {
         cwd: this.config.repo,
       }).stdout
     )
@@ -42,7 +42,7 @@ class RepoSetup {
 
   async repoConfiguration() {
     await _getStreamContent(
-      childProcess.spawn('git', gitConfig, {
+      spawn('git', gitConfig, {
         cwd: this.config.repo,
       }).stdout
     )
@@ -52,7 +52,7 @@ class RepoSetup {
     let firstCommitSHA = this.config.from
     if (!firstCommitSHA) {
       firstCommitSHA = await _getStreamContent(
-        childProcess.spawn('git', revlistParams, {
+        spawn('git', revlistParams, {
           cwd: this.config.repo,
         }).stdout
       )
