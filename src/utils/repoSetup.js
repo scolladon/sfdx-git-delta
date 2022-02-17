@@ -18,7 +18,6 @@ const _getStreamContent = async stream => {
 class RepoSetup {
   constructor(config) {
     this.config = config
-    this.config.generateDelta
   }
 
   async isToEqualHead() {
