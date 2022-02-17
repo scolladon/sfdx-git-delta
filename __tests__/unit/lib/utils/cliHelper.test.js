@@ -1,16 +1,18 @@
 'use strict'
-const CLIHelper = require('../../../../src/utils/cliHelper')
-const gc = require('../../../../src/utils/gitConstants')
 
-const child_process = require('child_process')
-jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
-jest.mock('fs-extra')
+jest.mock('../../../../src/utils/repoSetup')
+const RepoSetup = require('../../../../src/utils/repoSetup')
+RepoSetup.mockImplementation(() => {
+  return {
+    isToEqualHead: jest.fn(),
+    repoConfiguration: jest.fn(),
+    computeFromRef: jest.fn(),
+  }
+})
 jest.mock('fs')
-jest.mock('git-state')
-jest.mock('fast-xml-parser')
 
 const fsMocked = require('fs')
-const fseMocked = require('fs-extra')
+const CLIHelper = require('../../../../src/utils/cliHelper')
 
 const testConfig = {
   output: 'output',
@@ -21,113 +23,138 @@ const testConfig = {
 }
 
 describe(`test if the appli`, () => {
-  let cliHelper
   beforeAll(() => {
-    fsMocked.errorMode = false
-    fseMocked.errorMode = false
-    fseMocked.outputFileSyncError = false
     fsMocked.__setMockFiles({
       output: '',
       '.': '',
     })
-    child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
   })
 
-  test('throw errors when to parameter is not filled', () => {
-    cliHelper = new CLIHelper({ ...testConfig, to: undefined })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+  beforeEach(() => {
+    jest.resetAllMocks()
   })
 
-  test('throw errors when apiVersion parameter is NaN', () => {
-    cliHelper = new CLIHelper({ ...testConfig, apiVersion: 'NotANumber' })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+  test('throw errors when to parameter is not filled', async () => {
+    let cliHelper = new CLIHelper({ ...testConfig, to: undefined })
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when output folder does not exist', () => {
-    cliHelper = new CLIHelper({ ...testConfig, to: undefined })
-    expect(() => {
-      cliHelper.validateConfig({
-        ...testConfig,
-        output: 'not/exist/folder',
-      })
-    }).toThrow()
+  test('throw errors when apiVersion parameter is NaN', async () => {
+    let cliHelper = new CLIHelper({ ...testConfig, apiVersion: 'NotANumber' })
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when output is not a folder', () => {
-    cliHelper = new CLIHelper({ ...testConfig, output: 'file' })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+  test('throw errors when output folder does not exist', async () => {
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      to: undefined,
+      output: 'not/exist/folder',
+    })
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when repo is not git repository', () => {
-    cliHelper = new CLIHelper({
+  test('throw errors when output is not a folder', async () => {
+    let cliHelper = new CLIHelper({ ...testConfig, output: 'file' })
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
+  })
+
+  test('throw errors when repo is not git repository', async () => {
+    let cliHelper = new CLIHelper({
       ...testConfig,
       repo: 'not/git/folder',
     })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when file is not found for --ignore', () => {
-    cliHelper = new CLIHelper({
+  test('throw errors when file is not found for --ignore', async () => {
+    let cliHelper = new CLIHelper({
       ...testConfig,
       ignore: 'not-a-file',
     })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when file is not found for --ignore-destructive', () => {
-    cliHelper = new CLIHelper({
+  test('throw errors when file is not found for --ignore-destructive', async () => {
+    let cliHelper = new CLIHelper({
       ...testConfig,
       ignoreDestructive: 'not-a-file',
     })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when file is not found for --include', () => {
-    cliHelper = new CLIHelper({
+  test('throw errors when file is not found for --include', async () => {
+    let cliHelper = new CLIHelper({
       ...testConfig,
       include: 'not-a-file',
     })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when file is not found for --include-destructive', () => {
-    cliHelper = new CLIHelper({
+  test('throw errors when file is not found for --include-destructive', async () => {
+    let cliHelper = new CLIHelper({
       ...testConfig,
       includeDestructive: 'not-a-file',
     })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 
-  test('throw errors when "-t" and "-d" are set', () => {
+  test('throw errors when "-t" and "-d" are set', async () => {
     const notHeadSHA = 'test'
-    child_process.spawnSync
-      .mockReturnValueOnce({ stdout: Buffer.from('HEAD', gc.UTF8_ENCODING) })
-      .mockReturnValueOnce({
-        stdout: Buffer.from(notHeadSHA, gc.UTF8_ENCODING),
-      })
-    cliHelper = new CLIHelper({
+    let cliHelper = new CLIHelper({
       ...testConfig,
       to: notHeadSHA,
       generateDelta: true,
     })
-    expect(() => {
-      cliHelper.validateConfig()
-    }).toThrow()
+    try {
+      await cliHelper.validateConfig()
+      expect(true).toBe(false)
+    } catch (e) {
+      expect(e).toBeDefined()
+    }
   })
 })

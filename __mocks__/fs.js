@@ -19,18 +19,21 @@ fs.__setMockFiles = newMockFiles => {
   }
 }
 
+fs.promises = {}
+
 fs.readdirSync = directoryPath => mockFiles[path.basename(directoryPath)] ?? []
 
 fs.existsSync = filePath => filePathList.has(path.basename(filePath))
 
-fs.statSync = elem => ({
-  isDirectory() {
-    return elem !== 'file'
-  },
-  isFile() {
-    return filePathList.has(elem)
-  },
-})
+fs.promises.stat = elem =>
+  Promise.resolve({
+    isDirectory() {
+      return elem !== 'file'
+    },
+    isFile() {
+      return filePathList.has(elem)
+    },
+  })
 
 fs.readFileSync = path => {
   if (fs.errorMode) throw new Error()
