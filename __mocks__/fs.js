@@ -22,10 +22,6 @@ fs.__setMockFiles = newMockFiles => {
 
 fs.promises = {}
 
-fs.readdirSync = directoryPath => mockFiles[path.basename(directoryPath)] ?? []
-
-fs.existsSync = filePath => filePathList.has(path.basename(filePath))
-
 fs.promises.stat = elem =>
   Promise.resolve({
     isDirectory() {
@@ -47,8 +43,10 @@ fs.promises.readFile = path =>
     }
   })
 
-fs.writeFileSync = () => {
-  if (fs.errorMode) throw new Error()
-}
+fs.promises.readdir = directoryPath =>
+  new Promise(res => {
+    const result = mockFiles[path.basename(directoryPath)] ?? []
+    res(result)
+  })
 
 module.exports = fs

@@ -13,7 +13,7 @@ childProcess.spawn.mockImplementation(() => {
   const mock = new EventEmitter()
   mock.stdout = new Readable({
     read() {
-      if (!error) {
+      if (!error && output.length) {
         this.push(output.pop().join(EOL))
       }
       this.push(null)
