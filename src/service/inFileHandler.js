@@ -51,8 +51,8 @@ class InFileHandler extends StandardHandler {
     await addition
   }
 
-  handleDeletion() {
-    this._handleInDiff()
+  async handleDeletion() {
+    await this._handleInDiff()
   }
 
   async handleModification() {
