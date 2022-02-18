@@ -1,5 +1,6 @@
 'use strict'
 const StandardHandler = require('../../../../src/service/standardHandler')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 const mc = require('../../../../src/utils/metadataConstants')
 jest.mock('fs')
 
@@ -73,35 +74,40 @@ const testContext = {
   },
 }
 
-// eslint-disable-next-line no-undef
-testHandlerHelper(testContext)
+describe(`standardHandler`, () => {
+  let globalMetadata
+  beforeAll(async () => {
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+  })
 
-test('do not handle not ADM line', () => {
-  const handler = new testContext.handler(
-    `Z       ${testContext.testData[0][1]}`,
-    testContext.testData[0][0],
-    testContext.work,
-    // eslint-disable-next-line no-undef
-    globalMetadata
-  )
-  handler.handle()
-})
+  // eslint-disable-next-line no-undef
+  testHandlerHelper(testContext)
 
-test('do not handle treat meta file metadata non ending with meta suffix', () => {
-  const handler = new testContext.handler(
-    `D       force-app/main/default/staticresources/test.resource${mc.METAFILE_SUFFIX}`,
-    'staticresources',
-    testContext.work,
-    // eslint-disable-next-line no-undef
-    globalMetadata
-  )
-  handler.handle()
-})
+  test('do not handle not ADM line', () => {
+    const handler = new testContext.handler(
+      `Z       ${testContext.testData[0][1]}`,
+      testContext.testData[0][0],
+      testContext.work,
+      globalMetadata
+    )
+    handler.handle()
+  })
 
-test(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
-  expect(
-    StandardHandler.cleanUpPackageMember(`Package\\Member`).split(
-      StandardHandler.PACKAGE_MEMBER_PATH_SEP
-    ).length
-  ).toBe(2)
+  test('do not handle treat meta file metadata non ending with meta suffix', () => {
+    const handler = new testContext.handler(
+      `D       force-app/main/default/staticresources/test.resource${mc.METAFILE_SUFFIX}`,
+      'staticresources',
+      testContext.work,
+      globalMetadata
+    )
+    handler.handle()
+  })
+
+  test(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
+    expect(
+      StandardHandler.cleanUpPackageMember(`Package\\Member`).split(
+        StandardHandler.PACKAGE_MEMBER_PATH_SEP
+      ).length
+    ).toBe(2)
+  })
 })
