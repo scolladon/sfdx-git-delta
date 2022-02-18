@@ -149,15 +149,13 @@ class RepoGitDiff {
       [
         { ignore: config.ignore, helper: ignore() },
         { ignore: config.ignoreDestructive, helper: ignore() },
-      ]
-        .filter(obj => obj.ignore)
-        .map(async obj => {
-          if (obj.ignore) {
-            const content = await readFile(obj.ignore)
-            obj.helper.add(content.toString())
-          }
-          return obj
-        })
+      ].map(async obj => {
+        if (obj.ignore) {
+          const content = await readFile(obj.ignore)
+          obj.helper.add(content.toString())
+        }
+        return obj
+      })
     )
     return setup
   }

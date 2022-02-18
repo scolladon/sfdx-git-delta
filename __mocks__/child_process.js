@@ -4,16 +4,20 @@ const { EOL } = require('os')
 const childProcess = jest.genMockFromModule('child_process')
 
 let output = []
+let error = false
 
 childProcess.__setOutput = value => (output = value)
+childProcess.__setError = value => (error = value)
 
 childProcess.spawn.mockImplementation(() => {
   const mock = new EventEmitter()
   mock.stdout = new Readable({
     read() {
-      this.push(output.pop().join(EOL))
+      if (!error) {
+        this.push(output.pop().join(EOL))
+      }
       this.push(null)
-      mock.emit('close')
+      mock.emit(error ? 'error' : 'close')
     },
   })
   return mock

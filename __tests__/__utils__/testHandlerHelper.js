@@ -1,11 +1,5 @@
 'use strict'
 const metadataManager = require('../../src/metadata/metadataManager')
-;(async function () {
-  global.globalMetadata = await metadataManager.getDefinition(
-    'directoryName',
-    50
-  )
-})()
 
 global.testHandlerHelper = testContext => {
   describe(`test if ${testContext.handler.name}`, () => {
@@ -25,7 +19,6 @@ global.testHandlerHelper = testContext => {
             `A       ${changePath}`,
             type,
             testContext.work,
-            // eslint-disable-next-line no-undef
             globalMetadata
           )
           await handler.handle()
@@ -39,7 +32,6 @@ global.testHandlerHelper = testContext => {
             `D       ${changePath}`,
             type,
             testContext.work,
-            // eslint-disable-next-line no-undef
             globalMetadata
           )
           await handler.handle()
@@ -53,7 +45,6 @@ global.testHandlerHelper = testContext => {
             `M       ${changePath}`,
             type,
             testContext.work,
-            // eslint-disable-next-line no-undef
             globalMetadata
           )
           await handler.handle()

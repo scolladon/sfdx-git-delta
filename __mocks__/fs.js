@@ -1,6 +1,7 @@
 'use strict'
 const path = require('path')
 const fs = jest.genMockFromModule('fs')
+const { MASTER_DETAIL_TAG } = require('../src/utils/metadataConstants')
 
 fs.errorMode = false
 let mockFiles = {}
@@ -35,12 +36,16 @@ fs.promises.stat = elem =>
     },
   })
 
-fs.readFileSync = path => {
-  if (fs.errorMode) throw new Error()
-  return Object.prototype.hasOwnProperty.call(mockContent, path)
-    ? mockContent[path]
-    : '<type>MasterDetail</type>'
-}
+fs.promises.readFile = path =>
+  new Promise((res, rej) => {
+    if (fs.errorMode) rej(new Error())
+    else {
+      const result = Object.prototype.hasOwnProperty.call(mockContent, path)
+        ? mockContent[path]
+        : MASTER_DETAIL_TAG
+      res(result)
+    }
+  })
 
 fs.writeFileSync = () => {
   if (fs.errorMode) throw new Error()
