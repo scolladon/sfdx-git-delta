@@ -2,6 +2,8 @@
 const InTranslation = require('../../../../src/service/inTranslationHandler')
 jest.mock('fs')
 jest.mock('fs-extra')
+const fs = require('fs')
+const fse = require('fs-extra')
 
 const testContext = {
   handler: InTranslation,
@@ -26,7 +28,8 @@ const testContext = {
 // eslint-disable-next-line no-undef
 describe('test inTranslation with delta generation', () => {
   beforeAll(() => {
-    require('fs').__setMockFiles({
+    fse.pathShouldExist = false
+    fs.__setMockFiles({
       [testContext.testData[0][1]]: 'test',
       [testContext.testData[1][1]]: 'test',
     })
