@@ -59,7 +59,6 @@ test('field is not a master detail', async () => {
     globalMetadata
   )
   require('fs').__setMockFiles({ [testContext.testData[0][1]]: '' })
-  try {
-    await handler.handle()
-  } catch {}
+
+  await handler.handle()
 })
