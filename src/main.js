@@ -5,8 +5,8 @@ const metadataManager = require('./metadata/metadataManager')
 const CLIHelper = require('./utils/cliHelper')
 const RepoGitDiff = require('./utils/repoGitDiff')
 
-const fse = require('fs-extra')
-const path = require('path')
+const { outputFile } = require('fs-extra')
+const { join } = require('path')
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
@@ -64,8 +64,8 @@ const treatPackages = async (dcJson, config, metadata) => {
         xmlContent: pc.constructPackage({}),
       },
     ].map(async op => {
-      const location = path.join(config.output, op.folder, op.filename)
-      fse.outputFile(location, op.xmlContent)
+      const location = join(config.output, op.folder, op.filename)
+      outputFile(location, op.xmlContent)
     })
   )
 }

@@ -1,13 +1,11 @@
 'use strict'
-const path = require('path')
+const { normalize, sep } = require('path')
 
 const EOLRegex = /\r?\n/g
 
-const treatPathSep = data => data.replace(/[/\\]+/g, path.sep)
+const treatPathSep = data => data.replace(/[/\\]+/g, sep)
 const sanitizePath = data =>
-  data !== null && data !== undefined
-    ? path.normalize(treatPathSep(data))
-    : data
+  data !== null && data !== undefined ? normalize(treatPathSep(data)) : data
 async function* linify(stream) {
   let previous = ''
   for await (const chunk of stream) {

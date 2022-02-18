@@ -3,8 +3,14 @@ const cpUtils = require('./childProcessUtils')
 const CustomObject = require('../service/customObjectHandler')
 const InTranslation = require('../service/inTranslationHandler')
 const SubCustomObject = require('../service/subCustomObjectHandler')
-const typeUtils = require('../utils/typeUtils')
-const gc = require('./gitConstants')
+const { getType } = require('../utils/typeUtils')
+const {
+  ADDITION,
+  DELETION,
+  GIT_DIFF_TYPE_REGEX,
+  IGNORE_WHITESPACE_PARAMS,
+  UTF8_ENCODING,
+} = require('./gitConstants')
 const childProcess = require('child_process')
 const { readFile } = require('fs').promises
 const ignore = require('ignore')
@@ -30,7 +36,7 @@ class RepoGitDiff {
     this.metadata = metadata
     this.spawnConfig = {
       cwd: this.config.repo,
-      encoding: gc.UTF8_ENCODING,
+      encoding: UTF8_ENCODING,
       maxBuffer: 1024 * 10240,
     }
   }
@@ -52,7 +58,7 @@ class RepoGitDiff {
 
     const gitLs = childProcess.spawn('git', [...allFilesParams], {
       cwd: this.config.repo,
-      encoding: gc.UTF8_ENCODING,
+      encoding: UTF8_ENCODING,
     })
     const lines = []
     for await (const line of cpUtils.linify(gitLs.stdout)) {
@@ -63,7 +69,7 @@ class RepoGitDiff {
 
   async _getFilteredDiff() {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
-      ? gc.IGNORE_WHITESPACE_PARAMS
+      ? IGNORE_WHITESPACE_PARAMS
       : []
     const gitDiff = childProcess.spawn(
       'git',
@@ -74,7 +80,7 @@ class RepoGitDiff {
         this.config.to,
         this.config.source,
       ],
-      { cwd: this.config.repo, encoding: gc.UTF8_ENCODING }
+      { cwd: this.config.repo, encoding: UTF8_ENCODING }
     )
 
     const lines = []
@@ -89,12 +95,12 @@ class RepoGitDiff {
   async _treatResult(lines) {
     const linesPerDiffType = lines.reduce(
       (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
-      { [gc.ADDITION]: [], [gc.DELETION]: [] }
+      { [ADDITION]: [], [DELETION]: [] }
     )
-    const AfileNames = linesPerDiffType[gc.ADDITION].map(line =>
+    const AfileNames = linesPerDiffType[ADDITION].map(line =>
       this._extractComparisonName(line)
     )
-    const deletedRenamed = linesPerDiffType[gc.DELETION].filter(line => {
+    const deletedRenamed = linesPerDiffType[DELETION].filter(line => {
       const dEl = this._extractComparisonName(line)
       return AfileNames.some(
         aEl => !aEl.localeCompare(dEl, undefined, lcSensitivity)
@@ -161,17 +167,17 @@ class RepoGitDiff {
   }
 
   _filterIgnore(line, ignoreSetup) {
-    const filePath = line.replace(gc.GIT_DIFF_TYPE_REGEX, '')
+    const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
     return this.config.ignoreDestructive
-      ? line.startsWith(gc.DELETION)
+      ? line.startsWith(DELETION)
         ? !ignoreSetup[1]?.helper?.ignores(filePath)
         : !ignoreSetup[0]?.helper?.ignores(filePath)
       : !ignoreSetup[0]?.helper?.ignores(filePath)
   }
 
   _extractComparisonName(line) {
-    const type = typeUtils.getType(line, this.metadata)
-    const el = path.parse(line.replace(gc.GIT_DIFF_TYPE_REGEX, ''))
+    const type = getType(line, this.metadata)
+    const el = path.parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
     let comparisonName = el.base
     if (pathType.includes(type)) {
       comparisonName = line

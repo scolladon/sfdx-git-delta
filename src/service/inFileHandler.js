@@ -1,15 +1,18 @@
 'use strict'
 const fileGitDiff = require('../utils/fileGitDiff')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
+const { MINUS, PLUS } = require('../utils/gitConstants')
+const {
+  LABEL_DIRECTORY_NAME,
+  LABEL_EXTENSION,
+} = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
-const fse = require('fs-extra')
-const path = require('path')
+const { outputFile } = require('fs-extra')
+const { basename, join } = require('path')
 const fxp = require('fast-xml-parser')
 
 const FULLNAME = 'fullName'
 const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
-const XML_TAG = new RegExp(`^[${gc.MINUS}${gc.PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
+const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
 const XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n'
 const XML_PARSER_OPTION = {
   ignoreAttributes: false,
@@ -30,7 +33,7 @@ class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = StandardHandler.metadata[this.type]
-    this.customLabelElementName = `${path.basename(this.line).split('.')[0]}.`
+    this.customLabelElementName = `${basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
       Object.keys(StandardHandler.metadata)
@@ -76,7 +79,7 @@ class InFileHandler extends StandardHandler {
     })
     const xmlBuilder = new fxp.j2xParser(JSON_PARSER_OPTION)
     const xmlContent = XML_HEADER + xmlBuilder.parse(result.fileContent)
-    await fse.outputFile(path.join(this.config.output, this.line), xmlContent)
+    await outputFile(join(this.config.output, this.line), xmlContent)
   }
 
   async _handleInDiff() {
@@ -112,9 +115,9 @@ class InFileHandler extends StandardHandler {
 
   _postProcessHandleInDiff(line, data) {
     let tempMap
-    if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
+    if (line.startsWith(MINUS) && line.includes(FULLNAME)) {
       tempMap = data.toDel
-    } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
+    } else if (line.startsWith(PLUS) || line.startsWith(MINUS)) {
       tempMap = data.toAdd
     }
     if (tempMap) {
@@ -159,14 +162,14 @@ class InFileHandler extends StandardHandler {
   }
 
   _fillPackage(packageObject) {
-    if (this.type !== mc.LABEL_EXTENSION) {
+    if (this.type !== LABEL_EXTENSION) {
       super._fillPackage(packageObject)
     }
   }
 
   _fillPackageFromDiff(packageObject, subType, value) {
     const elementFullName = `${
-      (subType !== mc.LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
+      (subType !== LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
       value
     }`
 

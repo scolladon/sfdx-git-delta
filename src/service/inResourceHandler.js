@@ -1,6 +1,6 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const path = require('path')
+const { join, normalize, parse } = require('path')
 const { readdir } = require('fs').promises
 const { pathExists } = require('fs-extra')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
@@ -16,7 +16,7 @@ class ResourceHandler extends StandardHandler {
     super.handleAddition()
     if (!this.config.generateDelta) return
     const [, srcPath, elementName] = this._parseLine()
-    const [targetPath] = `${path.join(this.config.output, this.line)}`.match(
+    const [targetPath] = `${join(this.config.output, this.line)}`.match(
       new RegExp(
         `.*[/\\\\]${StandardHandler.metadata[this.type].directoryName}`,
         'u'
@@ -30,13 +30,13 @@ class ResourceHandler extends StandardHandler {
         .filter(
           src =>
             (this.type === STATICRESOURCE_TYPE &&
-              src.startsWith(path.parse(elementName).name)) ||
+              src.startsWith(parse(elementName).name)) ||
             matchingFiles.includes(src)
         )
         .map(src =>
           this._copyFiles(
-            path.normalize(path.join(srcPath, src)),
-            path.normalize(path.join(targetPath, src))
+            normalize(join(srcPath, src)),
+            normalize(join(targetPath, src))
           )
         )
     )
@@ -44,7 +44,7 @@ class ResourceHandler extends StandardHandler {
 
   async handleDeletion() {
     const [, srcPath, elementName] = this._parseLine()
-    const exists = await pathExists(path.join(srcPath, elementName))
+    const exists = await pathExists(join(srcPath, elementName))
     if (exists) {
       await this.handleModification()
     } else {
@@ -53,16 +53,14 @@ class ResourceHandler extends StandardHandler {
   }
 
   _parseLine() {
-    return path
-      .join(this.config.repo, this.line)
-      .match(
-        new RegExp(
-          `(?<path>.*[/\\\\]${
-            StandardHandler.metadata[this.type].directoryName
-          })[/\\\\](?<name>[^/\\\\]*)+`,
-          'u'
-        )
+    return join(this.config.repo, this.line).match(
+      new RegExp(
+        `(?<path>.*[/\\\\]${
+          StandardHandler.metadata[this.type].directoryName
+        })[/\\\\](?<name>[^/\\\\]*)+`,
+        'u'
       )
+    )
   }
 
   _getElementName() {
@@ -71,7 +69,7 @@ class ResourceHandler extends StandardHandler {
   }
 
   _getParsedPath() {
-    return path.parse(
+    return parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
         .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
@@ -79,7 +77,7 @@ class ResourceHandler extends StandardHandler {
   }
 
   _buildMatchingFiles(elementName) {
-    const parsedElementName = path.parse(elementName).name
+    const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
     if (StandardHandler.metadata[this.type].metaFile) {
       matchingFiles.push(

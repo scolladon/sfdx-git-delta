@@ -1,14 +1,17 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
 const asyncFilter = require('../utils/asyncFilter')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
-const path = require('path')
+const { UTF8_ENCODING } = require('../utils/gitConstants')
+const {
+  FIELD_DIRECTORY_NAME,
+  MASTER_DETAIL_TAG,
+} = require('../utils/metadataConstants')
+const { join, parse, resolve } = require('path')
 const { readdir, readFile } = require('fs').promises
-const fse = require('fs-extra')
+const { pathExists } = require('fs-extra')
 
 const readFileOptions = {
-  encoding: gc.UTF8_ENCODING,
+  encoding: UTF8_ENCODING,
 }
 
 class CustomObjectHandler extends StandardHandler {
@@ -21,27 +24,27 @@ class CustomObjectHandler extends StandardHandler {
   async _handleMasterDetailException() {
     if (this.type !== CustomObjectHandler.OBJECT_TYPE) return
 
-    const fieldsFolder = path.resolve(
+    const fieldsFolder = resolve(
       this.config.repo,
-      path.join(path.parse(this.line).dir, mc.FIELD_DIRECTORY_NAME)
+      join(parse(this.line).dir, FIELD_DIRECTORY_NAME)
     )
-    const exists = await fse.pathExists(fieldsFolder)
+    const exists = await pathExists(fieldsFolder)
     if (!exists) return
 
     const fields = await readdir(fieldsFolder)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
       const content = await readFile(
-        path.resolve(this.config.repo, fieldsFolder, fieldPath),
+        resolve(this.config.repo, fieldsFolder, fieldPath),
         readFileOptions
       )
-      return content.includes(mc.MASTER_DETAIL_TAG)
+      return content.includes(MASTER_DETAIL_TAG)
     })
 
     await Promise.all(
       masterDetailsFields.map(field =>
         this._copyFiles(
-          path.resolve(this.config.repo, fieldsFolder, field),
-          path.resolve(this.config.output, fieldsFolder, field)
+          resolve(this.config.repo, fieldsFolder, field),
+          resolve(this.config.output, fieldsFolder, field)
         )
       )
     )

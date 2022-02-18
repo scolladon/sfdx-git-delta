@@ -4,7 +4,7 @@ const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
 
 const { stat } = require('fs').promises
-const path = require('path')
+const { join } = require('path')
 
 const fsExists = async (dir, fn) => {
   try {
@@ -20,7 +20,7 @@ const dirExists = async dir => await fsExists(dir, 'isDirectory')
 const fileExists = async file => await fsExists(file, 'isFile')
 
 const isGit = async dir => {
-  return await dirExists(path.join(dir, '.git'))
+  return await dirExists(join(dir, '.git'))
 }
 
 class CLIHelper {

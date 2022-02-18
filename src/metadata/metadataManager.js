@@ -1,5 +1,5 @@
 'use strict'
-const path = require('path')
+const { resolve } = require('path')
 const { readdir } = require('fs').promises
 
 let _apiMap
@@ -30,7 +30,7 @@ module.exports = {
         !!apiVersion && Object.prototype.hasOwnProperty.call(apiMap, apiVersion)
           ? apiMap[apiVersion]
           : apiMap.latest
-      describeMetadata[apiVersion] = require(path.resolve(__dirname, apiFile))
+      describeMetadata[apiVersion] = require(resolve(__dirname, apiFile))
     }
 
     return describeMetadata[apiVersion].reduce((metadata, describe) => {

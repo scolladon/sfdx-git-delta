@@ -1,7 +1,10 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const mc = require('../utils/metadataConstants')
-const path = require('path')
+const {
+  MASTER_DETAIL_TAG,
+  OBJECT_META_XML_SUFFIX,
+} = require('../utils/metadataConstants')
+const { join, sep } = require('path')
 
 class SubCustomObjectHandler extends StandardHandler {
   handleDeletion() {
@@ -13,21 +16,21 @@ class SubCustomObjectHandler extends StandardHandler {
     if (!this.config.generateDelta) return
 
     const data = await this._readFile()
-    if (data?.includes(mc.MASTER_DETAIL_TAG)) {
+    if (data?.includes(MASTER_DETAIL_TAG)) {
       const customObjectDirPath = this.splittedLine
         .slice(0, [this.splittedLine.indexOf(this.type)])
-        .join(path.sep)
+        .join(sep)
       const customObjectName =
         this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
 
-      const customObjectPath = path.join(
+      const customObjectPath = join(
         customObjectDirPath,
-        `${customObjectName}.${mc.OBJECT_META_XML_SUFFIX}`
+        `${customObjectName}.${OBJECT_META_XML_SUFFIX}`
       )
 
       this._copyFiles(
-        path.join(this.config.repo, customObjectPath),
-        path.join(this.config.output, customObjectPath)
+        join(this.config.repo, customObjectPath),
+        join(this.config.output, customObjectPath)
       )
     }
   }
