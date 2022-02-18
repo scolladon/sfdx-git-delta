@@ -1,19 +1,10 @@
 'use strict'
 const app = require('../src/main')
-const os = require('os')
-const { EventEmitter, Readable } = require('stream')
-const child_process = require('child_process')
-jest.mock('child_process', () => ({
-  spawnSync: () => ({
-    stdout: '1stsha',
-  }),
-  spawn: jest.fn(),
-}))
-jest.mock('fs-extra')
 jest.mock('fs')
-
-const fsMocked = require('fs')
-const fseMocked = require('fs-extra')
+jest.mock('fs-extra')
+jest.mock('child_process')
+const fs = require('fs')
+const child_process = require('child_process')
 
 const lines = [
   'D      force-app/main/default/objects/Account/fields/deleted.field-meta.xml',
@@ -38,23 +29,13 @@ const lines = [
 
 describe(`test if the appli`, () => {
   beforeEach(() => {
-    require('fs').__setMockFiles({
+    fs.__setMockFiles({
       output: '',
       '.': '',
     })
   })
   test('can execute with rich parameters and big diff', async () => {
-    child_process.spawn.mockImplementation(() => {
-      const mock = new EventEmitter()
-      mock.stdout = new Readable({
-        read() {
-          this.push(lines.join(os.EOL))
-          this.push(null)
-          mock.emit('close')
-        },
-      })
-      return mock
-    })
+    child_process.__setOutput([lines, [], ['firstSHA']])
     expect(
       await app({
         output: 'output',
@@ -67,24 +48,13 @@ describe(`test if the appli`, () => {
   })
 
   test('catch internal warnings', async () => {
-    fsMocked.errorMode = true
-    fseMocked.errorMode = true
-    child_process.spawn.mockImplementation(() => {
-      const mock = new EventEmitter()
-      mock.stdout = new Readable({
-        read() {
-          this.push(lines.join(os.EOL))
-          this.push(null)
-          mock.emit('close')
-        },
-      })
-      return mock
-    })
+    fs.errorMode = true
+    child_process.__setOutput([lines, [], ['firstSHA']])
     const work = await app({
       output: 'output',
       repo: '',
       source: '',
-      to: 'test',
+      to: 'HEAD',
       apiVersion: '46',
       generateDelta: true,
     })
@@ -92,22 +62,12 @@ describe(`test if the appli`, () => {
   })
 
   test('do not generate destructiveChanges.xml and package.xml with same element', async () => {
-    child_process.spawn.mockImplementation(() => {
-      const mock = new EventEmitter()
-      mock.stdout = new Readable({
-        read() {
-          this.push(lines.join(os.EOL))
-          this.push(null)
-          mock.emit('close')
-        },
-      })
-      return mock
-    })
+    child_process.__setOutput([lines, [], ['firstSHA']])
     const work = await app({
       output: 'output',
       repo: '',
       source: '',
-      to: 'test',
+      to: 'HEAD',
       apiVersion: '46',
       generateDelta: true,
     })
