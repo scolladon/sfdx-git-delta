@@ -1,19 +1,10 @@
 'use strict'
 const app = require('../../src/main')
-const { EventEmitter, Readable } = require('stream')
 
-const child_process = require('child_process')
-jest.mock('child_process', () => ({
-  spawnSync: () => ({
-    stdout: '1stsha',
-  }),
-  spawn: jest.fn(),
-}))
+jest.mock('child_process')
 jest.mock('fs-extra')
 jest.mock('fs')
-jest.mock('git-state')
-jest.mock('fast-xml-parser')
-
+const child_process = require('child_process')
 const fsMocked = require('fs')
 const fseMocked = require('fs-extra')
 
@@ -29,25 +20,18 @@ describe(`test if the appli`, () => {
   beforeAll(() => {
     fsMocked.errorMode = false
     fseMocked.errorMode = false
-    fseMocked.outputFileSyncError = false
+    fseMocked.outputFileError = false
     fsMocked.__setMockFiles({
       output: '',
       '.': '',
       '.forceignore': '',
       '.forceinclude': '',
     })
-    child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
-    child_process.spawn.mockImplementation(() => {
-      const mock = new EventEmitter()
-      mock.stdout = new Readable({
-        read() {
-          this.push('')
-          this.push(null)
-          mock.emit('close')
-        },
-      })
-      return mock
-    })
+  })
+
+  beforeEach(() => {
+    child_process.__setOutput([])
+    child_process.__setError(false)
   })
 
   test('can execute with simple parameters and no diff', async () => {
@@ -108,10 +92,15 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
-  test('catch and reject big issues', () => {
+  test('catch and reject big issues', async () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
-    fseMocked.outputFileSyncError = true
-    expect(async () => await app(testConfig)).toThrow()
+    fseMocked.outputFileError = true
+    child_process.__setError(true)
+    try {
+      await app(testConfig)
+    } catch (error) {
+      expect(error).toBeDefined()
+    }
   })
 })
