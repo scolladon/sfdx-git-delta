@@ -1,6 +1,8 @@
 'use strict'
+const asyncFilter = require('./asyncFilter')
 const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
+
 const { stat } = require('fs').promises
 const path = require('path')
 
@@ -21,11 +23,6 @@ const isGit = async dir => {
   return await dirExists(path.join(dir, '.git'))
 }
 
-const asyncFilter = async (arr, predicate) =>
-  arr.reduce(
-    async (memo, e) => ((await predicate(e)) ? [...(await memo), e] : memo),
-    []
-  )
 class CLIHelper {
   constructor(config) {
     this.config = config

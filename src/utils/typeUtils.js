@@ -1,3 +1,4 @@
+'use strict'
 const CustomObject = require('../service/customObjectHandler')
 const path = require('path')
 

@@ -1,5 +1,6 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
+const asyncFilter = require('../utils/asyncFilter')
 const gc = require('../utils/gitConstants')
 const mc = require('../utils/metadataConstants')
 const path = require('path')
@@ -9,12 +10,6 @@ const fse = require('fs-extra')
 const readFileOptions = {
   encoding: gc.UTF8_ENCODING,
 }
-
-const asyncFilter = async (arr, predicate) =>
-  arr.reduce(
-    async (memo, e) => ((await predicate(e)) ? [...(await memo), e] : memo),
-    []
-  )
 
 class CustomObjectHandler extends StandardHandler {
   async handleAddition() {
