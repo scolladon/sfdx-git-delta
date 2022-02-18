@@ -4,25 +4,21 @@ const { sanitizePath } = require('./childProcessUtils')
 const { stat } = require('fs').promises
 const path = require('path')
 
-const dirExist = async dir => {
+const fsExists = async (dir, fn) => {
   try {
     const st = await stat(dir)
-    return st.isDirectory()
-  } catch {
-    return false
-  }
-}
-const fileExist = async file => {
-  try {
-    const st = await stat(file)
-    return st.isFile()
+    return st[fn]()
   } catch {
     return false
   }
 }
 
+const dirExists = async dir => await fsExists(dir, 'isDirectory')
+
+const fileExists = async file => await fsExists(file, 'isFile')
+
 const isGit = async dir => {
-  return await dirExist(path.join(dir, '.git'))
+  return await dirExists(path.join(dir, '.git'))
 }
 
 const asyncFilter = async (arr, predicate) =>
@@ -47,34 +43,22 @@ class CLIHelper {
     }
 
     const isGitPromise = isGit(this.config.repo)
-    const directories = await asyncFilter(
-      [this.config.output, this.config.source].filter(Boolean),
-      async dir => {
-        const exist = await dirExist(dir)
-        return !exist
-      }
-    )
-    const files = await asyncFilter(
-      [
-        this.config.ignore,
-        this.config.ignoreDestructive,
-        this.config.include,
-        this.config.includeDestructive,
-      ].filter(Boolean),
-      async file => {
-        const exist = await fileExist(file)
-        return !exist
-      }
-    )
+    const isToEqualHeadPromise = this.repoSetup.isToEqualHead()
+    const directoriesPromise = this._filterDirectories()
+    const filesPromise = this._filterFiles()
 
+    const directories = await directoriesPromise
     directories.forEach(dir => errors.push(`${dir} folder does not exist`))
+
+    const files = await filesPromise
     files.forEach(file => errors.push(`${file} file does not exist`))
+
     const isGitRepo = await isGitPromise
     if (!isGitRepo) {
       errors.push(`${this.config.repo} is not a git repository`)
     }
 
-    const isToEqualHead = await this.repoSetup.isToEqualHead()
+    const isToEqualHead = await isToEqualHeadPromise
     if (!isToEqualHead && this.config.generateDelta) {
       errors.push(
         `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
@@ -86,6 +70,31 @@ class CLIHelper {
     }
 
     await this.repoSetup.repoConfiguration()
+  }
+
+  _filterDirectories() {
+    return asyncFilter(
+      [this.config.output, this.config.source].filter(Boolean),
+      async dir => {
+        const exist = await dirExists(dir)
+        return !exist
+      }
+    )
+  }
+
+  _filterFiles() {
+    return asyncFilter(
+      [
+        this.config.ignore,
+        this.config.ignoreDestructive,
+        this.config.include,
+        this.config.includeDestructive,
+      ].filter(Boolean),
+      async file => {
+        const exist = await fileExists(file)
+        return !exist
+      }
+    )
   }
 
   async _sanitizeConfig() {
