@@ -20,7 +20,7 @@ const testConfig = {
   apiVersion: '46',
 }
 
-describe(`test if the appli`, () => {
+describe(`test if the application`, () => {
   let cliHelper
   beforeAll(() => {
     fsMocked.errorMode = false
@@ -33,21 +33,21 @@ describe(`test if the appli`, () => {
     child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
   })
 
-  test('throw errors when to parameter is not filled', () => {
+  test('throws error when to parameter is not filled', () => {
     cliHelper = new CLIHelper({ ...testConfig, to: undefined })
     expect(() => {
       cliHelper.validateConfig()
     }).toThrow()
   })
 
-  test('throw errors when apiVersion parameter is NaN', () => {
+  test('throws error when apiVersion parameter is NaN', () => {
     cliHelper = new CLIHelper({ ...testConfig, apiVersion: 'NotANumber' })
     expect(() => {
       cliHelper.validateConfig()
     }).toThrow()
   })
 
-  test('throw errors when output folder does not exist', () => {
+  test('throws error when output folder does not exist', () => {
     cliHelper = new CLIHelper({ ...testConfig, to: undefined })
     expect(() => {
       cliHelper.validateConfig({
@@ -57,14 +57,14 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when output is not a folder', () => {
+  test('throws error when output is not a folder', () => {
     cliHelper = new CLIHelper({ ...testConfig, output: 'file' })
     expect(() => {
       cliHelper.validateConfig()
     }).toThrow()
   })
 
-  test('throw errors when repo is not git repository', () => {
+  test('throws error when repo is not a git repository', () => {
     cliHelper = new CLIHelper({
       ...testConfig,
       repo: 'not/git/folder',
@@ -74,7 +74,7 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when file is not found for --ignore', () => {
+  test('throws error when file is not found for --ignore', () => {
     cliHelper = new CLIHelper({
       ...testConfig,
       ignore: 'not-a-file',
@@ -84,7 +84,7 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when file is not found for --ignore-destructive', () => {
+  test('throws error when file is not found for --ignore-destructive', () => {
     cliHelper = new CLIHelper({
       ...testConfig,
       ignoreDestructive: 'not-a-file',
@@ -94,7 +94,7 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when file is not found for --include', () => {
+  test('throws error when file is not found for --include', () => {
     cliHelper = new CLIHelper({
       ...testConfig,
       include: 'not-a-file',
@@ -104,7 +104,7 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when file is not found for --include-destructive', () => {
+  test('throws error when file is not found for --include-destructive', () => {
     cliHelper = new CLIHelper({
       ...testConfig,
       includeDestructive: 'not-a-file',
@@ -114,7 +114,7 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when "-t" and "-d" are set', () => {
+  test('throws error when "-t" and "-d" are set', () => {
     const notHeadSHA = 'test'
     child_process.spawnSync
       .mockReturnValueOnce({ stdout: Buffer.from('HEAD', gc.UTF8_ENCODING) })
