@@ -1,5 +1,6 @@
 'use strict'
 const PackageConstructor = require('../../../src/utils/packageConstructor')
+const metadataManager = require('../../../src/metadata/metadataManager')
 
 const options = { apiVersion: '46' }
 const tests = [
@@ -60,8 +61,14 @@ const tests = [
 ]
 
 describe(`test if package constructor`, () => {
+  let globalMetadata
+  let packageConstructor
+  beforeAll(async () => {
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    packageConstructor = new PackageConstructor(options, globalMetadata)
+  })
   // eslint-disable-next-line no-undef
-  const packageConstructor = new PackageConstructor(options, globalMetadata)
+
   test.each(tests)(
     'can build %s destructiveChanges.xml',
     (type, diff, expected) => {
