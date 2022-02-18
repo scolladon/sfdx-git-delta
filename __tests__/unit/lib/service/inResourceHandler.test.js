@@ -1,7 +1,10 @@
 'use strict'
 const InResource = require('../../../../src/service/inResourceHandler')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 jest.mock('fs')
 jest.mock('fs-extra')
+const fs = require('fs')
+const fse = require('fs-extra')
 
 const testContext = {
   handler: InResource,
@@ -53,33 +56,35 @@ const testContext = {
   },
 }
 
-// eslint-disable-next-line no-undef
 describe('test inResourceHandler', () => {
-  beforeAll(() => {
-    require('fs').__setMockFiles({
+  let globalMetadata
+  beforeAll(async () => {
+    fse.pathShouldExist = false
+    fs.__setMockFiles({
       'force-app/main/default/staticresources/test/content': 'test',
       'force-app/main/default/staticresources/resource.resource-meta.xml':
         'resource',
       'force-app/main/default/waveTemplates/WaveTemplateTest/template-info.json':
         '{"test":"test"}',
     })
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
   })
 
   // eslint-disable-next-line no-undef
   testHandlerHelper(testContext)
 
-  test('if deletion of sub element handle', () => {
+  test('if deletion of sub element handle', async () => {
+    fse.pathShouldExist = true
     testContext.work.config.generateDelta = false
     const data = testContext.testData[1]
-    require('fs').__setMockFiles({ [data[1]]: '' })
+    fs.__setMockFiles({ [data[1]]: '' })
     const handler = new testContext.handler(
       `D       ${data[1]}`,
       data[0],
       testContext.work,
-      // eslint-disable-next-line no-undef
       globalMetadata
     )
-    handler.handle()
+    await handler.handle()
     expect([...testContext.work.diffs.package[data[0]]]).toEqual(
       expect.arrayContaining([...data[2]])
     )

@@ -2,8 +2,8 @@
 const StandardHandler = require('./standardHandler')
 const path = require('path')
 const { readdir } = require('fs').promises
-const fse = require('fs-extra')
-const mc = require('../utils/metadataConstants')
+const { pathExists } = require('fs-extra')
+const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const STATICRESOURCE_TYPE = 'staticresources'
 const elementSrc = {}
@@ -44,9 +44,9 @@ class ResourceHandler extends StandardHandler {
 
   async handleDeletion() {
     const [, srcPath, elementName] = this._parseLine()
-    const exists = await fse.pathExists(path.join(srcPath, elementName))
+    const exists = await pathExists(path.join(srcPath, elementName))
     if (exists) {
-      await this.handleModification(this)
+      await this.handleModification()
     } else {
       super.handleDeletion()
     }
@@ -73,7 +73,7 @@ class ResourceHandler extends StandardHandler {
   _getParsedPath() {
     return path.parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
-        .replace(mc.META_REGEX, '')
+        .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
   }
@@ -83,9 +83,9 @@ class ResourceHandler extends StandardHandler {
     const matchingFiles = [parsedElementName]
     if (StandardHandler.metadata[this.type].metaFile) {
       matchingFiles.push(
-        `${parsedElementName}.${StandardHandler.metadata[this.type].suffix}${
-          mc.METAFILE_SUFFIX
-        }`
+        `${parsedElementName}.${
+          StandardHandler.metadata[this.type].suffix
+        }${METAFILE_SUFFIX}`
       )
     }
     return matchingFiles
