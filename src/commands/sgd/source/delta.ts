@@ -8,7 +8,9 @@ const {
   SOURCE_DEFAULT_VALUE,
   OUTPUT_DEFAULT_VALUE,
 } = require('../../../utils/cliHelper')
-const pjson = require('../../../../package.json')
+const {
+  sfdc: { latestApiVersion },
+} = require('../../../../package.json')
 
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
@@ -62,7 +64,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     'api-version': flags.number({
       char: 'a',
       description: messages.getMessage('apiVersionFlag'),
-      default: parseFloat(pjson.sfdc.latestApiVersion),
+      default: parseFloat(latestApiVersion),
     }),
     'generate-delta': flags.boolean({
       char: 'd',
