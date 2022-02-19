@@ -23,7 +23,7 @@ module.exports = class PackageConstructor {
       // Here type is what is in the array
       .filter(
         type =>
-          Object.prototype.hasOwnProperty.call(this.metadata, type) ||
+          Object.hasOwn(this.metadata, type) ||
           this.looseMetadata.includes(type)
       )
       .sort()

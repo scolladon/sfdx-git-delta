@@ -90,7 +90,7 @@ class ResourceHandler extends StandardHandler {
   }
 
   async _buildElementMap(srcPath) {
-    if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
+    if (!Object.hasOwn(elementSrc, srcPath)) {
       elementSrc[srcPath] = await readdir(srcPath)
     }
   }

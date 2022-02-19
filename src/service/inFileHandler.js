@@ -150,10 +150,7 @@ class InFileHandler extends StandardHandler {
     const result = fxp.parse(await this._readFile(), XML_PARSER_OPTION, true)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        tag
-      )
+      Object.hasOwn(InFileHandler.xmlObjectToPackageType, tag)
     )
     return {
       authorizedKeys: authorizedKeys,
@@ -183,10 +180,7 @@ class InFileHandler extends StandardHandler {
     return (
       !!matchResult &&
       !!matchResult[1] &&
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        matchResult[1]
-      )
+      Object.hasOwn(InFileHandler.xmlObjectToPackageType, matchResult[1])
     )
   }
 }

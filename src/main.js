@@ -74,7 +74,7 @@ const cleanPackages = dcJson => {
   const additive = dcJson[PACKAGE_FILE_NAME]
   const destructive = dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]
   Object.keys(additive)
-    .filter(type => Object.prototype.hasOwnProperty.call(destructive, type))
+    .filter(type => Object.hasOwn(destructive, type))
     .forEach(
       type =>
         (destructive[type] = new Set(

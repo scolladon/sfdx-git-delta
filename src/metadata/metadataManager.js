@@ -27,7 +27,7 @@ module.exports = {
     if (!describeMetadata[apiVersion]) {
       const apiMap = await getApiMap()
       const apiFile =
-        !!apiVersion && Object.prototype.hasOwnProperty.call(apiMap, apiVersion)
+        !!apiVersion && Object.hasOwn(apiMap, apiVersion)
           ? apiMap[apiVersion]
           : apiMap.latest
       describeMetadata[apiVersion] = require(resolve(__dirname, apiFile))
