@@ -8,7 +8,7 @@ const {
 const StandardHandler = require('./standardHandler')
 const { outputFile } = require('fs-extra')
 const { basename, join } = require('path')
-const fxp = require('fast-xml-parser')
+const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 
 const FULLNAME = 'fullName'
 const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
@@ -77,8 +77,8 @@ class InFileHandler extends StandardHandler {
         )
       )
     })
-    const xmlBuilder = new fxp.j2xParser(JSON_PARSER_OPTION)
-    const xmlContent = XML_HEADER + xmlBuilder.parse(result.fileContent)
+    const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
+    const xmlContent = XML_HEADER + xmlBuilder.build(result.fileContent)
     await outputFile(join(this.config.output, this.line), xmlContent)
   }
 
@@ -147,7 +147,9 @@ class InFileHandler extends StandardHandler {
   }
 
   async _parseFile() {
-    const result = fxp.parse(await this._readFile(), XML_PARSER_OPTION, true)
+    const file = await this._readFile()
+    const xmlParser = new XMLParser(XML_PARSER_OPTION)
+    const result = XML_HEADER + xmlParser.parse(file)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
       Object.hasOwn(InFileHandler.xmlObjectToPackageType, tag)

@@ -132,9 +132,10 @@ class StandardHandler {
   }
 
   async _readFile() {
-    return await readFile(join(this.config.repo, this.line), {
+    const file = await readFile(this.line, {
       encoding: UTF8_ENCODING,
     })
+    return file
   }
 
   static cleanUpPackageMember(packageMember) {
