@@ -31,6 +31,7 @@ module.exports = class PackageConstructor {
       .sort((x, y) => (x === 'objects' ? -1 : x.localeCompare(y)))
       .forEach(metadataType =>
         [...strucDiffPerType[metadataType]] // transform set to array
+          .sort()
           .reduce((type, member) => {
             type.ele('members').t(member)
             return type
