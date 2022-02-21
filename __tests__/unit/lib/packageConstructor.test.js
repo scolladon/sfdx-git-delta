@@ -6,11 +6,12 @@ const options = { apiVersion: '46' }
 const tests = [
   [
     'Object',
-    { objects: ['Object'] },
+    { objects: ['Object', 'OtherObject'] },
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>Object</members>
+        <members>OtherObject</members>
         <name>CustomObject</name>
     </types>
     <version>${options.apiVersion}.0</version>
@@ -31,13 +32,18 @@ const tests = [
       documents: ['Document'],
       fields: ['Field'],
       lwc: ['Component'],
-      objects: ['Object'],
+      objects: ['Object', 'OtherObject'],
     },
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>Object</members>
+        <members>OtherObject</members>
         <name>CustomObject</name>
+    </types>
+    <types>
+        <members>Field</members>
+        <name>CustomField</name>
     </types>
     <types>
         <members>Dashboard</members>
@@ -46,10 +52,6 @@ const tests = [
     <types>
         <members>Document</members>
         <name>Document</name>
-    </types>
-    <types>
-        <members>Field</members>
-        <name>CustomField</name>
     </types>
     <types>
         <members>Component</members>

@@ -26,9 +26,12 @@ module.exports = class PackageConstructor {
           Object.hasOwn(this.metadata, type) ||
           this.looseMetadata.includes(type)
       )
-      .sort()
-      // @deprecated To remove when the order will not impact the result of the deployment
-      .sort((x, y) => (x === 'objects' ? -1 : x.localeCompare(y)))
+      .sort((x, y) => {
+        if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
+        const xMeta = this.metadata[x]?.xmlName ?? x
+        const yMeta = this.metadata[y]?.xmlName ?? y
+        return xMeta.localeCompare(yMeta)
+      })
       .forEach(metadataType =>
         [...strucDiffPerType[metadataType]] // transform set to array
           .sort()
