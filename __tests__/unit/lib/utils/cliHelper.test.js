@@ -47,16 +47,6 @@ describe(`test if the appli`, () => {
     }).toThrow()
   })
 
-  test('throw errors when output folder does not exist', () => {
-    cliHelper = new CLIHelper({ ...testConfig, to: undefined })
-    expect(() => {
-      cliHelper.validateConfig({
-        ...testConfig,
-        output: 'not/exist/folder',
-      })
-    }).toThrow()
-  })
-
   test('throw errors when output is not a folder', () => {
     cliHelper = new CLIHelper({ ...testConfig, output: 'file' })
     expect(() => {

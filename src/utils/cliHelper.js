@@ -23,9 +23,13 @@ class CLIHelper {
     if (isNaN(this.config.apiVersion)) {
       errors.push(`api-version ${this.config.apiVersion} is not a number`)
     }
-    ;[this.config.output, this.config.source]
-      .filter(dir => !dirExist(dir))
-      .forEach(dir => errors.push(`${dir} folder does not exist`))
+    if (!dirExist(this.config.source)) {
+      fs.mkdir(this.config.source, { recursive: true }, err => {
+        if (err) {
+          errors.push(`${this.config.source} folder could not be created`)
+        }
+      })
+    }
     ;[
       this.config.ignore,
       this.config.ignoreDestructive,
