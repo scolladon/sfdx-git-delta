@@ -24,10 +24,31 @@ const isGit = async dir => {
   return await dirExists(join(dir, GIT_FOLDER))
 }
 
+const commitCheckParams = ['cat-file', 'commit']
+const childProcess = require('child_process')
+
 class CLIHelper {
   constructor(config) {
     this.config = config
     this.repoSetup = new RepoSetup(config)
+  }
+
+  validateGitSha() {
+    const errors = []
+    ;['to', 'from'].forEach(field => {
+      const { status } = childProcess.spawnSync(
+        'git',
+        [...commitCheckParams, this.config[field]],
+        { cwd: this.config.repo }
+      )
+      if (status != 0) {
+        errors.push(`${field} ${this.config[field]} is not a valid commit`)
+      }
+    })
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(', '))
+    }
   }
 
   async validateConfig() {
