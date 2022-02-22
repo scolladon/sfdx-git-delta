@@ -1,6 +1,6 @@
 'use strict'
-const PackageConstructor = require('../../../src/utils/packageConstructor')
-const metadataManager = require('../../../src/metadata/metadataManager')
+const PackageConstructor = require('../../../../src/utils/packageConstructor')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 
 const options = { apiVersion: '46' }
 const tests = [
