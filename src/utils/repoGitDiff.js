@@ -37,7 +37,6 @@ class RepoGitDiff {
     this.spawnConfig = {
       cwd: this.config.repo,
       encoding: UTF8_ENCODING,
-      maxBuffer: 1024 * 10240,
     }
   }
 
@@ -56,10 +55,11 @@ class RepoGitDiff {
       return
     }
 
-    const gitLs = childProcess.spawn('git', [...allFilesParams], {
-      cwd: this.config.repo,
-      encoding: UTF8_ENCODING,
-    })
+    const gitLs = childProcess.spawn(
+      'git',
+      [...allFilesParams],
+      this.spawnConfig
+    )
     const lines = []
     for await (const line of cpUtils.linify(gitLs.stdout)) {
       lines.push(cpUtils.treatPathSep(line))
@@ -80,7 +80,7 @@ class RepoGitDiff {
         this.config.to,
         this.config.source,
       ],
-      { cwd: this.config.repo, encoding: UTF8_ENCODING }
+      this.spawnConfig
     )
 
     const lines = []
