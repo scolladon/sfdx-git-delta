@@ -114,7 +114,9 @@ class RepoGitDiff {
   _filterInternal(line, deletedRenamed) {
     return (
       !deletedRenamed.includes(line) &&
-      line.split(path.sep).some(part => Object.hasOwn(this.metadata, part))
+      line
+        .split(path.sep)
+        .some(part => Object.prototype.hasOwnProperty.call(this.metadata, part))
     )
   }
 
@@ -178,7 +180,9 @@ class RepoGitDiff {
         .split(path.sep)
         .reduce(
           (acc, value) =>
-            acc || Object.hasOwn(this.metadata, value) ? acc + value : acc,
+            acc || Object.prototype.hasOwnProperty.call(this.metadata, value)
+              ? acc + value
+              : acc,
           ''
         )
     }

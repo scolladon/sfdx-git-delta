@@ -36,7 +36,7 @@ fs.promises.readFile = path =>
   new Promise((res, rej) => {
     if (fs.errorMode) rej(new Error())
     else {
-      const result = Object.hasOwn(mockContent, path)
+      const result = Object.prototype.hasOwnProperty.call(mockContent, path)
         ? mockContent[path]
         : MASTER_DETAIL_TAG
       res(result)

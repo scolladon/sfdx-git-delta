@@ -23,7 +23,7 @@ module.exports = class PackageConstructor {
     Object.keys(strucDiffPerType)
       .filter(
         type =>
-          Object.hasOwn(this.metadata, type) ||
+          Object.prototype.hasOwnProperty.call(this.metadata, type) ||
           this.looseMetadata.includes(type)
       )
       .sort(sortTypes)
