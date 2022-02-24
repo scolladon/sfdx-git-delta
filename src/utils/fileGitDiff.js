@@ -1,5 +1,5 @@
 'use strict'
-const childProcess = require('child_process')
+const { spawn } = require('child_process')
 const { linify } = require('./childProcessUtils')
 const { IGNORE_WHITESPACE_PARAMS, UTF8_ENCODING } = require('./gitConstants')
 
@@ -9,7 +9,7 @@ module.exports = (filePath, config) => {
   const ignoreWhitespaceParams = config.ignoreWhitespace
     ? IGNORE_WHITESPACE_PARAMS
     : []
-  const gitDiff = childProcess.spawn(
+  const gitDiff = spawn(
     'git',
     [
       ...unitDiffParams,
@@ -19,7 +19,7 @@ module.exports = (filePath, config) => {
       '--',
       filePath,
     ],
-    { cwd: config.repo, encoding: UTF8_ENCODING, maxBuffer: 1024 * 10240 }
+    { cwd: config.repo, encoding: UTF8_ENCODING }
   )
 
   return linify(gitDiff.stdout)

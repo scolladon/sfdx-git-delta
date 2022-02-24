@@ -18,6 +18,9 @@ const _getStreamContent = async stream => {
 class RepoSetup {
   constructor(config) {
     this.config = config
+    this.spawnConfig = {
+      cwd: this.config.repo,
+    }
   }
 
   async isToEqualHead() {
@@ -26,35 +29,25 @@ class RepoSetup {
     }
 
     const headSHA = await _getStreamContent(
-      spawn('git', [...revparseParams, HEAD], {
-        cwd: this.config.repo,
-      }).stdout
+      spawn('git', [...revparseParams, HEAD], this.spawnConfig).stdout
     )
 
     const toSHA = await _getStreamContent(
-      spawn('git', [...revparseParams, this.config.to], {
-        cwd: this.config.repo,
-      }).stdout
+      spawn('git', [...revparseParams, this.config.to], this.spawnConfig).stdout
     )
 
     return toSHA === headSHA
   }
 
   async repoConfiguration() {
-    await _getStreamContent(
-      spawn('git', gitConfig, {
-        cwd: this.config.repo,
-      }).stdout
-    )
+    await _getStreamContent(spawn('git', gitConfig, this.spawnConfig).stdout)
   }
 
   async computeFromRef() {
     let firstCommitSHA = this.config.from
     if (!firstCommitSHA) {
       firstCommitSHA = await _getStreamContent(
-        spawn('git', revlistParams, {
-          cwd: this.config.repo,
-        }).stdout
+        spawn('git', revlistParams, this.spawnConfig).stdout
       )
     }
     return firstCommitSHA

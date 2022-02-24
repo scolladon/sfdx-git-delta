@@ -11,7 +11,7 @@ const {
   IGNORE_WHITESPACE_PARAMS,
   UTF8_ENCODING,
 } = require('./gitConstants')
-const childProcess = require('child_process')
+const { spawn } = require('child_process')
 const { readFile } = require('fs').promises
 const ignore = require('ignore')
 const micromatch = require('micromatch')
@@ -55,11 +55,7 @@ class RepoGitDiff {
       return
     }
 
-    const gitLs = childProcess.spawn(
-      'git',
-      [...allFilesParams],
-      this.spawnConfig
-    )
+    const gitLs = spawn('git', [...allFilesParams], this.spawnConfig)
     const lines = []
     for await (const line of cpUtils.linify(gitLs.stdout)) {
       lines.push(cpUtils.treatPathSep(line))
@@ -71,7 +67,7 @@ class RepoGitDiff {
     const ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? IGNORE_WHITESPACE_PARAMS
       : []
-    const gitDiff = childProcess.spawn(
+    const gitDiff = spawn(
       'git',
       [
         ...fullDiffParams,
