@@ -1,8 +1,9 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const path = require('path')
-const fs = require('fs')
-const mc = require('../utils/metadataConstants')
+const { join, normalize, parse } = require('path')
+const { readdir } = require('fs').promises
+const { pathExists } = require('fs-extra')
+const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const STATICRESOURCE_TYPE = 'staticresources'
 const elementSrc = {}
@@ -11,54 +12,55 @@ class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
   }
-  handleAddition() {
+  async handleAddition() {
     super.handleAddition()
     if (!this.config.generateDelta) return
     const [, srcPath, elementName] = this._parseLine()
-    const [targetPath] = `${path.join(this.config.output, this.line)}`.match(
+    const [targetPath] = `${join(this.config.output, this.line)}`.match(
       new RegExp(
         `.*[/\\\\]${StandardHandler.metadata[this.type].directoryName}`,
         'u'
       )
     )
-    this._buildElementMap(srcPath)
+    await this._buildElementMap(srcPath)
 
     const matchingFiles = this._buildMatchingFiles(elementName)
-    elementSrc[srcPath]
-      .filter(
-        src =>
-          (this.type === STATICRESOURCE_TYPE &&
-            src.startsWith(path.parse(elementName).name)) ||
-          matchingFiles.includes(src)
-      )
-      .forEach(src =>
-        this._copyFiles(
-          path.normalize(path.join(srcPath, src)),
-          path.normalize(path.join(targetPath, src))
+    await Promise.all(
+      elementSrc[srcPath]
+        .filter(
+          src =>
+            (this.type === STATICRESOURCE_TYPE &&
+              src.startsWith(parse(elementName).name)) ||
+            matchingFiles.includes(src)
         )
-      )
+        .map(src =>
+          this._copyFiles(
+            normalize(join(srcPath, src)),
+            normalize(join(targetPath, src))
+          )
+        )
+    )
   }
 
-  handleDeletion() {
+  async handleDeletion() {
     const [, srcPath, elementName] = this._parseLine()
-    if (fs.existsSync(path.join(srcPath, elementName))) {
-      this.handleModification(this)
+    const exists = await pathExists(join(srcPath, elementName))
+    if (exists) {
+      await this.handleModification()
     } else {
       super.handleDeletion()
     }
   }
 
   _parseLine() {
-    return path
-      .join(this.config.repo, this.line)
-      .match(
-        new RegExp(
-          `(?<path>.*[/\\\\]${
-            StandardHandler.metadata[this.type].directoryName
-          })[/\\\\](?<name>[^/\\\\]*)+`,
-          'u'
-        )
+    return join(this.config.repo, this.line).match(
+      new RegExp(
+        `(?<path>.*[/\\\\]${
+          StandardHandler.metadata[this.type].directoryName
+        })[/\\\\](?<name>[^/\\\\]*)+`,
+        'u'
       )
+    )
   }
 
   _getElementName() {
@@ -67,29 +69,29 @@ class ResourceHandler extends StandardHandler {
   }
 
   _getParsedPath() {
-    return path.parse(
+    return parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
-        .replace(mc.META_REGEX, '')
+        .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
   }
 
   _buildMatchingFiles(elementName) {
-    const parsedElementName = path.parse(elementName).name
+    const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
     if (StandardHandler.metadata[this.type].metaFile) {
       matchingFiles.push(
-        `${parsedElementName}.${StandardHandler.metadata[this.type].suffix}${
-          mc.METAFILE_SUFFIX
-        }`
+        `${parsedElementName}.${
+          StandardHandler.metadata[this.type].suffix
+        }${METAFILE_SUFFIX}`
       )
     }
     return matchingFiles
   }
 
-  _buildElementMap(srcPath) {
-    if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
-      elementSrc[srcPath] = fs.readdirSync(srcPath)
+  async _buildElementMap(srcPath) {
+    if (!Object.hasOwn(elementSrc, srcPath)) {
+      elementSrc[srcPath] = await readdir(srcPath)
     }
   }
 }

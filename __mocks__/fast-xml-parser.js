@@ -12,12 +12,13 @@ fxp.__setMockContent = contents => {
   }
 }
 
-fxp.parse = content => {
-  return JSON.parse(xml2json[content])
-}
-
-fxp.j2xParser = class j2xParser {
+fxp.XMLParser = class XMLParser {
   parse(content) {
+    return JSON.parse(xml2json[content])
+  }
+}
+fxp.XMLBuilder = class XMLBuilder {
+  build(content) {
     return json2xml[content]
   }
 }

@@ -5,10 +5,15 @@ const InResource = require('../../../../src/service/inResourceHandler')
 const InFolder = require('../../../../src/service/inFolderHandler')
 const Standard = require('../../../../src/service/standardHandler')
 const TypeHandlerFactory = require('../../../../src/service/typeHandlerFactory')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 
 describe('the type handler factory', () => {
   let typeHandlerFactory
-  beforeAll(() => {
+  beforeAll(async () => {
+    const globalMetadata = await metadataManager.getDefinition(
+      'directoryName',
+      50
+    )
     typeHandlerFactory = new TypeHandlerFactory(
       {
         config: { apiVersion: '46' },

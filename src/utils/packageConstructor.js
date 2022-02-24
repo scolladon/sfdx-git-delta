@@ -19,18 +19,17 @@ module.exports = class PackageConstructor {
     }
 
     const xml = getXML()
+    const sortTypes = sortTypesWithMetadata(this.metadata)
     Object.keys(strucDiffPerType)
-      // Here type is what is in the array
       .filter(
         type =>
-          Object.prototype.hasOwnProperty.call(this.metadata, type) ||
+          Object.hasOwn(this.metadata, type) ||
           this.looseMetadata.includes(type)
       )
-      .sort()
-      // @deprecated To remove when the order will not impact the result of the deployment
-      .sort((x, y) => (x === 'objects' ? -1 : x.localeCompare(y)))
+      .sort(sortTypes)
       .forEach(metadataType =>
         [...strucDiffPerType[metadataType]] // transform set to array
+          .sort()
           .reduce((type, member) => {
             type.ele('members').t(member)
             return type
@@ -41,6 +40,13 @@ module.exports = class PackageConstructor {
     xml.ele('version').t(`${this.config.apiVersion}.0`)
     return xml.end(xmlConf)
   }
+}
+
+const sortTypesWithMetadata = metadata => (x, y) => {
+  if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
+  const xMeta = metadata[x]?.xmlName ?? x
+  const yMeta = metadata[y]?.xmlName ?? y
+  return xMeta.localeCompare(yMeta)
 }
 
 const getXML = () =>

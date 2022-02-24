@@ -1,14 +1,14 @@
 'use strict'
-const path = require('path')
-const fs = require('fs')
+const { resolve } = require('path')
+const { readdir } = require('fs').promises
 
 let _apiMap
 const describeMetadata = {}
 
-const getApiMap = () => {
+const getApiMap = async () => {
   if (!_apiMap) {
-    _apiMap = fs
-      .readdirSync(__dirname)
+    const dir = await readdir(__dirname)
+    _apiMap = dir
       .filter(file => /^[a-z]+\d+\.json$/.test(file))
       .reduce((accu, file) => {
         const version = file.match(/\d+/)[0]
@@ -23,14 +23,14 @@ const getApiMap = () => {
 }
 
 module.exports = {
-  getDefinition: (grouping, apiVersion) => {
+  getDefinition: async (grouping, apiVersion) => {
     if (!describeMetadata[apiVersion]) {
-      const apiMap = getApiMap()
+      const apiMap = await getApiMap()
       const apiFile =
-        !!apiVersion && Object.prototype.hasOwnProperty.call(apiMap, apiVersion)
+        !!apiVersion && Object.hasOwn(apiMap, apiVersion)
           ? apiMap[apiVersion]
           : apiMap.latest
-      describeMetadata[apiVersion] = require(path.resolve(__dirname, apiFile))
+      describeMetadata[apiVersion] = require(resolve(__dirname, apiFile))
     }
 
     return describeMetadata[apiVersion].reduce((metadata, describe) => {

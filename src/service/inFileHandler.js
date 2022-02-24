@@ -1,16 +1,18 @@
 'use strict'
 const fileGitDiff = require('../utils/fileGitDiff')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
+const { MINUS, PLUS } = require('../utils/gitConstants')
+const {
+  LABEL_DIRECTORY_NAME,
+  LABEL_EXTENSION,
+} = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
-const fse = require('fs-extra')
-const os = require('os')
-const path = require('path')
-const fxp = require('fast-xml-parser')
+const { outputFile } = require('fs-extra')
+const { basename, join } = require('path')
+const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 
 const FULLNAME = 'fullName'
 const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
-const XML_TAG = new RegExp(`^[${gc.MINUS}${gc.PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
+const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
 const XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n'
 const XML_PARSER_OPTION = {
   ignoreAttributes: false,
@@ -31,7 +33,7 @@ class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = StandardHandler.metadata[this.type]
-    this.customLabelElementName = `${path.basename(this.line).split('.')[0]}.`
+    this.customLabelElementName = `${basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
       Object.keys(StandardHandler.metadata)
@@ -44,25 +46,25 @@ class InFileHandler extends StandardHandler {
         }, {})
   }
 
-  handleAddition() {
-    super.handleAddition()
-    const toAdd = this._handleInDiff()
-    this._handleFileWriting(toAdd)
+  async handleAddition() {
+    const addition = super.handleAddition()
+    const toAdd = await this._handleInDiff()
+
+    await this._handleFileWriting(toAdd)
+    await addition
   }
 
-  handleDeletion() {
-    this._handleInDiff()
+  async handleDeletion() {
+    await this._handleInDiff()
   }
 
-  handleModification() {
-    super.handleAddition()
-    const toAdd = this._handleInDiff()
-    this._handleFileWriting(toAdd)
+  async handleModification() {
+    await this.handleAddition()
   }
 
-  _handleFileWriting(toAdd) {
+  async _handleFileWriting(toAdd) {
     if (!this.config.generateDelta) return
-    const result = this._parseFile()
+    const result = await this._parseFile()
     const metadataContent = Object.values(result.fileContent)[0]
 
     result.authorizedKeys.forEach(subType => {
@@ -75,13 +77,12 @@ class InFileHandler extends StandardHandler {
         )
       )
     })
-    const xmlBuilder = new fxp.j2xParser(JSON_PARSER_OPTION)
-    const xmlContent = XML_HEADER + xmlBuilder.parse(result.fileContent)
-    fse.outputFileSync(path.join(this.config.output, this.line), xmlContent)
+    const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
+    const xmlContent = XML_HEADER + xmlBuilder.build(result.fileContent)
+    await outputFile(join(this.config.output, this.line), xmlContent)
   }
 
-  _handleInDiff() {
-    const diffContent = fileGitDiff(this.line, this.config)
+  async _handleInDiff() {
     const data = {
       toDel: {},
       toAdd: {},
@@ -89,11 +90,13 @@ class InFileHandler extends StandardHandler {
       subType: null,
       fullName: null,
     }
-    diffContent.split(os.EOL).forEach(line => {
+
+    const diffContentIterator = fileGitDiff(this.line, this.config)
+    for await (const line of diffContentIterator) {
       this._preProcessHandleInDiff(line, data)
-      if (!data.subType || !data.fullName) return
+      if (!data.subType || !data.fullName) continue
       this._postProcessHandleInDiff(line, data)
-    })
+    }
     this._treatInFileResult(data.toDel, data.toAdd)
     return data.toAdd
   }
@@ -112,9 +115,9 @@ class InFileHandler extends StandardHandler {
 
   _postProcessHandleInDiff(line, data) {
     let tempMap
-    if (line.startsWith(gc.MINUS) && line.includes(FULLNAME)) {
+    if (line.startsWith(MINUS) && line.includes(FULLNAME)) {
       tempMap = data.toDel
-    } else if (line.startsWith(gc.PLUS) || line.startsWith(gc.MINUS)) {
+    } else if (line.startsWith(PLUS) || line.startsWith(MINUS)) {
       tempMap = data.toAdd
     }
     if (tempMap) {
@@ -143,14 +146,13 @@ class InFileHandler extends StandardHandler {
     )
   }
 
-  _parseFile() {
-    const result = fxp.parse(this._readFileSync(), XML_PARSER_OPTION, true)
+  async _parseFile() {
+    const file = await this._readFile()
+    const xmlParser = new XMLParser(XML_PARSER_OPTION)
+    const result = XML_HEADER + xmlParser.parse(file)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        tag
-      )
+      Object.hasOwn(InFileHandler.xmlObjectToPackageType, tag)
     )
     return {
       authorizedKeys: authorizedKeys,
@@ -159,14 +161,14 @@ class InFileHandler extends StandardHandler {
   }
 
   _fillPackage(packageObject) {
-    if (this.type !== mc.LABEL_EXTENSION) {
+    if (this.type !== LABEL_EXTENSION) {
       super._fillPackage(packageObject)
     }
   }
 
   _fillPackageFromDiff(packageObject, subType, value) {
     const elementFullName = `${
-      (subType !== mc.LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
+      (subType !== LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
       value
     }`
 
@@ -180,10 +182,7 @@ class InFileHandler extends StandardHandler {
     return (
       !!matchResult &&
       !!matchResult[1] &&
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        matchResult[1]
-      )
+      Object.hasOwn(InFileHandler.xmlObjectToPackageType, matchResult[1])
     )
   }
 }

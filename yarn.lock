@@ -1392,11 +1392,6 @@ add-stream@^1.0.0:
   resolved "https://registry.yarnpkg.com/add-stream/-/add-stream-1.0.0.tgz#6a7990437ca736d5e1288db92bd3266d5f5cb2aa"
   integrity sha1-anmQQ3ynNtXhKI25K9MmbV9csqo=
 
-after-all-results@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/after-all-results/-/after-all-results-2.0.0.tgz#6ac2fc202b500f88da8f4f5530cfa100f4c6a2d0"
-  integrity sha1-asL8ICtQD4jaj09VMM+hAPTGotA=
-
 agent-base@6:
   version "6.0.2"
   resolved "https://registry.yarnpkg.com/agent-base/-/agent-base-6.0.2.tgz#49fff58577cfee3f37176feab4c22e00f86d7f77"
@@ -3813,13 +3808,6 @@ git-semver-tags@^4.0.0, git-semver-tags@^4.1.1:
   dependencies:
     meow "^8.0.0"
     semver "^6.0.0"
-
-git-state@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/git-state/-/git-state-4.1.0.tgz#23c3a34b99b87ddb34527c741711498b92fb8e0a"
-  integrity sha512-IZ1BCOr33BJNyoDMli9UTetLzYPDv26SQwvicybA7W6ojFtXiPmN39Vb0eEUAkiAFt4P2L64dj5LEHAxjVh9XA==
-  dependencies:
-    after-all-results "^2.0.0"
 
 gitconfiglocal@^1.0.0:
   version "1.0.0"

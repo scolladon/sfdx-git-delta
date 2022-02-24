@@ -1,6 +1,5 @@
 'use strict'
-const childProcess = require('child_process')
-const gc = require('./gitConstants')
+const { spawn } = require('child_process')
 
 const HEAD = 'HEAD'
 
@@ -8,48 +7,47 @@ const revparseParams = ['rev-parse']
 const revlistParams = ['rev-list', '--max-parents=0', HEAD]
 const gitConfig = ['config', 'core.quotepath', 'off']
 
-const _bufToStr = buf => {
-  return Buffer.from(buf).toString(gc.UTF8_ENCODING).trim()
+const _getStreamContent = async stream => {
+  const content = []
+  for await (const chunk of stream) {
+    content.push(chunk)
+  }
+  return content.join('')
 }
 
 class RepoSetup {
   constructor(config) {
     this.config = config
-    this.config.generateDelta
+    this.spawnConfig = {
+      cwd: this.config.repo,
+    }
   }
 
-  isToEqualHead() {
+  async isToEqualHead() {
     if (this.config.to === HEAD) {
       return true
     }
-    const headSHA = _bufToStr(
-      childProcess.spawnSync('git', [...revparseParams, HEAD], {
-        cwd: this.config.repo,
-      }).stdout
+
+    const headSHA = await _getStreamContent(
+      spawn('git', [...revparseParams, HEAD], this.spawnConfig).stdout
     )
 
-    const toSHA = _bufToStr(
-      childProcess.spawnSync('git', [...revparseParams, this.config.to], {
-        cwd: this.config.repo,
-      }).stdout
+    const toSHA = await _getStreamContent(
+      spawn('git', [...revparseParams, this.config.to], this.spawnConfig).stdout
     )
 
     return toSHA === headSHA
   }
 
-  repoConfiguration() {
-    childProcess.spawnSync('git', gitConfig, {
-      cwd: this.config.repo,
-    })
+  async repoConfiguration() {
+    await _getStreamContent(spawn('git', gitConfig, this.spawnConfig).stdout)
   }
 
-  computeFromRef() {
+  async computeFromRef() {
     let firstCommitSHA = this.config.from
     if (!firstCommitSHA) {
-      firstCommitSHA = _bufToStr(
-        childProcess.spawnSync('git', revlistParams, {
-          cwd: this.config.repo,
-        }).stdout
+      firstCommitSHA = await _getStreamContent(
+        spawn('git', revlistParams, this.spawnConfig).stdout
       )
     }
     return firstCommitSHA

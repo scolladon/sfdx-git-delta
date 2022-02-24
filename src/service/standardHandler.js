@@ -1,9 +1,9 @@
 'use strict'
-const fs = require('fs')
-const path = require('path')
-const fse = require('fs-extra')
-const gc = require('../utils/gitConstants')
-const mc = require('../utils/metadataConstants')
+const { copyFile, readFile } = require('fs').promises
+const { join, parse, sep } = require('path')
+const { copy, copySync, pathExists } = require('fs-extra')
+const { GIT_DIFF_TYPE_REGEX, UTF8_ENCODING } = require('../utils/gitConstants')
+const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
 
@@ -22,15 +22,15 @@ class StandardHandler {
   constructor(line, type, work, metadata) {
     StandardHandler.metadata = StandardHandler.metadata ?? metadata
     ;[this.changeType] = line
-    this.line = line.replace(gc.GIT_DIFF_TYPE_REGEX, '')
+    this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
     this.diffs = work.diffs
     this.config = work.config
-    this.splittedLine = this.line.split(path.sep)
+    this.splittedLine = this.line.split(sep)
     this.warnings = work.warnings
 
     if (StandardHandler.metadata[this.type].metaFile === true) {
-      this.line = this.line.replace(mc.METAFILE_SUFFIX, '')
+      this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
     this.suffixRegex = new RegExp(
@@ -44,10 +44,10 @@ class StandardHandler {
     }
   }
 
-  handle() {
+  async handle() {
     if (this.handlerMap[this.changeType]) {
       try {
-        this.handlerMap[this.changeType].apply(this)
+        await this.handlerMap[this.changeType].apply(this)
       } catch (error) {
         error.message = `${this.line}: ${error.message}`
         this.warnings.push(error)
@@ -55,33 +55,33 @@ class StandardHandler {
     }
   }
 
-  handleAddition() {
+  async handleAddition() {
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
-    const source = path.join(this.config.repo, this.line)
-    const target = path.join(this.config.output, this.line)
+    const source = join(this.config.repo, this.line)
+    const target = join(this.config.output, this.line)
 
-    this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(source, target)
   }
 
   handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
-  handleModification() {
-    this.handleAddition()
+  async handleModification() {
+    await this.handleAddition()
   }
 
   _getParsedPath() {
-    return path.parse(
+    return parse(
       this.splittedLine
         .slice(
-          this.splittedLine.findIndex(x => x.includes(mc.METAFILE_SUFFIX)) - 1
+          this.splittedLine.findIndex(x => x.includes(METAFILE_SUFFIX)) - 1
         )
-        .join(path.sep)
+        .join(sep)
 
-        .replace(mc.META_REGEX, '')
+        .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
   }
@@ -104,24 +104,38 @@ class StandardHandler {
     params.package[params.type].add(params.elementName)
   }
 
-  _copyWithMetaFile(src, dst) {
-    this._copyFiles(src, dst)
+  async _copyWithMetaFile(src, dst) {
+    const file = this._copyFiles(src, dst)
     if (StandardHandler.metadata[this.type].metaFile === true) {
-      this._copyFiles(src + mc.METAFILE_SUFFIX, dst + mc.METAFILE_SUFFIX)
+      await this._copyFiles(src + METAFILE_SUFFIX, dst + METAFILE_SUFFIX)
     }
+    await file
   }
 
-  _copyFiles(src, dst) {
-    if (!copiedFiles.has(src) && fse.pathExistsSync(src)) {
-      fse.copySync(src, dst, FSE_COPYSYNC_OPTION)
+  async _copyFiles(src, dst) {
+    if (copiedFiles.has(src)) return
+    const exists = await pathExists(src)
+    if (!copiedFiles.has(src) && exists) {
       copiedFiles.add(src)
+      try {
+        await copy(src, dst, FSE_COPYSYNC_OPTION)
+      } catch (error) {
+        if (error.message === 'Source and destination must not be the same.') {
+          // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
+          await copyFile(src, dst)
+        } else {
+          // Retry sync in case of async error
+          copySync(src, dst, FSE_COPYSYNC_OPTION)
+        }
+      }
     }
   }
 
-  _readFileSync() {
-    return fs.readFileSync(path.join(this.config.repo, this.line), {
-      encoding: gc.UTF8_ENCODING,
+  async _readFile() {
+    const file = await readFile(this.line, {
+      encoding: UTF8_ENCODING,
     })
+    return file
   }
 
   static cleanUpPackageMember(packageMember) {
