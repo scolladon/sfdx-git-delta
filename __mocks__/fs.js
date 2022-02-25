@@ -1,6 +1,7 @@
 'use strict'
 const path = require('path')
 const fs = jest.genMockFromModule('fs')
+const { MASTER_DETAIL_TAG } = require('../src/utils/metadataConstants')
 
 fs.errorMode = false
 let mockFiles = {}
@@ -19,28 +20,33 @@ fs.__setMockFiles = newMockFiles => {
   }
 }
 
-fs.readdirSync = directoryPath => mockFiles[path.basename(directoryPath)] ?? []
+fs.promises = {}
 
-fs.existsSync = filePath => filePathList.has(path.basename(filePath))
+fs.promises.stat = elem =>
+  Promise.resolve({
+    isDirectory() {
+      return elem !== 'file'
+    },
+    isFile() {
+      return filePathList.has(elem)
+    },
+  })
 
-fs.statSync = elem => ({
-  isDirectory() {
-    return elem !== 'file'
-  },
-  isFile() {
-    return filePathList.has(elem)
-  },
-})
+fs.promises.readFile = path =>
+  new Promise((res, rej) => {
+    if (fs.errorMode) rej(new Error())
+    else {
+      const result = Object.prototype.hasOwnProperty.call(mockContent, path)
+        ? mockContent[path]
+        : MASTER_DETAIL_TAG
+      res(result)
+    }
+  })
 
-fs.readFileSync = path => {
-  if (fs.errorMode) throw new Error()
-  return Object.prototype.hasOwnProperty.call(mockContent, path)
-    ? mockContent[path]
-    : '<type>MasterDetail</type>'
-}
-
-fs.writeFileSync = () => {
-  if (fs.errorMode) throw new Error()
-}
+fs.promises.readdir = directoryPath =>
+  new Promise(res => {
+    const result = mockFiles[path.basename(directoryPath)] ?? []
+    res(result)
+  })
 
 module.exports = fs

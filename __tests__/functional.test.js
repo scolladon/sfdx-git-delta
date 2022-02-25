@@ -1,13 +1,10 @@
 'use strict'
 const app = require('../src/main')
-const child_process = require('child_process')
-const os = require('os')
-jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
-jest.mock('fs-extra')
 jest.mock('fs')
-
-const fsMocked = require('fs')
-const fseMocked = require('fs-extra')
+jest.mock('fs-extra')
+jest.mock('child_process')
+const fs = require('fs')
+const child_process = require('child_process')
 
 const lines = [
   'D      force-app/main/default/objects/Account/fields/deleted.field-meta.xml',
@@ -31,18 +28,16 @@ const lines = [
 ]
 
 describe(`test if the appli`, () => {
-  beforeAll(() => {
-    require('fs').__setMockFiles({
+  beforeEach(() => {
+    fs.__setMockFiles({
       output: '',
       '.': '',
     })
   })
-  test('can execute with rich parameters and big diff', () => {
-    child_process.spawnSync.mockImplementation(() => ({
-      stdout: lines.join(os.EOL),
-    }))
+  test('can execute with rich parameters and big diff', async () => {
+    child_process.__setOutput([lines, [], ['firstSHA']])
     expect(
-      app({
+      await app({
         output: 'output',
         repo: 'repo/path',
         source: '',
@@ -52,33 +47,27 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
-  test('catch internal warnings', () => {
-    fsMocked.errorMode = true
-    fseMocked.errorMode = true
-    child_process.spawnSync.mockImplementation(() => ({
-      stdout: lines.join(os.EOL),
-    }))
-    expect(
-      app({
-        output: 'output',
-        repo: '',
-        source: '',
-        to: 'test',
-        apiVersion: '46',
-        generateDelta: true,
-      }).warnings
-    ).not.toHaveLength(0)
-  })
-
-  test('do not generate destructiveChanges.xml and package.xml with same element', () => {
-    child_process.spawnSync.mockImplementation(() => ({
-      stdout: lines.join(os.EOL),
-    }))
-    const work = app({
+  test('catch internal warnings', async () => {
+    fs.errorMode = true
+    child_process.__setOutput([lines, [], ['firstSHA']])
+    const work = await app({
       output: 'output',
       repo: '',
       source: '',
-      to: 'test',
+      to: 'HEAD',
+      apiVersion: '46',
+      generateDelta: true,
+    })
+    expect(work.warnings).not.toHaveLength(0)
+  })
+
+  test('do not generate destructiveChanges.xml and package.xml with same element', async () => {
+    child_process.__setOutput([lines, [], ['firstSHA']])
+    const work = await app({
+      output: 'output',
+      repo: '',
+      source: '',
+      to: 'HEAD',
       apiVersion: '46',
       generateDelta: true,
     })

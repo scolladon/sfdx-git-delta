@@ -1,9 +1,12 @@
 'use strict'
 const metadataManager = require('../../src/metadata/metadataManager')
 
-global.globalMetadata = metadataManager.getDefinition('directoryName', 50)
 global.testHandlerHelper = testContext => {
   describe(`test if ${testContext.handler.name}`, () => {
+    let globalMetadata
+    beforeAll(async () => {
+      globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    })
     describe.each(testContext.testData)(
       'handles',
       (type, changePath, expected, expectedType) => {
@@ -11,43 +14,40 @@ global.testHandlerHelper = testContext => {
           () =>
             (testContext.work.diffs = { package: {}, destructiveChanges: {} })
         )
-        test('addition', () => {
+        test('addition', async () => {
           const handler = new testContext.handler(
             `A       ${changePath}`,
             type,
             testContext.work,
-            // eslint-disable-next-line no-undef
             globalMetadata
           )
-          handler.handle()
+          await handler.handle()
           expect(testContext.work.diffs.package).toHaveProperty(
             expectedType ?? type,
             expected
           )
         })
-        test('deletion', () => {
+        test('deletion', async () => {
           const handler = new testContext.handler(
             `D       ${changePath}`,
             type,
             testContext.work,
-            // eslint-disable-next-line no-undef
             globalMetadata
           )
-          handler.handle()
+          await handler.handle()
           expect(testContext.work.diffs.destructiveChanges).toHaveProperty(
             expectedType ?? type,
             expected
           )
         })
-        test('modification', () => {
+        test('modification', async () => {
           const handler = new testContext.handler(
             `M       ${changePath}`,
             type,
             testContext.work,
-            // eslint-disable-next-line no-undef
             globalMetadata
           )
-          handler.handle()
+          await handler.handle()
           expect(testContext.work.diffs.package).toHaveProperty(
             expectedType ?? type,
             expected

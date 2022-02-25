@@ -1,6 +1,7 @@
 'use strict'
 const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
 const SubCustomObjectHandler = require('../../../../src/service/subCustomObjectHandler')
+const metadataManager = require('../../../../src/metadata/metadataManager')
 jest.mock('fs')
 
 const testContext = {
@@ -30,7 +31,8 @@ const testContext = {
 
 // eslint-disable-next-line no-undef
 describe('test CustomObjectHandler with fields', () => {
-  beforeAll(() => {
+  let globalMetadata
+  beforeAll(async () => {
     require('fs').__setMockFiles({
       'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
       'force-app/main/default/objects/Account/fields': '',
@@ -41,6 +43,7 @@ describe('test CustomObjectHandler with fields', () => {
       'force-app/main/default/objects/Test/Account/fields/test__c.field-meta.xml':
         SubCustomObjectHandler.MASTER_DETAIL_TAG,
     })
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
   })
 
   // eslint-disable-next-line no-undef
@@ -52,7 +55,6 @@ describe('test CustomObjectHandler with fields', () => {
       'A       force-app/main/default/objects/Account/Account.object-meta.xml',
       'objects',
       testContext.work,
-      // eslint-disable-next-line no-undef
       globalMetadata
     )
     handler.handle()
@@ -61,12 +63,14 @@ describe('test CustomObjectHandler with fields', () => {
 
 // eslint-disable-next-line no-undef
 describe('test CustomObjectHandler without fields', () => {
-  beforeAll(() => {
+  let globalMetadata
+  beforeAll(async () => {
     require('fs').__setMockFiles({
       'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
       'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
         'test',
     })
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
   })
 
   // eslint-disable-next-line no-undef
@@ -78,7 +82,6 @@ describe('test CustomObjectHandler without fields', () => {
       'A       force-app/main/default/objects/Account/Account.object-meta.xml',
       'objects',
       testContext.work,
-      // eslint-disable-next-line no-undef
       globalMetadata
     )
     handler.handle()

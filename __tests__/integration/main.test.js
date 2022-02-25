@@ -1,13 +1,10 @@
 'use strict'
 const app = require('../../src/main')
 
-const child_process = require('child_process')
-jest.mock('child_process', () => ({ spawnSync: jest.fn() }))
+jest.mock('child_process')
 jest.mock('fs-extra')
 jest.mock('fs')
-jest.mock('git-state')
-jest.mock('fast-xml-parser')
-
+const child_process = require('child_process')
 const fsMocked = require('fs')
 const fseMocked = require('fs-extra')
 
@@ -23,35 +20,39 @@ describe(`test if the appli`, () => {
   beforeAll(() => {
     fsMocked.errorMode = false
     fseMocked.errorMode = false
-    fseMocked.outputFileSyncError = false
+    fseMocked.outputFileError = false
     fsMocked.__setMockFiles({
       output: '',
       '.': '',
       '.forceignore': '',
       '.forceinclude': '',
     })
-    child_process.spawnSync.mockImplementation(() => ({ stdout: '' }))
   })
 
-  test('can execute with simple parameters and no diff', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  beforeEach(() => {
+    child_process.__setOutput([])
+    child_process.__setError(false)
   })
 
-  test('can execute with simple parameters and an Addition', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and no diff', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with simple parameters and a Deletion', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and an Addition', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with simple parameters and a Modification', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with simple parameters and a Deletion', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with complex parameters and a Modification', () => {
+  test('can execute with simple parameters and a Modification', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
+  })
+
+  test('can execute with complex parameters and a Modification', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         ignore: '.forceignore',
         ignoreDestructive: '.forceignore',
@@ -60,43 +61,46 @@ describe(`test if the appli`, () => {
     ).toHaveProperty('warnings', [])
   })
 
-  test('can execute with posix  path', () => {
-    expect(app(testConfig)).toHaveProperty('warnings', [])
+  test('can execute with posix  path', async () => {
+    expect(await app(testConfig)).toHaveProperty('warnings', [])
   })
 
-  test('can execute with posix relative path', () => {
+  test('can execute with posix relative path', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         output: './output/../output',
       })
     ).toHaveProperty('warnings', [])
   })
 
-  test('can execute with windows path', () => {
+  test('can execute with windows path', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         output: '.\\output',
       })
     ).toHaveProperty('warnings', [])
   })
 
-  test('can execute with windows relative path', () => {
+  test('can execute with windows relative path', async () => {
     expect(
-      app({
+      await app({
         ...testConfig,
         output: '.\\output\\..\\output',
       })
     ).toHaveProperty('warnings', [])
   })
 
-  test('catch and reject big issues', () => {
+  test('catch and reject big issues', async () => {
     fsMocked.errorMode = true
     fseMocked.errorMode = true
-    fseMocked.outputFileSyncError = true
-    expect(() => {
-      app(testConfig)
-    }).toThrow()
+    fseMocked.outputFileError = true
+    child_process.__setError(true)
+    try {
+      await app(testConfig)
+    } catch (error) {
+      expect(error).toBeDefined()
+    }
   })
 })

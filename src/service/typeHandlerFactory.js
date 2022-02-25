@@ -9,7 +9,7 @@ const SubCustomObject = require('./subCustomObjectHandler')
 const InTranslation = require('./inTranslationHandler')
 const Wave = require('./waveHandler')
 
-const typeUtils = require('../utils/typeUtils')
+const { getType } = require('../utils/typeUtils')
 
 const classes = {
   aura: InResource,
@@ -50,7 +50,7 @@ module.exports = class HandlerFactory {
   }
 
   getTypeHandler(line) {
-    const type = typeUtils.getType(line, this.metadata)
+    const type = getType(line, this.metadata)
 
     return classes[type]
       ? new classes[type](line, type, this.work, this.metadata)

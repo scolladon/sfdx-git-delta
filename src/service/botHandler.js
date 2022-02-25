@@ -1,6 +1,6 @@
 'use strict'
 const WaveHandler = require('./waveHandler')
-const path = require('path')
+const { join, parse, sep } = require('path')
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
@@ -9,28 +9,26 @@ class BotHandler extends WaveHandler {
   _getElementName() {
     const parsedPath = this._getParsedPath()
     const elementName = new Set([
-      parsedPath.dir.split(path.sep).pop(),
+      parsedPath.dir.split(sep).pop(),
       parsedPath.name,
     ])
     return [...elementName].join('.')
   }
-  handleAddition() {
+  async handleAddition() {
     super.handleAddition()
 
-    const botName = this._getParsedPath().dir.split(path.sep).pop()
+    const botName = this._getParsedPath().dir.split(sep).pop()
     this._fillPackageWithParameter({
       package: this.diffs.package,
       type: BOT_TYPE,
       elementName: botName,
     })
 
-    const botPath = `${path.parse(this.line).dir}${
-      path.sep
-    }${botName}.${BOT_EXTENSION}`
-    const source = path.join(this.config.repo, botPath)
-    const target = path.join(this.config.output, botPath)
+    const botPath = `${parse(this.line).dir}${sep}${botName}.${BOT_EXTENSION}`
+    const source = join(this.config.repo, botPath)
+    const target = join(this.config.output, botPath)
 
-    this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(source, target)
   }
 }
 
