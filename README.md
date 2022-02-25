@@ -75,7 +75,7 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is an example of a Dockerfile including the SGD plugin: https://github.com/mehdisfdc/sfdx-cli-gitlab
 
-⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npm. The legacy `sgd` command is now deprecated and will be decommissioned soon.
+⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
 
 ### Prerequisites
 
@@ -393,7 +393,6 @@ console.log(JSON.stringify(work))
 
 ## Built With
 
-- [commander](https://github.com/tj/commander.js/) - The complete solution for node.js command-line interfaces, inspired by Ruby's commander.
 - [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - Validate XML, Parse XML to JS/JSON and vise versa, or parse XML to Nimn rapidly without C/C++ based libraries and no callback
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
