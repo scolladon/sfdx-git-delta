@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  sources-sanity-check:
+  build-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -57,7 +57,7 @@ jobs:
       - name: Integration test
         run: sfdx sgd:source:delta --help
 
-  commit-sanity-check:
+  commit-lint:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
@@ -70,7 +70,7 @@ jobs:
         uses: wagoid/commitlint-github-action@v4
         continue-on-error: true
 
-  pull-request-sanity-check:
+  pull-request-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Lint PR
