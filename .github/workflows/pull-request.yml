@@ -57,8 +57,9 @@ jobs:
       - name: Integration test
         run: sfdx sgd:source:delta --help
 
-  pull-request-sanity-check:
+  commit-sanity-check:
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -66,10 +67,12 @@ jobs:
           fetch-depth: 0
 
       - name: Lint commits
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         uses: wagoid/commitlint-github-action@v4
         continue-on-error: true
 
+  pull-request-sanity-check:
+    runs-on: ubuntu-latest
+    steps:
       - name: Lint PR
         uses: amannn/action-semantic-pull-request@v1.2.0
         env:
