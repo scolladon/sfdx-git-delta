@@ -45,6 +45,7 @@
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
     "analysis": "codeclimate analyze",
+    "audit:fix": "npm i --package-lock-only && npm audit fix && rm yarn.lock && yarn import && rm package-lock.json",
     "commit": "commit",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
