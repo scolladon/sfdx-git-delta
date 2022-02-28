@@ -1,11 +1,12 @@
 name: CI
 
 on:
-  pull_request_target:
-    branches: [main]
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-test:
+  build-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -48,36 +49,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
-  plugin-installation-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Setup node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '14.x'
-
-      - name: Cache prep
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - name: Cache yarn
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Build plugin
-        run: yarn pack
-
       - name: Install plugin
         run: |
           npm install -g sfdx-cli
@@ -88,14 +59,18 @@ jobs:
 
   commit-lint:
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
-      - name: Lint commits
+      - name: Checkout sources
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@v4
 
-  pr-lint:
+      - name: Lint commits
+        uses: wagoid/commitlint-github-action@v4
+        continue-on-error: true
+
+  pull-request-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Lint PR
