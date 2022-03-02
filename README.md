@@ -70,12 +70,13 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 ## About The Project
 
-**SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers accomplish 2 things with their source deployments:
+**SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers do 2 things with their source deployments:
 
-1. **Make deployments faster**, by identifying the metadata that has been changed since a reference commit.
-2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructiveChanges.xml
+- **Make deployments faster**: identify the changed metadata since a reference commit.
 
-To get a better understanding of what SGD is for, take a look at this post on the Salesforce Developers Blog: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
+- **Automate destructive deployments**: build the destructiveChanges.xml from the deleted (or renamed) metadata  
+
+Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
 
 ![delta_principle](/img/delta_principles.png)
 
