@@ -105,11 +105,12 @@ Consider a way to switch back to full deployment in case the delta deployment do
 
 ### Prerequisites
 
-Git command line is required on the system where the command line is running.
+The plugin requires git command line on the running environment.
 
 **Node v14.6.0 or above is required**.
-To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first.
-If you encounter this issue while having installed the correct version of node on your system, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`) rather than with another installer.
+To check Salesforce CLI run under a supported node version for SGD, run `sfdx --version`. You want to see a node version above v.14.6.0.
+
+If you encounter this issue whereas the node version is ok, [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`)
 
 ### Installation
 
