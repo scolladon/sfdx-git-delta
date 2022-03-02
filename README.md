@@ -70,7 +70,7 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 ## About The Project
 
-**SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers do 2 things with their source deployments:
+**SFDX-Git-Delta** (_a.k.a. **SGD**_) helps Salesforce Architects and Developers do 2 things with their source deployments:
 
 - **Make deployments faster**: identify the changed metadata since a reference commit.
 
@@ -82,19 +82,18 @@ Have a look at this post on the Salesforce Developers Blog to dive into it: [Opt
 
 ## Is SGD for you?
 
-If you are not a Salesforce Architect or Developer, probably not, _sorry_.
+If you are not a Salesforce Architect or Developer, no, _sorry_.
 
-If you are a Technical Architect or Developer, then it’s a very useful tool for you, when the 3 conditions below are met:
+If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meting 3 conditions below:
 
-    Your Salesforce project uses a git repo as the source of truth.
-            ➕
-    You use the Source (DX) format in the repo.
-            ➕
-    Your metadata is not packaged (in other words, your repo contains all the unmanaged metadata of the project).
+1. Your Salesforce project uses a git repo as the source of truth.
+2. You use the Source (DX) format in the repo.
+3. You have unmanaged metadata. You are not building a managed package 
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functional pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also important to implement a bypass in your pipeline, to have the ability to fallback to full deployment in case the delta deployment is not behaving the way you expected it.
+Pro tips: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will make it harder to fine tune. 
+Consider a way to switch back to full deployment in case the delta deployment does not behave as expected
 
 **DISCLAIMER:**
 
