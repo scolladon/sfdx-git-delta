@@ -211,7 +211,7 @@ sfdx sgd:source:delta --to develop --from main --output .
 ```
 
 - **Comparing branches (from a common ancestor)**
-Comparing changes performed in the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` was created):
+To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
 
 ```
 sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
