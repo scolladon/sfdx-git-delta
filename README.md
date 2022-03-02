@@ -1,6 +1,26 @@
-# SFDX-Git-Delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json) [![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
+![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg)
+[![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta)
+[![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability)
+[![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta)
+[![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
+[![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
+[![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
 
-Generate the sfdx content in source format and destructive change from two git commits.
+
+<br />
+<div align="center">
+
+  <h3 align="center">SFDX-Git-Delta </h3>
+
+  <p align="center">
+    Generate salesforce deployment content from two git commits!
+    <br />
+    <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=bug&template=issue.md">Report Bug</a>
+    ·
+    <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=enhancement&template=enhancement.md">Request Feature</a>
+  </p>
+</div>
+
 
 ## TL;DR:
 
@@ -16,7 +36,39 @@ sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
 ```
 
-## What is SFDX-Git-Delta?
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+
+- [TL;DR:](#tldr)
+- [About The Project](#about-the-project)
+- [Is SGD for you?](#is-sgd-for-you)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [How to use it?](#how-to-use-it)
+- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+  - [Windows users](#windows-users)
+  - [Use cases](#use-cases)
+- [Walkthrough](#walkthrough)
+  - [Execute sgd](#execute-sgd)
+  - [Deploy the delta metadata](#deploy-the-delta-metadata)
+- [Advanced use-cases:](#advanced-use-cases)
+  - [Generate a folder containing only the added/modified sources:](#generate-a-folder-containing-only-the-addedmodified-sources)
+  - [Exclude some metadata only from destructiveChanges.xml:](#exclude-some-metadata-only-from-destructivechangesxml)
+  - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
+  - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
+  - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
+  - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
+- [Changelog](#changelog)
+- [Built With](#built-with)
+- [Versioning](#versioning)
+- [Authors](#authors)
+- [Contributing](#contributing)
+- [License](#license)
+</details>
+
+## About The Project
 
 **SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers accomplish 2 things with their source deployments:
 
@@ -49,9 +101,17 @@ Pro tips: If you are in the process of building your CI/CD pipeline, make sure y
 
 👷 Use it at your own risk, wear a helmet, and test it first before adding it to your pipeline 🔥
 
-## How to install it?
+## Getting Started
 
-### Install as a Salesforce CLI plugin (sgd:source:delta):
+### Prerequisites
+
+Git command line is required on the system where the command line is running.
+
+**Node v14.6.0 or above is required**.
+To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first.
+If you encounter this issue while having installed the correct version of node on your system, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`) rather than with another installer.
+
+### Installation
 
 SGD is a Salesforce CLI plugin (`sfdx sgd:source:delta`). Run the following command to install it:
 
@@ -64,14 +124,6 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is an example of a Dockerfile including the SGD plugin: https://github.com/mehdisfdc/sfdx-cli-gitlab
 
 ⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
-
-### Prerequisites
-
-Git command line is required on the system where the command line is running.
-
-**Node v14.6.0 or above is required**.
-To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first.
-If you encounter this issue while having installed the correct version of node on your system, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`) rather than with another installer.
 
 ## How to use it?
 
@@ -135,11 +187,38 @@ _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-
 
 <!-- commandsstop -->
 
-### Important note for Windows users:
+### Windows users
 
-If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134):
+If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134)
 
-## Scenario:
+### Use cases
+
+Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD, etc.).
+
+Here are examples of how to compare the content of different branches:
+
+- **Comparing between commits in different branches**
+For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
+
+```
+sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
+```
+
+- **Comparing branches (all changes)**
+Comparing all changes between the `develop` branch and the `main` branch:
+
+```
+sfdx sgd:source:delta --to develop --from main --output .
+```
+
+- **Comparing branches (from a common ancestor)**
+Comparing changes performed in the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` was created):
+
+```
+sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
+```
+
+## Walkthrough
 
 Let’s take a look at the following scenario:
 
@@ -161,7 +240,7 @@ In this situation, we would expect the CI pipeline to:
 
 So let’s do it!
 
-### Run the sgd command:
+### Execute sgd
 
 From the project repo folder, the CI pipeline will run the following command:
 
@@ -185,9 +264,9 @@ _Content of the `package.xml` file in our scenario:_
 _Content of the `destructiveChanges.xml` file in our scenario:_
 ![destructiveChange](/img/example_destructiveChange.png)
 
-In addition, we also could have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
+In addition, we also could have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option ([more on that later](#scoping-delta-generation-to-a-specific-folder)).
 
-### Deploy the delta metadata:
+### Deploy the delta metadata
 
 The simplest option to deploy the delta changes is to use `force:source:deploy`:
 
@@ -219,33 +298,6 @@ cat destructiveChanges/destructiveChanges.xml
 echo
 echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
-```
-
-### Diff between branches:
-
-SGD works with any git sha pointer: commit sha, branch, tag, git expression (HEAD, etc.).
-
-Here are 3 examples showing how you can compare the content of different branches:
-
-**1) Comparing between commits in different branches**
-For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
-
-```
-sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
-```
-
-**2) Comparing branches (all changes)**
-Comparing all changes between the `develop` branch and the `main` branch:
-
-```
-sfdx sgd:source:delta --to develop --from main --output .
-```
-
-**3) Comparing branches (from a common ancestor)**
-Comparing changes performed in the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` was created):
-
-```
-sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
 ```
 
 ## Advanced use-cases:
@@ -387,6 +439,10 @@ console.log(JSON.stringify(work))
  */
 ```
 
+## Changelog
+
+[changelog.md](/CHANGELOG.md) is available for consultation.
+
 ## Built With
 
 - [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - Validate XML, Parse XML to JS/JSON and vise versa, or parse XML to Nimn rapidly without C/C++ based libraries and no callback
@@ -399,8 +455,7 @@ console.log(JSON.stringify(work))
 
 [SemVer](http://semver.org/) is used for versioning.
 
-## Authors [![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
-
+## Authors
 - **Sebastien Colladon** - Developer - [scolladon](https://github.com/scolladon)
 - **Mehdi Cherfaoui** - Tester - [mehdisfdc](https://github.com/mehdisfdc)
 
