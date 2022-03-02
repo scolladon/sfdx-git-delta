@@ -188,7 +188,7 @@ _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-
 
 ### Windows users
 
-If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134)
+If you run SGD on a Windows system, use double quotes [to prevent the terminal to interpret parameters](https://github.com/scolladon/sfdx-git-delta/issues/134)
 
 ### Use cases
 
