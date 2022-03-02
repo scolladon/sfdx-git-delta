@@ -13,19 +13,7 @@ sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
 ```
 
 ```sh
-echo "--- package.xml generated with added and modified metadata ---"
-cat package/package.xml
-echo
-echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x package/package.xml
-```
-
-```sh
-echo "--- destructiveChanges.xml generated with deleted metadata ---"
-cat destructiveChanges/destructiveChanges.xml
-echo
-echo "--- Deleting removed metadata ---"
-sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
+sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml 
 ```
 
 ## What is SFDX-Git-Delta?
@@ -199,9 +187,20 @@ _Content of the `destructiveChanges.xml` file in our scenario:_
 
 In addition, we also could have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
 
-### Deploy only the added/modified metadata:
+### Deploy the delta metadata:
 
-The CI pipeline can use the `package/package.xml` file to deploy only this subset of metadata:
+The simplest option to deploy the delta changes is to use `force:source:deploy`:
+```sh
+sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml 
+```
+
+And voilà! 🥳
+
+However, keep in mind that the above command will fail if the destructive change was meant to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs. Make sure to handle those error scenarios in your CI/CD pipeline, so that you don't get stuck by a failed destructive change.
+
+If needed, you can also separate the deploy of added/modified metadata and the destructive deployment, as in the below examples:
+
+The CI pipeline can use the `package/package.xml` file to deploy only the added/modified metadata:
 
 ```sh
 echo "--- package.xml generated with added and modified metadata ---"
@@ -210,8 +209,6 @@ echo
 echo "---- Deploying added and modified metadata ----"
 sfdx force:source:deploy -x package/package.xml
 ```
-
-### Delete the removed metadata:
 
 The CI pipeline can use the `destructiveChanges` folder to deploy the corresponding destructive change:
 
@@ -222,8 +219,6 @@ echo
 echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
-
-And voilà! 🥳
 
 ### Diff between branches:
 
