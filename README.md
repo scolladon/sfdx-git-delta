@@ -6,7 +6,6 @@
 [![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
 [![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
 
-
 <br />
 <div align="center">
 
@@ -21,26 +20,11 @@
   </p>
 </div>
 
-
-## TL;DR:
-
-```sh
-sfdx plugins:install sfdx-git-delta
-```
-
-```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
-```
-
-```sh
-sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
-```
-
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
 
-- [TL;DR:](#tldr)
+- [TL;DR;](#tldr)
 - [About The Project](#about-the-project)
 - [Is SGD for you?](#is-sgd-for-you)
 - [Getting Started](#getting-started)
@@ -68,13 +52,26 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 - [License](#license)
 </details>
 
+## TL;DR;
+
+```sh
+sfdx plugins:install sfdx-git-delta
+```
+
+```sh
+sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
+```
+
+```sh
+sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
+```
 ## About The Project
 
 **SFDX-Git-Delta** (_a.k.a. **SGD**_) helps Salesforce Architects and Developers do 2 things with their source deployments:
 
 - **Make deployments faster**: identify the changed metadata since a reference commit.
 
-- **Automate destructive deployments**: build the destructiveChanges.xml from the deleted (or renamed) metadata  
+- **Automate destructive deployments**: build the destructiveChanges.xml from the deleted (or renamed) metadata
 
 Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
 
@@ -88,11 +85,11 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 
 1. Your Salesforce project uses a git repo as the source of truth.
 2. You use the Source (DX) format in the repo.
-3. You have unmanaged metadata. You are not building a managed package 
+3. You have unmanaged metadata. You are not building a managed package
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will make it harder to fine tune. 
+Pro tips: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will make it harder to fine tune.
 Consider a way to switch back to full deployment in case the delta deployment does not behave as expected
 
 **DISCLAIMER:**
@@ -129,7 +126,8 @@ If you run your CI/CD jobs inside a Docker image, you can add the plugin to your
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+
+- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
 ## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -138,7 +136,7 @@ Generate the sfdx content in source format and destructive change from two git c
 ```
 USAGE
   $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
-   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
+   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
@@ -184,6 +182,7 @@ OPTIONS
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v4.12.1/src/commands/sgd/source/delta.ts)_
+
 <!-- commandsstop -->
 
 ### Windows users
@@ -197,21 +196,21 @@ Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD,
 Here are examples of how to compare the content of different branches:
 
 - **Comparing between commits in different branches**
-For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
+  For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
 
 ```
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
 - **Comparing branches (all changes)**
-Comparing all changes between the `develop` branch and the `main` branch:
+  Comparing all changes between the `develop` branch and the `main` branch:
 
 ```
 sfdx sgd:source:delta --to develop --from main --output .
 ```
 
 - **Comparing branches (from a common ancestor)**
-To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
+  To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
 
 ```
 sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
@@ -455,6 +454,7 @@ console.log(JSON.stringify(work))
 [SemVer](http://semver.org/) is used for versioning.
 
 ## Authors
+
 - **Sebastien Colladon** - Developer - [scolladon](https://github.com/scolladon)
 - **Mehdi Cherfaoui** - Tester - [mehdisfdc](https://github.com/mehdisfdc)
 
