@@ -99,7 +99,7 @@ OPTIONS
   -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
                                                                                     tab, eol) changes
 
-  -a, --api-version=api-version                                                     [default: 53] salesforce API version
+  -a, --api-version=api-version                                                     [default: 54] salesforce API version
 
   -d, --generate-delta                                                              generate delta files in [--output]
                                                                                     folder
