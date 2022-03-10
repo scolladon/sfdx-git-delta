@@ -456,7 +456,7 @@ console.log(JSON.stringify(work))
 
 ## Versioning
 
-[SemVer](http://semver.org/) is used for versioning.
+Versioning follows [SemVer](http://semver.org/) specification.
 
 ## Authors
 
