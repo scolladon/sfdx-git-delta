@@ -334,15 +334,17 @@ _Content of the output folder when using the --generate-delta option, with the s
 
 ### Exclude some metadata only from destructiveChanges.xml:
 
-The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) used to filter the
-element on the diff to ignore. Every diff line matching the pattern from the ignore file specified in the `--ignore [-i]` will be ignored by SGD,
-and will not be used to add member in `package.xml` nor `destructiveChanges.xml` (and will also be ignored when using the `--delta-generate` parameter).
+The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
+element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
 
-But, sometimes you may need to have two different ignore policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
+Sometimes you may need to have two different ignore policies. One for the `package.xml` and another one for `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
+Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions. It will apply to metadata listed in the `destructiveChanges.xml`. In other words, this will override the `--ignore [-i]` parameter for deleted items.
 
-Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). In other words, this will override the `--ignore [-i]` parameter for deleted items.
+Consider the following:
+- a repository containing many sub-folders (force-app/main, force-app/sample, etc)
+- a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This is a Modification and a Deletion events. 
 
-For example, consider a repository containing multiple sub-folders (force-app/main, force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. By default, the Custom\_\_c object would appear in the `package.xml` and in `destructiveChanges.xml`, which could be a little bit inconsistent and can break the CI/CD build. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
+The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.xml` and fail the deployment. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
 ```sh
 # destructiveignore
@@ -352,7 +354,7 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 ```
 
-Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
+Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructive [-D]`) the plugin will apply it to added/changed/deleted elements.
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff:
 
