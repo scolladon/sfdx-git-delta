@@ -233,7 +233,7 @@ In our example, the latest commit to main is composed of:
 
 In this situation, we would expect the CI pipeline to:
 
-1. **Deploy to Production only 3 classes** (no matter how much metadata is present in the force-app folder): `TriggerHandler`, `TriggerHandler_Test`, and `TestDataFactory`
+1. **Deploy to Production only 3 classes** (whatever force-app folder metadata content): `TriggerHandler`, `TriggerHandler_Test`, and `TestDataFactory`
 2. **Delete from Production 1 class**: `AnotherTriggerFramework`
 
 So let’s do it!
@@ -252,17 +252,17 @@ which means:
 
 The `sfdx sgd:source:delta` command produces 2 usefull artifacts:
 
-**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
+**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains the added/changed metadata to deploy to the target org.
 
 _Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
-**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload.
+**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains the removed/renamed metadata to delete from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file. Deploying destructive changes requires a package.xml (even an empty one).
 
 _Content of the `destructiveChanges.xml` file in our scenario:_
 ![destructiveChange](/img/example_destructiveChange.png)
 
-In addition, we also could have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option ([more on that later](#scoping-delta-generation-to-a-specific-folder)).
+Note: it is possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter.
 
 ### Deploy the delta metadata
 
@@ -274,9 +274,10 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 And voilà! 🥳
 
-However, keep in mind that the above command will fail if the destructive change was meant to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs. Make sure to handle those error scenarios in your CI/CD pipeline, so that you don't get stuck by a failed destructive change.
+Yet, the above command fails when the destructive change should execute before the deployment (i.e. as `--predestructivechanges`). Or if a warning not ignored occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios and not get stuck by a failed destructive change.
 
-If needed, you can also separate the deploy of added/modified metadata and the destructive deployment, as in the below examples:
+Consider splitting the added/modified metadata deployment from the deleted/renamed metadata deployment.
+Examples below:
 
 Use the `package/package.xml` file to deploy only the added/modified metadata:
 
