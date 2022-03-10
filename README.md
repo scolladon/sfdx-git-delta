@@ -358,20 +358,23 @@ Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructi
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff:
 
-The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) used to explicitly include the specific files, regardless whether they have diffed or not. Similar to the `--ignore` flag, this file defines a list of glob file matchers to indicate which `git` aware files should always be included in the `package.xml` package. Every matching the pattern from the include file specified in the `--include [-n]` will be included by SGD.
+The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not. 
+Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package. 
+SGD will include every line matching the pattern  from the include file specified in the `--include [-n]`.
 
-As with `--ignore`, sometimes you may need to have two different include policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
+As with `--ignore`, you may need different policies for the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
 
-Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). Here, you will indicate which files explicitly should be included in the `destructiveChanges.xml`.
-
-For example, consider a repository containing multiple sub-folders (force-app/main,force-app/sample, etc) and the CI/CD platform generates a new file `force-app/generated/foo` that should not be included in the `source:deploy` command. You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
+Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output. Here, you will show which files should the `destructiveChanges.xml` should include .
+Consider the following:
+- a repository containing many sub-folders (force-app/main,force-app/sample, etc)
+- a CI/CD platform generating a `force-app/generated/foo` file  the `source:deploy` command should not include. 
+You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
 
 ```sh
-# destructiveinclude
+# .destructiveinclude
 *generated/foo
 
-$ sfdx sgd:source:delta --from commit --include-destructive destructiveinclude
-
+$ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
 ```
 
 ### Scoping delta generation to a specific folder
