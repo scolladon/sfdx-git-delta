@@ -406,9 +406,8 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 
 ### Generate a comma-separated list of the added and modified Apex classes:
 
-Depending on your testing strategy, [you may be interested in generating a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
-
-To cover this requirement, you can use a tool such as [yq](https://github.com/kislyuk/yq) to parse the content of the package.xml file produced by SGD:
+Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example.
+To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
 
 `xq . < package/package.xml | jq '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(",")'`
 
