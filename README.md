@@ -382,8 +382,8 @@ $ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
 The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
 It means the delta generation will only focus on the dedicated folder.
 
-For example, consider a repository containing multiple sub-folders (force-app/package, force-app/unpackaged, etc).
-This repository contains sources deployed in a packaged (force-app/package folder) and sources deployed unpackaged (force-app/unpackaged)
+For example, consider a repository containing many sub-folders (force-app/package, force-app/unpackaged, etc).
+This repository contains packaged (deployed via package) and unpackaged (deployed via CLI) sources.
 You only want to apply delta generation for the unpackaged sources.
 
 ```sh
