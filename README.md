@@ -471,4 +471,4 @@ See [contributing.md](/CONTRIBUTING.md) for sgd contribution principles.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project license is MIT - see the [LICENSE.md](LICENSE.md) file for details
