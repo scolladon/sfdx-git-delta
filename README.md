@@ -303,9 +303,9 @@ sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 
 ### Generate a folder containing only the added/modified sources:
 
-Using a package.xml file to deploy a subset of the metadata is probably the simplest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
+Using a package.xml for deployment is the simplest approach to delta deployments. But in some cases you may want to have only the actual recently changed source files.
 
-One example is to speed up object deployments: the package.xml approach will result on the entire sub-folder for a given object to be deployed. On the opposite, having a copy of the actual sources added/modified allows you to chirurgically deploy only the modified components.
+One example is to speed up object deployments: the package.xml approach will deploy the entire sub-folder for a given object. Having a copy of the actual sources added/modified allows you to deploy only those components.
 
 This is where the `--generate-delta (-d)` option comes handy!
 
@@ -316,17 +316,17 @@ mkdir changed-sources
 sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta
 ```
 
-In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the output folder.
+It generates the `package` and `destructiveChanges` folders, and copies added/changed files in the output folder.
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 
 ![delta-source](/img/example_generateDelta.png)
 
-> ⚠️ the `--generate-delta (-d)` can only be used when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
-> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", just checkout that commit first and then use `--generate-delta (-d)`. Exemple:
+> ⚠️ Use `--generate-delta (-d)` when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
+> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", checkout that commit first. Exemple:
 >
 > ```sh
-> # move HEAD to past commit we are interested in
+> # move HEAD to the wanted past commit
 > $ git checkout <not-HEAD-commit-sha>
 > # You can omit --to, it will take "HEAD" as default value
 > $ sfdx sgd:source:delta --from "HEAD^" --output changed-sources/ --generate-delta
