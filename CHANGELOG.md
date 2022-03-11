@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.0.0](https://github.com/scolladon/sfdx-git-delta/compare/v4.12.1...v5.0.0) (2022-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* sgd single node executable is not shipped anymore
+
+### Features
+
+* decommissionate sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
+
+
+### Bug Fixes
+
+* pull request CI base commit ([#253](https://github.com/scolladon/sfdx-git-delta/issues/253)) ([163ee52](https://github.com/scolladon/sfdx-git-delta/commit/163ee5245ce79bbcb44323bfb249b7437d88c51c))
+
 ### [4.12.1](https://github.com/scolladon/sfdx-git-delta/compare/v4.12.0...v4.12.1) (2022-01-05)
 
 
