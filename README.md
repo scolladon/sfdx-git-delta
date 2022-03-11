@@ -65,6 +65,7 @@ sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
 ```sh
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
 ```
+
 ## About The Project
 
 **SFDX-Git-Delta** (_a.k.a. **SGD**_) helps Salesforce Architects and Developers do 2 things with their source deployments:
@@ -341,8 +342,9 @@ Sometimes you may need to have two different ignore policies. One for the `packa
 Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions. It will apply to metadata listed in the `destructiveChanges.xml`. In other words, this will override the `--ignore [-i]` parameter for deleted items.
 
 Consider the following:
+
 - a repository containing many sub-folders (force-app/main, force-app/sample, etc)
-- a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This is a Modification and a Deletion events. 
+- a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This is a Modification and a Deletion events.
 
 The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.xml` and fail the deployment. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
@@ -358,17 +360,18 @@ Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructi
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff:
 
-The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not. 
-Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package. 
-SGD will include every line matching the pattern  from the include file specified in the `--include [-n]`.
+The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not.
+Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
+SGD will include every line matching the pattern from the include file specified in the `--include [-n]`.
 
 As with `--ignore`, you may need different policies for the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
 
 Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output. Here, you will show which files should the `destructiveChanges.xml` should include .
 Consider the following:
+
 - a repository containing many sub-folders (force-app/main,force-app/sample, etc)
-- a CI/CD platform generating a `force-app/generated/foo` file  the `source:deploy` command should not include. 
-You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
+- a CI/CD platform generating a `force-app/generated/foo` file the `source:deploy` command should not include.
+  You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
 
 ```sh
 # .destructiveinclude
