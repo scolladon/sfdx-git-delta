@@ -54,41 +54,40 @@ To execute a particular test, use the following command:
 
 ```bash
 yarn test -- <path_to_test>
-```
 
+```
 ## Editor Configurations
 
-Configuring your editor to use our lint and code style rules will make the code review process delightful!
+Configure your editor to use our lint and code style rules.
 
 ### Code formatting
 
-[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace. The [.prettierignore](/.prettierignore) and [.prettierrc](/.prettierrc.json) files are provided as part of this repository to control the behavior of the Prettier formatter.
+[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace. 
+This repository provide [.prettierignore](/.prettierignore) and [.prettierrc](/.prettierrc.json) files to control the behaviour of the Prettier formatter.
 
 ### Code linting
 
-[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. The [.eslintignore](/.eslintignore) file is provided as part of this repository to exclude specific files from the linting process.
+[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. This repository provide [.eslintignore](/.eslintignore) file to exclude specific files from the linting process.
 
 ### Commit linting
 
-[Commitlint](https://github.com/conventional-changelog/commitlint) is used to ensure commits respect our commit convention.
+This repository uses [Commitlint](https://github.com/conventional-changelog/commitlint) to check our commit convention.
 We follow the [angular](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-angular) commit convention.
-Commit convention is enforced at pre-commit git hook using husky and at the pull request for each commit.
+Pre-commit git hook using husky and pull request check both the commit convention for each commit in a branch.
 
 You can use an interactive command line to help you create supported commit message
 
 ```bash
 yarn commit
 ```
-
 ### PR linting
 
-PR name is used to create the squash and merge commit message when the PR is validated.
-Release creation is based on the commit convention in order to auto-generate the content and the type
+When a PR is ready for merge we use the PR name to create the squash and merge commit message.
+We use the commit convention to auto-generate the content and the type of each release
 It needs to follow our commit lint convention and it will be check at the PR level
-
 ## Git Workflow
 
-The process of submitting a pull request is fairly straightforward and
+The process of submitting a pull request is straightforward and
 generally follows the same pattern each time:
 
 1. [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
@@ -119,7 +118,7 @@ git checkout -b feature/<name-of-the-feature>
 
 ### Make your changes
 
-Modify the files, build, test, lint and eventually commit your code using the following command:
+Change the files, build, test, lint and commit your code using the following command:
 
 ```bash
 git add <path/to/file/to/commit>
@@ -135,8 +134,8 @@ request.
 
 ### Rebase
 
-Sometimes your feature branch will get stale with respect to the main branch,
-and it will require a rebase. The following steps can help:
+Sometimes your feature branch will get stale on the main branch,
+and it will must a rebase. Do not use the github UI rebase to keep your commits signed. The following steps can help:
 
 ```bash
 git checkout main
@@ -144,8 +143,7 @@ git pull upstream main
 git checkout feature/<name-of-the-feature>
 git rebase upstream/main
 ```
-
-_note: If no conflicts arise, these commands will ensure that your changes are applied on top of the main branch. Any conflicts will have to be manually resolved._
+_note: If no conflicts arise, these commands will apply your changes on top of the main branch. Resolve any conflicts._
 
 ### Check your submission
 
@@ -155,13 +153,12 @@ _note: If no conflicts arise, these commands will ensure that your changes are a
 yarn lint
 ```
 
-The above command may display lint issues that are unrelated to your changes.
+The above command may display lint issues not related to your changes.
 The recommended way to avoid lint issues is to [configure your
 editor][eslint-integrations] to warn you in real time as you edit the file.
 
 Fixing all existing lint issues is a tedious task so please pitch in by fixing
 the ones related to the files you make changes to!
-
 #### Run tests
 
 Test your change by running the unit tests and integration tests. Instructions [here](#testing).
@@ -169,7 +166,7 @@ Test your change by running the unit tests and integration tests. Instructions [
 ### Create a pull request
 
 If you've never created a pull request before, follow [these
-instructions][creating-a-pull-request]. Pull request samples can be found [here](https://github.com/salesforce/sfdx-git-delta/pulls)
+instructions][creating-a-pull-request]. Pull request samples [here](https://github.com/salesforce/sfdx-git-delta/pulls)
 
 ### Update the pull request
 
@@ -177,14 +174,10 @@ instructions][creating-a-pull-request]. Pull request samples can be found [here]
 git fetch origin
 git rebase origin/${base_branch}
 
-# If there were no merge conflicts in the rebase
-git push origin ${feature_branch}
-
-# If there was a merge conflict that was resolved
-git push origin ${feature_branch} --force
+# Then force push it
+git push origin ${feature_branch} --force-with-lease
 ```
-
-_note: If more changes are needed as part of the pull request, just keep committing and pushing your feature branch as described above and the pull request will automatically update._
+_note: If your pull request needs more changes, keep working on your feature branch as described above._
 
 CI validates prettifying, linting and tests
 
@@ -196,7 +189,7 @@ CI validates prettifying, linting and tests
 
 ### Collaborate on the pull request
 
-[Conventional Comments](https://conventionalcomments.org/) is used to ensure every comment expresses the intention and is easy to understand.
+We use [Conventional Comments](https://conventionalcomments.org/) to ensure every comment expresses the intention and is easy to understand.
 Pull Request comments are not enforced, it is more a way to help the reviewers and contributors to collaborate on the pull request.
 
 ## Update Salesforce API version
@@ -210,11 +203,11 @@ yarn && yarn increment:apiversion
 
 ## CLI parameters convention
 
-[Apache Commons CLI](https://commons.apache.org/proper/commons-cli/index.html) parameters convention is used to define parameters for the CLI.
+The CLI uses [Apache Commons CLI](https://commons.apache.org/proper/commons-cli/index.html) parameters convention to define parameters for the CLI.
 When long parameter is one word then take the first character to define the short parameter. Ex: `--word` `-w`
-When long parameter is multiple words then take the first character of the last word to define the short parameter. Ex: `--long-phrase` `-p`
+When long parameter is many words then take the first character of the last word to define the short parameter. Ex: `--long-phrase` `-p`
 When the short parameter is already taken then put the short parameter uppercase. Ex: `--with` `-W`, `--long-paragraph` `-P`
-When the character you should take following the rule above for the short parameter is already taken then choose another character, explain your choice in the PR description and let's discuss it!
+When the character you should take for the short parameter is already taken then choose another character. Explain your choice in the PR description and let's discuss it!
 
 ## Testing the plugin from a pull request
 

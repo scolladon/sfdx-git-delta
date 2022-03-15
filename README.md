@@ -1,8 +1,58 @@
-# SFDX-Git-Delta ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg) [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta) [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability) [![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta) [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json) [![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
+![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg)
+[![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta)
+[![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability)
+[![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta)
+[![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
+[![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
+[![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
 
-Generate the sfdx content in source format and destructive change from two git commits.
+<br />
+<div align="center">
 
-## TL;DR:
+  <h3 align="center">SFDX-Git-Delta </h3>
+
+  <p align="center">
+    Generate salesforce deployment content from two git commits!
+    <br />
+    <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=bug&template=issue.md">Report Bug</a>
+    ·
+    <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=enhancement&template=enhancement.md">Request Feature</a>
+  </p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+
+- [TL;DR;](#tldr)
+- [What is SFDX-Git-Delta?](#what-is-sfdx-git-delta)
+- [Is SGD for you?](#is-sgd-for-you)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [How to use it?](#how-to-use-it)
+- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+  - [Windows users](#windows-users)
+  - [Use cases](#use-cases)
+- [Walkthrough](#walkthrough)
+  - [Execute sgd](#execute-sgd)
+  - [Deploy the delta metadata](#deploy-the-delta-metadata)
+- [Advanced use-cases:](#advanced-use-cases)
+  - [Generate a folder containing only the added/modified sources:](#generate-a-folder-containing-only-the-addedmodified-sources)
+  - [Exclude some metadata only from destructiveChanges.xml:](#exclude-some-metadata-only-from-destructivechangesxml)
+  - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
+  - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
+  - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
+  - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
+- [Changelog](#changelog)
+- [Built With](#built-with)
+- [Versioning](#versioning)
+- [Authors](#authors)
+- [Contributing](#contributing)
+- [License](#license)
+</details>
+
+## TL;DR
 
 ```sh
 sfdx plugins:install sfdx-git-delta
@@ -18,12 +68,13 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 ## What is SFDX-Git-Delta?
 
-**SFDX-Git-Delta** (\*a.k.a. **SGD\***) helps Salesforce Architects and Developers accomplish 2 things with their source deployments:
+**SFDX-Git-Delta** (_a.k.a. **SGD**_) helps Salesforce Architects and Developers do 2 things with their source deployments:
 
-1. **Make deployments faster**, by identifying the metadata that has been changed since a reference commit.
-2. **Automate destructive deployments**, by listing the deleted (or renamed) metadata in a destructiveChanges.xml
+- **Make deployments faster**: identify the changed metadata since a reference commit.
 
-To get a better understanding of what SGD is for, take a look at this post on the Salesforce Developers Blog: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
+- **Automate destructive deployments**: build the destructiveChanges.xml from the deleted (or renamed) metadata
+
+Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
 
 ![delta_principle](/img/delta_principles.png)
 
@@ -31,17 +82,16 @@ To get a better understanding of what SGD is for, take a look at this post on th
 
 If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
-If you are a Technical Architect or Developer, then it’s a very useful tool for you, when the 3 conditions below are met:
+If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meting 3 conditions below:
 
-    Your Salesforce project uses a git repo as the source of truth.
-            ➕
-    You use the Source (DX) format in the repo.
-            ➕
-    Your metadata is not packaged (in other words, your repo contains all the unmanaged metadata of the project).
+1. Your Salesforce project uses a git repo as the source of truth.
+2. You use the Source (DX) format in the repo.
+3. Your metadata is unmanaged (in other words, you are not building a managed or unlocked package).
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: If you are in the process of building your CI/CD pipeline, make sure you already have a fully functional pipeline **before** implementing delta deployments (otherwise it will just make it harder to debug your pipeline). It's also important to implement a bypass in your pipeline, to have the ability to fallback to full deployment in case the delta deployment is not behaving the way you expected it.
+Pro tip: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will just make it harder to debug your pipeline.
+It's also important to implement a way to switch back to full deployment in case the delta deployment does not behave as expected.
 
 **DISCLAIMER:**
 
@@ -49,9 +99,18 @@ Pro tips: If you are in the process of building your CI/CD pipeline, make sure y
 
 👷 Use it at your own risk, wear a helmet, and test it first before adding it to your pipeline 🔥
 
-## How to install it?
+## Getting Started
 
-### Install as a Salesforce CLI plugin (sgd:source:delta):
+### Prerequisites
+
+The plugin requires git command line on the running environment.
+
+**Node v14.6.0 or above is required**.
+To check if Salesforce CLI runs under a supported node version for SGD, run `sfdx --version`. You should see a node version above v.14.6.0 to use SGD.
+
+If you encounter this issue whereas the node version is OK on the running environment, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`).
+
+### Installation
 
 SGD is a Salesforce CLI plugin (`sfdx sgd:source:delta`). Run the following command to install it:
 
@@ -61,17 +120,9 @@ sfdx plugins:install sfdx-git-delta
 
 Because this plugin is not signed, you will get a warning saying that "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed with the installation.
 
-If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is an example of a Dockerfile including the SGD plugin: https://github.com/mehdisfdc/sfdx-cli-gitlab
+If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdisfdc/sfdx-cli-gitlab)).
 
-⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it directly through yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
-
-### Prerequisites
-
-Git command line is required on the system where the command line is running.
-
-**Node v14.6.0 or above is required**.
-To make sure that the Salesforce CLI is using the expected node version for SGD, run `sfdx --version` before attempting to install the SGD plugin: if you see a node version below v14.6.0 in the output, you'll need to fix it first.
-If you encounter this issue while having installed the correct version of node on your system, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`) rather than with another installer.
+⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
 
 ## How to use it?
 
@@ -135,11 +186,38 @@ _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-
 
 <!-- commandsstop -->
 
-### Important note for Windows users:
+### Windows users
 
-If you run SGD on a Windows system, make sure to use double quotes [to prevent the parameters from being interpreted by the terminal](https://github.com/scolladon/sfdx-git-delta/issues/134):
+If you run SGD on a Windows system, use double quotes [to prevent the terminal to interpret parameters](https://github.com/scolladon/sfdx-git-delta/issues/134)
 
-## Scenario:
+### Use cases
+
+Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD, etc.).
+
+Here are examples of how to compare the content of different branches:
+
+- **Comparing between commits in different branches**
+  For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
+
+```
+sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
+```
+
+- **Comparing branches (all changes)**
+  Comparing all changes between the `develop` branch and the `main` branch:
+
+```
+sfdx sgd:source:delta --to develop --from main --output .
+```
+
+- **Comparing branches (from a common ancestor)**
+  To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
+
+```
+sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
+```
+
+## Walkthrough
 
 Let’s take a look at the following scenario:
 
@@ -161,7 +239,7 @@ In this situation, we would expect the CI pipeline to:
 
 So let’s do it!
 
-### Run the sgd command:
+### Execute sgd
 
 From the project repo folder, the CI pipeline will run the following command:
 
@@ -175,19 +253,19 @@ which means:
 
 The `sfdx sgd:source:delta` command produces 2 usefull artifacts:
 
-**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains only the metadata that has been added and changed, and that needs to be deployed in the target org.
+**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains just the added/changed metadata to deploy to the target org.
 
 _Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
-**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains only the metadata that has been removed or renamed, and that needs to be deleted from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file because deploying destructive changes requires a package.xml (even an empty one) in the payload.
+**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains just the removed/renamed metadata to delete from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file, because deploying destructive changes requires a package.xml (even an empty one).
 
 _Content of the `destructiveChanges.xml` file in our scenario:_
 ![destructiveChange](/img/example_destructiveChange.png)
 
-In addition, we also could have generated a copy of the **force-app** folder with only the added and changed metadata, by using the `--generate-delta (-d)` option (more on that later).
+Note: it is also possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter. See the "Advanced use-cases" section for more examples.
 
-### Deploy the delta metadata:
+### Deploy the delta metadata
 
 The simplest option to deploy the delta changes is to use `force:source:deploy`:
 
@@ -197,9 +275,9 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 And voilà! 🥳
 
-However, keep in mind that the above command will fail if the destructive change was meant to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs. Make sure to handle those error scenarios in your CI/CD pipeline, so that you don't get stuck by a failed destructive change.
+However, keep in mind thate the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it don't get stuck by a failed destructive change.
 
-If needed, you can also separate the deploy of added/modified metadata and the destructive deployment, as in the below examples:
+If needed, you can also split the added/modified metadata deployment from the deleted/renamed metadata deployment, as in the below examples:
 
 Use the `package/package.xml` file to deploy only the added/modified metadata:
 
@@ -221,40 +299,13 @@ echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
-### Diff between branches:
-
-SGD works with any git sha pointer: commit sha, branch, tag, git expression (HEAD, etc.).
-
-Here are 3 examples showing how you can compare the content of different branches:
-
-**1) Comparing between commits in different branches**
-For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
-
-```
-sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
-```
-
-**2) Comparing branches (all changes)**
-Comparing all changes between the `develop` branch and the `main` branch:
-
-```
-sfdx sgd:source:delta --to develop --from main --output .
-```
-
-**3) Comparing branches (from a common ancestor)**
-Comparing changes performed in the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` was created):
-
-```
-sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
-```
-
 ## Advanced use-cases:
 
 ### Generate a folder containing only the added/modified sources:
 
-Using a package.xml file to deploy a subset of the metadata is probably the simplest approach to delta deployments. But there are some situations where you may want to have the actual source files related to all the components that have been changed recently.
+Using a package.xml for deployment is the simplest approach to delta deployments. But in some cases you may want to have only the actual recently changed source files.
 
-One example is to speed up object deployments: the package.xml approach will result on the entire sub-folder for a given object to be deployed. On the opposite, having a copy of the actual sources added/modified allows you to chirurgically deploy only the modified components.
+One example is to speed up object deployments: the package.xml approach will deploy the entire sub-folder for a given object. Having a copy of the actual sources added/modified allows you to deploy only those components.
 
 This is where the `--generate-delta (-d)` option comes handy!
 
@@ -265,17 +316,17 @@ mkdir changed-sources
 sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta
 ```
 
-In addition to the `package` and `destructiveChanges` folders, the `sfdx sgd:source:delta` command will also produce a copy of the added/changed files in the output folder.
+It generates the `package` and `destructiveChanges` folders, and copies added/changed files in the output folder.
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 
 ![delta-source](/img/example_generateDelta.png)
 
-> ⚠️ the `--generate-delta (-d)` can only be used when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
-> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", just checkout that commit first and then use `--generate-delta (-d)`. Exemple:
+> ⚠️ Use `--generate-delta (-d)` when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
+> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", checkout that commit first. Exemple:
 >
 > ```sh
-> # move HEAD to past commit we are interested in
+> # move HEAD to the wanted past commit
 > $ git checkout <not-HEAD-commit-sha>
 > # You can omit --to, it will take "HEAD" as default value
 > $ sfdx sgd:source:delta --from "HEAD^" --output changed-sources/ --generate-delta
@@ -283,15 +334,18 @@ _Content of the output folder when using the --generate-delta option, with the s
 
 ### Exclude some metadata only from destructiveChanges.xml:
 
-The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) used to filter the
-element on the diff to ignore. Every diff line matching the pattern from the ignore file specified in the `--ignore [-i]` will be ignored by SGD,
-and will not be used to add member in `package.xml` nor `destructiveChanges.xml` (and will also be ignored when using the `--delta-generate` parameter).
+The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
+element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
 
-But, sometimes you may need to have two different ignore policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
+Sometimes you may need to have two different ignore policies. One for the `package.xml` and another one for `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
+Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions. It will apply to metadata listed in the `destructiveChanges.xml`. In other words, this will override the `--ignore [-i]` parameter for deleted items.
 
-Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). In other words, this will override the `--ignore [-i]` parameter for deleted items.
+Consider the following:
 
-For example, consider a repository containing multiple sub-folders (force-app/main, force-app/sample, etc) and a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This event will be treated has a Modification and a Deletion. By default, the Custom\_\_c object would appear in the `package.xml` and in `destructiveChanges.xml`, which could be a little bit inconsistent and can break the CI/CD build. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
+- a repository containing many sub-folders (force-app/main, force-app/sample, etc)
+- a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This is a Modification and a Deletion events.
+
+The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.xml` and fail the deployment. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
 ```sh
 # destructiveignore
@@ -301,24 +355,28 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 ```
 
-Note that in a situation where only the `--ignore [-i]` parameter is specified (and `--ignore-destructive [-D]` is not specified), then the plugin will ignore items matching `--ignore [-i]` parameter in all situations: Addition, Modification and Deletion.
+Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructive [-D]`) the plugin will apply it to added/changed/deleted elements.
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff:
 
-The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) used to explicitly include the specific files, regardless whether they have diffed or not. Similar to the `--ignore` flag, this file defines a list of glob file matchers to indicate which `git` aware files should always be included in the `package.xml` package. Every matching the pattern from the include file specified in the `--include [-n]` will be included by SGD.
+The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not.
+Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
+SGD will include every line matching the pattern from the include file specified in the `--include [-n]`.
 
-As with `--ignore`, sometimes you may need to have two different include policies for generating the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
+As with `--ignore`, you may need different policies for the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
 
-Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions (resulting in metadata listed in the `destructiveChanges.xml` output). Here, you will indicate which files explicitly should be included in the `destructiveChanges.xml`.
+Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output. Here, you will show which files should the `destructiveChanges.xml` should include .
+Consider the following:
 
-For example, consider a repository containing multiple sub-folders (force-app/main,force-app/sample, etc) and the CI/CD platform generates a new file `force-app/generated/foo` that should not be included in the `source:deploy` command. You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
+- a repository containing many sub-folders (force-app/main,force-app/sample, etc)
+- a CI/CD platform generating a `force-app/generated/foo` file the `source:deploy` command should not include.
+  You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
 
 ```sh
-# destructiveinclude
+# .destructiveinclude
 *generated/foo
 
-$ sfdx sgd:source:delta --from commit --include-destructive destructiveinclude
-
+$ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
 ```
 
 ### Scoping delta generation to a specific folder
@@ -326,8 +384,8 @@ $ sfdx sgd:source:delta --from commit --include-destructive destructiveinclude
 The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
 It means the delta generation will only focus on the dedicated folder.
 
-For example, consider a repository containing multiple sub-folders (force-app/package, force-app/unpackaged, etc).
-This repository contains sources deployed in a packaged (force-app/package folder) and sources deployed unpackaged (force-app/unpackaged)
+For example, consider a repository containing many sub-folders (force-app/package, force-app/unpackaged, etc).
+This repository contains packaged (deployed via package) and unpackaged (deployed via CLI) sources.
 You only want to apply delta generation for the unpackaged sources.
 
 ```sh
@@ -350,9 +408,8 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 
 ### Generate a comma-separated list of the added and modified Apex classes:
 
-Depending on your testing strategy, [you may be interested in generating a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) (to use in the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example).
-
-To cover this requirement, you can use a tool such as [yq](https://github.com/kislyuk/yq) to parse the content of the package.xml file produced by SGD:
+Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example.
+To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
 
 `xq . < package/package.xml | jq '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(",")'`
 
@@ -387,6 +444,10 @@ console.log(JSON.stringify(work))
  */
 ```
 
+## Changelog
+
+[changelog.md](/CHANGELOG.md) is available for consultation.
+
 ## Built With
 
 - [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - Validate XML, Parse XML to JS/JSON and vise versa, or parse XML to Nimn rapidly without C/C++ based libraries and no callback
@@ -397,19 +458,19 @@ console.log(JSON.stringify(work))
 
 ## Versioning
 
-[SemVer](http://semver.org/) is used for versioning.
+Versioning follows [SemVer](http://semver.org/) specification.
 
-## Authors [![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
+## Authors
 
 - **Sebastien Colladon** - Developer - [scolladon](https://github.com/scolladon)
 - **Mehdi Cherfaoui** - Tester - [mehdisfdc](https://github.com/mehdisfdc)
 
 ## Contributing
 
-Contributions are what make the trailblazer community such an amazing place. I regard this component as a way to inspire and learn from others. Any contributions you make are **greatly appreciated**.
+Contributions are what make the trailblazer community such an amazing place. I regard this component as a way to inspire and learn from others. Any contributions you make are **appreciated**.
 
 See [contributing.md](/CONTRIBUTING.md) for sgd contribution principles.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project license is MIT - see the [LICENSE.md](LICENSE.md) file for details
