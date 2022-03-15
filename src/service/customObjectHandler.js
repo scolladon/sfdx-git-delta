@@ -16,7 +16,7 @@ const readFileOptions = {
 
 class CustomObjectHandler extends StandardHandler {
   async handleAddition() {
-    super.handleAddition()
+    await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._handleMasterDetailException()
   }
@@ -24,7 +24,7 @@ class CustomObjectHandler extends StandardHandler {
   async _handleMasterDetailException() {
     if (this.type !== CustomObjectHandler.OBJECT_TYPE) return
 
-    const fieldsFolder = resolve(
+    const fieldsFolder = join(
       this.config.repo,
       join(parse(this.line).dir, FIELD_DIRECTORY_NAME)
     )
