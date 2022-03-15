@@ -13,7 +13,7 @@ class ResourceHandler extends StandardHandler {
     super(line, type, work, metadata)
   }
   async handleAddition() {
-    super.handleAddition()
+    await super.handleAddition()
     if (!this.config.generateDelta) return
     const [, srcPath, elementName] = this._parseLine()
     const [targetPath] = `${join(this.config.output, this.line)}`.match(

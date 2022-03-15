@@ -15,7 +15,7 @@ class BotHandler extends WaveHandler {
     return [...elementName].join('.')
   }
   async handleAddition() {
-    super.handleAddition()
+    await super.handleAddition()
 
     const botName = this._getParsedPath().dir.split(sep).pop()
     this._fillPackageWithParameter({
