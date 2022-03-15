@@ -52,7 +52,7 @@
 - [License](#license)
 </details>
 
-## TL;DR;
+## TL;DR
 
 ```sh
 sfdx plugins:install sfdx-git-delta
@@ -66,7 +66,7 @@ sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
 ```
 
-## About The Project
+## What is SFDX-Git-Delta?
 
 **SFDX-Git-Delta** (_a.k.a. **SGD**_) helps Salesforce Architects and Developers do 2 things with their source deployments:
 
@@ -80,18 +80,18 @@ Have a look at this post on the Salesforce Developers Blog to dive into it: [Opt
 
 ## Is SGD for you?
 
-If you are not a Salesforce Architect or Developer, no, _sorry_.
+If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
 If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meting 3 conditions below:
 
 1. Your Salesforce project uses a git repo as the source of truth.
 2. You use the Source (DX) format in the repo.
-3. You have unmanaged metadata. You are not building a managed package
+3. Your metadata is unmanaged (in other words, you are not building a managed or unlocked package).
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tips: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will make it harder to fine tune.
-Consider a way to switch back to full deployment in case the delta deployment does not behave as expected
+Pro tip: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will just make it harder to debug your pipeline.
+It's also important to implement a way to switch back to full deployment in case the delta deployment does not behave as expected.
 
 **DISCLAIMER:**
 
@@ -106,9 +106,9 @@ Consider a way to switch back to full deployment in case the delta deployment do
 The plugin requires git command line on the running environment.
 
 **Node v14.6.0 or above is required**.
-To check Salesforce CLI run under a supported node version for SGD, run `sfdx --version`. You want to see a node version above v.14.6.0.
+To check if Salesforce CLI runs under a supported node version for SGD, run `sfdx --version`. You should see a node version above v.14.6.0 to use SGD.
 
-If you encounter this issue whereas the node version is ok, [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`)
+If you encounter this issue whereas the node version is OK on the running environment, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`).
 
 ### Installation
 
@@ -120,7 +120,7 @@ sfdx plugins:install sfdx-git-delta
 
 Because this plugin is not signed, you will get a warning saying that "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed with the installation.
 
-If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image. Here is a [Dockerfile with SGD plugin](https://github.com/mehdisfdc/sfdx-cli-gitlab) example
+If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdisfdc/sfdx-cli-gitlab)).
 
 ⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
 
@@ -234,7 +234,7 @@ In our example, the latest commit to main is composed of:
 
 In this situation, we would expect the CI pipeline to:
 
-1. **Deploy to Production only 3 classes** (whatever force-app folder metadata content): `TriggerHandler`, `TriggerHandler_Test`, and `TestDataFactory`
+1. **Deploy to Production only 3 classes** (no matter how much metadata is present in the force-app folder): `TriggerHandler`, `TriggerHandler_Test`, and `TestDataFactory`
 2. **Delete from Production 1 class**: `AnotherTriggerFramework`
 
 So let’s do it!
@@ -253,17 +253,17 @@ which means:
 
 The `sfdx sgd:source:delta` command produces 2 usefull artifacts:
 
-**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains the added/changed metadata to deploy to the target org.
+**1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains just the added/changed metadata to deploy to the target org.
 
 _Content of the `package.xml` file in our scenario:_
 ![package](/img/example_package.png)
 
-**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains the removed/renamed metadata to delete from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file. Deploying destructive changes requires a package.xml (even an empty one).
+**2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains just the removed/renamed metadata to delete from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file, because deploying destructive changes requires a package.xml (even an empty one).
 
 _Content of the `destructiveChanges.xml` file in our scenario:_
 ![destructiveChange](/img/example_destructiveChange.png)
 
-Note: it is possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter.
+Note: it is also possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter. See the "Advanced use-cases" section for more examples.
 
 ### Deploy the delta metadata
 
@@ -275,10 +275,9 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 And voilà! 🥳
 
-Yet, the above command fails when the destructive change should execute before the deployment (i.e. as `--predestructivechanges`). Or if a warning not ignored occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios and not get stuck by a failed destructive change.
+However, keep in mind thate the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it don't get stuck by a failed destructive change.
 
-Consider splitting the added/modified metadata deployment from the deleted/renamed metadata deployment.
-Examples below:
+If needed, you can also split the added/modified metadata deployment from the deleted/renamed metadata deployment, as in the below examples:
 
 Use the `package/package.xml` file to deploy only the added/modified metadata:
 
