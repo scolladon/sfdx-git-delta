@@ -25,7 +25,7 @@
   <summary>Table of Contents</summary>
 
 - [TL;DR;](#tldr)
-- [About The Project](#about-the-project)
+- [What is SFDX-Git-Delta?](#what-is-sfdx-git-delta)
 - [Is SGD for you?](#is-sgd-for-you)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
