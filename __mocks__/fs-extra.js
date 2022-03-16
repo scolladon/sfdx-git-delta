@@ -5,12 +5,16 @@ fse.errorMode = false
 fse.outputFileError = false
 fse.pathShouldExist = true
 
-fse.pathExists = () => Promise.resolve(fse.pathShouldExist)
-fse.copy = () => (fse.errorMode ? Promise.reject() : Promise.resolve())
-fse.copySync = () => {
+fse.pathExists = jest.fn(() => Promise.resolve(fse.pathShouldExist))
+fse.copy = jest.fn(() => {
+  if (fse.errorMode) return Promise.reject()
+  return Promise.resolve()
+})
+fse.copySync = jest.fn(() => {
   if (fse.errorMode) throw new Error()
-}
-fse.outputFile = () =>
+})
+fse.outputFile = jest.fn(() =>
   fse.outputFileError ? Promise.reject() : Promise.resolve()
+)
 
 module.exports = fse
