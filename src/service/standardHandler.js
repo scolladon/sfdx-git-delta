@@ -2,7 +2,13 @@
 const { copyFile, readFile } = require('fs').promises
 const { join, parse, sep } = require('path')
 const { copy, copySync, pathExists } = require('fs-extra')
-const { GIT_DIFF_TYPE_REGEX, UTF8_ENCODING } = require('../utils/gitConstants')
+const {
+  ADDITION,
+  DELETION,
+  GIT_DIFF_TYPE_REGEX,
+  MODIFICATION,
+  UTF8_ENCODING,
+} = require('../utils/gitConstants')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
@@ -38,9 +44,9 @@ class StandardHandler {
     )
 
     this.handlerMap = {
-      A: this.handleAddition,
-      D: this.handleDeletion,
-      M: this.handleModification,
+      [ADDITION]: this.handleAddition,
+      [DELETION]: this.handleDeletion,
+      [MODIFICATION]: this.handleModification,
     }
   }
 

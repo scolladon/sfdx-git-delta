@@ -1,6 +1,7 @@
 'use strict'
 module.exports.ADDITION = 'A'
 module.exports.DELETION = 'D'
+module.exports.MODIFICATION = 'M'
 module.exports.GIT_DIFF_TYPE_REGEX = /^.\s+/u
 module.exports.MINUS = '-'
 module.exports.IGNORE_WHITESPACE_PARAMS = [
