@@ -10,8 +10,8 @@ const { join, normalize, sep } = require('path')
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
 class InFolderHandler extends StandardHandler {
-  handleAddition() {
-    super.handleAddition()
+  async handleAddition() {
+    await super.handleAddition()
     if (!this.config.generateDelta) return
 
     const regexRepo = this.config.repo !== '.' ? this.config.repo : ''

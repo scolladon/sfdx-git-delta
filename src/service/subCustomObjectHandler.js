@@ -12,7 +12,7 @@ class SubCustomObjectHandler extends StandardHandler {
   }
 
   async handleAddition() {
-    super.handleAddition()
+    await super.handleAddition()
     if (!this.config.generateDelta) return
 
     const data = await this._readFile()
