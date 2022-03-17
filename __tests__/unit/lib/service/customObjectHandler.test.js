@@ -2,7 +2,7 @@
 const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
 const metadataManager = require('../../../../src/metadata/metadataManager')
 const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
-const { copy } = require('fs-extra')
+const fse = require('fs-extra')
 jest.mock('fs')
 jest.mock('fs-extra')
 
@@ -32,48 +32,79 @@ const testContext = {
 }
 
 // eslint-disable-next-line no-undef
-describe('test CustomObjectHandler with fields', () => {
+describe('customObjectHandler', () => {
   let globalMetadata
-  beforeEach(async () => {
-    jest.clearAllMocks()
-    require('fs').__setMockFiles({
-      'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
-      'force-app/main/default/objects/Account/fields': '',
-      'force-app/main/default/objects/Account/fields/test__c.field-meta.xml':
-        MASTER_DETAIL_TAG,
-      'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
-        'test',
-      'force-app/main/default/objects/Test/Account/fields/no':
-        MASTER_DETAIL_TAG,
-    })
+  beforeAll(async () => {
     globalMetadata = await metadataManager.getDefinition('directoryName', 50)
   })
+  // eslint-disable-next-line no-undef
+  describe('test CustomObjectHandler with fields', () => {
+    beforeEach(async () => {
+      jest.clearAllMocks()
+      require('fs').__setMockFiles({
+        'force-app/main/default/objects/Account/Account.object-meta.xml':
+          'test',
+        'force-app/main/default/objects/Account/fields': '',
+        'force-app/main/default/objects/Account/fields/test__c.field-meta.xml':
+          MASTER_DETAIL_TAG,
+        'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
+          'test',
+        'force-app/main/default/objects/Test/Account/fields/no':
+          MASTER_DETAIL_TAG,
+      })
+    })
 
-  test('addition and masterdetail fields', async () => {
-    const handler = new testContext.handler(
-      'A       force-app/main/default/objects/Account/Account.object-meta.xml',
-      'objects',
-      testContext.work,
-      globalMetadata
-    )
-    await handler.handle()
-    expect(copy).toBeCalled()
+    test('addition and masterdetail fields', async () => {
+      const handler = new testContext.handler(
+        'A       force-app/main/default/objects/Account/Account.object-meta.xml',
+        'objects',
+        testContext.work,
+        globalMetadata
+      )
+      await handler.handle()
+      expect(fse.copy).toBeCalled()
+    })
+
+    // eslint-disable-next-line no-undef
+    testHandlerHelper(testContext)
   })
 
   // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
-})
+  describe('test CustomObjectHandler without fields', () => {
+    beforeEach(async () => {
+      fse.pathShouldExist = false
+      require('fs').__setMockFiles({
+        'force-app/main/default/objects/Account/Account.object-meta.xml':
+          'test',
+        'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
+          'test',
+      })
+    })
 
-// eslint-disable-next-line no-undef
-describe('test CustomObjectHandler without fields', () => {
-  beforeAll(async () => {
-    require('fs').__setMockFiles({
-      'force-app/main/default/objects/Account/Account.object-meta.xml': 'test',
-      'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
-        'test',
+    // eslint-disable-next-line no-undef
+    testHandlerHelper(testContext)
+
+    test('addition', async () => {
+      const handler = new testContext.handler(
+        'A       force-app/main/default/objects/Account/Account.object-meta.xml',
+        'objects',
+        testContext.work,
+        globalMetadata
+      )
+      await handler.handle()
+      expect(testContext.work.diffs.package).toHaveProperty('objects')
+    })
+
+    test('addition and do not generate delta', async () => {
+      testContext.work.config.generateDelta = false
+      const handler = new testContext.handler(
+        'A       force-app/main/default/objects/Account/Account.object-meta.xml',
+        'objects',
+        testContext.work,
+        globalMetadata
+      )
+      await handler.handle()
+      expect(testContext.work.diffs.package).toHaveProperty('objects')
     })
   })
-
-  // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
 })

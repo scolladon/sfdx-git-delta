@@ -4,6 +4,7 @@ const fs = jest.genMockFromModule('fs')
 const { MASTER_DETAIL_TAG } = require('../src/utils/metadataConstants')
 
 fs.errorMode = false
+fs.statErrorMode = false
 let mockFiles = {}
 let mockContent = {}
 let filePathList = new Set()
@@ -23,13 +24,17 @@ fs.__setMockFiles = newMockFiles => {
 fs.promises = {}
 
 fs.promises.stat = elem =>
-  Promise.resolve({
-    isDirectory() {
-      return elem !== 'file'
-    },
-    isFile() {
-      return filePathList.has(elem)
-    },
+  new Promise((res, rej) => {
+    if (fs.statErrorMode) rej(new Error())
+    else
+      res({
+        isDirectory() {
+          return filePathList.has(elem)
+        },
+        isFile() {
+          return filePathList.has(elem)
+        },
+      })
   })
 
 fs.promises.readFile = path =>

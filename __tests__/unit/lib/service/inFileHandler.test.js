@@ -107,7 +107,7 @@ describe(`test if inFileHandler`, () => {
         )
 
         fileGitDiff.mockImplementation(() =>
-          xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
+          xmlContent.split(EOL).map((x, i) => (i % 2 ? `${PLUS} ${x}` : x))
         )
 
         await handler.handle()
@@ -169,10 +169,7 @@ describe(`test if inFileHandler`, () => {
       })
 
       test('modification without delta generation', async () => {
-        const work = {
-          config: { output: '', repo: '', generateDelta: false },
-          diffs: { package: {}, destructiveChanges: {} },
-        }
+        work.config.generateDelta = false
         const handler = new testContext.handler(
           `M       ${changePath}`,
           expectedType,

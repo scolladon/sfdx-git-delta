@@ -83,24 +83,36 @@ describe(`standardHandler`, () => {
   // eslint-disable-next-line no-undef
   testHandlerHelper(testContext)
 
-  test('do not handle not ADM line', () => {
+  test('without generate delta', async () => {
+    testContext.work.config.generateDelta = false
+    const handler = new testContext.handler(
+      `A       ${testContext.testData[0][1]}`,
+      testContext.testData[0][0],
+      testContext.work,
+      globalMetadata
+    )
+    await handler.handle()
+    expect(testContext.work.diffs.package).toHaveProperty('classes')
+  })
+
+  test('do not handle not ADM line', async () => {
     const handler = new testContext.handler(
       `Z       ${testContext.testData[0][1]}`,
       testContext.testData[0][0],
       testContext.work,
       globalMetadata
     )
-    handler.handle()
+    await handler.handle()
   })
 
-  test('do not handle treat meta file metadata non ending with meta suffix', () => {
+  test('do not handle treat meta file metadata non ending with meta suffix', async () => {
     const handler = new testContext.handler(
       `D       force-app/main/default/staticresources/test.resource${mc.METAFILE_SUFFIX}`,
       'staticresources',
       testContext.work,
       globalMetadata
     )
-    handler.handle()
+    await handler.handle()
   })
 
   test(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {

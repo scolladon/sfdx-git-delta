@@ -49,7 +49,7 @@ testHandlerHelper({
     ],
   ],
   work: {
-    config: { output: '', repo: './repo', generateDelta: true },
+    config: { output: '', repo: './repo', generateDelta: false },
     diffs: { package: {}, destructiveChanges: {} },
     warnings: [],
   },

@@ -60,6 +60,18 @@ const tests = [
     <version>${options.apiVersion}.0</version>
 </Package>`,
   ],
+  [
+    'WaveApplication',
+    { WaveApplication: ['aWaveApp'] },
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>aWaveApp</members>
+        <name>WaveApplication</name>
+    </types>
+    <version>${options.apiVersion}.0</version>
+</Package>`,
+  ],
 ]
 
 describe(`test if package constructor`, () => {
