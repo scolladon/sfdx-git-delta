@@ -149,7 +149,7 @@ class InFileHandler extends StandardHandler {
   async _parseFile() {
     const file = await this._readFile()
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
-    const result = XML_HEADER + xmlParser.parse(file)
+    const result = xmlParser.parse(file)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
       Object.prototype.hasOwnProperty.call(
