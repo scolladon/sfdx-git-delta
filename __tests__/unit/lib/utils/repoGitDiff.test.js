@@ -227,7 +227,7 @@ describe(`test if repoGitDiff`, () => {
 
   test('can explicitly include files', async () => {
     const output = ['force-app/main/default/lwc/jsconfig.json']
-    child_process.__setOutput([output, []])
+    child_process.__setOutput([output, [], [], []])
     const repoGitDiff = new RepoGitDiff(
       {
         output: '',
@@ -244,7 +244,7 @@ describe(`test if repoGitDiff`, () => {
 
   test('can explicitly include destructive files', async () => {
     const output = ['force-app/main/default/lwc/jsconfig.json']
-    child_process.__setOutput([output, []])
+    child_process.__setOutput([output, [], [], []])
     const repoGitDiff = new RepoGitDiff(
       {
         output: '',
@@ -264,7 +264,7 @@ describe(`test if repoGitDiff`, () => {
       'force-app/main/default/lwc/jsconfig.json',
       'force-app/main/default/staticresources/jsconfig.json',
     ]
-    child_process.__setOutput([output, []])
+    child_process.__setOutput([output, [], [], []])
     const repoGitDiff = new RepoGitDiff(
       {
         output: '',
@@ -287,7 +287,7 @@ describe(`test if repoGitDiff`, () => {
       'force-app/main/default/lwc/jsconfig.json',
       'force-app/main/default/staticresources/jsconfig.json',
     ]
-    child_process.__setOutput([output, []])
+    child_process.__setOutput([output, [], [], []])
     const repoGitDiff = new RepoGitDiff(
       {
         output: '',
