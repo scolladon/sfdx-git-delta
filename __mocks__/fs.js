@@ -23,35 +23,48 @@ fs.__setMockFiles = newMockFiles => {
 
 fs.promises = {}
 
-fs.promises.stat = elem =>
-  new Promise((res, rej) => {
-    if (fs.statErrorMode) rej(new Error())
-    else
-      res({
-        isDirectory() {
-          return filePathList.has(elem)
-        },
-        isFile() {
-          return filePathList.has(elem)
-        },
-      })
-  })
+fs.promises.stat = jest.fn(
+  elem =>
+    new Promise((res, rej) => {
+      if (fs.statErrorMode) rej(new Error())
+      else
+        res({
+          isDirectory() {
+            return filePathList.has(elem)
+          },
+          isFile() {
+            return filePathList.has(elem)
+          },
+        })
+    })
+)
 
-fs.promises.readFile = path =>
-  new Promise((res, rej) => {
-    if (fs.errorMode) rej(new Error())
-    else {
-      const result = Object.prototype.hasOwnProperty.call(mockContent, path)
-        ? mockContent[path]
-        : MASTER_DETAIL_TAG
+fs.promises.readFile = jest.fn(
+  path =>
+    new Promise((res, rej) => {
+      if (fs.errorMode) rej(new Error())
+      else {
+        const result = Object.prototype.hasOwnProperty.call(mockContent, path)
+          ? mockContent[path]
+          : MASTER_DETAIL_TAG
+        res(result)
+      }
+    })
+)
+
+fs.promises.readdir = jest.fn(
+  directoryPath =>
+    new Promise(res => {
+      const result = mockFiles[path.basename(directoryPath)] ?? []
       res(result)
-    }
-  })
+    })
+)
 
-fs.promises.readdir = directoryPath =>
-  new Promise(res => {
-    const result = mockFiles[path.basename(directoryPath)] ?? []
-    res(result)
+fs.promises.copyFile = jest.fn(() =>
+  jest.fn(() => {
+    if (fs.errorMode) return Promise.reject()
+    return Promise.resolve()
   })
+)
 
 module.exports = fs

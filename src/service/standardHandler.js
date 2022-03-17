@@ -13,6 +13,8 @@ const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
 
+const FSE_BIGINT_ERROR = 'Source and destination must not be the same.'
+
 const FSE_COPYSYNC_OPTION = {
   overwrite: true,
   errorOnExist: false,
@@ -126,7 +128,7 @@ class StandardHandler {
       try {
         await copy(src, dst, FSE_COPYSYNC_OPTION)
       } catch (error) {
-        if (error.message === 'Source and destination must not be the same.') {
+        if (error.message === FSE_BIGINT_ERROR) {
           // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
           await copyFile(src, dst)
         } else {
@@ -152,3 +154,4 @@ class StandardHandler {
 }
 
 module.exports = StandardHandler
+module.exports.FSE_BIGINT_ERROR = FSE_BIGINT_ERROR
