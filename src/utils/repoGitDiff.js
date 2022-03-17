@@ -45,6 +45,9 @@ class RepoGitDiff {
       cwd: this.config.repo,
       encoding: UTF8_ENCODING,
     }
+    this.ignoreWhitespaceParams = this.config.ignoreWhitespace
+      ? IGNORE_WHITESPACE_PARAMS
+      : []
   }
 
   async getLines() {
@@ -71,52 +74,23 @@ class RepoGitDiff {
   }
 
   async _getFilteredDiff() {
-    const ignoreWhitespaceParams = this.config.ignoreWhitespace
-      ? IGNORE_WHITESPACE_PARAMS
-      : []
+    const lines = await Promise.all([
+      this._spawnGitDiff(filterAdded, ADDITION),
+      this._spawnGitDiff(filterDeleted, DELETION),
+      this._spawnGitDiff(filterModification, MODIFICATION),
+    ])
+    const treatedLines = await this._treatResult(lines.flat())
+    return treatedLines
+  }
+
+  async _spawnGitDiff(filter, changeType) {
     const lines = []
-    let gitDiff = spawn(
+    const gitDiff = spawn(
       'git',
       [
         ...fullDiffParams,
-        ...filterDeleted,
-        ...ignoreWhitespaceParams,
-        this.config.from,
-        this.config.to,
-        this.config.source,
-      ],
-      this.spawnConfig
-    )
-    for await (const line of cpUtils.linify(gitDiff.stdout)) {
-      lines.push(
-        cpUtils.treatPathSep(line).replace(NUM_STAT_REGEX, `${DELETION}${TAB}`)
-      )
-    }
-
-    gitDiff = spawn(
-      'git',
-      [
-        ...fullDiffParams,
-        ...filterAdded,
-        ...ignoreWhitespaceParams,
-        this.config.from,
-        this.config.to,
-        this.config.source,
-      ],
-      this.spawnConfig
-    )
-    for await (const line of cpUtils.linify(gitDiff.stdout)) {
-      lines.push(
-        cpUtils.treatPathSep(line).replace(NUM_STAT_REGEX, `${ADDITION}${TAB}`)
-      )
-    }
-
-    gitDiff = spawn(
-      'git',
-      [
-        ...fullDiffParams,
-        ...filterModification,
-        ...ignoreWhitespaceParams,
+        ...filter,
+        ...this.ignoreWhitespaceParams,
         this.config.from,
         this.config.to,
         this.config.source,
@@ -127,12 +101,10 @@ class RepoGitDiff {
       lines.push(
         cpUtils
           .treatPathSep(line)
-          .replace(NUM_STAT_REGEX, `${MODIFICATION}${TAB}`)
+          .replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
       )
     }
-
-    const treatedLines = await this._treatResult(lines)
-    return treatedLines
+    return lines
   }
 
   async _treatResult(lines) {
