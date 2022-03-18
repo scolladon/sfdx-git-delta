@@ -3,3 +3,4 @@
 
 yarn pack
 yarn test:coverage
+yarn outdated
