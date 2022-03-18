@@ -2,6 +2,7 @@
 const asyncFilter = require('./asyncFilter')
 const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
+const { GIT_FOLDER } = require('./gitConstants')
 
 const { stat } = require('fs').promises
 const { join } = require('path')
@@ -20,7 +21,7 @@ const dirExists = async dir => await fsExists(dir, 'isDirectory')
 const fileExists = async file => await fsExists(file, 'isFile')
 
 const isGit = async dir => {
-  return await dirExists(join(dir, '.git'))
+  return await dirExists(join(dir, GIT_FOLDER))
 }
 
 class CLIHelper {

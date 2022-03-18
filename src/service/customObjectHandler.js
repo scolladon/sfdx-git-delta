@@ -26,7 +26,8 @@ class CustomObjectHandler extends StandardHandler {
 
     const fieldsFolder = join(
       this.config.repo,
-      join(parse(this.line).dir, FIELD_DIRECTORY_NAME)
+      parse(this.line).dir,
+      FIELD_DIRECTORY_NAME
     )
     const exists = await pathExists(fieldsFolder)
     if (!exists) return

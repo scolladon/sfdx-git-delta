@@ -2,10 +2,18 @@
 const { copyFile, readFile } = require('fs').promises
 const { join, parse, sep } = require('path')
 const { copy, copySync, pathExists } = require('fs-extra')
-const { GIT_DIFF_TYPE_REGEX, UTF8_ENCODING } = require('../utils/gitConstants')
+const {
+  ADDITION,
+  DELETION,
+  GIT_DIFF_TYPE_REGEX,
+  MODIFICATION,
+  UTF8_ENCODING,
+} = require('../utils/gitConstants')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
+
+const FSE_BIGINT_ERROR = 'Source and destination must not be the same.'
 
 const FSE_COPYSYNC_OPTION = {
   overwrite: true,
@@ -38,9 +46,9 @@ class StandardHandler {
     )
 
     this.handlerMap = {
-      A: this.handleAddition,
-      D: this.handleDeletion,
-      M: this.handleModification,
+      [ADDITION]: this.handleAddition,
+      [DELETION]: this.handleDeletion,
+      [MODIFICATION]: this.handleModification,
     }
   }
 
@@ -120,7 +128,7 @@ class StandardHandler {
       try {
         await copy(src, dst, FSE_COPYSYNC_OPTION)
       } catch (error) {
-        if (error.message === 'Source and destination must not be the same.') {
+        if (error.message === FSE_BIGINT_ERROR) {
           // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
           await copyFile(src, dst)
         } else {
@@ -146,3 +154,4 @@ class StandardHandler {
 }
 
 module.exports = StandardHandler
+module.exports.FSE_BIGINT_ERROR = FSE_BIGINT_ERROR

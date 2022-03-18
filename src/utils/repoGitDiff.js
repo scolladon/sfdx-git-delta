@@ -9,17 +9,24 @@ const {
   DELETION,
   GIT_DIFF_TYPE_REGEX,
   IGNORE_WHITESPACE_PARAMS,
+  MODIFICATION,
   UTF8_ENCODING,
 } = require('./gitConstants')
 const { spawn } = require('child_process')
 const { readFile } = require('fs').promises
 const ignore = require('ignore')
 const micromatch = require('micromatch')
-
 const os = require('os')
 const path = require('path')
 
-const fullDiffParams = ['--no-pager', 'diff', '--name-status', '--no-renames']
+const DIFF_FILTER = '--diff-filter'
+
+const fullDiffParams = ['--no-pager', 'diff', '--numstat', '--no-renames']
+const filterDeleted = [`${DIFF_FILTER}=${DELETION}`]
+const filterAdded = [`${DIFF_FILTER}=${ADDITION}`]
+const filterModification = [`${DIFF_FILTER}=${MODIFICATION}`]
+const TAB = '\t'
+const NUM_STAT_REGEX = /^\d+\t\d+\t/
 const allFilesParams = ['ls-files']
 const lcSensitivity = {
   sensitivity: 'accent',
@@ -38,6 +45,9 @@ class RepoGitDiff {
       cwd: this.config.repo,
       encoding: UTF8_ENCODING,
     }
+    this.ignoreWhitespaceParams = this.config.ignoreWhitespace
+      ? IGNORE_WHITESPACE_PARAMS
+      : []
   }
 
   async getLines() {
@@ -64,28 +74,37 @@ class RepoGitDiff {
   }
 
   async _getFilteredDiff() {
-    const ignoreWhitespaceParams = this.config.ignoreWhitespace
-      ? IGNORE_WHITESPACE_PARAMS
-      : []
+    const lines = await Promise.all([
+      this._spawnGitDiff(filterAdded, ADDITION),
+      this._spawnGitDiff(filterDeleted, DELETION),
+      this._spawnGitDiff(filterModification, MODIFICATION),
+    ])
+    const treatedLines = await this._treatResult(lines.flat())
+    return treatedLines
+  }
+
+  async _spawnGitDiff(filter, changeType) {
+    const lines = []
     const gitDiff = spawn(
       'git',
       [
         ...fullDiffParams,
-        ...ignoreWhitespaceParams,
+        ...filter,
+        ...this.ignoreWhitespaceParams,
         this.config.from,
         this.config.to,
         this.config.source,
       ],
       this.spawnConfig
     )
-
-    const lines = []
     for await (const line of cpUtils.linify(gitDiff.stdout)) {
-      lines.push(cpUtils.treatPathSep(line))
+      lines.push(
+        cpUtils
+          .treatPathSep(line)
+          .replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
+      )
     }
-
-    const treatedLines = await this._treatResult(lines)
-    return treatedLines
+    return lines
   }
 
   async _treatResult(lines) {
@@ -131,8 +150,8 @@ class RepoGitDiff {
   static async _setupIncludes(config) {
     const setup = await Promise.all(
       [
-        { include: config.include, prefix: 'A' },
-        { include: config.includeDestructive, prefix: 'D' },
+        { include: config.include, prefix: ADDITION },
+        { include: config.includeDestructive, prefix: DELETION },
       ]
         .filter(obj => obj.include)
         .map(async obj => {

@@ -1,5 +1,6 @@
 'use strict'
 const app = require('../../src/main')
+const { GIT_FOLDER } = require('../../src/utils/gitConstants')
 
 jest.mock('child_process')
 jest.mock('fs-extra')
@@ -23,6 +24,7 @@ describe(`test if the appli`, () => {
     fseMocked.outputFileError = false
     fsMocked.__setMockFiles({
       output: '',
+      [GIT_FOLDER]: '',
       '.': '',
       '.forceignore': '',
       '.forceinclude': '',

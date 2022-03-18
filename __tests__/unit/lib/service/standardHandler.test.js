@@ -1,8 +1,12 @@
 'use strict'
 const StandardHandler = require('../../../../src/service/standardHandler')
+const { FSE_BIGINT_ERROR } = require('../../../../src/service/standardHandler')
 const metadataManager = require('../../../../src/metadata/metadataManager')
 const mc = require('../../../../src/utils/metadataConstants')
+const fse = require('fs-extra')
+const fs = require('fs')
 jest.mock('fs')
+jest.mock('fs-extra')
 
 const testContext = {
   handler: StandardHandler,
@@ -80,27 +84,43 @@ describe(`standardHandler`, () => {
     globalMetadata = await metadataManager.getDefinition('directoryName', 50)
   })
 
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   // eslint-disable-next-line no-undef
   testHandlerHelper(testContext)
 
-  test('do not handle not ADM line', () => {
+  test('without generate delta', async () => {
+    testContext.work.config.generateDelta = false
+    const handler = new testContext.handler(
+      `A       ${testContext.testData[0][1]}`,
+      testContext.testData[0][0],
+      testContext.work,
+      globalMetadata
+    )
+    await handler.handle()
+    expect(testContext.work.diffs.package).toHaveProperty('classes')
+  })
+
+  test('do not handle not ADM line', async () => {
     const handler = new testContext.handler(
       `Z       ${testContext.testData[0][1]}`,
       testContext.testData[0][0],
       testContext.work,
       globalMetadata
     )
-    handler.handle()
+    await handler.handle()
   })
 
-  test('do not handle treat meta file metadata non ending with meta suffix', () => {
+  test('do not handle treat meta file metadata non ending with meta suffix', async () => {
     const handler = new testContext.handler(
       `D       force-app/main/default/staticresources/test.resource${mc.METAFILE_SUFFIX}`,
       'staticresources',
       testContext.work,
       globalMetadata
     )
-    handler.handle()
+    await handler.handle()
   })
 
   test(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
@@ -109,5 +129,29 @@ describe(`standardHandler`, () => {
         StandardHandler.PACKAGE_MEMBER_PATH_SEP
       ).length
     ).toBe(2)
+  })
+
+  test(`use fs.copySync when fse.copy "Source and destination must not be the same." special use cases`, async () => {
+    testContext.work.config.generateDelta = true
+    fse.copy.mockImplementationOnce(() =>
+      Promise.reject({
+        message: 'Other',
+      })
+    )
+    fse.copy.mockImplementation(() =>
+      Promise.reject({
+        message: FSE_BIGINT_ERROR,
+      })
+    )
+    const handler = new testContext.handler(
+      `A       force-app/main/default/classes/test.cls`,
+      'classes',
+      testContext.work,
+      globalMetadata
+    )
+    await handler.handle()
+    expect(fse.copy).toHaveBeenCalled()
+    expect(fse.copySync).toHaveBeenCalled()
+    expect(fs.promises.copyFile).toHaveBeenCalled()
   })
 })

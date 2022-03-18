@@ -11,7 +11,7 @@ RepoSetup.mockImplementation(() => {
 })
 jest.mock('fs')
 
-const fsMocked = require('fs')
+const fs = require('fs')
 const CLIHelper = require('../../../../src/utils/cliHelper')
 
 const testConfig = {
@@ -24,7 +24,9 @@ const testConfig = {
 
 describe(`test if the application`, () => {
   beforeAll(() => {
-    fsMocked.__setMockFiles({
+    fs.errorMode = false
+    fs.statErrorMode = false
+    fs.__setMockFiles({
       output: '',
       '.': '',
     })
@@ -38,20 +40,38 @@ describe(`test if the application`, () => {
     let cliHelper = new CLIHelper({ ...testConfig, to: undefined })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when apiVersion parameter is NaN', async () => {
     let cliHelper = new CLIHelper({ ...testConfig, apiVersion: 'NotANumber' })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
+  })
+
+  test('throws errors when fs.stat throw error', async () => {
+    fs.statErrorMode = true
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      to: undefined,
+      output: 'stat/error',
+    })
+    try {
+      await cliHelper.validateConfig()
+    } catch (e) {
+      expect(e).toBeDefined()
+      return
+    }
+    expect(true).toBe(false)
   })
 
   test('throws errors when output folder does not exist', async () => {
@@ -62,20 +82,22 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when output is not a folder', async () => {
     let cliHelper = new CLIHelper({ ...testConfig, output: 'file' })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when repo is not git repository', async () => {
@@ -85,10 +107,11 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when file is not found for --ignore', async () => {
@@ -98,10 +121,11 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when file is not found for --ignore-destructive', async () => {
@@ -111,10 +135,11 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when file is not found for --include', async () => {
@@ -124,10 +149,11 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when file is not found for --include-destructive', async () => {
@@ -137,10 +163,11 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 
   test('throws errors when "-t" and "-d" are set', async () => {
@@ -152,9 +179,10 @@ describe(`test if the application`, () => {
     })
     try {
       await cliHelper.validateConfig()
-      expect(true).toBe(false)
     } catch (e) {
       expect(e).toBeDefined()
+      return
     }
+    expect(true).toBe(false)
   })
 })

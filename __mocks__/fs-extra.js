@@ -5,15 +5,15 @@ fse.errorMode = false
 fse.outputFileError = false
 fse.pathShouldExist = true
 
-fse.pathExists = jest.fn(() => Promise.resolve(fse.pathShouldExist))
+fse.pathExists.mockImplementation(() => Promise.resolve(fse.pathShouldExist))
 fse.copy = jest.fn(() => {
   if (fse.errorMode) return Promise.reject()
   return Promise.resolve()
 })
-fse.copySync = jest.fn(() => {
+fse.copySync.mockImplementation(() => {
   if (fse.errorMode) throw new Error()
 })
-fse.outputFile = jest.fn(() =>
+fse.outputFile.mockImplementation(() =>
   fse.outputFileError ? Promise.reject() : Promise.resolve()
 )
 

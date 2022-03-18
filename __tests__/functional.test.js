@@ -1,5 +1,6 @@
 'use strict'
 const app = require('../src/main')
+const { GIT_FOLDER } = require('../src/utils/gitConstants')
 jest.mock('fs')
 jest.mock('fs-extra')
 jest.mock('child_process')
@@ -29,8 +30,10 @@ const lines = [
 
 describe(`test if the appli`, () => {
   beforeEach(() => {
+    fs.errorMode = false
     fs.__setMockFiles({
       output: '',
+      [GIT_FOLDER]: '',
       '.': '',
     })
   })
@@ -39,7 +42,7 @@ describe(`test if the appli`, () => {
     expect(
       await app({
         output: 'output',
-        repo: 'repo/path',
+        repo: '.',
         source: '',
         to: 'test',
         apiVersion: '46',
