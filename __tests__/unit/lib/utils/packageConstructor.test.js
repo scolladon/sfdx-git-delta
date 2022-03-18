@@ -81,7 +81,6 @@ describe(`test if package constructor`, () => {
     globalMetadata = await metadataManager.getDefinition('directoryName', 50)
     packageConstructor = new PackageConstructor(options, globalMetadata)
   })
-  // eslint-disable-next-line no-undef
 
   test.each(tests)(
     'can build %s destructiveChanges.xml',
