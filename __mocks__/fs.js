@@ -5,19 +5,21 @@ const { MASTER_DETAIL_TAG } = require('../src/utils/metadataConstants')
 
 fs.errorMode = false
 fs.statErrorMode = false
-let mockFiles = {}
-let mockContent = {}
+let mockFiles = new Map()
+let mockContent = new Map()
 let filePathList = new Set()
 fs.__setMockFiles = newMockFiles => {
-  mockFiles = {}
-  mockContent = {}
+  mockFiles = new Map()
+  mockContent = new Map()
   filePathList = new Set()
   for (const file in newMockFiles) {
     filePathList.add(path.basename(file))
     const dir = path.basename(path.dirname(file))
-    mockFiles[dir] = mockFiles[dir] ?? []
-    mockFiles[dir].push(path.basename(file))
-    mockContent[file] = newMockFiles[file]
+    if (!mockFiles.has(dir)) {
+      mockFiles.set(dir, [])
+    }
+    mockFiles.get(dir).push(path.basename(file))
+    mockContent.set(file, newMockFiles[file])
   }
 }
 
@@ -44,8 +46,8 @@ fs.promises.readFile = jest.fn(
     new Promise((res, rej) => {
       if (fs.errorMode) rej(new Error())
       else {
-        const result = Object.prototype.hasOwnProperty.call(mockContent, path)
-          ? mockContent[path]
+        const result = mockContent.has(path)
+          ? mockContent.get(path)
           : MASTER_DETAIL_TAG
         res(result)
       }
@@ -55,7 +57,7 @@ fs.promises.readFile = jest.fn(
 fs.promises.readdir = jest.fn(
   directoryPath =>
     new Promise(res => {
-      const result = mockFiles[path.basename(directoryPath)] ?? []
+      const result = mockFiles.get(path.basename(directoryPath)) ?? []
       res(result)
     })
 )

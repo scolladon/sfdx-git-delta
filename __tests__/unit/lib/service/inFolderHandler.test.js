@@ -34,7 +34,7 @@ testHandlerHelper({
   ],
   work: {
     config: { output: '', repo: '.', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 })
 
@@ -50,7 +50,7 @@ testHandlerHelper({
   ],
   work: {
     config: { output: '', repo: './repo', generateDelta: false },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   },
 })

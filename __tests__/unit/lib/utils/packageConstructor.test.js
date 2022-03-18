@@ -6,7 +6,7 @@ const options = { apiVersion: '46' }
 const tests = [
   [
     'Object',
-    { objects: ['Object', 'OtherObject'] },
+    new Map(Object.entries({ objects: new Set(['Object', 'OtherObject']) })),
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -19,7 +19,7 @@ const tests = [
   ],
   [
     'empty',
-    {},
+    new Map(),
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <version>${options.apiVersion}.0</version>
@@ -27,13 +27,15 @@ const tests = [
   ],
   [
     'full',
-    {
-      dashboards: ['Dashboard'],
-      documents: ['Document'],
-      fields: ['Field'],
-      lwc: ['Component'],
-      objects: ['Object', 'OtherObject'],
-    },
+    new Map(
+      Object.entries({
+        dashboards: new Set(['Dashboard']),
+        documents: new Set(['Document']),
+        fields: new Set(['Field']),
+        lwc: new Set(['Component']),
+        objects: new Set(['Object', 'OtherObject']),
+      })
+    ),
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -62,7 +64,7 @@ const tests = [
   ],
   [
     'WaveApplication',
-    { WaveApplication: ['aWaveApp'] },
+    new Map([['WaveApplication', new Set(['aWaveApp'])]]),
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>

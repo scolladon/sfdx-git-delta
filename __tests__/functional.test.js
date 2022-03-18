@@ -75,8 +75,8 @@ describe(`test if the appli`, () => {
       generateDelta: true,
     })
 
-    expect(work.diffs.package.fields).toContain('Account.changed')
-    expect(work.diffs.destructiveChanges.fields).not.toContain(
+    expect(work.diffs.package.get('fields')).toContain('Account.changed')
+    expect(work.diffs.destructiveChanges.get('fields')).not.toContain(
       'Account.changed'
     )
   })

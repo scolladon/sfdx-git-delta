@@ -52,7 +52,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 }
 
@@ -85,7 +85,7 @@ describe('test inResourceHandler', () => {
       globalMetadata
     )
     await handler.handle()
-    expect([...testContext.work.diffs.package[data[0]]]).toEqual(
+    expect([...testContext.work.diffs.package.get(data[0])]).toEqual(
       expect.arrayContaining([...data[2]])
     )
   })

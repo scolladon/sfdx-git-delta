@@ -12,7 +12,10 @@ global.testHandlerHelper = testContext => {
       (type, changePath, expected, expectedType) => {
         beforeEach(
           () =>
-            (testContext.work.diffs = { package: {}, destructiveChanges: {} })
+            (testContext.work.diffs = {
+              package: new Map(),
+              destructiveChanges: new Map(),
+            })
         )
         test('addition', async () => {
           const handler = new testContext.handler(
@@ -22,10 +25,9 @@ global.testHandlerHelper = testContext => {
             globalMetadata
           )
           await handler.handle()
-          expect(testContext.work.diffs.package).toHaveProperty(
-            expectedType ?? type,
-            expected
-          )
+          expect(
+            testContext.work.diffs.package.get(expectedType ?? type)
+          ).toEqual(expected)
         })
         test('deletion', async () => {
           const handler = new testContext.handler(
@@ -35,10 +37,9 @@ global.testHandlerHelper = testContext => {
             globalMetadata
           )
           await handler.handle()
-          expect(testContext.work.diffs.destructiveChanges).toHaveProperty(
-            expectedType ?? type,
-            expected
-          )
+          expect(
+            testContext.work.diffs.destructiveChanges.get(expectedType ?? type)
+          ).toEqual(expected)
         })
         test('modification', async () => {
           const handler = new testContext.handler(
@@ -48,10 +49,9 @@ global.testHandlerHelper = testContext => {
             globalMetadata
           )
           await handler.handle()
-          expect(testContext.work.diffs.package).toHaveProperty(
-            expectedType ?? type,
-            expected
-          )
+          expect(
+            testContext.work.diffs.package.get(expectedType ?? type)
+          ).toEqual(expected)
         })
       }
     )

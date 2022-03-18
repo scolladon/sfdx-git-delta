@@ -21,7 +21,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 }
 
@@ -50,9 +50,8 @@ describe('test BotHandler', () => {
         globalMetadata
       )
       handler.handle()
-      expect(testContext.work.diffs.package).toHaveProperty(
-        'Bot',
-        new Set(['TestBot'])
+      expect(testContext.work.diffs.package.get('Bot')).toEqual(
+        testContext.testData[0][2]
       )
     })
   })
@@ -67,9 +66,8 @@ describe('test BotHandler', () => {
         globalMetadata
       )
       handler.handle()
-      expect(testContext.work.diffs.package).toHaveProperty(
-        'Bot',
-        new Set(['TestBot'])
+      expect(testContext.work.diffs.package.get('Bot')).toEqual(
+        testContext.testData[0][2]
       )
     })
   })
