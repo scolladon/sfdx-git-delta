@@ -36,7 +36,7 @@
     "ignore": "^5.1.8",
     "micromatch": "^4.0.4",
     "tslib": "^2.3.1",
-    "xmlbuilder": "^15.1.1"
+    "xmlbuilder2": "^3.0.2"
   },
   "license": "MIT",
   "bugs": {
