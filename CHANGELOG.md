@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.0.3](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.2...v5.0.3) (2022-03-18)
+
+
+### Bug Fixes
+
+* ignore white space parameter `--ignore-whitepsace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
+
 ### [5.0.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.1...v5.0.2) (2022-03-16)
 
 ### [5.0.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.0...v5.0.1) (2022-03-16)
