@@ -36,12 +36,14 @@ class SubCustomObjectHandler extends StandardHandler {
   }
 
   _fillPackage(packageObject) {
-    packageObject[this.type] = packageObject[this.type] ?? new Set()
-    const prefix = this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
+    if (!packageObject.has(this.type)) {
+      packageObject.set(this.type, new Set())
+    }
 
+    const prefix = this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
     const elementName = this._getElementName()
 
-    packageObject[this.type].add(`${prefix}.${elementName}`)
+    packageObject.get(this.type).add(`${prefix}.${elementName}`)
   }
 
   static SUB_OBJECT_TYPES = [

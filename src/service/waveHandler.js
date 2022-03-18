@@ -2,24 +2,28 @@
 const StandardHandler = require('./standardHandler')
 const { parse } = require('path')
 
-const WAVE_SUBTYPE = {}
+const WAVE_SUBTYPE = new Map()
 
 class WaveHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
 
-    StandardHandler.metadata[this.type].content.reduce((acc, val) => {
-      acc[val.suffix] = val.xmlName
-      return acc
-    }, WAVE_SUBTYPE)
+    StandardHandler.metadata
+      .get(this.type)
+      .content.reduce(
+        (acc, val) => acc.set(val.suffix, val.xmlName),
+        WAVE_SUBTYPE
+      )
     this.ext = parse(this.line).ext.substring(1)
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
   _fillPackage(packageObject) {
-    const type = WAVE_SUBTYPE[this.ext]
-    packageObject[type] = packageObject[type] ?? new Set()
-    packageObject[type].add(this._getElementName())
+    const type = WAVE_SUBTYPE.get(this.ext)
+    if (!packageObject.has(type)) {
+      packageObject.set(type, new Set())
+    }
+    packageObject.get(type).add(this._getElementName())
   }
 }
 

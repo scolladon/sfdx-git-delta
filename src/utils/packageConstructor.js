@@ -6,36 +6,31 @@ module.exports = class PackageConstructor {
   constructor(config, metadata) {
     this.config = config
     this.metadata = metadata
-    this.looseMetadata = Object.keys(this.metadata)
-      .filter(type => this.metadata[type].content)
+    this.looseMetadata = [...this.metadata.keys()]
+      .filter(type => this.metadata.get(type).content)
       .flatMap(type =>
-        this.metadata[type].content.map(content => content.xmlName)
+        this.metadata.get(type).content.map(content => content.xmlName)
       )
   }
 
   constructPackage(strucDiffPerType) {
-    if (!strucDiffPerType) {
-      return
-    }
-
+    if (!strucDiffPerType) return
     const xml = getXML()
     const sortTypes = sortTypesWithMetadata(this.metadata)
-    Object.keys(strucDiffPerType)
+    Array.from(strucDiffPerType.keys())
       .filter(
-        type =>
-          Object.prototype.hasOwnProperty.call(this.metadata, type) ||
-          this.looseMetadata.includes(type)
+        type => this.metadata.has(type) || this.looseMetadata.includes(type)
       )
       .sort(sortTypes)
       .forEach(metadataType =>
-        [...strucDiffPerType[metadataType]] // transform set to array
+        [...strucDiffPerType.get(metadataType)]
           .sort()
           .reduce((type, member) => {
             type.ele('members').t(member)
             return type
           }, xml.ele('types'))
           .ele('name')
-          .t(this.metadata[metadataType]?.xmlName ?? metadataType)
+          .t(this.metadata.get(metadataType)?.xmlName ?? metadataType)
       )
     xml.ele('version').t(`${this.config.apiVersion}.0`)
     return xml.end(xmlConf)
@@ -44,8 +39,8 @@ module.exports = class PackageConstructor {
 
 const sortTypesWithMetadata = metadata => (x, y) => {
   if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
-  const xMeta = metadata[x]?.xmlName ?? x
-  const yMeta = metadata[y]?.xmlName ?? y
+  const xMeta = metadata.get(x)?.xmlName ?? x
+  const yMeta = metadata.get(y)?.xmlName ?? y
   return xMeta.localeCompare(yMeta)
 }
 

@@ -19,13 +19,13 @@ class InFolderHandler extends StandardHandler {
     let [, , folderPath, folderName] = join(this.config.repo, this.line).match(
       new RegExp(
         `(${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
-          StandardHandler.metadata[this.type].directoryName
+          StandardHandler.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
     )
     folderName = `${folderName}.${
-      StandardHandler.metadata[this.type].xmlName.toLowerCase() +
+      StandardHandler.metadata.get(this.type).xmlName.toLowerCase() +
       INFOLDER_SUFFIX +
       METAFILE_SUFFIX
     }`
@@ -37,7 +37,9 @@ class InFolderHandler extends StandardHandler {
   }
 
   _fillPackage(packageObject) {
-    packageObject[this.type] = packageObject[this.type] ?? new Set()
+    if (!packageObject.has(this.type)) {
+      packageObject.set(this.type, new Set())
+    }
 
     const packageMember = this.splittedLine
       .slice(this.splittedLine.indexOf(this.type) + 1)
@@ -46,9 +48,9 @@ class InFolderHandler extends StandardHandler {
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
 
-    packageObject[this.type].add(
-      StandardHandler.cleanUpPackageMember(packageMember)
-    )
+    packageObject
+      .get(this.type)
+      .add(StandardHandler.cleanUpPackageMember(packageMember))
   }
 }
 
