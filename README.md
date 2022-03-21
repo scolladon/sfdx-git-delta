@@ -52,7 +52,7 @@
 - [License](#license)
 </details>
 
-## TL;DR;
+## TL;DR
 
 ```sh
 sfdx plugins:install sfdx-git-delta
