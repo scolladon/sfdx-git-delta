@@ -26,7 +26,7 @@ const filterDeleted = [`${DIFF_FILTER}=${DELETION}`]
 const filterAdded = [`${DIFF_FILTER}=${ADDITION}`]
 const filterModification = [`${DIFF_FILTER}=${MODIFICATION}`]
 const TAB = '\t'
-const NUM_STAT_REGEX = /^\d+\t\d+\t/
+const NUM_STAT_REGEX = /^((-|\d+)\t){2}/
 const allFilesParams = ['ls-files']
 const lcSensitivity = {
   sensitivity: 'accent',
