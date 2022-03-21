@@ -1,6 +1,6 @@
 'use strict'
-const xmlbuilder = require('xmlbuilder')
-const xmlConf = { indent: '    ', newline: '\n', pretty: true }
+const { create } = require('xmlbuilder2')
+const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 
 module.exports = class PackageConstructor {
   constructor(config, metadata) {
@@ -15,7 +15,10 @@ module.exports = class PackageConstructor {
 
   constructPackage(strucDiffPerType) {
     if (!strucDiffPerType) return
-    const xml = getXML()
+
+    const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
+      xmlns: 'http://soap.sforce.com/2006/04/metadata',
+    })
     const sortTypes = sortTypesWithMetadata(this.metadata)
     Array.from(strucDiffPerType.keys())
       .filter(
@@ -26,13 +29,13 @@ module.exports = class PackageConstructor {
         [...strucDiffPerType.get(metadataType)]
           .sort()
           .reduce((type, member) => {
-            type.ele('members').t(member)
+            type.ele('members').txt(member)
             return type
           }, xml.ele('types'))
           .ele('name')
-          .t(this.metadata.get(metadataType)?.xmlName ?? metadataType)
+          .txt(this.metadata.get(metadataType)?.xmlName ?? metadataType)
       )
-    xml.ele('version').t(`${this.config.apiVersion}.0`)
+    xml.ele('version').txt(`${this.config.apiVersion}.0`)
     return xml.end(xmlConf)
   }
 }
@@ -43,9 +46,3 @@ const sortTypesWithMetadata = metadata => (x, y) => {
   const yMeta = metadata.get(y)?.xmlName ?? y
   return xMeta.localeCompare(yMeta)
 }
-
-const getXML = () =>
-  xmlbuilder
-    .create('Package')
-    .att('xmlns', 'http://soap.sforce.com/2006/04/metadata')
-    .dec('1.0', 'UTF-8')
