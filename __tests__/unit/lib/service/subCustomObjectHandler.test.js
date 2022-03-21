@@ -39,7 +39,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 }
 
@@ -61,7 +61,9 @@ test('field is not a master detail', async () => {
   require('fs').__setMockFiles({ [testContext.testData[0][1]]: '' })
 
   await handler.handle()
-  expect(testContext.work.diffs.package).toHaveProperty('fields')
+  expect(testContext.work.diffs.package.get('fields')).toEqual(
+    testContext.testData[0][2]
+  )
 })
 
 test('field does not generate delta', async () => {
@@ -80,5 +82,7 @@ test('field does not generate delta', async () => {
   require('fs').__setMockFiles({ [testContext.testData[0][1]]: '' })
 
   await handler.handle()
-  expect(testContext.work.diffs.package).toHaveProperty('fields')
+  expect(testContext.work.diffs.package.get('fields')).toEqual(
+    testContext.testData[0][2]
+  )
 })

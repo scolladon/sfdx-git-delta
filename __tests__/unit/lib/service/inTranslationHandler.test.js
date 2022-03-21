@@ -21,7 +21,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 }
 

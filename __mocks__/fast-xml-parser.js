@@ -1,26 +1,26 @@
 'use strict'
 const fxp = jest.genMockFromModule('fast-xml-parser')
 
-let json2xml = {}
-let xml2json = {}
+let json2xml = new Map()
+let xml2json = new Map()
 fxp.__setMockContent = contents => {
-  json2xml = {}
-  xml2json = {}
+  json2xml = new Map()
+  xml2json = new Map()
   for (const content in contents) {
-    json2xml[contents[content]] = content
-    xml2json[content] = contents[content]
+    json2xml.set(contents[content], content)
+    xml2json.set(content, contents[content])
   }
 }
 
 fxp.XMLParser = function () {
   return {
-    parse: jest.fn(content => JSON.parse(xml2json[content])),
+    parse: jest.fn(content => JSON.parse(xml2json.get(content))),
   }
 }
 
 fxp.XMLBuilder = function () {
   return {
-    build: jest.fn(content => json2xml[content]),
+    build: jest.fn(content => json2xml.get(content)),
   }
 }
 

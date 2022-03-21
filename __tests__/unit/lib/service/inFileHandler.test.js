@@ -2,7 +2,6 @@
 const InFile = require('../../../../src/service/inFileHandler')
 const { PLUS, MINUS } = require('../../../../src/utils/gitConstants')
 const {
-  LABEL_EXTENSION,
   LABEL_DIRECTORY_NAME,
 } = require('../../../../src/utils/metadataConstants')
 const metadataManager = require('../../../../src/metadata/metadataManager')
@@ -53,17 +52,24 @@ const testContext = {
     ],
   ],
   expectedData: {
-    workflows: { 'workflows.alerts': new Set(['Account.TestEA']) },
-    labels: {},
-    sharingRules: {
-      'sharingRules.sharingCriteriaRules': new Set(['Account.TestCBS']),
-    },
+    workflows: new Map([
+      ['workflows', new Set(['Account'])],
+      ['workflows.alerts', new Set(['Account.TestEA'])],
+      ['workflows.fieldUpdates', new Set(['Account.TestFU'])],
+      ['workflows.rules', new Set(['Account.TestRule'])],
+    ]),
+    labels: new Map([]),
+    sharingRules: new Map([
+      ['sharingRules', new Set(['Account'])],
+      ['sharingRules.sharingCriteriaRules', new Set(['Account.TestCBS'])],
+      ['sharingRules.sharingOwnerRules', new Set(['Account.TestOBS'])],
+    ]),
   },
 }
-testContext.expectedData.labels[LABEL_DIRECTORY_NAME] = new Set([
-  'TestLabel1',
-  'TestLabel2',
-])
+testContext.expectedData.labels.set(
+  LABEL_DIRECTORY_NAME,
+  new Set(['TestLabel1', 'TestLabel2'])
+)
 
 fs.__setMockFiles({
   [testContext.testData[0][1]]: testContext.testData[0][2],
@@ -91,7 +97,7 @@ describe(`test if inFileHandler`, () => {
   beforeEach(() => {
     work = {
       config: { output: '', repo: '', generateDelta: true },
-      diffs: { package: {}, destructiveChanges: {} },
+      diffs: { package: new Map(), destructiveChanges: new Map() },
       warnings: [],
     }
   })
@@ -111,15 +117,9 @@ describe(`test if inFileHandler`, () => {
         )
 
         await handler.handle()
-
-        expect(work.diffs.package).toMatchObject(
+        expect(work.diffs.package).toEqual(
           testContext.expectedData[expectedType]
         )
-        if (expectedType === LABEL_EXTENSION) {
-          expect(work.diffs.package).not.toHaveProperty(expectedType)
-        } else {
-          expect(work.diffs.package).toHaveProperty(expectedType)
-        }
       })
       test('deletion', async () => {
         const handler = new testContext.handler(
@@ -134,14 +134,10 @@ describe(`test if inFileHandler`, () => {
         )
 
         await handler.handle()
-        expect(work.diffs.destructiveChanges).toMatchObject(
-          testContext.expectedData[expectedType]
+        expect(work.diffs.destructiveChanges.size).toBeGreaterThan(0)
+        expect(work.diffs.destructiveChanges.size).toBeLessThanOrEqual(
+          testContext.expectedData[expectedType].size
         )
-        expect(work.diffs.destructiveChanges).not.toHaveProperty('workflows')
-        expect(work.diffs.destructiveChanges).not.toHaveProperty(
-          LABEL_EXTENSION
-        )
-        expect(work.diffs.destructiveChanges).not.toHaveProperty('sharingRules')
       })
       test('modification', async () => {
         const handler = new testContext.handler(
@@ -152,20 +148,16 @@ describe(`test if inFileHandler`, () => {
         )
 
         fileGitDiff.mockImplementation(() =>
-          xmlContent
-            .split(EOL)
-            .map(x => `${Math.floor(Math.random() * 2) ? PLUS : MINUS} ${x}`)
+          xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
         )
 
         await handler.handle()
 
         expect(work.diffs.package).toBeDefined()
         expect(work.diffs.destructiveChanges).toBeDefined()
-        if (expectedType === LABEL_EXTENSION) {
-          expect(work.diffs.package).not.toHaveProperty(expectedType)
-        } else {
-          expect(work.diffs.package).toHaveProperty(expectedType)
-        }
+        expect(work.diffs.package).toEqual(
+          testContext.expectedData[expectedType]
+        )
       })
 
       test('modification without delta generation', async () => {
@@ -182,14 +174,28 @@ describe(`test if inFileHandler`, () => {
         )
 
         await handler.handle()
-        expect(work.diffs.package).toMatchObject(
+        expect(work.diffs.package).toEqual(
           testContext.expectedData[expectedType]
         )
-        if (expectedType === LABEL_EXTENSION) {
-          expect(work.diffs.package).not.toHaveProperty(expectedType)
-        } else {
-          expect(work.diffs.package).toHaveProperty(expectedType)
-        }
+      })
+
+      test('partial modification without delta generation', async () => {
+        work.config.generateDelta = false
+        const handler = new testContext.handler(
+          `M       ${changePath}`,
+          expectedType,
+          work,
+          globalMetadata
+        )
+
+        fileGitDiff.mockImplementation(() =>
+          xmlContent
+            .split(EOL)
+            .map(x => `${Math.floor(Math.random() * 2) ? PLUS : MINUS} ${x}`)
+        )
+
+        await handler.handle()
+        expect(work.diffs.package).toBeDefined()
       })
     }
   )
@@ -199,7 +205,7 @@ describe(`test if inFileHandler`, () => {
       'labels',
       'force-app/main/error/labels/CustomLabels.labels-meta.xml',
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>TestLabel1</fullName>${EOL}</labels>${EOL}</labels>${EOL}<labels>${EOL}<fullName>TestLabel2</fullName>${EOL}</labels>${EOL}</CustomLabels>`,
-      {},
+      new Map([['labels.labels', new Set(['TestLabel1', 'TestLabel2'])]]),
     ]
     test('generate proper warning', async () => {
       const handler = new testContext.handler(
@@ -214,7 +220,7 @@ describe(`test if inFileHandler`, () => {
       )
 
       await handler.handle()
-      expect(work.diffs.package).toMatchObject(expectedResult)
+      expect(work.diffs.package).toEqual(expectedResult)
       expect(work.warnings).toHaveLength(1)
     })
   })

@@ -17,7 +17,7 @@ describe('the type handler factory', () => {
     typeHandlerFactory = new TypeHandlerFactory(
       {
         config: { apiVersion: '46' },
-        diffs: { package: {}, destructiveChanges: {} },
+        diffs: { package: new Map(), destructiveChanges: new Map() },
         promises: [],
       }, // eslint-disable-next-line no-undef
       globalMetadata

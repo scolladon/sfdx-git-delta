@@ -37,12 +37,12 @@ class StandardHandler {
     this.splittedLine = this.line.split(sep)
     this.warnings = work.warnings
 
-    if (StandardHandler.metadata[this.type].metaFile === true) {
+    if (StandardHandler.metadata.get(this.type).metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
     this.suffixRegex = new RegExp(
-      `\\.${StandardHandler.metadata[this.type].suffix}$`
+      `\\.${StandardHandler.metadata.get(this.type).suffix}$`
     )
 
     this.handlerMap = {
@@ -108,13 +108,15 @@ class StandardHandler {
   }
 
   _fillPackageWithParameter(params) {
-    params.package[params.type] = params.package[params.type] ?? new Set()
-    params.package[params.type].add(params.elementName)
+    if (!params.package.has(params.type)) {
+      params.package.set(params.type, new Set())
+    }
+    params.package.get(params.type).add(params.elementName)
   }
 
   async _copyWithMetaFile(src, dst) {
     const file = this._copyFiles(src, dst)
-    if (StandardHandler.metadata[this.type].metaFile === true) {
+    if (StandardHandler.metadata.get(this.type).metaFile === true) {
       await this._copyFiles(src + METAFILE_SUFFIX, dst + METAFILE_SUFFIX)
     }
     await file

@@ -30,7 +30,7 @@ module.exports = async config => {
 const treatDiff = async (config, lines, metadata) => {
   const work = {
     config: config,
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   }
 
@@ -61,7 +61,7 @@ const treatPackages = async (dcJson, config, metadata) => {
       {
         filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
         folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-        xmlContent: pc.constructPackage({}),
+        xmlContent: pc.constructPackage(new Map()),
       },
     ].map(async op => {
       const location = join(config.output, op.folder, op.filename)
@@ -73,12 +73,14 @@ const treatPackages = async (dcJson, config, metadata) => {
 const cleanPackages = dcJson => {
   const additive = dcJson[PACKAGE_FILE_NAME]
   const destructive = dcJson[DESTRUCTIVE_CHANGES_FILE_NAME]
-  Object.keys(additive)
-    .filter(type => Object.prototype.hasOwnProperty.call(destructive, type))
-    .forEach(
-      type =>
-        (destructive[type] = new Set(
-          [...destructive[type]].filter(element => !additive[type].has(element))
-        ))
-    )
+  for (const [type, members] of additive) {
+    if (destructive.has(type)) {
+      destructive.set(
+        type,
+        new Set(
+          [...destructive.get(type)].filter(element => !members.has(element))
+        )
+      )
+    }
+  }
 }

@@ -74,7 +74,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 }
 
@@ -100,7 +100,9 @@ describe(`standardHandler`, () => {
       globalMetadata
     )
     await handler.handle()
-    expect(testContext.work.diffs.package).toHaveProperty('classes')
+    expect(testContext.work.diffs.package.get('classes')).toEqual(
+      testContext.testData[5][2]
+    )
   })
 
   test('do not handle not ADM line', async () => {

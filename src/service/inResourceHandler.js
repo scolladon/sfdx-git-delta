@@ -6,7 +6,7 @@ const { pathExists } = require('fs-extra')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const STATICRESOURCE_TYPE = 'staticresources'
-const elementSrc = {}
+const elementSrc = new Map()
 
 class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
@@ -18,7 +18,7 @@ class ResourceHandler extends StandardHandler {
     const [, srcPath, elementName] = this._parseLine()
     const [targetPath] = `${join(this.config.output, this.line)}`.match(
       new RegExp(
-        `.*[/\\\\]${StandardHandler.metadata[this.type].directoryName}`,
+        `.*[/\\\\]${StandardHandler.metadata.get(this.type).directoryName}`,
         'u'
       )
     )
@@ -26,7 +26,8 @@ class ResourceHandler extends StandardHandler {
 
     const matchingFiles = this._buildMatchingFiles(elementName)
     await Promise.all(
-      elementSrc[srcPath]
+      elementSrc
+        .get(srcPath)
         .filter(
           src =>
             (this.type === STATICRESOURCE_TYPE &&
@@ -56,7 +57,7 @@ class ResourceHandler extends StandardHandler {
     return join(this.config.repo, this.line).match(
       new RegExp(
         `(?<path>.*[/\\\\]${
-          StandardHandler.metadata[this.type].directoryName
+          StandardHandler.metadata.get(this.type).directoryName
         })[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
@@ -79,10 +80,10 @@ class ResourceHandler extends StandardHandler {
   _buildMatchingFiles(elementName) {
     const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
-    if (StandardHandler.metadata[this.type].metaFile) {
+    if (StandardHandler.metadata.get(this.type).metaFile) {
       matchingFiles.push(
         `${parsedElementName}.${
-          StandardHandler.metadata[this.type].suffix
+          StandardHandler.metadata.get(this.type).suffix
         }${METAFILE_SUFFIX}`
       )
     }
@@ -90,8 +91,9 @@ class ResourceHandler extends StandardHandler {
   }
 
   async _buildElementMap(srcPath) {
-    if (!Object.prototype.hasOwnProperty.call(elementSrc, srcPath)) {
-      elementSrc[srcPath] = await readdir(srcPath)
+    if (!elementSrc.has(srcPath)) {
+      const dirContent = await readdir(srcPath)
+      elementSrc.set(srcPath, dirContent)
     }
   }
 }

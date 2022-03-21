@@ -32,18 +32,20 @@ class InFileHandler extends StandardHandler {
 
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    this.parentMetadata = StandardHandler.metadata[this.type]
+    this.parentMetadata = StandardHandler.metadata.get(this.type)
     this.customLabelElementName = `${basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
-      Object.keys(StandardHandler.metadata)
-        .filter(meta => !!StandardHandler.metadata[meta].xmlTag)
-        .reduce((acc, meta) => {
-          acc[StandardHandler.metadata[meta].xmlTag] =
-            StandardHandler.metadata[meta]
-
-          return acc
-        }, {})
+      [...StandardHandler.metadata.keys()]
+        .filter(meta => !!StandardHandler.metadata.get(meta)?.xmlTag)
+        .reduce(
+          (acc, meta) =>
+            acc.set(
+              StandardHandler.metadata.get(meta).xmlTag,
+              StandardHandler.metadata.get(meta)
+            ),
+          new Map()
+        )
   }
 
   async handleAddition() {
@@ -72,9 +74,9 @@ class InFileHandler extends StandardHandler {
         ? metadataContent[subType]
         : [metadataContent[subType]]
       metadataContent[subType] = meta.filter(elem =>
-        toAdd[InFileHandler.xmlObjectToPackageType[subType].directoryName]?.has(
-          elem.fullName
-        )
+        toAdd
+          .get(InFileHandler.xmlObjectToPackageType.get(subType).directoryName)
+          ?.has(elem.fullName)
       )
     })
     const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
@@ -84,8 +86,8 @@ class InFileHandler extends StandardHandler {
 
   async _handleInDiff() {
     const data = {
-      toDel: {},
-      toAdd: {},
+      toDel: new Map(),
+      toAdd: new Map(),
       potentialType: null,
       subType: null,
       fullName: null,
@@ -121,16 +123,18 @@ class InFileHandler extends StandardHandler {
       tempMap = data.toAdd
     }
     if (tempMap) {
-      tempMap[data.subType] =
-        tempMap[data.subType]?.add(data.fullName) ?? new Set([data.fullName])
+      if (!tempMap.has(data.subType)) {
+        tempMap.set(data.subType, new Set())
+      }
+      tempMap.get(data.subType).add(data.fullName)
       data.subType = data.fullName = null
     }
   }
 
   _treatInFileResult(toRemove, toAdd) {
-    Object.keys(toRemove).forEach(type =>
-      [...toRemove[type]]
-        .filter(elem => !toAdd[type] || !toAdd[type].has(elem))
+    for (const [type, members] of toRemove) {
+      ;[...members]
+        .filter(elem => !toAdd.has(type) || !toAdd.get(type).has(elem))
         .forEach(fullName =>
           this._fillPackageFromDiff(
             this.diffs.destructiveChanges,
@@ -138,12 +142,12 @@ class InFileHandler extends StandardHandler {
             fullName
           )
         )
-    )
-    Object.keys(toAdd).forEach(type =>
-      toAdd[type].forEach(fullName =>
+    }
+    for (const [type, members] of toAdd) {
+      for (let fullName of members) {
         this._fillPackageFromDiff(this.diffs.package, type, fullName)
-      )
-    )
+      }
+    }
   }
 
   async _parseFile() {
@@ -152,10 +156,7 @@ class InFileHandler extends StandardHandler {
     const result = xmlParser.parse(file)
 
     const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        tag
-      )
+      InFileHandler.xmlObjectToPackageType.has(tag)
     )
     return {
       authorizedKeys: authorizedKeys,
@@ -175,20 +176,19 @@ class InFileHandler extends StandardHandler {
       value
     }`
 
-    packageObject[subType] = packageObject[subType] ?? new Set()
-    packageObject[subType].add(
-      StandardHandler.cleanUpPackageMember(elementFullName)
-    )
+    if (!packageObject.has(subType)) {
+      packageObject.set(subType, new Set())
+    }
+    packageObject
+      .get(subType)
+      .add(StandardHandler.cleanUpPackageMember(elementFullName))
   }
 
   static _matchAllowedXmlTag(matchResult) {
     return (
       !!matchResult &&
       !!matchResult[1] &&
-      Object.prototype.hasOwnProperty.call(
-        InFileHandler.xmlObjectToPackageType,
-        matchResult[1]
-      )
+      InFileHandler.xmlObjectToPackageType.has(matchResult[1])
     )
   }
 }

@@ -27,7 +27,7 @@ const testContext = {
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
-    diffs: { package: {}, destructiveChanges: {} },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
   },
 }
 
@@ -92,7 +92,9 @@ describe('customObjectHandler', () => {
         globalMetadata
       )
       await handler.handle()
-      expect(testContext.work.diffs.package).toHaveProperty('objects')
+      expect(testContext.work.diffs.package.get('objects')).toEqual(
+        testContext.testData[0][2]
+      )
     })
 
     test('addition and do not generate delta', async () => {
@@ -104,7 +106,9 @@ describe('customObjectHandler', () => {
         globalMetadata
       )
       await handler.handle()
-      expect(testContext.work.diffs.package).toHaveProperty('objects')
+      expect(testContext.work.diffs.package.get('objects')).toEqual(
+        testContext.testData[0][2]
+      )
     })
   })
 })
