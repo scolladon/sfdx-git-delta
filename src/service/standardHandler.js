@@ -24,6 +24,8 @@ const FSE_COPYSYNC_OPTION = {
 
 const copiedFiles = new Set()
 
+const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 class StandardHandler {
   static metadata
 
@@ -161,6 +163,18 @@ class StandardHandler {
       encoding: UTF8_ENCODING,
     })
     return file
+  }
+
+  _parseLine() {
+    const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
+    return join(this.config.repo, this.line).match(
+      new RegExp(
+        `(${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
+          StandardHandler.metadata.get(this.type).directoryName
+        )})[/\\\\](?<name>[^/\\\\]*)+`,
+        'u'
+      )
+    )
   }
 
   static cleanUpPackageMember(packageMember) {
