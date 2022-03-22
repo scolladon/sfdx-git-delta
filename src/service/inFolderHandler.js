@@ -16,7 +16,10 @@ class InFolderHandler extends StandardHandler {
 
     const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
 
-    let [, , folderPath, folderName] = join(this.config.repo, this.line).match(
+    const [, , folderPath, folderName] = join(
+      this.config.repo,
+      this.line
+    ).match(
       new RegExp(
         `(${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
           StandardHandler.metadata.get(this.type).directoryName
@@ -24,15 +27,16 @@ class InFolderHandler extends StandardHandler {
         'u'
       )
     )
-    folderName = `${folderName}.${
+
+    const folderFileName = `${folderName}.${
       StandardHandler.metadata.get(this.type).xmlName.toLowerCase() +
       INFOLDER_SUFFIX +
       METAFILE_SUFFIX
     }`
 
     this._copyFiles(
-      normalize(join(this.config.repo, folderPath, folderName)),
-      normalize(join(this.config.output, folderPath, folderName))
+      normalize(join(this.config.repo, folderPath, folderFileName)),
+      normalize(join(this.config.output, folderPath, folderFileName))
     )
   }
 

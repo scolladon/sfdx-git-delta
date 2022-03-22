@@ -117,7 +117,24 @@ class StandardHandler {
   async _copyWithMetaFile(src, dst) {
     const file = this._copyFiles(src, dst)
     if (StandardHandler.metadata.get(this.type).metaFile === true) {
+      const parsedSrc = parse(src)
+      const parsedDst = parse(dst)
+      const metaFile = this._copyFiles(
+        join(
+          parsedSrc.dir,
+          `${parsedSrc.name}.${
+            StandardHandler.metadata.get(this.type).suffix
+          }${METAFILE_SUFFIX}`
+        ),
+        join(
+          parsedDst.dir,
+          `${parsedDst.name}.${
+            StandardHandler.metadata.get(this.type).suffix
+          }${METAFILE_SUFFIX}`
+        )
+      )
       await this._copyFiles(src + METAFILE_SUFFIX, dst + METAFILE_SUFFIX)
+      await metaFile
     }
     await file
   }
