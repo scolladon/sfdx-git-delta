@@ -15,7 +15,7 @@ class ResourceHandler extends StandardHandler {
   async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, srcPath, elementName] = this._parseLine()
+    const [, , srcPath, elementName] = this._parseLine()
     const [targetPath] = `${join(this.config.output, this.line)}`.match(
       new RegExp(
         `.*[/\\\\]${StandardHandler.metadata.get(this.type).directoryName}`,
@@ -51,17 +51,6 @@ class ResourceHandler extends StandardHandler {
     } else {
       super.handleDeletion()
     }
-  }
-
-  _parseLine() {
-    return join(this.config.repo, this.line).match(
-      new RegExp(
-        `(?<path>.*[/\\\\]${
-          StandardHandler.metadata.get(this.type).directoryName
-        })[/\\\\](?<name>[^/\\\\]*)+`,
-        'u'
-      )
-    )
   }
 
   _getElementName() {

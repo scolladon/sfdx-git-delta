@@ -24,6 +24,8 @@ const FSE_COPYSYNC_OPTION = {
 
 const copiedFiles = new Set()
 
+const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 class StandardHandler {
   static metadata
 
@@ -117,9 +119,24 @@ class StandardHandler {
   async _copyWithMetaFile(src, dst) {
     const file = this._copyFiles(src, dst)
     if (StandardHandler.metadata.get(this.type).metaFile === true) {
+      const metaFile = this._copyFiles(
+        this._getMetaTypeFilePath(src),
+        this._getMetaTypeFilePath(dst)
+      )
       await this._copyFiles(src + METAFILE_SUFFIX, dst + METAFILE_SUFFIX)
+      await metaFile
     }
     await file
+  }
+
+  _getMetaTypeFilePath(path) {
+    const parsedPath = parse(path)
+    return join(
+      parsedPath.dir,
+      `${parsedPath.name}.${
+        StandardHandler.metadata.get(this.type).suffix
+      }${METAFILE_SUFFIX}`
+    )
   }
 
   async _copyFiles(src, dst) {
@@ -146,6 +163,18 @@ class StandardHandler {
       encoding: UTF8_ENCODING,
     })
     return file
+  }
+
+  _parseLine() {
+    const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
+    return join(this.config.repo, this.line).match(
+      new RegExp(
+        `(${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
+          StandardHandler.metadata.get(this.type).directoryName
+        )})[/\\\\](?<name>[^/\\\\]*)+`,
+        'u'
+      )
+    )
   }
 
   static cleanUpPackageMember(packageMember) {

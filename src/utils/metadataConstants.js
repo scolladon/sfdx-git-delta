@@ -1,4 +1,5 @@
 'use strict'
+
 const METAFILE_SUFFIX = '-meta.xml'
 const META_REGEX = new RegExp(`${METAFILE_SUFFIX}$`)
 const OBJECT_META_XML_SUFFIX = `object${METAFILE_SUFFIX}`
