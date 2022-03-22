@@ -277,8 +277,8 @@ describe(`test if repoGitDiff`, () => {
 
   test('cannot filter same name file with different metadata', async () => {
     const output = [
-      'force-app/main/default/classes/Account.cls',
-      'force-app/main/default/classes/RenamedAccount.cls',
+      'force-app/main/default/objects/Account/fields/CustomField__c.field-meta.xml',
+      'force-app/main/default/objects/Opportunity/fields/CustomField__c.field-meta.xml',
     ]
     child_process.__setOutput([
       [],
