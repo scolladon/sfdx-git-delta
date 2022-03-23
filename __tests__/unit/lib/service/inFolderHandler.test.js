@@ -1,5 +1,8 @@
 'use strict'
 const InFolder = require('../../../../src/service/inFolderHandler')
+const metadataManager = require('../../../../src/metadata/metadataManager')
+const fs = require('fs')
+const fse = require('fs-extra')
 jest.mock('fs')
 
 // eslint-disable-next-line no-undef
@@ -53,4 +56,37 @@ testHandlerHelper({
     diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   },
+})
+
+describe('InFolderHander', () => {
+  let globalMetadata
+  let work
+  beforeAll(async () => {
+    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    work = {
+      config: { output: '', repo: '.', generateDelta: true },
+      diffs: { package: new Map(), destructiveChanges: new Map() },
+      warnings: [],
+    }
+  })
+  test('copy special extension', async () => {
+    fs.__setMockFiles({
+      'force-app/main/default/documents/folder/test.document-meta.xml':
+        'content',
+      'force-app/main/default/documents/folder/test.png-meta.xml': 'content',
+    })
+
+    const handler = new InFolder(
+      `M       force-app/main/default/documents/folder/test.document-meta.xml`,
+      'documents',
+      work,
+      globalMetadata
+    )
+    await handler.handle()
+
+    expect(work.diffs.package.get('documents')).toEqual(
+      new Set(['folder/test'])
+    )
+    expect(fse.copy).toHaveBeenCalled()
+  })
 })
