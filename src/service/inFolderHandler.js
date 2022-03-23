@@ -13,7 +13,10 @@ class InFolderHandler extends StandardHandler {
   async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
+    await this._copyFolderMetaFile()
+  }
 
+  async _copyFolderMetaFile() {
     const [, , folderPath, folderName] = this._parseLine()
 
     const folderFileName = `${folderName}.${
@@ -22,7 +25,7 @@ class InFolderHandler extends StandardHandler {
       METAFILE_SUFFIX
     }`
 
-    this._copyFiles(
+    await this._copyFiles(
       normalize(join(this.config.repo, folderPath, folderFileName)),
       normalize(join(this.config.output, folderPath, folderFileName))
     )
