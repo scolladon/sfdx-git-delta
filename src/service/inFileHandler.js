@@ -13,7 +13,7 @@ const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 const FULLNAME = 'fullName'
 const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
 const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
-const XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n'
+const XML_HEADER_TAG_END = '?>'
 const XML_PARSER_OPTION = {
   ignoreAttributes: false,
   ignoreNameSpace: false,
@@ -80,8 +80,11 @@ class InFileHandler extends StandardHandler {
       )
     })
     const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-    const xmlContent = XML_HEADER + xmlBuilder.build(result.fileContent)
-    await outputFile(join(this.config.output, this.line), xmlContent)
+    const xmlContent = xmlBuilder.build(result.fileContent)
+    await outputFile(
+      join(this.config.output, this.line),
+      xmlContent.replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}\n`)
+    )
   }
 
   async _handleInDiff() {
