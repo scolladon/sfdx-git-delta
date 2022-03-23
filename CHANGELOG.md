@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.0.5](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.4...v5.0.5) (2022-03-23)
+
+
+### Bug Fixes
+
+* xml header displayed twice for inFile delta generated ([#274](https://github.com/scolladon/sfdx-git-delta/issues/274)) ([bf1d278](https://github.com/scolladon/sfdx-git-delta/commit/bf1d27895cd2cdbc4a66dcae73a62d3bd67c9391))
+
 ### [5.0.4](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.3...v5.0.4) (2022-03-22)
 
 
