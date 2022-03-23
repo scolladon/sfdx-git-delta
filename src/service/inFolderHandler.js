@@ -17,7 +17,7 @@ class InFolderHandler extends StandardHandler {
     const [, , folderPath, folderName] = this._parseLine()
 
     const folderFileName = `${folderName}.${
-      StandardHandler.metadata.get(this.type).xmlName.toLowerCase() +
+      StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
       INFOLDER_SUFFIX +
       METAFILE_SUFFIX
     }`
