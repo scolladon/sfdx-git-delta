@@ -17,6 +17,7 @@ const XML_HEADER_TAG_END = '?>'
 const XML_PARSER_OPTION = {
   ignoreAttributes: false,
   ignoreNameSpace: false,
+  parseTagValue: false,
   parseNodeValue: false,
   parseAttributeValue: false,
   trimValues: true,
