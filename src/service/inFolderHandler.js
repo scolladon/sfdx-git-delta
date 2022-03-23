@@ -5,7 +5,8 @@ const {
   META_REGEX,
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
-const { join, normalize, sep } = require('path')
+const { join, normalize, parse, sep } = require('path')
+const { readdir } = require('fs').promises
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
@@ -14,6 +15,7 @@ class InFolderHandler extends StandardHandler {
     await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._copyFolderMetaFile()
+    await this._copySpecialExtension()
   }
 
   async _copyFolderMetaFile() {
@@ -28,6 +30,22 @@ class InFolderHandler extends StandardHandler {
     await this._copyFiles(
       normalize(join(this.config.repo, folderPath, folderFileName)),
       normalize(join(this.config.output, folderPath, folderFileName))
+    )
+  }
+
+  async _copySpecialExtension() {
+    const parsedLine = parse(this.line)
+    const dirContent = await readdir(parsedLine.dir)
+
+    await Promise.all(
+      dirContent
+        .filter(file => file.includes(parsedLine.name))
+        .map(file =>
+          this._copyFiles(
+            normalize(join(this.config.repo, parsedLine.dir, file)),
+            normalize(join(this.config.output, parsedLine.dir, file))
+          )
+        )
     )
   }
 
