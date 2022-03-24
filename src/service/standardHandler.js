@@ -119,12 +119,10 @@ class StandardHandler {
   async _copyWithMetaFile(src, dst) {
     const file = this._copyFiles(src, dst)
     if (StandardHandler.metadata.get(this.type).metaFile === true) {
-      const metaFile = this._copyFiles(
+      await this._copyFiles(
         this._getMetaTypeFilePath(src),
         this._getMetaTypeFilePath(dst)
       )
-      await this._copyFiles(src + METAFILE_SUFFIX, dst + METAFILE_SUFFIX)
-      await metaFile
     }
     await file
   }

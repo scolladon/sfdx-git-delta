@@ -28,7 +28,7 @@ class SubCustomObjectHandler extends StandardHandler {
         `${customObjectName}.${OBJECT_META_XML_SUFFIX}`
       )
 
-      this._copyFiles(
+      await this._copyFiles(
         join(this.config.repo, customObjectPath),
         join(this.config.output, customObjectPath)
       )
