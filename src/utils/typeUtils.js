@@ -2,7 +2,11 @@
 const CustomObject = require('../service/customObjectHandler')
 const { sep } = require('path')
 
-const haveSubTypes = [CustomObject.OBJECT_TYPE, '']
+const haveSubTypes = [
+  CustomObject.OBJECT_TYPE,
+  CustomObject.TERRITORY_MODEL_TYPE,
+  '',
+]
 
 module.exports.getType = (line, metadata) =>
   line.split(sep).reduce((acc, value, _, arr) => {

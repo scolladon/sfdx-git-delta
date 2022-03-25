@@ -52,6 +52,7 @@ class CustomObjectHandler extends StandardHandler {
   }
 
   static OBJECT_TYPE = 'objects'
+  static TERRITORY_MODEL_TYPE = 'territory2Models'
 }
 
 module.exports = CustomObjectHandler

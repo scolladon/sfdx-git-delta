@@ -51,7 +51,6 @@ module.exports = class HandlerFactory {
 
   getTypeHandler(line) {
     const type = getType(line, this.metadata)
-
     return classes[type]
       ? new classes[type](line, type, this.work, this.metadata)
       : new Standard(line, type, this.work, this.metadata)
