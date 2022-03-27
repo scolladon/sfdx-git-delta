@@ -15,7 +15,7 @@ assignees: scolladon
   For example, "I'm always frustrated when..."
 -->
 
-### Describe the solution you'd like
+### Describe a solution you propose
 
 ---
 
@@ -37,5 +37,5 @@ assignees: scolladon
 
 <!--
   Is there anything else you can add about the proposal?
-  You might want to link to related issues here, if you haven't already.
+  You might want to link related issues here, if you haven't already.
 -->
