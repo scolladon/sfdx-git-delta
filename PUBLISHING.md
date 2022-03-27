@@ -13,10 +13,10 @@ Here are the steps to publish a version
 $ yarn release
 ```
 
-It will :
+This will:
 
 - Create a new version based on the commit types from head and package.json version
-- Create the changelog with all the commit from head and the last tag version following [keepachangelog](https://keepachangelog.com/en/1.0.0/)
+- Create a changelog with all the commit from head and the last tag version following [keepachangelog](https://keepachangelog.com/en/1.0.0/)
 - Create a new commit with the generated changelog, update package.json
 - Create a new tag following the semver
 - Push this tag to the remote

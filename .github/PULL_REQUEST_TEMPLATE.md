@@ -2,7 +2,7 @@
 Thanks for sending a pull request! Please make sure you click the link above to view the contribution guidelines, then fill out the blanks below.
 -->
 
-## What does this pull request contains
+## What does this pull request contain?
 
 ---
 
@@ -10,12 +10,12 @@ Thanks for sending a pull request! Please make sure you click the link above to 
   Check all that apply
 -->
 
-- [ ] Added for new features.
-- [ ] Changed for changes in existing functionality.
-- [ ] Deprecated for soon-to-be removed features.
-- [ ] Removed for now removed features.
-- [ ] Fixed for any bug fixes.
-- [ ] Security in case of vulnerabilities.
+- [ ] Added (for new features).
+- [ ] Changed (for changes in existing functionality).
+- [ ] Deprecated (for soon-to-be removed features).
+- [ ] Removed (for now removed features).
+- [ ] Fixed (for any bug fixes).
+- [ ] Security (for vulnerability fixes).
 
 ## Explain your changes
 
@@ -30,23 +30,23 @@ Thanks for sending a pull request! Please make sure you click the link above to 
 ---
 
 <!--
-  Provide the issue link or remove this section
-  EX : #<issue-number>
+  Provide an issue link or remove this section
+  Ex: #<issue-number>
 -->
 
 closes #
 
-- [ ] Jest test to check the fix is applied are added.
+- [ ] Jest test added to check the fix is applied.
 
-## Any particular element to being able to test locally
+## Any particular element that can be tested locally
 
 ---
 
 <!--
-  Provide any new parameters or behaviour with current parameters
+  Provide any new parameters or new behaviour with existing parameters
 -->
 
-## Any other comments?
+## Any other comments
 
 ---
 
