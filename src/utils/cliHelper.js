@@ -1,9 +1,9 @@
 'use strict'
 const asyncFilter = require('./asyncFilter')
 const RepoSetup = require('./repoSetup')
-const { sanitizePath } = require('./childProcessUtils')
-const { GIT_FOLDER } = require('./gitConstants')
-
+const { sanitizePath, getStreamContent } = require('./childProcessUtils')
+const { COMMIT_REF_TYPE, GIT_FOLDER } = require('./gitConstants')
+const { spawn } = require('child_process')
 const { stat } = require('fs').promises
 const { join } = require('path')
 
@@ -24,8 +24,9 @@ const isGit = async dir => {
   return await dirExists(join(dir, GIT_FOLDER))
 }
 
-const commitCheckParams = ['cat-file', 'commit']
-const childProcess = require('child_process')
+const commitCheckParams = ['cat-file', '-t']
+
+const isBlank = str => !str || /^\s*$/.test(str)
 
 class CLIHelper {
   constructor(config) {
@@ -33,30 +34,36 @@ class CLIHelper {
     this.repoSetup = new RepoSetup(config)
   }
 
-  validateGitSha() {
+  async _validateGitSha() {
     const errors = []
-    ;['to', 'from'].forEach(field => {
-      const { status } = childProcess.spawnSync(
-        'git',
-        [...commitCheckParams, this.config[field]],
-        { cwd: this.config.repo }
-      )
-      if (status != 0) {
-        errors.push(`${field} ${this.config[field]} is not a valid commit`)
-      }
-    })
+    await Promise.all(
+      ['to', 'from'].map(async field => {
+        if (isBlank(this.config[field])) {
+          errors.push(
+            `--${field} ${this.config[field]} is not a git expression`
+          )
+        }
 
-    if (errors.length > 0) {
-      throw new Error(errors.join(', '))
-    }
+        const refType = await getStreamContent(
+          spawn('git', [...commitCheckParams, this.config[field]], {
+            cwd: this.config.repo,
+          })
+        )
+        if (refType?.replace(/\s/g, '') !== COMMIT_REF_TYPE) {
+          errors.push(
+            `--${field} ${this.config[field]} is not a valid sha pointer`
+          )
+        }
+      })
+    )
+
+    return errors
   }
 
   async validateConfig() {
-    await this._sanitizeConfig()
+    this._sanitizeConfig()
     const errors = []
-    if (typeof this.config.to !== 'string') {
-      errors.push(`to ${this.config.to} is not a sha`)
-    }
+
     if (isNaN(this.config.apiVersion)) {
       errors.push(`api-version ${this.config.apiVersion} is not a number`)
     }
@@ -76,6 +83,9 @@ class CLIHelper {
     if (!isGitRepo) {
       errors.push(`${this.config.repo} is not a git repository`)
     }
+
+    const gitErrors = await this._validateGitSha()
+    errors.push(...gitErrors)
 
     const isToEqualHead = await isToEqualHeadPromise
     if (!isToEqualHead && this.config.generateDelta) {
@@ -116,14 +126,13 @@ class CLIHelper {
     )
   }
 
-  async _sanitizeConfig() {
+  _sanitizeConfig() {
     this.config.apiVersion = parseInt(this.config.apiVersion)
     this.config.repo = sanitizePath(this.config.repo)
     this.config.source = sanitizePath(this.config.source)
     this.config.output = sanitizePath(this.config.output)
     this.config.ignore = sanitizePath(this.config.ignore)
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)
-    this.config.from = await this.repoSetup.computeFromRef()
     this.config.include = sanitizePath(this.config.include)
     this.config.includeDestructive = sanitizePath(
       this.config.includeDestructive

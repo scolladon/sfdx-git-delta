@@ -22,6 +22,16 @@ async function* linify(stream) {
   }
 }
 
+const getStreamContent = async stream => {
+  const content = []
+  for await (const chunk of stream.stdout) {
+    content.push(chunk)
+  }
+
+  return content.join('')
+}
+
+module.exports.getStreamContent = getStreamContent
+module.exports.linify = linify
 module.exports.treatPathSep = treatPathSep
 module.exports.sanitizePath = sanitizePath
-module.exports.linify = linify
