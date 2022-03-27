@@ -1,11 +1,11 @@
 'use strict'
+const fs = require('fs')
+const child_process = require('child_process')
 const app = require('../src/main')
-const { GIT_FOLDER } = require('../src/utils/gitConstants')
+const { COMMIT_REF_TYPE, GIT_FOLDER } = require('../src/utils/gitConstants')
 jest.mock('fs')
 jest.mock('fs-extra')
 jest.mock('child_process')
-const fs = require('fs')
-const child_process = require('child_process')
 
 const lines = [
   'D      force-app/main/default/objects/Account/fields/deleted.field-meta.xml',
@@ -38,13 +38,21 @@ describe(`test if the appli`, () => {
     })
   })
   test('can execute with rich parameters and big diff', async () => {
-    child_process.__setOutput([lines, [], ['firstSHA']])
+    child_process.__setOutput([
+      lines,
+      [],
+      [],
+      [COMMIT_REF_TYPE],
+      [COMMIT_REF_TYPE],
+      [],
+    ])
     expect(
       await app({
         output: 'output',
         repo: '.',
         source: '',
         to: 'test',
+        from: 'main',
         apiVersion: '46',
       })
     ).toHaveProperty('warnings', [])
@@ -52,12 +60,20 @@ describe(`test if the appli`, () => {
 
   test('catch internal warnings', async () => {
     fs.errorMode = true
-    child_process.__setOutput([lines, [], ['firstSHA']])
+    child_process.__setOutput([
+      lines,
+      [],
+      [],
+      [],
+      [COMMIT_REF_TYPE],
+      [COMMIT_REF_TYPE],
+    ])
     const work = await app({
       output: 'output',
       repo: '',
       source: '',
       to: 'HEAD',
+      from: 'main',
       apiVersion: '46',
       generateDelta: true,
     })
@@ -65,12 +81,20 @@ describe(`test if the appli`, () => {
   })
 
   test('do not generate destructiveChanges.xml and package.xml with same element', async () => {
-    child_process.__setOutput([lines, [], ['firstSHA']])
+    child_process.__setOutput([
+      lines,
+      [],
+      [],
+      [],
+      [COMMIT_REF_TYPE],
+      [COMMIT_REF_TYPE],
+    ])
     const work = await app({
       output: 'output',
       repo: '',
       source: '',
       to: 'HEAD',
+      from: 'main',
       apiVersion: '46',
       generateDelta: true,
     })

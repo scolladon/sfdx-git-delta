@@ -21,24 +21,6 @@ describe(`test if repoSetup`, () => {
     expect(toEqualHead).toBe(false)
   })
 
-  test('can set config.from if not defined', async () => {
-    const config = { repo: '.' }
-    child_process.__setOutput([['firstSha']])
-    const repoSetup = new RepoSetup(config)
-    const firsSha = await repoSetup.computeFromRef()
-
-    expect(firsSha).not.toBeUndefined()
-  })
-
-  test('can set config.from if defined', async () => {
-    const config = { repo: '.', from: 'HEAD~1' }
-    child_process.__setOutput([['firstSha']])
-    const repoSetup = new RepoSetup(config)
-    const firsSha = await repoSetup.computeFromRef()
-
-    expect(firsSha).not.toBeUndefined()
-  })
-
   test('can set core.quotepath to off', async () => {
     const config = { repo: '.', from: 'HEAD~1' }
     child_process.__setOutput([['']])

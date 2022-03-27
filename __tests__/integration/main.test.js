@@ -1,6 +1,6 @@
 'use strict'
 const app = require('../../src/main')
-const { GIT_FOLDER } = require('../../src/utils/gitConstants')
+const { COMMIT_REF_TYPE, GIT_FOLDER } = require('../../src/utils/gitConstants')
 
 jest.mock('child_process')
 jest.mock('fs-extra')
@@ -14,6 +14,7 @@ const testConfig = {
   repo: '',
   source: '',
   to: 'test',
+  from: 'main',
   apiVersion: '46',
 }
 
@@ -32,7 +33,7 @@ describe(`test if the appli`, () => {
   })
 
   beforeEach(() => {
-    child_process.__setOutput([])
+    child_process.__setOutput([[], [COMMIT_REF_TYPE], [COMMIT_REF_TYPE], []])
     child_process.__setError(false)
   })
 
@@ -92,17 +93,5 @@ describe(`test if the appli`, () => {
         output: '.\\output\\..\\output',
       })
     ).toHaveProperty('warnings', [])
-  })
-
-  test('catch and reject big issues', async () => {
-    fsMocked.errorMode = true
-    fseMocked.errorMode = true
-    fseMocked.outputFileError = true
-    child_process.__setError(true)
-    try {
-      await app(testConfig)
-    } catch (error) {
-      expect(error).toBeDefined()
-    }
   })
 })
