@@ -1,6 +1,7 @@
 'use strict'
 const { create } = require('xmlbuilder2')
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
+const frLocale = 'fr'
 
 module.exports = class PackageConstructor {
   constructor(config, metadata) {
@@ -27,7 +28,7 @@ module.exports = class PackageConstructor {
       .sort(sortTypes)
       .forEach(metadataType =>
         [...strucDiffPerType.get(metadataType)]
-          .sort(Intl.Collator().compare)
+          .sort(Intl.Collator(frLocale).compare)
           .reduce((type, member) => {
             type.ele('members').txt(member)
             return type
@@ -44,5 +45,5 @@ const sortTypesWithMetadata = metadata => (x, y) => {
   if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
   const xMeta = metadata.get(x)?.xmlName ?? x
   const yMeta = metadata.get(y)?.xmlName ?? y
-  return new Intl.Collator().compare(xMeta, yMeta)
+  return new Intl.Collator(frLocale).compare(xMeta, yMeta)
 }
