@@ -27,7 +27,7 @@ module.exports = class PackageConstructor {
       .sort(sortTypes)
       .forEach(metadataType =>
         [...strucDiffPerType.get(metadataType)]
-          .sort()
+          .sort(Intl.Collator().compare)
           .reduce((type, member) => {
             type.ele('members').txt(member)
             return type
@@ -44,5 +44,5 @@ const sortTypesWithMetadata = metadata => (x, y) => {
   if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
   const xMeta = metadata.get(x)?.xmlName ?? x
   const yMeta = metadata.get(y)?.xmlName ?? y
-  return xMeta.localeCompare(yMeta)
+  return new Intl.Collator().compare(xMeta, yMeta)
 }
