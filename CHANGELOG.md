@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.0.7](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.6...v5.0.7) (2022-03-29)
+
+
+### Bug Fixes
+
+* improve markdown files spelling ([#266](https://github.com/scolladon/sfdx-git-delta/issues/266)) ([02bf943](https://github.com/scolladon/sfdx-git-delta/commit/02bf943f36c45733b0bf20dbed2c045ac1107e61))
+* parseLine array result destructure selection ([#281](https://github.com/scolladon/sfdx-git-delta/issues/281)) ([5a4ee7c](https://github.com/scolladon/sfdx-git-delta/commit/5a4ee7c34592720cca2f39b2716b2e92c0325634))
+
 ### [5.0.6](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.5...v5.0.6) (2022-03-24)
 
 
