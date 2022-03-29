@@ -44,7 +44,7 @@ class ResourceHandler extends StandardHandler {
   }
 
   async handleDeletion() {
-    const [, srcPath, elementName] = this._parseLine()
+    const [, , srcPath, elementName] = this._parseLine()
     const exists = await pathExists(join(srcPath, elementName))
     if (exists) {
       await this.handleModification()

@@ -167,7 +167,7 @@ class StandardHandler {
     const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
     return join(this.config.repo, this.line).match(
       new RegExp(
-        `(${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
+        `(?<repo>${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
           StandardHandler.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
