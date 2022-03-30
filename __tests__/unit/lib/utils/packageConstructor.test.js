@@ -13,12 +13,14 @@ const tests = [
           'YetAnotherObject',
           'OtherObject',
           'AgainAnObject',
+          'ÀgainAndAgainAnObject',
         ]),
       })
     ),
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
+        <members>ÀgainAndAgainAnObject</members>
         <members>AgainAnObject</members>
         <members>Object</members>
         <members>OtherObject</members>
