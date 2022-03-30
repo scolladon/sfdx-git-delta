@@ -5,6 +5,7 @@ const { UTF8_ENCODING } = require('../utils/gitConstants')
 const {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
+  OBJECT_TYPE,
 } = require('../utils/metadataConstants')
 const { join, parse, resolve } = require('path')
 const { readdir, readFile } = require('fs').promises
@@ -22,7 +23,7 @@ class CustomObjectHandler extends StandardHandler {
   }
 
   async _handleMasterDetailException() {
-    if (this.type !== CustomObjectHandler.OBJECT_TYPE) return
+    if (this.type !== OBJECT_TYPE) return
 
     const fieldsFolder = join(
       this.config.repo,
@@ -50,9 +51,6 @@ class CustomObjectHandler extends StandardHandler {
       )
     )
   }
-
-  static OBJECT_TYPE = 'objects'
-  static TERRITORY_MODEL_TYPE = 'territory2Models'
 }
 
 module.exports = CustomObjectHandler

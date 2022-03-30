@@ -1,8 +1,5 @@
 'use strict'
 const cpUtils = require('./childProcessUtils')
-const CustomObject = require('../service/customObjectHandler')
-const InTranslation = require('../service/inTranslationHandler')
-const SubCustomObject = require('../service/subCustomObjectHandler')
 const { getType } = require('../utils/typeUtils')
 const {
   ADDITION,
@@ -12,6 +9,11 @@ const {
   MODIFICATION,
   UTF8_ENCODING,
 } = require('./gitConstants')
+const {
+  SUB_OBJECT_TYPES,
+  OBJECT_TYPE,
+  OBJECT_TRANSLATION_TYPE,
+} = require('./metadataConstants')
 const { spawn } = require('child_process')
 const { readFile } = require('fs').promises
 const ignore = require('ignore')
@@ -32,11 +34,7 @@ const lcSensitivity = {
   sensitivity: 'accent',
 }
 
-const pathType = [
-  CustomObject.OBJECT_TYPE,
-  InTranslation.OBJECT_TRANSLATION_TYPE,
-  ...SubCustomObject.SUB_OBJECT_TYPES,
-]
+const pathType = [OBJECT_TYPE, OBJECT_TRANSLATION_TYPE, ...SUB_OBJECT_TYPES]
 class RepoGitDiff {
   constructor(config, metadata) {
     this.config = config

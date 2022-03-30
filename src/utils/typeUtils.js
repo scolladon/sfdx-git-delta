@@ -1,12 +1,11 @@
 'use strict'
-const CustomObject = require('../service/customObjectHandler')
+const {
+  OBJECT_TYPE,
+  TERRITORY_MODEL_TYPE,
+} = require('../utils/metadataConstants')
 const { sep } = require('path')
 
-const haveSubTypes = [
-  CustomObject.OBJECT_TYPE,
-  CustomObject.TERRITORY_MODEL_TYPE,
-  '',
-]
+const haveSubTypes = [OBJECT_TYPE, TERRITORY_MODEL_TYPE, '']
 
 module.exports.getType = (line, metadata) =>
   line.split(sep).reduce((acc, value, _, arr) => {
