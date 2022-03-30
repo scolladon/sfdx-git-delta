@@ -6,12 +6,25 @@ const options = { apiVersion: '46' }
 const tests = [
   [
     'Object',
-    new Map(Object.entries({ objects: new Set(['Object', 'OtherObject']) })),
+    new Map(
+      Object.entries({
+        objects: new Set([
+          'Object',
+          'YetAnotherObject',
+          'OtherObject',
+          'AgainAnObject',
+          'ÀgainAndAgainAnObject',
+        ]),
+      })
+    ),
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
+        <members>ÀgainAndAgainAnObject</members>
+        <members>AgainAnObject</members>
         <members>Object</members>
         <members>OtherObject</members>
+        <members>YetAnotherObject</members>
         <name>CustomObject</name>
     </types>
     <version>${options.apiVersion}.0</version>
@@ -33,7 +46,7 @@ const tests = [
         documents: new Set(['Document']),
         fields: new Set(['Field']),
         lwc: new Set(['Component']),
-        objects: new Set(['Object', 'OtherObject']),
+        objects: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
       })
     ),
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -41,6 +54,7 @@ const tests = [
     <types>
         <members>Object</members>
         <members>OtherObject</members>
+        <members>YetAnotherObject</members>
         <name>CustomObject</name>
     </types>
     <types>
