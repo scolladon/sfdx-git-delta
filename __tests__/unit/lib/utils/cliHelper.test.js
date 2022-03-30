@@ -134,7 +134,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      '--to  is not a git expression'
+      `--to is blank: '${emptyString}'`
     )
   })
 
@@ -147,7 +147,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      '--from  is not a git expression'
+      `--from is blank: '${emptyString}'`
     )
   })
 
@@ -161,7 +161,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--to ${notHeadSHA} is not a valid sha pointer`
+      `--to is not a valid sha pointer: '${notHeadSHA}'`
     )
   })
 
@@ -175,7 +175,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--from ${notHeadSHA} is not a valid sha pointer`
+      `--from is not a valid sha pointer: '${notHeadSHA}'`
     )
   })
 })

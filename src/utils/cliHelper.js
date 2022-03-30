@@ -37,24 +37,24 @@ class CLIHelper {
   async _validateGitSha() {
     const errors = []
     await Promise.all(
-      ['to', 'from'].map(async field => {
-        if (isBlank(this.config[field])) {
-          errors.push(
-            `--${field} ${this.config[field]} is not a git expression`
-          )
-        }
-
-        const refType = await getStreamContent(
-          spawn('git', [...commitCheckParams, this.config[field]], {
-            cwd: this.config.repo,
-          })
+      ['to', 'from']
+        .filter(
+          field =>
+            !isBlank(this.config[field]) ||
+            errors.push(`--${field} is blank: '${this.config[field]}'`)
         )
-        if (refType?.replace(/\s/g, '') !== COMMIT_REF_TYPE) {
-          errors.push(
-            `--${field} ${this.config[field]} is not a valid sha pointer`
+        .map(async field => {
+          const refType = await getStreamContent(
+            spawn('git', [...commitCheckParams, this.config[field]], {
+              cwd: this.config.repo,
+            })
           )
-        }
-      })
+          if (refType?.replace(/\s/g, '') !== COMMIT_REF_TYPE) {
+            errors.push(
+              `--${field} is not a valid sha pointer: '${this.config[field]}'`
+            )
+          }
+        })
     )
 
     return errors
