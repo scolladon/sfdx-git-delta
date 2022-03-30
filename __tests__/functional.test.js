@@ -108,12 +108,20 @@ describe(`test if the appli`, () => {
   })
 
   test('check for proper territory handling', async () => {
-    child_process.__setOutput([lines, [], ['firstSHA']])
+    child_process.__setOutput([
+      lines,
+      [],
+      [],
+      [],
+      [COMMIT_REF_TYPE],
+      [COMMIT_REF_TYPE],
+    ])
     const work = await app({
       output: 'output',
       repo: '',
       source: '',
       to: 'HEAD',
+      from: 'main',
       apiVersion: '46',
       generateDelta: true,
     })
