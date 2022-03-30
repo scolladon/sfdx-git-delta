@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.1.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.7...v5.1.0) (2022-03-30)
+
+
+### Features
+
+* verify `--from` and `--to` parameters to be valid git pointer ([#248](https://github.com/scolladon/sfdx-git-delta/issues/248)) ([6c8accc](https://github.com/scolladon/sfdx-git-delta/commit/6c8accc8adfaaaf76c0ed298a14a3feb7de5ecd8))
+
+
+### Bug Fixes
+
+* use more robust comparison for package.xml generation ([#279](https://github.com/scolladon/sfdx-git-delta/issues/279)) ([f028375](https://github.com/scolladon/sfdx-git-delta/commit/f0283753fc0fbcfec7c242f40913515aea306466))
+
 ### [5.0.7](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.6...v5.0.7) (2022-03-29)
 
 
