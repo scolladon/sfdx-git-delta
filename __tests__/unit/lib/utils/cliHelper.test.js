@@ -1,18 +1,16 @@
 'use strict'
-
-jest.mock('../../../../src/utils/repoSetup')
-const RepoSetup = require('../../../../src/utils/repoSetup')
-RepoSetup.mockImplementation(() => {
-  return {
-    isToEqualHead: jest.fn(),
-    repoConfiguration: jest.fn(),
-    computeFromRef: jest.fn(),
-  }
-})
-jest.mock('fs')
-
+const child_process = require('child_process')
 const fs = require('fs')
+const { COMMIT_REF_TYPE } = require('../../../../src/utils/gitConstants')
+const RepoSetup = require('../../../../src/utils/repoSetup')
 const CLIHelper = require('../../../../src/utils/cliHelper')
+jest.mock('fs')
+jest.mock('child_process')
+jest.mock('../../../../src/utils/repoSetup')
+RepoSetup.mockImplementation(() => ({
+  isToEqualHead: jest.fn(),
+  repoConfiguration: jest.fn(),
+}))
 
 const testConfig = {
   output: 'output',
@@ -32,30 +30,16 @@ describe(`test if the application`, () => {
     })
   })
 
-  beforeEach(() => {
-    jest.resetAllMocks()
-  })
-
   test('throws errors when to parameter is not filled', async () => {
     let cliHelper = new CLIHelper({ ...testConfig, to: undefined })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when apiVersion parameter is NaN', async () => {
     let cliHelper = new CLIHelper({ ...testConfig, apiVersion: 'NotANumber' })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when fs.stat throw error', async () => {
@@ -65,13 +49,8 @@ describe(`test if the application`, () => {
       to: undefined,
       output: 'stat/error',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when output folder does not exist', async () => {
@@ -80,24 +59,14 @@ describe(`test if the application`, () => {
       to: undefined,
       output: 'not/exist/folder',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when output is not a folder', async () => {
     let cliHelper = new CLIHelper({ ...testConfig, output: 'file' })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when repo is not git repository', async () => {
@@ -105,13 +74,8 @@ describe(`test if the application`, () => {
       ...testConfig,
       repo: 'not/git/folder',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when file is not found for --ignore', async () => {
@@ -119,13 +83,8 @@ describe(`test if the application`, () => {
       ...testConfig,
       ignore: 'not-a-file',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when file is not found for --ignore-destructive', async () => {
@@ -133,13 +92,8 @@ describe(`test if the application`, () => {
       ...testConfig,
       ignoreDestructive: 'not-a-file',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when file is not found for --include', async () => {
@@ -147,13 +101,8 @@ describe(`test if the application`, () => {
       ...testConfig,
       include: 'not-a-file',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when file is not found for --include-destructive', async () => {
@@ -161,13 +110,8 @@ describe(`test if the application`, () => {
       ...testConfig,
       includeDestructive: 'not-a-file',
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   test('throws errors when "-t" and "-d" are set', async () => {
@@ -177,12 +121,61 @@ describe(`test if the application`, () => {
       to: notHeadSHA,
       generateDelta: true,
     })
-    try {
-      await cliHelper.validateConfig()
-    } catch (e) {
-      expect(e).toBeDefined()
-      return
-    }
-    expect(true).toBe(false)
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
+  })
+
+  test('throws errors when "-t" is not a git expression', async () => {
+    const emptyString = ''
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      to: emptyString,
+      generateDelta: false,
+    })
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow(
+      `--to is blank: '${emptyString}'`
+    )
+  })
+
+  test('throws errors when "-f" is not a git expression', async () => {
+    const emptyString = ''
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      from: emptyString,
+      generateDelta: false,
+    })
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow(
+      `--from is blank: '${emptyString}'`
+    )
+  })
+
+  test('throws errors when "-t" is not a valid sha pointer', async () => {
+    child_process.__setOutput([[COMMIT_REF_TYPE], ['not a valid sha pointer']])
+    const notHeadSHA = 'test'
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      to: notHeadSHA,
+      generateDelta: false,
+    })
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow(
+      `--to is not a valid sha pointer: '${notHeadSHA}'`
+    )
+  })
+
+  test('throws errors when "-f" is not a valid sha pointer', async () => {
+    child_process.__setOutput([['not a valid sha pointer'], [COMMIT_REF_TYPE]])
+    const notHeadSHA = 'test'
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      from: notHeadSHA,
+      generateDelta: false,
+    })
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.toThrow(
+      `--from is not a valid sha pointer: '${notHeadSHA}'`
+    )
   })
 })

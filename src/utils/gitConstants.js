@@ -2,6 +2,7 @@
 module.exports.ADDITION = 'A'
 module.exports.DELETION = 'D'
 module.exports.MODIFICATION = 'M'
+module.exports.COMMIT_REF_TYPE = 'commit'
 module.exports.GIT_DIFF_TYPE_REGEX = /^.\s+/u
 module.exports.GIT_FOLDER = '.git'
 module.exports.MINUS = '-'
