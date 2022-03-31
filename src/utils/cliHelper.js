@@ -2,7 +2,7 @@
 const asyncFilter = require('./asyncFilter')
 const RepoSetup = require('./repoSetup')
 const { sanitizePath, getStreamContent } = require('./childProcessUtils')
-const { COMMIT_REF_TYPE, GIT_FOLDER } = require('./gitConstants')
+const { GIT_FOLDER, POINTER_REF_TYPES } = require('./gitConstants')
 const { spawn } = require('child_process')
 const { stat } = require('fs').promises
 const { join } = require('path')
@@ -49,7 +49,7 @@ class CLIHelper {
               cwd: this.config.repo,
             })
           )
-          if (refType?.replace(/\s/g, '') !== COMMIT_REF_TYPE) {
+          if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
             errors.push(
               `--${field} is not a valid sha pointer: '${this.config[field]}'`
             )

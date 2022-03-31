@@ -24,7 +24,7 @@
 <details>
   <summary>Table of Contents</summary>
 
-- [TL;DR;](#tldr)
+- [TL;DR](#tldr)
 - [What is SFDX-Git-Delta?](#what-is-sfdx-git-delta)
 - [Is SGD for you?](#is-sgd-for-you)
 - [Getting Started](#getting-started)
@@ -33,6 +33,7 @@
 - [How to use it?](#how-to-use-it)
 - [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
   - [Windows users](#windows-users)
+  - [CI/CD specificity](#cicd-specificity)
   - [Use cases](#use-cases)
 - [Walkthrough](#walkthrough)
   - [Execute sgd](#execute-sgd)
@@ -190,6 +191,18 @@ _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-
 
 If you run SGD on a Windows system, use double quotes [to prevent the terminal to interpret parameters](https://github.com/scolladon/sfdx-git-delta/issues/134)
 
+### CI/CD specificity
+
+In CI/CD pipelines, branches are not checked out locally when the repository is cloned so you must specify the remote prefix.
+If you do not specify the remote in CI context, the git pointer check will raise an error as the branch is not created locally.
+This applies to both `--from` and `--to` parameters as they both accept git pointers.
+
+Exemple comparing `HEAD` with a `development` branch when the CI clone the repository with `origin` set as reference to the remote:
+
+```sh
+sfdx sgd:source:delta --to "HEAD" --from "origin/development" --output .
+```
+
 ### Use cases
 
 Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD, etc.).
@@ -267,7 +280,11 @@ Note: it is also possible to generate a **source** folder containing added/chang
 
 ### Deploy the delta metadata
 
-The simplest option to deploy the delta changes is to use `force:source:deploy`:
+The simplest option to deploy the delta changes is to use `force:source:deploy` command with `-x` parameter:
+
+```sh
+sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
+```
 
 ```sh
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
@@ -331,6 +348,12 @@ _Content of the output folder when using the --generate-delta option, with the s
 > # You can omit --to, it will take "HEAD" as default value
 > $ sfdx sgd:source:delta --from "HEAD^" --output changed-sources/ --generate-delta
 > ```
+
+Then it is possible to deploy the `change-sources` folder using `force:source:deploy` command with `-p` parameter:
+
+```sh
+sfdx force:source:deploy -p change-sources
+```
 
 ### Exclude some metadata only from destructiveChanges.xml:
 
