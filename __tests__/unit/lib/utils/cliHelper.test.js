@@ -1,7 +1,10 @@
 'use strict'
 const child_process = require('child_process')
 const fs = require('fs')
-const { COMMIT_REF_TYPE } = require('../../../../src/utils/gitConstants')
+const {
+  COMMIT_REF_TYPE,
+  TAG_REF_TYPE,
+} = require('../../../../src/utils/gitConstants')
 const RepoSetup = require('../../../../src/utils/repoSetup')
 const CLIHelper = require('../../../../src/utils/cliHelper')
 jest.mock('fs')
@@ -152,7 +155,7 @@ describe(`test if the application`, () => {
   })
 
   test('throws errors when "-t" is not a valid sha pointer', async () => {
-    child_process.__setOutput([[COMMIT_REF_TYPE], ['not a valid sha pointer']])
+    child_process.__setOutput([[TAG_REF_TYPE], ['not a valid sha pointer']])
     const notHeadSHA = 'test'
     let cliHelper = new CLIHelper({
       ...testConfig,
@@ -176,6 +179,44 @@ describe(`test if the application`, () => {
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
       `--from is not a valid sha pointer: '${notHeadSHA}'`
+    )
+  })
+
+  test('throws errors when "-t" and "-f" are not a valid sha pointer', async () => {
+    child_process.__setOutput([
+      ['not a valid sha pointer'],
+      ['not a valid sha pointer'],
+    ])
+    const notHeadSHA = 'test'
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      to: notHeadSHA,
+      from: notHeadSHA,
+      generateDelta: false,
+    })
+    expect.assertions(2)
+    await expect(cliHelper.validateConfig()).rejects.toThrow(
+      `--to is not a valid sha pointer: '${notHeadSHA}'`
+    )
+    await expect(cliHelper.validateConfig()).rejects.toThrow(
+      `--from is not a valid sha pointer: '${notHeadSHA}'`
+    )
+  })
+
+  test('do not throw errors when "-t" and "-f" are valid sha pointer', async () => {
+    child_process.__setOutput([[TAG_REF_TYPE], [COMMIT_REF_TYPE]])
+    const notHeadSHA = 'test'
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      from: notHeadSHA,
+      generateDelta: false,
+    })
+    expect.assertions(2)
+    await expect(cliHelper.validateConfig()).rejects.not.toThrow(
+      `--to is not a valid sha pointer: '${COMMIT_REF_TYPE}'`
+    )
+    await expect(cliHelper.validateConfig()).rejects.not.toThrow(
+      `--from is not a valid sha pointer: '${TAG_REF_TYPE}'`
     )
   })
 })
