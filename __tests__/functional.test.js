@@ -26,6 +26,8 @@ const lines = [
   'A      force-app/main/default/documents/Added/doc.document',
   'A      force-app/main/default/lwc/Added/component.js`',
   'D      force-app/main/sample/objects/Account/fields/changed.field-meta.xml',
+  'A      force-app/main/default/territory2Models/EU/territories/France.territory2-meta.xml',
+  'A      force-app/main/default/territory2Models/EU/rules/France.territory2Rule-meta.xml',
 ]
 
 describe(`test if the appli`, () => {
@@ -103,5 +105,26 @@ describe(`test if the appli`, () => {
     expect(work.diffs.destructiveChanges.get('fields')).not.toContain(
       'Account.changed'
     )
+  })
+
+  test('check for proper territory handling', async () => {
+    child_process.__setOutput([
+      lines,
+      [],
+      [],
+      [],
+      [COMMIT_REF_TYPE],
+      [COMMIT_REF_TYPE],
+    ])
+    const work = await app({
+      output: 'output',
+      repo: '',
+      source: '',
+      to: 'HEAD',
+      from: 'main',
+      apiVersion: '46',
+      generateDelta: true,
+    })
+    expect(work.diffs.package.get('rules')).toContain('EU.France')
   })
 })

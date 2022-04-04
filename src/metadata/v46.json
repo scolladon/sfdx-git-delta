@@ -771,6 +771,10 @@
     "xmlName": "Territory2Type"
   },
   {
+    "childXmlNames": [
+      "Territory2Rule",
+      "Territory2"
+    ],
     "directoryName": "territory2Models",
     "inFolder": false,
     "metaFile": false,

@@ -45,20 +45,6 @@ class SubCustomObjectHandler extends StandardHandler {
 
     packageObject.get(this.type).add(`${prefix}.${elementName}`)
   }
-
-  static SUB_OBJECT_TYPES = [
-    'businessProcesses',
-    'compactLayouts',
-    'fieldSets',
-    'fields',
-    'listViews',
-    'recordTypes',
-    'rules',
-    'sharingReasons',
-    'territories',
-    'validationRules',
-    'webLinks',
-  ]
 }
 
 module.exports = SubCustomObjectHandler
