@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.1.1...v5.1.2) (2022-04-04)
+
+
+### Bug Fixes
+
+* territories metadata type handling ([#277](https://github.com/scolladon/sfdx-git-delta/issues/277)) ([37488e1](https://github.com/scolladon/sfdx-git-delta/commit/37488e1b5f3d14824491e5968b288185995a81b7))
+
 ### [5.1.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.1.0...v5.1.1) (2022-03-31)
 
 
