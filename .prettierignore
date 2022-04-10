@@ -3,3 +3,4 @@ yarn.lock
 node_modules
 output
 coverage
+.github
