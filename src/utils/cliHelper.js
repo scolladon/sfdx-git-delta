@@ -1,9 +1,11 @@
 'use strict'
 const asyncFilter = require('./asyncFilter')
+const messages = require('../locales/en')
 const RepoSetup = require('./repoSetup')
 const { sanitizePath, getStreamContent } = require('./childProcessUtils')
 const { GIT_FOLDER, POINTER_REF_TYPES } = require('./gitConstants')
 const { spawn } = require('child_process')
+const { format } = require('util')
 const { stat } = require('fs').promises
 const { join } = require('path')
 
@@ -41,7 +43,9 @@ class CLIHelper {
         .filter(
           field =>
             !isBlank(this.config[field]) ||
-            errors.push(`--${field} is blank: '${this.config[field]}'`)
+            !errors.push(
+              format(messages.errorGitSHAisBlank, field, this.config[field])
+            )
         )
         .map(async field => {
           const refType = await getStreamContent(
@@ -51,7 +55,11 @@ class CLIHelper {
           )
           if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
             errors.push(
-              `--${field} is not a valid sha pointer: '${this.config[field]}'`
+              format(
+                messages.errorParameterIsNotGitSHA,
+                field,
+                this.config[field]
+              )
             )
           }
         })
@@ -65,7 +73,7 @@ class CLIHelper {
     const errors = []
 
     if (isNaN(this.config.apiVersion)) {
-      errors.push(`api-version ${this.config.apiVersion} is not a number`)
+      errors.push(format(messages.errorAPIVersionIsNan, this.config.apiVersion))
     }
 
     const isGitPromise = isGit(this.config.repo)
@@ -74,14 +82,18 @@ class CLIHelper {
     const filesPromise = this._filterFiles()
 
     const directories = await directoriesPromise
-    directories.forEach(dir => errors.push(`${dir} folder does not exist`))
+    directories.forEach(dir =>
+      errors.push(format(messages.errorPathIsNotDir, dir))
+    )
 
     const files = await filesPromise
-    files.forEach(file => errors.push(`${file} file does not exist`))
+    files.forEach(file =>
+      errors.push(format(messages.errorPathIsNotFile, file))
+    )
 
     const isGitRepo = await isGitPromise
     if (!isGitRepo) {
-      errors.push(`${this.config.repo} is not a git repository`)
+      errors.push(format(messages.errorPathIsNotGit, this.config.repo))
     }
 
     const gitErrors = await this._validateGitSha()
@@ -89,9 +101,7 @@ class CLIHelper {
 
     const isToEqualHead = await isToEqualHeadPromise
     if (!isToEqualHead && this.config.generateDelta) {
-      errors.push(
-        `--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD`
-      )
+      errors.push(messages.errorToNotHeadWithDeltaGenerate)
     }
 
     if (errors.length > 0) {
