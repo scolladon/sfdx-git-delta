@@ -467,6 +467,22 @@ console.log(JSON.stringify(work))
  */
 ```
 
+### Condition a deployment if package.xml and destructiveChange are empty
+
+Since we can add files to .sgdignore, [some commits on those files can lead to empty package.xml and destructiveChanges.xml and cause deployment errors.](https://github.com/scolladon/sfdx-git-delta/issues/249)
+
+To adress this requirement, you can test files content and condition your command to run:
+
+```sh
+# run deploy command only if the generated package contains metadata
+if grep -q '<types>' ./package/package.xml ; then
+  echo "---- Deploying added and modified metadata ----"
+  sfdx force:source:deploy -x package/package.xml
+else
+  echo "---- No changes to deploy ----"
+fi
+```
+
 ## Changelog
 
 [changelog.md](/CHANGELOG.md) is available for consultation.
