@@ -15,6 +15,7 @@ jest.mock('../../../../src/utils/repoSetup')
 RepoSetup.mockImplementation(() => ({
   isToEqualHead: jest.fn(),
   repoConfiguration: jest.fn(),
+  getCommitRefType: jest.fn(),
 }))
 
 const testConfig = {

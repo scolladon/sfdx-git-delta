@@ -2,9 +2,8 @@
 const asyncFilter = require('./asyncFilter')
 const messages = require('../locales/en')
 const RepoSetup = require('./repoSetup')
-const { sanitizePath, getStreamContent } = require('./childProcessUtils')
+const { sanitizePath } = require('./childProcessUtils')
 const { GIT_FOLDER, POINTER_REF_TYPES } = require('./gitConstants')
-const { spawn } = require('child_process')
 const { format } = require('util')
 const { stat } = require('fs').promises
 const { join } = require('path')
@@ -26,8 +25,6 @@ const isGit = async dir => {
   return await dirExists(join(dir, GIT_FOLDER))
 }
 
-const commitCheckParams = ['cat-file', '-t']
-
 const isBlank = str => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS = ['to', 'from']
@@ -48,10 +45,8 @@ class CLIHelper {
             format(messages.errorGitSHAisBlank, field, this.config[field])
           )
       ).map(async field => {
-        const refType = await getStreamContent(
-          spawn('git', [...commitCheckParams, this.config[field]], {
-            cwd: this.config.repo,
-          })
+        const refType = await this.repoSetup.getCommitRefType(
+          this.config[field]
         )
         if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
           errors.push(
