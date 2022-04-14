@@ -467,7 +467,7 @@ console.log(JSON.stringify(work))
  */
 ```
 
-### Condition a deployment if package.xml and destructiveChange are empty
+### Condition deployment on package.xml and destructiveChange content
 
 SGD does not always generate content in the package.xml (or destructiveChanges.xml). Sometimes the commit range contains changes only within files to ignore (using .sgdignore and `--i` parameter).
 [Deploying empty package.xml can lead to deployment errors.](https://github.com/scolladon/sfdx-git-delta/issues/249)
