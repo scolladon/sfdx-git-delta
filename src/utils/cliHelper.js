@@ -30,6 +30,8 @@ const commitCheckParams = ['cat-file', '-t']
 
 const isBlank = str => !str || /^\s*$/.test(str)
 
+const GIT_SHA_PARAMETERS = ['to', 'from']
+
 class CLIHelper {
   constructor(config) {
     this.config = config
@@ -39,30 +41,28 @@ class CLIHelper {
   async _validateGitSha() {
     const errors = []
     await Promise.all(
-      ['to', 'from']
-        .filter(
-          field =>
-            !isBlank(this.config[field]) ||
-            !errors.push(
-              format(messages.errorGitSHAisBlank, field, this.config[field])
-            )
-        )
-        .map(async field => {
-          const refType = await getStreamContent(
-            spawn('git', [...commitCheckParams, this.config[field]], {
-              cwd: this.config.repo,
-            })
+      GIT_SHA_PARAMETERS.filter(
+        field =>
+          !isBlank(this.config[field]) ||
+          !errors.push(
+            format(messages.errorGitSHAisBlank, field, this.config[field])
           )
-          if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
-            errors.push(
-              format(
-                messages.errorParameterIsNotGitSHA,
-                field,
-                this.config[field]
-              )
+      ).map(async field => {
+        const refType = await getStreamContent(
+          spawn('git', [...commitCheckParams, this.config[field]], {
+            cwd: this.config.repo,
+          })
+        )
+        if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
+          errors.push(
+            format(
+              messages.errorParameterIsNotGitSHA,
+              field,
+              this.config[field]
             )
-          }
-        })
+          )
+        }
+      })
     )
 
     return errors
