@@ -44,7 +44,7 @@
   - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
   - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
   - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
-  - [Condition deployment on package.xml and destructiveChange content:](#condition-deployment-on-package.xml-and-destructiveChange-content)
+  - [Condition deployment on package.xml and destructiveChange content:](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
 - [Changelog](#changelog)
 - [Built With](#built-with)
