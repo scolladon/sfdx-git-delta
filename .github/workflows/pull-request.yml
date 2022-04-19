@@ -34,7 +34,9 @@ jobs:
         run: yarn install --immutable --immutable-cache --check-cache
 
       - name: Lint sources
-        run: yarn lint
+        uses: wearerequired/lint-action@v1
+        with:
+          eslint: true
         continue-on-error: true
 
       - name: Build plugin
