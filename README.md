@@ -84,7 +84,7 @@ Have a look at this post on the Salesforce Developers Blog to dive into it: [Opt
 
 If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
-If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meting 3 conditions below:
+If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meeting the 3 conditions below:
 
 1. Your Salesforce project uses a git repo as the source of truth.
 2. You use the Source (DX) format in the repo.
