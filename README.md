@@ -44,6 +44,7 @@
   - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
   - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
   - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
+  - [Condition deployment on package.xml and destructiveChange content:](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
 - [Changelog](#changelog)
 - [Built With](#built-with)
@@ -83,7 +84,7 @@ Have a look at this post on the Salesforce Developers Blog to dive into it: [Opt
 
 If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
-If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meting 3 conditions below:
+If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meeting the 3 conditions below:
 
 1. Your Salesforce project uses a git repo as the source of truth.
 2. You use the Source (DX) format in the repo.
@@ -435,6 +436,22 @@ Depending on your testing strategy, [you may want to generate a comma-separated 
 To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
 
 `xq . < package/package.xml | jq '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(",")'`
+
+### Condition deployment on package.xml and destructiveChange content
+
+SGD does not always generate content in the package.xml (or destructiveChanges.xml). Sometimes the commit range contains changes only within files to ignore (using .sgdignore and `--i` parameter).
+[Deploying empty package.xml can lead to deployment errors.](https://github.com/scolladon/sfdx-git-delta/issues/249)
+To avoid starting a failing deployment, test files content before execution:
+
+```sh
+# run deploy command only if the generated package contains metadata
+if grep -q '<types>' ./package/package.xml ; then
+  echo "---- Deploying added and modified metadata ----"
+  sfdx force:source:deploy -x package/package.xml
+else
+  echo "---- No changes to deploy ----"
+fi
+```
 
 ### Use the module in your own node application
 
