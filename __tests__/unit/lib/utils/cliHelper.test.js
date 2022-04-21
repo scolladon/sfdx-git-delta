@@ -7,12 +7,15 @@ const {
 } = require('../../../../src/utils/gitConstants')
 const RepoSetup = require('../../../../src/utils/repoSetup')
 const CLIHelper = require('../../../../src/utils/cliHelper')
+const messages = require('../../../../src/locales/en')
+const { format } = require('util')
 jest.mock('fs')
 jest.mock('child_process')
 jest.mock('../../../../src/utils/repoSetup')
 RepoSetup.mockImplementation(() => ({
   isToEqualHead: jest.fn(),
   repoConfiguration: jest.fn(),
+  getCommitRefType: jest.fn(),
 }))
 
 const testConfig = {
@@ -137,7 +140,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--to is blank: '${emptyString}'`
+      format(messages.errorGitSHAisBlank, 'to', emptyString)
     )
   })
 
@@ -150,7 +153,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--from is blank: '${emptyString}'`
+      format(messages.errorGitSHAisBlank, 'from', emptyString)
     )
   })
 
@@ -164,7 +167,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--to is not a valid sha pointer: '${notHeadSHA}'`
+      format(messages.errorParameterIsNotGitSHA, 'to', notHeadSHA)
     )
   })
 
@@ -178,7 +181,7 @@ describe(`test if the application`, () => {
     })
     expect.assertions(1)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--from is not a valid sha pointer: '${notHeadSHA}'`
+      format(messages.errorParameterIsNotGitSHA, 'from', notHeadSHA)
     )
   })
 
@@ -196,10 +199,10 @@ describe(`test if the application`, () => {
     })
     expect.assertions(2)
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--to is not a valid sha pointer: '${notHeadSHA}'`
+      format(messages.errorParameterIsNotGitSHA, 'to', notHeadSHA)
     )
     await expect(cliHelper.validateConfig()).rejects.toThrow(
-      `--from is not a valid sha pointer: '${notHeadSHA}'`
+      format(messages.errorParameterIsNotGitSHA, 'from', notHeadSHA)
     )
   })
 
@@ -213,10 +216,10 @@ describe(`test if the application`, () => {
     })
     expect.assertions(2)
     await expect(cliHelper.validateConfig()).rejects.not.toThrow(
-      `--to is not a valid sha pointer: '${COMMIT_REF_TYPE}'`
+      format(messages.errorParameterIsNotGitSHA, 'to', COMMIT_REF_TYPE)
     )
     await expect(cliHelper.validateConfig()).rejects.not.toThrow(
-      `--from is not a valid sha pointer: '${TAG_REF_TYPE}'`
+      format(messages.errorParameterIsNotGitSHA, 'from', TAG_REF_TYPE)
     )
   })
 })

@@ -5,6 +5,7 @@ const { spawn } = require('child_process')
 const HEAD = 'HEAD'
 
 const revparseParams = ['rev-parse']
+const commitCheckParams = ['cat-file', '-t']
 const gitConfig = ['config', 'core.quotepath', 'off']
 
 class RepoSetup {
@@ -33,6 +34,14 @@ class RepoSetup {
 
   async repoConfiguration() {
     await getStreamContent(spawn('git', gitConfig, this.spawnConfig))
+  }
+
+  async getCommitRefType(commitRef) {
+    return await getStreamContent(
+      spawn('git', [...commitCheckParams, commitRef], {
+        cwd: this.config.repo,
+      })
+    )
   }
 }
 
