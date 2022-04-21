@@ -52,6 +52,8 @@ class StandardHandler {
       [DELETION]: this.handleDeletion,
       [MODIFICATION]: this.handleModification,
     }
+
+    this.ext = parse(this.line).ext.substring(1)
   }
 
   async handle() {
@@ -131,9 +133,7 @@ class StandardHandler {
     const parsedPath = parse(path)
     return join(
       parsedPath.dir,
-      `${parsedPath.name}.${
-        StandardHandler.metadata.get(this.type).suffix
-      }${METAFILE_SUFFIX}`
+      `${parsedPath.name}.${this.ext}${METAFILE_SUFFIX}`
     )
   }
 

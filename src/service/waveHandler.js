@@ -1,6 +1,5 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const { parse } = require('path')
 
 const WAVE_SUBTYPE = new Map()
 
@@ -14,7 +13,6 @@ class WaveHandler extends StandardHandler {
         (acc, val) => acc.set(val.suffix, val.xmlName),
         WAVE_SUBTYPE
       )
-    this.ext = parse(this.line).ext.substring(1)
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
