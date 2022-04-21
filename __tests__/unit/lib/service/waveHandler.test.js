@@ -138,11 +138,17 @@ require('fs').__setMockFiles({
   'force-app/main/default/wave/WaveApplicationTest.wapp': 'test',
   'force-app/main/default/wave/WaveComponentTest.wcomp': 'test',
   'force-app/main/default/wave/WaveDataflowTest.wdf': 'test',
+  'force-app/main/default/wave/WaveDataflowTest.wdf-meta.xml': 'test',
   'force-app/main/default/wave/WaveDashboardTest.wdash': 'test',
+  'force-app/main/default/wave/WaveDashboardTest.wdash-meta.xml': 'test',
   'force-app/main/default/wave/WaveDatasetTest.wds': 'test',
+  'force-app/main/default/wave/WaveDatasetTest.wds-meta.xml': 'test',
   'force-app/main/default/wave/WaveLensTest.wlens': 'test',
+  'force-app/main/default/wave/WaveLensTest.wlens-meta.xml': 'test',
   'force-app/main/default/wave/WaveRecipeTest.wdpr': 'test',
+  'force-app/main/default/wave/WaveRecipeTest.wdpr-meta.xml': 'test',
   'force-app/main/default/wave/WaveXmdTest.xmd': 'test',
+  'force-app/main/default/wave/WaveXmdTest.xmd-meta.xml': 'test',
 })
 
 // eslint-disable-next-line no-undef
