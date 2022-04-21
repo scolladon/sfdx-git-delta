@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.2.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.1.2...v5.2.0) (2022-04-21)
+
+
+### Features
+
+* add github action linter ([#288](https://github.com/scolladon/sfdx-git-delta/issues/288)) ([9a038db](https://github.com/scolladon/sfdx-git-delta/commit/9a038db6fd7d22ab8b3ff6504018da75022272e6))
+* prepare i18n ([#287](https://github.com/scolladon/sfdx-git-delta/issues/287)) ([001c07e](https://github.com/scolladon/sfdx-git-delta/commit/001c07e736584d34d75dc09005b3d701ddb33639))
+
+
+### Bug Fixes
+
+* fix typo ([#292](https://github.com/scolladon/sfdx-git-delta/issues/292)) ([0f35071](https://github.com/scolladon/sfdx-git-delta/commit/0f35071db77df9c3c6fa0390aaea69000b7e680a))
+* link "Condition deployment" on TOC ([#291](https://github.com/scolladon/sfdx-git-delta/issues/291)) ([051c35a](https://github.com/scolladon/sfdx-git-delta/commit/051c35a927da3426cb51c0044b8497e229d7930a))
+* wave meta file delta generation ([#293](https://github.com/scolladon/sfdx-git-delta/issues/293)) ([ceaff65](https://github.com/scolladon/sfdx-git-delta/commit/ceaff65033a7b77b8e7939f914e0d311533188e7))
+
 ### [5.1.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.1.1...v5.1.2) (2022-04-04)
 
 
