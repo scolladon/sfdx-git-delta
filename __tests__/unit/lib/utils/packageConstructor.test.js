@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 'use strict'
 const PackageConstructor = require('../../../../src/utils/packageConstructor')
 const metadataManager = require('../../../../src/metadata/metadataManager')
@@ -5,45 +6,9 @@ const metadataManager = require('../../../../src/metadata/metadataManager')
 const options = { apiVersion: '46' }
 const tests = [
   [
-    'Object',
+    'it should create package.xml with types when diffs is not empty',
     new Map(
       Object.entries({
-        objects: new Set([
-          'Object',
-          'YetAnotherObject',
-          'OtherObject',
-          'AgainAnObject',
-          'ÀgainAndAgainAnObject',
-        ]),
-      })
-    ),
-    `<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>ÀgainAndAgainAnObject</members>
-        <members>AgainAnObject</members>
-        <members>Object</members>
-        <members>OtherObject</members>
-        <members>YetAnotherObject</members>
-        <name>CustomObject</name>
-    </types>
-    <version>${options.apiVersion}.0</version>
-</Package>`,
-  ],
-  [
-    'empty',
-    new Map(),
-    `<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <version>${options.apiVersion}.0</version>
-</Package>`,
-  ],
-  [
-    'full',
-    new Map(
-      Object.entries({
-        dashboards: new Set(['Dashboard']),
-        documents: new Set(['Document']),
         fields: new Set(['Field']),
         lwc: new Set(['Component']),
         objects: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
@@ -62,17 +27,17 @@ const tests = [
         <name>CustomField</name>
     </types>
     <types>
-        <members>Dashboard</members>
-        <name>Dashboard</name>
-    </types>
-    <types>
-        <members>Document</members>
-        <name>Document</name>
-    </types>
-    <types>
         <members>Component</members>
         <name>LightningComponentBundle</name>
     </types>
+    <version>${options.apiVersion}.0</version>
+</Package>`,
+  ],
+  [
+    'it should create package.xml with no types when diffs is empty',
+    new Map(),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <version>${options.apiVersion}.0</version>
 </Package>`,
   ],
@@ -88,22 +53,97 @@ const tests = [
     <version>${options.apiVersion}.0</version>
 </Package>`,
   ],
+  [
+    `it should add folder name as an extra member when metadata type is in folder`,
+    new Map(
+      Object.entries({
+        email: new Set([
+          'folder_name_1/metadata_file_1',
+          'folder_name_1/metadata_file_2',
+          'folder_name_2/metadata_file_1',
+        ]),
+        documents: new Set([
+          'folder_name_1/metadata_file_1',
+          'folder_name_1/metadata_file_2',
+          'folder_name_2/metadata_file_1',
+        ]),
+        dashboards: new Set([
+          'folder_name_1/metadata_file_1',
+          'folder_name_1/metadata_file_2',
+          'folder_name_2/metadata_file_1',
+        ]),
+        reports: new Set([
+          'folder_name_1/metadata_file_1',
+          'folder_name_1/metadata_file_2',
+          'folder_name_2/metadata_file_1',
+        ]),
+        waveTemplates: new Set([
+          'folder_name_1/metadata_file_1',
+          'folder_name_1/metadata_file_2',
+          'folder_name_2/metadata_file_1',
+        ]),
+      })
+    ),
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>folder_name_1</members>
+        <members>folder_name_1/metadata_file_1</members>
+        <members>folder_name_1/metadata_file_2</members>
+        <members>folder_name_2</members>
+        <members>folder_name_2/metadata_file_1</members>
+        <name>Dashboard</name>
+    </types>
+    <types>
+        <members>folder_name_1</members>
+        <members>folder_name_1/metadata_file_1</members>
+        <members>folder_name_1/metadata_file_2</members>
+        <members>folder_name_2</members>
+        <members>folder_name_2/metadata_file_1</members>
+        <name>Document</name>
+    </types>
+    <types>
+        <members>folder_name_1</members>
+        <members>folder_name_1/metadata_file_1</members>
+        <members>folder_name_1/metadata_file_2</members>
+        <members>folder_name_2</members>
+        <members>folder_name_2/metadata_file_1</members>
+        <name>EmailTemplate</name>
+    </types>
+    <types>
+        <members>folder_name_1</members>
+        <members>folder_name_1/metadata_file_1</members>
+        <members>folder_name_1/metadata_file_2</members>
+        <members>folder_name_2</members>
+        <members>folder_name_2/metadata_file_1</members>
+        <name>Report</name>
+    </types>
+    <types>
+        <members>folder_name_1</members>
+        <members>folder_name_1/metadata_file_1</members>
+        <members>folder_name_1/metadata_file_2</members>
+        <members>folder_name_2</members>
+        <members>folder_name_2/metadata_file_1</members>
+        <name>WaveTemplateBundle</name>
+    </types>
+    <version>${options.apiVersion}.0</version>
+</Package>`,
+  ],
 ]
 
-describe(`test if package constructor`, () => {
-  let globalMetadata
+describe(`package constructor`, () => {
   let packageConstructor
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    let globalMetadata = await metadataManager.getDefinition(
+      'directoryName',
+      options.apiVersion
+    )
     packageConstructor = new PackageConstructor(options, globalMetadata)
   })
 
-  test.each(tests)(
-    'can build %s destructiveChanges.xml',
-    (type, diff, expected) => {
-      expect(packageConstructor.constructPackage(diff)).toBe(expected)
-    }
-  )
+  test.each(tests)('%s', (_, diff, expected) => {
+    expect(packageConstructor.constructPackage(diff)).toBe(expected)
+  })
   test('can handle null diff', () => {
     expect(packageConstructor.constructPackage(null)).toBe(undefined)
   })

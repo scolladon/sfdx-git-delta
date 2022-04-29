@@ -7,7 +7,11 @@ module.exports = class PackageConstructor {
   constructor(config, metadata) {
     this.config = config
     this.metadata = metadata
-    this.looseMetadata = [...this.metadata.keys()]
+    const metadataKeys = [...this.metadata.keys()]
+    this.inFolderMetadataTypes = metadataKeys.filter(
+      type => this.metadata.get(type).inFolder
+    )
+    this.looseMetadata = metadataKeys
       .filter(type => this.metadata.get(type).content)
       .flatMap(type =>
         this.metadata.get(type).content.map(content => content.xmlName)
@@ -21,21 +25,31 @@ module.exports = class PackageConstructor {
       xmlns: 'http://soap.sforce.com/2006/04/metadata',
     })
     const sortTypes = sortTypesWithMetadata(this.metadata)
+
     Array.from(strucDiffPerType.keys())
       .filter(
         type => this.metadata.has(type) || this.looseMetadata.includes(type)
       )
       .sort(sortTypes)
-      .forEach(metadataType =>
-        [...strucDiffPerType.get(metadataType)]
+      .forEach(metadataType => {
+        const addedFolderName = new Map()
+        return [...strucDiffPerType.get(metadataType)]
           .sort(Intl.Collator(frLocale).compare)
           .reduce((type, member) => {
+            if (this.inFolderMetadataTypes.includes(metadataType)) {
+              const folderName = member.substr(0, member.indexOf('/'))
+              if (!addedFolderName.has(folderName)) {
+                type.ele('members').txt(folderName)
+                addedFolderName.set(folderName)
+              }
+            }
+
             type.ele('members').txt(member)
             return type
           }, xml.ele('types'))
           .ele('name')
           .txt(this.metadata.get(metadataType)?.xmlName ?? metadataType)
-      )
+      })
     xml.ele('version').txt(`${this.config.apiVersion}.0`)
     return xml.end(xmlConf)
   }
