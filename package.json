@@ -64,9 +64,9 @@
     "increment:apiversion": "jq '.sfdc.latestApiVersion = (.sfdc.latestApiVersion|tonumber + 1 |tostring)' package.json | sponge package.json && filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname && yarn pack"
   },
   "devDependencies": {
-    "@commitlint/cli": "^16",
-    "@commitlint/config-angular": "^16",
-    "@commitlint/prompt-cli": "^16",
+    "@commitlint/cli": "^17",
+    "@commitlint/config-angular": "^17",
+    "@commitlint/prompt-cli": "^17",
     "@oclif/dev-cli": "^1.26.10",
     "@oclif/plugin-help": "^5.1.10",
     "@oclif/test": "^2.0.3",
@@ -83,12 +83,12 @@
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-jsdoc": "^39.2.7",
     "eslint-plugin-prettier": "^4.0.0",
-    "husky": "^7.0.2",
+    "husky": "^8.0.1",
     "jest": "^28.0.2",
     "lint-staged": "^12.1.2",
     "nyc": "^15.1.0",
     "prettier": "^2.4.1",
-    "prettier-eslint": "^14.0.2",
+    "prettier-eslint": "^15.0.0",
     "standard-version": "^9.3.1",
     "ts-node": "^10.2.1",
     "typescript": "^4.4.3"
