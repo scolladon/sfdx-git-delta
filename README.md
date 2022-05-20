@@ -12,7 +12,7 @@
   <h3 align="center">SFDX-Git-Delta </h3>
 
   <p align="center">
-    Generate salesforce deployment content from two git commits!
+    SFDX plugin to generate Incremental Salesforce deployments manifests and artifacts
     <br />
     <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=bug&template=issue.md">Report Bug</a>
     ·
@@ -37,12 +37,12 @@
   - [Use cases](#use-cases)
 - [Walkthrough](#walkthrough)
   - [Execute sgd](#execute-sgd)
-  - [Deploy the delta metadata](#deploy-the-delta-metadata)
+  - [Deploy the incremental metadata](#deploy-the-incremental-metadata)
 - [Advanced use-cases:](#advanced-use-cases)
   - [Generate a folder containing only the added/modified sources:](#generate-a-folder-containing-only-the-addedmodified-sources)
   - [Exclude some metadata only from destructiveChanges.xml:](#exclude-some-metadata-only-from-destructivechangesxml)
   - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
-  - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
+  - [Scoping incremental generation to a specific folder](#scoping-incremental-generation-to-a-specific-folder)
   - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
@@ -92,8 +92,8 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tip: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will just make it harder to debug your pipeline.
-It's also important to implement a way to switch back to full deployment in case the delta deployment does not behave as expected.
+Pro tip: Make sure your pipeline works **before** implementing incremental deployments. Otherwise it will just make it harder to debug your pipeline.
+It's also important to implement a way to switch back to full deployment in case the incremental deployment does not behave as expected.
 
 **DISCLAIMER:**
 
@@ -277,9 +277,9 @@ _Content of the `destructiveChanges.xml` file in our scenario:_
 
 Note: it is also possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter. See the "Advanced use-cases" section for more examples.
 
-### Deploy the delta metadata
+### Deploy the incremental metadata
 
-The simplest option to deploy the delta changes is to use `force:source:deploy` command with `-x` parameter:
+The simplest option to deploy the incremental changes is to use `force:source:deploy` command with `-x` parameter:
 
 ```sh
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
@@ -401,7 +401,7 @@ Consider the following:
 $ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
 ```
 
-### Scoping delta generation to a specific folder
+### Scoping incremental generation to a specific folder
 
 The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
 It means the delta generation will only focus on the dedicated folder.
