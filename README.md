@@ -37,12 +37,12 @@
   - [Use cases](#use-cases)
 - [Walkthrough](#walkthrough)
   - [Execute sgd](#execute-sgd)
-  - [Deploy the incremental metadata](#deploy-the-incremental-metadata)
+  - [Deploy the delta metadata](#deploy-the-delta-metadata)
 - [Advanced use-cases:](#advanced-use-cases)
   - [Generate a folder containing only the added/modified sources:](#generate-a-folder-containing-only-the-addedmodified-sources)
   - [Exclude some metadata only from destructiveChanges.xml:](#exclude-some-metadata-only-from-destructivechangesxml)
   - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
-  - [Scoping incremental generation to a specific folder](#scoping-incremental-generation-to-a-specific-folder)
+  - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
   - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
@@ -277,7 +277,7 @@ _Content of the `destructiveChanges.xml` file in our scenario:_
 
 Note: it is also possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter. See the "Advanced use-cases" section for more examples.
 
-### Deploy the incremental metadata
+### Deploy the delta metadata
 
 The simplest option to deploy the incremental changes is to use `force:source:deploy` command with `-x` parameter:
 
@@ -401,7 +401,7 @@ Consider the following:
 $ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
 ```
 
-### Scoping incremental generation to a specific folder
+### Scoping delta generation to a specific folder
 
 The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
 It means the delta generation will only focus on the dedicated folder.
