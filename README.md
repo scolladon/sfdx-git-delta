@@ -12,7 +12,7 @@
   <h3 align="center">SFDX-Git-Delta </h3>
 
   <p align="center">
-    Generate salesforce deployment content from two git commits!
+    SFDX plugin to generate Incremental Salesforce deployments manifests and artifacts
     <br />
     <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=bug&template=issue.md">Report Bug</a>
     ·
@@ -92,8 +92,8 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tip: Make sure your pipeline works **before** implementing delta deployments. Otherwise it will just make it harder to debug your pipeline.
-It's also important to implement a way to switch back to full deployment in case the delta deployment does not behave as expected.
+Pro tip: Make sure your pipeline works **before** implementing incremental deployments. Otherwise it will just make it harder to debug your pipeline.
+It's also important to implement a way to switch back to full deployment in case the incremental deployment does not behave as expected.
 
 **DISCLAIMER:**
 
@@ -279,7 +279,7 @@ Note: it is also possible to generate a **source** folder containing added/chang
 
 ### Deploy the delta metadata
 
-The simplest option to deploy the delta changes is to use `force:source:deploy` command with `-x` parameter:
+The simplest option to deploy the incremental changes is to use `force:source:deploy` command with `-x` parameter:
 
 ```sh
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
