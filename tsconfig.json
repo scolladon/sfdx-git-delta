@@ -5,7 +5,7 @@
     "outDir": "./lib",
     "importHelpers": true,
     "allowJs": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": true
   },
   "include": [
     "./src/**/*",
