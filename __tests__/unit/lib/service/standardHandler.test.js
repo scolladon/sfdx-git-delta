@@ -42,6 +42,11 @@ const testContext = {
       new Set(['Controller']),
     ],
     [
+      'batchCalcJobDefinitions',
+      'force-app/main/default/batchCalcJobDefinitions/Job.batchCalcJobDefinition-meta.xml',
+      new Set(['Job']),
+    ],
+    [
       'objects',
       'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
       new Set(['Account']),
