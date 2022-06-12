@@ -1120,6 +1120,13 @@
     "xmlName": "RecordActionDeployment"
   },
   {
+    "directoryName": "restrictionRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "rule",
+    "xmlName": "RestrictionRule"
+  },
+  {
     "directoryName": "EmbeddedServiceConfig",
     "inFolder": false,
     "metaFile": false,
