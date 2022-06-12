@@ -47,6 +47,11 @@ const testContext = {
       new Set(['Job']),
     ],
     [
+      'restrictionRules',
+      'force-app/main/default/restrictionRules/Account.rule-meta.xml',
+      new Set(['Account']),
+    ],
+    [
       'objects',
       'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
       new Set(['Account']),
@@ -76,6 +81,11 @@ const testContext = {
       'force-app/main/default/classes/Test/Controller.cls-meta.xml',
       new Set(['Controller']),
     ],
+    [
+      'restrictionRules',
+      'force-app/main/default/restrictionRules/Test/Account.rule-meta.xml',
+      new Set(['Account']),
+    ],
   ],
   work: {
     config: { output: '', repo: '', generateDelta: true },
@@ -86,7 +96,7 @@ const testContext = {
 describe(`standardHandler`, () => {
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    globalMetadata = await metadataManager.getDefinition('directoryName', 54)
   })
 
   beforeEach(() => {
@@ -105,9 +115,9 @@ describe(`standardHandler`, () => {
       globalMetadata
     )
     await handler.handle()
-    expect(testContext.work.diffs.package.get('classes')).toEqual(
-      testContext.testData[5][2]
-    )
+    expect(
+      testContext.work.diffs.package.get(testContext.testData[0][0])
+    ).toEqual(testContext.testData[0][2])
   })
 
   test('do not handle not ADM line', async () => {

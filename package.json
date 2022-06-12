@@ -54,6 +54,7 @@
     "test:coverage": "jest --coverage --runInBand",
     "test:debug": "node --inspect node_modules/.bin/jest",
     "test:debug:break": "node --inspect-brk node_modules/.bin/jest",
+    "test:watch": "jest --watch",
     "postpack": "rm -f oclif.manifest.json && prettier --write README.md",
     "postrelease": "yarn release:tags && yarn  release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
