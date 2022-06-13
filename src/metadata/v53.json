@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "batchCalcJobDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "batchCalcJobDefinition",
+    "xmlName": "BatchCalcJobDefinition"
+  },
+  {
     "directoryName": "installedPackages",
     "inFolder": false,
     "metaFile": false,
