@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.3.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.2.0...v5.3.0) (2022-06-13)
+
+
+### Features
+
+* add batchCalcJobDefinitions metadata ([#312](https://github.com/scolladon/sfdx-git-delta/issues/312)) ([e770955](https://github.com/scolladon/sfdx-git-delta/commit/e770955d70fcc627d7f6488000cf7f45de4c51cb))
+* add restriction rules metadata ([#309](https://github.com/scolladon/sfdx-git-delta/issues/309)) ([24a818d](https://github.com/scolladon/sfdx-git-delta/commit/24a818d954b4ea4506f9b488b0793acfbaa62516))
+* introduce incremental deployment concept ([#306](https://github.com/scolladon/sfdx-git-delta/issues/306)) ([9392add](https://github.com/scolladon/sfdx-git-delta/commit/9392add66cea76d8da9e947d2c077dcdfebe5824))
+
+
+### Bug Fixes
+
+* format issue in the tsconfig ([#307](https://github.com/scolladon/sfdx-git-delta/issues/307)) ([f2ae7d2](https://github.com/scolladon/sfdx-git-delta/commit/f2ae7d2fa7d3b39b7c052d719bcb0b363e32b2b3))
+
 ## [5.2.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.1.2...v5.2.0) (2022-04-21)
 
 
