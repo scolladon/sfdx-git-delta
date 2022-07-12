@@ -3,10 +3,14 @@ import { Messages, SfdxProject } from '@salesforce/core'
 import { AnyJson, JsonArray } from '@salesforce/ts-types'
 import { findInDir } from '../../../utils/findInDir'
 import * as gc from '../../../utils/gitConstants'
-import * as pc from '../../../utils/parsingConstants'
+import {
+  XML_HEADER,
+  XML_PARSER_OPTION,
+  JSON_PARSER_OPTION,
+} from '../../../utils/parsingConstants'
 
 import * as fs from 'fs'
-import * as fxp from 'fast-xml-parser'
+import { XMLBuilder, XMLParser } from 'fast-xml-parser'
 import * as path from 'path'
 
 // Initialize Messages with the current plugin directory
@@ -102,15 +106,16 @@ export default class Ppset extends SfdxCommand {
       dirList.push(defaultDir)
     }
 
+    const xmlParser = new XMLParser(XML_PARSER_OPTION)
+    const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
+
     const packages = this.flags.packages.map(packageFile =>
-      fxp.parse(
-        fs.readFileSync(path.format(packageFile), FILE_READ_OPTIONS),
-        pc.XML_PARSER_OPTION
+      xmlParser.parse(
+        fs.readFileSync(path.format(packageFile), FILE_READ_OPTIONS)
       )
     )
     const allowedPermissions = this.flags['permissions-type'] || []
 
-    const xmlBuilder = new fxp.j2xParser(pc.JSON_PARSER_OPTION)
     dirList.forEach(dir =>
       findInDir(
         path.join(basePath, `${dir}`),
@@ -133,9 +138,8 @@ export default class Ppset extends SfdxCommand {
         })
         .forEach(file => {
           // Filter content based on the package.xml and the ppset
-          const content = fxp.parse(
-            fs.readFileSync(file, FILE_READ_OPTIONS),
-            pc.XML_PARSER_OPTION
+          const content = xmlParser.parse(
+            fs.readFileSync(file, FILE_READ_OPTIONS)
           )
           const permissionContent = Object.values(content)[0][0]
           let authorizedKeys = Object.keys(permissionContent).filter(x =>
@@ -175,7 +179,7 @@ export default class Ppset extends SfdxCommand {
                   userPermissions.includes(up.name)
                 )
               : []
-          const xmlContent = pc.XML_HEADER + xmlBuilder.parse(content)
+          const xmlContent = XML_HEADER + xmlBuilder.build(content)
           fs.writeFileSync(file, xmlContent)
         })
     )
