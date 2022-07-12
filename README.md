@@ -192,8 +192,8 @@ If you run SGD on a Windows system, use double quotes [to prevent the terminal t
 
 ### CI/CD specificity
 
-In CI/CD pipelines, branches are not checked out locally when the repository is cloned so you must specify the remote prefix.
-If you do not specify the remote in CI context, the git pointer check will raise an error as the branch is not created locally.
+In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
+If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
 This applies to both `--from` and `--to` parameters as they both accept git pointers.
 
 Exemple comparing `HEAD` with a `development` branch when the CI clone the repository with `origin` set as reference to the remote:
@@ -280,10 +280,6 @@ Note: it is also possible to generate a **source** folder containing added/chang
 ### Deploy the delta metadata
 
 The simplest option to deploy the incremental changes is to use `force:source:deploy` command with `-x` parameter:
-
-```sh
-sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
-```
 
 ```sh
 sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
