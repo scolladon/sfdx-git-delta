@@ -130,6 +130,7 @@ If you run your CI/CD jobs inside a Docker image, you can add the plugin to your
 
 <!-- commands -->
 * [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx sgd:source:ppset -p <array> [-s <array>] [-t <array>] [-r <array>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourceppset--p-array--s-array--t-array--r-array---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
 ## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -184,6 +185,39 @@ OPTIONS
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.3.0/src/commands/sgd/source/delta.ts)_
+
+## `sfdx sgd:source:ppset -p <array> [-s <array>] [-t <array>] [-r <array>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+
+prepare profile and permission
+
+```
+USAGE
+  $ sfdx sgd:source:ppset -p <array> [-s <array>] [-t <array>] [-r <array>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+
+OPTIONS
+  -p, --packages=packages
+      (required) package.xml paths to use to filter profile and permission set. Delimiter: ':'
+
+  -r, --user-permissions=user-permissions
+      list of the userPermission to keep. Delimiter: ':'
+
+  -s, --sources=sources
+      sources paths where to apply the filtering (use default if empty). Delimiter: ':'
+
+  -t, --permissions-type=permissions-type
+      list of the permission types to filter with the package <applicationVisibilities|categoryGroupVisibilities|classAcce
+      sses|customMetadataTypeAccesses|customPermissions|customSettingAccesses|externalDataSourceAccesses|fieldPermissions|
+      layoutAssignments|objectPermissions|pageAccesses|recordTypeVisibilities|tabVisibilities|tabSettings>. Delimiter: ':'
+
+  --json
+      format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)
+      [default: warn] logging level for this command invocation
+```
+
+_See code: [src/commands/sgd/source/ppset.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.3.0/src/commands/sgd/source/ppset.ts)_
 <!-- commandsstop -->
 
 ### Windows users
