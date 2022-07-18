@@ -94,16 +94,15 @@ export default class Ppset extends SfdxCommand {
     const projectJson = await project.resolveProjectConfig()
     const basePath = project.getPath()
     const packageDirectories = projectJson['packageDirectories'] as JsonArray
-    const defaultDir = packageDirectories.reduce(
-      (a, v) => (v['default'] === true ? (a = v['path']) : (a = a)),
-      ''
+    const defaultDirConfiguration = packageDirectories.find(
+      (dir: string) => dir['default'] === true
     )
 
     const sources = this.flags.sources || []
     const userPermissions = this.flags['user-permissions'] || []
     const dirList = packageDirectories.filter(dir => sources.includes(dir))
-    if (dirList.length === 0) {
-      dirList.push(defaultDir)
+    if (dirList.length === 0 && defaultDirConfiguration) {
+      dirList.push(defaultDirConfiguration['path'])
     }
 
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
