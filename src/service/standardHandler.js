@@ -22,12 +22,11 @@ const FSE_COPYSYNC_OPTION = {
   preserveTimestamps: false,
 }
 
-const copiedFiles = new Set()
-
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 class StandardHandler {
   static metadata
+  static copiedFiles = new Set()
 
   constructor(line, type, work, metadata) {
     StandardHandler.metadata = StandardHandler.metadata ?? metadata
@@ -138,10 +137,10 @@ class StandardHandler {
   }
 
   async _copyFiles(src, dst) {
-    if (copiedFiles.has(src)) return
+    if (StandardHandler.copiedFiles.has(src)) return
     const exists = await pathExists(src)
-    if (!copiedFiles.has(src) && exists) {
-      copiedFiles.add(src)
+    if (!StandardHandler.copiedFiles.has(src) && exists) {
+      StandardHandler.copiedFiles.add(src)
       try {
         await copy(src, dst, FSE_COPYSYNC_OPTION)
       } catch (error) {

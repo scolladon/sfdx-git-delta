@@ -2,31 +2,18 @@
 const fileGitDiff = require('../utils/fileGitDiff')
 const { MINUS, PLUS } = require('../utils/gitConstants')
 const {
+  FULLNAME,
+  FULLNAME_XML_TAG,
   LABEL_DIRECTORY_NAME,
   LABEL_EXTENSION,
+  XML_TAG,
+  XML_HEADER_TAG_END,
 } = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
 const { outputFile } = require('fs-extra')
 const { basename, join } = require('path')
 const { XMLBuilder, XMLParser } = require('fast-xml-parser')
-
-const FULLNAME = 'fullName'
-const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
-const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
-const XML_HEADER_TAG_END = '?>'
-const XML_PARSER_OPTION = {
-  ignoreAttributes: false,
-  ignoreNameSpace: false,
-  parseTagValue: false,
-  parseNodeValue: false,
-  parseAttributeValue: false,
-  trimValues: true,
-}
-const JSON_PARSER_OPTION = {
-  ...XML_PARSER_OPTION,
-  format: true,
-  indentBy: '    ',
-}
+const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('../utils/fxpConfig')
 
 class InFileHandler extends StandardHandler {
   static xmlObjectToPackageType
@@ -38,7 +25,7 @@ class InFileHandler extends StandardHandler {
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
       [...StandardHandler.metadata.keys()]
-        .filter(meta => !!StandardHandler.metadata.get(meta)?.xmlTag)
+        .filter(meta => StandardHandler.metadata.get(meta)?.xmlTag)
         .reduce(
           (acc, meta) =>
             acc.set(
@@ -190,9 +177,8 @@ class InFileHandler extends StandardHandler {
 
   static _matchAllowedXmlTag(matchResult) {
     return (
-      !!matchResult &&
-      !!matchResult[1] &&
-      InFileHandler.xmlObjectToPackageType.has(matchResult[1])
+      matchResult?.[1] &&
+      InFileHandler.xmlObjectToPackageType.has(matchResult?.[1])
     )
   }
 }
