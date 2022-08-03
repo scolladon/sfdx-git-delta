@@ -11,12 +11,27 @@ const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
 class PackageGenerator extends BaseProcessor {
-  constructor(work, config, metadata) {
-    super(work, config, metadata)
-  }
-
   async process() {
     this.cleanPackages()
+    await this.buildPackages()
+  }
+
+  cleanPackages() {
+    const additive = this.work.diffs[PACKAGE_FILE_NAME]
+    const destructive = this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME]
+    for (const [type, members] of additive) {
+      if (destructive.has(type)) {
+        destructive.set(
+          type,
+          new Set(
+            [...destructive.get(type)].filter(element => !members.has(element))
+          )
+        )
+      }
+    }
+  }
+
+  async buildPackages() {
     const pc = new PackageConstructor(this.config, this.metadata)
     await Promise.all(
       [
@@ -44,21 +59,6 @@ class PackageGenerator extends BaseProcessor {
         )
       )
     )
-  }
-
-  cleanPackages() {
-    const additive = this.work.diffs[PACKAGE_FILE_NAME]
-    const destructive = this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME]
-    for (const [type, members] of additive) {
-      if (destructive.has(type)) {
-        destructive.set(
-          type,
-          new Set(
-            [...destructive.get(type)].filter(element => !members.has(element))
-          )
-        )
-      }
-    }
   }
 }
 module.exports = PackageGenerator
