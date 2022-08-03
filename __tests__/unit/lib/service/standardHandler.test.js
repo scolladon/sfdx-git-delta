@@ -1,6 +1,6 @@
 'use strict'
 const StandardHandler = require('../../../../src/service/standardHandler')
-const { FSE_BIGINT_ERROR } = require('../../../../src/service/standardHandler')
+const { FSE_BIGINT_ERROR } = require('../../../../src/utils/fsHelper')
 const metadataManager = require('../../../../src/metadata/metadataManager')
 const mc = require('../../../../src/utils/metadataConstants')
 const fse = require('fs-extra')

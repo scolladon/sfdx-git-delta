@@ -9,6 +9,7 @@ const {
   XML_TAG,
   XML_HEADER_TAG_END,
 } = require('../utils/metadataConstants')
+const { readFile } = require('../utils/fsHelper')
 const StandardHandler = require('./standardHandler')
 const { outputFile } = require('fs-extra')
 const { basename, join } = require('path')
@@ -142,7 +143,7 @@ class InFileHandler extends StandardHandler {
   }
 
   async _parseFile() {
-    const file = await this._readFile()
+    const file = await readFile(this.line)
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
     const result = xmlParser.parse(file)
 

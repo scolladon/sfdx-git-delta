@@ -55,9 +55,15 @@ fs.promises.readFile = jest.fn(
 )
 
 fs.promises.readdir = jest.fn(
-  directoryPath =>
+  (directoryPath, config) =>
     new Promise(res => {
-      const result = mockFiles.get(path.basename(directoryPath)) ?? []
+      let result = mockFiles.get(path.basename(directoryPath)) ?? []
+      if (config) {
+        result = result.map(filePath => ({
+          name: filePath,
+          isDirectory: () => false,
+        }))
+      }
       res(result)
     })
 )

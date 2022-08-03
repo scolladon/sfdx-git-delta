@@ -18,7 +18,7 @@ class BotHandler extends WaveHandler {
     await super.handleAddition()
 
     const botName = this._getParsedPath().dir.split(sep).pop()
-    this._fillPackageWithParameter({
+    this.packageService.fillPackageWithParameter({
       package: this.diffs.package,
       type: BOT_TYPE,
       elementName: botName,

@@ -3,7 +3,7 @@ const TypeHandlerFactory = require('./service/typeHandlerFactory')
 const metadataManager = require('./metadata/metadataManager')
 const CLIHelper = require('./utils/cliHelper')
 const RepoGitDiff = require('./utils/repoGitDiff')
-const { getPostProcessor } = require('./post-processor/postProcessorManager')
+const { getPostProcessors } = require('./post-processor/postProcessorManager')
 
 module.exports = async config => {
   const cliHelper = new CLIHelper(config)
@@ -33,7 +33,7 @@ const treatDiff = async (config, lines, metadata) => {
     lines.map(line => typeHandlerFactory.getTypeHandler(line).handle())
   )
 
-  await getPostProcessor(work, config, metadata).process()
+  await getPostProcessors(work, config, metadata).execute()
 
   return work
 }

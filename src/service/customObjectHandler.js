@@ -44,7 +44,7 @@ class CustomObjectHandler extends StandardHandler {
 
     await Promise.all(
       masterDetailsFields.map(field =>
-        this._copyFiles(
+        this._copyWithMetaFile(
           resolve(this.config.repo, fieldsFolder, field),
           resolve(this.config.output, fieldsFolder, field)
         )

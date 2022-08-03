@@ -4,6 +4,7 @@ const {
   MASTER_DETAIL_TAG,
   OBJECT_META_XML_SUFFIX,
 } = require('../utils/metadataConstants')
+const { readFile } = require('../utils/fsHelper')
 const { join, sep } = require('path')
 
 class SubCustomObjectHandler extends StandardHandler {
@@ -15,7 +16,7 @@ class SubCustomObjectHandler extends StandardHandler {
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
-    const data = await this._readFile()
+    const data = await readFile(this.line)
     if (data?.includes(MASTER_DETAIL_TAG)) {
       const customObjectDirPath = this.splittedLine
         .slice(0, [this.splittedLine.indexOf(this.type)])
@@ -28,7 +29,7 @@ class SubCustomObjectHandler extends StandardHandler {
         `${customObjectName}.${OBJECT_META_XML_SUFFIX}`
       )
 
-      await this._copyFiles(
+      await this._copyWithMetaFile(
         join(this.config.repo, customObjectPath),
         join(this.config.output, customObjectPath)
       )

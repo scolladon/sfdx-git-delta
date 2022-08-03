@@ -13,7 +13,7 @@ class TranslationHandler extends ResourceHandler {
     const objectTranslationName = `${parse(this.line).dir}${sep}${
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
-    await this._copyFiles(
+    await this._copyWithMetaFile(
       normalize(join(this.config.repo, objectTranslationName)),
       normalize(join(this.config.output, objectTranslationName))
     )

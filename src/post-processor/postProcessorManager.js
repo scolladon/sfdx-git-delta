@@ -15,14 +15,14 @@ class PostProcessorManager {
     this.postProcessors.push(postProcessor)
   }
 
-  async process() {
+  async execute() {
     for (const postProcessor of this.postProcessors) {
       await postProcessor.process()
     }
   }
 }
 
-module.exports.getPostProcessor = (work, config, metadata) => {
+module.exports.getPostProcessors = (work, config, metadata) => {
   const postProcessor = new PostProcessorManager()
 
   for (const processor of processors) {

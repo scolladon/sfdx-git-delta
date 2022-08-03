@@ -2,6 +2,7 @@
 const { MINUS, PLUS } = require('../utils/gitConstants')
 
 const FIELD_DIRECTORY_NAME = 'fields'
+const FLOW_DIRECTORY_NAME = 'flows'
 const FULLNAME = 'fullName'
 const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
 const INFOLDER_SUFFIX = `Folder`
@@ -34,6 +35,7 @@ const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
 const XML_HEADER_TAG_END = '?>'
 
 module.exports.FIELD_DIRECTORY_NAME = FIELD_DIRECTORY_NAME
+module.exports.FLOW_DIRECTORY_NAME = FLOW_DIRECTORY_NAME
 module.exports.FULLNAME = FULLNAME
 module.exports.FULLNAME_XML_TAG = FULLNAME_XML_TAG
 module.exports.INFOLDER_SUFFIX = INFOLDER_SUFFIX
