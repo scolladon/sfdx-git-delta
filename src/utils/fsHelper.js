@@ -23,4 +23,4 @@ async function* filterExt(it, ext) {
 }
 
 module.exports.scan = scan
-module.exports.filterExt = filterExt
+module.exports.scanExtension = (dir, ext) => filterExt(scan(dir), ext)

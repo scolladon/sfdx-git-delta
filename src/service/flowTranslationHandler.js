@@ -7,7 +7,7 @@ const {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
-const { scan, filterExt } = require('../utils/fsHelper')
+const { scanExtension } = require('../utils/fsHelper')
 const { XML_PARSER_OPTION } = require('../utils/fxpConfig')
 const { parse, resolve } = require('path')
 const { readFile } = require('fs').promises
@@ -34,8 +34,8 @@ class FlowTranslationHandler extends StandardHandler {
     if (FlowTranslationHandler.translationsPerFlow) return
     const tempMap = new Map()
 
-    const translationsIterator = filterExt(
-      scan(this.config.repo),
+    const translationsIterator = scanExtension(
+      this.config.repo,
       `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
     )
 
