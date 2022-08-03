@@ -1,7 +1,6 @@
 'use strict'
 const Bot = require('./botHandler')
 const CustomObject = require('./customObjectHandler')
-const FlowTranslation = require('./flowTranslationHandler')
 const InFile = require('./inFileHandler')
 const InFolder = require('./inFolderHandler')
 const InResource = require('./inResourceHandler')
@@ -24,7 +23,6 @@ const classes = {
   experiences: InResource,
   fieldSets: SubCustomObject,
   fields: SubCustomObject,
-  flows: FlowTranslation,
   labels: InFile,
   listViews: SubCustomObject,
   lwc: InResource,

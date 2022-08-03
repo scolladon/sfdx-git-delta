@@ -1,8 +1,8 @@
 'use strict'
 const PackageGenerator = require('./packageGenerator')
-//const FlowTranslationProcessor = require('./flowTranslationProcessor')
+const FlowTranslationProcessor = require('./flowTranslationProcessor')
 
-const processors = [PackageGenerator /*, FlowTranslationProcessor*/]
+const processors = [FlowTranslationProcessor, PackageGenerator]
 
 class PostProcessorManager {
   postProcessors
