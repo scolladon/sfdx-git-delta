@@ -36,7 +36,7 @@ jobs:
         run: yarn pack
 
       - name: Unit test
-        run: yarn test:coverage
+        run: yarn test:coverage --runInBand
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1

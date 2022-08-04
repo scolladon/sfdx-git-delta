@@ -51,7 +51,7 @@
     "lint:fix": "eslint --fix .",
     "test": "jest",
     "test:clear:cache": "jest --clearCache",
-    "test:coverage": "jest --coverage --runInBand",
+    "test:coverage": "jest --coverage",
     "test:debug": "node --inspect node_modules/.bin/jest",
     "test:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "test:watch": "jest --watch",
