@@ -38,24 +38,22 @@ class PackageGenerator extends BaseProcessor {
         {
           filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
           folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-          xmlContent: pc.buildPackage(
-            this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME]
-          ),
+          xmlContent: this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME],
         },
         {
           filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
           folder: PACKAGE_FILE_NAME,
-          xmlContent: pc.buildPackage(this.work.diffs[PACKAGE_FILE_NAME]),
+          xmlContent: this.work.diffs[PACKAGE_FILE_NAME],
         },
         {
           filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
           folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-          xmlContent: pc.buildPackage(new Map()),
+          xmlContent: new Map(),
         },
       ].map(async op =>
         outputFile(
           join(this.config.output, op.folder, op.filename),
-          op.xmlContent
+          pc.buildPackage(op.xmlContent)
         )
       )
     )
