@@ -1,5 +1,5 @@
 'use strict'
-const PackageConstructor = require('../../../../src/utils/packageConstructor')
+const PackageBuilder = require('../../../../src/utils/packageHelper')
 const metadataManager = require('../../../../src/metadata/metadataManager')
 
 const options = { apiVersion: '46' }
@@ -90,21 +90,21 @@ const tests = [
   ],
 ]
 
-describe(`test if package constructor`, () => {
+describe(`test if package builder`, () => {
   let globalMetadata
   let packageConstructor
   beforeAll(async () => {
     globalMetadata = await metadataManager.getDefinition('directoryName', 50)
-    packageConstructor = new PackageConstructor(options, globalMetadata)
+    packageConstructor = new PackageBuilder(options, globalMetadata)
   })
 
   test.each(tests)(
     'can build %s destructiveChanges.xml',
     (type, diff, expected) => {
-      expect(packageConstructor.constructPackage(diff)).toBe(expected)
+      expect(packageConstructor.buildPackage(diff)).toBe(expected)
     }
   )
   test('can handle null diff', () => {
-    expect(packageConstructor.constructPackage(null)).toBe(undefined)
+    expect(packageConstructor.buildPackage(null)).toBe(undefined)
   })
 })

@@ -1,7 +1,7 @@
 'use strict'
 
 const BaseProcessor = require('./baseProcessor')
-const PackageConstructor = require('../utils/packageConstructor')
+const PackageBuilder = require('../utils/packageHelper')
 
 const { outputFile } = require('fs-extra')
 const { join } = require('path')
@@ -32,25 +32,25 @@ class PackageGenerator extends BaseProcessor {
   }
 
   async buildPackages() {
-    const pc = new PackageConstructor(this.config, this.metadata)
+    const pc = new PackageBuilder(this.config, this.metadata)
     await Promise.all(
       [
         {
           filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
           folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-          xmlContent: pc.constructPackage(
+          xmlContent: pc.buildPackage(
             this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME]
           ),
         },
         {
           filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
           folder: PACKAGE_FILE_NAME,
-          xmlContent: pc.constructPackage(this.work.diffs[PACKAGE_FILE_NAME]),
+          xmlContent: pc.buildPackage(this.work.diffs[PACKAGE_FILE_NAME]),
         },
         {
           filename: `${PACKAGE_FILE_NAME}.${XML_FILE_EXTENSION}`,
           folder: DESTRUCTIVE_CHANGES_FILE_NAME,
-          xmlContent: pc.constructPackage(new Map()),
+          xmlContent: pc.buildPackage(new Map()),
         },
       ].map(async op =>
         outputFile(
