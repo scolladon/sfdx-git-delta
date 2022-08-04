@@ -112,6 +112,6 @@
     }
   },
   "sfdc": {
-    "latestApiVersion": "54"
+    "latestApiVersion": "55"
   }
 }
