@@ -354,6 +354,13 @@
     "xmlName": "Flow"
   },
   {
+    "directoryName": "flowtests",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "flowtest",
+    "xmlName": "FlowTest"
+  },
+  {
     "directoryName": "flowDefinitions",
     "inFolder": false,
     "metaFile": false,
