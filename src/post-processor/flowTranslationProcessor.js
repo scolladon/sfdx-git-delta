@@ -13,7 +13,7 @@ const { XML_PARSER_OPTION } = require('../utils/fxpConfig')
 const { parse, resolve } = require('path')
 const { readFile } = require('fs').promises
 const { XMLParser } = require('fast-xml-parser')
-const PackageService = require('../utils/packageService')
+const { fillPackageWithParameter } = require('../utils/packageHelper')
 
 const readFileOptions = {
   encoding: UTF8_ENCODING,
@@ -64,13 +64,12 @@ class FlowTranslationHandler extends BaseProcessor {
 
   async _addFlowTranslation() {
     const copyTranslationsPromises = []
-    const packageService = new PackageService()
 
     for (const translationPath of this.flowPerTranslations.keys()) {
       const translationName = parse(
         translationPath.replace(META_REGEX, '')
       ).name
-      packageService.fillPackageWithParameter({
+      fillPackageWithParameter({
         package: this.work.diffs.package,
         type: TRANSLATION_TYPE,
         elementName: translationName,

@@ -7,7 +7,7 @@ const {
   MODIFICATION,
 } = require('../utils/gitConstants')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
-const PackageService = require('../utils/packageService')
+const { fillPackageWithParameter } = require('../utils/packageHelper')
 const { copyFiles } = require('../utils/fsHelper')
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
@@ -26,7 +26,6 @@ class StandardHandler {
     this.config = work.config
     this.splittedLine = this.line.split(sep)
     this.warnings = work.warnings
-    this.packageService = new PackageService()
 
     if (StandardHandler.metadata.get(this.type).metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
@@ -93,7 +92,7 @@ class StandardHandler {
   }
 
   _fillPackage(packageObject) {
-    this.packageService.fillPackageWithParameter({
+    fillPackageWithParameter({
       package: packageObject,
       type: this.type,
       elementName: this._getElementName(),
