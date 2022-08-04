@@ -1,5 +1,8 @@
 'use strict'
 const PackageBuilder = require('../../../../src/utils/packageHelper')
+const {
+  fillPackageWithParameter,
+} = require('../../../../src/utils/packageHelper')
 const metadataManager = require('../../../../src/metadata/metadataManager')
 
 const options = { apiVersion: '46' }
@@ -106,5 +109,62 @@ describe(`test if package builder`, () => {
   )
   test('can handle null diff', () => {
     expect(packageConstructor.buildPackage(null)).toBe(undefined)
+  })
+})
+
+describe('fillPackageWithParameter', () => {
+  describe('when called with proper params', () => {
+    const type = 'test-type'
+    const elementName = 'test-name'
+    describe.each([
+      [new Map(), 'is empty'],
+      [new Map([['other-type', new Set(['other-name'])]]), 'is not empty'],
+      [new Map([[type, new Set()]]), 'contains the type'],
+      [
+        new Map([[type, new Set([elementName])]]),
+        'contains the type and the element',
+      ],
+    ])('when the package %o  %s', pack => {
+      it('adds the element name under the type in the package', () => {
+        // Arrange
+        const params = {
+          package: pack,
+          type: type,
+          elementName: elementName,
+        }
+
+        // Act
+        fillPackageWithParameter(params)
+
+        // Assert
+        expect(pack.get(type).has(elementName)).toBeTruthy()
+      })
+    })
+  })
+
+  describe('when called with bad parameter', () => {
+    describe.each([
+      undefined,
+      {
+        package: {},
+        type: [],
+        elementName: new Set(),
+      },
+      {
+        piquouze: new Map(),
+        top: 'top',
+        elementary: 'elementary',
+      },
+    ])('when called with %o', params => {
+      it('should fail', () => {
+        // Act
+        try {
+          fillPackageWithParameter(params)
+        } catch (ex) {
+          // Assert
+          expect(ex).toBeTruthy()
+        }
+      })
+    })
   })
 })
