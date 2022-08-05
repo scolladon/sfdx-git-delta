@@ -13,6 +13,7 @@ class PostProcessorManager {
 
   use(postProcessor) {
     this.postProcessors.push(postProcessor)
+    return this
   }
 
   async execute() {
@@ -21,6 +22,8 @@ class PostProcessorManager {
     }
   }
 }
+
+module.exports = PostProcessorManager
 
 module.exports.getPostProcessors = (work, config, metadata) => {
   const postProcessor = new PostProcessorManager()
