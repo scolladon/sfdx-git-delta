@@ -27,6 +27,9 @@ class PackageGenerator extends BaseProcessor {
             [...destructive.get(type)].filter(element => !members.has(element))
           )
         )
+        if (destructive.get(type).size === 0) {
+          destructive.delete(type)
+        }
       }
     }
   }
