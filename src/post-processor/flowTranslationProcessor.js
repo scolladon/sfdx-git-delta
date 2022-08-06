@@ -51,7 +51,7 @@ class FlowTranslationProcessor extends BaseProcessor {
           const fullName = flowDefinition.fullName
           const packagedElements =
             this.work.diffs.package.get(FLOW_DIRECTORY_NAME)
-          if (packagedElements.has(fullName)) {
+          if (packagedElements && packagedElements.has(fullName)) {
             if (!this.flowPerTranslations.has(translationPath)) {
               this.flowPerTranslations.set(translationPath, new Set())
             }
