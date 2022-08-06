@@ -6,7 +6,7 @@ describe('BaseProcessor', () => {
     it('throws an error', async () => {
       // Arrange
       expect.assertions(1)
-      const sut = new BaseProcessor()
+      const sut = new BaseProcessor({})
 
       // Act
       try {

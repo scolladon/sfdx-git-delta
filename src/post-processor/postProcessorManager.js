@@ -25,11 +25,11 @@ class PostProcessorManager {
 
 module.exports = PostProcessorManager
 
-module.exports.getPostProcessors = (work, config, metadata) => {
+module.exports.getPostProcessors = (work, metadata) => {
   const postProcessor = new PostProcessorManager()
 
   for (const processor of processors) {
-    const instance = new processor(work, config, metadata)
+    const instance = new processor(work, metadata)
     postProcessor.use(instance)
   }
 

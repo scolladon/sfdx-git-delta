@@ -33,7 +33,7 @@ const treatDiff = async (config, lines, metadata) => {
     lines.map(line => typeHandlerFactory.getTypeHandler(line).handle())
   )
 
-  await getPostProcessors(work, config, metadata).execute()
+  await getPostProcessors(work, metadata).execute()
 
   return work
 }

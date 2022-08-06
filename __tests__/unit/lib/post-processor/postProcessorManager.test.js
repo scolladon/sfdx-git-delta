@@ -8,10 +8,14 @@ const BaseProcessor = require('../../../../src/post-processor/baseProcessor')
 const processSpy = jest.fn()
 
 class TestProcesor extends BaseProcessor {
+  constructor() {
+    super({})
+  }
   process = processSpy
 }
 
 describe('postProcessorManager', () => {
+  const work = {}
   describe('getPostProcessors', () => {
     describe('when called', () => {
       it('returns a post processor manager with a list of post processor', () => {
@@ -19,7 +23,7 @@ describe('postProcessorManager', () => {
         const sut = getPostProcessors
 
         // Act
-        const result = sut()
+        const result = sut(work)
 
         // Assert
         expect(result.postProcessors.length).toBeGreaterThan(0)

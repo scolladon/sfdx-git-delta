@@ -19,12 +19,10 @@ describe('PackageGenerator', () => {
         const element = 'element'
         const additive = new Map([[type, new Set([element])]])
         const destructive = new Map([[type, new Set([element, 'other'])]])
-        const sut = new PackageGenerator(
-          {
-            diffs: { package: additive, destructiveChanges: destructive },
-          },
-          { output: 'test' }
-        )
+        const sut = new PackageGenerator({
+          diffs: { package: additive, destructiveChanges: destructive },
+          config: { output: 'test' },
+        })
 
         // Act
         sut.cleanPackages()
@@ -65,12 +63,10 @@ describe('PackageGenerator', () => {
         const element = 'element'
         const additive = new Map([[type, new Set([element])]])
         const destructive = new Map([[type, new Set(['otherElement'])]])
-        const sut = new PackageGenerator(
-          {
-            diffs: { package: additive, destructiveChanges: destructive },
-          },
-          { output: 'test' }
-        )
+        const sut = new PackageGenerator({
+          diffs: { package: additive, destructiveChanges: destructive },
+          config: { output: 'test' },
+        })
 
         // Act
         sut.cleanPackages()
@@ -86,12 +82,10 @@ describe('PackageGenerator', () => {
     let sut
     beforeEach(() => {
       // Arrange
-      sut = new PackageGenerator(
-        {
-          diffs: { package: new Map(), destructiveChanges: new Map() },
-        },
-        { output: 'test' }
-      )
+      sut = new PackageGenerator({
+        diffs: { package: new Map(), destructiveChanges: new Map() },
+        config: { output: 'test' },
+      })
     })
     it('calls `fse.outputFile` for %s', async () => {
       // Act
@@ -137,12 +131,11 @@ describe('PackageGenerator', () => {
         let sut
         beforeEach(async () => {
           // Arrange
-          sut = new PackageGenerator(
-            {
-              diffs: { package: additive, destructiveChanges: destructive },
-            },
-            { output: 'test' }
-          )
+          sut = new PackageGenerator({
+            diffs: { package: additive, destructiveChanges: destructive },
+
+            config: { output: 'test' },
+          })
 
           await sut.process()
         })

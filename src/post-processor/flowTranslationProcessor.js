@@ -19,11 +19,11 @@ const readFileOptions = {
   encoding: UTF8_ENCODING,
 }
 
-class FlowTranslationHandler extends BaseProcessor {
+class FlowTranslationProcessor extends BaseProcessor {
   flowPerTranslations
 
-  constructor(work, config, metadata) {
-    super(work, config, metadata)
+  constructor(work, metadata) {
+    super(work, metadata)
     this.flowPerTranslations = new Map()
   }
 
@@ -84,4 +84,4 @@ class FlowTranslationHandler extends BaseProcessor {
   }
 }
 
-module.exports = FlowTranslationHandler
+module.exports = FlowTranslationProcessor

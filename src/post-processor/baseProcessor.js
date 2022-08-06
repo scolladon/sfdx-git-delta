@@ -4,9 +4,9 @@ class BaseProcessor {
   config
   metadata
 
-  constructor(work, config, metadata) {
+  constructor(work, metadata) {
     this.work = work
-    this.config = config
+    this.config = work.config
     this.metadata = metadata
   }
 
