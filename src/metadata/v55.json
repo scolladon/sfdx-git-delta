@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "customindex",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "indx",
+    "xmlName": "CustomIndex "
+  },
+  {
     "directoryName": "batchCalcJobDefinitions",
     "inFolder": false,
     "metaFile": false,
