@@ -29,7 +29,7 @@ class FlowTranslationProcessor extends BaseProcessor {
 
   async process() {
     await this._buildFlowDefinitionsMap()
-    await this._addFlowTranslation()
+    await this._handleFlowTranslation()
   }
 
   async _buildFlowDefinitionsMap() {
@@ -45,24 +45,17 @@ class FlowTranslationProcessor extends BaseProcessor {
       const xmlParser = new XMLParser(XML_PARSER_OPTION)
       const parsedTranslation = xmlParser.parse(translation)
       // implement other kind of metadata here
-      if (parsedTranslation?.Translations?.flowDefinitions) {
-        for (const flowDefinition of parsedTranslation.Translations
-          .flowDefinitions) {
-          const fullName = flowDefinition.fullName
-          const packagedElements =
-            this.work.diffs.package.get(FLOW_DIRECTORY_NAME)
-          if (packagedElements && packagedElements.has(fullName)) {
-            if (!this.flowPerTranslations.has(translationPath)) {
-              this.flowPerTranslations.set(translationPath, new Set())
-            }
-            this.flowPerTranslations.get(translationPath).add(fullName)
-          }
-        }
-      }
+      parsedTranslation?.Translations?.flowDefinitions?.forEach(
+        flowDefinition =>
+          this._addFlowPerTranslation({
+            translationPath,
+            fullName: flowDefinition.fullName,
+          })
+      )
     }
   }
 
-  async _addFlowTranslation() {
+  async _handleFlowTranslation() {
     const copyTranslationsPromises = []
 
     for (const translationPath of this.flowPerTranslations.keys()) {
@@ -81,6 +74,16 @@ class FlowTranslationProcessor extends BaseProcessor {
       }
     }
     await Promise.all(copyTranslationsPromises)
+  }
+
+  _addFlowPerTranslation({ translationPath, fullName }) {
+    const packagedElements = this.work.diffs.package.get(FLOW_DIRECTORY_NAME)
+    if (packagedElements?.has(fullName)) {
+      if (!this.flowPerTranslations.has(translationPath)) {
+        this.flowPerTranslations.set(translationPath, new Set())
+      }
+      this.flowPerTranslations.get(translationPath).add(fullName)
+    }
   }
 }
 
