@@ -107,11 +107,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "standard-version": {
-    "scripts": {
-      "postbump": "yarn pack && git add README.md"
-    }
-  },
   "sfdc": {
     "latestApiVersion": "55"
   }
