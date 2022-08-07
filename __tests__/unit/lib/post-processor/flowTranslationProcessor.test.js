@@ -35,6 +35,18 @@ const translationWithFlow = `
     </flows>
     <fullName>${flowFullName}</fullName>
   </flowDefinitions>
+  <flowDefinitions>
+    <flows>
+      <screens>
+        <fields>
+          <fieldText>This is a the text</fieldText>
+          <name>Translated_Text</name>
+        </fields>
+        <name>Screen_To_Translate</name>
+      </screens>
+    </flows>
+    <fullName>anotherFlow</fullName>
+  </flowDefinitions>
 </Translations>`
 
 const translationWithoutFlow = `
@@ -46,6 +58,11 @@ const translationWithoutFlow = `
   </customLabels>
 </Translations>`
 
+const trueAfter = (attempt = 0) => {
+  let count = 0
+  return () => count++ >= attempt
+}
+
 describe('FlowTranslationProcessor', () => {
   const work = {
     diffs: {
@@ -56,19 +73,23 @@ describe('FlowTranslationProcessor', () => {
   }
   describe('process', () => {
     let sut
+    let flap
     beforeEach(() => {
       sut = new FlowTranslationProcessor(work)
+      flap = trueAfter(1)
+      scanExtension.mockImplementationOnce(() => ({
+        [Symbol.asyncIterator]: () => ({
+          next: () => ({
+            value: 'fr.translation-meta.xml',
+            done: flap(),
+          }),
+        }),
+      }))
     })
     describe('when there is no translation file', () => {
       beforeEach(() => {
         // Arrange
-        scanExtension.mockImplementationOnce(() => ({
-          [Symbol.asyncIterator]: () => ({
-            next: () => ({
-              done: true,
-            }),
-          }),
-        }))
+        flap = () => true
       })
       it('should not add translation file', async () => {
         // Act
@@ -85,19 +106,6 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is a translation file without flow def', () => {
       beforeEach(() => {
         // Arrange
-        let toggle = true
-        let flap = () => {
-          toggle = !toggle
-          return toggle
-        }
-        scanExtension.mockImplementationOnce(() => ({
-          [Symbol.asyncIterator]: () => ({
-            next: () => ({
-              value: 'fr.translation-meta.xml',
-              done: flap(),
-            }),
-          }),
-        }))
         fs.promises.readFile.mockImplementationOnce(
           () => translationWithoutFlow
         )
@@ -115,27 +123,27 @@ describe('FlowTranslationProcessor', () => {
       })
     })
 
-    describe('when there is a translation file with flow def', () => {
+    describe('when there is multiple translation file with multiple flow def', () => {
       beforeEach(() => {
         // Arrange
-        let toggle = true
-        let flap = () => {
-          toggle = !toggle
-          return toggle
-        }
+        fs.promises.readFile.mockImplementationOnce(() => translationWithFlow)
+        fs.promises.readFile.mockImplementationOnce(() => translationWithFlow)
+        flap = trueAfter(2)
+        let count = 0
+        const getTranslationName = () =>
+          ['fr.translation-meta.xml', 'en.translation-meta.xml'][count++]
         scanExtension.mockImplementationOnce(() => ({
           [Symbol.asyncIterator]: () => ({
             next: () => ({
-              value: 'fr.translation-meta.xml',
+              value: getTranslationName(),
               done: flap(),
             }),
           }),
         }))
-        fs.promises.readFile.mockImplementationOnce(() => translationWithFlow)
       })
       describe('when there is no flow matching the translation', () => {
         beforeEach(() => {
-          mockParse.mockImplementationOnce(() => ({
+          mockParse.mockImplementation(() => ({
             Translations: { flowDefinitions: [{ fullName: 'wrong' }] },
           }))
         })
@@ -147,7 +155,7 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(scanExtension).toHaveBeenCalledTimes(1)
-          expect(mockParse).toHaveBeenCalledTimes(1)
+          expect(mockParse).toHaveBeenCalledTimes(2)
           expect(fillPackageWithParameter).not.toHaveBeenCalled()
           expect(copyFiles).not.toHaveBeenCalled()
         })
@@ -158,7 +166,7 @@ describe('FlowTranslationProcessor', () => {
           'when config.generateDelta is %s',
           generateDelta => {
             beforeEach(() => {
-              mockParse.mockImplementationOnce(() => ({
+              mockParse.mockImplementation(() => ({
                 Translations: { flowDefinitions: [{ fullName: flowFullName }] },
               }))
               work.diffs.package = new Map([
@@ -174,9 +182,10 @@ describe('FlowTranslationProcessor', () => {
 
               // Assert
               expect(scanExtension).toHaveBeenCalledTimes(1)
-              expect(mockParse).toHaveBeenCalledTimes(1)
-              expect(fillPackageWithParameter).toHaveBeenCalledTimes(1)
-              expect(copyFiles).toHaveBeenCalledTimes(generateDelta ? 1 : 0)
+              expect(mockParse).toHaveBeenCalledTimes(2)
+              expect(fillPackageWithParameter).toHaveBeenCalled()
+              if (generateDelta) expect(copyFiles).toHaveBeenCalled()
+              else expect(copyFiles).not.toHaveBeenCalled()
             })
           }
         )
