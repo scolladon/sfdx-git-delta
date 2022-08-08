@@ -4,16 +4,13 @@ const fs = require('fs')
 const { mockParse } = require('fast-xml-parser')
 const {
   FLOW_DIRECTORY_NAME,
+  TRANSLATION_TYPE,
 } = require('../../../../src/utils/metadataConstants')
 const { copyFiles, scanExtension } = require('../../../../src/utils/fsHelper')
-const {
-  fillPackageWithParameter,
-} = require('../../../../src/utils/packageHelper')
 
 jest.mock('fs-extra')
 jest.mock('fs')
 jest.mock('fast-xml-parser')
-jest.mock('../../../../src/utils/packageHelper')
 jest.mock('../../../../src/utils/fsHelper', () => ({
   scanExtension: jest.fn(),
   copyFiles: jest.fn(),
@@ -64,17 +61,18 @@ const trueAfter = (attempt = 0) => {
 }
 
 describe('FlowTranslationProcessor', () => {
-  const work = {
-    diffs: {
-      package: new Map(),
-      destructiveChanges: new Map(),
-    },
-    config: { repo: 'repo', output: 'output', generateDelta: true },
-  }
+  let work
   describe('process', () => {
     let sut
     let flap
     beforeEach(() => {
+      work = {
+        diffs: {
+          package: new Map(),
+          destructiveChanges: new Map(),
+        },
+        config: { repo: 'repo', output: 'output', generateDelta: true },
+      }
       sut = new FlowTranslationProcessor(work)
       flap = trueAfter(1)
       scanExtension.mockImplementationOnce(() => ({
@@ -96,9 +94,9 @@ describe('FlowTranslationProcessor', () => {
         await sut.process()
 
         // Assert
+        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
         expect(mockParse).not.toHaveBeenCalled()
-        expect(fillPackageWithParameter).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })
@@ -116,9 +114,9 @@ describe('FlowTranslationProcessor', () => {
         await sut.process()
 
         // Assert
+        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
         expect(mockParse).toHaveBeenCalledTimes(1)
-        expect(fillPackageWithParameter).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })
@@ -154,9 +152,9 @@ describe('FlowTranslationProcessor', () => {
           await sut.process()
 
           // Assert
+          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
           expect(scanExtension).toHaveBeenCalledTimes(1)
           expect(mockParse).toHaveBeenCalledTimes(2)
-          expect(fillPackageWithParameter).not.toHaveBeenCalled()
           expect(copyFiles).not.toHaveBeenCalled()
         })
       })
@@ -181,9 +179,9 @@ describe('FlowTranslationProcessor', () => {
               await sut.process()
 
               // Assert
+              expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
               expect(scanExtension).toHaveBeenCalledTimes(1)
               expect(mockParse).toHaveBeenCalledTimes(2)
-              expect(fillPackageWithParameter).toHaveBeenCalled()
               if (generateDelta) expect(copyFiles).toHaveBeenCalled()
               else expect(copyFiles).not.toHaveBeenCalled()
             })
