@@ -19,6 +19,9 @@ const readFileOptions = {
   encoding: UTF8_ENCODING,
 }
 
+const getTranslationName = translationPath =>
+  parse(translationPath.replace(META_REGEX, '')).name
+
 class FlowTranslationProcessor extends BaseProcessor {
   flowPerTranslations
 
@@ -41,17 +44,23 @@ class FlowTranslationProcessor extends BaseProcessor {
     )
 
     for await (const translationPath of translationsIterator) {
-      const translation = await readFile(translationPath, readFileOptions)
-      const xmlParser = new XMLParser(XML_PARSER_OPTION)
-      const parsedTranslation = xmlParser.parse(translation)
-      // implement other kind of metadata here
-      parsedTranslation?.Translations?.flowDefinitions?.forEach(
-        flowDefinition =>
-          this._addFlowPerTranslation({
-            translationPath,
-            fullName: flowDefinition.fullName,
-          })
-      )
+      const translationName = getTranslationName(translationPath)
+      if (
+        // Treat only not already added translation files
+        !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName)
+      ) {
+        const translationXML = await readFile(translationPath, readFileOptions)
+        const xmlParser = new XMLParser(XML_PARSER_OPTION)
+        const translationJSON = xmlParser.parse(translationXML)
+        // implement other kind of metadata here
+        translationJSON?.Translations?.flowDefinitions?.forEach(
+          flowDefinition =>
+            this._addFlowPerTranslation({
+              translationPath,
+              fullName: flowDefinition.fullName,
+            })
+        )
+      }
     }
   }
 
@@ -59,13 +68,10 @@ class FlowTranslationProcessor extends BaseProcessor {
     const copyTranslationsPromises = []
 
     for (const translationPath of this.flowPerTranslations.keys()) {
-      const translationName = parse(
-        translationPath.replace(META_REGEX, '')
-      ).name
       fillPackageWithParameter({
         package: this.work.diffs.package,
         type: TRANSLATION_TYPE,
-        elementName: translationName,
+        elementName: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
         const source = resolve(this.config.repo, translationPath)

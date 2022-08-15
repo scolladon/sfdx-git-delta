@@ -16,6 +16,8 @@ jest.mock('../../../../src/utils/fsHelper', () => ({
   copyFiles: jest.fn(),
 }))
 
+const FR = 'fr'
+const EN = 'en'
 const flowFullName = 'test-flow'
 const translationWithFlow = `
 <?xml version="1.0" encoding="UTF-8"?>
@@ -78,7 +80,7 @@ describe('FlowTranslationProcessor', () => {
       scanExtension.mockImplementationOnce(() => ({
         [Symbol.asyncIterator]: () => ({
           next: () => ({
-            value: 'fr.translation-meta.xml',
+            value: `${FR}.translation-meta.xml`,
             done: flap(),
           }),
         }),
@@ -121,6 +123,22 @@ describe('FlowTranslationProcessor', () => {
       })
     })
 
+    describe('when there is already a translation related to a flow', () => {
+      beforeEach(() => {
+        // Arrange
+        work.diffs.package = new Map([[TRANSLATION_TYPE, new Set([FR])]])
+      })
+      it('should not treat again the translation', async () => {
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(mockParse).not.toHaveBeenCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
+      })
+    })
+
     describe('when there is multiple translation file with multiple flow def', () => {
       beforeEach(() => {
         // Arrange
@@ -129,7 +147,7 @@ describe('FlowTranslationProcessor', () => {
         flap = trueAfter(2)
         let count = 0
         const getTranslationName = () =>
-          ['fr.translation-meta.xml', 'en.translation-meta.xml'][count++]
+          [`${FR}.translation-meta.xml`, `${EN}.translation-meta.xml`][count++]
         scanExtension.mockImplementationOnce(() => ({
           [Symbol.asyncIterator]: () => ({
             next: () => ({
