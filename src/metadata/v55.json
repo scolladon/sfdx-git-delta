@@ -193,6 +193,13 @@
     "xmlName": "FieldSet"
   },
   {
+    "directoryName": "indexes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "index",
+    "xmlName": "Index"
+  },
+  {
     "directoryName": "listViews",
     "inFolder": false,
     "metaFile": false,
