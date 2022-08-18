@@ -12,6 +12,11 @@ const testContext = {
       new Set(['Account.awesome']),
     ],
     [
+      'indexes',
+      'force-app/main/default/objects/Account/indexes/awesome.index-meta.xml',
+      new Set(['Account.awesome']),
+    ],
+    [
       'rules',
       'force-app/main/default/territory2Models/EU/rules/Location.territory2Rule-meta.xml',
       new Set(['EU.Location']),
