@@ -1,6 +1,5 @@
 'use strict'
 const BaseProcessor = require('./baseProcessor')
-const { UTF8_ENCODING } = require('../utils/gitConstants')
 const {
   FLOW_DIRECTORY_NAME,
   META_REGEX,
@@ -8,16 +7,11 @@ const {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
-const { copyFiles, scanExtension } = require('../utils/fsHelper')
+const { copyFiles, scanExtension, readFile } = require('../utils/fsHelper')
 const { XML_PARSER_OPTION } = require('../utils/fxpConfig')
 const { parse, resolve } = require('path')
-const { readFile } = require('fs').promises
 const { XMLParser } = require('fast-xml-parser')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
-
-const readFileOptions = {
-  encoding: UTF8_ENCODING,
-}
 
 const getTranslationName = translationPath =>
   parse(translationPath.replace(META_REGEX, '')).name
@@ -49,7 +43,7 @@ class FlowTranslationProcessor extends BaseProcessor {
         // Treat only not already added translation files
         !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName)
       ) {
-        const translationXML = await readFile(translationPath, readFileOptions)
+        const translationXML = await readFile(translationPath)
         const xmlParser = new XMLParser(XML_PARSER_OPTION)
         const translationJSON = xmlParser.parse(translationXML)
         // implement other kind of metadata here

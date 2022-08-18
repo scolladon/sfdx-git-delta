@@ -1,19 +1,22 @@
 'use strict'
 const FlowTranslationProcessor = require('../../../../src/post-processor/flowTranslationProcessor')
-const fs = require('fs')
 const { mockParse } = require('fast-xml-parser')
 const {
   FLOW_DIRECTORY_NAME,
   TRANSLATION_TYPE,
 } = require('../../../../src/utils/metadataConstants')
-const { copyFiles, scanExtension } = require('../../../../src/utils/fsHelper')
+const {
+  copyFiles,
+  scanExtension,
+  readFile,
+} = require('../../../../src/utils/fsHelper')
 
 jest.mock('fs-extra')
-jest.mock('fs')
 jest.mock('fast-xml-parser')
 jest.mock('../../../../src/utils/fsHelper', () => ({
   scanExtension: jest.fn(),
   copyFiles: jest.fn(),
+  readFile: jest.fn(),
 }))
 
 const FR = 'fr'
@@ -106,9 +109,7 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is a translation file without flow def', () => {
       beforeEach(() => {
         // Arrange
-        fs.promises.readFile.mockImplementationOnce(
-          () => translationWithoutFlow
-        )
+        readFile.mockImplementationOnce(() => translationWithoutFlow)
         mockParse.mockImplementationOnce(() => ({}))
       })
       it('should not add translation file', async () => {
@@ -142,8 +143,8 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is multiple translation file with multiple flow def', () => {
       beforeEach(() => {
         // Arrange
-        fs.promises.readFile.mockImplementationOnce(() => translationWithFlow)
-        fs.promises.readFile.mockImplementationOnce(() => translationWithFlow)
+        readFile.mockImplementationOnce(() => translationWithFlow)
+        readFile.mockImplementationOnce(() => translationWithFlow)
         flap = trueAfter(2)
         let count = 0
         const getTranslationName = () =>
