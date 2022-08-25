@@ -23,6 +23,7 @@ const classes = {
   experiences: InResource,
   fieldSets: SubCustomObject,
   fields: SubCustomObject,
+  indexes: SubCustomObject,
   labels: InFile,
   listViews: SubCustomObject,
   lwc: InResource,

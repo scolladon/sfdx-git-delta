@@ -15,6 +15,7 @@ const SUB_OBJECT_TYPES = [
   'compactLayouts',
   'fieldSets',
   'fields',
+  'indexes',
   'listViews',
   'recordTypes',
   'rules',
