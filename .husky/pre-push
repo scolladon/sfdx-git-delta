@@ -3,4 +3,5 @@
 
 yarn pack
 yarn test:coverage
+yarn analysis force-app
 yarn outdated

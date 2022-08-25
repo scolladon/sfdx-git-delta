@@ -1,5 +1,6 @@
 'use strict'
 const WaveHandler = require('./waveHandler')
+const { fillPackageWithParameter } = require('../utils/packageHelper')
 const { join, parse, sep } = require('path')
 
 const BOT_TYPE = 'Bot'
@@ -18,7 +19,7 @@ class BotHandler extends WaveHandler {
     await super.handleAddition()
 
     const botName = this._getParsedPath().dir.split(sep).pop()
-    this._fillPackageWithParameter({
+    fillPackageWithParameter({
       package: this.diffs.package,
       type: BOT_TYPE,
       elementName: botName,

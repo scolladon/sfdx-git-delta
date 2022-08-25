@@ -6,7 +6,7 @@ fse.outputFileError = false
 fse.pathShouldExist = true
 
 fse.pathExists.mockImplementation(() => Promise.resolve(fse.pathShouldExist))
-fse.copy = jest.fn(() => {
+fse.copy.mockImplementation(() => {
   if (fse.errorMode) return Promise.reject()
   return Promise.resolve()
 })

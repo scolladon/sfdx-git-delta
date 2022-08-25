@@ -12,9 +12,10 @@ fxp.__setMockContent = contents => {
   }
 }
 
+const mockParse = jest.fn(content => JSON.parse(xml2json.get(content)))
 fxp.XMLParser = function () {
   return {
-    parse: jest.fn(content => JSON.parse(xml2json.get(content))),
+    parse: mockParse,
   }
 }
 
@@ -25,3 +26,4 @@ fxp.XMLBuilder = function () {
 }
 
 module.exports = fxp
+module.exports.mockParse = mockParse

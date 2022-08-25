@@ -3,7 +3,7 @@ const { create } = require('xmlbuilder2')
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
 
-module.exports = class PackageConstructor {
+module.exports = class PackageBuilder {
   constructor(config, metadata) {
     this.config = config
     this.metadata = metadata
@@ -14,7 +14,7 @@ module.exports = class PackageConstructor {
       )
   }
 
-  constructPackage(strucDiffPerType) {
+  buildPackage(strucDiffPerType) {
     if (!strucDiffPerType) return
 
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
@@ -47,3 +47,12 @@ const sortTypesWithMetadata = metadata => (x, y) => {
   const yMeta = metadata.get(y)?.xmlName ?? y
   return new Intl.Collator(frLocale).compare(xMeta, yMeta)
 }
+
+const fillPackageWithParameter = params => {
+  if (!params.package.has(params.type)) {
+    params.package.set(params.type, new Set())
+  }
+  params.package.get(params.type).add(params.elementName)
+}
+
+module.exports.fillPackageWithParameter = fillPackageWithParameter

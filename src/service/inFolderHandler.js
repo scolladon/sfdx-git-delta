@@ -27,7 +27,7 @@ class InFolderHandler extends StandardHandler {
       METAFILE_SUFFIX
     }`
 
-    await this._copyFiles(
+    await this._copyWithMetaFile(
       normalize(join(this.config.repo, folderPath, folderFileName)),
       normalize(join(this.config.output, folderPath, folderFileName))
     )
@@ -41,7 +41,7 @@ class InFolderHandler extends StandardHandler {
       dirContent
         .filter(file => file.includes(parsedLine.name))
         .map(file =>
-          this._copyFiles(
+          this._copyWithMetaFile(
             normalize(join(this.config.repo, parsedLine.dir, file)),
             normalize(join(this.config.output, parsedLine.dir, file))
           )

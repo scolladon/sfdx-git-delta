@@ -35,7 +35,7 @@ class ResourceHandler extends StandardHandler {
             matchingFiles.includes(src)
         )
         .map(src =>
-          this._copyFiles(
+          this._copyWithMetaFile(
             normalize(join(srcPath, src)),
             normalize(join(targetPath, src))
           )

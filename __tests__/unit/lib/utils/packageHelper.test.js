@@ -1,5 +1,8 @@
 'use strict'
-const PackageConstructor = require('../../../../src/utils/packageConstructor')
+const PackageBuilder = require('../../../../src/utils/packageHelper')
+const {
+  fillPackageWithParameter,
+} = require('../../../../src/utils/packageHelper')
 const metadataManager = require('../../../../src/metadata/metadataManager')
 
 const options = { apiVersion: '46' }
@@ -90,21 +93,78 @@ const tests = [
   ],
 ]
 
-describe(`test if package constructor`, () => {
+describe(`test if package builder`, () => {
   let globalMetadata
   let packageConstructor
   beforeAll(async () => {
     globalMetadata = await metadataManager.getDefinition('directoryName', 50)
-    packageConstructor = new PackageConstructor(options, globalMetadata)
+    packageConstructor = new PackageBuilder(options, globalMetadata)
   })
 
   test.each(tests)(
     'can build %s destructiveChanges.xml',
     (type, diff, expected) => {
-      expect(packageConstructor.constructPackage(diff)).toBe(expected)
+      expect(packageConstructor.buildPackage(diff)).toBe(expected)
     }
   )
   test('can handle null diff', () => {
-    expect(packageConstructor.constructPackage(null)).toBe(undefined)
+    expect(packageConstructor.buildPackage(null)).toBe(undefined)
+  })
+})
+
+describe('fillPackageWithParameter', () => {
+  describe('when called with proper params', () => {
+    const type = 'test-type'
+    const elementName = 'test-name'
+    describe.each([
+      [new Map(), 'is empty'],
+      [new Map([['other-type', new Set(['other-name'])]]), 'is not empty'],
+      [new Map([[type, new Set()]]), 'contains the type'],
+      [
+        new Map([[type, new Set([elementName])]]),
+        'contains the type and the element',
+      ],
+    ])('when the package %o  %s', pack => {
+      it('adds the element name under the type in the package', () => {
+        // Arrange
+        const params = {
+          package: pack,
+          type: type,
+          elementName: elementName,
+        }
+
+        // Act
+        fillPackageWithParameter(params)
+
+        // Assert
+        expect(pack.get(type).has(elementName)).toBeTruthy()
+      })
+    })
+  })
+
+  describe('when called with bad parameter', () => {
+    describe.each([
+      undefined,
+      {
+        package: {},
+        type: [],
+        elementName: new Set(),
+      },
+      {
+        piquouze: new Map(),
+        top: 'top',
+        elementary: 'elementary',
+      },
+    ])('when called with %o', params => {
+      it('should fail', () => {
+        // Act
+        try {
+          fillPackageWithParameter(params)
+        } catch (ex) {
+          // Assert
+          expect(ex).toBeTruthy()
+        }
+      })
+    })
   })
 })
