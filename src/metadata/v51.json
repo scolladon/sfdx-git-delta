@@ -28,6 +28,13 @@
     "xmlName": "OmniUiCard"
   },
   {
+    "directoryName": "omniDataTransforms",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "rpt",
+    "xmlName": "OmniDataTransform"
+  },
+  {
     "directoryName": "batchCalcJobDefinitions",
     "inFolder": false,
     "metaFile": false,

@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "omniDataTransforms",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "rpt",
+    "xmlName": "OmniDataTransform"
+  },
+  {
     "directoryName": "OmniInteractionConfig",
     "inFolder": false,
     "metaFile": false,
