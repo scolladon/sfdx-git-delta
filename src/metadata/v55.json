@@ -1,5 +1,40 @@
 [
   {
+    "directoryName": "omniDataTransforms",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "rpt",
+    "xmlName": "OmniDataTransform"
+  },
+  {
+    "directoryName": "OmniInteractionConfig",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "omniInteractionConfig",
+    "xmlName": "OmniInteractionConfig"
+  },
+  {
+    "directoryName": "omniIntegrationProcedures",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "oip",
+    "xmlName": "OmniIntegrationProcedure"
+  },
+  {
+    "directoryName": "omniScripts",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "os",
+    "xmlName": "OmniScript"
+  },
+  {
+    "directoryName": "omniUiCard",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "ouc",
+    "xmlName": "OmniUiCard"
+  },
+  {
     "directoryName": "customindex",
     "inFolder": false,
     "metaFile": false,
