@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.4.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.4.0...v5.4.1) (2022-08-26)
+
+
+### Bug Fixes
+
+* husky postinstall issue ([#336](https://github.com/scolladon/sfdx-git-delta/issues/336)) ([16b249b](https://github.com/scolladon/sfdx-git-delta/commit/16b249bed25a7b82a706f7c1cc6e8aaa4a4cf6b9))
+
 ## [5.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.3.1...v5.4.0) (2022-08-26)
 
 
