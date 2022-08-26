@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.4.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.4.1...v5.4.2) (2022-08-26)
+
+
+### Bug Fixes
+
+* handling xml parsing not returning array for one element ([#343](https://github.com/scolladon/sfdx-git-delta/issues/343)) ([c5abb9a](https://github.com/scolladon/sfdx-git-delta/commit/c5abb9af8d37d832ecc4eb2e8650c0b43020dfb6))
+
 ### [5.4.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.4.0...v5.4.1) (2022-08-26)
 
 
