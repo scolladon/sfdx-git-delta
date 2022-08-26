@@ -5,12 +5,7 @@ const {
   FLOW_DIRECTORY_NAME,
   TRANSLATION_TYPE,
 } = require('../../../../src/utils/metadataConstants')
-const {
-  copyFiles,
-  scanExtension,
-  readFile,
-} = require('../../../../src/utils/fsHelper')
-
+const { copyFiles, scanExtension } = require('../../../../src/utils/fsHelper')
 jest.mock('fs-extra')
 jest.mock('fast-xml-parser')
 jest.mock('../../../../src/utils/fsHelper', () => ({
@@ -22,43 +17,6 @@ jest.mock('../../../../src/utils/fsHelper', () => ({
 const FR = 'fr'
 const EN = 'en'
 const flowFullName = 'test-flow'
-const translationWithFlow = `
-<?xml version="1.0" encoding="UTF-8"?>
-<Translations xmlns="http://soap.sforce.com/2006/04/metadata">
-  <flowDefinitions>
-    <flows>
-      <screens>
-        <fields>
-          <fieldText>This is a the text</fieldText>
-          <name>Translated_Text</name>
-        </fields>
-        <name>Screen_To_Translate</name>
-      </screens>
-    </flows>
-    <fullName>${flowFullName}</fullName>
-  </flowDefinitions>
-  <flowDefinitions>
-    <flows>
-      <screens>
-        <fields>
-          <fieldText>This is a the text</fieldText>
-          <name>Translated_Text</name>
-        </fields>
-        <name>Screen_To_Translate</name>
-      </screens>
-    </flows>
-    <fullName>anotherFlow</fullName>
-  </flowDefinitions>
-</Translations>`
-
-const translationWithoutFlow = `
-<?xml version="1.0" encoding="UTF-8"?>
-<Translations xmlns="http://soap.sforce.com/2006/04/metadata">
-  <customLabels>
-    <name>myTickets_Attachments_Delete_Modal_Header_Label</name>
-    <label>Supprimer le fichier ?</label>
-  </customLabels>
-</Translations>`
 
 const trueAfter = (attempt = 0) => {
   let count = 0
@@ -109,7 +67,6 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is a translation file without flow def', () => {
       beforeEach(() => {
         // Arrange
-        readFile.mockImplementationOnce(() => translationWithoutFlow)
         mockParse.mockImplementationOnce(() => ({}))
       })
       it('should not add translation file', async () => {
@@ -121,6 +78,28 @@ describe('FlowTranslationProcessor', () => {
         expect(scanExtension).toHaveBeenCalledTimes(1)
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('when there is a translation file with one flow def', () => {
+      beforeEach(() => {
+        // Arrange
+        work.diffs.package = new Map([
+          [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
+        ])
+        mockParse.mockImplementation(() => ({
+          Translations: { flowDefinitions: { fullName: flowFullName } },
+        }))
+      })
+      it('should add translation file', async () => {
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+        expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(mockParse).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalled()
       })
     })
 
@@ -143,8 +122,6 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is multiple translation file with multiple flow def', () => {
       beforeEach(() => {
         // Arrange
-        readFile.mockImplementationOnce(() => translationWithFlow)
-        readFile.mockImplementationOnce(() => translationWithFlow)
         flap = trueAfter(2)
         let count = 0
         const getTranslationName = () =>
