@@ -14,7 +14,8 @@ const StandardHandler = require('./standardHandler')
 const { outputFile } = require('fs-extra')
 const { basename, join } = require('path')
 const { XMLBuilder, XMLParser } = require('fast-xml-parser')
-const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('../utils/fxpConfig')
+const { asArray } = require('../utils/fxpHelper')
+const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('../utils/fxpHelper')
 
 class InFileHandler extends StandardHandler {
   static xmlObjectToPackageType
@@ -59,9 +60,7 @@ class InFileHandler extends StandardHandler {
     const metadataContent = Object.values(result.fileContent)[0]
 
     result.authorizedKeys.forEach(subType => {
-      const meta = Array.isArray(metadataContent[subType])
-        ? metadataContent[subType]
-        : [metadataContent[subType]]
+      const meta = asArray(metadataContent[subType])
       metadataContent[subType] = meta.filter(elem =>
         toAdd
           .get(InFileHandler.xmlObjectToPackageType.get(subType).directoryName)
