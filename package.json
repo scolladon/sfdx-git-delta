@@ -58,7 +58,7 @@
     "postpack": "rm -f oclif.manifest.json && prettier --write README.md",
     "postrelease": "yarn release:tags && yarn  release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
-    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky install",
+    "prepare": "husky install",
     "release": "standard-version --no-verify --commit-all",
     "release:github": "conventional-github-releaser -p angular",
     "release:tags": "git push --follow-tags origin main -f --no-verify",
