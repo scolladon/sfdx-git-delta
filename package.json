@@ -55,7 +55,6 @@
     "test:debug": "node --inspect node_modules/.bin/jest",
     "test:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "test:watch": "jest --watch",
-    "postinstall": "husky install",
     "postpack": "rm -f oclif.manifest.json && prettier --write README.md",
     "postrelease": "yarn release:tags && yarn  release:github",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
@@ -94,7 +93,7 @@
     "prettier-eslint": "^15.0.1",
     "standard-version": "^9.5.0",
     "ts-node": "^10.9.1",
-    "typescript": "^4.7.4",
+    "typescript": "^4.8.2",
     "yarn-upgrade-all": "^0.7.1"
   },
   "oclif": {
