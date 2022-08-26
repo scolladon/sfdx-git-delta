@@ -14,5 +14,10 @@ const JSON_PARSER_OPTION = {
   indentBy: '    ',
 }
 
+const asArray = node => {
+  return node != null ? (Array.isArray(node) ? node : [node]) : []
+}
+
+module.exports.asArray = asArray
 module.exports.XML_PARSER_OPTION = XML_PARSER_OPTION
 module.exports.JSON_PARSER_OPTION = JSON_PARSER_OPTION
