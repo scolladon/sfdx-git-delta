@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.3.1...v5.4.0) (2022-08-26)
+
+
+### Features
+
+* add big object index support ([#330](https://github.com/scolladon/sfdx-git-delta/issues/330)) ([2d2ce50](https://github.com/scolladon/sfdx-git-delta/commit/2d2ce50085188264c5b68b6972b2fc66f320d7ee))
+* add customindex metadata ([#324](https://github.com/scolladon/sfdx-git-delta/issues/324)) ([2c7df3b](https://github.com/scolladon/sfdx-git-delta/commit/2c7df3bea5730625d713dae522b2ad51dc4a91b1))
+* implement flow translation addition ([#322](https://github.com/scolladon/sfdx-git-delta/issues/322)) ([9a8c969](https://github.com/scolladon/sfdx-git-delta/commit/9a8c9697963a900243a701affc98b227ddacb9cf))
+* support omnistudio metadata ([#333](https://github.com/scolladon/sfdx-git-delta/issues/333)) ([3fd1ee1](https://github.com/scolladon/sfdx-git-delta/commit/3fd1ee1a3a612a01687e30b0f0252d8c6af0a2ff))
+
 ### [5.3.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.3.0...v5.3.1) (2022-08-04)
 
 ## [5.3.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.2.0...v5.3.0) (2022-06-13)
