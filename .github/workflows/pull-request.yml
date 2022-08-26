@@ -80,7 +80,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache --prod
+        run: yarn install --immutable --immutable-cache --check-cache
 
       - name: Build plugin
         run: yarn pack
