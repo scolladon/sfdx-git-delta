@@ -51,7 +51,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
-  integration-check:
+  installation-check:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
@@ -80,7 +80,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache
+        run: yarn install --immutable --immutable-cache --check-cache --prod
 
       - name: Build plugin
         run: yarn pack
@@ -90,7 +90,7 @@ jobs:
           npm install -g sfdx-cli
           sfdx plugins:link .
 
-      - name: Integration test
+      - name: Installation test
         run: sfdx sgd:source:delta --help
 
   commit-lint:
