@@ -65,17 +65,23 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+      
+      - name: Install sfdx-cli
+        run: |
+          yarn global add sfdx-cli
+          echo "$(yarn global bin)" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: yarn install --prod
+        run: yarn install --immutable --immutable-cache --check-cache --prod
+
+      - name: Install build dependencies
+        run: yarn add @salesforce/dev-config typescript
 
       - name: Build plugin
         run: yarn pack
 
       - name: Install plugin
-        run: |
-          npm install -g sfdx-cli
-          sfdx plugins:link .
+        run: sfdx plugins:link .
 
       - name: Installation test
         run: sfdx sgd:source:delta --help
