@@ -31,7 +31,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache
+        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
 
       - name: Lint sources
         uses: wearerequired/lint-action@v1
@@ -70,7 +70,7 @@ jobs:
         run: npm install -g sfdx-cli # yarn installation is not working in Windows
 
       - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache --prod
+        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
 
       - name: Install build dependencies
         run: yarn add @salesforce/dev-config typescript
