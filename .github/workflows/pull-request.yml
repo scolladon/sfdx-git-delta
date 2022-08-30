@@ -67,9 +67,7 @@ jobs:
           node-version: ${{ matrix.node }}
       
       - name: Install sfdx-cli
-        run: |
-          yarn global add sfdx-cli
-          echo "$(yarn global bin)" >> $GITHUB_PATH
+        run: npm install -g sfdx-cli # yarn installation is not working in Windows
 
       - name: Install dependencies
         run: yarn install --immutable --immutable-cache --check-cache --prod
