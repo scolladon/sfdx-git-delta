@@ -50,6 +50,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "test": "jest",
+    "test:build:local": "rm -rf node_modules && yarn && yarn pack && yarn test",
     "test:clear:cache": "jest --clearCache",
     "test:coverage": "jest --coverage",
     "test:debug": "node --inspect node_modules/.bin/jest",
