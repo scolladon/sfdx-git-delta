@@ -9,12 +9,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{secrets.ADMIN_TOKEN}}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 14.x
           registry-url: https://registry.npmjs.org/
@@ -33,7 +30,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache
+        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
 
       - name: Publish to npm
         run: |
