@@ -41,3 +41,16 @@ jobs:
         env:
           CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{secrets.GITHUB_TOKEN}}
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Install sfdx-cli
+        run: npm install -g sfdx-cli
+
+      - name: Sleep for 5 minutes
+        run: sleep 300s
+        shell: bash
+
+      - name: Install new plugin version
+        run: echo y | sfdx plugins:install "sfdx-git-delta@$(git tag | sort -g | tail -1)"
+
+      - name: Test new plugin version
+        run: sfdx sgd:source:delta --help
