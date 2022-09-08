@@ -21,3 +21,11 @@ This will:
 - Create a new tag following the semver
 - Push this tag to the remote
 - Trigger the new version publish
+
+## Rollback a new Release
+
+```sh
+$ yarn npm tag add sfdx-git-delta@<version> latest 
+```
+
+It will set the latest release channel to the wanted version.
