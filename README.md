@@ -193,11 +193,11 @@ If you run SGD on a Windows system, use double quotes [to prevent the terminal t
 You should also avoid using the "^" character ([shorthand for parent commit in git](https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt-emltrevgtltngtemegemHEADv1510em)) because it is the [escape character in Windows](https://ss64.com/nt/syntax-esc.html#:~:text=include%20the%20delimiters.-,Escape%20Character,-%5E%20%20Escape%20character.).
 So instead of:
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
+sfdx sgd:source:delta --from "HEAD^" # wrong git shortcut with windows because it uses "^" syntax
 ````
 You should write:
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output "."
+sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because it does not use "^", it uses "~n" syntax
 ```
 
 
