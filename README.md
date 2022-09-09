@@ -61,7 +61,7 @@ sfdx plugins:install sfdx-git-delta
 ```
 
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output "."
+sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output "."
 ```
 
 ```sh
@@ -190,6 +190,18 @@ _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-
 
 If you run SGD on a Windows system, use double quotes [to prevent the terminal to interpret parameters](https://github.com/scolladon/sfdx-git-delta/issues/134)
 
+You should also avoid using the "^" character ([shorthand for parent commit in git](https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt-emltrevgtltngtemegemHEADv1510em)) because it is the [escape character in Windows](https://ss64.com/nt/syntax-esc.html#:~:text=include%20the%20delimiters.-,Escape%20Character,-%5E%20%20Escape%20character.).
+So instead of:
+```sh
+sfdx sgd:source:delta --from "HEAD^" # wrong git shortcut with windows because it uses "^" syntax
+````
+You should write:
+```sh
+sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because it does not use "^", it uses "~n" syntax
+```
+
+
+
 ### CI/CD specificity
 
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
@@ -256,12 +268,12 @@ So let’s do it!
 From the project repo folder, the CI pipeline will run the following command:
 
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output .
+sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output .
 ```
 
 which means:
 
-> Analyze the difference between HEAD (latest commit) and HEAD^ (previous commit), and output the result in the current folder.
+> Analyze the difference between HEAD (latest commit) and HEAD~1 (previous commit), and output the result in the current folder.
 
 The `sfdx sgd:source:delta` command produces 2 usefull artifacts:
 
@@ -325,7 +337,7 @@ Let's use this option with our previous example:
 
 ```sh
 mkdir changed-sources
-sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta
+sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output changed-sources/ --generate-delta
 ```
 
 It generates the `package` and `destructiveChanges` folders, and copies added/changed files in the output folder.
@@ -341,7 +353,7 @@ _Content of the output folder when using the --generate-delta option, with the s
 > # move HEAD to the wanted past commit
 > $ git checkout <not-HEAD-commit-sha>
 > # You can omit --to, it will take "HEAD" as default value
-> $ sfdx sgd:source:delta --from "HEAD^" --output changed-sources/ --generate-delta
+> $ sfdx sgd:source:delta --from "HEAD~1" --output changed-sources/ --generate-delta
 > ```
 
 Then it is possible to deploy the `change-sources` folder using `force:source:deploy` command with `-p` parameter:
