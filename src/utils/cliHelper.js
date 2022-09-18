@@ -22,7 +22,10 @@ const dirExists = async dir => await fsExists(dir, 'isDirectory')
 const fileExists = async file => await fsExists(file, 'isFile')
 
 const isGit = async dir => {
-  return await dirExists(join(dir, GIT_FOLDER))
+  const isGitDir = await dirExists(join(dir, GIT_FOLDER))
+  const isGitFile = await fileExists(join(dir, GIT_FOLDER))
+
+  return isGitDir || isGitFile
 }
 
 const isBlank = str => !str || /^\s*$/.test(str)
