@@ -26,14 +26,16 @@ const testConfig = {
   apiVersion: '46',
 }
 
+const mockFiles = {
+  output: '',
+  '.': '',
+}
+
 describe(`test if the application`, () => {
   beforeAll(() => {
     fs.errorMode = false
     fs.statErrorMode = false
-    fs.__setMockFiles({
-      output: '',
-      '.': '',
-    })
+    fs.__setMockFiles(mockFiles)
   })
 
   test('throws errors when to parameter is not filled', async () => {
@@ -220,6 +222,44 @@ describe(`test if the application`, () => {
     )
     await expect(cliHelper.validateConfig()).rejects.not.toThrow(
       format(messages.errorParameterIsNotGitSHA, 'from', TAG_REF_TYPE)
+    )
+  })
+
+  test('do not throw errors when repo contains submodule git file', async () => {
+    fs.errorMode = false
+    fs.statErrorMode = false
+    fs.__setMockFiles({
+      ...mockFiles,
+      'submodule/.git': 'lorem ipsum',
+    })
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      generateDelta: false,
+      repo: 'submodule/',
+    })
+    expect.assertions(1)
+    await expect(cliHelper.validateConfig()).rejects.not.toThrow(
+      format(messages.errorPathIsNotGit, 'submodule/')
+    )
+  })
+
+  test('do not throw errors when repo submodule git folder', async () => {
+    fs.errorMode = false
+    fs.statErrorMode = false
+    fs.__setMockFiles({
+      ...mockFiles,
+      'submodule/.git': '',
+    })
+    let cliHelper = new CLIHelper({
+      ...testConfig,
+      generateDelta: false,
+      repo: 'submodule/',
+    })
+    // let cliHelper = new CLIHelper({ ...testConfig, repo: './submodule' })
+    expect.assertions(1)
+    // cliHelper.validateConfig()
+    await expect(cliHelper.validateConfig()).rejects.not.toThrow(
+      format(messages.errorPathIsNotGit, 'submodule/.git')
     )
   })
 })
