@@ -13,7 +13,7 @@ fs.__setMockFiles = newMockFiles => {
   mockContent = new Map()
   filePathList = new Set()
   for (const file in newMockFiles) {
-    filePathList.add(path.basename(file))
+    filePathList.add(file)
     const dir = path.basename(path.dirname(file))
     if (!mockFiles.has(dir)) {
       mockFiles.set(dir, [])
