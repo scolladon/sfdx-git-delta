@@ -74,6 +74,14 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       char: 'N',
       description: messages.getMessage('includeDestructiveFlag'),
     }),
+    'scope-translations': flags.boolean({
+      char: 'T',
+      description: messages.getMessage('scopeTranslationsFlag'),
+    }),
+    'scope-permissions': flags.boolean({
+      char: 'P',
+      description: messages.getMessage('scopePermissionsFlag'),
+    }),
   }
 
   public async run(): Promise<AnyJson> {
@@ -97,6 +105,8 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         generateDelta: this.flags['generate-delta'],
         include: this.flags.include,
         includeDestructive: this.flags['include-destructive'],
+        scopeTranslations: this.flags['scope-translations'],
+        scopePermissions: this.flags['scope-permissions'],
       })
       output.warnings = jobResult?.warnings?.map(warning => warning.message)
     } catch (err) {

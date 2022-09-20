@@ -12,6 +12,7 @@ const XML_PARSER_OPTION = {
   parseAttributeValue: false,
   trimValues: true,
   processEntities: false,
+  arrayMode: true,
 }
 const JSON_PARSER_OPTION = {
   ...XML_PARSER_OPTION,
@@ -23,14 +24,22 @@ const asArray = node => {
   return node != null ? (Array.isArray(node) ? node : [node]) : []
 }
 
-const parseXmlFileToJson = async (line, config) => {
+const parseXmlFileToJson = async (line, config, options) => {
+  const parserOption = {
+    ...XML_PARSER_OPTION,
+    ...options,
+  }
   const xmlContent = await readPathFromGit(line, config)
-  const xmlParser = new XMLParser(XML_PARSER_OPTION)
+  const xmlParser = new XMLParser(parserOption)
   return xmlParser.parse(xmlContent)
 }
 
-const convertJsonToXml = jsonContent => {
-  const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
+const convertJsonToXml = (jsonContent, options) => {
+  const builderOption = {
+    ...JSON_PARSER_OPTION,
+    ...options,
+  }
+  const xmlBuilder = new XMLBuilder(builderOption)
   return xmlBuilder
     .build(jsonContent)
     .replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}`)

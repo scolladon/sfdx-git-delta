@@ -7,14 +7,12 @@ const {
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
 const { copyFiles, scanExtension, isSubDir } = require('../utils/fsHelper')
-const { parse } = require('path')
 const { forPath } = require('../utils/ignoreHelper')
 const { asArray, parseXmlFileToJson } = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
 const { getMetadataName } = require('../utils/metadataHelper')
 
 const FLOW_TRANSLATION_XML_PARSER_OPTION = {
-  ...XML_PARSER_OPTION,
   isArray: name => name === 'flowDefinitions',
 }
 
@@ -73,7 +71,8 @@ class FlowTranslationProcessor extends BaseProcessor {
   async _parseTranslationFile(translationPath) {
     const translationJSON = await parseXmlFileToJson(
       translationPath,
-      this.config
+      this.config,
+      FLOW_TRANSLATION_XML_PARSER_OPTION
     )
     const flowDefinitions = asArray(
       translationJSON?.Translations?.flowDefinitions

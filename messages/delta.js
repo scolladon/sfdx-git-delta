@@ -17,4 +17,8 @@ module.exports = {
   includeFlag: 'file listing paths to explicitly include for any diff actions',
   includeDestructiveFlag:
     'file listing paths to explicitly include for any destructive actions',
+  scopeTranslationsFlag:
+    'scope translations and objectTranslations file based on the package.xml content',
+  scopePermissionsFlag:
+    'scope profiles and permissionSets file based on the package.xml content',
 }
