@@ -2,7 +2,6 @@
 const BaseProcessor = require('./baseProcessor')
 const {
   FLOW_DIRECTORY_NAME,
-  META_REGEX,
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
@@ -12,9 +11,12 @@ const { parse } = require('path')
 const { forPath } = require('../utils/ignoreHelper')
 const { asArray, parseXmlFileToJson } = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
+const { getMetadataName } = require('../utils/metadataHelper')
 
-const getTranslationName = translationPath =>
-  parse(translationPath.replace(META_REGEX, '')).name
+const FLOW_TRANSLATION_XML_PARSER_OPTION = {
+  ...XML_PARSER_OPTION,
+  isArray: name => name === 'flowDefinitions',
+}
 
 const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 class FlowTranslationProcessor extends BaseProcessor {
@@ -42,7 +44,7 @@ class FlowTranslationProcessor extends BaseProcessor {
     const ign = await this._getIgnoreInstance()
 
     for await (const translationPath of translationsIterator) {
-      const translationName = getTranslationName(translationPath)
+      const translationName = getMetadataName(translationPath)
       if (
         !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName) &&
         !ign?.ignores(translationPath) &&
@@ -59,7 +61,7 @@ class FlowTranslationProcessor extends BaseProcessor {
       fillPackageWithParameter({
         store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
-        elementName: getTranslationName(translationPath),
+        elementName: getMetadataName(translationPath),
       })
       if (this.config.generateDelta) {
         copyTranslationsPromises.push(copyFiles(this.config, translationPath))
