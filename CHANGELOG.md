@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.5.0 (2022-09-21)
+
+
+### Features
+
+* enable git diff on submodules ([#353](https://github.com/scolladon/sfdx-git-delta/issues/353)) ([263e37d](https://github.com/scolladon/sfdx-git-delta/commit/263e37dbc3991eae3893b330fe9856ee6b4569e9))
+
 ### [5.4.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.4.1...v5.4.2) (2022-08-26)
 
 
