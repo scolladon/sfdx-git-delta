@@ -32,7 +32,7 @@ const mockFiles = {
 }
 
 describe(`test if the application`, () => {
-  beforeAll(() => {
+  beforeEach(() => {
     fs.errorMode = false
     fs.statErrorMode = false
     fs.__setMockFiles(mockFiles)
@@ -226,8 +226,6 @@ describe(`test if the application`, () => {
   })
 
   test('do not throw errors when repo contains submodule git file', async () => {
-    fs.errorMode = false
-    fs.statErrorMode = false
     fs.__setMockFiles({
       ...mockFiles,
       'submodule/.git': 'lorem ipsum',
@@ -243,8 +241,6 @@ describe(`test if the application`, () => {
   })
 
   test('do not throw errors when repo submodule git folder', async () => {
-    fs.errorMode = false
-    fs.statErrorMode = false
     fs.__setMockFiles({
       ...mockFiles,
       'submodule/.git': '',
