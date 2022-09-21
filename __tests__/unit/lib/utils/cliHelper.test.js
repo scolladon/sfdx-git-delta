@@ -234,7 +234,6 @@ describe(`test if the application`, () => {
     })
     let cliHelper = new CLIHelper({
       ...testConfig,
-      generateDelta: false,
       repo: 'submodule/',
     })
     expect.assertions(1)
@@ -252,7 +251,6 @@ describe(`test if the application`, () => {
     })
     let cliHelper = new CLIHelper({
       ...testConfig,
-      generateDelta: false,
       repo: 'submodule/',
     })
     // let cliHelper = new CLIHelper({ ...testConfig, repo: './submodule' })
