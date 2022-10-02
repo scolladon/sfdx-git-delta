@@ -21,6 +21,8 @@ const { fillPackageWithParameter } = require('../utils/packageHelper')
 
 const getTranslationName = translationPath =>
   parse(translationPath.replace(META_REGEX, '')).name
+
+const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 class FlowTranslationProcessor extends BaseProcessor {
   translationPaths
 
@@ -37,16 +39,9 @@ class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translationPaths.clear()
 
-    const translationsIterator = scanExtension(
-      this.config.source,
-      `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
-    )
+    const translationsIterator = scanExtension(this.config.source, EXTENSION)
 
-    let ign
-    if (this.config.ignore) {
-      const helper = new IgnoreHelper()
-      ign = await helper.forPath(this.config.ignore)
-    }
+    const ign = await this._getIgnoreInstance()
 
     for await (const translationPath of translationsIterator) {
       const translationName = getTranslationName(translationPath)
@@ -95,6 +90,15 @@ class FlowTranslationProcessor extends BaseProcessor {
     if (packagedElements?.has(fullName)) {
       this.translationPaths.add(translationPath)
     }
+  }
+
+  async _getIgnoreInstance() {
+    let ign
+    if (this.config.ignore) {
+      const helper = new IgnoreHelper()
+      ign = await helper.forPath(this.config.ignore)
+    }
+    return ign
   }
 }
 
