@@ -1,6 +1,7 @@
 'use strict'
 const cpUtils = require('./childProcessUtils')
-const { getType } = require('../utils/typeUtils')
+const { getType } = require('./typeUtils')
+const IgnoreHelper = require('./ignoreHelper')
 const {
   ADDITION,
   DELETION,
@@ -162,14 +163,14 @@ class RepoGitDiff {
   }
 
   static async _setupIgnore(config) {
+    const ignoreHelper = new IgnoreHelper()
     const setup = await Promise.all(
       [
         { ignore: config.ignore, helper: ignore() },
         { ignore: config.ignoreDestructive, helper: ignore() },
       ].map(async obj => {
         if (obj.ignore) {
-          const content = await readFile(obj.ignore)
-          obj.helper.add(content.toString())
+          obj.helper = await ignoreHelper.forPath(obj.ignore)
         }
         return obj
       })
@@ -178,12 +179,22 @@ class RepoGitDiff {
   }
 
   _filterIgnore(line, ignoreSetup) {
-    const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
-    return this.config.ignoreDestructive
-      ? line.startsWith(DELETION)
-        ? !ignoreSetup[1]?.helper?.ignores(filePath)
-        : !ignoreSetup[0]?.helper?.ignores(filePath)
-      : !ignoreSetup[0]?.helper?.ignores(filePath)
+    let helper
+    if (this.config.ignoreDestructive && line.startsWith(DELETION)) {
+      helper = ignoreSetup[1].helper
+    } else if (
+      this.config.ignore &&
+      [ADDITION, MODIFICATION].some(status => line.startsWith(status))
+    ) {
+      helper = ignoreSetup[0].helper
+    }
+
+    let keepLine = true
+    if (helper) {
+      keepLine = !helper?.ignores(line)
+    }
+
+    return keepLine
   }
 
   _extractComparisonName(line) {
