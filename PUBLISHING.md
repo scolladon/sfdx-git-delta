@@ -11,6 +11,7 @@ Here are the steps to publish a version
 
 ```sh
 $ yarn release
+$ yarn publish --access public --tag "latest-rc"
 ```
 
 This will:
@@ -22,10 +23,29 @@ This will:
 - Push this tag to the remote
 - Trigger the new version publish
 
-## Rollback a new Release
+You can use the "Release latest-rc" manual github action to publish the last commit on main as the `latest-rc` version
+
+## Update tag version
 
 ```sh
-$ yarn npm tag add sfdx-git-delta@<version> latest 
+$ yarn npm tag add sfdx-git-delta@<version-source> <version-target> 
 ```
 
-It will set the latest release channel to the wanted version.
+It will set the version-source release channel to the version-target.
+
+Per example if you need to rollback `latest` to `v5.0.0`:
+```sh
+$ yarn npm tag add sfdx-git-delta@v5.0.0 latest
+```
+
+Per example if you want `latest` to be `latest-rc`:
+```sh
+$ yarn npm tag add sfdx-git-delta@latest-rc latest
+```
+
+Per example if you want `stable` to be `latest`:
+```sh
+$ yarn npm tag add sfdx-git-delta@latest stable
+```
+
+You can use the "Mannage Versions" manual github action to do the same thing.
