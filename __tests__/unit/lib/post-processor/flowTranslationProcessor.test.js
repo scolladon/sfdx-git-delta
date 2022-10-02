@@ -13,6 +13,12 @@ jest.mock('../../../../src/utils/fsHelper', () => ({
   copyFiles: jest.fn(),
   readFile: jest.fn(),
 }))
+const mockForPath = jest.fn()
+jest.mock('../../../../src/utils/ignoreHelper', () => {
+  return jest.fn().mockImplementation(() => {
+    return { forPath: mockForPath }
+  })
+})
 
 const FR = 'fr'
 const EN = 'en'
@@ -47,6 +53,7 @@ describe('FlowTranslationProcessor', () => {
         }),
       }))
     })
+
     describe('when there is no translation file', () => {
       beforeEach(() => {
         // Arrange
@@ -178,11 +185,52 @@ describe('FlowTranslationProcessor', () => {
               expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
               expect(scanExtension).toHaveBeenCalledTimes(1)
               expect(mockParse).toHaveBeenCalledTimes(2)
-              if (generateDelta) expect(copyFiles).toHaveBeenCalled()
+              if (generateDelta) expect(copyFiles).toHaveBeenCalledTimes(2)
               else expect(copyFiles).not.toHaveBeenCalled()
             })
           }
         )
+      })
+    })
+
+    describe('when translation files are ignored', () => {
+      beforeEach(() => {
+        // Arrange
+        work.config.ignore = '.forceignore'
+        mockForPath.mockResolvedValue({ ignores: () => true })
+      })
+      it('should not add translation file', async () => {
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+        expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(mockForPath).toHaveBeenCalledTimes(1)
+        expect(mockParse).not.toHaveBeenCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('when translation files are not ignored', () => {
+      beforeEach(() => {
+        // Arrange
+        work.diffs.package = new Map([
+          [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
+        ])
+        work.config.ignore = '.forceignore'
+        mockForPath.mockResolvedValue({ ignores: () => false })
+      })
+      it('should add translation file', async () => {
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+        expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(mockForPath).toHaveBeenCalledTimes(1)
+        expect(mockParse).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(1)
       })
     })
   })

@@ -9,6 +9,7 @@ const {
 } = require('../utils/metadataConstants')
 const { copyFiles, scanExtension, readFile } = require('../utils/fsHelper')
 const { parse, resolve } = require('path')
+const IgnoreHelper = require('../utils/ignoreHelper')
 const { XMLParser } = require('fast-xml-parser')
 const { asArray, XML_PARSER_OPTION } = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
@@ -37,11 +38,18 @@ class FlowTranslationProcessor extends BaseProcessor {
       `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
     )
 
+    let ign
+    if (this.config.ignore) {
+      const helper = new IgnoreHelper()
+      ign = await helper.forPath(this.config.ignore)
+    }
+
     for await (const translationPath of translationsIterator) {
       const translationName = getTranslationName(translationPath)
       if (
         // Treat only not already added translation files
-        !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName)
+        !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName) &&
+        !ign?.ignores(translationPath)
       ) {
         const translationXML = await readFile(translationPath)
         const xmlParser = new XMLParser(XML_PARSER_OPTION)
