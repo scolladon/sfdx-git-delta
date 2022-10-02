@@ -5,14 +5,14 @@ const {
   FLOW_DIRECTORY_NAME,
   TRANSLATION_TYPE,
 } = require('../../../../src/utils/metadataConstants')
-const { copyFiles, scanExtension } = require('../../../../src/utils/fsHelper')
+const {
+  copyFiles,
+  scanExtension,
+  isSubDir,
+} = require('../../../../src/utils/fsHelper')
 jest.mock('fs-extra')
 jest.mock('fast-xml-parser')
-jest.mock('../../../../src/utils/fsHelper', () => ({
-  scanExtension: jest.fn(),
-  copyFiles: jest.fn(),
-  readFile: jest.fn(),
-}))
+jest.mock('../../../../src/utils/fsHelper')
 const mockForPath = jest.fn()
 jest.mock('../../../../src/utils/ignoreHelper', () => {
   return jest.fn().mockImplementation(() => {
@@ -40,11 +40,11 @@ describe('FlowTranslationProcessor', () => {
           package: new Map(),
           destructiveChanges: new Map(),
         },
-        config: { repo: 'repo', output: 'output', generateDelta: true },
+        config: { source: '.', output: 'output', generateDelta: true },
       }
       sut = new FlowTranslationProcessor(work)
       flap = trueAfter(1)
-      scanExtension.mockImplementationOnce(() => ({
+      scanExtension.mockImplementation(() => ({
         [Symbol.asyncIterator]: () => ({
           next: () => ({
             value: `${FR}.translation-meta.xml`,
@@ -133,7 +133,7 @@ describe('FlowTranslationProcessor', () => {
         let count = 0
         const getTranslationName = () =>
           [`${FR}.translation-meta.xml`, `${EN}.translation-meta.xml`][count++]
-        scanExtension.mockImplementationOnce(() => ({
+        scanExtension.mockImplementation(() => ({
           [Symbol.asyncIterator]: () => ({
             next: () => ({
               value: getTranslationName(),
@@ -231,6 +231,34 @@ describe('FlowTranslationProcessor', () => {
         expect(mockForPath).toHaveBeenCalledTimes(1)
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    describe('when the translation file is subDir of output', () => {
+      beforeEach(() => {
+        // Arrange
+        const out = 'out'
+        work.config.output = out
+        scanExtension.mockImplementation(() => ({
+          [Symbol.asyncIterator]: () => ({
+            next: () => ({
+              value: `${out}/${FR}.translation-meta.xml`,
+              done: flap(),
+            }),
+          }),
+        }))
+        mockParse.mockImplementationOnce(() => ({}))
+        isSubDir.mockImplementation(() => true)
+      })
+      it('should not add translation file', async () => {
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+        expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(mockParse).not.toHaveBeenCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
       })
     })
   })

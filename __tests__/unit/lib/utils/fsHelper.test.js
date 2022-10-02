@@ -1,6 +1,7 @@
 'use strict'
 const {
   copyFiles,
+  isSubDir,
   readFile,
   scan,
   scanExtension,
@@ -274,4 +275,54 @@ describe('scanExtension', () => {
       expect(result.value).toBe('dir/test.txt')
     })
   })
+})
+
+describe('isSubDir', () => {
+  describe('when parent contains dir', () => {
+    it('returns true', async () => {
+      // Arrange
+
+      // Act
+      const result = isSubDir('parent', 'parent/dir')
+
+      // Assert
+      expect(result).toBe(true)
+    })
+  })
+
+  describe('when parent does not contains dir', () => {
+    it('returns false', async () => {
+      // Arrange
+
+      // Act
+      const result = isSubDir('parent', 'dir/child')
+
+      // Assert
+      expect(result).toBe(false)
+    })
+  })
+  it.each([
+    ['/foo', '/foo', false],
+    ['/foo', '/bar', false],
+    ['/foo', '/foobar', false],
+    ['/foo', '/foo/bar', true],
+    ['/foo', '/foo/../bar', false],
+    ['/foo', '/foo/./bar', true],
+    ['/bar/../foo', '/foo/bar', true],
+    ['/foo', './bar', false],
+    ['C:\\Foo', 'C:\\Foo\\Bar', false],
+    ['C:\\Foo', 'C:\\Bar', false],
+    ['C:\\Foo', 'D:\\Foo\\Bar', false],
+  ])(
+    `should verify %s expect %s to be a subDir: %s`,
+    (parent, child, expected) => {
+      // Arrange
+
+      // Act
+      const actual = isSubDir(parent, child)
+
+      // Assert
+      expect(actual).toBe(expected)
+    }
+  )
 })

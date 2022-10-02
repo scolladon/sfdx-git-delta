@@ -7,7 +7,12 @@ const {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
-const { copyFiles, scanExtension, readFile } = require('../utils/fsHelper')
+const {
+  copyFiles,
+  scanExtension,
+  readFile,
+  isSubDir,
+} = require('../utils/fsHelper')
 const { parse, resolve } = require('path')
 const IgnoreHelper = require('../utils/ignoreHelper')
 const { XMLParser } = require('fast-xml-parser')
@@ -16,7 +21,6 @@ const { fillPackageWithParameter } = require('../utils/packageHelper')
 
 const getTranslationName = translationPath =>
   parse(translationPath.replace(META_REGEX, '')).name
-
 class FlowTranslationProcessor extends BaseProcessor {
   translationPaths
 
@@ -34,7 +38,7 @@ class FlowTranslationProcessor extends BaseProcessor {
     this.translationPaths.clear()
 
     const translationsIterator = scanExtension(
-      this.config.repo,
+      this.config.source,
       `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
     )
 
@@ -49,7 +53,8 @@ class FlowTranslationProcessor extends BaseProcessor {
       if (
         // Treat only not already added translation files
         !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName) &&
-        !ign?.ignores(translationPath)
+        !ign?.ignores(translationPath) &&
+        !isSubDir(this.config.output, translationPath)
       ) {
         const translationXML = await readFile(translationPath)
         const xmlParser = new XMLParser(XML_PARSER_OPTION)
@@ -77,7 +82,7 @@ class FlowTranslationProcessor extends BaseProcessor {
         elementName: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        const source = resolve(this.config.repo, translationPath)
+        const source = resolve(this.config.source, translationPath)
         const target = resolve(this.config.output, translationPath)
         copyTranslationsPromises.push(copyFiles(source, target))
       }

@@ -1,6 +1,6 @@
 'use strict'
 const { copyFile, readFile: fsReadFile, readdir } = require('fs').promises
-const { join } = require('path')
+const { join, relative, isAbsolute } = require('path')
 const { copy, copySync, pathExists } = require('fs-extra')
 const { UTF8_ENCODING } = require('../utils/gitConstants')
 
@@ -60,7 +60,13 @@ async function* filterExt(it, ext) {
   }
 }
 
+const isSubDir = (parent, dir) => {
+  const rel = relative(parent, dir)
+  return !!rel && !rel.startsWith('..') && !isAbsolute(rel)
+}
+
 module.exports.copyFiles = copyFiles
+module.exports.isSubDir = isSubDir
 module.exports.readFile = readFile
 module.exports.scan = scan
 module.exports.scanExtension = (dir, ext) => filterExt(scan(dir), ext)
