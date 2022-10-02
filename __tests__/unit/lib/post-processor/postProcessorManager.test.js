@@ -67,20 +67,19 @@ describe('postProcessorManager', () => {
   })
 
   describe('when postProcessor `process` throws', () => {
-    it('should throw', async () => {
+    it('should append the error in warnings', async () => {
       // Arrange
       expect.assertions(1)
-      const sut = new PostProcessorManager()
+      const work = {
+        warnings: [],
+      }
+      const sut = new PostProcessorManager(work)
       sut.use(new TestProcesor())
       processSpy.mockImplementationOnce(() => Promise.reject('Error'))
 
       // Act
-      try {
-        await sut.execute()
-      } catch (error) {
-        // Assert
-        expect(error).toEqual('Error')
-      }
+      await sut.execute()
+      expect(work.warnings.length).toBe(1)
     })
   })
 })
