@@ -50,7 +50,9 @@ jobs:
         shell: bash
 
       - name: Install new plugin version
-        run: echo y | sfdx plugins:install "sfdx-git-delta@$(git tag | sort -g | tail -1)"
+        run: |
+          echo y | sfdx plugins:install "sfdx-git-delta@latest-rc"
+          sfdx plugins
 
       - name: Test new plugin version
         run: sfdx sgd:source:delta --help
