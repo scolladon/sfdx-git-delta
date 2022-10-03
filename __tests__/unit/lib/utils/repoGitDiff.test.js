@@ -177,7 +177,7 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(expected)
   })
 
-  test('can filter deletion if only ignored is specified files', async () => {
+  test('cannot filter deletion if only ignored is specified files', async () => {
     const output = 'force-app/main/default/lwc/jsconfig.json'
     child_process.__setOutput([[], [`1${TAB}1${TAB}${output}`], []])
     const repoGitDiff = new RepoGitDiff(
@@ -185,8 +185,8 @@ describe(`test if repoGitDiff`, () => {
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
-    //should be empty
-    const expected = []
+
+    const expected = [`${DELETION}${TAB}${output}`]
     expect(work).toStrictEqual(expected)
   })
 

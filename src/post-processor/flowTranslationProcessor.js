@@ -7,8 +7,14 @@ const {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
-const { copyFiles, scanExtension, readFile } = require('../utils/fsHelper')
+const {
+  copyFiles,
+  scanExtension,
+  readFile,
+  isSubDir,
+} = require('../utils/fsHelper')
 const { parse, resolve } = require('path')
+const IgnoreHelper = require('../utils/ignoreHelper')
 const { XMLParser } = require('fast-xml-parser')
 const { asArray, XML_PARSER_OPTION } = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
@@ -16,6 +22,7 @@ const { fillPackageWithParameter } = require('../utils/packageHelper')
 const getTranslationName = translationPath =>
   parse(translationPath.replace(META_REGEX, '')).name
 
+const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 class FlowTranslationProcessor extends BaseProcessor {
   translationPaths
 
@@ -32,16 +39,17 @@ class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translationPaths.clear()
 
-    const translationsIterator = scanExtension(
-      this.config.repo,
-      `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
-    )
+    const translationsIterator = scanExtension(this.config.source, EXTENSION)
+
+    const ign = await this._getIgnoreInstance()
 
     for await (const translationPath of translationsIterator) {
       const translationName = getTranslationName(translationPath)
       if (
         // Treat only not already added translation files
-        !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName)
+        !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName) &&
+        !ign?.ignores(translationPath) &&
+        !isSubDir(this.config.output, translationPath)
       ) {
         const translationXML = await readFile(translationPath)
         const xmlParser = new XMLParser(XML_PARSER_OPTION)
@@ -69,7 +77,7 @@ class FlowTranslationProcessor extends BaseProcessor {
         elementName: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        const source = resolve(this.config.repo, translationPath)
+        const source = resolve(this.config.source, translationPath)
         const target = resolve(this.config.output, translationPath)
         copyTranslationsPromises.push(copyFiles(source, target))
       }
@@ -82,6 +90,15 @@ class FlowTranslationProcessor extends BaseProcessor {
     if (packagedElements?.has(fullName)) {
       this.translationPaths.add(translationPath)
     }
+  }
+
+  async _getIgnoreInstance() {
+    let ign
+    if (this.config.ignore) {
+      const helper = new IgnoreHelper()
+      ign = await helper.forPath(this.config.ignore)
+    }
+    return ign
   }
 }
 

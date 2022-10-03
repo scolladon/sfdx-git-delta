@@ -6,9 +6,11 @@ const processors = [FlowTranslationProcessor, PackageGenerator]
 
 class PostProcessorManager {
   postProcessors
+  work
 
-  constructor() {
+  constructor(work) {
     this.postProcessors = []
+    this.work = work
   }
 
   use(postProcessor) {
@@ -18,7 +20,11 @@ class PostProcessorManager {
 
   async execute() {
     for (const postProcessor of this.postProcessors) {
-      await postProcessor.process()
+      try {
+        await postProcessor.process()
+      } catch (error) {
+        this.work.warnings.push(error)
+      }
     }
   }
 }
@@ -26,7 +32,7 @@ class PostProcessorManager {
 module.exports = PostProcessorManager
 
 module.exports.getPostProcessors = (work, metadata) => {
-  const postProcessor = new PostProcessorManager()
+  const postProcessor = new PostProcessorManager(work)
 
   for (const processor of processors) {
     const instance = new processor(work, metadata)
