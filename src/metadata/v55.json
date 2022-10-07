@@ -49,6 +49,13 @@
     "xmlName": "BatchCalcJobDefinition"
   },
   {
+    "directoryName": "batchProcessJobDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "batchProcessJobDefinition",
+    "xmlName": "BatchProcessJobDefinition"
+  },
+  {
     "directoryName": "installedPackages",
     "inFolder": false,
     "metaFile": false,
