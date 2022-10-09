@@ -1,36 +1,51 @@
 'use strict'
-const { copyFile, readFile: fsReadFile, readdir } = require('fs').promises
-const { join, relative, isAbsolute } = require('path')
-const { copy, copySync, pathExists } = require('fs-extra')
+const { readFile: fsReadFile, readdir } = require('fs').promises
+const { isAbsolute, join, relative } = require('path')
+const { outputFile } = require('fs-extra')
+const { spawn } = require('child_process')
 const { UTF8_ENCODING } = require('../utils/gitConstants')
+const { EOLRegex, getStreamContent } = require('./childProcessUtils')
 
-const FSE_BIGINT_ERROR = 'Source and destination must not be the same.'
-const FSE_COPYSYNC_OPTION = {
-  overwrite: true,
-  errorOnExist: false,
-  dereference: true,
-  preserveTimestamps: false,
-}
+const showCmd = ['--no-pager', 'show']
 
 const copiedFiles = new Set()
 
-const copyFiles = async (src, dst) => {
+const copyFiles = async (src, config, dst) => {
   if (copiedFiles.has(src)) return
-  const exists = await pathExists(src)
-  if (!copiedFiles.has(src) && exists) {
-    copiedFiles.add(src)
-    try {
-      await copy(src, dst, FSE_COPYSYNC_OPTION)
-    } catch (error) {
-      if (error.message === FSE_BIGINT_ERROR) {
-        // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
-        await copyFile(src, dst)
-      } else {
-        // Retry sync in case of async error
-        copySync(src, dst, FSE_COPYSYNC_OPTION)
-      }
-    }
+  copiedFiles.add(src)
+
+  src = relative(config.source, src)
+  const data = await readFileFromGit(src, config)
+  if (!data) {
+    return
   }
+  // TODO compare previous file system implementation result in term of
+  //    - Performance
+  //    - Quality of the result
+  if (data.startsWith('tree')) {
+    const [header, , ...files] = data.split(EOLRegex)
+    const folder = header.split(':')[1]
+    for (const file of files) {
+      const fileDst = join(config.output, folder, file)
+      const fileSrc = join(config.repo, folder, file)
+
+      await copyFiles(fileSrc, config, fileDst)
+    }
+  } else if (data.startsWith('fatal')) {
+    this.config.warnings.push(data)
+  } else {
+    await outputFile(dst, data)
+  }
+}
+
+const readFileFromGit = async (path, config) => {
+  const data = await getStreamContent(
+    spawn('git', [...showCmd, `${config.to}:${path}`], {
+      cwd: config.repo,
+    })
+  )
+
+  return data
 }
 
 const readFile = async path => {
@@ -68,6 +83,6 @@ const isSubDir = (parent, dir) => {
 module.exports.copyFiles = copyFiles
 module.exports.isSubDir = isSubDir
 module.exports.readFile = readFile
+module.exports.readFileFromGit = readFileFromGit
 module.exports.scan = scan
 module.exports.scanExtension = (dir, ext) => filterExt(scan(dir), ext)
-module.exports.FSE_BIGINT_ERROR = FSE_BIGINT_ERROR

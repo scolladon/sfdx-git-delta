@@ -4,8 +4,10 @@ const { normalize, sep } = require('path')
 const EOLRegex = /\r?\n/g
 
 const treatPathSep = data => data.replace(/[/\\]+/g, sep)
+
 const sanitizePath = data =>
   data !== null && data !== undefined ? normalize(treatPathSep(data)) : data
+
 async function* linify(stream) {
   let previous = ''
   for await (const chunk of stream) {
@@ -31,6 +33,7 @@ const getStreamContent = async stream => {
   return content.join('')
 }
 
+module.exports.EOLRegex = EOLRegex
 module.exports.getStreamContent = getStreamContent
 module.exports.linify = linify
 module.exports.treatPathSep = treatPathSep

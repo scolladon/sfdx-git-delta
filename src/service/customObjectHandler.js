@@ -1,13 +1,13 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
 const asyncFilter = require('../utils/asyncFilter')
-const { readFile } = require('../utils/fsHelper')
+const { readFileFromGit } = require('../utils/fsHelper')
 const {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
 } = require('../utils/metadataConstants')
-const { join, parse, resolve } = require('path')
+const { join, parse } = require('path')
 const { readdir } = require('fs').promises
 const { pathExists } = require('fs-extra')
 
@@ -31,8 +31,9 @@ class CustomObjectHandler extends StandardHandler {
 
     const fields = await readdir(fieldsFolder)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
-      const content = await readFile(
-        resolve(this.config.repo, fieldsFolder, fieldPath)
+      const content = await readFileFromGit(
+        join(this.config.repo, fieldsFolder, fieldPath),
+        this.config
       )
       return content.includes(MASTER_DETAIL_TAG)
     })
@@ -40,8 +41,8 @@ class CustomObjectHandler extends StandardHandler {
     await Promise.all(
       masterDetailsFields.map(field =>
         this._copyWithMetaFile(
-          resolve(this.config.repo, fieldsFolder, field),
-          resolve(this.config.output, fieldsFolder, field)
+          join(this.config.repo, fieldsFolder, field),
+          join(this.config.output, fieldsFolder, field)
         )
       )
     )

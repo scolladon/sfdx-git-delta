@@ -1,6 +1,6 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const { join, normalize, parse } = require('path')
+const { join, parse } = require('path')
 const { readdir } = require('fs').promises
 const { pathExists } = require('fs-extra')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
@@ -35,10 +35,7 @@ class ResourceHandler extends StandardHandler {
             matchingFiles.includes(src)
         )
         .map(src =>
-          this._copyWithMetaFile(
-            normalize(join(srcPath, src)),
-            normalize(join(targetPath, src))
-          )
+          this._copyWithMetaFile(join(srcPath, src), join(targetPath, src))
         )
     )
   }

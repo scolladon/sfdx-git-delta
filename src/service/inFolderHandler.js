@@ -23,7 +23,6 @@ class InFolderHandler extends StandardHandler {
 
     const folderFileName = `${folderName}.${
       StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
-      INFOLDER_SUFFIX +
       METAFILE_SUFFIX
     }`
 
