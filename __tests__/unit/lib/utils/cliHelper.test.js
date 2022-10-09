@@ -17,7 +17,6 @@ jest.mock('fs')
 jest.mock('child_process')
 jest.mock('../../../../src/utils/repoSetup')
 RepoSetup.mockImplementation(() => ({
-  isToEqualHead: jest.fn(),
   repoConfiguration: jest.fn(),
   getCommitRefType: jest.fn(),
 }))
