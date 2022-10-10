@@ -1,0 +1,30 @@
+name: Manage Versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'version number or alias to change from'
+        required: true
+        default: 'latest-rc'
+        type: string
+      target:
+        description: 'version number or alias to change to'
+        required: true
+        default: 'latest'
+        type: string
+
+jobs:
+  add-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+          registry-url: https://registry.npmjs.org/
+
+      - name: Rollback version
+        run: yarn npm tag add "sfdx-git-delta@${{ github.event.inputs.source }}" "{{ github.event.inputs.target }}"
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
