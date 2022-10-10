@@ -38,7 +38,8 @@ Per example if you need to rollback `latest` to `v5.0.0`:
 $ yarn npm tag add sfdx-git-delta@v5.0.0 latest
 ```
 
-Per example if you want `latest` to be `latest-rc`:
+**Update `latest` to be `latest-rc`:**
+This will update the SGD version most users get. The `latest` version is the one installed by default with the `sfdx plugins:install sfdx-git-delta` command.
 ```sh
 $ yarn npm tag add sfdx-git-delta@latest-rc latest
 ```
