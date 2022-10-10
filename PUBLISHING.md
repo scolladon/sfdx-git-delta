@@ -43,7 +43,8 @@ Per example if you want `latest` to be `latest-rc`:
 $ yarn npm tag add sfdx-git-delta@latest-rc latest
 ```
 
-Per example if you want `stable` to be `latest`:
+**Update `stable` to be `latest`:**
+To be performed once the current `latest` version is considered stable enough.
 ```sh
 $ yarn npm tag add sfdx-git-delta@latest stable
 ```
