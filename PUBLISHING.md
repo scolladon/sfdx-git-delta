@@ -33,7 +33,8 @@ $ yarn npm tag add sfdx-git-delta@<version-source> <version-target>
 
 It will set the version-source release channel to the version-target.
 
-Per example if you need to rollback `latest` to `v5.0.0`:
+**Rollback**: 
+Use this command only if something is wrong with the current `latest` version, and you need to roll it back to a previous version (to `v5.0.0` in this example).
 ```sh
 $ yarn npm tag add sfdx-git-delta@v5.0.0 latest
 ```
