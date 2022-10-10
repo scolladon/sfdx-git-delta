@@ -33,12 +33,6 @@ $ yarn npm tag add sfdx-git-delta@<version-source> <version-target>
 
 It will set the version-source release channel to the version-target.
 
-**Rollback**: 
-Use this command only if something is wrong with the current `latest` version, and you need to roll it back to a previous version (to `v5.0.0` in this example).
-```sh
-$ yarn npm tag add sfdx-git-delta@v5.0.0 latest
-```
-
 **Update `latest` to be `latest-rc`:**
 This will update the SGD version most users get. The `latest` version is the one installed by default with the `sfdx plugins:install sfdx-git-delta` command.
 ```sh
@@ -51,4 +45,10 @@ To be performed once the current `latest` version is considered stable enough.
 $ yarn npm tag add sfdx-git-delta@latest stable
 ```
 
-You can use the "Mannage Versions" manual github action to do the same thing.
+**Rollback**: 
+Use this command only if something is wrong with the current `latest` version, and you need to roll it back to a previous version (to `v5.0.0` in this example).
+```sh
+$ yarn npm tag add sfdx-git-delta@v5.0.0 latest
+```
+
+You can use the "Manage Versions" manual github action to do the same thing.
