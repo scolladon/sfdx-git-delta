@@ -7,4 +7,5 @@ module.exports = {
   errorPathIsNotGit: '%s is not a git repository',
   errorToNotHeadWithDeltaGenerate:
     '--generate-delta (-d) parameter cannot be used when --to (-t) parameter is not equivalent to HEAD',
+  warningApiVersionNotSupported: 'API version not supported, using %s instead',
 }

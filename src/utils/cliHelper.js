@@ -4,8 +4,13 @@ const messages = require('../locales/en')
 const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
 const { GIT_FOLDER, POINTER_REF_TYPES } = require('./gitConstants')
+const {
+  getLatestSupportedVersion,
+  isVersionSupported,
+} = require('../metadata/metadataManager')
 const { format } = require('util')
 const { stat } = require('fs').promises
+const { readFile } = require('./fsHelper')
 const { join } = require('path')
 
 const fsExists = async (dir, fn) => {
@@ -31,6 +36,8 @@ const isGit = async dir => {
 const isBlank = str => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS = ['to', 'from']
+const SOURCE_API_VERSION_ATTRIBUT = 'sourceApiVersion'
+const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 class CLIHelper {
   constructor(work) {
@@ -69,6 +76,7 @@ class CLIHelper {
 
   async validateConfig() {
     this._sanitizeConfig()
+    await this._handleDefault()
     const errors = []
 
     if (isNaN(this.config.apiVersion)) {
@@ -133,6 +141,40 @@ class CLIHelper {
         return !exist
       }
     )
+  }
+
+  async _handleDefault() {
+    const latestAPIVersionSupported = await getLatestSupportedVersion()
+    if (this.config.apiVersion == undefined) {
+      const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
+      const exists = await fileExists(sfdxProjectPath)
+      if (exists) {
+        try {
+          const sfdxProjectRaw = await readFile(sfdxProjectPath)
+          const sfdxProject = JSON.parse(sfdxProjectRaw)
+          this.config.apiVersion =
+            parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || ' '
+          // eslint-disable-next-line no-empty
+        } catch {}
+      }
+    }
+
+    const isInputVersionSupported = await isVersionSupported(
+      this.config.apiVersion
+    )
+
+    if (!isInputVersionSupported) {
+      // 0 is when the -a parameter is set with white char string
+      if (this.config.apiVersion || this.config.apiVersion === 0) {
+        this.work.warnings.push({
+          message: format(
+            messages.warningApiVersionNotSupported,
+            latestAPIVersionSupported
+          ),
+        })
+      }
+      this.config.apiVersion = latestAPIVersionSupported
+    }
   }
 
   _sanitizeConfig() {
