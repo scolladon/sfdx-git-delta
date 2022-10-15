@@ -441,6 +441,31 @@ describe(`test if the application`, () => {
             }
           )
         })
+
+        test('when "sourceApiVersion" attribut is not set', async () => {
+          // Arrange
+          fs.__setMockFiles({
+            ...mockFiles,
+            'sfdx-project.json': `{}`,
+          })
+
+          const work = {
+            ...testConfig,
+            config: {
+              ...testConfig.config,
+              apiVersion: undefined,
+            },
+            warnings: [],
+          }
+          const cliHelper = new CLIHelper(work)
+
+          // Act
+          await cliHelper._handleDefault()
+
+          // Assert
+          expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+          expect(work.warnings.length).toEqual(1)
+        })
       })
       describe('when sfdx-project.json file does not exist', () => {
         test('config.apiVersion equals the latest version', async () => {

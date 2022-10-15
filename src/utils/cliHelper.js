@@ -145,17 +145,14 @@ class CLIHelper {
   }
 
   async _getApiVersion() {
-    if (this.config.apiVersion == undefined) {
+    if (this.config.apiVersion === undefined) {
       const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
       const exists = await fileExists(sfdxProjectPath)
       if (exists) {
-        try {
-          const sfdxProjectRaw = await readFile(sfdxProjectPath)
-          const sfdxProject = JSON.parse(sfdxProjectRaw)
-          this.config.apiVersion =
-            parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || ' '
-          // eslint-disable-next-line no-empty
-        } catch {}
+        const sfdxProjectRaw = await readFile(sfdxProjectPath)
+        const sfdxProject = JSON.parse(sfdxProjectRaw)
+        this.config.apiVersion =
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || ' '
       }
     }
   }
