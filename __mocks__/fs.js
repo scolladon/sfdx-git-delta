@@ -1,6 +1,6 @@
 'use strict'
 const path = require('path')
-const fs = jest.genMockFromModule('fs')
+const fs = jest.createMockFromModule('fs')
 const { MASTER_DETAIL_TAG } = require('../src/utils/metadataConstants')
 
 fs.errorMode = false
@@ -23,7 +23,9 @@ fs.__setMockFiles = newMockFiles => {
   }
 }
 
-fs.promises = {}
+Object.defineProperty(fs, 'promises', {
+  value: {},
+})
 
 fs.promises.stat = jest.fn(
   elem =>
