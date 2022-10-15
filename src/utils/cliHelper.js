@@ -140,7 +140,11 @@ class CLIHelper {
   }
 
   async _handleDefault() {
-    const latestAPIVersionSupported = await getLatestSupportedVersion()
+    await this._getApiVersion()
+    await this._apiVersionDefault()
+  }
+
+  async _getApiVersion() {
     if (this.config.apiVersion == undefined) {
       const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
       const exists = await fileExists(sfdxProjectPath)
@@ -154,12 +158,15 @@ class CLIHelper {
         } catch {}
       }
     }
+  }
 
+  async _apiVersionDefault() {
     const isInputVersionSupported = await isVersionSupported(
       this.config.apiVersion
     )
 
     if (!isInputVersionSupported) {
+      const latestAPIVersionSupported = await getLatestSupportedVersion()
       // 0 is when the -a parameter is set with white char string
       if (this.config.apiVersion || this.config.apiVersion === 0) {
         this.work.warnings.push({
