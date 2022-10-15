@@ -79,10 +79,6 @@ class CLIHelper {
     await this._handleDefault()
     const errors = []
 
-    if (isNaN(this.config.apiVersion)) {
-      errors.push(format(messages.errorAPIVersionIsNan, this.config.apiVersion))
-    }
-
     const isGitPromise = isGit(this.config.repo)
     const isToEqualHeadPromise = this.repoSetup.isToEqualHead()
     const directoriesPromise = this._filterDirectories()
