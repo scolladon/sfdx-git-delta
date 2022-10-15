@@ -151,7 +151,10 @@ OPTIONS
   -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
                                                                                     tab, eol) changes
 
-  -a, --api-version=api-version                                                     [default: 55] salesforce API version
+  -a, --api-version=api-version                                                     salesforce metadata API version,
+                                                                                    default to sfdx-project.json
+                                                                                    "sourceApiVersion" attribut or
+                                                                                    latest version
 
   -d, --generate-delta                                                              generate delta files in [--output]
                                                                                     folder
