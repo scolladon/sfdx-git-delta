@@ -1,11 +1,22 @@
 'use strict'
-const metadataManager = require('../../src/metadata/metadataManager')
+const {
+  getDefinition,
+  getLatestSupportedVersion,
+} = require('../../src/metadata/metadataManager')
+
+const getMetadata = async () => {
+  const apiVersion = await getLatestSupportedVersion()
+  const metadata = await getDefinition('directoryName', apiVersion)
+  return metadata
+}
+
+global.getGlobalMetadata = getMetadata
 
 global.testHandlerHelper = testContext => {
   describe(`test if ${testContext.handler.name}`, () => {
     let globalMetadata
     beforeAll(async () => {
-      globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+      globalMetadata = await getMetadata()
     })
     describe.each(testContext.testData)(
       'handles',

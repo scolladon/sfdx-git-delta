@@ -1,6 +1,5 @@
 'use strict'
 const InFolder = require('../../../../src/service/inFolderHandler')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const fs = require('fs')
 const fse = require('fs-extra')
 jest.mock('fs')
@@ -62,7 +61,8 @@ describe('InFolderHander', () => {
   let globalMetadata
   let work
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
     work = {
       config: { output: '', repo: '.', generateDelta: true },
       diffs: { package: new Map(), destructiveChanges: new Map() },

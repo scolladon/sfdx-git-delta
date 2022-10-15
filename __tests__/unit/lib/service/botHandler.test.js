@@ -1,6 +1,5 @@
 'use strict'
 const BotHandler = require('../../../../src/service/botHandler')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 jest.mock('fs')
 
 const testContext = {
@@ -34,7 +33,8 @@ require('fs').__setMockFiles({
 describe('test BotHandler', () => {
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
 
   // eslint-disable-next-line no-undef

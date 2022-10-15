@@ -4,7 +4,6 @@ const { PLUS, MINUS } = require('../../../../src/utils/gitConstants')
 const {
   LABEL_DIRECTORY_NAME,
 } = require('../../../../src/utils/metadataConstants')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const { EOL } = require('os')
 
 jest.mock('fs')
@@ -92,7 +91,8 @@ describe(`test if inFileHandler`, () => {
   let work
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
   beforeEach(() => {
     work = {

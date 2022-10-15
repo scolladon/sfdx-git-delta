@@ -1,6 +1,5 @@
 'use strict'
 const RepoGitDiff = require('../../../../src/utils/repoGitDiff')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const {
   ADDITION,
   DELETION,
@@ -17,7 +16,8 @@ const TAB = '\t'
 describe(`test if repoGitDiff`, () => {
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
 
   beforeEach(() => {

@@ -1,11 +1,11 @@
 'use strict'
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const { getType: sut } = require('../../../../src/utils/typeUtils')
 
 describe('typeUtils', () => {
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
   describe('getType', () => {
     describe('when passing "having subtypes" kind of line', () => {
