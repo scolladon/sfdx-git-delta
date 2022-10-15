@@ -33,9 +33,10 @@ const isBlank = str => !str || /^\s*$/.test(str)
 const GIT_SHA_PARAMETERS = ['to', 'from']
 
 class CLIHelper {
-  constructor(config) {
-    this.config = config
-    this.repoSetup = new RepoSetup(config)
+  constructor(work) {
+    this.work = work
+    this.config = work.config
+    this.repoSetup = new RepoSetup(work.config)
   }
 
   async _validateGitSha() {
