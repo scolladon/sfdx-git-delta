@@ -145,14 +145,17 @@ class CLIHelper {
   }
 
   async _getApiVersion() {
-    if (this.config.apiVersion === undefined) {
+    const isInputVersionSupported = await isVersionSupported(
+      this.config.apiVersion
+    )
+    if (!isInputVersionSupported) {
       const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
       const exists = await fileExists(sfdxProjectPath)
       if (exists) {
         const sfdxProjectRaw = await readFile(sfdxProjectPath)
         const sfdxProject = JSON.parse(sfdxProjectRaw)
         this.config.apiVersion =
-          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || ' '
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || 'default'
       }
     }
   }
@@ -164,8 +167,10 @@ class CLIHelper {
 
     if (!isInputVersionSupported) {
       const latestAPIVersionSupported = await getLatestSupportedVersion()
-      // 0 is when the -a parameter is set with white char string
-      if (this.config.apiVersion || this.config.apiVersion === 0) {
+      if (
+        this.config.apiVersion !== undefined &&
+        this.config.apiVersion !== null
+      ) {
         this.work.warnings.push({
           message: format(
             messages.warningApiVersionNotSupported,

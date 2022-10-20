@@ -357,7 +357,7 @@ describe(`test if the application`, () => {
       )
     })
     describe('when apiVersion parameter is set with unsupported value', () => {
-      test.each(['NaN', '40', '55.1', 'awesome', '1000000000', 0])(
+      test.each(['NaN', 40, 55.1, 'awesome', '1000000000', 0])(
         `config.apiVersion (%s) equals the latest version `,
         async version => {
           // Arrange
