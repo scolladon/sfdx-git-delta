@@ -464,7 +464,7 @@ fi
 
 ### Use the module in your own node application
 
-If you want to embed sgd in your node application, install it has a dependency for your application
+If you want to embed sgd in your node application, install it as a dependency for your application
 
 ```sh
 yarn add sfdx-git-delta
