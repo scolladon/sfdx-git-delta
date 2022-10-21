@@ -1,6 +1,5 @@
 'use strict'
 const InResource = require('../../../../src/service/inResourceHandler')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 jest.mock('fs')
 jest.mock('fs-extra')
 const fs = require('fs')
@@ -67,7 +66,8 @@ describe('test inResourceHandler', () => {
       'force-app/main/default/waveTemplates/WaveTemplateTest/template-info.json':
         '{"test":"test"}',
     })
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
 
   // eslint-disable-next-line no-undef

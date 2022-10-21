@@ -4,8 +4,13 @@ const messages = require('../locales/en')
 const RepoSetup = require('./repoSetup')
 const { sanitizePath } = require('./childProcessUtils')
 const { GIT_FOLDER, POINTER_REF_TYPES } = require('./gitConstants')
+const {
+  getLatestSupportedVersion,
+  isVersionSupported,
+} = require('../metadata/metadataManager')
 const { format } = require('util')
 const { stat } = require('fs').promises
+const { readFile } = require('./fsHelper')
 const { join } = require('path')
 
 const fsExists = async (dir, fn) => {
@@ -31,11 +36,14 @@ const isGit = async dir => {
 const isBlank = str => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS = ['to', 'from']
+const SOURCE_API_VERSION_ATTRIBUT = 'sourceApiVersion'
+const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 class CLIHelper {
-  constructor(config) {
-    this.config = config
-    this.repoSetup = new RepoSetup(config)
+  constructor(work) {
+    this.work = work
+    this.config = work.config
+    this.repoSetup = new RepoSetup(work.config)
   }
 
   async _validateGitSha() {
@@ -68,11 +76,8 @@ class CLIHelper {
 
   async validateConfig() {
     this._sanitizeConfig()
+    await this._handleDefault()
     const errors = []
-
-    if (isNaN(this.config.apiVersion)) {
-      errors.push(format(messages.errorAPIVersionIsNan, this.config.apiVersion))
-    }
 
     const isGitPromise = isGit(this.config.repo)
     const isToEqualHeadPromise = this.repoSetup.isToEqualHead()
@@ -132,6 +137,49 @@ class CLIHelper {
         return !exist
       }
     )
+  }
+
+  async _handleDefault() {
+    await this._getApiVersion()
+    await this._apiVersionDefault()
+  }
+
+  async _getApiVersion() {
+    const isInputVersionSupported = await isVersionSupported(
+      this.config.apiVersion
+    )
+    if (!isInputVersionSupported) {
+      const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
+      const exists = await fileExists(sfdxProjectPath)
+      if (exists) {
+        const sfdxProjectRaw = await readFile(sfdxProjectPath)
+        const sfdxProject = JSON.parse(sfdxProjectRaw)
+        this.config.apiVersion =
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || 'default'
+      }
+    }
+  }
+
+  async _apiVersionDefault() {
+    const isInputVersionSupported = await isVersionSupported(
+      this.config.apiVersion
+    )
+
+    if (!isInputVersionSupported) {
+      const latestAPIVersionSupported = await getLatestSupportedVersion()
+      if (
+        this.config.apiVersion !== undefined &&
+        this.config.apiVersion !== null
+      ) {
+        this.work.warnings.push({
+          message: format(
+            messages.warningApiVersionNotSupported,
+            latestAPIVersionSupported
+          ),
+        })
+      }
+      this.config.apiVersion = latestAPIVersionSupported
+    }
   }
 
   _sanitizeConfig() {

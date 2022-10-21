@@ -10,7 +10,8 @@ module.exports = {
   ignoreFlag: 'file listing paths to explicitly ignore for any diff actions',
   ignoreDestructiveFlag:
     'file listing paths to explicitly ignore for any destructive actions',
-  apiVersionFlag: 'salesforce API version',
+  apiVersionFlag:
+    'salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribut or latest version',
   deltaFlag: 'generate delta files in [--output] folder',
   ignoreWhitespaceFlag: 'ignore git diff whitespace (space, tab, eol) changes',
   includeFlag: 'file listing paths to explicitly include for any diff actions',

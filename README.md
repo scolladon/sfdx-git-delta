@@ -151,7 +151,10 @@ OPTIONS
   -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
                                                                                     tab, eol) changes
 
-  -a, --api-version=api-version                                                     [default: 55] salesforce API version
+  -a, --api-version=api-version                                                     salesforce metadata API version,
+                                                                                    default to sfdx-project.json
+                                                                                    "sourceApiVersion" attribut or
+                                                                                    latest version
 
   -d, --generate-delta                                                              generate delta files in [--output]
                                                                                     folder
@@ -461,7 +464,7 @@ fi
 
 ### Use the module in your own node application
 
-If you want to embed sgd in your node application, install it has a dependency for your application
+If you want to embed sgd in your node application, install it as a dependency for your application
 
 ```sh
 yarn add sfdx-git-delta

@@ -2,41 +2,48 @@
 const { resolve } = require('path')
 const { readdir } = require('fs').promises
 
-const LATEST = 'latest'
-
-let _apiMap
+const _apiMap = new Map()
+let _latestVersion = null
 const describeMetadata = new Map()
 
-const getApiMap = async () => {
-  if (!_apiMap) {
+const buildAPIMap = async () => {
+  if (_apiMap.size === 0) {
     const dir = await readdir(__dirname)
-    _apiMap = dir
+    dir
       .filter(file => /^[a-z]+\d+\.json$/.test(file))
-      .reduce((accu, file) => {
-        const version = file.match(/\d+/)[0]
-        accu.set(version, file)
-        if (!accu.has(LATEST) || accu.get(LATEST) < version)
-          accu.set(LATEST, version)
-        return accu
-      }, new Map())
-    _apiMap.set(LATEST, _apiMap.get(_apiMap.get(LATEST)))
+      .forEach(file => {
+        const version = parseInt(file.match(/\d+/)[0])
+        _apiMap.set(version, file)
+        _latestVersion = Math.max(_latestVersion, version)
+      })
   }
-  return _apiMap
 }
 
-module.exports = {
-  getDefinition: async (grouping, apiVersion) => {
-    if (!describeMetadata.has(apiVersion)) {
-      const apiMap = await getApiMap()
-      const apiFile = apiMap.has(apiVersion)
-        ? apiMap.get(apiVersion)
-        : apiMap.get(LATEST)
-      describeMetadata.set(apiVersion, require(resolve(__dirname, apiFile)))
-    }
-
-    return describeMetadata.get(apiVersion).reduce((metadata, describe) => {
-      metadata.set(describe[grouping], describe)
-      return metadata
-    }, new Map())
-  },
+const getLatestSupportedVersion = async () => {
+  await buildAPIMap()
+  return _latestVersion
 }
+
+const isVersionSupported = async version => {
+  await buildAPIMap()
+  return _apiMap.has(version)
+}
+
+const getDefinition = async (grouping, apiVersion) => {
+  if (!describeMetadata.has(apiVersion)) {
+    await buildAPIMap()
+    const apiFile = _apiMap.has(apiVersion)
+      ? _apiMap.get(apiVersion)
+      : _apiMap.get(_latestVersion)
+    describeMetadata.set(apiVersion, require(resolve(__dirname, apiFile)))
+  }
+
+  return describeMetadata.get(apiVersion).reduce((metadata, describe) => {
+    metadata.set(describe[grouping], describe)
+    return metadata
+  }, new Map())
+}
+
+module.exports.getDefinition = getDefinition
+module.exports.getLatestSupportedVersion = getLatestSupportedVersion
+module.exports.isVersionSupported = isVersionSupported

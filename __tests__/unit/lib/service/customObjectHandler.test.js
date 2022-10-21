@@ -1,6 +1,5 @@
 'use strict'
 const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
 const fse = require('fs-extra')
 jest.mock('fs')
@@ -35,7 +34,8 @@ const testContext = {
 describe('customObjectHandler', () => {
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
   // eslint-disable-next-line no-undef
   describe('test CustomObjectHandler with fields', () => {

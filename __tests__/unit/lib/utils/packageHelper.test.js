@@ -3,7 +3,6 @@ const PackageBuilder = require('../../../../src/utils/packageHelper')
 const {
   fillPackageWithParameter,
 } = require('../../../../src/utils/packageHelper')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 
 const options = { apiVersion: '46' }
 const tests = [
@@ -97,7 +96,8 @@ describe(`test if package builder`, () => {
   let globalMetadata
   let packageConstructor
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 50)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
     packageConstructor = new PackageBuilder(options, globalMetadata)
   })
 

@@ -1,7 +1,6 @@
 'use strict'
 const StandardHandler = require('../../../../src/service/standardHandler')
 const { FSE_BIGINT_ERROR } = require('../../../../src/utils/fsHelper')
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const mc = require('../../../../src/utils/metadataConstants')
 const fse = require('fs-extra')
 const fs = require('fs')
@@ -96,7 +95,8 @@ const testContext = {
 describe(`standardHandler`, () => {
   let globalMetadata
   beforeAll(async () => {
-    globalMetadata = await metadataManager.getDefinition('directoryName', 54)
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
   })
 
   beforeEach(() => {

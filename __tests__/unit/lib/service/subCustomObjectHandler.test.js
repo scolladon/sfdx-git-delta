@@ -1,5 +1,4 @@
 'use strict'
-const metadataManager = require('../../../../src/metadata/metadataManager')
 const SubCustomObject = require('../../../../src/service/subCustomObjectHandler')
 jest.mock('fs')
 
@@ -52,10 +51,8 @@ const testContext = {
 testHandlerHelper(testContext)
 
 test('field is not a master detail', async () => {
-  const globalMetadata = await metadataManager.getDefinition(
-    'directoryName',
-    50
-  )
+  // eslint-disable-next-line no-undef
+  const globalMetadata = await getGlobalMetadata()
   const handler = new testContext.handler(
     `A       ${testContext.testData[0][1]}`,
     testContext.testData[0][0],
@@ -73,10 +70,8 @@ test('field is not a master detail', async () => {
 
 test('field does not generate delta', async () => {
   testContext.work.config.generateDelta = false
-  const globalMetadata = await metadataManager.getDefinition(
-    'directoryName',
-    50
-  )
+  // eslint-disable-next-line no-undef
+  const globalMetadata = await getGlobalMetadata()
   const handler = new testContext.handler(
     `A       ${testContext.testData[0][1]}`,
     testContext.testData[0][0],
