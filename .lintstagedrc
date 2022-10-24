@@ -1,7 +1,7 @@
 {
-    "*.js": [
-        "yarn lint:fix",
-        "yarn lint",
-        "prettier --write"
-    ]
+  "*.js": [
+    "eslint",
+    "eslint --fix",
+    "prettier --write"
+  ]
 }
