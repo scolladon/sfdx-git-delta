@@ -1,74 +1,83 @@
 'use strict'
 const BotHandler = require('../../../../src/service/botHandler')
-jest.mock('fs')
+const { copyFiles } = require('../../../../src/utils/fsHelper')
 
-const testContext = {
-  handler: BotHandler,
-  testData: [
-    [
-      'bots',
-      'force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
-      new Set(['TestBot']),
-      'Bot',
-    ],
-    [
-      'bots',
-      'force-app/main/default/bots/TestBot/v1.botVersion-meta.xml',
-      new Set(['TestBot.v1']),
-      'BotVersion',
-    ],
-  ],
-  work: {
+jest.mock('../../../../src/utils/fsHelper')
+
+const objectType = 'bots'
+const line =
+  'A       force-app/main/default/bots/TestBot/v1.botVersion-meta.xml'
+
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
     config: { output: '', repo: '', generateDelta: true },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-}
-
-require('fs').__setMockFiles({
-  'force-app/main/default/bots/TestBot/TestBot.bot-meta.xml': 'test',
-  'force-app/main/default/bots/TestBot/v1.botVersion-meta.xml': 'test',
+  }
 })
 
-// eslint-disable-next-line no-undef
-describe('test BotHandler', () => {
+describe('BotHandler', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 
-  // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
-
-  describe('when adding a botVersion', () => {
-    it('includes the related bot', () => {
-      const handler = new BotHandler(
-        `A       'force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`,
-        'bots',
-        testContext.work,
-        // eslint-disable-next-line no-undef
+  describe('when called for a bot', () => {
+    it('should add the bot', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const sut = new BotHandler(
+        'A       force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
+        objectType,
+        work,
         globalMetadata
       )
-      handler.handle()
-      expect(testContext.work.diffs.package.get('Bot')).toEqual(
-        testContext.testData[0][2]
-      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
+      expect(work.diffs.package.get('BotVersion')).toBeUndefined()
+      expect(copyFiles).not.toBeCalled()
     })
   })
 
-  describe('when modifying a botVersion', () => {
-    it('includes the related bot', () => {
-      const handler = new BotHandler(
-        `M       'force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`,
-        'bots',
-        testContext.work,
-        // eslint-disable-next-line no-undef
-        globalMetadata
-      )
-      handler.handle()
-      expect(testContext.work.diffs.package.get('Bot')).toEqual(
-        testContext.testData[0][2]
-      )
+  describe('when called for a bot version', () => {
+    describe('when called with generateDelta false', () => {
+      it('should add the related bot', async () => {
+        // Arrange
+        work.config.generateDelta = false
+        const sut = new BotHandler(line, objectType, work, globalMetadata)
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
+        expect(work.diffs.package.get('BotVersion')).toEqual(
+          new Set(['TestBot.v1'])
+        )
+        expect(copyFiles).not.toBeCalled()
+      })
+    })
+
+    describe('when called with generateDelta true', () => {
+      it('should add and copy the related bot', async () => {
+        const sut = new BotHandler(line, objectType, work, globalMetadata)
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
+        expect(work.diffs.package.get('BotVersion')).toEqual(
+          new Set(['TestBot.v1'])
+        )
+        expect(copyFiles).toBeCalledTimes(4)
+      })
     })
   })
 })

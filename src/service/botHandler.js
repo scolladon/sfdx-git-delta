@@ -17,13 +17,18 @@ class BotHandler extends WaveHandler {
   }
   async handleAddition() {
     await super.handleAddition()
+    await this._addParentBot()
+  }
 
+  async _addParentBot() {
     const botName = this._getParsedPath().dir.split(sep).pop()
     fillPackageWithParameter({
       package: this.diffs.package,
       type: BOT_TYPE,
       elementName: botName,
     })
+
+    if (!this.config.generateDelta) return
 
     const botPath = `${parse(this.line).dir}${sep}${botName}.${BOT_EXTENSION}`
     const source = join(this.config.repo, botPath)
