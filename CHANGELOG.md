@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.6.0 (2022-10-24)
+
+
+### Features
+
+* new default api version definition algorithm ([#372](https://github.com/scolladon/sfdx-git-delta/issues/372)) ([e58d63a](https://github.com/scolladon/sfdx-git-delta/commit/e58d63a1d704b1b379cf30985d881cbc5fa51b5b))
+
 ### 5.5.1 (2022-10-10)
 
 ## 5.5.0 (2022-09-21)
