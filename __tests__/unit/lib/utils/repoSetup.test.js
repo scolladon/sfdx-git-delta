@@ -10,6 +10,7 @@ describe(`test if repoSetup`, () => {
       child_process.__setOutput([['']])
       const repoSetup = new RepoSetup(config)
       await repoSetup.repoConfiguration()
+      expect(child_process.spawn).toBeCalledTimes(1)
     })
   })
 
