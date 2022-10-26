@@ -22,10 +22,12 @@ class StandardHandler {
     ;[this.changeType] = line
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
+    this.work = work
+    // internal getters
     this.diffs = work.diffs
     this.config = work.config
-    this.splittedLine = this.line.split(sep)
     this.warnings = work.warnings
+    this.splittedLine = this.line.split(sep)
 
     if (StandardHandler.metadata.get(this.type).metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
@@ -100,14 +102,14 @@ class StandardHandler {
   }
 
   async _copyWithMetaFile(src, dst) {
-    const file = copyFiles(src, this.config, dst)
+    const file = copyFiles(this.work, src, dst)
     if (
       StandardHandler.metadata.get(this.type).metaFile === true &&
       !`${src}`.endsWith(METAFILE_SUFFIX)
     ) {
       await copyFiles(
+        this.work,
         this._getMetaTypeFilePath(src),
-        this.config,
         this._getMetaTypeFilePath(dst)
       )
     }
