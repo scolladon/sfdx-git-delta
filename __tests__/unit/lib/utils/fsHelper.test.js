@@ -5,105 +5,117 @@ const {
   readFile,
   scan,
   scanExtension,
-  FSE_BIGINT_ERROR,
 } = require('../../../../src/utils/fsHelper')
+const { getStreamContent } = require('../../../../src/utils/childProcessUtils')
+const { spawn } = require('child_process')
 const fs = require('fs')
-const fse = require('fs-extra')
+const { outputFile } = require('fs-extra')
 const { sep } = require('path')
 
+jest.mock('../../../../src/utils/childProcessUtils')
 jest.mock('fs')
 jest.mock('fs-extra')
+jest.mock('child_process')
+
+jest.mock('../../../../src/utils/childProcessUtils', () => {
+  const originalModule = jest.requireActual(
+    '../../../../src/utils/childProcessUtils'
+  )
+
+  //Mock the default export and named export 'foo'
+  return {
+    ...originalModule,
+    getStreamContent: jest.fn(),
+  }
+})
 
 describe('copyFile', () => {
-  describe('when fse.copy throw "Source and destination must not be the same." special use cases', () => {
-    beforeEach(() => {
+  let work
+  beforeEach(() => {
+    //jest.clearAllMocks()
+    work = {
+      config: { output: '', source: '', repo: '', generateDelta: false },
+      warnings: [],
+    }
+  })
+  describe('when file is already copied', () => {
+    it('should not copy file', async () => {
       // Arrange
-      fse.copy.mockImplementationOnce(() =>
-        Promise.reject({
-          message: FSE_BIGINT_ERROR,
-        })
-      )
-    })
+      await copyFiles(work, 'source/file', 'output/file')
+      jest.resetAllMocks()
 
-    it(`should call fse.copyFile`, async () => {
       // Act
-      await copyFiles('repo/file', 'output/file')
+      await copyFiles(work, 'source/file', 'output/file')
 
       // Assert
-      expect(fse.pathExists).toHaveBeenCalled()
-      expect(fse.copySync).not.toHaveBeenCalled()
-      expect(fs.promises.copyFile).toHaveBeenCalled()
-      expect(fse.copy).toHaveBeenCalled()
+      expect(spawn).not.toBeCalled()
+      expect(getStreamContent).not.toBeCalled()
+      expect(outputFile).not.toBeCalled()
     })
   })
 
-  describe('when fse.copy throw', () => {
-    beforeEach(() => {
+  describe('when source location is empty', () => {
+    it('should not copy file', async () => {
       // Arrange
-      fse.copy.mockImplementationOnce(() =>
-        Promise.reject({
-          message: 'other',
-        })
-      )
-    })
-    it(`should call fse.copySync`, async () => {
+      getStreamContent.mockImplementation(() => '')
+
       // Act
-      await copyFiles('other/file', 'output/file')
+      await copyFiles(work, 'source/doNotCopy', 'output/doNotCopy')
 
       // Assert
-      expect(fse.pathExists).toHaveBeenCalled()
-      expect(fse.copySync).toHaveBeenCalled()
-      expect(fs.promises.copyFile).not.toHaveBeenCalled()
-      expect(fse.copy).toHaveBeenCalled()
+      expect(spawn).toBeCalled()
+      expect(getStreamContent).toBeCalled()
+      expect(outputFile).not.toBeCalled()
     })
   })
 
-  describe('when pathExists returns false', () => {
-    beforeEach(() => {
-      // Arrange
-      fse.pathExists.mockImplementationOnce(() => Promise.resolve(false))
+  describe('when source location is not empty', () => {
+    describe('when content is a folder', () => {
+      it('should copy the folder', async () => {
+        // Arrange
+        getStreamContent.mockImplementationOnce(
+          () => 'tree HEAD:folder\n\ncopyFile'
+        )
+        getStreamContent.mockImplementationOnce(() => 'content')
+
+        // Act
+        await copyFiles(work, 'source/copyDir', 'output/copyDir')
+
+        // Assert
+        expect(spawn).toBeCalledTimes(2)
+        expect(getStreamContent).toBeCalledTimes(2)
+        expect(outputFile).toBeCalledTimes(1)
+      })
     })
-    it(`should not call fse.copy`, async () => {
-      // Act
-      await copyFiles('another/file', 'output/file')
+    describe('when content is not a git location', () => {
+      it('should log a warning', async () => {
+        // Arrange
+        getStreamContent.mockImplementation(() => 'fatal')
 
-      // Assert
-      expect(fse.pathExists).toHaveBeenCalled()
-      expect(fse.copySync).not.toHaveBeenCalled()
-      expect(fs.promises.copyFile).not.toHaveBeenCalled()
-      expect(fse.copy).not.toHaveBeenCalled()
+        // Act
+        await copyFiles(work, 'source/warning', 'output/warning')
+
+        // Assert
+        expect(spawn).toBeCalled()
+        expect(getStreamContent).toBeCalled()
+        expect(outputFile).not.toBeCalled()
+        expect(work.warnings.length).toBe(1)
+      })
     })
-  })
+    describe('when content is a file', () => {
+      beforeEach(async () => {
+        // Arrange
+        getStreamContent.mockImplementation(() => 'content')
+      })
+      it('should copy the file', async () => {
+        // Act
+        await copyFiles(work, 'source/copyfile', 'output/copyfile')
 
-  describe('when file has already been copied', () => {
-    beforeEach(async () => {
-      // Arrange
-      await copyFiles('yetanother/file', 'output/file')
-      fse.pathExists.mockClear()
-      fse.copy.mockClear()
-    })
-    it(`should not call fse.pathExists`, async () => {
-      // Act
-      await copyFiles('yetanother/file', 'output/file')
-
-      // Assert
-      expect(fse.pathExists).not.toHaveBeenCalled()
-      expect(fse.copySync).not.toHaveBeenCalled()
-      expect(fs.promises.copyFile).not.toHaveBeenCalled()
-      expect(fse.copy).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('when new file', () => {
-    it(`should just call fse.copy`, async () => {
-      // Act
-      await copyFiles('new/file', 'output/file')
-
-      // Assert
-      expect(fse.pathExists).toHaveBeenCalled()
-      expect(fse.copySync).not.toHaveBeenCalled()
-      expect(fs.promises.copyFile).not.toHaveBeenCalled()
-      expect(fse.copy).toHaveBeenCalled()
+        // Assert
+        expect(spawn).toBeCalled()
+        expect(getStreamContent).toBeCalled()
+        expect(outputFile).toBeCalledTimes(1)
+      })
     })
   })
 })
@@ -190,18 +202,17 @@ describe('scan', () => {
       expect(result.value).toEqual(`${dir}${sep}${file.name}`)
     })
   })
-  describe('when readdir returns a directory', () => {
-    const dir = {
-      name: 'test',
-      isDirectory: () => true,
-    }
-    beforeEach(() => {
-      // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([dir]))
-    })
+  describe('when readdir returns an empty directory', () => {
     it('should return nothing', async () => {
       // Arrange
+      const dir = {
+        name: 'test',
+        isDirectory: () => true,
+      }
+      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([dir]))
+      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([]))
       const g = scan('dir')
+
       // Act
       const result = await g.next()
 

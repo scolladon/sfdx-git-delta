@@ -51,8 +51,8 @@ describe('InTranslation', () => {
 
       expect(copyFiles).toBeCalledTimes(2)
       expect(copyFiles).toHaveBeenCalledWith(
+        work,
         expect.stringContaining('Account-es.objectTranslation'),
-        work.config,
         expect.stringContaining('Account-es.objectTranslation')
       )
       expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
@@ -77,13 +77,13 @@ describe('InTranslation', () => {
 
         expect(copyFiles).toBeCalledTimes(2)
         expect(copyFiles).toHaveBeenCalledWith(
+          work,
           expect.stringContaining('BillingFloor__c.fieldTranslation'),
-          work.config,
           expect.stringContaining('BillingFloor__c.fieldTranslation')
         )
         expect(copyFiles).toHaveBeenCalledWith(
+          work,
           expect.stringContaining('Account-es.objectTranslation'),
-          work.config,
           expect.stringContaining('Account-es.objectTranslation')
         )
         expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
