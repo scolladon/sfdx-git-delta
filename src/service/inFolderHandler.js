@@ -48,11 +48,7 @@ class InFolderHandler extends StandardHandler {
     )
   }
 
-  _fillPackage(packageObject) {
-    if (!packageObject.has(this.type)) {
-      packageObject.set(this.type, new Set())
-    }
-
+  _getElementName() {
     const packageMember = this.splittedLine
       .slice(this.splittedLine.indexOf(this.type) + 1)
       .join(sep)
@@ -60,9 +56,7 @@ class InFolderHandler extends StandardHandler {
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
 
-    packageObject
-      .get(this.type)
-      .add(StandardHandler.cleanUpPackageMember(packageMember))
+    return StandardHandler.cleanUpPackageMember(packageMember)
   }
 }
 
