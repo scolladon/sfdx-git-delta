@@ -1,92 +1,101 @@
 'use strict'
 const InFolder = require('../../../../src/service/inFolderHandler')
-const fs = require('fs')
-const fse = require('fs-extra')
+const { copyFiles } = require('../../../../src/utils/fsHelper')
+const { readdir } = require('fs').promises
+const { METAFILE_SUFFIX } = require('../../../../src/utils/metadataConstants')
+
+jest.mock('../../../../src/utils/fsHelper')
 jest.mock('fs')
 
-// eslint-disable-next-line no-undef
-testHandlerHelper({
-  handler: InFolder,
-  testData: [
-    [
-      'dashboards',
-      'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
-      new Set(['folder/file']),
-    ],
-    [
-      'reports',
-      'force-app/main/default/reports/folder.reportFolder-meta.xml',
-      new Set(['folder']),
-    ],
-    [
-      'documents',
-      'force-app/main/default/documents/folder.documentFolder-meta.xml',
-      new Set(['folder']),
-    ],
-    [
-      'documents',
-      'force-app/main/default/documents/folder/document.test.ext',
-      new Set(['folder/document.test']),
-    ],
-    [
-      'documents',
-      'force-app/main/default/documents/folder/document.test.document-meta.xml',
-      new Set(['folder/document.test']),
-    ],
-  ],
-  work: {
-    config: { output: '', repo: '.', generateDelta: true },
-    diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-})
+const entity = 'folder/test'
+const extension = 'document'
+const objectType = 'documents'
+const line = `A       force-app/main/default/${objectType}/${entity}.${extension}-meta.xml`
 
-// eslint-disable-next-line no-undef
-testHandlerHelper({
-  handler: InFolder,
-  testData: [
-    [
-      'dashboards',
-      'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
-      new Set(['folder/file']),
-    ],
-  ],
-  work: {
-    config: { output: '', repo: './repo', generateDelta: false },
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
+    config: { output: '', repo: '' },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-    warnings: [],
-  },
+  }
 })
 
 describe('InFolderHander', () => {
   let globalMetadata
-  let work
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
-    work = {
-      config: { output: '', repo: '.', generateDelta: true },
-      diffs: { package: new Map(), destructiveChanges: new Map() },
-      warnings: [],
-    }
   })
-  test('copy special extension', async () => {
-    fs.__setMockFiles({
-      'force-app/main/default/documents/folder/test.document-meta.xml':
-        'content',
-      'force-app/main/default/documents/folder/test.png-meta.xml': 'content',
+
+  describe('when called with generateDelta false', () => {
+    beforeEach(() => {
+      work.config.generateDelta = false
+    })
+    it('should not copy meta files nor copy special extension', async () => {
+      // Arrange
+      const sut = new InFolder(line, objectType, work, globalMetadata)
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(copyFiles).not.toHaveBeenCalled()
+    })
+  })
+  describe('when called with generateDelta true', () => {
+    beforeEach(() => {
+      work.config.generateDelta = true
+    })
+    it('should copy meta files', async () => {
+      // Arrange
+      const sut = new InFolder(line, objectType, work, globalMetadata)
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(copyFiles).toHaveBeenCalledWith(
+        work,
+        expect.stringContaining(METAFILE_SUFFIX),
+        expect.stringContaining(METAFILE_SUFFIX)
+      )
     })
 
-    const handler = new InFolder(
-      `M       force-app/main/default/documents/folder/test.document-meta.xml`,
-      'documents',
-      work,
-      globalMetadata
-    )
-    await handler.handle()
+    describe('when readdir does not return files', () => {
+      it('should not copy special extension', async () => {
+        // Arrange
+        const sut = new InFolder(line, objectType, work, globalMetadata)
+        readdir.mockImplementationOnce(() => Promise.resolve([]))
 
-    expect(work.diffs.package.get('documents')).toEqual(
-      new Set(['folder/test'])
-    )
-    expect(fse.copy).toHaveBeenCalled()
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(readdir).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(3)
+      })
+    })
+
+    describe('when readdir returns files', () => {
+      it('should copy special extension', async () => {
+        // Arrange
+        const sut = new InFolder(line, objectType, work, globalMetadata)
+        readdir.mockImplementationOnce(() =>
+          Promise.resolve([entity, 'not/matching'])
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(readdir).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(5)
+      })
+    })
   })
 })
