@@ -28,6 +28,6 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Rollback version
-        run: yarn npm tag add "sfdx-git-delta@${{ github.event.inputs.source }}" "{{ github.event.inputs.target }}"
+        run: yarn tag add "sfdx-git-delta@${{ github.event.inputs.source }}" "${{ github.event.inputs.target }}"
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
