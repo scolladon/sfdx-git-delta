@@ -11,8 +11,11 @@ on:
       version-alias:
         description: 'verion alias to map to the source version'
         required: true
-        default: 'stable | latest | latest-rc | vA.B.C'
-        type: string
+        type: choice
+        options: 
+        - stable
+        - latest
+        - latest-rc
 
 jobs:
   add-tag:
