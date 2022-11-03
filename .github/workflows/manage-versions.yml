@@ -9,7 +9,7 @@ on:
         default: 'vX.Y.Z'
         type: string
       version-alias:
-        description: 'verion alias to map to the source version'
+        description: 'version alias to map to the source version'
         required: true
         type: choice
         options: 
