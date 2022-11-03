@@ -179,7 +179,6 @@ class RepoGitDiff {
   }
 
   _filterIgnore(line, ignoreSetup) {
-    const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
     let helper
     if (this.config.ignoreDestructive && line.startsWith(DELETION)) {
       helper = ignoreSetup[1].helper
@@ -192,6 +191,7 @@ class RepoGitDiff {
 
     let keepLine = true
     if (helper) {
+      const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
       keepLine = !helper?.ignores(filePath)
     }
 
