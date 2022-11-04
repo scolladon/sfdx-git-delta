@@ -3,19 +3,19 @@ name: Manage Versions
 on:
   workflow_dispatch:
     inputs:
-      version-number:
-        description: 'source version number to use'
-        required: true
-        default: 'vX.Y.Z'
-        type: string
       version-alias:
-        description: 'version alias to map to the source version'
+        description: 'version alias to map to a version number'
         required: true
         type: choice
         options: 
         - stable
         - latest
         - latest-rc
+      version-number:
+        description: 'version number (semver format)'
+        required: true
+        default: 'vX.Y.Z'
+        type: string
 
 jobs:
   add-tag:
