@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.7.0 (2022-11-04)
+
+
+### Features
+
+* improve parameters usage description ([#382](https://github.com/scolladon/sfdx-git-delta/issues/382)) ([deeb5d1](https://github.com/scolladon/sfdx-git-delta/commit/deeb5d18843a534bba5501e1c10b2143b4f0b0df))
+
 ## 5.6.0 (2022-10-24)
 
 
