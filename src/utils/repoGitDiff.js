@@ -191,7 +191,8 @@ class RepoGitDiff {
 
     let keepLine = true
     if (helper) {
-      keepLine = !helper?.ignores(line)
+      const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
+      keepLine = !helper?.ignores(filePath)
     }
 
     return keepLine

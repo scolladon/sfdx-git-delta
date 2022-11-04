@@ -130,7 +130,7 @@ describe(`test if repoGitDiff`, () => {
   })
 
   test('can filter ignored files', async () => {
-    const output = 'force-app/main/default/lwc/jsconfig.json'
+    const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[`1${TAB}1${TAB}${output}`], [], []])
     const repoGitDiff = new RepoGitDiff(
       { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
@@ -143,7 +143,7 @@ describe(`test if repoGitDiff`, () => {
   })
 
   test('can filter ignored destructive files', async () => {
-    const output = 'force-app/main/default/lwc/jsconfig.json'
+    const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [`1${TAB}1${TAB}${output}`], []])
     const repoGitDiff = new RepoGitDiff(
       { output: '', repo: '', ignoreDestructive: FORCEIGNORE_MOCK_PATH },
@@ -178,7 +178,7 @@ describe(`test if repoGitDiff`, () => {
   })
 
   test('cannot filter deletion if only ignored is specified files', async () => {
-    const output = 'force-app/main/default/lwc/jsconfig.json'
+    const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [`1${TAB}1${TAB}${output}`], []])
     const repoGitDiff = new RepoGitDiff(
       { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
@@ -191,7 +191,7 @@ describe(`test if repoGitDiff`, () => {
   })
 
   test('cannot filter non deletion if only ignored destructive is specified files', async () => {
-    const output = 'force-app/main/default/lwc/jsconfig.json'
+    const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [], [`1${TAB}1${TAB}${output}`]])
     const repoGitDiff = new RepoGitDiff(
       { output: '', repo: '', ignoreDestructive: FORCEIGNORE_MOCK_PATH },
@@ -203,7 +203,7 @@ describe(`test if repoGitDiff`, () => {
   })
 
   test('can filter sub folders', async () => {
-    const output = 'force-app/main/default/lwc/jsconfig.json'
+    const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[`1${TAB}1${TAB}${output}`], [], []])
     const repoGitDiff = new RepoGitDiff(
       { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
