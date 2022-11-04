@@ -3,16 +3,19 @@ name: Manage Versions
 on:
   workflow_dispatch:
     inputs:
-      source:
-        description: 'version number or alias to change from'
+      version-number:
+        description: 'source version number to use'
         required: true
-        default: 'latest-rc'
+        default: 'vX.Y.Z'
         type: string
-      target:
-        description: 'version number or alias to change to'
+      version-alias:
+        description: 'version alias to map to the source version'
         required: true
-        default: 'latest'
-        type: string
+        type: choice
+        options: 
+        - stable
+        - latest
+        - latest-rc
 
 jobs:
   add-tag:
@@ -28,6 +31,6 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Change version
-        run: npm dist-tag add "sfdx-git-delta@${{ github.event.inputs.source }}" "${{ github.event.inputs.target }}"
+        run: npm dist-tag add "sfdx-git-delta@${{ github.event.inputs.version-number }}" "${{ github.event.inputs.version-alias }}"
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

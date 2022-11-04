@@ -33,16 +33,16 @@ $ yarn npm tag add sfdx-git-delta@<version-source> <version-target>
 
 It will set the version-source release channel to the version-target.
 
-**Update `latest` to be `latest-rc`:**
-This will update the SGD version most users get. The `latest` version is the one installed by default with the `sfdx plugins:install sfdx-git-delta` command.
+**Update `v5.6.0` to be `latest`:**
+To be performed once the current `latest-rc` version (`v5.6.0` at taht time) is considered stable enough. The `latest` version is the one installed by default with the `sfdx plugins:install sfdx-git-delta` command.
 ```sh
-$ yarn npm tag add sfdx-git-delta@latest-rc latest
+$ yarn npm tag add sfdx-git-delta@v5.6.0 latest
 ```
 
-**Update `stable` to be `latest`:**
-To be performed once the current `latest` version is considered stable enough.
+**Update `v5.5.0` to be `stable`:**
+To be performed once the current `latest` version (`v.5.5.0` at that time) is considered stable enough.
 ```sh
-$ yarn npm tag add sfdx-git-delta@latest stable
+$ yarn npm tag add sfdx-git-delta@v5.5.0 stable
 ```
 
 **Rollback**: 
