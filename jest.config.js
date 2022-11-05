@@ -129,7 +129,7 @@ module.exports = {
   // runner: "jest-runner",
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
-  setupFiles: ['./__tests__/__utils__/testHandlerHelper.js'],
+  setupFiles: ['./__tests__/__utils__/globalTestHelper.js'],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
   // setupFilesAfterEnv: [],
