@@ -39,8 +39,6 @@ const mockFiles = {
 
 describe(`test if the application`, () => {
   beforeEach(() => {
-    fs.errorMode = false
-    fs.statErrorMode = false
     fs.__setMockFiles(mockFiles)
   })
 
@@ -69,7 +67,9 @@ describe(`test if the application`, () => {
   })
 
   test('throws errors when fs.stat throw error', async () => {
-    fs.statErrorMode = true
+    fs.promises.stat.mockImplementationOnce(() =>
+      Promise.reject(new Error('test'))
+    )
     const cliHelper = new CLIHelper({
       ...testConfig,
       config: {

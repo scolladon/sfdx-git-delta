@@ -1,11 +1,12 @@
 'use strict'
 const app = require('../src/main')
 const { COMMIT_REF_TYPE, GIT_FOLDER } = require('../src/utils/gitConstants')
+const fs = require('fs')
 
 jest.mock('child_process')
 jest.mock('fs')
+jest.mock('fs-extra')
 const child_process = require('child_process')
-const fsMocked = require('fs')
 
 const testConfig = {
   output: 'output',
@@ -18,8 +19,7 @@ const testConfig = {
 
 describe(`test if the appli`, () => {
   beforeAll(() => {
-    fsMocked.errorMode = false
-    fsMocked.__setMockFiles({
+    fs.__setMockFiles({
       output: '',
       [GIT_FOLDER]: '',
       '.': '',

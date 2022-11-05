@@ -33,7 +33,6 @@ const lines = [
 
 describe(`test if the appli`, () => {
   beforeEach(() => {
-    fs.errorMode = false
     fs.__setMockFiles({
       output: '',
       [GIT_FOLDER]: '',

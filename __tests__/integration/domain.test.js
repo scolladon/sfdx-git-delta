@@ -17,11 +17,7 @@ const {
   MINUS,
   PLUS,
 } = require('../../src/utils/gitConstants')
-const fse = require('fs-extra')
-jest.mock('fs-extra')
 jest.mock('../../src/utils/fileGitDiff')
-
-fse.pathShouldExist = false
 
 const testContext = [
   [
