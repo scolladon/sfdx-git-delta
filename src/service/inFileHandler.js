@@ -9,7 +9,7 @@ const {
   XML_TAG,
   XML_HEADER_TAG_END,
 } = require('../utils/metadataConstants')
-const { readFileFromGit } = require('../utils/fsHelper')
+const { readPathFromGit } = require('../utils/fsHelper')
 const StandardHandler = require('./standardHandler')
 const { outputFile } = require('fs-extra')
 const { basename, join } = require('path')
@@ -141,7 +141,7 @@ class InFileHandler extends StandardHandler {
   }
 
   async _parseFile() {
-    const file = await readFileFromGit(this.line, this.config)
+    const file = await readPathFromGit(this.line, this.config)
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
     const result = xmlParser.parse(file)
 

@@ -1,7 +1,7 @@
 'use strict'
 const SubCustomObjectHandler = require('../../../../src/service/subCustomObjectHandler')
 const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
-const { readFileFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
+const { readPathFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -40,7 +40,7 @@ describe('SubCustomObjectHandler', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(readFileFromGit).not.toBeCalled()
+      expect(readPathFromGit).not.toBeCalled()
     })
   })
   describe('when called with generateDelta true', () => {
@@ -58,14 +58,14 @@ describe('SubCustomObjectHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readFileFromGit).toBeCalledTimes(1)
+        expect(readPathFromGit).toBeCalledTimes(1)
         expect(copyFiles).toBeCalledTimes(1)
       })
     })
     describe(`when field is master detail`, () => {
       it('should copy the parent object', async () => {
         // Arrange
-        readFileFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
+        readPathFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
         const sut = new SubCustomObjectHandler(
           line,
           objectType,
@@ -77,7 +77,7 @@ describe('SubCustomObjectHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readFileFromGit).toBeCalledTimes(1)
+        expect(readPathFromGit).toBeCalledTimes(1)
         expect(copyFiles).toBeCalledTimes(2)
       })
     })

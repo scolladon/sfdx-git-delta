@@ -8,7 +8,7 @@ const {
   MINUS,
 } = require('../../../../src/utils/gitConstants')
 const fileGitDiff = require('../../../../src/utils/fileGitDiff')
-const { readFileFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
+const { readPathFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
 const { EOL } = require('os')
 const { outputFile } = require('fs-extra')
 
@@ -47,7 +47,7 @@ describe(`inFileHandler`, () => {
         fileGitDiff.mockImplementation(() =>
           goodXml.split(EOL).map(x => `${PLUS} ${x}`)
         )
-        readFileFromGit.mockImplementation(() => goodXml)
+        readPathFromGit.mockImplementation(() => goodXml)
         const sut = new InFile(
           `${changeType}       ${line}`,
           'workflows',
@@ -92,7 +92,7 @@ describe(`inFileHandler`, () => {
         fileGitDiff.mockImplementation(() =>
           badXml.split(EOL).map(x => `${PLUS} ${x}`)
         )
-        readFileFromGit.mockImplementation(() => badXml)
+        readPathFromGit.mockImplementation(() => badXml)
         const sut = new InFile(
           `${changeType}       ${line}`,
           'labels',
@@ -127,7 +127,7 @@ describe(`inFileHandler`, () => {
         fileGitDiff.mockImplementation(() =>
           xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
         )
-        readFileFromGit.mockImplementation(() => xmlContent)
+        readPathFromGit.mockImplementation(() => xmlContent)
         const sut = new InFile(
           `${changeType}       force-app/main/error/labels/CustomLabels.labels-meta.xml`,
           'labels',
@@ -159,7 +159,7 @@ describe(`inFileHandler`, () => {
         fileGitDiff.mockImplementation(() =>
           xmlContent.split(EOL).map((x, i) => (i === 4 ? `${MINUS} ${x}` : x))
         )
-        readFileFromGit.mockImplementation(() => xmlContent)
+        readPathFromGit.mockImplementation(() => xmlContent)
 
         const sut = new InFile(
           `${MODIFICATION}       ${line}`,
@@ -198,7 +198,7 @@ describe(`inFileHandler`, () => {
           mockValue.splice(4, 0, `${MINUS} ${oldCBS}`)
           return mockValue
         })
-        readFileFromGit.mockImplementation(() => xmlContent)
+        readPathFromGit.mockImplementation(() => xmlContent)
 
         const sut = new InFile(
           `${MODIFICATION}       ${line}`,
@@ -237,7 +237,7 @@ describe(`inFileHandler`, () => {
             .split(EOL)
             .map((x, i) => ([2, 3, 4].includes(i) ? `${PLUS} ${x}` : x))
         )
-        readFileFromGit.mockImplementation(() => xmlContent)
+        readPathFromGit.mockImplementation(() => xmlContent)
 
         const sut = new InFile(
           `${MODIFICATION}       ${line}`,
@@ -276,7 +276,7 @@ describe(`inFileHandler`, () => {
             .split(EOL)
             .map((x, i) => ([2, 3, 4].includes(i) ? `${MINUS} ${x}` : x))
         )
-        readFileFromGit.mockImplementation(
+        readPathFromGit.mockImplementation(
           () =>
             `<?xml version="1.0" encoding="UTF-8"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>NotWrite</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`
         )

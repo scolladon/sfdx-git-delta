@@ -16,7 +16,7 @@ const copyFiles = async (work, src, dst) => {
   copiedFiles.add(src)
 
   src = relative(config.source, src)
-  const data = await readFileFromGit(src, config)
+  const data = await readPathFromGit(src, config)
   if (!data) {
     return
   }
@@ -39,7 +39,7 @@ const copyFiles = async (work, src, dst) => {
   }
 }
 
-const readFileFromGit = async (path, config) => {
+const readPathFromGit = async (path, config) => {
   const data = await getStreamContent(
     spawn('git', [...showCmd, `${config.to}:${path}`], {
       cwd: config.repo,
@@ -84,6 +84,6 @@ const isSubDir = (parent, dir) => {
 module.exports.copyFiles = copyFiles
 module.exports.isSubDir = isSubDir
 module.exports.readFile = readFile
-module.exports.readFileFromGit = readFileFromGit
+module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
 module.exports.scanExtension = (dir, ext) => filterExt(scan(dir), ext)

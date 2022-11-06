@@ -4,7 +4,7 @@ const {
   MASTER_DETAIL_TAG,
   OBJECT_META_XML_SUFFIX,
 } = require('../utils/metadataConstants')
-const { readFileFromGit } = require('../utils/fsHelper')
+const { readPathFromGit } = require('../utils/fsHelper')
 const { join, sep } = require('path')
 
 class SubCustomObjectHandler extends StandardHandler {
@@ -12,7 +12,7 @@ class SubCustomObjectHandler extends StandardHandler {
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
-    const data = await readFileFromGit(this.line, this.config)
+    const data = await readPathFromGit(this.line, this.config)
     if (!data?.includes(MASTER_DETAIL_TAG)) return
 
     const customObjectDirPath = this.splittedLine

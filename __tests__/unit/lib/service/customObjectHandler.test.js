@@ -1,7 +1,7 @@
 'use strict'
 const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
 const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
-const { readFileFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
+const { readPathFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
 const { pathExists } = require('fs-extra')
 const { readdir } = require('fs').promises
 jest.mock('fs')
@@ -73,7 +73,7 @@ describe('CustomObjectHandler', () => {
         it('should copy master detail fields', async () => {
           // Arrange
           readdir.mockImplementationOnce(() => ['Name.field-meta.xml'])
-          readFileFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
+          readPathFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
           const sut = new CustomObjectHandler(
             line,
             objectType,
@@ -92,7 +92,7 @@ describe('CustomObjectHandler', () => {
       describe('when field folder does not contain master details', () => {
         it('should not copy master detail fields', async () => {
           // Arrange
-          readFileFromGit.mockImplementationOnce(() => '')
+          readPathFromGit.mockImplementationOnce(() => '')
           const sut = new CustomObjectHandler(
             line,
             objectType,

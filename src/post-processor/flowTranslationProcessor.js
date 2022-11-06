@@ -10,7 +10,7 @@ const {
 const {
   copyFiles,
   scanExtension,
-  readFileFromGit,
+  readPathFromGit,
   isSubDir,
 } = require('../utils/fsHelper')
 const { join, parse } = require('path')
@@ -73,7 +73,7 @@ class FlowTranslationProcessor extends BaseProcessor {
   }
 
   async _parseTranslationFile(translationPath) {
-    const translationXML = await readFileFromGit(translationPath, this.config)
+    const translationXML = await readPathFromGit(translationPath, this.config)
 
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
     const translationJSON = xmlParser.parse(translationXML)

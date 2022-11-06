@@ -1,7 +1,7 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
 const asyncFilter = require('../utils/asyncFilter')
-const { readFileFromGit } = require('../utils/fsHelper')
+const { readPathFromGit } = require('../utils/fsHelper')
 const {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
@@ -31,7 +31,7 @@ class CustomObjectHandler extends StandardHandler {
 
     const fields = await readdir(fieldsFolder)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
-      const content = await readFileFromGit(
+      const content = await readPathFromGit(
         join(this.config.repo, fieldsFolder, fieldPath),
         this.config
       )
