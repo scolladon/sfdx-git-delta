@@ -56,23 +56,3 @@ closes #
   Target Release
   ...
 -->
-
-## Where has this been tested?
-
----
-
-<!--
-$ uname -v ; yarn -v ; node -v ; git --version ; sfdx --version ; sfdx plugins
--->
-
-**Operating System:** …
-
-**yarn version:** …
-
-**node version:** …
-
-**git version:** …
-
-**sfdx version:** …
-
-**sgd plugin version:** …
