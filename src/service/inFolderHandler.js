@@ -6,7 +6,7 @@ const {
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
 const { join, normalize, parse, sep } = require('path')
-const { readdir } = require('fs').promises
+const { readDir } = require('../utils/fsHelper')
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
@@ -34,7 +34,7 @@ class InFolderHandler extends StandardHandler {
 
   async _copySpecialExtension() {
     const parsedLine = parse(this.line)
-    const dirContent = await readdir(parsedLine.dir)
+    const dirContent = await readDir(parsedLine.dir, this.work)
 
     await Promise.all(
       dirContent

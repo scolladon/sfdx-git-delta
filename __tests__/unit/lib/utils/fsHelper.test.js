@@ -1,6 +1,7 @@
 'use strict'
 const {
   copyFiles,
+  readDir,
   isSubDir,
   readFile,
   scan,
@@ -10,7 +11,7 @@ const { getStreamContent } = require('../../../../src/utils/childProcessUtils')
 const { spawn } = require('child_process')
 const fs = require('fs')
 const { outputFile } = require('fs-extra')
-const { sep } = require('path')
+const { EOL } = require('os')
 
 jest.mock('../../../../src/utils/childProcessUtils')
 jest.mock('fs')
@@ -29,15 +30,16 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
   }
 })
 
+let work
+beforeEach(() => {
+  //jest.clearAllMocks()
+  work = {
+    config: { output: '', source: '', repo: '', generateDelta: false },
+    warnings: [],
+  }
+})
+
 describe('copyFile', () => {
-  let work
-  beforeEach(() => {
-    //jest.clearAllMocks()
-    work = {
-      config: { output: '', source: '', repo: '', generateDelta: false },
-      warnings: [],
-    }
-  })
   describe('when file is already copied', () => {
     it('should not copy file', async () => {
       // Arrange
@@ -76,7 +78,7 @@ describe('copyFile', () => {
         getStreamContent.mockImplementationOnce(
           () => 'tree HEAD:folder\n\ncopyFile'
         )
-        getStreamContent.mockImplementationOnce(() => 'content')
+        getStreamContent.mockImplementation(() => 'content')
 
         // Act
         await copyFiles(work, 'source/copyDir', 'output/copyDir')
@@ -119,6 +121,47 @@ describe('copyFile', () => {
     })
   })
 })
+
+describe('readDir', () => {
+  describe('when getStreamContent succeed', () => {
+    const dir = 'dir/'
+    const file = 'test.js'
+    beforeEach(() => {
+      // Arrange
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+      )
+    })
+    it('should return the file', async () => {
+      // Act
+      const dirContent = await readDir(dir, work)
+
+      // Assert
+      expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
+      expect(getStreamContent).toHaveBeenCalled()
+    })
+  })
+
+  describe('when getStreamContent throw', () => {
+    beforeEach(() => {
+      // Arrange
+      getStreamContent.mockImplementation(() =>
+        Promise.reject(new Error('mock'))
+      )
+    })
+    it('should throw', async () => {
+      // Act
+      try {
+        await readFile('path', work)
+      } catch (err) {
+        // Assert
+        expect(err).toBeTruthy()
+        expect(getStreamContent).toHaveBeenCalled()
+      }
+    })
+  })
+})
+
 describe('readFile', () => {
   describe('when readfile succeed', () => {
     beforeEach(() => {
@@ -153,28 +196,30 @@ describe('readFile', () => {
   })
 })
 describe('scan', () => {
-  describe('when readdir throw', () => {
+  describe('when getStreamContent throw', () => {
     beforeEach(() => {
       // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.reject())
+      getStreamContent.mockImplementation(() =>
+        Promise.reject(new Error('mock'))
+      )
     })
     it('should throw', async () => {
       // Arrange
       expect.assertions(1)
-      const g = scan('dir')
+      const g = scan('dir', work)
 
       // Assert
-      expect(g.next()).rejects.toEqual()
+      expect(g.next()).rejects.toEqual(new Error('mock'))
     })
   })
-  describe('when readdir returns nothing', () => {
+  describe('when getStreamContent returns nothing', () => {
     beforeEach(() => {
       // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([]))
+      getStreamContent.mockImplementation(() => Promise.resolve(''))
     })
     it('should return nothing', async () => {
       // Arrange
-      const g = scan('dir')
+      const g = scan('dir', work)
       // Act
       const result = await g.next()
 
@@ -182,36 +227,39 @@ describe('scan', () => {
       expect(result.value).toBeFalsy()
     })
   })
-  describe('when readdir returns a file', () => {
-    const dir = 'dir'
-    const file = {
-      name: 'test',
-      isDirectory: () => false,
-    }
+  describe('when getStreamContent returns a file', () => {
+    const dir = 'dir/'
+    const file = 'test.js'
     beforeEach(() => {
       // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([file]))
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+      )
     })
     it('should return a file', async () => {
       // Arrange
-      const g = scan('dir')
+      const g = scan(dir, work)
       // Act
       const result = await g.next()
 
       // Assert
-      expect(result.value).toEqual(`${dir}${sep}${file.name}`)
+      expect(result.value).toEqual(`${dir}${file}`)
     })
   })
-  describe('when readdir returns an empty directory', () => {
+  describe('when getStreamContent returns an empty directory', () => {
+    const dir = 'dir/'
+    const subDir = 'subDir/'
     it('should return nothing', async () => {
       // Arrange
-      const dir = {
-        name: 'test',
-        isDirectory: () => true,
-      }
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([dir]))
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([]))
-      const g = scan('dir')
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve(
+          Promise.resolve([`tree HEAD:${dir}`, '', subDir].join(EOL))
+        )
+      )
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve([`tree HEAD:${dir}${subDir}`].join(EOL))
+      )
+      const g = scan('dir', work)
 
       // Act
       const result = await g.next()
@@ -220,45 +268,45 @@ describe('scan', () => {
       expect(result.value).toBeFalsy()
     })
   })
-  describe('when readdir returns a directory with a file', () => {
-    const dir = {
-      name: 'test',
-      isDirectory: () => true,
-    }
-    const file = {
-      name: 'test',
-      isDirectory: () => false,
-    }
+  describe('when getStreamContent returns a directory with a file', () => {
+    const dir = 'dir/'
+    const subDir = 'subDir/'
+    const subFile = 'test.js'
     beforeEach(() => {
       // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([dir]))
-
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([file]))
+      getStreamContent.mockImplementationOnce(() =>
+        Promise.resolve(
+          Promise.resolve([`tree HEAD:${dir}`, '', subDir].join(EOL))
+        )
+      )
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve([`tree HEAD:${dir}${subDir}`, '', subFile].join(EOL))
+      )
     })
     it('should return a file', async () => {
       // Arrange
-      const g = scan('dir')
+      const g = scan('dir', work)
       // Act
       const result = await g.next()
 
       // Assert
-      expect(result.value).toBe('dir/test/test')
+      expect(result.value).toBe(`${dir}${subDir}${subFile}`)
     })
   })
 })
 describe('scanExtension', () => {
   describe('when directory does not contains a file with the extension', () => {
-    const file = {
-      name: 'test',
-      isDirectory: () => false,
-    }
+    const dir = 'dir/'
+    const file = 'test.js'
     beforeEach(() => {
       // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([file]))
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+      )
     })
     it('should return', async () => {
       // Arrange
-      const g = scanExtension('dir', 'txt')
+      const g = scanExtension(dir, 'txt', work)
       // Act
       const result = await g.next()
 
@@ -268,22 +316,22 @@ describe('scanExtension', () => {
   })
 
   describe('when directory contains a file with the extension', () => {
-    const file = {
-      name: 'test.txt',
-      isDirectory: () => false,
-    }
+    const dir = 'dir/'
+    const file = 'test.js'
     beforeEach(() => {
       // Arrange
-      fs.promises.readdir.mockImplementationOnce(() => Promise.resolve([file]))
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+      )
     })
     it('should return a file', async () => {
       // Arrange
-      const g = scanExtension('dir', 'txt')
+      const g = scanExtension(dir, 'js', work)
       // Act
       const result = await g.next()
 
       // Assert
-      expect(result.value).toBe('dir/test.txt')
+      expect(result.value).toBe(`${dir}${file}`)
     })
   })
 })

@@ -1,11 +1,9 @@
 'use strict'
 const InFolder = require('../../../../src/service/inFolderHandler')
-const { copyFiles } = require('../../../../src/utils/fsHelper')
-const { readdir } = require('fs').promises
+const { copyFiles, readDir } = require('../../../../src/utils/fsHelper')
 const { METAFILE_SUFFIX } = require('../../../../src/utils/metadataConstants')
 
 jest.mock('../../../../src/utils/fsHelper')
-jest.mock('fs')
 
 const entity = 'folder/test'
 const extension = 'document'
@@ -48,43 +46,33 @@ describe('InFolderHander', () => {
     beforeEach(() => {
       work.config.generateDelta = true
     })
-    it('should copy meta files', async () => {
-      // Arrange
-      const sut = new InFolder(line, objectType, work, globalMetadata)
 
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
-      expect(copyFiles).toHaveBeenCalledWith(
-        work,
-        expect.stringContaining(METAFILE_SUFFIX),
-        expect.stringContaining(METAFILE_SUFFIX)
-      )
-    })
-
-    describe('when readdir does not return files', () => {
-      it('should not copy special extension', async () => {
+    describe('when readDir does not return files', () => {
+      it('should not copy special extension and copy meta files', async () => {
         // Arrange
         const sut = new InFolder(line, objectType, work, globalMetadata)
-        readdir.mockImplementationOnce(() => Promise.resolve([]))
+        readDir.mockImplementation(() => Promise.resolve([]))
 
         // Act
         await sut.handleAddition()
 
         // Assert
         expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
-        expect(readdir).toHaveBeenCalledTimes(1)
+        expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(3)
+        expect(copyFiles).toHaveBeenCalledWith(
+          work,
+          expect.stringContaining(METAFILE_SUFFIX),
+          expect.stringContaining(METAFILE_SUFFIX)
+        )
       })
     })
 
-    describe('when readdir returns files', () => {
+    describe('when readDir returns files', () => {
       it('should copy special extension', async () => {
         // Arrange
         const sut = new InFolder(line, objectType, work, globalMetadata)
-        readdir.mockImplementationOnce(() =>
+        readDir.mockImplementationOnce(() =>
           Promise.resolve([entity, 'not/matching'])
         )
 
@@ -93,7 +81,7 @@ describe('InFolderHander', () => {
 
         // Assert
         expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
-        expect(readdir).toHaveBeenCalledTimes(1)
+        expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(5)
       })
     })

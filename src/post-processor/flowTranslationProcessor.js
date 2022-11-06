@@ -39,7 +39,11 @@ class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translationPaths.clear()
 
-    const translationsIterator = scanExtension(this.config.source, EXTENSION)
+    const translationsIterator = scanExtension(
+      this.config.source,
+      EXTENSION,
+      this.work
+    )
 
     const ign = await this._getIgnoreInstance()
 

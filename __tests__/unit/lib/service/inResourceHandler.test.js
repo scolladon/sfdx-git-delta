@@ -1,9 +1,11 @@
 'use strict'
 const InResourceHandler = require('../../../../src/service/inResourceHandler')
-const { copyFiles } = require('../../../../src/utils/fsHelper')
+const {
+  copyFiles,
+  pathExists,
+  readDir,
+} = require('../../../../src/utils/fsHelper')
 const { METAFILE_SUFFIX } = require('../../../../src/utils/metadataConstants')
-const { pathExists } = require('fs-extra')
-const { readdir } = require('fs').promises
 
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('fs-extra')
@@ -57,7 +59,7 @@ describe('InResourceHandler', () => {
       })
       describe('when matching zip resource exist', () => {
         beforeEach(() => {
-          readdir.mockImplementation(() =>
+          readDir.mockImplementation(() =>
             Promise.resolve([
               'other.resource-meta.xml',
               'other',
@@ -131,7 +133,7 @@ describe('InResourceHandler', () => {
             work,
             globalMetadata
           )
-          readdir.mockImplementationOnce(() => Promise.resolve([]))
+          readDir.mockImplementationOnce(() => Promise.resolve([]))
 
           // Act
           await sut.handle()
@@ -177,7 +179,8 @@ describe('InResourceHandler', () => {
         // Assert
         expect(...work.diffs.package.get(objectType)).toEqual('resource')
         expect(pathExists).toHaveBeenCalledWith(
-          expect.stringContaining('resource')
+          expect.stringContaining('resource'),
+          work
         )
       })
     })
@@ -203,7 +206,8 @@ describe('InResourceHandler', () => {
           'resource'
         )
         expect(pathExists).toHaveBeenCalledWith(
-          expect.stringContaining('resource')
+          expect.stringContaining('resource'),
+          work
         )
       })
     })

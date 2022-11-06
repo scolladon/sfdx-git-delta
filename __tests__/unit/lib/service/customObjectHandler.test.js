@@ -1,14 +1,15 @@
 'use strict'
 const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
 const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
-const { readPathFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
-const { pathExists } = require('fs-extra')
-const { readdir } = require('fs').promises
-jest.mock('fs')
-jest.mock('fs-extra')
+const {
+  copyFiles,
+  pathExists,
+  readDir,
+  readPathFromGit,
+} = require('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsHelper')
 
-pathExists.mockImplementation(() => true)
+pathExists.mockImplementation(() => Promise.resolve(true))
 
 const objectType = 'objects'
 const line =
@@ -72,7 +73,7 @@ describe('CustomObjectHandler', () => {
       describe('when field folder contains master details', () => {
         it('should copy master detail fields', async () => {
           // Arrange
-          readdir.mockImplementationOnce(() => ['Name.field-meta.xml'])
+          readDir.mockImplementationOnce(() => ['Name.field-meta.xml'])
           readPathFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
           const sut = new CustomObjectHandler(
             line,
@@ -92,6 +93,7 @@ describe('CustomObjectHandler', () => {
       describe('when field folder does not contain master details', () => {
         it('should not copy master detail fields', async () => {
           // Arrange
+          readDir.mockImplementation(() => [])
           readPathFromGit.mockImplementationOnce(() => '')
           const sut = new CustomObjectHandler(
             line,
@@ -112,7 +114,7 @@ describe('CustomObjectHandler', () => {
     describe('when field folder does not exist', () => {
       it('should not look into the field folder', async () => {
         // Arrange
-        pathExists.mockImplementationOnce(() => false)
+        pathExists.mockImplementationOnce(() => Promise.resolve(false))
         const sut = new CustomObjectHandler(
           line,
           objectType,
@@ -124,7 +126,7 @@ describe('CustomObjectHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readdir).not.toBeCalled()
+        expect(readDir).not.toBeCalled()
       })
     })
   })
