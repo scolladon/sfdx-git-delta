@@ -207,6 +207,11 @@ sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because 
 
 ### CI/CD specificity
 
+In CI/CD pipelines, for most of the CI/CD provider, the checkout operation fetch only the last commit of the branch currently evaluated.
+This is done prbably to have the smallest network load possible and decrease clone time.
+As the plugin needs to have the branch to compare from as well, you need to fetch all the needed commits.
+Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches)
+
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
 If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
 This applies to both `--from` and `--to` parameters as they both accept git pointers.
