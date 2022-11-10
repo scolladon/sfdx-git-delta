@@ -207,7 +207,7 @@ sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because 
 
 ### CI/CD specificity
 
-In CI/CD pipelines, for most of the CI/CD provider, the checkout operation fetch only the last commit of the branch currently evaluated.
+In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetch only the last commit of the branch currently evaluated.
 You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well, 
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches)
 
