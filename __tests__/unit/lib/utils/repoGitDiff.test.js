@@ -177,7 +177,7 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(expected)
   })
 
-  test('cannot filter deletion if only ignored is specified files', async () => {
+  test('can filter deletion if only ignored is specified files', async () => {
     const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [`1${TAB}1${TAB}${output}`], []])
     const repoGitDiff = new RepoGitDiff(
@@ -186,7 +186,7 @@ describe(`test if repoGitDiff`, () => {
     )
     const work = await repoGitDiff.getLines()
 
-    const expected = [`${DELETION}${TAB}${output}`]
+    const expected = []
     expect(work).toStrictEqual(expected)
   })
 

@@ -1,7 +1,7 @@
 'use strict'
 const cpUtils = require('./childProcessUtils')
 const { getType } = require('./typeUtils')
-const IgnoreHelper = require('./ignoreHelper')
+const { buildIgnoreHelper } = require('./ignoreHelper')
 const {
   ADDITION,
   DELETION,
@@ -17,7 +17,6 @@ const {
 } = require('./metadataConstants')
 const { spawn } = require('child_process')
 const { readFile } = require('fs').promises
-const ignore = require('ignore')
 const micromatch = require('micromatch')
 const os = require('os')
 const path = require('path')
@@ -121,12 +120,12 @@ class RepoGitDiff {
       )
     })
 
-    const ignoreSetup = await RepoGitDiff._setupIgnore(this.config)
+    const ignoreHelper = await buildIgnoreHelper(this.config)
 
     return lines
       .filter(Boolean)
       .filter(line => this._filterInternal(line, deletedRenamed))
-      .filter(line => this._filterIgnore(line, ignoreSetup))
+      .filter(line => ignoreHelper.keep(line))
   }
 
   _filterInternal(line, deletedRenamed) {
@@ -160,42 +159,6 @@ class RepoGitDiff {
         })
     )
     return setup
-  }
-
-  static async _setupIgnore(config) {
-    const ignoreHelper = new IgnoreHelper()
-    const setup = await Promise.all(
-      [
-        { ignore: config.ignore, helper: ignore() },
-        { ignore: config.ignoreDestructive, helper: ignore() },
-      ].map(async obj => {
-        if (obj.ignore) {
-          obj.helper = await ignoreHelper.forPath(obj.ignore)
-        }
-        return obj
-      })
-    )
-    return setup
-  }
-
-  _filterIgnore(line, ignoreSetup) {
-    let helper
-    if (this.config.ignoreDestructive && line.startsWith(DELETION)) {
-      helper = ignoreSetup[1].helper
-    } else if (
-      this.config.ignore &&
-      [ADDITION, MODIFICATION].some(status => line.startsWith(status))
-    ) {
-      helper = ignoreSetup[0].helper
-    }
-
-    let keepLine = true
-    if (helper) {
-      const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
-      keepLine = !helper?.ignores(filePath)
-    }
-
-    return keepLine
   }
 
   _extractComparisonName(line) {

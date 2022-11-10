@@ -14,7 +14,7 @@ const {
   isSubDir,
 } = require('../utils/fsHelper')
 const { parse, resolve } = require('path')
-const IgnoreHelper = require('../utils/ignoreHelper')
+const { forPath } = require('../utils/ignoreHelper')
 const { XMLParser } = require('fast-xml-parser')
 const { asArray, XML_PARSER_OPTION } = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
@@ -95,8 +95,7 @@ class FlowTranslationProcessor extends BaseProcessor {
   async _getIgnoreInstance() {
     let ign
     if (this.config.ignore) {
-      const helper = new IgnoreHelper()
-      ign = await helper.forPath(this.config.ignore)
+      ign = await forPath(this.config.ignore)
     }
     return ign
   }
