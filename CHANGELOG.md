@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 5.7.1 (2022-11-10)
+
+
+### Bug Fixes
+
+* ignore destructive with ignore when possible ([#388](https://github.com/scolladon/sfdx-git-delta/issues/388)) ([9c1ad91](https://github.com/scolladon/sfdx-git-delta/commit/9c1ad919eac078abf7ab2b002500ebb42d45295e))
+
 ## 5.7.0 (2022-11-04)
 
 
