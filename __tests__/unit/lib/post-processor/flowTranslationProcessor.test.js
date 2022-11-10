@@ -10,15 +10,11 @@ const {
   scanExtension,
   isSubDir,
 } = require('../../../../src/utils/fsHelper')
+const { forPath } = require('../../../../src/utils/ignoreHelper')
 jest.mock('fs-extra')
 jest.mock('fast-xml-parser')
 jest.mock('../../../../src/utils/fsHelper')
-const mockForPath = jest.fn()
-jest.mock('../../../../src/utils/ignoreHelper', () => {
-  return jest.fn().mockImplementation(() => {
-    return { forPath: mockForPath }
-  })
-})
+jest.mock('../../../../src/utils/ignoreHelper')
 
 const FR = 'fr'
 const EN = 'en'
@@ -197,7 +193,7 @@ describe('FlowTranslationProcessor', () => {
       beforeEach(() => {
         // Arrange
         work.config.ignore = '.forceignore'
-        mockForPath.mockResolvedValue({ ignores: () => true })
+        forPath.mockResolvedValue({ ignores: () => true })
       })
       it('should not add translation file', async () => {
         // Act
@@ -206,7 +202,7 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(mockForPath).toHaveBeenCalledTimes(1)
+        expect(forPath).toHaveBeenCalledTimes(1)
         expect(mockParse).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
@@ -219,7 +215,7 @@ describe('FlowTranslationProcessor', () => {
           [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
         ])
         work.config.ignore = '.forceignore'
-        mockForPath.mockResolvedValue({ ignores: () => false })
+        forPath.mockResolvedValue({ ignores: () => false })
       })
       it('should add translation file', async () => {
         // Act
@@ -228,7 +224,7 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(mockForPath).toHaveBeenCalledTimes(1)
+        expect(forPath).toHaveBeenCalledTimes(1)
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(1)
       })
