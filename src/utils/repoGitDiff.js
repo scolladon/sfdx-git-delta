@@ -29,7 +29,7 @@ const filterAdded = [`${DIFF_FILTER}=${ADDITION}`]
 const filterModification = [`${DIFF_FILTER}=${MODIFICATION}`]
 const TAB = '\t'
 const NUM_STAT_REGEX = /^((-|\d+)\t){2}/
-const allFilesParams = ['ls-files']
+const allFilesParams = ['ls-tree', '--name-only', '-r']
 const lcSensitivity = {
   sensitivity: 'accent',
 }
@@ -63,7 +63,11 @@ class RepoGitDiff {
       return
     }
 
-    const gitLs = spawn('git', [...allFilesParams], this.spawnConfig)
+    const gitLs = spawn(
+      'git',
+      [...allFilesParams, this.config.to],
+      this.spawnConfig
+    )
     const lines = []
     for await (const line of cpUtils.linify(gitLs.stdout)) {
       lines.push(cpUtils.treatPathSep(line))
