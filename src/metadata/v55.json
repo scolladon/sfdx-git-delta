@@ -153,13 +153,6 @@
     "xmlName": "NamedCredential"
   },
   {
-    "directoryName": "externalCredentials",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "externalCredential",
-    "xmlName": "ExternalCredential"
-  },
-  {
     "directoryName": "externalServiceRegistrations",
     "inFolder": false,
     "metaFile": false,
