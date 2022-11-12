@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.8.0 (2022-11-12)
+
+
+### Features
+
+* add `ExternalCredentials` metadata and `v56` api version ([#390](https://github.com/scolladon/sfdx-git-delta/issues/390)) ([5136b7a](https://github.com/scolladon/sfdx-git-delta/commit/5136b7a2481db2f3dfd612ecfdd6920576a4480a))
+
 ### 5.7.1 (2022-11-10)
 
 
