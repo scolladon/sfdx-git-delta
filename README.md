@@ -122,7 +122,7 @@ sfdx plugins:install sfdx-git-delta
 
 Because this plugin is not signed, you will get a warning saying that "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed with the installation.
 
-If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdisfdc/sfdx-cli-gitlab)).
+If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdisfdc/sfdx-cli-gitlab)). If you use GitHub Actions, you can find some examples of using SGD [here](https://github.com/mehdisfdc/sfdx-GitHub-actions/tree/main/.github/workflows).
 
 ⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
 
