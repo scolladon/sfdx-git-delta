@@ -16,7 +16,7 @@ const {
   OBJECT_TRANSLATION_TYPE,
 } = require('./metadataConstants')
 const { spawn } = require('child_process')
-const { readFile } = require('fs').promises
+const { readFile } = require('./fsHelper')
 const micromatch = require('micromatch')
 const os = require('os')
 const path = require('path')
