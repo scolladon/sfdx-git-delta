@@ -10,6 +10,10 @@ class TranslationHandler extends ResourceHandler {
   async handleAddition() {
     await StandardHandler.prototype.handleAddition.apply(this)
     if (!this.config.generateDelta) return
+    await this._copyObjectTranslation()
+  }
+
+  async _copyObjectTranslation() {
     const objectTranslationName = `${parse(this.line).dir}${sep}${
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`

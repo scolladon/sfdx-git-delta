@@ -10,10 +10,10 @@ const {
 const {
   copyFiles,
   scanExtension,
-  readFile,
+  readPathFromGit,
   isSubDir,
 } = require('../utils/fsHelper')
-const { parse, resolve } = require('path')
+const { join, parse } = require('path')
 const { forPath } = require('../utils/ignoreHelper')
 const { XMLParser } = require('fast-xml-parser')
 const { asArray, XML_PARSER_OPTION } = require('../utils/fxpHelper')
@@ -39,31 +39,22 @@ class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translationPaths.clear()
 
-    const translationsIterator = scanExtension(this.config.source, EXTENSION)
+    const translationsIterator = scanExtension(
+      this.config.source,
+      EXTENSION,
+      this.work
+    )
 
     const ign = await this._getIgnoreInstance()
 
     for await (const translationPath of translationsIterator) {
       const translationName = getTranslationName(translationPath)
       if (
-        // Treat only not already added translation files
         !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName) &&
         !ign?.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
-        const translationXML = await readFile(translationPath)
-        const xmlParser = new XMLParser(XML_PARSER_OPTION)
-        const translationJSON = xmlParser.parse(translationXML)
-        // implement other kind of metadata here
-        const flowDefinitions = asArray(
-          translationJSON?.Translations?.flowDefinitions
-        )
-        flowDefinitions.forEach(flowDefinition =>
-          this._addFlowPerTranslation({
-            translationPath,
-            fullName: flowDefinition.fullName,
-          })
-        )
+        this._parseTranslationFile(translationName)
       }
     }
   }
@@ -77,12 +68,28 @@ class FlowTranslationProcessor extends BaseProcessor {
         elementName: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        const source = resolve(this.config.source, translationPath)
-        const target = resolve(this.config.output, translationPath)
-        copyTranslationsPromises.push(copyFiles(source, target))
+        const source = join(this.config.source, translationPath)
+        const target = join(this.config.output, translationPath)
+        copyTranslationsPromises.push(copyFiles(this.work, source, target))
       }
     }
     await Promise.all(copyTranslationsPromises)
+  }
+
+  async _parseTranslationFile(translationPath) {
+    const translationXML = await readPathFromGit(translationPath, this.config)
+
+    const xmlParser = new XMLParser(XML_PARSER_OPTION)
+    const translationJSON = xmlParser.parse(translationXML)
+    const flowDefinitions = asArray(
+      translationJSON?.Translations?.flowDefinitions
+    )
+    flowDefinitions.forEach(flowDefinition =>
+      this._addFlowPerTranslation({
+        translationPath,
+        fullName: flowDefinition.fullName,
+      })
+    )
   }
 
   _addFlowPerTranslation({ translationPath, fullName }) {

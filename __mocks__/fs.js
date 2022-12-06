@@ -3,8 +3,6 @@ const path = require('path')
 const fs = jest.createMockFromModule('fs')
 const { MASTER_DETAIL_TAG } = require('../src/utils/metadataConstants')
 
-fs.errorMode = false
-fs.statErrorMode = false
 let mockFiles = new Map()
 let mockContent = new Map()
 let filePathList = new Set()
@@ -29,30 +27,25 @@ Object.defineProperty(fs, 'promises', {
 
 fs.promises.stat = jest.fn(
   elem =>
-    new Promise((res, rej) => {
-      if (fs.statErrorMode) rej(new Error())
-      else
-        res({
-          isDirectory() {
-            return filePathList.has(elem)
-          },
-          isFile() {
-            return filePathList.has(elem)
-          },
-        })
+    new Promise(res => {
+      res({
+        isDirectory() {
+          return filePathList.has(elem)
+        },
+        isFile() {
+          return filePathList.has(elem)
+        },
+      })
     })
 )
 
 fs.promises.readFile = jest.fn(
   path =>
-    new Promise((res, rej) => {
-      if (fs.errorMode) rej(new Error())
-      else {
-        const result = mockContent.has(path)
-          ? mockContent.get(path)
-          : MASTER_DETAIL_TAG
-        res(result)
-      }
+    new Promise(res => {
+      const result = mockContent.has(path)
+        ? mockContent.get(path)
+        : MASTER_DETAIL_TAG
+      res(result)
     })
 )
 
@@ -68,13 +61,6 @@ fs.promises.readdir = jest.fn(
       }
       res(result)
     })
-)
-
-fs.promises.copyFile = jest.fn(() =>
-  jest.fn(() => {
-    if (fs.errorMode) return Promise.reject()
-    return Promise.resolve()
-  })
 )
 
 module.exports = fs

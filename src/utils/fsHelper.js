@@ -1,36 +1,68 @@
 'use strict'
-const { copyFile, readFile: fsReadFile, readdir } = require('fs').promises
-const { join, relative, isAbsolute } = require('path')
-const { copy, copySync, pathExists } = require('fs-extra')
+const { readFile: fsReadFile } = require('fs').promises
+const { isAbsolute, join, relative } = require('path')
+const { outputFile } = require('fs-extra')
+const { spawn } = require('child_process')
 const { UTF8_ENCODING } = require('../utils/gitConstants')
+const { EOLRegex, getStreamContent } = require('./childProcessUtils')
 
-const FSE_BIGINT_ERROR = 'Source and destination must not be the same.'
-const FSE_COPYSYNC_OPTION = {
-  overwrite: true,
-  errorOnExist: false,
-  dereference: true,
-  preserveTimestamps: false,
-}
+const FOLDER = 'tree'
+const FATAL = 'fatal'
 
+const showCmd = ['--no-pager', 'show']
 const copiedFiles = new Set()
 
-const copyFiles = async (src, dst) => {
+const copyFiles = async (work, src, dst) => {
+  const config = work.config
   if (copiedFiles.has(src)) return
-  const exists = await pathExists(src)
-  if (!copiedFiles.has(src) && exists) {
-    copiedFiles.add(src)
-    try {
-      await copy(src, dst, FSE_COPYSYNC_OPTION)
-    } catch (error) {
-      if (error.message === FSE_BIGINT_ERROR) {
-        // Handle this fse issue manually (https://github.com/jprichardson/node-fs-extra/issues/657)
-        await copyFile(src, dst)
-      } else {
-        // Retry sync in case of async error
-        copySync(src, dst, FSE_COPYSYNC_OPTION)
-      }
+  copiedFiles.add(src)
+
+  src = relative(config.source, src)
+  const data = await readPathFromGit(src, config)
+  if (!data) {
+    return
+  }
+  if (data.startsWith(FOLDER)) {
+    const [header, , ...files] = data.split(EOLRegex)
+    const folder = header.split(':')[1]
+    for (const file of files) {
+      const fileDst = join(config.output, folder, file)
+      const fileSrc = join(config.repo, folder, file)
+
+      await copyFiles(work, fileSrc, fileDst)
+    }
+  } else if (data.startsWith(FATAL)) {
+    work.warnings.push(data)
+  } else {
+    await outputFile(dst, data)
+  }
+}
+
+const readPathFromGit = async (path, config) => {
+  const data = await getStreamContent(
+    spawn('git', [...showCmd, `${config.to}:${path}`], {
+      cwd: config.repo,
+    })
+  )
+
+  return data
+}
+
+const pathExists = async (path, work) => {
+  const data = await readPathFromGit(path, work)
+  return data.startsWith(FATAL)
+}
+
+const readDir = async (dir, work) => {
+  const data = await readPathFromGit(dir, work)
+  const dirContent = []
+  if (data.startsWith(FOLDER)) {
+    const [, , ...files] = data.split(EOLRegex)
+    for (const file of files) {
+      dirContent.push(join(dir, file))
     }
   }
+  return dirContent
 }
 
 const readFile = async path => {
@@ -40,14 +72,13 @@ const readFile = async path => {
   return file
 }
 
-async function* scan(dir) {
-  const entries = await readdir(dir, { withFileTypes: true })
-  for (const de of entries) {
-    const res = join(dir, de.name)
-    if (de.isDirectory()) {
-      yield* scan(res)
+async function* scan(dir, work) {
+  const entries = await readDir(dir, work)
+  for (const file of entries) {
+    if (file.endsWith('/')) {
+      yield* scan(file, work)
     } else {
-      yield res
+      yield file
     }
   }
 }
@@ -67,7 +98,10 @@ const isSubDir = (parent, dir) => {
 
 module.exports.copyFiles = copyFiles
 module.exports.isSubDir = isSubDir
+module.exports.pathExists = pathExists
+module.exports.readDir = readDir
 module.exports.readFile = readFile
+module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
-module.exports.scanExtension = (dir, ext) => filterExt(scan(dir), ext)
-module.exports.FSE_BIGINT_ERROR = FSE_BIGINT_ERROR
+module.exports.scanExtension = (dir, ext, work) =>
+  filterExt(scan(dir, work), ext)

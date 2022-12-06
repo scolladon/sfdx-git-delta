@@ -1,92 +1,215 @@
 'use strict'
-const InResource = require('../../../../src/service/inResourceHandler')
-jest.mock('fs')
+const InResourceHandler = require('../../../../src/service/inResourceHandler')
+const {
+  copyFiles,
+  pathExists,
+  readDir,
+} = require('../../../../src/utils/fsHelper')
+const { METAFILE_SUFFIX } = require('../../../../src/utils/metadataConstants')
+
+jest.mock('../../../../src/utils/fsHelper')
 jest.mock('fs-extra')
-const fs = require('fs')
-const fse = require('fs-extra')
+jest.mock('fs')
 
-const testContext = {
-  handler: InResource,
-  testData: [
-    [
-      'staticresources',
-      'force-app/main/default/staticresources/test/content',
-      new Set(['test']),
-    ],
-    [
-      'staticresources',
-      'force-app/main/default/staticresources/resource.js',
-      new Set(['resource']),
-    ],
-    [
-      'staticresources',
-      'force-app/main/default/staticresources/erase.resource-meta.xml',
-      new Set(['erase']),
-    ],
-    [
-      'waveTemplates',
-      'force-app/main/default/waveTemplates/WaveTemplateTest/template-info.json',
-      new Set(['WaveTemplateTest']),
-    ],
-    [
-      'lwc',
-      'force-app/main/default/lwc/component/component.js-meta.xml',
-      new Set(['component']),
-    ],
-    [
-      'aura',
-      'force-app/main/default/aura/component/component.cmp-meta.xml',
-      new Set(['component']),
-    ],
-    [
-      'experiences',
-      'force-app/main/default/experiences/component/subfolder/file.json',
-      new Set(['component']),
-    ],
-    [
-      'experiences',
-      'force-app/main/default/experiences/component-meta.xml',
-      new Set(['component']),
-    ],
-  ],
-  work: {
-    config: { output: '', repo: '', generateDelta: true },
+const objectType = 'staticresources'
+const entityPath = 'force-app/main/default/staticresources/resource.js'
+const line = `A       ${entityPath}`
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
+    config: { output: '', repo: '' },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-}
+  }
+})
 
-describe('test inResourceHandler', () => {
+describe('InResourceHandler', () => {
   let globalMetadata
   beforeAll(async () => {
-    fse.pathShouldExist = false
-    fs.__setMockFiles({
-      'force-app/main/default/staticresources/test/content': 'test',
-      'force-app/main/default/staticresources/resource.resource-meta.xml':
-        'resource',
-      'force-app/main/default/waveTemplates/WaveTemplateTest/template-info.json':
-        '{"test":"test"}',
-    })
     // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 
-  // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
+  describe('When entity is added', () => {
+    describe('when not generating delta', () => {
+      beforeEach(() => {
+        work.config.generateDelta = false
+      })
+      it('should not copy matching files', async () => {
+        // Arrange
+        const sut = new InResourceHandler(
+          line,
+          objectType,
+          work,
+          globalMetadata
+        )
 
-  test('if deletion of sub element handle', async () => {
-    fse.pathShouldExist = true
-    testContext.work.config.generateDelta = false
-    const data = testContext.testData[1]
-    fs.__setMockFiles({ [data[1]]: '' })
-    const handler = new testContext.handler(
-      `D       ${data[1]}`,
-      data[0],
-      testContext.work,
-      globalMetadata
-    )
-    await handler.handle()
-    expect([...testContext.work.diffs.package.get(data[0])]).toEqual(
-      expect.arrayContaining([...data[2]])
-    )
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(...work.diffs.package.get(objectType)).toEqual('resource')
+        expect(copyFiles).not.toBeCalled()
+      })
+    })
+
+    describe('when generating delta', () => {
+      beforeEach(() => {
+        work.config.generateDelta = true
+      })
+      describe('when matching zip resource exist', () => {
+        beforeEach(() => {
+          readDir.mockImplementation(() =>
+            Promise.resolve([
+              'other.resource-meta.xml',
+              'other',
+              'image.resource-meta.xml',
+            ])
+          )
+        })
+        it.each([
+          ['staticresources', 'image', 'image.png', 3],
+          ['staticresources', 'image', 'image/logo.png', 3],
+        ])(
+          'should copy the matching resource',
+          async (type, entity, path, expectedCount) => {
+            // Arrange
+            const base = 'force-app/main/default/'
+            const line = `A       ${base}${type}/${path}`
+            const sut = new InResourceHandler(line, type, work, globalMetadata)
+
+            // Act
+            await sut.handle()
+
+            // Assert
+            expect(...work.diffs.package.get(type)).toEqual(entity)
+            expect(copyFiles).toBeCalledTimes(expectedCount)
+            expect(copyFiles).toHaveBeenCalledWith(
+              work,
+              `${base}${type}/${path}`,
+              `${base}${type}/${path}`
+            )
+            expect(copyFiles).toHaveBeenCalledWith(
+              work,
+              `${base}${type}/${path}${METAFILE_SUFFIX}`,
+              `${base}${type}/${path}${METAFILE_SUFFIX}`
+            )
+            expect(copyFiles).toHaveBeenCalledWith(
+              work,
+              `${base}${type}/${entity}.resource${METAFILE_SUFFIX}`,
+              `${base}${type}/${entity}.resource${METAFILE_SUFFIX}`
+            )
+          }
+        )
+        it('should copy the matching lwc', async () => {
+          // Arrange
+          const type = 'lwc'
+          const entity = 'lwcc'
+          const path = 'lwcc/lwcc.js'
+          const base = 'force-app/main/default/'
+          const line = `A       ${base}${type}/${path}`
+          const sut = new InResourceHandler(line, type, work, globalMetadata)
+
+          // Act
+          await sut.handle()
+
+          // Assert
+          expect(...work.diffs.package.get(type)).toEqual(entity)
+          expect(copyFiles).toBeCalledTimes(1)
+          expect(copyFiles).toHaveBeenCalledWith(
+            work,
+            `${base}${type}/${path}`,
+            `${base}${type}/${path}`
+          )
+        })
+      })
+
+      describe('when no matching resource exist', () => {
+        it('should not copy any files', async () => {
+          // Arrange
+          const sut = new InResourceHandler(
+            line,
+            objectType,
+            work,
+            globalMetadata
+          )
+          readDir.mockImplementationOnce(() => Promise.resolve([]))
+
+          // Act
+          await sut.handle()
+
+          // Assert
+          expect(...work.diffs.package.get(objectType)).toEqual('resource')
+          expect(copyFiles).toBeCalledTimes(2)
+          expect(copyFiles).toHaveBeenCalledWith(
+            work,
+            `${entityPath}`,
+            `${entityPath}`
+          )
+          expect(copyFiles).toHaveBeenCalledWith(
+            work,
+            `${entityPath}${METAFILE_SUFFIX}`,
+            `${entityPath}${METAFILE_SUFFIX}`
+          )
+        })
+      })
+    })
+  })
+
+  describe('When entity is deleted', () => {
+    beforeEach(() => {
+      work.config.generateDelta = false
+    })
+    describe('When only a ressource sub element is deleted', () => {
+      beforeEach(() => {
+        pathExists.mockImplementationOnce(() => true)
+      })
+      it('should treat it as a modification', async () => {
+        // Arrange
+        const sut = new InResourceHandler(
+          `D       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(...work.diffs.package.get(objectType)).toEqual('resource')
+        expect(pathExists).toHaveBeenCalledWith(
+          expect.stringContaining('resource'),
+          work
+        )
+      })
+    })
+    describe('When the ressource is deleted', () => {
+      beforeEach(() => {
+        pathExists.mockImplementationOnce(() => false)
+      })
+      it('should treat it as a deletion', async () => {
+        // Arrange
+        const sut = new InResourceHandler(
+          `D       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.has(objectType)).toBe(false)
+        expect(...work.diffs.destructiveChanges.get(objectType)).toEqual(
+          'resource'
+        )
+        expect(pathExists).toHaveBeenCalledWith(
+          expect.stringContaining('resource'),
+          work
+        )
+      })
+    })
   })
 })

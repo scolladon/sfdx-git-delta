@@ -9,7 +9,7 @@ const {
   XML_TAG,
   XML_HEADER_TAG_END,
 } = require('../utils/metadataConstants')
-const { readFile } = require('../utils/fsHelper')
+const { readPathFromGit } = require('../utils/fsHelper')
 const StandardHandler = require('./standardHandler')
 const { outputFile } = require('fs-extra')
 const { basename, join } = require('path')
@@ -39,11 +39,11 @@ class InFileHandler extends StandardHandler {
   }
 
   async handleAddition() {
-    const addition = super.handleAddition()
+    await super.handleAddition()
     const toAdd = await this._handleInDiff()
 
+    if (!this.config.generateDelta) return
     await this._handleFileWriting(toAdd)
-    await addition
   }
 
   async handleDeletion() {
@@ -55,9 +55,8 @@ class InFileHandler extends StandardHandler {
   }
 
   async _handleFileWriting(toAdd) {
-    if (!this.config.generateDelta) return
     const result = await this._parseFile()
-    const metadataContent = Object.values(result.fileContent)[0]
+    const metadataContent = Object.values(result.fileContent)[1]
 
     result.authorizedKeys.forEach(subType => {
       const meta = asArray(metadataContent[subType])
@@ -142,13 +141,13 @@ class InFileHandler extends StandardHandler {
   }
 
   async _parseFile() {
-    const file = await readFile(this.line)
+    const file = await readPathFromGit(this.line, this.config)
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
     const result = xmlParser.parse(file)
 
-    const authorizedKeys = Object.keys(Object.values(result)[0]).filter(tag =>
-      InFileHandler.xmlObjectToPackageType.has(tag)
-    )
+    const authorizedKeys = Object.values(result)
+      .flatMap(tag => Object.keys(tag))
+      .filter(tag => InFileHandler.xmlObjectToPackageType.has(tag))
     return {
       authorizedKeys: authorizedKeys,
       fileContent: result,

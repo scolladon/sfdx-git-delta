@@ -6,7 +6,7 @@ const {
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
 const { join, normalize, parse, sep } = require('path')
-const { readdir } = require('fs').promises
+const { readDir } = require('../utils/fsHelper')
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
@@ -23,7 +23,6 @@ class InFolderHandler extends StandardHandler {
 
     const folderFileName = `${folderName}.${
       StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
-      INFOLDER_SUFFIX +
       METAFILE_SUFFIX
     }`
 
@@ -35,7 +34,7 @@ class InFolderHandler extends StandardHandler {
 
   async _copySpecialExtension() {
     const parsedLine = parse(this.line)
-    const dirContent = await readdir(parsedLine.dir)
+    const dirContent = await readDir(parsedLine.dir, this.work)
 
     await Promise.all(
       dirContent
@@ -49,11 +48,7 @@ class InFolderHandler extends StandardHandler {
     )
   }
 
-  _fillPackage(packageObject) {
-    if (!packageObject.has(this.type)) {
-      packageObject.set(this.type, new Set())
-    }
-
+  _getElementName() {
     const packageMember = this.splittedLine
       .slice(this.splittedLine.indexOf(this.type) + 1)
       .join(sep)
@@ -61,9 +56,7 @@ class InFolderHandler extends StandardHandler {
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
 
-    packageObject
-      .get(this.type)
-      .add(StandardHandler.cleanUpPackageMember(packageMember))
+    return StandardHandler.cleanUpPackageMember(packageMember)
   }
 }
 

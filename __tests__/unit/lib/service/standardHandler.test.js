@@ -1,98 +1,32 @@
 'use strict'
 const StandardHandler = require('../../../../src/service/standardHandler')
-const { FSE_BIGINT_ERROR } = require('../../../../src/utils/fsHelper')
-const mc = require('../../../../src/utils/metadataConstants')
-const fse = require('fs-extra')
-const fs = require('fs')
-jest.mock('fs')
-jest.mock('fs-extra')
+const { METAFILE_SUFFIX } = require('../../../../src/utils/metadataConstants')
+const {
+  ADDITION,
+  MODIFICATION,
+  DELETION,
+} = require('../../../../src/utils/gitConstants')
+const { copyFiles } = require('../../../../src/utils/fsHelper')
 
-const testContext = {
-  handler: StandardHandler,
-  testData: [
-    [
-      'objects',
-      'force-app/main/default/objects/Account/Account.object-meta.xml',
-      new Set(['Account']),
-    ],
-    [
-      'quickActions',
-      'force-app/main/default/quickActions/Account.New.quickAction-meta.xml',
-      new Set(['Account.New']),
-    ],
-    [
-      'quickActions',
-      'force-app/main/default/quickActions/NewGlobal.quickAction-meta.xml',
-      new Set(['NewGlobal']),
-    ],
-    [
-      'customMetadata',
-      'force-app/main/default/customMetadata/GraphicsPackImages.md_png.md-meta.xml',
-      new Set(['GraphicsPackImages.md_png']),
-    ],
-    [
-      'weblinks',
-      'force-app/main/default/objects/Account/weblinks/ClientStore.weblink-meta.xml',
-      new Set(['ClientStore']),
-    ],
-    [
-      'classes',
-      'force-app/main/default/classes/controllers/Controller.cls-meta.xml',
-      new Set(['Controller']),
-    ],
-    [
-      'batchCalcJobDefinitions',
-      'force-app/main/default/batchCalcJobDefinitions/Job.batchCalcJobDefinition-meta.xml',
-      new Set(['Job']),
-    ],
-    [
-      'restrictionRules',
-      'force-app/main/default/restrictionRules/Account.rule-meta.xml',
-      new Set(['Account']),
-    ],
-    [
-      'objects',
-      'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
-      new Set(['Account']),
-    ],
-    [
-      'quickActions',
-      'force-app/main/default/quickActions/Test/Account.New.quickAction-meta.xml',
-      new Set(['Account.New']),
-    ],
-    [
-      'quickActions',
-      'force-app/main/default/quickActions/Test/NewGlobal.quickAction-meta.xml',
-      new Set(['NewGlobal']),
-    ],
-    [
-      'customMetadata',
-      'force-app/main/default/customMetadata/Test/GraphicsPackImages.md_png.md-meta.xml',
-      new Set(['GraphicsPackImages.md_png']),
-    ],
-    [
-      'weblinks',
-      'force-app/main/default/objects/Test/Account/weblinks/ClientStore.weblink-meta.xml',
-      new Set(['ClientStore']),
-    ],
-    [
-      'classes',
-      'force-app/main/default/classes/Test/Controller.cls-meta.xml',
-      new Set(['Controller']),
-    ],
-    [
-      'restrictionRules',
-      'force-app/main/default/restrictionRules/Test/Account.rule-meta.xml',
-      new Set(['Account']),
-    ],
-  ],
-  work: {
-    config: { output: '', repo: '', generateDelta: true },
+jest.mock('../../../../src/utils/fsHelper')
+
+const objectType = 'classes'
+const entity = 'MyClass'
+const extension = 'cls'
+const basePath = 'force-app/main/default/'
+const entityPath = `${basePath}${objectType}/${entity}.${extension}`
+
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
+    config: { output: '', source: '', repo: '', generateDelta: true },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-}
+    warnings: [],
+  }
+})
 
-describe(`standardHandler`, () => {
+describe(`StandardHandler`, () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -103,72 +37,289 @@ describe(`standardHandler`, () => {
     jest.clearAllMocks()
   })
 
-  // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
-
-  test('without generate delta', async () => {
-    testContext.work.config.generateDelta = false
-    const handler = new testContext.handler(
-      `A       ${testContext.testData[0][1]}`,
-      testContext.testData[0][0],
-      testContext.work,
+  it('should catch errors silently and store them', async () => {
+    // Arrange
+    copyFiles.mockImplementationOnce(() => Promise.reject(new Error('test')))
+    const sut = new StandardHandler(
+      `${ADDITION}       ${entityPath}`,
+      objectType,
+      work,
       globalMetadata
     )
-    await handler.handle()
-    expect(
-      testContext.work.diffs.package.get(testContext.testData[0][0])
-    ).toEqual(testContext.testData[0][2])
+
+    // Act
+    await sut.handle()
+
+    // Assert
+    expect(work.warnings.length).toEqual(1)
+    expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+    expect(work.diffs.destructiveChanges.size).toEqual(0)
+    expect(copyFiles).toBeCalled()
   })
 
-  test('do not handle not ADM line', async () => {
-    const handler = new testContext.handler(
-      `Z       ${testContext.testData[0][1]}`,
-      testContext.testData[0][0],
-      testContext.work,
+  it('does not handle not ADM line, silently', async () => {
+    // Arrange
+    const sut = new StandardHandler(
+      `Z       ${entityPath}`,
+      objectType,
+      work,
       globalMetadata
     )
-    await handler.handle()
+
+    // Act
+    await sut.handle()
+
+    // Assert
+    expect(work.warnings).toEqual([])
+    expect(work.diffs.package.size).toEqual(0)
+    expect(work.diffs.destructiveChanges.size).toEqual(0)
+    expect(copyFiles).not.toBeCalled()
   })
 
-  test('do not handle treat meta file metadata non ending with meta suffix', async () => {
-    const handler = new testContext.handler(
-      `D       force-app/main/default/staticresources/test.resource${mc.METAFILE_SUFFIX}`,
-      'staticresources',
-      testContext.work,
-      globalMetadata
-    )
-    await handler.handle()
+  describe('when not generating delta', () => {
+    beforeEach(() => {
+      work.config.generateDelta = false
+    })
+
+    it.each([
+      ['new', ADDITION],
+      ['modified', MODIFICATION],
+    ])('should add %s element to package', async (_, changeType) => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${changeType}       ${entityPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(work.warnings).toEqual([])
+      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(work.diffs.destructiveChanges.size).toEqual(0)
+      expect(copyFiles).not.toBeCalled()
+    })
+    it('should add deleted element to destructiveChanges', async () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${DELETION}       ${entityPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(work.warnings).toEqual([])
+      expect(work.diffs.package.size).toEqual(0)
+      expect(work.diffs.destructiveChanges.get(objectType)).toEqual(
+        new Set([entity])
+      )
+      expect(copyFiles).not.toBeCalled()
+    })
   })
 
-  test(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
-    expect(
-      StandardHandler.cleanUpPackageMember(`Package\\Member`).split(
-        StandardHandler.PACKAGE_MEMBER_PATH_SEP
-      ).length
-    ).toBe(2)
-  })
+  describe('when generating delta', () => {
+    beforeEach(() => {
+      work.config.generateDelta = true
+    })
+    describe('when element type definition has meta file', () => {
+      it('should add element to package when meta file is modified', async () => {
+        // Arrange
+        const sut = new StandardHandler(
+          `${MODIFICATION}       ${entityPath}${METAFILE_SUFFIX}`,
+          objectType,
+          work,
+          globalMetadata
+        )
 
-  test(`use fs.copySync when fse.copy "Source and destination must not be the same." special use cases`, async () => {
-    testContext.work.config.generateDelta = true
-    fse.copy.mockImplementationOnce(() =>
-      Promise.reject({
-        message: 'Other',
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.warnings).toEqual([])
+        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(
+          work,
+          entityPath.replace(METAFILE_SUFFIX, ''),
+          entityPath.replace(METAFILE_SUFFIX, '')
+        )
       })
-    )
-    fse.copy.mockImplementation(() =>
-      Promise.reject({
-        message: FSE_BIGINT_ERROR,
+
+      it('should copy meta file when element is modified', async () => {
+        // Arrange
+        const sut = new StandardHandler(
+          `${MODIFICATION}       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.warnings).toEqual([])
+        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(
+          work,
+          entityPath.replace(METAFILE_SUFFIX, ''),
+          entityPath.replace(METAFILE_SUFFIX, '')
+        )
       })
+    })
+
+    describe('when element type definition does not have side meta file (but can end by the meta suffix)', () => {
+      it('should add element to package when meta file is modified', async () => {
+        // Arrange
+        const entityPath = `${basePath}testSuites/suite.testSuite${METAFILE_SUFFIX}`
+        const sut = new StandardHandler(
+          `${MODIFICATION}       ${entityPath}`,
+          'testSuites',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.warnings).toEqual([])
+        expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(copyFiles).toBeCalledTimes(1)
+        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(
+          work,
+          expect.stringContaining(METAFILE_SUFFIX),
+          expect.stringContaining(METAFILE_SUFFIX)
+        )
+      })
+
+      it('should not copy meta file when element is modified', async () => {
+        // Arrange
+        const entityPath = `${basePath}testSuites/suite.testSuite`
+        const sut = new StandardHandler(
+          `${MODIFICATION}       ${entityPath}`,
+          'testSuites',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.warnings).toEqual([])
+        expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(copyFiles).toBeCalledTimes(1)
+        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).not.toBeCalledWith(
+          work,
+          expect.stringContaining(METAFILE_SUFFIX),
+          expect.stringContaining(METAFILE_SUFFIX)
+        )
+      })
+    })
+
+    it.each([
+      ['new', ADDITION],
+      ['modified', MODIFICATION],
+    ])(
+      'should add %s element to package and copy file',
+      async (_, changeType) => {
+        // Arrange
+        const sut = new StandardHandler(
+          `${changeType}       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.warnings).toEqual([])
+        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+      }
     )
-    const handler = new testContext.handler(
-      `A       force-app/main/default/classes/test.cls`,
-      'classes',
-      testContext.work,
-      globalMetadata
+    it('should add deleted element to destructiveChanges and do not copy file', async () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${DELETION}       ${entityPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(work.warnings).toEqual([])
+      expect(work.diffs.package.size).toEqual(0)
+      expect(work.diffs.destructiveChanges.get(objectType)).toEqual(
+        new Set([entity])
+      )
+      expect(copyFiles).not.toBeCalled()
+    })
+  })
+
+  describe('_parseLine', () => {
+    it.each(['.', '', 'other'])(
+      'should return repo, path and name part of a line with config.repo "%s"',
+      repoPath => {
+        // Arrange
+        work.config.repo = repoPath
+        const sut = new StandardHandler(
+          `${MODIFICATION}       ${basePath}${objectType}/${entity}.${extension}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        const result = sut._parseLine()
+
+        // Assert
+        expect(result.length).toBe(4)
+        expect(result[0]).toBe(
+          `${!['', '.'].includes(repoPath) ? `${repoPath}/` : ''}${entityPath}`
+        )
+        expect(result[1]).toBe(['', '.'].includes(repoPath) ? '' : repoPath)
+        expect(result[2]).toBe(
+          `${!['', '.'].includes(repoPath) ? '/' : ''}${basePath}${objectType}`
+        )
+        expect(result[3]).toBe(`${entity}.${extension}`)
+      }
     )
-    await handler.handle()
-    expect(fse.copy).toHaveBeenCalled()
-    expect(fse.copySync).toHaveBeenCalled()
-    expect(fs.promises.copyFile).toHaveBeenCalled()
+  })
+})
+
+describe('cleanUpPackageMember', () => {
+  it(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
+    // Arrange
+    const example = `Package\\Member`
+
+    // Act
+    const result = StandardHandler.cleanUpPackageMember(example).split(
+      StandardHandler.PACKAGE_MEMBER_PATH_SEP
+    )
+
+    // Assert
+    expect(result.length).toBe(2)
   })
 })

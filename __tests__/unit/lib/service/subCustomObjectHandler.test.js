@@ -1,88 +1,85 @@
 'use strict'
-const SubCustomObject = require('../../../../src/service/subCustomObjectHandler')
-jest.mock('fs')
+const SubCustomObjectHandler = require('../../../../src/service/subCustomObjectHandler')
+const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
+const { readPathFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
 
-const testContext = {
-  handler: SubCustomObject,
-  testData: [
-    [
-      'fields',
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-      new Set(['Account.awesome']),
-    ],
-    [
-      'indexes',
-      'force-app/main/default/objects/Account/indexes/awesome.index-meta.xml',
-      new Set(['Account.awesome']),
-    ],
-    [
-      'rules',
-      'force-app/main/default/territory2Models/EU/rules/Location.territory2Rule-meta.xml',
-      new Set(['EU.Location']),
-    ],
-    [
-      'territories',
-      'force-app/main/default/territory2Models/EU/territories/France.territory2-meta.xml',
-      new Set(['EU.France']),
-    ],
-    [
-      'fields',
-      'force-app/main/default/objects/Test/Account/fields/awesome.field-meta.xml',
-      new Set(['Account.awesome']),
-    ],
-    [
-      'rules',
-      'force-app/main/default/territory2Models/Test/EU/rules/Location.territory2Rule-meta.xml',
-      new Set(['EU.Location']),
-    ],
-    [
-      'territories',
-      'force-app/main/default/territory2Models/Test/EU/territories/France.territory2-meta.xml',
-      new Set(['EU.France']),
-    ],
-  ],
-  work: {
+jest.mock('../../../../src/utils/fsHelper')
+
+const objectType = 'fields'
+const line =
+  'A       force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
+
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
     config: { output: '', repo: '', generateDelta: true },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-}
-
-// eslint-disable-next-line no-undef
-testHandlerHelper(testContext)
-
-test('field is not a master detail', async () => {
-  // eslint-disable-next-line no-undef
-  const globalMetadata = await getGlobalMetadata()
-  const handler = new testContext.handler(
-    `A       ${testContext.testData[0][1]}`,
-    testContext.testData[0][0],
-    testContext.work,
-    // eslint-disable-next-line no-undef
-    globalMetadata
-  )
-  require('fs').__setMockFiles({ [testContext.testData[0][1]]: '' })
-
-  await handler.handle()
-  expect(testContext.work.diffs.package.get('fields')).toEqual(
-    testContext.testData[0][2]
-  )
+  }
 })
 
-test('field does not generate delta', async () => {
-  testContext.work.config.generateDelta = false
-  // eslint-disable-next-line no-undef
-  const globalMetadata = await getGlobalMetadata()
-  const handler = new testContext.handler(
-    `A       ${testContext.testData[0][1]}`,
-    testContext.testData[0][0],
-    testContext.work,
+describe('SubCustomObjectHandler', () => {
+  let globalMetadata
+  beforeAll(async () => {
     // eslint-disable-next-line no-undef
-    globalMetadata
-  )
-  require('fs').__setMockFiles({ [testContext.testData[0][1]]: '' })
+    globalMetadata = await getGlobalMetadata()
+  })
 
-  await handler.handle()
-  expect(testContext.work.diffs.package.get('fields')).toEqual(
-    testContext.testData[0][2]
-  )
+  describe('when called with generateDelta false', () => {
+    it('should not handle master detail exception', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const sut = new SubCustomObjectHandler(
+        line,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(readPathFromGit).not.toBeCalled()
+    })
+  })
+  describe('when called with generateDelta true', () => {
+    describe(`when field is not master detail`, () => {
+      it('should not handle master detail exception', async () => {
+        // Arrange
+        const sut = new SubCustomObjectHandler(
+          line,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(readPathFromGit).toBeCalledTimes(1)
+        expect(copyFiles).toBeCalledTimes(1)
+      })
+    })
+    describe(`when field is master detail`, () => {
+      it('should copy the parent object', async () => {
+        // Arrange
+        readPathFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
+        const sut = new SubCustomObjectHandler(
+          line,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(readPathFromGit).toBeCalledTimes(1)
+        expect(copyFiles).toBeCalledTimes(2)
+      })
+    })
+  })
 })

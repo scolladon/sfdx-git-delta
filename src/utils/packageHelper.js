@@ -20,12 +20,11 @@ module.exports = class PackageBuilder {
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
       xmlns: 'http://soap.sforce.com/2006/04/metadata',
     })
-    const sortTypes = sortTypesWithMetadata(this.metadata)
     Array.from(strucDiffPerType.keys())
       .filter(
         type => this.metadata.has(type) || this.looseMetadata.includes(type)
       )
-      .sort(sortTypes)
+      .sort(this._sortTypesWithMetadata)
       .forEach(metadataType =>
         [...strucDiffPerType.get(metadataType)]
           .sort(Intl.Collator(frLocale).compare)
@@ -39,13 +38,13 @@ module.exports = class PackageBuilder {
     xml.ele('version').txt(`${this.config.apiVersion}.0`)
     return xml.end(xmlConf)
   }
-}
 
-const sortTypesWithMetadata = metadata => (x, y) => {
-  if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
-  const xMeta = metadata.get(x)?.xmlName ?? x
-  const yMeta = metadata.get(y)?.xmlName ?? y
-  return new Intl.Collator(frLocale).compare(xMeta, yMeta)
+  _sortTypesWithMetadata = (x, y) => {
+    if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
+    const xMeta = this.metadata.get(x)?.xmlName ?? x
+    const yMeta = this.metadata.get(y)?.xmlName ?? y
+    return new Intl.Collator(frLocale).compare(xMeta, yMeta)
+  }
 }
 
 const fillPackageWithParameter = params => {

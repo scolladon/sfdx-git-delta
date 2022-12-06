@@ -1,5 +1,6 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
+const { fillPackageWithParameter } = require('../utils/packageHelper')
 
 const WAVE_SUBTYPE = new Map()
 
@@ -18,10 +19,11 @@ class WaveHandler extends StandardHandler {
 
   _fillPackage(packageObject) {
     const type = WAVE_SUBTYPE.get(this.ext)
-    if (!packageObject.has(type)) {
-      packageObject.set(type, new Set())
-    }
-    packageObject.get(type).add(this._getElementName())
+    fillPackageWithParameter({
+      package: packageObject,
+      type: type,
+      elementName: this._getElementName(),
+    })
   }
 }
 

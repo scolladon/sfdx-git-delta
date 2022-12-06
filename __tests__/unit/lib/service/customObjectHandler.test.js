@@ -1,114 +1,133 @@
 'use strict'
 const CustomObjectHandler = require('../../../../src/service/customObjectHandler')
 const { MASTER_DETAIL_TAG } = require('../../../../src/utils/metadataConstants')
-const fse = require('fs-extra')
-jest.mock('fs')
-jest.mock('fs-extra')
+const {
+  copyFiles,
+  pathExists,
+  readDir,
+  readPathFromGit,
+} = require('../../../../src/utils/fsHelper')
+jest.mock('../../../../src/utils/fsHelper')
 
-const testContext = {
-  handler: CustomObjectHandler,
-  testData: [
-    [
-      'objects',
-      'force-app/main/default/objects/Account/Account.object-meta.xml',
-      new Set(['Account']),
-    ],
-    [
-      'objects',
-      'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
-      new Set(['Account']),
-    ],
-    [
-      'territory2Models',
-      'force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
-      new Set(['EU']),
-    ],
-  ],
-  work: {
+pathExists.mockImplementation(() => Promise.resolve(true))
+
+const objectType = 'objects'
+const line =
+  'A       force-app/main/default/objects/Account/Account.object-meta.xml'
+
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
     config: { output: '', repo: '', generateDelta: true },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-}
+  }
+})
 
-// eslint-disable-next-line no-undef
-describe('customObjectHandler', () => {
+describe('CustomObjectHandler', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
-  // eslint-disable-next-line no-undef
-  describe('test CustomObjectHandler with fields', () => {
-    beforeEach(async () => {
-      jest.clearAllMocks()
-      require('fs').__setMockFiles({
-        'force-app/main/default/objects/Account/Account.object-meta.xml':
-          'test',
-        'force-app/main/default/objects/Account/fields': '',
-        'force-app/main/default/objects/Account/fields/test__c.field-meta.xml':
-          MASTER_DETAIL_TAG,
-        'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
-          'test',
-        'force-app/main/default/objects/Test/Account/fields/no':
-          MASTER_DETAIL_TAG,
-      })
-    })
 
-    test('addition and masterdetail fields', async () => {
-      const handler = new testContext.handler(
-        'A       force-app/main/default/objects/Account/Account.object-meta.xml',
-        'objects',
-        testContext.work,
+  describe('when called with generateDelta false', () => {
+    it('should not handle master detail exception', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const sut = new CustomObjectHandler(
+        line,
+        objectType,
+        work,
         globalMetadata
       )
-      await handler.handle()
-      expect(fse.copy).toBeCalled()
-    })
 
-    // eslint-disable-next-line no-undef
-    testHandlerHelper(testContext)
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(pathExists).not.toBeCalled()
+    })
   })
 
-  // eslint-disable-next-line no-undef
-  describe('test CustomObjectHandler without fields', () => {
-    beforeEach(async () => {
-      fse.pathShouldExist = false
-      require('fs').__setMockFiles({
-        'force-app/main/default/objects/Account/Account.object-meta.xml':
-          'test',
-        'force-app/main/default/objects/Test/Account/Account.object-meta.xml':
-          'test',
+  describe('when called with generateDelta true', () => {
+    describe(`when called with not 'objects' type`, () => {
+      it('should not handle try to find master details fields', async () => {
+        // Arrange
+        const sut = new CustomObjectHandler(
+          'A       force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
+          'territory2Models',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(pathExists).not.toBeCalled()
       })
     })
 
-    // eslint-disable-next-line no-undef
-    testHandlerHelper(testContext)
+    describe('when field folder exist', () => {
+      describe('when field folder contains master details', () => {
+        it('should copy master detail fields', async () => {
+          // Arrange
+          readDir.mockImplementationOnce(() => ['Name.field-meta.xml'])
+          readPathFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
+          const sut = new CustomObjectHandler(
+            line,
+            objectType,
+            work,
+            globalMetadata
+          )
 
-    test('addition', async () => {
-      const handler = new testContext.handler(
-        'A       force-app/main/default/objects/Account/Account.object-meta.xml',
-        'objects',
-        testContext.work,
-        globalMetadata
-      )
-      await handler.handle()
-      expect(testContext.work.diffs.package.get('objects')).toEqual(
-        testContext.testData[0][2]
-      )
+          // Act
+          await sut.handleAddition()
+
+          // Assert
+          expect(copyFiles).toBeCalledTimes(2)
+        })
+      })
+
+      describe('when field folder does not contain master details', () => {
+        it('should not copy master detail fields', async () => {
+          // Arrange
+          readDir.mockImplementation(() => [])
+          readPathFromGit.mockImplementationOnce(() => '')
+          const sut = new CustomObjectHandler(
+            line,
+            objectType,
+            work,
+            globalMetadata
+          )
+
+          // Act
+          await sut.handleAddition()
+
+          // Assert
+          expect(copyFiles).toBeCalledTimes(1)
+        })
+      })
     })
 
-    test('addition and do not generate delta', async () => {
-      testContext.work.config.generateDelta = false
-      const handler = new testContext.handler(
-        'A       force-app/main/default/objects/Account/Account.object-meta.xml',
-        'objects',
-        testContext.work,
-        globalMetadata
-      )
-      await handler.handle()
-      expect(testContext.work.diffs.package.get('objects')).toEqual(
-        testContext.testData[0][2]
-      )
+    describe('when field folder does not exist', () => {
+      it('should not look into the field folder', async () => {
+        // Arrange
+        pathExists.mockImplementationOnce(() => Promise.resolve(false))
+        const sut = new CustomObjectHandler(
+          line,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(readDir).not.toBeCalled()
+      })
     })
   })
 })

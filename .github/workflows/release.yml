@@ -45,8 +45,8 @@ jobs:
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli
 
-      - name: Sleep for 5 minutes
-        run: sleep 300s
+      - name: Sleep for 30 seconds
+        run: sleep 30s
         shell: bash
 
       - name: Install new plugin version

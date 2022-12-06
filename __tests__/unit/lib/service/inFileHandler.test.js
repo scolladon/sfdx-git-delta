@@ -1,227 +1,339 @@
 'use strict'
 const InFile = require('../../../../src/service/inFileHandler')
-const { PLUS, MINUS } = require('../../../../src/utils/gitConstants')
 const {
-  LABEL_DIRECTORY_NAME,
-} = require('../../../../src/utils/metadataConstants')
-const { EOL } = require('os')
-
-jest.mock('fs')
-jest.mock('fs-extra')
-jest.mock('fast-xml-parser')
-
-jest.mock('../../../../src/utils/fileGitDiff')
+  ADDITION,
+  MODIFICATION,
+  DELETION,
+  PLUS,
+  MINUS,
+} = require('../../../../src/utils/gitConstants')
 const fileGitDiff = require('../../../../src/utils/fileGitDiff')
+const { readPathFromGit, copyFiles } = require('../../../../src/utils/fsHelper')
+const { EOL } = require('os')
+const { outputFile } = require('fs-extra')
 
-const fs = require('fs')
-const fxp = require('fast-xml-parser')
+jest.unmock('fast-xml-parser')
+jest.mock('fs-extra')
+jest.mock('../../../../src/utils/fileGitDiff')
+jest.mock('../../../../src/utils/fsHelper')
 
-const testContext = {
-  handler: InFile,
-  testData: [
-    [
-      'workflows',
-      'force-app/main/default/workflows/Account.workflow-meta.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<alerts>${EOL}<fullName>TestEA</fullName>${EOL}</alerts>${EOL}<fieldUpdates>${EOL}<fullName>TestFU</fullName>${EOL}</fieldUpdates>${EOL}<rules>${EOL}<fullName>TestRule</fullName>${EOL}</rules>${EOL}${EOL}</Workflow>`,
-      '{"Workflow":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"alerts":[{"fullName":["TestEA"]}],"fieldUpdates":[{"fullName":["TestFU"]}],"rules":[{"fullName":["TestRule"]}]}}',
-    ],
-    [
-      'workflows',
-      'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<alerts>${EOL}<fullName>TestEA</fullName>${EOL}</alerts>${EOL}<fieldUpdates>${EOL}<fullName>TestFU</fullName>${EOL}</fieldUpdates>${EOL}<rules>${EOL}<fullName>TestRule</fullName>${EOL}</rules>${EOL}${EOL}</Workflow>`,
-      '{"Workflow":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"alerts":[{"fullName":["TestEA"]}],"fieldUpdates":[{"fullName":["TestFU"]}],"rules":[{"fullName":["TestRule"]}]}}',
-    ],
-    [
-      'labels',
-      'force-app/main/default/labels/CustomLabels.labels-meta.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>TestLabel1</fullName>${EOL}</labels>${EOL}<labels>${EOL}<fullName>TestLabel2</fullName>${EOL}</labels>${EOL}</CustomLabels>`,
-      '{"CustomLabels":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"labels":[{"fullName":["TestLabel1"]},{"fullName":["TestLabel2"]}]}}',
-    ],
-    [
-      'sharingRules',
-      'force-app/main/default/sharingRules/Account.sharingRules-meta.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>TestCBS</fullName>${EOL}</sharingCriteriaRules>${EOL}<sharingOwnerRules>${EOL}<fullName>TestOBS</fullName>${EOL}</sharingOwnerRules>${EOL}</SharingRules>`,
-      '{"SharingRules":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"sharingCriteriaRules":[{"fullName":["TestCBS"]}],"sharingOwnerRules":[{"fullName":["TestOBS"]}]}}',
-    ],
-    [
-      'sharingRules',
-      'force-app/main/default/sharingRules/Test/Account.sharingRules-meta.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>TestCBS</fullName>${EOL}</sharingCriteriaRules>${EOL}<sharingOwnerRules>${EOL}<fullName>TestOBS</fullName>${EOL}</sharingOwnerRules>${EOL}</SharingRules>`,
-      '{"SharingRules":{"$":{"xmlns":"http://soap.sforce.com/2006/04/metadata"},"sharingCriteriaRules":[{"fullName":["TestCBS"]}],"sharingOwnerRules":[{"fullName":["TestOBS"]}]}}',
-    ],
-  ],
-  expectedData: {
-    workflows: new Map([
-      ['workflows', new Set(['Account'])],
-      ['workflows.alerts', new Set(['Account.TestEA'])],
-      ['workflows.fieldUpdates', new Set(['Account.TestFU'])],
-      ['workflows.rules', new Set(['Account.TestRule'])],
-    ]),
-    labels: new Map([]),
-    sharingRules: new Map([
-      ['sharingRules', new Set(['Account'])],
-      ['sharingRules.sharingCriteriaRules', new Set(['Account.TestCBS'])],
-      ['sharingRules.sharingOwnerRules', new Set(['Account.TestOBS'])],
-    ]),
-  },
-}
-testContext.expectedData.labels.set(
-  LABEL_DIRECTORY_NAME,
-  new Set(['TestLabel1', 'TestLabel2'])
-)
-
-fs.__setMockFiles({
-  [testContext.testData[0][1]]: testContext.testData[0][2],
-  [testContext.testData[1][1]]: testContext.testData[1][2],
-  [testContext.testData[2][1]]: testContext.testData[2][2],
-  [testContext.testData[3][1]]: testContext.testData[3][2],
-  [testContext.testData[4][1]]: testContext.testData[4][2],
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
+    config: { output: '', source: '', repo: '', generateDelta: true },
+    diffs: { package: new Map(), destructiveChanges: new Map() },
+    warnings: [],
+  }
 })
 
-fxp.__setMockContent({
-  [testContext.testData[0][2]]: testContext.testData[0][3],
-  [testContext.testData[1][2]]: testContext.testData[1][3],
-  [testContext.testData[2][2]]: testContext.testData[2][3],
-  [testContext.testData[3][2]]: testContext.testData[3][3],
-  [testContext.testData[4][2]]: testContext.testData[4][3],
-})
-
-// eslint-disable-next-line no-undef
-describe(`test if inFileHandler`, () => {
-  let work
+describe(`inFileHandler`, () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
-  beforeEach(() => {
-    work = {
-      config: { output: '', repo: '', generateDelta: true },
-      diffs: { package: new Map(), destructiveChanges: new Map() },
-      warnings: [],
-    }
+
+  describe.each([
+    ['added', ADDITION],
+    ['modified', MODIFICATION],
+  ])('When entity is %s', (_, changeType) => {
+    describe('with syntactically correct xml', () => {
+      it('should it populate package.xml and copy file', async () => {
+        // Arrange
+        const line =
+          'force-app/main/default/workflows/Test/Account.workflow-meta.xml'
+        const goodXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<alerts>${EOL}<fullName>TestEA</fullName>${EOL}</alerts>${EOL}<fieldUpdates>${EOL}<fullName>TestFU</fullName>${EOL}</fieldUpdates>${EOL}<rules>${EOL}<fullName>TestRule</fullName>${EOL}</rules>${EOL}${EOL}</Workflow>`
+        fileGitDiff.mockImplementation(() =>
+          goodXml.split(EOL).map(x => `${PLUS} ${x}`)
+        )
+        readPathFromGit.mockImplementation(() => goodXml)
+        const sut = new InFile(
+          `${changeType}       ${line}`,
+          'workflows',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package).toEqual(
+          new Map([
+            ['workflows', new Set(['Account'])],
+            ['workflows.alerts', new Set(['Account.TestEA'])],
+            ['workflows.fieldUpdates', new Set(['Account.TestFU'])],
+            ['workflows.rules', new Set(['Account.TestRule'])],
+          ])
+        )
+        expect(work.warnings).toHaveLength(0)
+        expect(copyFiles).toBeCalledTimes(1)
+        expect(outputFile).toHaveBeenCalledWith(
+          line,
+          expect.stringContaining('TestEA')
+        )
+        expect(outputFile).toHaveBeenCalledWith(
+          line,
+          expect.stringContaining('TestFU')
+        )
+        expect(outputFile).toHaveBeenCalledWith(
+          line,
+          expect.stringContaining('TestRule')
+        )
+      })
+    })
+
+    describe('with syntactically incorrect xml', () => {
+      it('should parse modification properly and generate wrong xml file', async () => {
+        // Arrange
+        const line = 'force-app/main/error/labels/CustomLabels.labels-meta.xml'
+        const badXml = `<?xml version="1.0" encoding="UTF-8"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>TestLabel1</fullName>${EOL}</labels>${EOL}</labels>${EOL}<labels>${EOL}<fullName>TestLabel2</fullName>${EOL}<!--/labels-->${EOL}</CustomLabels>`
+        fileGitDiff.mockImplementation(() =>
+          badXml.split(EOL).map(x => `${PLUS} ${x}`)
+        )
+        readPathFromGit.mockImplementation(() => badXml)
+        const sut = new InFile(
+          `${changeType}       ${line}`,
+          'labels',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package).toEqual(
+          new Map([['labels.labels', new Set(['TestLabel1', 'TestLabel2'])]])
+        )
+        expect(work.warnings).toHaveLength(0)
+        expect(copyFiles).toBeCalledTimes(1)
+        expect(outputFile).toHaveBeenCalledWith(
+          line,
+          expect.stringMatching(/<\/labels>\n$/)
+        )
+      })
+    })
+
+    describe('when not generating delta', () => {
+      beforeEach(() => {
+        work.config.generateDelta = false
+      })
+
+      it('should generate manifest without copying files', async () => {
+        // Arrange
+        const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>Label1</fullName>${EOL}</labels>${EOL}</labels>${EOL}</CustomLabels>`
+        fileGitDiff.mockImplementation(() =>
+          xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
+        )
+        readPathFromGit.mockImplementation(() => xmlContent)
+        const sut = new InFile(
+          `${changeType}       force-app/main/error/labels/CustomLabels.labels-meta.xml`,
+          'labels',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package).toEqual(
+          new Map([['labels.labels', new Set(['Label1'])]])
+        )
+        expect(work.warnings).toHaveLength(0)
+        expect(copyFiles).not.toBeCalled()
+        expect(outputFile).not.toBeCalled()
+      })
+    })
   })
-  describe.each(testContext.testData)(
-    'handles',
-    (expectedType, changePath, xmlContent) => {
-      test('addition', async () => {
-        const handler = new testContext.handler(
-          `A       ${changePath}`,
-          expectedType,
+
+  describe('when the entity is partially modified', () => {
+    const line =
+      'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>TestCBS</fullName>${EOL}</sharingCriteriaRules>${EOL}<sharingCriteriaRules>${EOL}<fullName>NotWrite</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`
+    describe('when the change occurs after fullname', () => {
+      it('should capture the change and relate it to the right entity', async () => {
+        // Arrange
+        fileGitDiff.mockImplementation(() =>
+          xmlContent.split(EOL).map((x, i) => (i === 4 ? `${MINUS} ${x}` : x))
+        )
+        readPathFromGit.mockImplementation(() => xmlContent)
+
+        const sut = new InFile(
+          `${MODIFICATION}       ${line}`,
+          'sharingRules',
           work,
           globalMetadata
         )
 
-        fileGitDiff.mockImplementation(() =>
-          xmlContent.split(EOL).map((x, i) => (i % 2 ? `${PLUS} ${x}` : x))
-        )
+        // Act
+        await sut.handle()
 
-        await handler.handle()
-        expect(work.diffs.package).toEqual(
-          testContext.expectedData[expectedType]
+        // Assert
+        expect(
+          work.diffs.package.get('sharingRules.sharingCriteriaRules')
+        ).toEqual(new Set(['Account.TestCBS']))
+        expect(work.warnings).toHaveLength(0)
+        expect(outputFile).toBeCalledWith(
+          line,
+          expect.stringContaining('TestCBS')
+        )
+        expect(outputFile).not.toBeCalledWith(
+          line,
+          expect.stringContaining('NotWrite')
         )
       })
-      test('deletion', async () => {
-        const handler = new testContext.handler(
-          `D       ${changePath}`,
-          expectedType,
+    })
+
+    describe('when a fullname is renamed', () => {
+      it('should add the new fullname and delete the old one', async () => {
+        // Arrange
+        const oldCBS = '<fullName>oldTestCBS</fullName>'
+        fileGitDiff.mockImplementation(() => {
+          const mockValue = xmlContent
+            .split(EOL)
+            .map((x, i) => (i === 3 ? `${PLUS} ${x}` : x))
+          mockValue.splice(4, 0, `${MINUS} ${oldCBS}`)
+          return mockValue
+        })
+        readPathFromGit.mockImplementation(() => xmlContent)
+
+        const sut = new InFile(
+          `${MODIFICATION}       ${line}`,
+          'sharingRules',
           work,
           globalMetadata
         )
 
-        fileGitDiff.mockImplementation(() =>
-          xmlContent.split(EOL).map(x => `${MINUS} ${x}`)
-        )
+        // Act
+        await sut.handle()
 
-        await handler.handle()
-        expect(work.diffs.destructiveChanges.size).toBeGreaterThan(0)
-        expect(work.diffs.destructiveChanges.size).toBeLessThanOrEqual(
-          testContext.expectedData[expectedType].size
+        // Assert
+        expect(
+          work.diffs.destructiveChanges.get('sharingRules.sharingCriteriaRules')
+        ).toEqual(new Set(['Account.oldTestCBS']))
+        expect(
+          work.diffs.package.get('sharingRules.sharingCriteriaRules')
+        ).toEqual(new Set(['Account.TestCBS']))
+        expect(work.warnings).toHaveLength(0)
+        expect(outputFile).not.toBeCalledWith(
+          line,
+          expect.stringContaining('NotWrite')
+        )
+        expect(outputFile).toBeCalledWith(
+          line,
+          expect.stringContaining('TestCBS')
         )
       })
-      test('modification', async () => {
-        const handler = new testContext.handler(
-          `M       ${changePath}`,
-          expectedType,
-          work,
-          globalMetadata
-        )
+    })
 
-        fileGitDiff.mockImplementation(() =>
-          xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
-        )
-
-        await handler.handle()
-
-        expect(work.diffs.package).toBeDefined()
-        expect(work.diffs.destructiveChanges).toBeDefined()
-        expect(work.diffs.package).toEqual(
-          testContext.expectedData[expectedType]
-        )
-      })
-
-      test('modification without delta generation', async () => {
-        work.config.generateDelta = false
-        const handler = new testContext.handler(
-          `M       ${changePath}`,
-          expectedType,
-          work,
-          globalMetadata
-        )
-
-        fileGitDiff.mockImplementation(() =>
-          xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
-        )
-
-        await handler.handle()
-        expect(work.diffs.package).toEqual(
-          testContext.expectedData[expectedType]
-        )
-      })
-
-      test('partial modification without delta generation', async () => {
-        work.config.generateDelta = false
-        const handler = new testContext.handler(
-          `M       ${changePath}`,
-          expectedType,
-          work,
-          globalMetadata
-        )
-
+    describe('when a new element is inserted', () => {
+      it('should add the new element and copy the file', async () => {
+        // Arrange
         fileGitDiff.mockImplementation(() =>
           xmlContent
             .split(EOL)
-            .map(x => `${Math.floor(Math.random() * 2) ? PLUS : MINUS} ${x}`)
+            .map((x, i) => ([2, 3, 4].includes(i) ? `${PLUS} ${x}` : x))
+        )
+        readPathFromGit.mockImplementation(() => xmlContent)
+
+        const sut = new InFile(
+          `${MODIFICATION}       ${line}`,
+          'sharingRules',
+          work,
+          globalMetadata
         )
 
-        await handler.handle()
-        expect(work.diffs.package).toBeDefined()
-      })
-    }
-  )
+        // Act
+        await sut.handle()
 
-  describe('with bad xml', () => {
-    const [expectedType, changePath, xmlContent, expectedResult] = [
-      'labels',
-      'force-app/main/error/labels/CustomLabels.labels-meta.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>TestLabel1</fullName>${EOL}</labels>${EOL}</labels>${EOL}<labels>${EOL}<fullName>TestLabel2</fullName>${EOL}</labels>${EOL}</CustomLabels>`,
-      new Map([['labels.labels', new Set(['TestLabel1', 'TestLabel2'])]]),
-    ]
-    test('generate proper warning', async () => {
-      const handler = new testContext.handler(
-        `A       ${changePath}`,
-        expectedType,
+        // Assert
+        expect(
+          work.diffs.destructiveChanges.get('sharingRules.sharingCriteriaRules')
+        ).toBeUndefined()
+        expect(
+          work.diffs.package.get('sharingRules.sharingCriteriaRules')
+        ).toEqual(new Set(['Account.TestCBS']))
+        expect(work.warnings).toHaveLength(0)
+        expect(outputFile).not.toBeCalledWith(
+          line,
+          expect.stringContaining('NotWrite')
+        )
+        expect(outputFile).toBeCalledWith(
+          line,
+          expect.stringContaining('TestCBS')
+        )
+      })
+    })
+
+    describe('when an element is removed', () => {
+      it('should add the element to the destructiveChanges and not copy the file', async () => {
+        // Arrange
+        fileGitDiff.mockImplementation(() =>
+          xmlContent
+            .split(EOL)
+            .map((x, i) => ([2, 3, 4].includes(i) ? `${MINUS} ${x}` : x))
+        )
+        readPathFromGit.mockImplementation(
+          () =>
+            `<?xml version="1.0" encoding="UTF-8"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>NotWrite</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`
+        )
+
+        const sut = new InFile(
+          `${MODIFICATION}       ${line}`,
+          'sharingRules',
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(
+          work.diffs.destructiveChanges.get('sharingRules.sharingCriteriaRules')
+        ).toEqual(new Set(['Account.TestCBS']))
+        expect(
+          work.diffs.package.get('sharingRules.sharingCriteriaRules')
+        ).toBeUndefined()
+        expect(work.warnings).toHaveLength(0)
+        expect(outputFile).toBeCalledWith(
+          line,
+          expect.not.stringContaining('<fullName>')
+        )
+      })
+    })
+  })
+
+  describe('When entity is deleted', () => {
+    const line = 'force-app/main/error/labels/CustomLabels.labels-meta.xml'
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>TestLabel1</fullName>${EOL}</labels>${EOL}</labels>${EOL}<labels>${EOL}<fullName>TestLabel2</fullName>${EOL}</labels>${EOL}</CustomLabels>`
+    it('should add the element to the destructiveChanges and not copy the file', async () => {
+      // Arrange
+      fileGitDiff.mockImplementation(() =>
+        xmlContent.split(EOL).map(x => `${MINUS} ${x}`)
+      )
+
+      const sut = new InFile(
+        `${DELETION}       ${line}`,
+        'labels',
         work,
         globalMetadata
       )
 
-      fileGitDiff.mockImplementation(() =>
-        xmlContent.split(EOL).map(x => `${PLUS} ${x}`)
-      )
+      // Act
+      await sut.handle()
 
-      await handler.handle()
-      expect(work.diffs.package).toEqual(expectedResult)
-      expect(work.warnings).toHaveLength(1)
+      // Assert
+      expect(work.diffs.destructiveChanges.get('labels.labels')).toEqual(
+        new Set(['TestLabel1', 'TestLabel2'])
+      )
+      expect(work.diffs.package.get('labels.labels')).toBeUndefined()
+      expect(work.warnings).toHaveLength(0)
+      expect(copyFiles).not.toBeCalled()
+      expect(outputFile).not.toBeCalled()
     })
   })
 })

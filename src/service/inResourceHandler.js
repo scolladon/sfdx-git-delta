@@ -1,8 +1,7 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const { join, normalize, parse } = require('path')
-const { readdir } = require('fs').promises
-const { pathExists } = require('fs-extra')
+const { join, parse } = require('path')
+const { pathExists, readDir } = require('../utils/fsHelper')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 
 const STATICRESOURCE_TYPE = 'staticresources'
@@ -35,17 +34,14 @@ class ResourceHandler extends StandardHandler {
             matchingFiles.includes(src)
         )
         .map(src =>
-          this._copyWithMetaFile(
-            normalize(join(srcPath, src)),
-            normalize(join(targetPath, src))
-          )
+          this._copyWithMetaFile(join(srcPath, src), join(targetPath, src))
         )
     )
   }
 
   async handleDeletion() {
     const [, , srcPath, elementName] = this._parseLine()
-    const exists = await pathExists(join(srcPath, elementName))
+    const exists = await pathExists(join(srcPath, elementName), this.work)
     if (exists) {
       await this.handleModification()
     } else {
@@ -81,7 +77,7 @@ class ResourceHandler extends StandardHandler {
 
   async _buildElementMap(srcPath) {
     if (!elementSrc.has(srcPath)) {
-      const dirContent = await readdir(srcPath)
+      const dirContent = await readDir(srcPath, this.work)
       elementSrc.set(srcPath, dirContent)
     }
   }

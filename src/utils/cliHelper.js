@@ -80,7 +80,6 @@ class CLIHelper {
     const errors = []
 
     const isGitPromise = isGit(this.config.repo)
-    const isToEqualHeadPromise = this.repoSetup.isToEqualHead()
     const directoriesPromise = this._filterDirectories()
     const filesPromise = this._filterFiles()
 
@@ -101,11 +100,6 @@ class CLIHelper {
 
     const gitErrors = await this._validateGitSha()
     errors.push(...gitErrors)
-
-    const isToEqualHead = await isToEqualHeadPromise
-    if (!isToEqualHead && this.config.generateDelta) {
-      errors.push(messages.errorToNotHeadWithDeltaGenerate)
-    }
 
     if (errors.length > 0) {
       throw new Error(errors.join(', '))

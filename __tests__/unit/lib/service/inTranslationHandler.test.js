@@ -1,50 +1,93 @@
 'use strict'
 const InTranslation = require('../../../../src/service/inTranslationHandler')
-jest.mock('fs')
-jest.mock('fs-extra')
-const fs = require('fs')
-const fse = require('fs-extra')
+const { copyFiles } = require('../../../../src/utils/fsHelper')
 
-const testContext = {
-  handler: InTranslation,
-  testData: [
-    [
-      'objectTranslations',
-      'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml',
-      new Set(['Account-es']),
-    ],
-    [
-      'objectTranslations',
-      'force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml',
-      new Set(['Account-es']),
-    ],
-  ],
-  work: {
+jest.mock('../../../../src/utils/fsHelper')
+
+const objectType = 'objectTranslations'
+const line =
+  'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
+
+let work
+beforeEach(() => {
+  jest.clearAllMocks()
+  work = {
     config: { output: '', repo: '', generateDelta: true },
     diffs: { package: new Map(), destructiveChanges: new Map() },
-  },
-}
+  }
+})
 
-// eslint-disable-next-line no-undef
-describe('test inTranslation with delta generation', () => {
-  beforeAll(() => {
-    fse.pathShouldExist = false
-    fs.__setMockFiles({
-      [testContext.testData[0][1]]: 'test',
-      [testContext.testData[1][1]]: 'test',
+describe('InTranslation', () => {
+  let globalMetadata
+  beforeAll(async () => {
+    // eslint-disable-next-line no-undef
+    globalMetadata = await getGlobalMetadata()
+  })
+
+  describe('when called with generateDelta false', () => {
+    it('should not copy files', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const sut = new InTranslation(line, objectType, work, globalMetadata)
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(copyFiles).not.toBeCalled()
+      expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
     })
   })
 
-  // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
-})
+  describe('when called with generateDelta true', () => {
+    it('should copy object translations files', async () => {
+      // Arrange
+      const sut = new InTranslation(line, objectType, work, globalMetadata)
 
-// eslint-disable-next-line no-undef
-describe('test inTranslation without delta generation', () => {
-  beforeAll(() => {
-    testContext.work.config.generateDelta = false
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+
+      expect(copyFiles).toBeCalledTimes(2)
+      expect(copyFiles).toHaveBeenCalledWith(
+        work,
+        expect.stringContaining('Account-es.objectTranslation'),
+        expect.stringContaining('Account-es.objectTranslation')
+      )
+      expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+    })
+
+    describe('when called with fieldTranslation', () => {
+      const fieldTranslationline =
+        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+      it('should copy object translations files and fieldTranslation', async () => {
+        // Arrange
+        const sut = new InTranslation(
+          fieldTranslationline,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+
+        expect(copyFiles).toBeCalledTimes(2)
+        expect(copyFiles).toHaveBeenCalledWith(
+          work,
+          expect.stringContaining('BillingFloor__c.fieldTranslation'),
+          expect.stringContaining('BillingFloor__c.fieldTranslation')
+        )
+        expect(copyFiles).toHaveBeenCalledWith(
+          work,
+          expect.stringContaining('Account-es.objectTranslation'),
+          expect.stringContaining('Account-es.objectTranslation')
+        )
+        expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+      })
+    })
   })
-
-  // eslint-disable-next-line no-undef
-  testHandlerHelper(testContext)
 })

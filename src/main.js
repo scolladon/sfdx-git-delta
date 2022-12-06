@@ -25,9 +25,9 @@ module.exports = async config => {
 const treatDiff = async (work, lines, metadata) => {
   const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
 
-  await Promise.all(
-    lines.map(line => typeHandlerFactory.getTypeHandler(line).handle())
-  )
+  for (const line of lines) {
+    await typeHandlerFactory.getTypeHandler(line).handle()
+  }
 
   await getPostProcessors(work, metadata).execute()
 }

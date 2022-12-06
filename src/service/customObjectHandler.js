@@ -1,15 +1,13 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
 const asyncFilter = require('../utils/asyncFilter')
-const { readFile } = require('../utils/fsHelper')
+const { pathExists, readDir, readPathFromGit } = require('../utils/fsHelper')
 const {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
 } = require('../utils/metadataConstants')
-const { join, parse, resolve } = require('path')
-const { readdir } = require('fs').promises
-const { pathExists } = require('fs-extra')
+const { join, parse } = require('path')
 
 class CustomObjectHandler extends StandardHandler {
   async handleAddition() {
@@ -26,13 +24,14 @@ class CustomObjectHandler extends StandardHandler {
       parse(this.line).dir,
       FIELD_DIRECTORY_NAME
     )
-    const exists = await pathExists(fieldsFolder)
+    const exists = await pathExists(fieldsFolder, this.work)
     if (!exists) return
 
-    const fields = await readdir(fieldsFolder)
+    const fields = await readDir(fieldsFolder, this.work)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
-      const content = await readFile(
-        resolve(this.config.repo, fieldsFolder, fieldPath)
+      const content = await readPathFromGit(
+        join(this.config.repo, fieldsFolder, fieldPath),
+        this.config
       )
       return content.includes(MASTER_DETAIL_TAG)
     })
@@ -40,8 +39,8 @@ class CustomObjectHandler extends StandardHandler {
     await Promise.all(
       masterDetailsFields.map(field =>
         this._copyWithMetaFile(
-          resolve(this.config.repo, fieldsFolder, field),
-          resolve(this.config.output, fieldsFolder, field)
+          join(this.config.repo, fieldsFolder, field),
+          join(this.config.output, fieldsFolder, field)
         )
       )
     )

@@ -49,6 +49,8 @@ const tests = [
         fields: new Set(['Field']),
         lwc: new Set(['Component']),
         objects: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
+        WaveLens: new Set(['Lens']),
+        WaveRecipe: new Set(['Recipe']),
       })
     ),
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -74,6 +76,14 @@ const tests = [
     <types>
         <members>Component</members>
         <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>Lens</members>
+        <name>WaveLens</name>
+    </types>
+    <types>
+        <members>Recipe</members>
+        <name>WaveRecipe</name>
     </types>
     <version>${options.apiVersion}.0</version>
 </Package>`,
