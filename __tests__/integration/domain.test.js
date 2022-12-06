@@ -1,6 +1,7 @@
 'use strict'
 const BotHandler = require('../../src/service/botHandler')
 const CustomObjectHandler = require('../../src/service/customObjectHandler')
+const InBundleHandler = require('../../src/service/inBundleHandler')
 const InFileHandler = require('../../src/service/inFileHandler')
 const InFolderHandler = require('../../src/service/inFolderHandler')
 const InTranslationHandler = require('../../src/service/inTranslationHandler')
@@ -184,6 +185,21 @@ const testContext = [
         'experiences',
         'force-app/main/default/experiences/component-meta.xml',
         new Set(['component']),
+      ],
+    ],
+  ],
+  [
+    InBundleHandler,
+    [
+      [
+        'digitalExperiences',
+        'force-app/main/default/digitalExperiences/site/component.digitalExperience-meta.xml',
+        new Set(['site/component']),
+      ],
+      [
+        'digitalExperiences',
+        'force-app/main/default/digitalExperiences/site/component/workspace/file.json',
+        new Set(['site/component']),
       ],
     ],
   ],
