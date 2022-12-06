@@ -58,16 +58,6 @@ const testContext = [
     ],
   ],
   [
-    InFolderHandler,
-    [
-      [
-        'dashboards',
-        'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
-        new Set(['folder/file']),
-      ],
-    ],
-  ],
-  [
     InFileHandler,
     [
       [
