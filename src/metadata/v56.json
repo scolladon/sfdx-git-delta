@@ -905,6 +905,20 @@
     "xmlName": "ExperienceBundle"
   },
   {
+    "directoryName": "digitalExperienceConfigs",
+    "inFolder": false,
+    "metaFile": true,
+    "suffix": "digitalExperienceConfig",
+    "xmlName": "DigitalExperienceConfig"
+  },
+  {
+    "directoryName": "digitalExperiences",
+    "inFolder": false,
+    "metaFile": true,
+    "suffix": "digitalExperience",
+    "xmlName": "DigitalExperienceBundle"
+  },
+  {
     "directoryName": "networks",
     "inFolder": false,
     "metaFile": false,
