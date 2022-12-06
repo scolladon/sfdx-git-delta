@@ -1,6 +1,7 @@
 'use strict'
 const Bot = require('./botHandler')
 const CustomObject = require('./customObjectHandler')
+const InBundleHandler = require('./inBundleHandler')
 const InFile = require('./inFileHandler')
 const InFolder = require('./inFolderHandler')
 const InResource = require('./inResourceHandler')
@@ -17,6 +18,7 @@ const classes = {
   businessProcesses: SubCustomObject,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
+  digitalExperiences: InBundleHandler,
   discovery: Wave,
   documents: InFolder,
   email: InFolder,
