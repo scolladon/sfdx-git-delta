@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.9.0 (2022-12-13)
+
+
+### Features
+
+* add digital experience metadata ([#397](https://github.com/scolladon/sfdx-git-delta/issues/397)) ([71c0a02](https://github.com/scolladon/sfdx-git-delta/commit/71c0a0267e555f2139c06b1f4a74ac555fdd5a6d))
+
 ## 5.8.0 (2022-11-12)
 
 
