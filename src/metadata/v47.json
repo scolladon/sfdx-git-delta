@@ -1270,6 +1270,22 @@
     "xmlTag": "rules"
   },
   {
+    "directoryName": "workflows.flowActions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowFlowAction",
+    "xmlTag": "flowActions"
+  },
+  {
+    "directoryName": "workflows.knowledgePublishes",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowKnowledgePublish",
+    "xmlTag": "knowledgePublishes"
+  },
+  {
     "directoryName": "sharingRules.sharingCriteriaRules",
     "inFolder": false,
     "metaFile": false,
