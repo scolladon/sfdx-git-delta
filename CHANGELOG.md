@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.10.0 (2022-12-16)
+
+
+### Features
+
+* add flow action and knowledge publish inFile Workflow metadata ([#401](https://github.com/scolladon/sfdx-git-delta/issues/401)) ([24a32f0](https://github.com/scolladon/sfdx-git-delta/commit/24a32f01bc59b02ed7b8de051a15eb3252575c94))
+
 ## 5.9.0 (2022-12-13)
 
 
