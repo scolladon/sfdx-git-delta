@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    versioning-strategy: increase
+    commit-message:
+      prefix: "build"
+    allow:
+      - dependency-type: "all"
