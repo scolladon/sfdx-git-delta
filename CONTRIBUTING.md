@@ -11,6 +11,7 @@ We encourage the developer community to contribute to this repository. This guid
 
 - [Node](https://nodejs.org/) >= 14
 - [yarn](https://yarnpkg.com/) >= 1.22.5
+- [Code Climate](https://github.com/codeclimate/codeclimate) (If you are on MacOS, you will need Xcode Command Line Tools)
 
 ## Installation
 
