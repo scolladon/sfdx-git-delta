@@ -75,7 +75,7 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       description: messages.getMessage('includeDestructiveFlag'),
     }),
     'silent': flags.boolean({
-      char: 'i',
+      char: 'S',
       description: messages.getMessage('silentFlag'),
     }),
   }
