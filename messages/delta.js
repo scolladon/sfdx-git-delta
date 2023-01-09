@@ -17,4 +17,5 @@ module.exports = {
   includeFlag: 'file listing paths to explicitly include for any diff actions',
   includeDestructiveFlag:
     'file listing paths to explicitly include for any destructive actions',
+  silentFlag: 'no output if the command executed successfully, default to false.'
 }

@@ -74,6 +74,10 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       char: 'N',
       description: messages.getMessage('includeDestructiveFlag'),
     }),
+    'silent': flags.boolean({
+      char: 'S',
+      description: messages.getMessage('silentFlag'),
+    }),
   }
 
   public async run(): Promise<AnyJson> {
@@ -104,7 +108,9 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       output.error = err.message
       process.exitCode = 1
     }
-    this.ux.log(JSON.stringify(output, null, 2))
+    if(!this.flags.silent){
+      this.ux.log(JSON.stringify(output, null, 2))
+    }
     return null
   }
 }
