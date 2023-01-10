@@ -39,7 +39,9 @@ describe(`StandardHandler`, () => {
 
   it('should catch errors silently and store them', async () => {
     // Arrange
-    copyFiles.mockImplementationOnce(() => Promise.reject(new Error('test')))
+    copyFiles.mockImplementationOnce(() =>
+      Promise.reject(new Error('fatal: not a git repository'))
+    )
     const sut = new StandardHandler(
       `${ADDITION}       ${entityPath}`,
       objectType,
