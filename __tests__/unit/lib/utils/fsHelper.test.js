@@ -90,18 +90,23 @@ describe('copyFile', () => {
       })
     })
     describe('when content is not a git location', () => {
-      it('should log a warning', async () => {
+      it('should throw an error', async () => {
+        expect.assertions(4)
         // Arrange
-        getStreamContent.mockImplementation(() => 'fatal')
+        const fatalError = 'fatal: not a git repository'
+        getStreamContent.mockImplementation(() => 'fatal: not a git repository')
 
         // Act
-        await copyFiles(work, 'source/warning', 'output/warning')
+        try {
+          await copyFiles(work.config, 'source/warning', 'output/warning')
 
-        // Assert
-        expect(spawn).toBeCalled()
-        expect(getStreamContent).toBeCalled()
-        expect(outputFile).not.toBeCalled()
-        expect(work.warnings.length).toBe(1)
+          // Assert
+        } catch (error) {
+          expect(spawn).toBeCalled()
+          expect(getStreamContent).toBeCalled()
+          expect(outputFile).not.toBeCalled()
+          expect(error.message).toEqual(fatalError)
+        }
       })
     })
     describe('when content is a file', () => {
