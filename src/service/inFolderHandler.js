@@ -34,7 +34,7 @@ class InFolderHandler extends StandardHandler {
 
   async _copySpecialExtension() {
     const parsedLine = parse(this.line)
-    const dirContent = await readDir(parsedLine.dir, this.work)
+    const dirContent = await readDir(parsedLine.dir, this.config)
 
     await Promise.all(
       dirContent

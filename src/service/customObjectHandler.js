@@ -24,10 +24,10 @@ class CustomObjectHandler extends StandardHandler {
       parse(this.line).dir,
       FIELD_DIRECTORY_NAME
     )
-    const exists = await pathExists(fieldsFolder, this.work)
+    const exists = await pathExists(fieldsFolder, this.config)
     if (!exists) return
 
-    const fields = await readDir(fieldsFolder, this.work)
+    const fields = await readDir(fieldsFolder, this.config)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
       const content = await readPathFromGit(
         join(this.config.repo, fieldsFolder, fieldPath),

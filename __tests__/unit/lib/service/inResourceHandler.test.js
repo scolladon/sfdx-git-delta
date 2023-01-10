@@ -180,7 +180,7 @@ describe('InResourceHandler', () => {
         expect(...work.diffs.package.get(objectType)).toEqual('resource')
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          work
+          work.config
         )
       })
     })
@@ -207,7 +207,7 @@ describe('InResourceHandler', () => {
         )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          work
+          work.config
         )
       })
     })

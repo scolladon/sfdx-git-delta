@@ -13,7 +13,7 @@ const showCmd = ['--no-pager', 'show']
 const copiedFiles = new Set()
 
 const copyFiles = async (work, src, dst) => {
-  const config = work.config
+  const { config } = work
   if (copiedFiles.has(src)) return
   copiedFiles.add(src)
 
@@ -48,13 +48,13 @@ const readPathFromGit = async (path, config) => {
   return data
 }
 
-const pathExists = async (path, work) => {
-  const data = await readPathFromGit(path, work)
+const pathExists = async (path, config) => {
+  const data = await readPathFromGit(path, config)
   return data.startsWith(FATAL)
 }
 
-const readDir = async (dir, work) => {
-  const data = await readPathFromGit(dir, work)
+const readDir = async (dir, config) => {
+  const data = await readPathFromGit(dir, config)
   const dirContent = []
   if (data.startsWith(FOLDER)) {
     const [, , ...files] = data.split(EOLRegex)
@@ -72,11 +72,11 @@ const readFile = async path => {
   return file
 }
 
-async function* scan(dir, work) {
-  const entries = await readDir(dir, work)
+async function* scan(dir, config) {
+  const entries = await readDir(dir, config)
   for (const file of entries) {
     if (file.endsWith('/')) {
-      yield* scan(file, work)
+      yield* scan(file, config)
     } else {
       yield file
     }
@@ -103,5 +103,5 @@ module.exports.readDir = readDir
 module.exports.readFile = readFile
 module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
-module.exports.scanExtension = (dir, ext, work) =>
-  filterExt(scan(dir, work), ext)
+module.exports.scanExtension = (dir, ext, config) =>
+  filterExt(scan(dir, config), ext)
