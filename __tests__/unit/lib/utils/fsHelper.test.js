@@ -142,7 +142,7 @@ describe('readDir', () => {
       const dirContent = await readDir(dir, work)
 
       // Assert
-      expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
+      expect(dirContent).toEqual(expect.arrayContaining([`${file}`]))
       expect(getStreamContent).toHaveBeenCalled()
     })
   })

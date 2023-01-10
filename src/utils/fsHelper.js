@@ -57,9 +57,7 @@ const readDir = async (dir, config) => {
   const dirContent = []
   if (data.startsWith(FOLDER)) {
     const [, , ...files] = data.split(EOLRegex)
-    for (const file of files) {
-      dirContent.push(join(dir, file))
-    }
+    dirContent.push(...files)
   }
   return dirContent
 }
@@ -74,10 +72,11 @@ const readFile = async path => {
 async function* scan(dir, config) {
   const entries = await readDir(dir, config)
   for (const file of entries) {
+    const filePath = join(dir, file)
     if (file.endsWith('/')) {
-      yield* scan(file, config)
+      yield* scan(filePath, config)
     } else {
-      yield file
+      yield filePath
     }
   }
 }

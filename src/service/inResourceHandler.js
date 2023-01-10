@@ -78,7 +78,10 @@ class ResourceHandler extends StandardHandler {
   async _buildElementMap(srcPath) {
     if (!elementSrc.has(srcPath)) {
       const dirContent = await readDir(srcPath, this.config)
-      elementSrc.set(srcPath, dirContent)
+      elementSrc.set(
+        srcPath,
+        dirContent.map(f => f.replace(/\/$/, ''))
+      )
     }
   }
 }

@@ -62,7 +62,7 @@ describe('InResourceHandler', () => {
           readDir.mockImplementation(() =>
             Promise.resolve([
               'other.resource-meta.xml',
-              'other',
+              'other/',
               'image.resource-meta.xml',
             ])
           )
