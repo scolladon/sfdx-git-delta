@@ -43,11 +43,11 @@ describe('copyFile', () => {
   describe('when file is already copied', () => {
     it('should not copy file', async () => {
       // Arrange
-      await copyFiles(work, 'source/file', 'output/file')
+      await copyFiles(work.config, 'source/file', 'output/file')
       jest.resetAllMocks()
 
       // Act
-      await copyFiles(work, 'source/file', 'output/file')
+      await copyFiles(work.config, 'source/file', 'output/file')
 
       // Assert
       expect(spawn).not.toBeCalled()
@@ -62,7 +62,7 @@ describe('copyFile', () => {
       getStreamContent.mockImplementation(() => '')
 
       // Act
-      await copyFiles(work, 'source/doNotCopy', 'output/doNotCopy')
+      await copyFiles(work.config, 'source/doNotCopy', 'output/doNotCopy')
 
       // Assert
       expect(spawn).toBeCalled()
@@ -81,7 +81,7 @@ describe('copyFile', () => {
         getStreamContent.mockImplementation(() => 'content')
 
         // Act
-        await copyFiles(work, 'source/copyDir', 'output/copyDir')
+        await copyFiles(work.config, 'source/copyDir', 'output/copyDir')
 
         // Assert
         expect(spawn).toBeCalledTimes(2)
@@ -116,7 +116,7 @@ describe('copyFile', () => {
       })
       it('should copy the file', async () => {
         // Act
-        await copyFiles(work, 'source/copyfile', 'output/copyfile')
+        await copyFiles(work.config, 'source/copyfile', 'output/copyfile')
 
         // Assert
         expect(spawn).toBeCalled()
