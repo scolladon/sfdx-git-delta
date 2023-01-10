@@ -70,7 +70,7 @@ class FlowTranslationProcessor extends BaseProcessor {
       if (this.config.generateDelta) {
         const source = join(this.config.source, translationPath)
         const target = join(this.config.output, translationPath)
-        copyTranslationsPromises.push(copyFiles(this.work, source, target))
+        copyTranslationsPromises.push(copyFiles(this.config, source, target))
       }
     }
     await Promise.all(copyTranslationsPromises)

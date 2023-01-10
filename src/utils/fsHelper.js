@@ -12,8 +12,7 @@ const FATAL = 'fatal'
 const showCmd = ['--no-pager', 'show']
 const copiedFiles = new Set()
 
-const copyFiles = async (work, src, dst) => {
-  const { config } = work
+const copyFiles = async (config, src, dst) => {
   if (copiedFiles.has(src)) return
   copiedFiles.add(src)
 
@@ -29,10 +28,10 @@ const copyFiles = async (work, src, dst) => {
       const fileDst = join(config.output, folder, file)
       const fileSrc = join(config.repo, folder, file)
 
-      await copyFiles(work, fileSrc, fileDst)
+      await copyFiles(config, fileSrc, fileDst)
     }
   } else if (data.startsWith(FATAL)) {
-    work.warnings.push(data)
+    throw new Error(data)
   } else {
     await outputFile(dst, data)
   }
