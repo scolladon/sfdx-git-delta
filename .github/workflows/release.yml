@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Setup node
         uses: actions/setup-node@v3
