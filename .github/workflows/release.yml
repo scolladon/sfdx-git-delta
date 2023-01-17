@@ -41,7 +41,7 @@ jobs:
           yarn release
           yarn publish --access public --tag "latest-rc"
         env:
-          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{ github.token }}
+          CONVENTIONAL_GITHUB_RELEASER_TOKEN: ${{ secrets.RELEASE_PAT }}
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Install sfdx-cli
