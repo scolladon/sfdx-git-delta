@@ -102,18 +102,17 @@ class StandardHandler {
   }
 
   async _copyWithMetaFile(src, dst) {
-    const file = copyFiles(this.work, src, dst)
+    await copyFiles(this.config, src, dst)
     if (
       StandardHandler.metadata.get(this.type).metaFile === true &&
       !`${src}`.endsWith(METAFILE_SUFFIX)
     ) {
       await copyFiles(
-        this.work,
+        this.config,
         this._getMetaTypeFilePath(src),
         this._getMetaTypeFilePath(dst)
       )
     }
-    await file
   }
 
   _getMetaTypeFilePath(path) {

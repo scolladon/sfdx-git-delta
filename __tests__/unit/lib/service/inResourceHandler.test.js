@@ -62,7 +62,7 @@ describe('InResourceHandler', () => {
           readDir.mockImplementation(() =>
             Promise.resolve([
               'other.resource-meta.xml',
-              'other',
+              'other/',
               'image.resource-meta.xml',
             ])
           )
@@ -85,17 +85,17 @@ describe('InResourceHandler', () => {
             expect(...work.diffs.package.get(type)).toEqual(entity)
             expect(copyFiles).toBeCalledTimes(expectedCount)
             expect(copyFiles).toHaveBeenCalledWith(
-              work,
+              work.config,
               `${base}${type}/${path}`,
               `${base}${type}/${path}`
             )
             expect(copyFiles).toHaveBeenCalledWith(
-              work,
+              work.config,
               `${base}${type}/${path}${METAFILE_SUFFIX}`,
               `${base}${type}/${path}${METAFILE_SUFFIX}`
             )
             expect(copyFiles).toHaveBeenCalledWith(
-              work,
+              work.config,
               `${base}${type}/${entity}.resource${METAFILE_SUFFIX}`,
               `${base}${type}/${entity}.resource${METAFILE_SUFFIX}`
             )
@@ -117,7 +117,7 @@ describe('InResourceHandler', () => {
           expect(...work.diffs.package.get(type)).toEqual(entity)
           expect(copyFiles).toBeCalledTimes(1)
           expect(copyFiles).toHaveBeenCalledWith(
-            work,
+            work.config,
             `${base}${type}/${path}`,
             `${base}${type}/${path}`
           )
@@ -142,12 +142,12 @@ describe('InResourceHandler', () => {
           expect(...work.diffs.package.get(objectType)).toEqual('resource')
           expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(
-            work,
+            work.config,
             `${entityPath}`,
             `${entityPath}`
           )
           expect(copyFiles).toHaveBeenCalledWith(
-            work,
+            work.config,
             `${entityPath}${METAFILE_SUFFIX}`,
             `${entityPath}${METAFILE_SUFFIX}`
           )
@@ -180,7 +180,7 @@ describe('InResourceHandler', () => {
         expect(...work.diffs.package.get(objectType)).toEqual('resource')
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          work
+          work.config
         )
       })
     })
@@ -207,7 +207,7 @@ describe('InResourceHandler', () => {
         )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          work
+          work.config
         )
       })
     })

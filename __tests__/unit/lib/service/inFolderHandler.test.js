@@ -61,7 +61,7 @@ describe('InFolderHander', () => {
         expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(3)
         expect(copyFiles).toHaveBeenCalledWith(
-          work,
+          work.config,
           expect.stringContaining(METAFILE_SUFFIX),
           expect.stringContaining(METAFILE_SUFFIX)
         )

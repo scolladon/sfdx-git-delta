@@ -43,11 +43,11 @@ describe('copyFile', () => {
   describe('when file is already copied', () => {
     it('should not copy file', async () => {
       // Arrange
-      await copyFiles(work, 'source/file', 'output/file')
+      await copyFiles(work.config, 'source/file', 'output/file')
       jest.resetAllMocks()
 
       // Act
-      await copyFiles(work, 'source/file', 'output/file')
+      await copyFiles(work.config, 'source/file', 'output/file')
 
       // Assert
       expect(spawn).not.toBeCalled()
@@ -62,7 +62,7 @@ describe('copyFile', () => {
       getStreamContent.mockImplementation(() => '')
 
       // Act
-      await copyFiles(work, 'source/doNotCopy', 'output/doNotCopy')
+      await copyFiles(work.config, 'source/doNotCopy', 'output/doNotCopy')
 
       // Assert
       expect(spawn).toBeCalled()
@@ -81,7 +81,7 @@ describe('copyFile', () => {
         getStreamContent.mockImplementation(() => 'content')
 
         // Act
-        await copyFiles(work, 'source/copyDir', 'output/copyDir')
+        await copyFiles(work.config, 'source/copyDir', 'output/copyDir')
 
         // Assert
         expect(spawn).toBeCalledTimes(2)
@@ -90,18 +90,23 @@ describe('copyFile', () => {
       })
     })
     describe('when content is not a git location', () => {
-      it('should log a warning', async () => {
+      it('should throw an error', async () => {
+        expect.assertions(4)
         // Arrange
-        getStreamContent.mockImplementation(() => 'fatal')
+        const fatalError = 'fatal: not a git repository'
+        getStreamContent.mockImplementation(() => 'fatal: not a git repository')
 
         // Act
-        await copyFiles(work, 'source/warning', 'output/warning')
+        try {
+          await copyFiles(work.config, 'source/warning', 'output/warning')
 
-        // Assert
-        expect(spawn).toBeCalled()
-        expect(getStreamContent).toBeCalled()
-        expect(outputFile).not.toBeCalled()
-        expect(work.warnings.length).toBe(1)
+          // Assert
+        } catch (error) {
+          expect(spawn).toBeCalled()
+          expect(getStreamContent).toBeCalled()
+          expect(outputFile).not.toBeCalled()
+          expect(error.message).toEqual(fatalError)
+        }
       })
     })
     describe('when content is a file', () => {
@@ -111,7 +116,7 @@ describe('copyFile', () => {
       })
       it('should copy the file', async () => {
         // Act
-        await copyFiles(work, 'source/copyfile', 'output/copyfile')
+        await copyFiles(work.config, 'source/copyfile', 'output/copyfile')
 
         // Assert
         expect(spawn).toBeCalled()
@@ -137,7 +142,7 @@ describe('readDir', () => {
       const dirContent = await readDir(dir, work)
 
       // Assert
-      expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
+      expect(dirContent).toEqual(expect.arrayContaining([`${file}`]))
       expect(getStreamContent).toHaveBeenCalled()
     })
   })

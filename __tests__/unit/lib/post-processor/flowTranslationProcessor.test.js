@@ -104,6 +104,27 @@ describe('FlowTranslationProcessor', () => {
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalled()
       })
+      describe('when the folder is not a git repository', () => {
+        beforeEach(() => {
+          // Arrange
+          copyFiles.mockImplementationOnce(() =>
+            Promise.reject(new Error('fatal: not a git repository'))
+          )
+        })
+        it('should throw an exception', async () => {
+          // Arrange
+          expect.assertions(2)
+
+          // Act
+          try {
+            await sut.process()
+          } catch (error) {
+            // Assert
+            expect(error).toBeTruthy()
+            expect(copyFiles).toHaveBeenCalled()
+          }
+        })
+      })
     })
 
     describe('when there is already a translation related to a flow', () => {

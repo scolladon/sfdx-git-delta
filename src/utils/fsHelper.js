@@ -12,8 +12,7 @@ const FATAL = 'fatal'
 const showCmd = ['--no-pager', 'show']
 const copiedFiles = new Set()
 
-const copyFiles = async (work, src, dst) => {
-  const config = work.config
+const copyFiles = async (config, src, dst) => {
   if (copiedFiles.has(src)) return
   copiedFiles.add(src)
 
@@ -29,10 +28,10 @@ const copyFiles = async (work, src, dst) => {
       const fileDst = join(config.output, folder, file)
       const fileSrc = join(config.repo, folder, file)
 
-      await copyFiles(work, fileSrc, fileDst)
+      await copyFiles(config, fileSrc, fileDst)
     }
   } else if (data.startsWith(FATAL)) {
-    work.warnings.push(data)
+    throw new Error(data)
   } else {
     await outputFile(dst, data)
   }
@@ -48,19 +47,17 @@ const readPathFromGit = async (path, config) => {
   return data
 }
 
-const pathExists = async (path, work) => {
-  const data = await readPathFromGit(path, work)
+const pathExists = async (path, config) => {
+  const data = await readPathFromGit(path, config)
   return data.startsWith(FATAL)
 }
 
-const readDir = async (dir, work) => {
-  const data = await readPathFromGit(dir, work)
+const readDir = async (dir, config) => {
+  const data = await readPathFromGit(dir, config)
   const dirContent = []
   if (data.startsWith(FOLDER)) {
     const [, , ...files] = data.split(EOLRegex)
-    for (const file of files) {
-      dirContent.push(join(dir, file))
-    }
+    dirContent.push(...files)
   }
   return dirContent
 }
@@ -72,13 +69,14 @@ const readFile = async path => {
   return file
 }
 
-async function* scan(dir, work) {
-  const entries = await readDir(dir, work)
+async function* scan(dir, config) {
+  const entries = await readDir(dir, config)
   for (const file of entries) {
+    const filePath = join(dir, file)
     if (file.endsWith('/')) {
-      yield* scan(file, work)
+      yield* scan(filePath, config)
     } else {
-      yield file
+      yield filePath
     }
   }
 }
@@ -103,5 +101,5 @@ module.exports.readDir = readDir
 module.exports.readFile = readFile
 module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
-module.exports.scanExtension = (dir, ext, work) =>
-  filterExt(scan(dir, work), ext)
+module.exports.scanExtension = (dir, ext, config) =>
+  filterExt(scan(dir, config), ext)
