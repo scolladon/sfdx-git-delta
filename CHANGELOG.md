@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 5.10.1 (2023-01-17)
+
+
+### Bug Fixes
+
+* readDir git based implementation ([#419](https://github.com/scolladon/sfdx-git-delta/issues/419)) ([187cbf4](https://github.com/scolladon/sfdx-git-delta/commit/187cbf449bf46c095ca7826a0c14420449e4e4ec))
+
 ## 5.10.0 (2022-12-16)
 
 
