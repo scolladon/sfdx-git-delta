@@ -34,7 +34,7 @@ jobs:
         run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
 
       - name: Lint sources
-        uses: wearerequired/lint-action@v1
+        uses: wearerequired/lint-action@v2
         with:
           eslint: true
         continue-on-error: true
@@ -50,7 +50,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
@@ -100,13 +100,13 @@ jobs:
           fetch-depth: 0
 
       - name: Lint commits
-        uses: wagoid/commitlint-github-action@v4
+        uses: wagoid/commitlint-github-action@v5
         continue-on-error: true
 
   pull-request-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Lint PR
-        uses: amannn/action-semantic-pull-request@v1.2.0
+        uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
