@@ -824,7 +824,7 @@
     "directoryName": "experiences",
     "inFolder": false,
     "metaFile": true,
-    "suffix": "experience",
+    "suffix": "site",
     "xmlName": "ExperienceBundle"
   },
   {
