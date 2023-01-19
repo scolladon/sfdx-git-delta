@@ -57,21 +57,30 @@ describe('InResourceHandler', () => {
       beforeEach(() => {
         work.config.generateDelta = true
       })
-      describe('when matching zip resource exist', () => {
+      describe('when matching resource exist', () => {
         beforeEach(() => {
           readDir.mockImplementation(() =>
             Promise.resolve([
               'other.resource-meta.xml',
               'other/',
               'image.resource-meta.xml',
+              'my_experience_bundle.site-meta.xml',
+              'my_experience_bundle/',
+              'other_experience_bundle.resource-meta.xml',
             ])
           )
         })
         it.each([
           ['staticresources', 'image', 'image.png', 3],
           ['staticresources', 'image', 'image/logo.png', 3],
+          [
+            'experiences',
+            'my_experience_bundle',
+            'my_experience_bundle/config/myexperiencebundle.json',
+            5,
+          ],
         ])(
-          'should copy the matching resource',
+          'should copy the matching folder resource, matching meta file and subject file',
           async (type, entity, path, expectedCount) => {
             // Arrange
             const base = 'force-app/main/default/'
@@ -96,11 +105,16 @@ describe('InResourceHandler', () => {
             )
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
-              `${base}${type}/${entity}.resource${METAFILE_SUFFIX}`,
-              `${base}${type}/${entity}.resource${METAFILE_SUFFIX}`
+              `${base}${type}/${entity}.${
+                globalMetadata.get(type).suffix
+              }${METAFILE_SUFFIX}`,
+              `${base}${type}/${entity}.${
+                globalMetadata.get(type).suffix
+              }${METAFILE_SUFFIX}`
             )
           }
         )
+
         it('should copy the matching lwc', async () => {
           // Arrange
           const type = 'lwc'
