@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 5.10.2 (2023-01-19)
+
+
+### Bug Fixes
+
+* experience metadata meta file suffix ([#423](https://github.com/scolladon/sfdx-git-delta/issues/423)) ([b18e388](https://github.com/scolladon/sfdx-git-delta/commit/b18e388ce4616c0e934b4c8c45bbc8d008bb94b2)), closes [#397](https://github.com/scolladon/sfdx-git-delta/issues/397)
+
 ### 5.10.1 (2023-01-17)
 
 
