@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 5.11.0 (2023-01-23)
+
+
+### Features
+
+* add RelationshipGraphDefinition metadata for v55 and v56 ([#428](https://github.com/scolladon/sfdx-git-delta/issues/428)) ([de4ac84](https://github.com/scolladon/sfdx-git-delta/commit/de4ac846df690cb2d306b6508311ed7f548caf1c))
+
 ### 5.10.2 (2023-01-19)
 
 
