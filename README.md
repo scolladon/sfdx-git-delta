@@ -1,4 +1,4 @@
-![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/CI/badge.svg)
+![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/Main/badge.svg)
 [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta)
 [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability)
 [![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta)

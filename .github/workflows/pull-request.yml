@@ -73,7 +73,7 @@ jobs:
           node-version: ${{ matrix.node }}
       
       - name: Install sfdx-cli
-        run: npm install -g sfdx-cli # yarn installation is not working in Windows
+        run: npm install -g sfdx-cli # yarn installation is not working on Windows
 
       - name: Install dependencies
         run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod

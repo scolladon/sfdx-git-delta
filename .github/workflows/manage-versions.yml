@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version-alias:
-        description: 'version alias to map to a version number'
+        description: version alias to map to a version number
         required: true
         type: choice
         options: 
@@ -12,9 +12,9 @@ on:
         - latest
         - latest-rc
       version-number:
-        description: 'version number (semver format)'
+        description: version number (semver format)
         required: true
-        default: 'vX.Y.Z'
+        default: vX.Y.Z
         type: string
 
 jobs:

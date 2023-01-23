@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "relationshipGraphDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "relationshipGraphDefinition",
+    "xmlName": "RelationshipGraphDefinition"
+  },
+  {
     "directoryName": "omniDataTransforms",
     "inFolder": false,
     "metaFile": false,
