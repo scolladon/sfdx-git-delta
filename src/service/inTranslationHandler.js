@@ -4,7 +4,7 @@ const StandardHandler = require('./standardHandler')
 const {
   OBJECT_TRANSLATION_META_XML_SUFFIX,
 } = require('../utils/metadataConstants')
-const { join, normalize, parse, sep } = require('path')
+const { parse, sep } = require('path')
 
 class TranslationHandler extends ResourceHandler {
   async handleAddition() {
@@ -17,10 +17,7 @@ class TranslationHandler extends ResourceHandler {
     const objectTranslationName = `${parse(this.line).dir}${sep}${
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
-    await this._copyWithMetaFile(
-      normalize(join(this.config.repo, objectTranslationName)),
-      normalize(join(this.config.output, objectTranslationName))
-    )
+    await this._copyWithMetaFile(objectTranslationName)
   }
 }
 

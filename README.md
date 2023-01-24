@@ -442,6 +442,7 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 ```
 
 > The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
+> The `--source` path msut be relative to the `--repo` path
 
 ### Generate a comma-separated list of the added and modified Apex classes:
 

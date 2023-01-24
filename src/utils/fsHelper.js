@@ -12,7 +12,7 @@ const FATAL = 'fatal'
 const showCmd = ['--no-pager', 'show']
 const copiedFiles = new Set()
 
-const copyFiles = async (config, src, dst) => {
+const copyFiles = async (config, src) => {
   if (copiedFiles.has(src)) return
   copiedFiles.add(src)
 
@@ -24,14 +24,14 @@ const copyFiles = async (config, src, dst) => {
     const [header, , ...files] = data.split(EOLRegex)
     const folder = header.split(':')[1]
     for (const file of files) {
-      const fileDst = join(config.output, folder, file)
-      const fileSrc = join(config.repo, folder, file)
+      const fileSrc = join(folder, file)
 
-      await copyFiles(config, fileSrc, fileDst)
+      await copyFiles(config, fileSrc)
     }
   } else if (data.startsWith(FATAL)) {
     throw new Error(data)
   } else {
+    const dst = join(config.output, src)
     await outputFile(dst, data)
   }
 }

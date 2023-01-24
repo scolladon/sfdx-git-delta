@@ -38,10 +38,7 @@ class CustomObjectHandler extends StandardHandler {
 
     await Promise.all(
       masterDetailsFields.map(field =>
-        this._copyWithMetaFile(
-          join(this.config.repo, fieldsFolder, field),
-          join(this.config.output, fieldsFolder, field)
-        )
+        this._copyWithMetaFile(join(fieldsFolder, field))
       )
     )
   }

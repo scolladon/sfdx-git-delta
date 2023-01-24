@@ -1,7 +1,7 @@
 'use strict'
 const WaveHandler = require('./waveHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
-const { join, parse, sep } = require('path')
+const { parse, sep } = require('path')
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
@@ -31,10 +31,8 @@ class BotHandler extends WaveHandler {
     if (!this.config.generateDelta) return
 
     const botPath = `${parse(this.line).dir}${sep}${botName}.${BOT_EXTENSION}`
-    const source = join(this.config.repo, botPath)
-    const target = join(this.config.output, botPath)
 
-    await this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(botPath)
   }
 }
 

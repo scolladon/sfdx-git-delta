@@ -15,12 +15,6 @@ class ResourceHandler extends StandardHandler {
     await super.handleAddition()
     if (!this.config.generateDelta) return
     const [, , srcPath, elementName] = this._parseLine()
-    const [targetPath] = `${join(this.config.output, this.line)}`.match(
-      new RegExp(
-        `.*[/\\\\]${StandardHandler.metadata.get(this.type).directoryName}`,
-        'u'
-      )
-    )
     await this._buildElementMap(srcPath)
 
     const matchingFiles = this._buildMatchingFiles(elementName)
@@ -33,9 +27,7 @@ class ResourceHandler extends StandardHandler {
               src.startsWith(parse(elementName).name)) ||
             matchingFiles.includes(src)
         )
-        .map(src =>
-          this._copyWithMetaFile(join(srcPath, src), join(targetPath, src))
-        )
+        .map(src => this._copyWithMetaFile(join(srcPath, src)))
     )
   }
 
