@@ -19,7 +19,7 @@ const { spawn } = require('child_process')
 const { readFile } = require('./fsHelper')
 const micromatch = require('micromatch')
 const os = require('os')
-const path = require('path')
+const { parse, sep } = require('path')
 
 const DIFF_FILTER = '--diff-filter'
 
@@ -135,7 +135,7 @@ class RepoGitDiff {
   _filterInternal(line, deletedRenamed) {
     return (
       !deletedRenamed.includes(line) &&
-      line.split(path.sep).some(part => this.metadata.has(part))
+      line.split(sep).some(part => this.metadata.has(part))
     )
   }
 
@@ -167,11 +167,11 @@ class RepoGitDiff {
 
   _extractComparisonName(line) {
     const type = getType(line, this.metadata)
-    const el = path.parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
+    const el = parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
     let comparisonName = el.base
     if (pathType.includes(type)) {
       comparisonName = line
-        .split(path.sep)
+        .split(sep)
         .reduce(
           (acc, value) => (acc || this.metadata.has(value) ? acc + value : acc),
           ''
