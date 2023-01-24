@@ -16,7 +16,6 @@ const copyFiles = async (config, src, dst) => {
   if (copiedFiles.has(src)) return
   copiedFiles.add(src)
 
-  src = relative(config.source, src)
   const data = await readPathFromGit(src, config)
   if (!data) {
     return
