@@ -147,10 +147,9 @@ describe(`StandardHandler`, () => {
         expect(work.warnings).toEqual([])
         expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
           work.config,
-          entityPath.replace(METAFILE_SUFFIX, ''),
           entityPath.replace(METAFILE_SUFFIX, '')
         )
       })
@@ -171,10 +170,9 @@ describe(`StandardHandler`, () => {
         expect(work.warnings).toEqual([])
         expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
           work.config,
-          entityPath.replace(METAFILE_SUFFIX, ''),
           entityPath.replace(METAFILE_SUFFIX, '')
         )
       })
@@ -199,10 +197,9 @@ describe(`StandardHandler`, () => {
         expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
           work.config,
-          expect.stringContaining(METAFILE_SUFFIX),
           expect.stringContaining(METAFILE_SUFFIX)
         )
       })
@@ -225,10 +222,9 @@ describe(`StandardHandler`, () => {
         expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).not.toBeCalledWith(
           work.config,
-          expect.stringContaining(METAFILE_SUFFIX),
           expect.stringContaining(METAFILE_SUFFIX)
         )
       })
@@ -255,7 +251,7 @@ describe(`StandardHandler`, () => {
         expect(work.warnings).toEqual([])
         expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
       }
     )
     it('should add deleted element to destructiveChanges and do not copy file', async () => {
