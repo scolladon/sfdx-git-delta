@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 5.11.1 (2023-01-24)
+
+
+### Bug Fixes
+
+* generate incremental (`-d`) with source (`-s`) parameter ([#432](https://github.com/scolladon/sfdx-git-delta/issues/432)) ([24da138](https://github.com/scolladon/sfdx-git-delta/commit/24da1380638181ed8efcfdc8031698b53427ddcb))
+
 ## 5.11.0 (2023-01-23)
 
 
