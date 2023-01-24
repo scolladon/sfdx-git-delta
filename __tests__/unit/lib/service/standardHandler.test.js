@@ -278,7 +278,7 @@ describe(`StandardHandler`, () => {
 
   describe('_parseLine', () => {
     it.each(['.', '', 'other'])(
-      'should return repo, path and name part of a line with config.repo "%s"',
+      'should return path and name part of a line "%s"',
       repoPath => {
         // Arrange
         work.config.repo = repoPath
@@ -293,15 +293,10 @@ describe(`StandardHandler`, () => {
         const result = sut._parseLine()
 
         // Assert
-        expect(result.length).toBe(4)
-        expect(result[0]).toBe(
-          `${!['', '.'].includes(repoPath) ? `${repoPath}/` : ''}${entityPath}`
-        )
-        expect(result[1]).toBe(['', '.'].includes(repoPath) ? '' : repoPath)
-        expect(result[2]).toBe(
-          `${!['', '.'].includes(repoPath) ? '/' : ''}${basePath}${objectType}`
-        )
-        expect(result[3]).toBe(`${entity}.${extension}`)
+        expect(result.length).toBe(3)
+        expect(result[0]).toBe(`${entityPath}`)
+        expect(result[1]).toBe(`${basePath}${objectType}`)
+        expect(result[2]).toBe(`${entity}.${extension}`)
       }
     )
   })

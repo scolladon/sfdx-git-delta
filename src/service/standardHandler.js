@@ -117,10 +117,9 @@ class StandardHandler {
   }
 
   _parseLine() {
-    const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
-    return join(this.config.repo, this.line).match(
+    return this.line.match(
       new RegExp(
-        `(?<repo>${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
+        `(?<path>.*[/\\\\]${RegExpEscape(
           StandardHandler.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'

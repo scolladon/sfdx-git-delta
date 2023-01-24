@@ -14,7 +14,7 @@ class ResourceHandler extends StandardHandler {
   async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, , srcPath, elementName] = this._parseLine()
+    const [, srcPath, elementName] = this._parseLine()
     await this._buildElementMap(srcPath)
 
     const matchingFiles = this._buildMatchingFiles(elementName)
@@ -32,7 +32,7 @@ class ResourceHandler extends StandardHandler {
   }
 
   async handleDeletion() {
-    const [, , srcPath, elementName] = this._parseLine()
+    const [, srcPath, elementName] = this._parseLine()
     const exists = await pathExists(join(srcPath, elementName), this.config)
     if (exists) {
       await this.handleModification()

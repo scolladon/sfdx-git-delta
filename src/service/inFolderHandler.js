@@ -19,7 +19,7 @@ class InFolderHandler extends StandardHandler {
   }
 
   async _copyFolderMetaFile() {
-    const [, , folderPath, folderName] = this._parseLine()
+    const [, folderPath, folderName] = this._parseLine()
 
     const folderFileName = `${folderName}.${
       StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
