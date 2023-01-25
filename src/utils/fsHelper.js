@@ -4,7 +4,11 @@ const { isAbsolute, join, relative } = require('path')
 const { outputFile } = require('fs-extra')
 const { spawn } = require('child_process')
 const { UTF8_ENCODING } = require('../utils/gitConstants')
-const { EOLRegex, getStreamContent } = require('./childProcessUtils')
+const {
+  EOLRegex,
+  getStreamContent,
+  treatPathSep,
+} = require('./childProcessUtils')
 
 const FOLDER = 'tree'
 const FATAL = 'fatal'
@@ -31,7 +35,7 @@ const copyFiles = async (config, src) => {
   } else if (data.startsWith(FATAL)) {
     throw new Error(data)
   } else {
-    const dst = join(config.output, src)
+    const dst = join(config.output, treatPathSep(src))
     await outputFile(dst, data)
   }
 }
