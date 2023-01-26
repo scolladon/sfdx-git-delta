@@ -221,6 +221,15 @@ Exemple comparing `HEAD` with a `development` branch when the CI clone the repos
 sfdx sgd:source:delta --to "HEAD" --from "origin/development" --output .
 ```
 
+Use global variable when you need to easily switch sgd version (`vX.X.X` format) or channel (`stable`, `latest`, `latest-rc`) in your pipeline, without having to commit a new version of your pipeline.
+
+Exemple with [github action](https://docs.github.com/en/actions/learn-github-actions/variables#using-the-vars-context-to-access-configuration-variable-values), [create a variable](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) SGD_VERSION and use it in the plugin installation phase
+
+```yaml
+- name: Install SGD
+  run: echo y | sfdx plugins:install "sfdx-git-delta@${{ vars.SGD_VERSION }}"
+```
+
 ### Use cases
 
 Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD, etc.).
@@ -442,6 +451,7 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 ```
 
 > The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
+> The `--source` path msut be relative to the `--repo` path
 
 ### Generate a comma-separated list of the added and modified Apex classes:
 

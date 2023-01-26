@@ -19,18 +19,14 @@ class CustomObjectHandler extends StandardHandler {
   async _handleMasterDetailException() {
     if (this.type !== OBJECT_TYPE) return
 
-    const fieldsFolder = join(
-      this.config.repo,
-      parse(this.line).dir,
-      FIELD_DIRECTORY_NAME
-    )
+    const fieldsFolder = join(parse(this.line).dir, FIELD_DIRECTORY_NAME)
     const exists = await pathExists(fieldsFolder, this.config)
     if (!exists) return
 
     const fields = await readDir(fieldsFolder, this.config)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
       const content = await readPathFromGit(
-        join(this.config.repo, fieldsFolder, fieldPath),
+        join(fieldsFolder, fieldPath),
         this.config
       )
       return content.includes(MASTER_DETAIL_TAG)
@@ -38,10 +34,7 @@ class CustomObjectHandler extends StandardHandler {
 
     await Promise.all(
       masterDetailsFields.map(field =>
-        this._copyWithMetaFile(
-          join(this.config.repo, fieldsFolder, field),
-          join(this.config.output, fieldsFolder, field)
-        )
+        this._copyWithMetaFile(join(fieldsFolder, field))
       )
     )
   }

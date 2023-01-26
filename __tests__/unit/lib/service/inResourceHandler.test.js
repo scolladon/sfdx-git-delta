@@ -95,19 +95,14 @@ describe('InResourceHandler', () => {
             expect(copyFiles).toBeCalledTimes(expectedCount)
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
-              `${base}${type}/${path}`,
               `${base}${type}/${path}`
             )
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
-              `${base}${type}/${path}${METAFILE_SUFFIX}`,
               `${base}${type}/${path}${METAFILE_SUFFIX}`
             )
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
-              `${base}${type}/${entity}.${
-                globalMetadata.get(type).suffix
-              }${METAFILE_SUFFIX}`,
               `${base}${type}/${entity}.${
                 globalMetadata.get(type).suffix
               }${METAFILE_SUFFIX}`
@@ -132,7 +127,6 @@ describe('InResourceHandler', () => {
           expect(copyFiles).toBeCalledTimes(1)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
-            `${base}${type}/${path}`,
             `${base}${type}/${path}`
           )
         })
@@ -155,14 +149,9 @@ describe('InResourceHandler', () => {
           // Assert
           expect(...work.diffs.package.get(objectType)).toEqual('resource')
           expect(copyFiles).toBeCalledTimes(2)
+          expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
-            `${entityPath}`,
-            `${entityPath}`
-          )
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${entityPath}${METAFILE_SUFFIX}`,
             `${entityPath}${METAFILE_SUFFIX}`
           )
         })

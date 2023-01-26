@@ -61,10 +61,7 @@ class StandardHandler {
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
-    const source = join(this.config.repo, this.line)
-    const target = join(this.config.output, this.line)
-
-    await this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(this.line)
   }
 
   handleDeletion() {
@@ -101,17 +98,13 @@ class StandardHandler {
     })
   }
 
-  async _copyWithMetaFile(src, dst) {
-    await copyFiles(this.config, src, dst)
+  async _copyWithMetaFile(src) {
+    await copyFiles(this.config, src)
     if (
       StandardHandler.metadata.get(this.type).metaFile === true &&
       !`${src}`.endsWith(METAFILE_SUFFIX)
     ) {
-      await copyFiles(
-        this.config,
-        this._getMetaTypeFilePath(src),
-        this._getMetaTypeFilePath(dst)
-      )
+      await copyFiles(this.config, this._getMetaTypeFilePath(src))
     }
   }
 
@@ -124,10 +117,9 @@ class StandardHandler {
   }
 
   _parseLine() {
-    const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
-    return join(this.config.repo, this.line).match(
+    return this.line.match(
       new RegExp(
-        `(?<repo>${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
+        `(?<path>.*[/\\\\]${RegExpEscape(
           StandardHandler.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'

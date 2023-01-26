@@ -16,6 +16,7 @@ const { basename, join } = require('path')
 const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 const { asArray } = require('../utils/fxpHelper')
 const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('../utils/fxpHelper')
+const { treatPathSep } = require('../utils/childProcessUtils')
 
 class InFileHandler extends StandardHandler {
   static xmlObjectToPackageType
@@ -69,7 +70,7 @@ class InFileHandler extends StandardHandler {
     const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
     const xmlContent = xmlBuilder.build(result.fileContent)
     await outputFile(
-      join(this.config.output, this.line),
+      join(this.config.output, treatPathSep(this.line)),
       xmlContent.replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}\n`)
     )
   }

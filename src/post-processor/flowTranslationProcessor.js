@@ -13,7 +13,7 @@ const {
   readPathFromGit,
   isSubDir,
 } = require('../utils/fsHelper')
-const { join, parse } = require('path')
+const { parse } = require('path')
 const { forPath } = require('../utils/ignoreHelper')
 const { XMLParser } = require('fast-xml-parser')
 const { asArray, XML_PARSER_OPTION } = require('../utils/fxpHelper')
@@ -68,9 +68,7 @@ class FlowTranslationProcessor extends BaseProcessor {
         elementName: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        const source = join(this.config.source, translationPath)
-        const target = join(this.config.output, translationPath)
-        copyTranslationsPromises.push(copyFiles(this.config, source, target))
+        copyTranslationsPromises.push(copyFiles(this.config, translationPath))
       }
     }
     await Promise.all(copyTranslationsPromises)

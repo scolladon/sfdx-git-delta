@@ -110,7 +110,9 @@ class CLIHelper {
 
   _filterDirectories() {
     return asyncFilter(
-      [this.config.output, this.config.source].filter(Boolean),
+      [this.config.output, join(this.config.repo, this.config.source)].filter(
+        Boolean
+      ),
       async dir => {
         const exist = await dirExists(dir)
         return !exist
