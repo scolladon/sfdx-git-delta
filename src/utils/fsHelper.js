@@ -14,6 +14,7 @@ const FOLDER = 'tree'
 const FATAL = 'fatal'
 
 const showCmd = ['--no-pager', 'show']
+const gitPathSeparatorNormalizer = path => path.replace(/\\+/g, '/')
 const copiedFiles = new Set()
 
 const copyFiles = async (config, src) => {
@@ -41,8 +42,9 @@ const copyFiles = async (config, src) => {
 }
 
 const readPathFromGit = async (path, config) => {
+  const normalizedPath = gitPathSeparatorNormalizer(path)
   const data = await getStreamContent(
-    spawn('git', [...showCmd, `${config.to}:${path}`], {
+    spawn('git', [...showCmd, `${config.to}:${normalizedPath}`], {
       cwd: config.repo,
     })
   )
