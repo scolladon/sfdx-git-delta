@@ -8,7 +8,10 @@ const {
   scan,
   scanExtension,
 } = require('../../../../src/utils/fsHelper')
-const { getStreamContent } = require('../../../../src/utils/childProcessUtils')
+const {
+  getStreamContent,
+  treatPathSep,
+} = require('../../../../src/utils/childProcessUtils')
 const { spawn } = require('child_process')
 const fs = require('fs')
 const { outputFile } = require('fs-extra')
@@ -26,6 +29,7 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
   return {
     ...originalModule,
     getStreamContent: jest.fn(),
+    treatPathSep: jest.fn(),
   }
 })
 
@@ -102,6 +106,7 @@ describe('copyFile', () => {
     describe('when content is a folder', () => {
       it('should copy the folder', async () => {
         // Arrange
+        treatPathSep.mockImplementationOnce(() => 'output/copyDir/copyFile')
         getStreamContent.mockImplementationOnce(
           () => 'tree HEAD:folder\n\ncopyFile'
         )
@@ -114,6 +119,7 @@ describe('copyFile', () => {
         expect(spawn).toBeCalledTimes(2)
         expect(getStreamContent).toBeCalledTimes(2)
         expect(outputFile).toBeCalledTimes(1)
+        expect(treatPathSep).toBeCalledTimes(1)
       })
     })
     describe('when content is not a git location', () => {
@@ -140,6 +146,7 @@ describe('copyFile', () => {
       beforeEach(async () => {
         // Arrange
         getStreamContent.mockImplementation(() => 'content')
+        treatPathSep.mockImplementationOnce(() => 'output/copyFile')
       })
       it('should copy the file', async () => {
         // Act
@@ -149,6 +156,7 @@ describe('copyFile', () => {
         expect(spawn).toBeCalled()
         expect(getStreamContent).toBeCalled()
         expect(outputFile).toBeCalledTimes(1)
+        expect(treatPathSep).toBeCalledTimes(1)
       })
     })
   })
