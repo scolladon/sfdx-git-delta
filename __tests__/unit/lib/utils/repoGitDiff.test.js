@@ -28,7 +28,7 @@ describe(`test if repoGitDiff`, () => {
     const output = []
     child_process.__setOutput([output])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      { output: '', repo: '', source: '', ignore: FORCEIGNORE_MOCK_PATH },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -42,6 +42,7 @@ describe(`test if repoGitDiff`, () => {
       {
         output: '',
         repo: '',
+        source: '',
         ignore: FORCEIGNORE_MOCK_PATH,
         ignoreWhitespace: true,
       },
@@ -57,7 +58,7 @@ describe(`test if repoGitDiff`, () => {
     ]
     child_process.__setOutput([[], output.map(x => `1${TAB}1${TAB}${x}`), []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      { output: '', repo: '', source: '', ignore: FORCEIGNORE_MOCK_PATH },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -70,7 +71,7 @@ describe(`test if repoGitDiff`, () => {
     ]
     child_process.__setOutput([[], output.map(x => `1${TAB}1${TAB}${x}`), []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -83,7 +84,7 @@ describe(`test if repoGitDiff`, () => {
     ]
     child_process.__setOutput([[], [], output.map(x => `1${TAB}1${TAB}${x}`)])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -96,7 +97,7 @@ describe(`test if repoGitDiff`, () => {
     ]
     child_process.__setOutput([[], [], output.map(x => `-${TAB}-${TAB}${x}`)])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -109,7 +110,7 @@ describe(`test if repoGitDiff`, () => {
     ]
     child_process.__setOutput([output.map(x => `-${TAB}-${TAB}${x}`), [], []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -122,7 +123,7 @@ describe(`test if repoGitDiff`, () => {
     ]
     child_process.__setOutput([output.map(x => `-${TAB}-${TAB}${x}`), [], []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -133,7 +134,7 @@ describe(`test if repoGitDiff`, () => {
     const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[`1${TAB}1${TAB}${output}`], [], []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      { output: '', repo: '', source: '', ignore: FORCEIGNORE_MOCK_PATH },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -146,7 +147,12 @@ describe(`test if repoGitDiff`, () => {
     const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [`1${TAB}1${TAB}${output}`], []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignoreDestructive: FORCEIGNORE_MOCK_PATH },
+      {
+        output: '',
+        repo: '',
+        source: '',
+        ignoreDestructive: FORCEIGNORE_MOCK_PATH,
+      },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -166,6 +172,7 @@ describe(`test if repoGitDiff`, () => {
       {
         output: '',
         repo: '',
+        source: '',
         ignore: FORCEIGNORE_MOCK_PATH,
         ignoreDestructive: FORCEIGNORE_MOCK_PATH,
       },
@@ -181,7 +188,7 @@ describe(`test if repoGitDiff`, () => {
     const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [`1${TAB}1${TAB}${output}`], []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      { output: '', repo: '', source: '', ignore: FORCEIGNORE_MOCK_PATH },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -194,7 +201,12 @@ describe(`test if repoGitDiff`, () => {
     const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[], [], [`1${TAB}1${TAB}${output}`]])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignoreDestructive: FORCEIGNORE_MOCK_PATH },
+      {
+        output: '',
+        repo: '',
+        source: '',
+        ignoreDestructive: FORCEIGNORE_MOCK_PATH,
+      },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -206,7 +218,7 @@ describe(`test if repoGitDiff`, () => {
     const output = 'force-app/main/default/pages/test.page-meta.xml'
     child_process.__setOutput([[`1${TAB}1${TAB}${output}`], [], []])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '', ignore: FORCEIGNORE_MOCK_PATH },
+      { output: '', repo: '', source: '', ignore: FORCEIGNORE_MOCK_PATH },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -226,7 +238,7 @@ describe(`test if repoGitDiff`, () => {
       [`1${TAB}1${TAB}${output[1]}`],
     ])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -245,7 +257,7 @@ describe(`test if repoGitDiff`, () => {
       [`1${TAB}1${TAB}${output[1]}`],
     ])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -264,7 +276,7 @@ describe(`test if repoGitDiff`, () => {
       [`1${TAB}1${TAB}${output[1]}`],
     ])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -286,7 +298,7 @@ describe(`test if repoGitDiff`, () => {
       [`1${TAB}1${TAB}${output[1]}`],
     ])
     const repoGitDiff = new RepoGitDiff(
-      { output: '', repo: '' },
+      { output: '', repo: '', source: '' },
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
@@ -304,6 +316,7 @@ describe(`test if repoGitDiff`, () => {
       {
         output: '',
         repo: '',
+        source: '',
         include: FORCEINCLUDE_MOCK_PATH,
       },
       globalMetadata
@@ -320,6 +333,7 @@ describe(`test if repoGitDiff`, () => {
       {
         output: '',
         repo: '',
+        source: '',
         includeDestructive: FORCEINCLUDE_MOCK_PATH,
       },
       globalMetadata
@@ -339,6 +353,7 @@ describe(`test if repoGitDiff`, () => {
       {
         output: '',
         repo: '',
+        source: '',
         include: FORCEINCLUDE_MOCK_PATH,
       },
       globalMetadata
@@ -362,6 +377,7 @@ describe(`test if repoGitDiff`, () => {
       {
         output: '',
         repo: '',
+        source: '',
         includeDestructive: FORCEINCLUDE_MOCK_PATH,
       },
       globalMetadata
