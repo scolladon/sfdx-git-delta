@@ -14,7 +14,7 @@ const FOLDER = 'tree'
 const FATAL = 'fatal'
 
 const showCmd = ['--no-pager', 'show']
-const gitPathSeparatorNormalizer = path => path.replace(/\\+/g, '/')
+const gitPathSeparatorNormalizer = path => path?.replace(/\\+/g, '/')
 const copiedFiles = new Set()
 
 const copyFiles = async (config, src) => {
@@ -100,6 +100,7 @@ const isSubDir = (parent, dir) => {
 }
 
 module.exports.copyFiles = copyFiles
+module.exports.gitPathSeparatorNormalizer = gitPathSeparatorNormalizer
 module.exports.isSubDir = isSubDir
 module.exports.pathExists = pathExists
 module.exports.readDir = readDir

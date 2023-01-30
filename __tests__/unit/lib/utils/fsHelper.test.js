@@ -1,6 +1,7 @@
 'use strict'
 const {
   copyFiles,
+  gitPathSeparatorNormalizer,
   readDir,
   isSubDir,
   readFile,
@@ -47,6 +48,29 @@ beforeEach(() => {
     },
     warnings: [],
   }
+})
+
+describe('gitPathSeparatorNormalizer', () => {
+  it('replaces every instance of \\', async () => {
+    // Arrange
+    const windowsPath = 'path\\to\\a\\\\file'
+
+    // Act
+    const result = gitPathSeparatorNormalizer(windowsPath)
+
+    // Assert
+    expect(result).toEqual('path/to/a/file')
+  })
+
+  describe.each([undefined, null])('when called with %s', falsy => {
+    it('return null', () => {
+      // Act
+      const result = gitPathSeparatorNormalizer(falsy)
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+  })
 })
 
 describe('readPathFromGit', () => {
