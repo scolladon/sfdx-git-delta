@@ -1,6 +1,7 @@
 'use strict'
 const { spawn } = require('child_process')
 const { linify } = require('./childProcessUtils')
+const { gitPathSeparatorNormalizer } = require('./fsHelper')
 const { IGNORE_WHITESPACE_PARAMS, UTF8_ENCODING } = require('./gitConstants')
 
 const unitDiffParams = ['--no-pager', 'diff', '--no-prefix', '-U200']
@@ -17,7 +18,7 @@ module.exports = (filePath, config) => {
       config.from,
       config.to,
       '--',
-      filePath,
+      gitPathSeparatorNormalizer(filePath),
     ],
     { cwd: config.repo, encoding: UTF8_ENCODING }
   )

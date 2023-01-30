@@ -1,6 +1,8 @@
 'use strict'
 const fileGitDiff = require('../../../../src/utils/fileGitDiff')
+const { gitPathSeparatorNormalizer } = require('../../../../src/utils/fsHelper')
 jest.mock('child_process')
+jest.mock('../../../../src/utils/fsHelper')
 const child_process = require('child_process')
 
 const TEST_PATH = 'path/to/file'
@@ -17,6 +19,7 @@ describe(`test if fileGitDiff`, () => {
     for await (const line of result) {
       expect(line).toStrictEqual(output.shift())
     }
+    expect(gitPathSeparatorNormalizer).toHaveBeenCalled()
   })
 
   test('can parse git diff addition', async () => {
@@ -27,6 +30,7 @@ describe(`test if fileGitDiff`, () => {
     for await (const line of result) {
       expect(line).toStrictEqual(output.shift())
     }
+    expect(gitPathSeparatorNormalizer).toHaveBeenCalled()
   })
 
   test('can parse git diff deletion', async () => {
@@ -37,6 +41,7 @@ describe(`test if fileGitDiff`, () => {
     for await (const line of result) {
       expect(line).toStrictEqual(output.shift())
     }
+    expect(gitPathSeparatorNormalizer).toHaveBeenCalled()
   })
 
   test('can apply permissive git diff', async () => {
@@ -51,6 +56,7 @@ describe(`test if fileGitDiff`, () => {
     for await (const line of result) {
       expect(line).toStrictEqual(output.shift())
     }
+    expect(gitPathSeparatorNormalizer).toHaveBeenCalled()
   })
 
   test('can parse git diff context line', async () => {
@@ -61,6 +67,7 @@ describe(`test if fileGitDiff`, () => {
     for await (const line of result) {
       expect(line).toStrictEqual(output.shift())
     }
+    expect(gitPathSeparatorNormalizer).toHaveBeenCalled()
   })
 
   test('can reject in case of error', () => {
@@ -71,5 +78,6 @@ describe(`test if fileGitDiff`, () => {
     } catch (e) {
       expect(e).toBeDefined()
     }
+    expect(gitPathSeparatorNormalizer).toHaveBeenCalled()
   })
 })
