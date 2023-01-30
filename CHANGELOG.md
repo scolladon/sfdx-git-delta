@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 5.11.3 (2023-01-30)
+
+
+### Bug Fixes
+
+* windows path separator with git ([#436](https://github.com/scolladon/sfdx-git-delta/issues/436)) ([b760a7e](https://github.com/scolladon/sfdx-git-delta/commit/b760a7ee0381777bdd7d422d1df7f3b291cab9d2))
+
 ### 5.11.2 (2023-01-26)
 
 
