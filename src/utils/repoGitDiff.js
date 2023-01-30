@@ -16,7 +16,7 @@ const {
   OBJECT_TRANSLATION_TYPE,
 } = require('./metadataConstants')
 const { spawn } = require('child_process')
-const { readFile } = require('./fsHelper')
+const { gitPathSeparatorNormalizer, readFile } = require('./fsHelper')
 const micromatch = require('micromatch')
 const os = require('os')
 const { parse, sep } = require('path')
@@ -95,7 +95,7 @@ class RepoGitDiff {
         ...this.ignoreWhitespaceParams,
         this.config.from,
         this.config.to,
-        this.config.source,
+        gitPathSeparatorNormalizer(this.config.source),
       ],
       this.spawnConfig
     )

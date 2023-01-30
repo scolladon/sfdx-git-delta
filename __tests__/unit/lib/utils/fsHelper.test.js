@@ -1,19 +1,23 @@
 'use strict'
 const {
   copyFiles,
+  gitPathSeparatorNormalizer,
   readDir,
   isSubDir,
   readFile,
+  readPathFromGit,
   scan,
   scanExtension,
 } = require('../../../../src/utils/fsHelper')
-const { getStreamContent } = require('../../../../src/utils/childProcessUtils')
+const {
+  getStreamContent,
+  treatPathSep,
+} = require('../../../../src/utils/childProcessUtils')
 const { spawn } = require('child_process')
 const fs = require('fs')
 const { outputFile } = require('fs-extra')
 const { EOL } = require('os')
 
-jest.mock('../../../../src/utils/childProcessUtils')
 jest.mock('fs')
 jest.mock('fs-extra')
 jest.mock('child_process')
@@ -23,10 +27,10 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
     '../../../../src/utils/childProcessUtils'
   )
 
-  //Mock the default export and named export 'foo'
   return {
     ...originalModule,
     getStreamContent: jest.fn(),
+    treatPathSep: jest.fn(),
   }
 })
 
@@ -34,9 +38,60 @@ let work
 beforeEach(() => {
   //jest.clearAllMocks()
   work = {
-    config: { output: '', source: '', repo: '', generateDelta: false },
+    config: {
+      output: '',
+      source: '',
+      repo: '',
+      generateDelta: false,
+      from: 'pastsha',
+      to: 'recentsha',
+    },
     warnings: [],
   }
+})
+
+describe('gitPathSeparatorNormalizer', () => {
+  it('replaces every instance of \\', async () => {
+    // Arrange
+    const windowsPath = 'path\\to\\a\\\\file'
+
+    // Act
+    const result = gitPathSeparatorNormalizer(windowsPath)
+
+    // Assert
+    expect(result).toEqual('path/to/a/file')
+  })
+
+  describe.each([undefined, null])('when called with %s', falsy => {
+    it('return null', () => {
+      // Act
+      const result = gitPathSeparatorNormalizer(falsy)
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+  })
+})
+
+describe('readPathFromGit', () => {
+  describe.each([
+    ['windows', 'force-app\\main\\default\\classes\\myClass.cls'],
+    ['unix', 'force-app/main/default/classes/myClass.cls'],
+  ])('when path is %s format', (_, path) => {
+    it('should use "config.to" and "normalized path" to get git history', async () => {
+      // Act
+      await readPathFromGit(path, work.config)
+
+      // Assert
+      const normalizedPath = path.replace(/\\+/g, '/')
+      expect(spawn).toHaveBeenCalledWith(
+        'git',
+        expect.arrayContaining([`${work.config.to}:${normalizedPath}`]),
+        expect.anything()
+      )
+      expect(getStreamContent).toBeCalled()
+    })
+  })
 })
 
 describe('copyFile', () => {
@@ -75,6 +130,7 @@ describe('copyFile', () => {
     describe('when content is a folder', () => {
       it('should copy the folder', async () => {
         // Arrange
+        treatPathSep.mockImplementationOnce(() => 'output/copyDir/copyFile')
         getStreamContent.mockImplementationOnce(
           () => 'tree HEAD:folder\n\ncopyFile'
         )
@@ -87,6 +143,7 @@ describe('copyFile', () => {
         expect(spawn).toBeCalledTimes(2)
         expect(getStreamContent).toBeCalledTimes(2)
         expect(outputFile).toBeCalledTimes(1)
+        expect(treatPathSep).toBeCalledTimes(1)
       })
     })
     describe('when content is not a git location', () => {
@@ -113,6 +170,7 @@ describe('copyFile', () => {
       beforeEach(async () => {
         // Arrange
         getStreamContent.mockImplementation(() => 'content')
+        treatPathSep.mockImplementationOnce(() => 'output/copyFile')
       })
       it('should copy the file', async () => {
         // Act
@@ -122,6 +180,7 @@ describe('copyFile', () => {
         expect(spawn).toBeCalled()
         expect(getStreamContent).toBeCalled()
         expect(outputFile).toBeCalledTimes(1)
+        expect(treatPathSep).toBeCalledTimes(1)
       })
     })
   })
