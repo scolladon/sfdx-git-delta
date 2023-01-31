@@ -39,7 +39,7 @@ const copyFiles = async (config, src) => {
   } else {
     const dst = join(config.output, treatPathSep(src))
     // Use Buffer to output the file content
-    // let fs implementation set "utf8" or "binary" encoding
+    // Let fs implementation detect the encoding ("utf8" or "binary")
     await outputFile(dst, bufferData)
   }
 }

@@ -8,6 +8,7 @@ const treatPathSep = data => data.replace(/[/\\]+/g, sep)
 const sanitizePath = data =>
   data !== null && data !== undefined ? normalize(treatPathSep(data)) : data
 
+// REFACTOR using native readLine https://nodejs.org/api/readline.html
 async function* linify(stream) {
   let previous = ''
   for await (const chunk of stream) {
@@ -27,11 +28,7 @@ async function* linify(stream) {
 const getStreamContent = async stream => {
   const content = []
   for await (const chunk of stream.stdout) {
-    if (Buffer.isBuffer(chunk)) {
-      content.push(chunk)
-    } else {
-      content.push(Buffer.from(chunk))
-    }
+    content.push(chunk)
   }
   return Buffer.concat(content)
 }
