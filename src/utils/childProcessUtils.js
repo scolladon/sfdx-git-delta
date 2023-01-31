@@ -27,10 +27,13 @@ async function* linify(stream) {
 const getStreamContent = async stream => {
   const content = []
   for await (const chunk of stream.stdout) {
-    content.push(chunk)
+    if (Buffer.isBuffer(chunk)) {
+      content.push(chunk)
+    } else {
+      content.push(Buffer.from(chunk))
+    }
   }
-
-  return content.join('')
+  return Buffer.concat(content)
 }
 
 module.exports.EOLRegex = EOLRegex
