@@ -76,7 +76,7 @@ describe('childProcessUtils', () => {
     })
 
     describe('when stream has no content in stdout', () => {
-      it('it throws the error', async () => {
+      it('returns no lines', async () => {
         // Arrange
         const stream = new Readable({
           read() {
