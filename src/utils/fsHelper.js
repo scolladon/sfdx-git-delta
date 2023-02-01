@@ -21,35 +21,44 @@ const copyFiles = async (config, src) => {
   if (copiedFiles.has(src)) return
   copiedFiles.add(src)
 
-  const data = await readPathFromGit(src, config)
-  if (!data) {
+  const bufferData = await readPathFromGitAsBuffer(src, config)
+  const utf8Data = bufferData?.toString(UTF8_ENCODING)
+  if (!utf8Data) {
     return
   }
-  if (data.startsWith(FOLDER)) {
-    const [header, , ...files] = data.split(EOLRegex)
+  if (utf8Data.startsWith(FOLDER)) {
+    const [header, , ...files] = utf8Data.split(EOLRegex)
     const folder = header.split(':')[1]
     for (const file of files) {
       const fileSrc = join(folder, file)
 
       await copyFiles(config, fileSrc)
     }
-  } else if (data.startsWith(FATAL)) {
-    throw new Error(data)
+  } else if (utf8Data.startsWith(FATAL)) {
+    throw new Error(utf8Data)
   } else {
     const dst = join(config.output, treatPathSep(src))
-    await outputFile(dst, data)
+    // Use Buffer to output the file content
+    // Let fs implementation detect the encoding ("utf8" or "binary")
+    await outputFile(dst, bufferData)
   }
 }
 
-const readPathFromGit = async (path, config) => {
+const readPathFromGitAsBuffer = async (path, config) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
-  const data = await getStreamContent(
+  const bufferData = await getStreamContent(
     spawn('git', [...showCmd, `${config.to}:${normalizedPath}`], {
       cwd: config.repo,
     })
   )
 
-  return data
+  return bufferData
+}
+
+const readPathFromGit = async (path, config) => {
+  const bufferData = await readPathFromGitAsBuffer(path, config)
+  const utf8Data = bufferData.toString(UTF8_ENCODING)
+  return utf8Data
 }
 
 const pathExists = async (path, config) => {

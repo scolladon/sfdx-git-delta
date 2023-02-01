@@ -29,14 +29,13 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
 
   return {
     ...originalModule,
-    getStreamContent: jest.fn(),
-    treatPathSep: jest.fn(),
+    getStreamContent: jest.fn(() => Promise.resolve(Buffer.from(''))),
+    treatPathSep: jest.fn(() => ''),
   }
 })
 
 let work
 beforeEach(() => {
-  //jest.clearAllMocks()
   work = {
     config: {
       output: '',
@@ -78,6 +77,13 @@ describe('readPathFromGit', () => {
     ['windows', 'force-app\\main\\default\\classes\\myClass.cls'],
     ['unix', 'force-app/main/default/classes/myClass.cls'],
   ])('when path is %s format', (_, path) => {
+    beforeEach(() => {
+      // Arrange
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve(Buffer.from(''))
+      )
+    })
+
     it('should use "config.to" and "normalized path" to get git history', async () => {
       // Act
       await readPathFromGit(path, work.config)
@@ -97,7 +103,6 @@ describe('readPathFromGit', () => {
 describe('copyFile', () => {
   describe('when file is already copied', () => {
     it('should not copy file', async () => {
-      // Arrange
       await copyFiles(work.config, 'source/file', 'output/file')
       jest.resetAllMocks()
 
@@ -113,9 +118,6 @@ describe('copyFile', () => {
 
   describe('when source location is empty', () => {
     it('should not copy file', async () => {
-      // Arrange
-      getStreamContent.mockImplementation(() => '')
-
       // Act
       await copyFiles(work.config, 'source/doNotCopy', 'output/doNotCopy')
 
@@ -131,10 +133,12 @@ describe('copyFile', () => {
       it('should copy the folder', async () => {
         // Arrange
         treatPathSep.mockImplementationOnce(() => 'output/copyDir/copyFile')
-        getStreamContent.mockImplementationOnce(
-          () => 'tree HEAD:folder\n\ncopyFile'
+        getStreamContent.mockImplementationOnce(() =>
+          Promise.resolve(Buffer.from('tree HEAD:folder\n\ncopyFile'))
         )
-        getStreamContent.mockImplementation(() => 'content')
+        getStreamContent.mockImplementation(() =>
+          Promise.resolve(Buffer.from('content'))
+        )
 
         // Act
         await copyFiles(work.config, 'source/copyDir', 'output/copyDir')
@@ -143,6 +147,10 @@ describe('copyFile', () => {
         expect(spawn).toBeCalledTimes(2)
         expect(getStreamContent).toBeCalledTimes(2)
         expect(outputFile).toBeCalledTimes(1)
+        expect(outputFile).toHaveBeenCalledWith(
+          'output/copyDir/copyFile',
+          Buffer.from('content')
+        )
         expect(treatPathSep).toBeCalledTimes(1)
       })
     })
@@ -151,7 +159,9 @@ describe('copyFile', () => {
         expect.assertions(4)
         // Arrange
         const fatalError = 'fatal: not a git repository'
-        getStreamContent.mockImplementation(() => 'fatal: not a git repository')
+        getStreamContent.mockImplementation(() =>
+          Promise.resolve(Buffer.from('fatal: not a git repository'))
+        )
 
         // Act
         try {
@@ -169,7 +179,9 @@ describe('copyFile', () => {
     describe('when content is a file', () => {
       beforeEach(async () => {
         // Arrange
-        getStreamContent.mockImplementation(() => 'content')
+        getStreamContent.mockImplementation(() =>
+          Promise.resolve(Buffer.from('content'))
+        )
         treatPathSep.mockImplementationOnce(() => 'output/copyFile')
       })
       it('should copy the file', async () => {
@@ -180,6 +192,10 @@ describe('copyFile', () => {
         expect(spawn).toBeCalled()
         expect(getStreamContent).toBeCalled()
         expect(outputFile).toBeCalledTimes(1)
+        expect(outputFile).toHaveBeenCalledWith(
+          'output/copyFile',
+          Buffer.from('content')
+        )
         expect(treatPathSep).toBeCalledTimes(1)
       })
     })
@@ -193,7 +209,7 @@ describe('readDir', () => {
     beforeEach(() => {
       // Arrange
       getStreamContent.mockImplementation(() =>
-        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}`, '', file].join(EOL)))
       )
     })
     it('should return the file', async () => {
@@ -279,7 +295,9 @@ describe('scan', () => {
   describe('when getStreamContent returns nothing', () => {
     beforeEach(() => {
       // Arrange
-      getStreamContent.mockImplementation(() => Promise.resolve(''))
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve(Buffer.from(''))
+      )
     })
     it('should return nothing', async () => {
       // Arrange
@@ -297,7 +315,7 @@ describe('scan', () => {
     beforeEach(() => {
       // Arrange
       getStreamContent.mockImplementation(() =>
-        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}`, '', file].join(EOL)))
       )
     })
     it('should return a file', async () => {
@@ -315,13 +333,11 @@ describe('scan', () => {
     const subDir = 'subDir/'
     it('should return nothing', async () => {
       // Arrange
-      getStreamContent.mockImplementation(() =>
-        Promise.resolve(
-          Promise.resolve([`tree HEAD:${dir}`, '', subDir].join(EOL))
-        )
+      getStreamContent.mockImplementationOnce(() =>
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}`, '', subDir].join(EOL)))
       )
       getStreamContent.mockImplementation(() =>
-        Promise.resolve([`tree HEAD:${dir}${subDir}`].join(EOL))
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}${subDir}`].join(EOL)))
       )
       const g = scan('dir', work)
 
@@ -339,12 +355,12 @@ describe('scan', () => {
     beforeEach(() => {
       // Arrange
       getStreamContent.mockImplementationOnce(() =>
-        Promise.resolve(
-          Promise.resolve([`tree HEAD:${dir}`, '', subDir].join(EOL))
-        )
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}`, '', subDir].join(EOL)))
       )
       getStreamContent.mockImplementation(() =>
-        Promise.resolve([`tree HEAD:${dir}${subDir}`, '', subFile].join(EOL))
+        Promise.resolve(
+          Buffer.from([`tree HEAD:${dir}${subDir}`, '', subFile].join(EOL))
+        )
       )
     })
     it('should return a file', async () => {
@@ -365,7 +381,7 @@ describe('scanExtension', () => {
     beforeEach(() => {
       // Arrange
       getStreamContent.mockImplementation(() =>
-        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}`, '', file].join(EOL)))
       )
     })
     it('should return', async () => {
@@ -385,7 +401,7 @@ describe('scanExtension', () => {
     beforeEach(() => {
       // Arrange
       getStreamContent.mockImplementation(() =>
-        Promise.resolve([`tree HEAD:${dir}`, '', file].join(EOL))
+        Promise.resolve(Buffer.from([`tree HEAD:${dir}`, '', file].join(EOL)))
       )
     })
     it('should return a file', async () => {

@@ -7,7 +7,7 @@ const child_process = require('child_process')
 
 const TEST_PATH = 'path/to/file'
 
-describe(`test if fileGitDiff`, () => {
+describe(`fileGitDiff`, () => {
   beforeEach(() => {
     child_process.__setOutput([])
     child_process.__setError(false)
