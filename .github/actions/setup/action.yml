@@ -35,9 +35,7 @@ runs:
       if: ${{ inputs.install == 'true' }}
       with:
         path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-yarn-
+        key: cache-${{ inputs.node-version }}-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
     - name: Install dependencies in production mode
       if: ${{ inputs.prod-context == 'true' && inputs.install == 'true' }}
