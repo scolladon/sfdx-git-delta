@@ -5,41 +5,52 @@ on:
     branches: [main]
 
 jobs:
-  build-test:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  prepare-release:
+    needs: build
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
+          release-type: node
+          package-name: sfdx-git-delta
+
+  release: 
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    if: ${{ needs.prepare-release.outputs.release_created == 'true' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: ./.github/actions/setup
         with:
-          node-version: '14.x'
+          install: false
 
-      - name: Cache prep
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: Publish to npm
+        run: yarn publish --access public --tag "latest-rc"
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
-      - name: Cache yarn
-        uses: actions/cache@v3
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+  test-release:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install sfdx-cli
+        run: npm install -g sfdx-cli
 
-      - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
+      - name: Install new plugin version
+        run: echo y | sfdx plugins:install "sfdx-git-delta@latest-rc"
 
-      - name: Build plugin
-        run: yarn pack
+      - name: Test new plugin version
+        run: sfdx sgd:source:delta --help
 
-      - name: Unit test
-        run: yarn test:coverage --runInBand
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-        continue-on-error: true
