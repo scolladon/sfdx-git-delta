@@ -6,90 +6,6 @@ on:
       - main
 
 jobs:
-  build-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14.x'
-
-      - name: Cache prep
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - name: Cache yarn
-        uses: actions/cache@v3
-        id: yarn-cache
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
-
-      - name: Lint sources
-        uses: wearerequired/lint-action@v2
-        with:
-          eslint: true
-        continue-on-error: true
-
-      - name: Build plugin
-        run: yarn pack
-
-      - name: Unit test
-        run: yarn test:coverage --runInBand
-
-      - name: Check dependencies
-        run: yarn outdated
-        continue-on-error: true
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-        continue-on-error: true
-
-      
-
-  installation-check:
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [14, 16]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
-      
-      - name: Install sfdx-cli
-        run: npm install -g sfdx-cli # yarn installation is not working on Windows
-
-      - name: Install dependencies
-        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
-
-      - name: Install build dependencies
-        run: yarn add @salesforce/dev-config typescript
-
-      - name: Build plugin
-        run: yarn pack
-
-      - name: Install plugin
-        run: sfdx plugins:link .
-
-      - name: Installation test
-        run: sfdx sgd:source:delta --help
-
   commit-lint:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
@@ -110,3 +26,72 @@ jobs:
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  npm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        
+      - name: Setup node
+        uses: ./.github/actions/setup
+        with:
+          install: false
+
+      - name: Check outdated dependencies
+        run: yarn outdated
+        continue-on-error: true
+
+      - name: Audit dependencies
+        run: yarn audit
+        continue-on-error: true
+
+  source-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      
+      - name: Setup node
+        uses: ./.github/actions/setup
+
+      - name: Lint sources
+        uses: wearerequired/lint-action@v2
+        with:
+          eslint: true
+
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit     
+
+  installation-check:
+    needs: [build, source-lint]
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: [14, 16]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        
+      - name: Setup node, dependencies, cache and install in prod context
+        uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+          prod-context: true
+
+      - name: Install build dependencies
+        run: yarn add @salesforce/dev-config typescript
+
+      - name: Build plugin
+        run: yarn pack
+
+      - name: Install sfdx-cli
+        run: npm install -g sfdx-cli
+
+      - name: Install plugin
+        run: sfdx plugins:link .
+
+      - name: Test installation
+        run: sfdx sgd:source:delta --help
