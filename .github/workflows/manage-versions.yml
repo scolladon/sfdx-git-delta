@@ -23,14 +23,13 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-
+        
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: ./.github/actions/setup
         with:
-          node-version: 14.x
-          registry-url: https://registry.npmjs.org/
+          install: false
 
       - name: Change version
-        run: npm dist-tag add "sfdx-git-delta@${{ github.event.inputs.version-number }}" "${{ github.event.inputs.version-alias }}"
+        run: npm dist-tag add sfdx-git-delta@${{ github.event.inputs.version-number }} ${{ github.event.inputs.version-alias }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
