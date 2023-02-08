@@ -1,0 +1,50 @@
+name: setup
+description: Setup node, dependencies cache and install
+
+inputs:
+  node-version:
+    required: false
+    description: node version
+    default: 16
+  prod-context:
+    required: false
+    description: drive installation mode
+    default: false
+  install:
+    required: false
+    description: drive installation steps execution
+    default: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup node
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: https://registry.npmjs.org/
+
+    - name: Cache prep
+      id: yarn-cache-dir-path
+      if: ${{ inputs.install == 'true' }}
+      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Cache yarn
+      uses: actions/cache@v3
+      if: ${{ inputs.install == 'true' }}
+      with:
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+
+    - name: Install dependencies in production mode
+      if: ${{ inputs.prod-context == 'true' && inputs.install == 'true' }}
+      run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
+      shell: bash
+    
+    - name: Install dependencies in integration mode
+      if: ${{ inputs.prod-context == 'false' && inputs.install == 'true' }}
+      run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
+      shell: bash
