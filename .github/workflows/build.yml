@@ -9,7 +9,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Setup node, dependencies, cache and install
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Setup dependencies, cache and install
         uses: ./.github/actions/setup
 
       - name: Build plugin

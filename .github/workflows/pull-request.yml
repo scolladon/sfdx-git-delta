@@ -34,9 +34,10 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Setup node
-        uses: ./.github/actions/setup
+        uses: actions/setup-node@v3
         with:
-          install: false
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
 
       - name: Check outdated dependencies
         run: yarn outdated
@@ -52,6 +53,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
       
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
       - name: Setup node
         uses: ./.github/actions/setup
 
@@ -74,11 +81,15 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        
-      - name: Setup node, dependencies, cache and install in prod context
-        uses: ./.github/actions/setup
+
+      - name: Setup node
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+        
+      - name: Setup dependencies, cache and install in prod context
+        uses: ./.github/actions/setup
+        with:
           prod-context: true
 
       - name: Install build dependencies
