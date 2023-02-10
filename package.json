@@ -16,7 +16,6 @@
     "/bin",
     "/lib",
     "/messages",
-    "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
   "main": "lib/main.js",
