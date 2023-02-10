@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "recommendationStrategies",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "recommendationStrategy",
+    "xmlName": "RecommendationStrategy"
+  },
+  {
+    "directoryName": "recordActionDeployments",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "deployment",
+    "xmlName": "RecordActionDeployment"
+  },
+  {
     "directoryName": "relationshipGraphDefinitions",
     "inFolder": false,
     "metaFile": false,
