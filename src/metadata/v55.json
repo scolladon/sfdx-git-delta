@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "actionPlanTemplates",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "apt",
+    "xmlName": "ActionPlanTemplate"
+  },
+  {
     "directoryName": "recommendationStrategies",
     "inFolder": false,
     "metaFile": false,
