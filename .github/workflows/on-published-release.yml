@@ -1,0 +1,15 @@
+name: Published release communication
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  release:
+    steps:
+      - uses: apexskier/github-release-commenter@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          comment-template: |
+            Shipped in [release \`{release_tag}\`]({release_link}).

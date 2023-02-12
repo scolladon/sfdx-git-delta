@@ -24,7 +24,7 @@ jobs:
         with:
           release-type: node
           package-name: sfdx-git-delta
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT }}
 
   release: 
     needs: prepare-release
