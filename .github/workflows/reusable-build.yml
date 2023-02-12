@@ -1,4 +1,4 @@
-name: build
+name: Build Checks
 on:
   workflow_call:
 
@@ -15,7 +15,7 @@ jobs:
           node-version: 16
 
       - name: Setup dependencies, cache and install
-        uses: ./.github/actions/setup
+        uses: ./.github/actions/install
 
       - name: Build plugin
         run: yarn pack

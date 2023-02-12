@@ -1,5 +1,5 @@
-name: setup
-description: Setup dependencies cache and install
+name: Install
+description: Install dependencies
 
 inputs:
   prod-context:

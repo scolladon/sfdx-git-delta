@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/build.yml
+    uses: ./.github/workflows/reusable-build.yml
     secrets: inherit
 
   prepare-release:
@@ -24,6 +24,7 @@ jobs:
         with:
           release-type: node
           package-name: sfdx-git-delta
+          token: ${{ secrets.RELEASE_TOKEN }}
 
   release: 
     needs: prepare-release

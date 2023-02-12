@@ -63,7 +63,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Setup node
-        uses: ./.github/actions/setup
+        uses: ./.github/actions/install
 
       - name: Lint sources
         uses: wearerequired/lint-action@v2
@@ -71,7 +71,7 @@ jobs:
           eslint: true
 
   build:
-    uses: ./.github/workflows/build.yml
+    uses: ./.github/workflows/reusable-build.yml
     secrets: inherit     
 
   installation-check:
@@ -91,7 +91,7 @@ jobs:
           node-version: ${{ matrix.node }}
         
       - name: Setup dependencies, cache and install in prod context
-        uses: ./.github/actions/setup
+        uses: ./.github/actions/install
         with:
           prod-context: true
 
