@@ -322,7 +322,7 @@ describe(`test if repoGitDiff`, () => {
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
-    const expected = ['A      force-app/main/default/lwc/jsconfig.json']
+    const expected = [`A${TAB}force-app/main/default/lwc/jsconfig.json`]
     expect(work).toStrictEqual(expected)
   })
 
@@ -339,7 +339,7 @@ describe(`test if repoGitDiff`, () => {
       globalMetadata
     )
     const work = await repoGitDiff.getLines()
-    const expected = ['D      force-app/main/default/lwc/jsconfig.json']
+    const expected = [`D${TAB}force-app/main/default/lwc/jsconfig.json`]
     expect(work).toStrictEqual(expected)
   })
 
@@ -361,8 +361,8 @@ describe(`test if repoGitDiff`, () => {
     const work = await repoGitDiff.getLines()
     //should be empty
     const expected = [
-      'A      force-app/main/default/lwc/jsconfig.json',
-      'A      force-app/main/default/staticresources/jsconfig.json',
+      `A${TAB}force-app/main/default/lwc/jsconfig.json`,
+      `A${TAB}force-app/main/default/staticresources/jsconfig.json`,
     ]
     expect(work).toStrictEqual(expected)
   })
@@ -384,8 +384,8 @@ describe(`test if repoGitDiff`, () => {
     )
     const work = await repoGitDiff.getLines()
     const expected = [
-      `D      force-app/main/default/lwc/jsconfig.json`,
-      'D      force-app/main/default/staticresources/jsconfig.json',
+      `D${TAB}force-app/main/default/lwc/jsconfig.json`,
+      `D${TAB}force-app/main/default/staticresources/jsconfig.json`,
     ]
     expect(work).toStrictEqual(expected)
   })
