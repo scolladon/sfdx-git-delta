@@ -140,7 +140,7 @@ class RepoGitDiff {
   static _addIncludes(lines, setup) {
     return setup.flatMap(obj =>
       micromatch(lines, obj.content).map(
-        include => `${obj.prefix}      ${include}`
+        includedLine => `${obj.prefix}${TAB}${treatPathSep(includedLine)}`
       )
     )
   }
