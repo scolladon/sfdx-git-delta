@@ -425,6 +425,8 @@ Consider the following:
 $ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
 ```
 
+The path matchers in includes file must follow [`gitignore`](https://git-scm.com/docs/gitignore#:~:text=The%20slash%20/%20is%20used%20as%20the%20directory%20separator.) spec and accept only unix path separator `/` (even for windows system).
+
 ### Scoping delta generation to a specific folder
 
 The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
