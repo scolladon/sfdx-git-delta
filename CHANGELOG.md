@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.11.4...v5.12.0) (2023-02-14)
+
+
+### Features
+
+* add FSC metadata ([#444](https://github.com/scolladon/sfdx-git-delta/issues/444)) ([fcf9e02](https://github.com/scolladon/sfdx-git-delta/commit/fcf9e02f9f9733703f59cd3ec57c9ec69508f34f))
+* bump Salesforce api version 57 ([#451](https://github.com/scolladon/sfdx-git-delta/issues/451)) ([2bf0737](https://github.com/scolladon/sfdx-git-delta/commit/2bf07376af15cca6595a8cf9d1a5ce0eeb32301c))
+* implement `release-please` release workflow ([#442](https://github.com/scolladon/sfdx-git-delta/issues/442)) ([d79891b](https://github.com/scolladon/sfdx-git-delta/commit/d79891b5f01ad3a1b30a9e68846087b310bb0c83))
+
+
+### Bug Fixes
+
+* windows path separator with micromatch ([#448](https://github.com/scolladon/sfdx-git-delta/issues/448)) ([d49f161](https://github.com/scolladon/sfdx-git-delta/commit/d49f16199b454d2ca4dd7f20fc718ef18e0616f2))
+
 ### 5.11.4 (2023-02-01)
 
 
