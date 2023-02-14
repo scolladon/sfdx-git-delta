@@ -58,7 +58,7 @@
     "postpack": "rm -f oclif.manifest.json && prettier --write README.md",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky install",
-    "increment:apiversion": "filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname && yarn pack",
+    "increment:apiversion": "filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname",
     "upgrade:dependencies": "yarn yarn-upgrade-all"
   },
   "devDependencies": {
