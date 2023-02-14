@@ -1,0 +1,32 @@
+name: Install
+description: Install dependencies
+
+inputs:
+  prod-context:
+    required: false
+    description: drive installation mode
+    default: false
+
+runs:
+  using: composite
+  steps:
+    - name: Cache prep
+      id: yarn-cache-dir-path
+      run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Cache yarn
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: cache-${{ inputs.node-version }}-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+
+    - name: Install dependencies in production mode
+      if: ${{ inputs.prod-context == 'true' }}
+      run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
+      shell: bash
+    
+    - name: Install dependencies in integration mode
+      if: ${{ inputs.prod-context == 'false' }}
+      run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile
+      shell: bash

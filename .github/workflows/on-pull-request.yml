@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "img/**"
+
+jobs:
+  commit-lint:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Lint commits
+        uses: wagoid/commitlint-github-action@v5
+        continue-on-error: true
+
+  pull-request-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lint PR
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  npm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: Check outdated dependencies
+        run: yarn outdated
+        continue-on-error: true
+
+      - name: Audit dependencies
+        run: yarn audit
+        continue-on-error: true
+
+  source-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: Setup node
+        uses: ./.github/actions/install
+
+      - name: Lint sources
+        uses: wearerequired/lint-action@v2
+        with:
+          eslint: true
+
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+    secrets: inherit     
+
+  installation-check:
+    needs: [build, source-lint]
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: [14, 16]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+        
+      - name: Setup dependencies, cache and install in prod context
+        uses: ./.github/actions/install
+        with:
+          prod-context: true
+
+      - name: Install build dependencies
+        run: yarn add @salesforce/dev-config typescript
+
+      - name: Build plugin
+        run: yarn pack
+
+      - name: Install sfdx-cli
+        run: npm install -g sfdx-cli
+
+      - name: Install plugin
+        run: sfdx plugins:link .
+
+      - name: Test installation
+        run: sfdx sgd:source:delta --help

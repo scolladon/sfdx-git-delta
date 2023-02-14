@@ -1,5 +1,0 @@
-{
-  "scripts": {
-    "postbump": "yarn pack && git add README.md"
-  }
-}

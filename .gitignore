@@ -1,11 +1,6 @@
-.envrc
-*-debug.log
-*-error.log
-/.nyc_output
-/dist
-/lib
-/tmp
 node_modules
 coverage
-output
+lib
+*-debug.log
+*-error.log
 sfdx-git-delta-*.tgz

@@ -1,10 +1,15 @@
 version: 2
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    versioning-strategy: increase
+
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
     versioning-strategy: increase
     commit-message:
       prefix: "build"

@@ -1,0 +1,31 @@
+name: Deprecate versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-expression:
+        description: version number (semver format) or range to deprecate
+        required: true
+        type: string
+      rationale:
+        description: explain why this version is deprecated. No message content will un-deprecate the version
+        type: string
+
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: Change version
+        run: npm deprecate sfdx-git-delta@$"${{ github.event.inputs.version-expression }}" "${{ github.event.inputs.rationale }}"
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

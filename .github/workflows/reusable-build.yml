@@ -1,0 +1,30 @@
+name: Build Checks
+on:
+  workflow_call:
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Build plugin
+        run: yarn pack
+
+      - name: Unit test
+        run: yarn test:coverage --runInBand
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+        continue-on-error: true

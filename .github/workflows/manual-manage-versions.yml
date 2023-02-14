@@ -1,4 +1,4 @@
-name: Manage Versions
+name: Manage versions
 
 on:
   workflow_dispatch:
@@ -23,14 +23,14 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-
+        
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 14.x
+          node-version: 16
           registry-url: https://registry.npmjs.org/
 
       - name: Change version
-        run: npm dist-tag add "sfdx-git-delta@${{ github.event.inputs.version-number }}" "${{ github.event.inputs.version-alias }}"
+        run: npm dist-tag add sfdx-git-delta@${{ github.event.inputs.version-number }} ${{ github.event.inputs.version-alias }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
