@@ -39,6 +39,9 @@ jobs:
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
+      
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
 
       - name: Publish to npm
         run: yarn publish --access public --tag "latest-rc"
