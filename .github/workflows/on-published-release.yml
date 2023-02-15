@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: apexskier/github-release-commenter@v1
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           comment-template: |
             Shipped in [release \`{release_tag}\`]({release_link}).
             You can install the new version using the version number or the \`latest-rc\` channel
