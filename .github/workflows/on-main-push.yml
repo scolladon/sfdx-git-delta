@@ -44,7 +44,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Publish to npm
-        run: yarn publish --access public --tag "latest-rc"
+        run: yarn publish --access public --tag "latest-rc" --new-version $(yarn --silent app:version)
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
