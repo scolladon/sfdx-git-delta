@@ -7,9 +7,15 @@ on:
 
 jobs:
   release:
+    runs-on: ubuntu-latest
     steps:
       - uses: apexskier/github-release-commenter@v1
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           comment-template: |
             Shipped in [release \`{release_tag}\`]({release_link}).
+            You can install the new version using the version number or the \`latest-rc\` channel
+            \`\`\`sh
+            $ sfdx plugins:install sfdx-git-delta@latest-rc
+            $ sfdx plugins:install sfdx-git-delta@{release_tag}
+            \`\`\`
