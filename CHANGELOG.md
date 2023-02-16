@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.13.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.12.0...v5.13.0) (2023-02-16)
+
+
+### Features
+
+* add Industry Cloud metadata ([#461](https://github.com/scolladon/sfdx-git-delta/issues/461)) ([b5321db](https://github.com/scolladon/sfdx-git-delta/commit/b5321dbd4464957d92e87014225e433719fb87db))
+
+
+### Bug Fixes
+
+* commit lint dependencies issue ([#462](https://github.com/scolladon/sfdx-git-delta/issues/462)) ([aac9d5d](https://github.com/scolladon/sfdx-git-delta/commit/aac9d5d69a521f6eb386b51b53b6d6d6aa99d019))
+* introduce chore commit type ([#463](https://github.com/scolladon/sfdx-git-delta/issues/463)) ([529441f](https://github.com/scolladon/sfdx-git-delta/commit/529441f875f5bf22505558e22d330e079e87f240))
+* migrate to conventional ([529441f](https://github.com/scolladon/sfdx-git-delta/commit/529441f875f5bf22505558e22d330e079e87f240))
+* publish to npm automation ([#454](https://github.com/scolladon/sfdx-git-delta/issues/454)) ([f50715f](https://github.com/scolladon/sfdx-git-delta/commit/f50715f405d108c41cd7cc2fa38d17d8ac952be6))
+
 ## [5.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.11.4...v5.12.0) (2023-02-14)
 
 
