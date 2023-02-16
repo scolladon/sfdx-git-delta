@@ -13,9 +13,9 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ github.token }}
           comment-template: |
-            Shipped in [release \`{release_tag}\`]({release_link}).
-            You can install the new version using the version number or the \`latest-rc\` channel
-            \`\`\`sh
+            Shipped in [release `{release_tag}`]({release_link}).
+            You can install the new version using the version number or the `latest-rc` channel
+            ```sh
             $ sfdx plugins:install sfdx-git-delta@latest-rc
             $ sfdx plugins:install sfdx-git-delta@{release_tag}
-            \`\`\`
+            ```

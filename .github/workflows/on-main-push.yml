@@ -44,19 +44,19 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Publish to npm
-        run: yarn publish --access public --tag "latest-rc" --new-version $(yarn --silent app:version)
+        run: yarn publish --access public --tag latest-rc --new-version ${{ needs.prepare-release.outputs.version }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
   test-release:
-    needs: release
+    needs: [prepare-release, release]
     runs-on: ubuntu-latest
     steps:
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli
 
       - name: Install new plugin version
-        run: echo y | sfdx plugins:install "sfdx-git-delta@latest-rc"
+        run: echo y | sfdx plugins:install sfdx-git-delta@${{ needs.prepare-release.outputs.version }}
 
       - name: Test new plugin version
         run: sfdx sgd:source:delta --help
