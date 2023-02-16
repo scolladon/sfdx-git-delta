@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "decisionMatrixDefinition",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "decisionMatrixDefinition",
+    "xmlName": "DecisionMatrixDefinition"
+  },
+  {
+    "directoryName": "expressionSetDefinition",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "expressionSetDefinition",
+    "xmlName": "ExpressionSetDefinition"
+  },
+  {
     "directoryName": "actionPlanTemplates",
     "inFolder": false,
     "metaFile": false,
