@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^17.4.3",
-    "@commitlint/config-angular": "^17.4.3",
+    "@commitlint/config-conventional": "^17.4.3",
     "@commitlint/prompt-cli": "^17.4.3",
     "@oclif/dev-cli": "^1.26.10",
     "@oclif/plugin-help": "^5.2.4",
