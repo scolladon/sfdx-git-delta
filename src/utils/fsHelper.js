@@ -63,7 +63,7 @@ const readPathFromGit = async (path, config) => {
 
 const pathExists = async (path, config) => {
   const data = await readPathFromGit(path, config)
-  return data.startsWith(FATAL)
+  return !!data && !data.startsWith(FATAL)
 }
 
 const readDir = async (dir, config) => {
