@@ -19,6 +19,7 @@ const {
   PLUS,
 } = require('../../src/utils/gitConstants')
 jest.mock('../../src/utils/fileGitDiff')
+jest.mock('../../src/utils/fsHelper')
 
 const testContext = [
   [
