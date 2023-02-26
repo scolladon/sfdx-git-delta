@@ -215,7 +215,7 @@ In CI/CD pipelines, branches are not checked out locally when the repository is 
 If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
 This applies to both `--from` and `--to` parameters as they both accept git pointers.
 
-Exemple comparing `HEAD` with a `development` branch when the CI clone the repository with `origin` set as reference to the remote:
+Example comparing `HEAD` with a `development` branch when the CI clone the repository with `origin` set as reference to the remote:
 
 ```sh
 sfdx sgd:source:delta --to "HEAD" --from "origin/development" --output .
@@ -223,7 +223,7 @@ sfdx sgd:source:delta --to "HEAD" --from "origin/development" --output .
 
 Use global variable when you need to easily switch sgd version (`vX.X.X` format) or channel (`stable`, `latest`, `latest-rc`) in your pipeline, without having to commit a new version of your pipeline.
 
-Exemple with [github action](https://docs.github.com/en/actions/learn-github-actions/variables#using-the-vars-context-to-access-configuration-variable-values), [create a variable](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) SGD_VERSION and use it in the plugin installation phase
+Example with [github action](https://docs.github.com/en/actions/learn-github-actions/variables#using-the-vars-context-to-access-configuration-variable-values), [create a variable](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) SGD_VERSION and use it in the plugin installation phase
 
 ```yaml
 - name: Install SGD
@@ -291,7 +291,7 @@ which means:
 
 > Analyze the difference between HEAD (latest commit) and HEAD~1 (previous commit), and output the result in the current folder.
 
-The `sfdx sgd:source:delta` command produces 2 usefull artifacts:
+The `sfdx sgd:source:delta` command produces 2 useful artifacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains just the added/changed metadata to deploy to the target org.
 
@@ -315,7 +315,7 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 And voilà! 🥳
 
-However, keep in mind thate the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it don't get stuck by a failed destructive change.
+However, keep in mind that the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it doesn't get stuck by a failed destructive change.
 
 If needed, you can also split the added/modified metadata deployment from the deleted/renamed metadata deployment, as in the below examples:
 
@@ -363,7 +363,7 @@ _Content of the output folder when using the --generate-delta option, with the s
 ![delta-source](/img/example_generateDelta.png)
 
 > ⚠️ Use `--generate-delta (-d)` when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
-> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", checkout that commit first. Exemple:
+> If you need to use it with `--to (-t)` pointing to another commit than "HEAD", checkout that commit first. Example:
 >
 > ```sh
 > # move HEAD to the wanted past commit
