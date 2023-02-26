@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.13.3](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.2...v5.13.3) (2023-02-26)
+
+
+### Bug Fixes
+
+* `fsHelper.pathExist` when path does not exist ([#482](https://github.com/scolladon/sfdx-git-delta/issues/482)) ([fef6734](https://github.com/scolladon/sfdx-git-delta/commit/fef6734c947c7811d5d6995320f996fdfd329d2a))
+* flow translation post processing ([#487](https://github.com/scolladon/sfdx-git-delta/issues/487)) ([225c435](https://github.com/scolladon/sfdx-git-delta/commit/225c4356a95fc781f4fbe938d57709a7fa795a6e))
+* in file comparison while ignoring whitespace ([#478](https://github.com/scolladon/sfdx-git-delta/issues/478) ([0855dcc](https://github.com/scolladon/sfdx-git-delta/commit/0855dcc5bdae8cfe47788fd3201f9a44c9b2743c))
+* typos in readme ([a3459b0](https://github.com/scolladon/sfdx-git-delta/commit/a3459b0e61cee0d270a0f4c4007316a6a6b496eb))
+
 ## [5.13.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.1...v5.13.2) (2023-02-16)
 
 
