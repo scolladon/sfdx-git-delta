@@ -11,7 +11,6 @@ const {
 } = require('./childProcessUtils')
 
 const FOLDER = 'tree'
-const FATAL = 'fatal'
 
 const showCmd = ['--no-pager', 'show']
 const gitPathSeparatorNormalizer = path => path?.replace(/\\+/g, '/')
@@ -26,6 +25,7 @@ const copyFiles = async (config, src) => {
   if (!utf8Data) {
     return
   }
+
   if (utf8Data.startsWith(FOLDER)) {
     const [header, , ...files] = utf8Data.split(EOLRegex)
     const folder = header.split(':')[1]
@@ -34,8 +34,6 @@ const copyFiles = async (config, src) => {
 
       await copyFiles(config, fileSrc)
     }
-  } else if (utf8Data.startsWith(FATAL)) {
-    throw new Error(utf8Data)
   } else {
     const dst = join(config.output, treatPathSep(src))
     // Use Buffer to output the file content
@@ -63,7 +61,7 @@ const readPathFromGit = async (path, config) => {
 
 const pathExists = async (path, config) => {
   const data = await readPathFromGit(path, config)
-  return data.startsWith(FATAL)
+  return !!data
 }
 
 const readDir = async (dir, config) => {

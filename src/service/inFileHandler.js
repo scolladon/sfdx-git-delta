@@ -125,7 +125,7 @@ class InFileHandler extends StandardHandler {
   _treatInFileResult(toRemove, toAdd) {
     for (const [type, members] of toRemove) {
       ;[...members]
-        .filter(elem => !toAdd.has(type) || !toAdd.get(type).has(elem))
+        .filter(elem => !toAdd.get(type)?.has(elem))
         .forEach(fullName =>
           this._fillPackageFromDiff(
             this.diffs.destructiveChanges,

@@ -2,8 +2,9 @@
 const {
   copyFiles,
   gitPathSeparatorNormalizer,
-  readDir,
   isSubDir,
+  pathExists,
+  readDir,
   readFile,
   readPathFromGit,
   scan,
@@ -155,25 +156,19 @@ describe('copyFile', () => {
       })
     })
     describe('when content is not a git location', () => {
-      it('should throw an error', async () => {
-        expect.assertions(4)
+      it('should ignore the path', async () => {
         // Arrange
-        const fatalError = 'fatal: not a git repository'
         getStreamContent.mockImplementation(() =>
-          Promise.resolve(Buffer.from('fatal: not a git repository'))
+          Promise.resolve(Buffer.from(''))
         )
 
         // Act
-        try {
-          await copyFiles(work.config, 'source/warning', 'output/warning')
+        await copyFiles(work.config, 'source/warning', 'output/warning')
 
-          // Assert
-        } catch (error) {
-          expect(spawn).toBeCalled()
-          expect(getStreamContent).toBeCalled()
-          expect(outputFile).not.toBeCalled()
-          expect(error.message).toEqual(fatalError)
-        }
+        // Assert
+        expect(spawn).toBeCalled()
+        expect(getStreamContent).toBeCalled()
+        expect(outputFile).not.toBeCalled()
       })
     })
     describe('when content is a file', () => {
@@ -464,4 +459,58 @@ describe('isSubDir', () => {
       expect(actual).toBe(expected)
     }
   )
+
+  describe('pathExists', () => {
+    it('returns true when path is folder', async () => {
+      // Arrange
+      getStreamContent.mockImplementationOnce(() =>
+        Promise.resolve(Buffer.from('tree path\n\nfolder'))
+      )
+
+      // Act
+      const result = await pathExists('path', work.config)
+
+      // Assert
+      expect(result).toBe(true)
+    })
+    it('returns true when path is file', async () => {
+      // Arrange
+      getStreamContent.mockImplementationOnce(() =>
+        Promise.resolve(Buffer.from('{"attribut":"content"}'))
+      )
+
+      // Act
+      const result = await pathExists('path', work.config)
+
+      // Assert
+      expect(result).toBe(true)
+    })
+    it('returns false when path does not exist', async () => {
+      // Arrange
+      getStreamContent.mockImplementationOnce(() =>
+        Promise.resolve(Buffer.from(''))
+      )
+
+      // Act
+      const result = await pathExists('path', work.config)
+
+      // Assert
+      expect(result).toBe(false)
+    })
+    it('throws when spawn throws', async () => {
+      expect.assertions(1)
+      // Arrange
+      getStreamContent.mockImplementationOnce(() =>
+        Promise.reject(new Error('spawn issue'))
+      )
+
+      // Act
+      try {
+        await pathExists('path', work.config)
+        // Assert
+      } catch (error) {
+        expect(error.message).toBe('spawn issue')
+      }
+    })
+  })
 })
