@@ -42,7 +42,7 @@ class FlowTranslationProcessor extends BaseProcessor {
     const translationsIterator = scanExtension(
       this.config.source,
       EXTENSION,
-      this.work
+      this.work.config
     )
 
     const ign = await this._getIgnoreInstance()
