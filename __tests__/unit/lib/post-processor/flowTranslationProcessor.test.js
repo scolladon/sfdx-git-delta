@@ -3,6 +3,8 @@ const FlowTranslationProcessor = require('../../../../src/post-processor/flowTra
 const { mockParse } = require('fast-xml-parser')
 const {
   FLOW_DIRECTORY_NAME,
+  METAFILE_SUFFIX,
+  TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../../../../src/utils/metadataConstants')
 const {
@@ -19,6 +21,7 @@ jest.mock('../../../../src/utils/ignoreHelper')
 const FR = 'fr'
 const EN = 'en'
 const flowFullName = 'test-flow'
+const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 
 const trueAfter = (attempt = 0) => {
   let count = 0
@@ -62,6 +65,11 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(mockParse).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
@@ -79,6 +87,11 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).not.toHaveBeenCalled()
       })
@@ -101,6 +114,11 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalled()
       })
@@ -138,6 +156,11 @@ describe('FlowTranslationProcessor', () => {
 
         // Assert
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(mockParse).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
@@ -174,6 +197,11 @@ describe('FlowTranslationProcessor', () => {
           // Assert
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
           expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
           expect(mockParse).toHaveBeenCalledTimes(2)
           expect(copyFiles).not.toHaveBeenCalled()
         })
@@ -201,6 +229,11 @@ describe('FlowTranslationProcessor', () => {
               // Assert
               expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
               expect(scanExtension).toHaveBeenCalledTimes(1)
+              expect(scanExtension).toHaveBeenCalledWith(
+                work.config.source,
+                EXTENSION,
+                work.config
+              )
               expect(mockParse).toHaveBeenCalledTimes(2)
               if (generateDelta) expect(copyFiles).toHaveBeenCalledTimes(2)
               else expect(copyFiles).not.toHaveBeenCalled()
@@ -223,6 +256,11 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(forPath).toHaveBeenCalledTimes(1)
         expect(mockParse).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
@@ -245,6 +283,11 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(forPath).toHaveBeenCalledTimes(1)
         expect(mockParse).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(1)
@@ -274,6 +317,11 @@ describe('FlowTranslationProcessor', () => {
         // Assert
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         expect(scanExtension).toHaveBeenCalledTimes(1)
+        expect(scanExtension).toHaveBeenCalledWith(
+          work.config.source,
+          EXTENSION,
+          work.config
+        )
         expect(mockParse).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
