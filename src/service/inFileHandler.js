@@ -1,12 +1,6 @@
 'use strict'
-const fileGitDiff = require('../utils/fileGitDiff')
-const { MINUS, PLUS } = require('../utils/gitConstants')
 const {
-  FULLNAME,
-  FULLNAME_XML_TAG,
   LABEL_DIRECTORY_NAME,
-  LABEL_EXTENSION,
-  XML_TAG,
   XML_HEADER_TAG_END,
 } = require('../utils/metadataConstants')
 const { readPathFromGit } = require('../utils/fsHelper')
@@ -17,6 +11,21 @@ const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 const { asArray } = require('../utils/fxpHelper')
 const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('../utils/fxpHelper')
 const { treatPathSep } = require('../utils/childProcessUtils')
+const { isEqual } = require('lodash')
+
+const parseFile = async (line, config) => {
+  const file = await readPathFromGit(line, config)
+  const xmlParser = new XMLParser(XML_PARSER_OPTION)
+  const result = xmlParser.parse(file)
+
+  const authorizedKeys = Object.values(result)
+    .flatMap(tag => Object.keys(tag))
+    .filter(tag => InFileHandler.xmlObjectToPackageType.has(tag))
+  return {
+    authorizedKeys: authorizedKeys,
+    fileContent: result,
+  }
+}
 
 class InFileHandler extends StandardHandler {
   static xmlObjectToPackageType
@@ -56,7 +65,7 @@ class InFileHandler extends StandardHandler {
   }
 
   async _handleFileWriting(toAdd) {
-    const result = await this._parseFile()
+    const result = await parseFile(this.line, this.config)
     const metadataContent = Object.values(result.fileContent)[1]
 
     result.authorizedKeys.forEach(subType => {
@@ -84,42 +93,65 @@ class InFileHandler extends StandardHandler {
       fullName: null,
     }
 
-    const diffContentIterator = fileGitDiff(this.line, this.config)
-    for await (const line of diffContentIterator) {
-      this._preProcessHandleInDiff(line, data)
-      if (!data.subType || !data.fullName) continue
-      this._postProcessHandleInDiff(line, data)
-    }
+    const toFile = await parseFile(this.line, this.config)
+    const fromFile = await parseFile(this.line, {
+      ...this.config,
+      to: this.config.from,
+    })
+
+    const toFileContent = Object.values(toFile.fileContent)[1]
+    const fromFileContent = Object.values(fromFile.fileContent)[1]
+
+    // Compute added
+    toFile.authorizedKeys.forEach(subType => {
+      const childType = `${this.parentMetadata.directoryName}.${subType}`
+      const toMeta = asArray(toFileContent?.[subType])
+      const fromMeta = asArray(fromFileContent?.[subType])
+      toMeta
+        .filter(elem => !fromMeta.some(f => f.fullName === elem.fullName))
+        .forEach(elem => {
+          if (!data.toAdd.has(childType)) {
+            data.toAdd.set(childType, new Set())
+          }
+          data.toAdd.get(childType).add(elem.fullName)
+        })
+    })
+
+    // Compute deleted (added inverted)
+    fromFile.authorizedKeys.forEach(subType => {
+      const childType = `${this.parentMetadata.directoryName}.${subType}`
+      const toMeta = asArray(toFileContent?.[subType])
+      const fromMeta = asArray(fromFileContent?.[subType])
+      fromMeta
+        .filter(elem => !toMeta.some(f => f.fullName === elem.fullName))
+        .forEach(elem => {
+          if (!data.toDel.has(childType)) {
+            data.toDel.set(childType, new Set())
+          }
+          data.toDel.get(childType).add(elem.fullName)
+        })
+    })
+
+    // Compute changed (same fullname different content)
+    toFile.authorizedKeys.forEach(subType => {
+      const childType = `${this.parentMetadata.directoryName}.${subType}`
+      const toMeta = asArray(toFileContent?.[subType])
+      const fromMeta = asArray(fromFileContent?.[subType])
+      toMeta
+        .filter(elem => {
+          const fromElem = fromMeta.find(f => f.fullName === elem.fullName)
+          return !isEqual(fromElem, elem)
+        })
+        .forEach(elem => {
+          if (!data.toAdd.has(childType)) {
+            data.toAdd.set(childType, new Set())
+          }
+          data.toAdd.get(childType).add(elem.fullName)
+        })
+    })
+
     this._treatInFileResult(data.toDel, data.toAdd)
     return data.toAdd
-  }
-
-  _preProcessHandleInDiff(line, data) {
-    if (FULLNAME_XML_TAG.test(line)) {
-      data.fullName = line.match(FULLNAME_XML_TAG)[1]
-      data.subType = `${this.parentMetadata.directoryName}.${data.potentialType}`
-    }
-    const xmlTagMatchResult = line.match(XML_TAG)
-    if (InFileHandler._matchAllowedXmlTag(xmlTagMatchResult)) {
-      data.potentialType = xmlTagMatchResult[1]
-      data.fullName = null
-    }
-  }
-
-  _postProcessHandleInDiff(line, data) {
-    let tempMap
-    if (line.startsWith(MINUS) && line.includes(FULLNAME)) {
-      tempMap = data.toDel
-    } else if (line.startsWith(PLUS) || line.startsWith(MINUS)) {
-      tempMap = data.toAdd
-    }
-    if (tempMap) {
-      if (!tempMap.has(data.subType)) {
-        tempMap.set(data.subType, new Set())
-      }
-      tempMap.get(data.subType).add(data.fullName)
-      data.subType = data.fullName = null
-    }
   }
 
   _treatInFileResult(toRemove, toAdd) {
@@ -141,45 +173,18 @@ class InFileHandler extends StandardHandler {
     }
   }
 
-  async _parseFile() {
-    const file = await readPathFromGit(this.line, this.config)
-    const xmlParser = new XMLParser(XML_PARSER_OPTION)
-    const result = xmlParser.parse(file)
-
-    const authorizedKeys = Object.values(result)
-      .flatMap(tag => Object.keys(tag))
-      .filter(tag => InFileHandler.xmlObjectToPackageType.has(tag))
-    return {
-      authorizedKeys: authorizedKeys,
-      fileContent: result,
-    }
-  }
-
-  _fillPackage(packageObject) {
-    if (this.type !== LABEL_EXTENSION) {
-      super._fillPackage(packageObject)
-    }
-  }
-
   _fillPackageFromDiff(packageObject, subType, value) {
-    const elementFullName = `${
-      (subType !== LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
-      value
-    }`
+    const elementFullName = StandardHandler.cleanUpPackageMember(
+      `${
+        (subType !== LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
+        value
+      }`
+    )
 
     if (!packageObject.has(subType)) {
       packageObject.set(subType, new Set())
     }
-    packageObject
-      .get(subType)
-      .add(StandardHandler.cleanUpPackageMember(elementFullName))
-  }
-
-  static _matchAllowedXmlTag(matchResult) {
-    return (
-      matchResult?.[1] &&
-      InFileHandler.xmlObjectToPackageType.has(matchResult?.[1])
-    )
+    packageObject.get(subType).add(elementFullName)
   }
 }
 
