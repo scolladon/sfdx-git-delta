@@ -39,42 +39,41 @@ Rebuild every time you made a change in the source and you need to test locally
 
 ## Debugging with Visual Studio Code debugger
 
-1. Open `.vscode/launch.json` in the root of this project, and change the following properties:
+If you are unfamiliar with Visual Studio Code debugging tools, read this [documentation](https://code.visualstudio.com/docs/nodejs/nodejs-debugging) before continuing.
 
-- `cwd` : full path of a working sfdx project. This will make sure sgd runs on the sfdx project you are using for your tests.
-- `args`: use this property to choose an Ocliff command and its flags.
 
-For example, the following list of arg runs `sgd:source:delta -o sgd -f release/production -d -i .sgdignore` in the `cwd` while also allowing me to inspect its source code at runtime.
-````json
-"args": [
-	"sgd:source:delta",
-	"-o",
-	"sgd",
-	"-f",
-	"release/production",
-	"-d",
-	"-i",
-	".sgdignore"
-]
-````
-
-2. Add your breakpoints in the code that is located in the `src` folder.
+1. Add breakpoints in the source code.
 
 ![delta_principle](/img/debug_step_2.png)
 
-3. Run `yarn build`.
+2. If you made changes to code, run `yarn build` before starting the debugger.
 
 ![delta_principle](/img/debug_step_3.png)
 
-4. In the sidebar, click on the `Run and Debug` button.
+3. In the Visual Studio Code's sidebar menu, click on the `Run and Debug` button.
 
 ![delta_principle](/img/debug_step_4.png)
 
-5. Select the `Debug sgd:source:delta` configuration
+4. Select the command you want to execute.
 
 ![delta_principle](/img/debug_step_5.png)
 
-6. Click on the play button
+
+````shell
+full sgd:source:delta          :asks values for all string and number flags
+full sgd:source:delta -d       :asks values for all string and number flags, and runs with -d
+full sgd:source:delta -W       :asks values for all string and number flags, and runs with -W
+full sgd:source:delta -d -W    :asks values for all string and number flags, and runs with -d and -W
+
+simple sgd:source:delta        :asks value for the -f only
+simple sgd:source:delta -d     :asks value for the -f only, and runs with -d
+simple sgd:source:delta -W     :asks value for the -f only, and runs with -W
+simple sgd:source:delta -d -W  :asks value for the -f only, and runs with -d and -W
+````
+
+
+
+5. Click on the play button to start debugging
 
 ![delta_principle](/img/debug_step_6.png)
 
