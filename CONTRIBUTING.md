@@ -28,13 +28,58 @@ This will install all the tools needed to contribute
 yarn
 ```
 
-### 2) Build application
+### 3) Build application
 
 ```bash
 yarn pack
 ```
 
 Rebuild every time you made a change in the source and you need to test locally
+
+
+## Debugging with Visual Studio Code debugger
+
+1. Open `.vscode/launch.json` in the root of this project, and change the following properties:
+
+- `cwd` : full path of a working sfdx project. This will make sure sgd runs on the sfdx project you are using for your tests.
+- `args`: use this property to choose an Ocliff command and its flags.
+
+For example, the following list of arg runs `sgd:source:delta -o sgd -f release/production -d -i .sgdignore` in the `cwd` while also allowing me to inspect its source code at runtime.
+````json
+"args": [
+	"sgd:source:delta",
+	"-o",
+	"sgd",
+	"-f",
+	"release/production",
+	"-d",
+	"-i",
+	".sgdignore"
+]
+````
+
+2. Add your breakpoints in the code that is located in the `src` folder.
+
+![delta_principle](/img/debug_step_2.png)
+
+3. Run `yarn build`.
+
+![delta_principle](/img/debug_step_3.png)
+
+4. In the sidebar, click on the `Run and Debug` button.
+
+![delta_principle](/img/debug_step_4.png)
+
+5. Select the `Debug sgd:source:delta` configuration
+
+![delta_principle](/img/debug_step_5.png)
+
+6. Click on the play button
+
+![delta_principle](/img/debug_step_6.png)
+
+
+
 
 ## Testing
 

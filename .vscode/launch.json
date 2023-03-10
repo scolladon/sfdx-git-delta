@@ -1,0 +1,23 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+
+	  {
+		"type": "node",
+		"request": "launch",
+		"name": "Debug sgd:source:delta",
+		"program": "${workspaceFolder}/bin/run",
+		"cwd": "/Users/allanoricil/sf-metadata",
+		"args": [
+		  "sgd:source:delta",
+		  "-o",
+		  "sgd",
+		  "-f",
+		  "release/production",
+		  "-d",
+		  "-i",
+		  ".sgdignore"
+		]
+	  }
+	]
+  }
