@@ -33,7 +33,6 @@ class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
     this.parentMetadata = StandardHandler.metadata.get(this.type)
-    this.customLabelElementName = `${basename(this.line).split('.')[0]}.`
     InFileHandler.xmlObjectToPackageType =
       InFileHandler.xmlObjectToPackageType ??
       [...StandardHandler.metadata.keys()]
@@ -46,14 +45,19 @@ class InFileHandler extends StandardHandler {
             ),
           new Map()
         )
+
+    this.diff = {
+      toDel: new Map(),
+      toAdd: new Map(),
+    }
   }
 
   async handleAddition() {
     await super.handleAddition()
-    const toAdd = await this._handleInDiff()
+    await this._handleInDiff()
 
     if (!this.config.generateDelta) return
-    await this._handleFileWriting(toAdd)
+    await this._handleFileWriting()
   }
 
   async handleDeletion() {
@@ -64,11 +68,11 @@ class InFileHandler extends StandardHandler {
     await this.handleAddition()
   }
 
-  async _handleFileWriting(toAdd) {
-    const result = await parseFile(this.line, this.config)
-    const metadataContent = Object.values(result.fileContent)[1]
+  async _handleFileWriting() {
+    const toAdd = this.diff.toAdd
+    const metadataContent = Object.values(this.toFile.fileContent)[1]
 
-    result.authorizedKeys.forEach(subType => {
+    this.toFile.authorizedKeys.forEach(subType => {
       const meta = asArray(metadataContent[subType])
       metadataContent[subType] = meta.filter(elem =>
         toAdd
@@ -77,7 +81,7 @@ class InFileHandler extends StandardHandler {
       )
     })
     const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-    const xmlContent = xmlBuilder.build(result.fileContent)
+    const xmlContent = xmlBuilder.build(this.toFile.fileContent)
     await outputFile(
       join(this.config.output, treatPathSep(this.line)),
       xmlContent.replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}\n`)
@@ -85,14 +89,6 @@ class InFileHandler extends StandardHandler {
   }
 
   async _handleInDiff() {
-    const data = {
-      toDel: new Map(),
-      toAdd: new Map(),
-      potentialType: null,
-      subType: null,
-      fullName: null,
-    }
-
     const toFile = await parseFile(this.line, this.config)
     const fromFile = await parseFile(this.line, {
       ...this.config,
@@ -110,10 +106,10 @@ class InFileHandler extends StandardHandler {
       toMeta
         .filter(elem => !fromMeta.some(f => f.fullName === elem.fullName))
         .forEach(elem => {
-          if (!data.toAdd.has(childType)) {
-            data.toAdd.set(childType, new Set())
+          if (!this.diff.toAdd.has(childType)) {
+            this.diff.toAdd.set(childType, new Set())
           }
-          data.toAdd.get(childType).add(elem.fullName)
+          this.diff.toAdd.get(childType).add(elem.fullName)
         })
     })
 
@@ -125,10 +121,10 @@ class InFileHandler extends StandardHandler {
       fromMeta
         .filter(elem => !toMeta.some(f => f.fullName === elem.fullName))
         .forEach(elem => {
-          if (!data.toDel.has(childType)) {
-            data.toDel.set(childType, new Set())
+          if (!this.diff.toDel.has(childType)) {
+            this.diff.toDel.set(childType, new Set())
           }
-          data.toDel.get(childType).add(elem.fullName)
+          this.diff.toDel.get(childType).add(elem.fullName)
         })
     })
 
@@ -143,21 +139,21 @@ class InFileHandler extends StandardHandler {
           return !isEqual(fromElem, elem)
         })
         .forEach(elem => {
-          if (!data.toAdd.has(childType)) {
-            data.toAdd.set(childType, new Set())
+          if (!this.diff.toAdd.has(childType)) {
+            this.diff.toAdd.set(childType, new Set())
           }
-          data.toAdd.get(childType).add(elem.fullName)
+          this.diff.toAdd.get(childType).add(elem.fullName)
         })
     })
 
-    this._treatInFileResult(data.toDel, data.toAdd)
-    return data.toAdd
+    this._treatInFileResult()
+    this.toFile = toFile
   }
 
-  _treatInFileResult(toRemove, toAdd) {
-    for (const [type, members] of toRemove) {
+  _treatInFileResult() {
+    for (const [type, members] of this.diff.toDel) {
       ;[...members]
-        .filter(elem => !toAdd.get(type)?.has(elem))
+        .filter(elem => !this.diff.toAdd.get(type)?.has(elem))
         .forEach(fullName =>
           this._fillPackageFromDiff(
             this.diffs.destructiveChanges,
@@ -166,7 +162,7 @@ class InFileHandler extends StandardHandler {
           )
         )
     }
-    for (const [type, members] of toAdd) {
+    for (const [type, members] of this.diff.toAdd) {
       for (let fullName of members) {
         this._fillPackageFromDiff(this.diffs.package, type, fullName)
       }
@@ -176,8 +172,9 @@ class InFileHandler extends StandardHandler {
   _fillPackageFromDiff(packageObject, subType, value) {
     const elementFullName = StandardHandler.cleanUpPackageMember(
       `${
-        (subType !== LABEL_DIRECTORY_NAME ? this.customLabelElementName : '') +
-        value
+        (subType !== LABEL_DIRECTORY_NAME
+          ? `${basename(this.line).split('.')[0]}.`
+          : '') + value
       }`
     )
 
