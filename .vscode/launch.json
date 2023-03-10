@@ -160,7 +160,7 @@
 		  "sgd:source:delta",
 		  "-f",
 		  "${input:sgdSourceDeltaFrom}",
-		  "-d",
+		  "-W",
 		]
 	  },
 	  {
