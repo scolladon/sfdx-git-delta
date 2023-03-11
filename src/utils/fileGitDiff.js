@@ -34,17 +34,17 @@ class FileGitDiff {
   async compare(path) {
     const added = new Map()
     const deleted = new Map()
-    this.contentAtToRef = await parseXmlFileToJson(path, this.config)
+    const contentAtToRef = await parseXmlFileToJson(path, this.config)
     const contentAtFromRef = await parseXmlFileToJson(path, {
       repo: this.config.repo,
       to: this.config.from,
     })
 
-    const getToMetadataFor = metadataExtractorFor(this.contentAtToRef)
+    const getToMetadataFor = metadataExtractorFor(contentAtToRef)
     const getFromMetadataFor = metadataExtractorFor(contentAtFromRef)
 
     // Compute added
-    authorizedKeys(this.contentAtToRef).forEach(subType => {
+    authorizedKeys(contentAtToRef).forEach(subType => {
       const childType = `${this.parentDirectoryName}.${subType}`
       const toMeta = getToMetadataFor(subType)
       const fromMeta = getFromMetadataFor(subType)
@@ -74,7 +74,7 @@ class FileGitDiff {
     })
 
     // Compute changed (same fullname different content)
-    authorizedKeys(this.contentAtToRef).forEach(subType => {
+    authorizedKeys(contentAtToRef).forEach(subType => {
       const childType = `${this.parentDirectoryName}.${subType}`
       const toMeta = getToMetadataFor(subType)
       const fromMeta = getFromMetadataFor(subType)
@@ -94,6 +94,7 @@ class FileGitDiff {
     })
 
     this.added = added
+    this.contentAtToRef = contentAtToRef
 
     return {
       added,
@@ -101,7 +102,7 @@ class FileGitDiff {
     }
   }
 
-  async scope() {
+  pruneContent() {
     const added = this.added
     const scopedJsonContent = cloneDeep(this.contentAtToRef)
     const getMetadataFor = metadataExtractorFor(this.contentAtToRef)

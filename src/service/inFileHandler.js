@@ -49,7 +49,7 @@ class InFileHandler extends StandardHandler {
   }
 
   async _writeScopedContent() {
-    const xmlContent = await this.fileGitDiff.scope()
+    const xmlContent = this.fileGitDiff.pruneContent()
     await writeFile(this.line, xmlContent, this.config)
   }
 
