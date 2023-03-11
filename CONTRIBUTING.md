@@ -36,50 +36,6 @@ yarn pack
 
 Rebuild every time you made a change in the source and you need to test locally
 
-
-## Debugging with Visual Studio Code debugger
-
-If you are unfamiliar with Visual Studio Code debugging tools, read this [documentation](https://code.visualstudio.com/docs/nodejs/nodejs-debugging) before continuing.
-
-
-1. Add breakpoints in the source code.
-
-![delta_principle](/img/debug_step_2.png)
-
-2. If you made changes to code, run `yarn build` before starting the debugger.
-
-![delta_principle](/img/debug_step_3.png)
-
-3. In the Visual Studio Code's sidebar menu, click on the `Run and Debug` button.
-
-![delta_principle](/img/debug_step_4.png)
-
-4. Select the command you want to execute.
-
-![delta_principle](/img/debug_step_5.png)
-
-
-````shell
-full sgd:source:delta          :asks values for all string and number flags
-full sgd:source:delta -d       :asks values for all string and number flags, and runs with -d
-full sgd:source:delta -W       :asks values for all string and number flags, and runs with -W
-full sgd:source:delta -d -W    :asks values for all string and number flags, and runs with -d and -W
-
-simple sgd:source:delta        :asks value for the -f only
-simple sgd:source:delta -d     :asks value for the -f only, and runs with -d
-simple sgd:source:delta -W     :asks value for the -f only, and runs with -W
-simple sgd:source:delta -d -W  :asks value for the -f only, and runs with -d and -W
-````
-
-
-
-5. Click on the play button to start debugging
-
-![delta_principle](/img/debug_step_6.png)
-
-
-
-
 ## Testing
 
 ### Unit Testing sgd
