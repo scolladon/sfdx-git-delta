@@ -12,6 +12,10 @@ const {
   fillPackageWithParameter,
 } = require('../utils/packageHelper')
 
+const getRootType = line => basename(line).split('.')[0]
+const getNamePreffix = ({ subType, line }) =>
+  subType !== LABEL_DIRECTORY_NAME ? `${getRootType(line)}.` : ''
+
 class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
@@ -58,25 +62,24 @@ class InFileHandler extends StandardHandler {
   }
 
   _fillPackage(store, subType, fullName) {
-    if (subType && fullName) {
-      const elementName = cleanUpPackageMember(
-        `${
-          subType !== LABEL_DIRECTORY_NAME
-            ? `${basename(this.line).split('.')[0]}.`
-            : ''
-        }${fullName}`
-      )
-
-      fillPackageWithParameter({
-        store,
-        type: subType,
-        elementName,
-      })
-    } else {
+    // Call from super.handleAddition to add the Root Type
+    // InFile element are not deployable when root component is not listed in package.xml...
+    if (arguments.length === 1) {
       if (this.type !== LABEL_EXTENSION) {
         super._fillPackage(store)
       }
+      return
     }
+
+    const elementName = cleanUpPackageMember(
+      `${getNamePreffix({ subType, line: this.line })}${fullName}`
+    )
+
+    fillPackageWithParameter({
+      store,
+      type: subType,
+      elementName,
+    })
   }
 }
 
