@@ -1,12 +1,9 @@
 'use strict'
 const { readFile: fsReadFile } = require('fs').promises
-const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 const { isAbsolute, join, relative } = require('path')
 const { outputFile } = require('fs-extra')
 const { spawn } = require('child_process')
-const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('./fxpHelper')
 const { UTF8_ENCODING } = require('./gitConstants')
-const { XML_HEADER_TAG_END } = require('./metadataConstants')
 const {
   EOLRegex,
   getStreamContent,
@@ -62,12 +59,6 @@ const readPathFromGit = async (path, config) => {
   return utf8Data
 }
 
-const parseFile = async (line, config) => {
-  const file = await readPathFromGit(line, config)
-  const xmlParser = new XMLParser(XML_PARSER_OPTION)
-  return xmlParser.parse(file)
-}
-
 const pathExists = async (path, config) => {
   const data = await readPathFromGit(path, config)
   return !!data
@@ -102,13 +93,8 @@ async function* scan(dir, config) {
   }
 }
 
-const writeFile = async (path, jsonContent, config) => {
-  const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-  const xmlContent = xmlBuilder.build(jsonContent)
-  await outputFile(
-    join(config.output, treatPathSep(path)),
-    xmlContent.replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}`)
-  )
+const writeFile = async (path, content, { output }) => {
+  await outputFile(join(output, treatPathSep(path)), content)
 }
 
 async function* filterExt(it, ext) {
@@ -127,7 +113,6 @@ const isSubDir = (parent, dir) => {
 module.exports.copyFiles = copyFiles
 module.exports.gitPathSeparatorNormalizer = gitPathSeparatorNormalizer
 module.exports.isSubDir = isSubDir
-module.exports.parseFile = parseFile
 module.exports.pathExists = pathExists
 module.exports.readDir = readDir
 module.exports.readFile = readFile

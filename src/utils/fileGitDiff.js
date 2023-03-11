@@ -1,7 +1,6 @@
 'use strict'
 
-const { parseFile } = require('./fsHelper')
-const { asArray } = require('./fxpHelper')
+const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
 const { cloneDeep, isEqual } = require('lodash')
 
 let xmlObjectToPackageType
@@ -35,8 +34,8 @@ class FileGitDiff {
   async compare(path) {
     const added = new Map()
     const deleted = new Map()
-    this.contentAtToRef = await parseFile(path, this.config)
-    const contentAtFromRef = await parseFile(path, {
+    this.contentAtToRef = await parseXmlFileToJson(path, this.config)
+    const contentAtFromRef = await parseXmlFileToJson(path, {
       repo: this.config.repo,
       to: this.config.from,
     })
@@ -104,9 +103,9 @@ class FileGitDiff {
 
   async scope() {
     const added = this.added
-    const scopedContent = cloneDeep(this.contentAtToRef)
+    const scopedJsonContent = cloneDeep(this.contentAtToRef)
     const getMetadataFor = metadataExtractorFor(this.contentAtToRef)
-    const scopedRoot = extractRootMetadata(scopedContent)
+    const scopedRoot = extractRootMetadata(scopedJsonContent)
 
     authorizedKeys(this.contentAtToRef).forEach(subType => {
       const meta = getMetadataFor(subType)
@@ -117,7 +116,7 @@ class FileGitDiff {
       )
     })
 
-    return scopedContent
+    return convertJsonToXml(scopedJsonContent)
   }
 }
 

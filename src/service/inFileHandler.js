@@ -49,8 +49,8 @@ class InFileHandler extends StandardHandler {
   }
 
   async _writeScopedContent() {
-    const scopedFile = await this.fileGitDiff.scope()
-    await writeFile(this.line, scopedFile, this.config)
+    const xmlContent = await this.fileGitDiff.scope()
+    await writeFile(this.line, xmlContent, this.config)
   }
 
   _storeComparison(store, content) {
