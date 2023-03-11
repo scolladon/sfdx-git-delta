@@ -11,6 +11,7 @@ const XML_PARSER_OPTION = {
   parseNodeValue: false,
   parseAttributeValue: false,
   trimValues: true,
+  processEntities: false,
 }
 const JSON_PARSER_OPTION = {
   ...XML_PARSER_OPTION,
