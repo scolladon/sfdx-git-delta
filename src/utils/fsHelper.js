@@ -1,9 +1,12 @@
 'use strict'
 const { readFile: fsReadFile } = require('fs').promises
+const { XMLBuilder, XMLParser } = require('fast-xml-parser')
 const { isAbsolute, join, relative } = require('path')
 const { outputFile } = require('fs-extra')
 const { spawn } = require('child_process')
-const { UTF8_ENCODING } = require('../utils/gitConstants')
+const { XML_PARSER_OPTION, JSON_PARSER_OPTION } = require('./fxpHelper')
+const { UTF8_ENCODING } = require('./gitConstants')
+const { XML_HEADER_TAG_END } = require('./metadataConstants')
 const {
   EOLRegex,
   getStreamContent,
@@ -42,11 +45,11 @@ const copyFiles = async (config, src) => {
   }
 }
 
-const readPathFromGitAsBuffer = async (path, config) => {
+const readPathFromGitAsBuffer = async (path, { repo, to }) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
   const bufferData = await getStreamContent(
-    spawn('git', [...showCmd, `${config.to}:${normalizedPath}`], {
-      cwd: config.repo,
+    spawn('git', [...showCmd, `${to}:${normalizedPath}`], {
+      cwd: repo,
     })
   )
 
@@ -57,6 +60,12 @@ const readPathFromGit = async (path, config) => {
   const bufferData = await readPathFromGitAsBuffer(path, config)
   const utf8Data = bufferData.toString(UTF8_ENCODING)
   return utf8Data
+}
+
+const parseFile = async (line, config) => {
+  const file = await readPathFromGit(line, config)
+  const xmlParser = new XMLParser(XML_PARSER_OPTION)
+  return xmlParser.parse(file)
 }
 
 const pathExists = async (path, config) => {
@@ -93,6 +102,15 @@ async function* scan(dir, config) {
   }
 }
 
+const writeFile = async (path, jsonContent, config) => {
+  const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
+  const xmlContent = xmlBuilder.build(jsonContent)
+  await outputFile(
+    join(config.output, treatPathSep(path)),
+    xmlContent.replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}`)
+  )
+}
+
 async function* filterExt(it, ext) {
   for await (const file of it) {
     if (file.endsWith(ext)) {
@@ -109,6 +127,7 @@ const isSubDir = (parent, dir) => {
 module.exports.copyFiles = copyFiles
 module.exports.gitPathSeparatorNormalizer = gitPathSeparatorNormalizer
 module.exports.isSubDir = isSubDir
+module.exports.parseFile = parseFile
 module.exports.pathExists = pathExists
 module.exports.readDir = readDir
 module.exports.readFile = readFile
@@ -116,3 +135,4 @@ module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
 module.exports.scanExtension = (dir, ext, config) =>
   filterExt(scan(dir, config), ext)
+module.exports.writeFile = writeFile
