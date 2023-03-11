@@ -55,8 +55,9 @@
     "test:debug": "node --inspect node_modules/.bin/jest",
     "test:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "test:watch": "jest --watch",
+    "build": "rm -rf lib && tsc -b",
     "postpack": "rm -f oclif.manifest.json && prettier --write README.md",
-    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky install",
     "increment:apiversion": "filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname",
     "upgrade:dependencies": "yarn yarn-upgrade-all"

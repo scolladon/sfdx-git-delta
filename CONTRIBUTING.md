@@ -28,7 +28,7 @@ This will install all the tools needed to contribute
 yarn
 ```
 
-### 2) Build application
+### 3) Build application
 
 ```bash
 yarn pack
