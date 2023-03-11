@@ -8,7 +8,7 @@ class WaveHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
 
-    StandardHandler.metadata
+    this.metadata
       .get(this.type)
       .content.reduce(
         (acc, val) => acc.set(val.suffix, val.xmlName),

@@ -23,8 +23,7 @@ class InFolderHandler extends StandardHandler {
     const [, folderPath, folderName] = this._parseLine()
 
     const folderFileName = `${folderName}.${
-      StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
-      METAFILE_SUFFIX
+      this.metadata.get(this.type).suffix.toLowerCase() + METAFILE_SUFFIX
     }`
 
     await this._copyWithMetaFile(join(folderPath, folderFileName))

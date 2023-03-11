@@ -58,10 +58,10 @@ class ResourceHandler extends StandardHandler {
   _buildMatchingFiles(elementName) {
     const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
-    if (StandardHandler.metadata.get(this.type).metaFile) {
+    if (this.metadata.get(this.type).metaFile) {
       matchingFiles.push(
         `${parsedElementName}.${
-          StandardHandler.metadata.get(this.type).suffix
+          this.metadata.get(this.type).suffix
         }${METAFILE_SUFFIX}`
       )
     }

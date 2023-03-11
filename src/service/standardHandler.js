@@ -16,10 +16,8 @@ const { copyFiles } = require('../utils/fsHelper')
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 class StandardHandler {
-  static metadata
-
   constructor(line, type, work, metadata) {
-    StandardHandler.metadata = StandardHandler.metadata ?? metadata
+    this.metadata = metadata
     ;[this.changeType] = line
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
@@ -30,13 +28,11 @@ class StandardHandler {
     this.warnings = work.warnings
     this.splittedLine = this.line.split(sep)
 
-    if (StandardHandler.metadata.get(this.type).metaFile === true) {
+    if (this.metadata.get(this.type).metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
-    this.suffixRegex = new RegExp(
-      `\\.${StandardHandler.metadata.get(this.type).suffix}$`
-    )
+    this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type).suffix}$`)
 
     this.handlerMap = {
       [ADDITION]: this.handleAddition,
@@ -102,7 +98,7 @@ class StandardHandler {
   async _copyWithMetaFile(src) {
     await copyFiles(this.config, src)
     if (
-      StandardHandler.metadata.get(this.type).metaFile === true &&
+      this.metadata.get(this.type).metaFile === true &&
       !`${src}`.endsWith(METAFILE_SUFFIX)
     ) {
       await copyFiles(this.config, this._getMetaTypeFilePath(src))
@@ -121,7 +117,7 @@ class StandardHandler {
     return this.line.match(
       new RegExp(
         `(?<path>.*[/\\\\]${RegExpEscape(
-          StandardHandler.metadata.get(this.type).directoryName
+          this.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
