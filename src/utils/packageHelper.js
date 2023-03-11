@@ -48,14 +48,14 @@ module.exports = class PackageBuilder {
 }
 
 const fillPackageWithParameter = ({ store, type, elementName }) => {
-  safeAdd(store)(type)(elementName)
+  safeAdd({ store, type, elementName })
 }
 
-const safeAdd = struct => type => name => {
-  if (!struct.has(type)) {
-    struct.set(type, new Set())
+const safeAdd = ({ store, type, elementName }) => {
+  if (!store.has(type)) {
+    store.set(type, new Set())
   }
-  struct.get(type).add(name)
+  store.get(type).add(elementName)
 }
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
