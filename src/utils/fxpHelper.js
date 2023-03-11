@@ -23,9 +23,9 @@ const asArray = node => {
 }
 
 const parseXmlFileToJson = async (line, config) => {
-  const file = await readPathFromGit(line, config)
+  const xmlContent = await readPathFromGit(line, config)
   const xmlParser = new XMLParser(XML_PARSER_OPTION)
-  return xmlParser.parse(file)
+  return xmlParser.parse(xmlContent)
 }
 
 const convertJsonToXml = jsonContent => {
