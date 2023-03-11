@@ -9,6 +9,7 @@ const {
   readPathFromGit,
   scan,
   scanExtension,
+  writeFile,
 } = require('../../../../src/utils/fsHelper')
 const {
   getStreamContent,
@@ -512,5 +513,26 @@ describe('isSubDir', () => {
         expect(error.message).toBe('spawn issue')
       }
     })
+  })
+
+  describe('writeFile', () => {
+    beforeEach(() => {
+      treatPathSep.mockReturnValueOnce('folder/file')
+    })
+
+    it.each(['folder/file', 'folder\\file'])(
+      'write the content to the file system',
+      async path => {
+        // Arrange
+        const output = 'root'
+        const content = 'content'
+
+        // Act
+        await writeFile(path, content, { output })
+
+        // Assert
+        expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
+      }
+    )
   })
 })
