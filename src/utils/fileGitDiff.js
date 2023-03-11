@@ -2,6 +2,7 @@
 
 const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
 const { cloneDeep, isEqual } = require('lodash')
+const { safeAdd } = require('./packageHelper')
 
 let xmlObjectToPackageType
 
@@ -15,6 +16,21 @@ const authorizedKeys = fileContent =>
 // composition of asArray and extractRootMetadata
 const metadataExtractorFor = fileContent => subType =>
   asArray(extractRootMetadata(fileContent)?.[subType])
+
+const diff =
+  dirName => (contentAtRef, baseExtractor, otherExtractor, store, predicat) => {
+    predicat =
+      predicat ??
+      (otherMeta => elem => !otherMeta.some(f => f.fullName === elem.fullName))
+    authorizedKeys(contentAtRef).forEach(subType => {
+      const childType = `${dirName}.${subType}`
+      const baseMeta = baseExtractor(subType)
+      const otherMeta = otherExtractor(subType)
+      baseMeta
+        .filter(elem => predicat(otherMeta)(elem))
+        .forEach(elem => safeAdd(store)(childType)(elem.fullName))
+    })
+  }
 
 class FileGitDiff {
   constructor(parentDirectoryName, config, metadata) {
@@ -42,56 +58,27 @@ class FileGitDiff {
 
     const getToMetadataFor = metadataExtractorFor(contentAtToRef)
     const getFromMetadataFor = metadataExtractorFor(contentAtFromRef)
+    const diffForDir = diff(this.parentDirectoryName)
 
-    // Compute added
-    authorizedKeys(contentAtToRef).forEach(subType => {
-      const childType = `${this.parentDirectoryName}.${subType}`
-      const toMeta = getToMetadataFor(subType)
-      const fromMeta = getFromMetadataFor(subType)
-      toMeta
-        .filter(elem => !fromMeta.some(f => f.fullName === elem.fullName))
-        .forEach(elem => {
-          if (!added.has(childType)) {
-            added.set(childType, new Set())
-          }
-          added.get(childType).add(elem.fullName)
-        })
-    })
+    // added elements
+    diffForDir(contentAtToRef, getToMetadataFor, getFromMetadataFor, added)
 
-    // Compute deleted (added inverted)
-    authorizedKeys(contentAtFromRef).forEach(subType => {
-      const childType = `${this.parentDirectoryName}.${subType}`
-      const toMeta = getToMetadataFor(subType)
-      const fromMeta = getFromMetadataFor(subType)
-      fromMeta
-        .filter(elem => !toMeta.some(f => f.fullName === elem.fullName))
-        .forEach(elem => {
-          if (!deleted.has(childType)) {
-            deleted.set(childType, new Set())
-          }
-          deleted.get(childType).add(elem.fullName)
-        })
-    })
+    // deleted elements
+    diffForDir(contentAtFromRef, getFromMetadataFor, getToMetadataFor, deleted)
 
-    // Compute changed (same fullname different content)
-    authorizedKeys(contentAtToRef).forEach(subType => {
-      const childType = `${this.parentDirectoryName}.${subType}`
-      const toMeta = getToMetadataFor(subType)
-      const fromMeta = getFromMetadataFor(subType)
-      toMeta
-        .filter(elem => {
-          const fromElem = fromMeta.find(
-            child => child.fullName === elem.fullName
-          )
-          return !isEqual(fromElem, elem)
-        })
-        .forEach(elem => {
-          if (!added.has(childType)) {
-            added.set(childType, new Set())
-          }
-          added.get(childType).add(elem.fullName)
-        })
-    })
+    // modified elements
+    diffForDir(
+      contentAtToRef,
+      getToMetadataFor,
+      getFromMetadataFor,
+      added,
+      otherMeta => elem => {
+        const otherElem = otherMeta.find(
+          child => child.fullName === elem.fullName
+        )
+        return !isEqual(otherElem, elem)
+      }
+    )
 
     this.added = added
     this.contentAtToRef = contentAtToRef
