@@ -54,4 +54,10 @@ const fillPackageWithParameter = ({ store, type, elementName }) => {
   store.get(type).add(elementName)
 }
 
+const PACKAGE_MEMBER_PATH_SEP = '/'
+const cleanUpPackageMember = packageMember => {
+  return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
+}
+
+module.exports.cleanUpPackageMember = cleanUpPackageMember
 module.exports.fillPackageWithParameter = fillPackageWithParameter

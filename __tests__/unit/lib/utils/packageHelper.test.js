@@ -1,6 +1,7 @@
 'use strict'
 const PackageBuilder = require('../../../../src/utils/packageHelper')
 const {
+  cleanUpPackageMember,
   fillPackageWithParameter,
 } = require('../../../../src/utils/packageHelper')
 
@@ -175,6 +176,19 @@ describe('fillPackageWithParameter', () => {
           expect(ex).toBeTruthy()
         }
       })
+    })
+  })
+
+  describe('cleanUpPackageMember', () => {
+    it(`package member path delimiter with "/"`, () => {
+      // Arrange
+      const example = `Package\\Member`
+
+      // Act
+      const result = cleanUpPackageMember(example).split('/')
+
+      // Assert
+      expect(result.length).toBe(2)
     })
   })
 })

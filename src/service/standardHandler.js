@@ -7,10 +7,11 @@ const {
   MODIFICATION,
 } = require('../utils/gitConstants')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
-const { fillPackageWithParameter } = require('../utils/packageHelper')
+const {
+  cleanUpPackageMember,
+  fillPackageWithParameter,
+} = require('../utils/packageHelper')
 const { copyFiles } = require('../utils/fsHelper')
-
-const PACKAGE_MEMBER_PATH_SEP = '/'
 
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -87,7 +88,7 @@ class StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return StandardHandler.cleanUpPackageMember(parsedPath.base)
+    return cleanUpPackageMember(parsedPath.base)
   }
 
   _fillPackage(store) {
@@ -126,12 +127,6 @@ class StandardHandler {
       )
     )
   }
-
-  static cleanUpPackageMember(packageMember) {
-    return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
-  }
-
-  static PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
 }
 
 module.exports = StandardHandler

@@ -1,6 +1,6 @@
-node_modules
-coverage
-lib
+/node_modules
+/coverage
+/lib
 *-debug.log
 *-error.log
 sfdx-git-delta-*.tgz

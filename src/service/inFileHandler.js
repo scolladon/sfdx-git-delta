@@ -7,7 +7,10 @@ const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
 const { writeFile } = require('../utils/fsHelper')
 const FileGitDiff = require('../utils/fileGitDiff')
-const { fillPackageWithParameter } = require('../utils/packageHelper')
+const {
+  cleanUpPackageMember,
+  fillPackageWithParameter,
+} = require('../utils/packageHelper')
 
 class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
@@ -46,9 +49,17 @@ class InFileHandler extends StandardHandler {
     await writeFile(this.line, scopedFile, this.config)
   }
 
+  _storeComparison(store, content) {
+    for (const [type, members] of content) {
+      for (const fullName of members) {
+        this._fillPackage(store, type, fullName)
+      }
+    }
+  }
+
   _fillPackage(store, subType, fullName) {
     if (subType && fullName) {
-      const elementName = StandardHandler.cleanUpPackageMember(
+      const elementName = cleanUpPackageMember(
         `${
           subType !== LABEL_DIRECTORY_NAME
             ? `${basename(this.line).split('.')[0]}.`
@@ -64,14 +75,6 @@ class InFileHandler extends StandardHandler {
     } else {
       if (this.type !== LABEL_EXTENSION) {
         super._fillPackage(store)
-      }
-    }
-  }
-
-  _storeComparison(store, content) {
-    for (const [type, members] of content) {
-      for (const fullName of members) {
-        this._fillPackage(store, type, fullName)
       }
     }
   }

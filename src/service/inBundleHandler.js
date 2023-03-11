@@ -3,6 +3,7 @@ const InResourceHandler = require('./inResourceHandler')
 const StandardHandler = require('./standardHandler')
 const { sep } = require('path')
 const { META_REGEX } = require('../utils/metadataConstants')
+const { cleanUpPackageMember } = require('../utils/packageHelper')
 
 class BundleHandler extends InResourceHandler {
   constructor(line, type, work, metadata) {
@@ -22,7 +23,7 @@ class BundleHandler extends InResourceHandler {
         ''
       )
 
-    return StandardHandler.cleanUpPackageMember(packageMember)
+    return cleanUpPackageMember(packageMember)
   }
 }
 
