@@ -47,11 +47,11 @@ module.exports = class PackageBuilder {
   }
 }
 
-const fillPackageWithParameter = params => {
-  if (!params.package.has(params.type)) {
-    params.package.set(params.type, new Set())
+const fillPackageWithParameter = ({ store, type, elementName }) => {
+  if (!store.has(type)) {
+    store.set(type, new Set())
   }
-  params.package.get(params.type).add(params.elementName)
+  store.get(type).add(elementName)
 }
 
 module.exports.fillPackageWithParameter = fillPackageWithParameter

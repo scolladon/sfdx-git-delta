@@ -36,8 +36,9 @@ class InFileHandler extends StandardHandler {
   }
 
   async _compareRevision() {
-    const comparisonResult = await this.fileGitDiff.compare(this.line)
-    this._storeComparison(comparisonResult)
+    const { added, deleted } = await this.fileGitDiff.compare(this.line)
+    this._storeComparison(this.diffs.destructiveChanges, deleted)
+    this._storeComparison(this.diffs.package, added)
   }
 
   async _writeScopedContent() {
@@ -45,40 +46,32 @@ class InFileHandler extends StandardHandler {
     await writeFile(this.line, scopedFile, this.config)
   }
 
-  _storeComparison({ added, deleted }) {
-    // TODO Why we should filter here ?
-    for (const [type, members] of deleted) {
-      ;[...members]
-        .filter(elem => !added.get(type)?.has(elem))
-        .forEach(fullName =>
-          this._fillPackage(this.diffs.destructiveChanges, type, fullName)
-        )
-    }
-    for (const [type, members] of added) {
-      for (let fullName of members) {
-        this._fillPackage(this.diffs.package, type, fullName)
+  _fillPackage(store, subType, fullName) {
+    if (subType && fullName) {
+      const elementName = StandardHandler.cleanUpPackageMember(
+        `${
+          subType !== LABEL_DIRECTORY_NAME
+            ? `${basename(this.line).split('.')[0]}.`
+            : ''
+        }${fullName}`
+      )
+
+      fillPackageWithParameter({
+        store,
+        type: subType,
+        elementName,
+      })
+    } else {
+      if (this.type !== LABEL_EXTENSION) {
+        super._fillPackage(store)
       }
     }
   }
 
-  _fillPackage(packageObject, subType, elementName) {
-    if (subType && elementName) {
-      const elementFullName = StandardHandler.cleanUpPackageMember(
-        `${
-          (subType !== LABEL_DIRECTORY_NAME
-            ? `${basename(this.line).split('.')[0]}.`
-            : '') + elementName
-        }`
-      )
-
-      fillPackageWithParameter({
-        package: packageObject,
-        type: subType,
-        elementName: elementFullName,
-      })
-    } else {
-      if (this.type !== LABEL_EXTENSION) {
-        super._fillPackage(packageObject)
+  _storeComparison(store, content) {
+    for (const [type, members] of content) {
+      for (const fullName of members) {
+        this._fillPackage(store, type, fullName)
       }
     }
   }

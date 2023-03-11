@@ -138,7 +138,7 @@ describe('fillPackageWithParameter', () => {
       it('adds the element name under the type in the package', () => {
         // Arrange
         const params = {
-          package: pack,
+          store: pack,
           type: type,
           elementName: elementName,
         }
@@ -156,7 +156,7 @@ describe('fillPackageWithParameter', () => {
     describe.each([
       undefined,
       {
-        package: {},
+        store: {},
         type: [],
         elementName: new Set(),
       },

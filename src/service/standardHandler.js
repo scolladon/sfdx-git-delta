@@ -90,9 +90,9 @@ class StandardHandler {
     return StandardHandler.cleanUpPackageMember(parsedPath.base)
   }
 
-  _fillPackage(packageObject) {
+  _fillPackage(store) {
     fillPackageWithParameter({
-      package: packageObject,
+      store,
       type: this.type,
       elementName: this._getElementName(),
     })

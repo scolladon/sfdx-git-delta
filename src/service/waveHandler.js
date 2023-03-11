@@ -17,10 +17,10 @@ class WaveHandler extends StandardHandler {
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
-  _fillPackage(packageObject) {
+  _fillPackage(store) {
     const type = WAVE_SUBTYPE.get(this.ext)
     fillPackageWithParameter({
-      package: packageObject,
+      store,
       type: type,
       elementName: this._getElementName(),
     })

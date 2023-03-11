@@ -23,7 +23,7 @@ class BotHandler extends WaveHandler {
   async _addParentBot() {
     const botName = this._getParsedPath().dir.split(sep).pop()
     fillPackageWithParameter({
-      package: this.diffs.package,
+      store: this.diffs.package,
       type: BOT_TYPE,
       elementName: botName,
     })

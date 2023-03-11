@@ -63,7 +63,7 @@ class FlowTranslationProcessor extends BaseProcessor {
     const copyTranslationsPromises = []
     for (const translationPath of this.translationPaths.keys()) {
       fillPackageWithParameter({
-        package: this.work.diffs.package,
+        store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
         elementName: getTranslationName(translationPath),
       })
