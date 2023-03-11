@@ -9,16 +9,15 @@ const InResourceHandler = require('../../src/service/inResourceHandler')
 const StandardHandler = require('../../src/service/standardHandler')
 const SubCustomObjectHandler = require('../../src/service/subCustomObjectHandler')
 const WaveHandler = require('../../src/service/waveHandler')
-const fileGitDiff = require('../../src/utils/fileGitDiff')
 const { EOL } = require('os')
 const {
   ADDITION,
   DELETION,
   MODIFICATION,
-  MINUS,
-  PLUS,
 } = require('../../src/utils/gitConstants')
-jest.mock('../../src/utils/fileGitDiff')
+const { readPathFromGit } = require('../../src/utils/fsHelper')
+
+jest.mock('../../src/utils/fsHelper')
 
 const testContext = [
   [
@@ -67,6 +66,7 @@ const testContext = [
         new Set(['Account.Test']),
         'workflows.alerts',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<alerts>${EOL}<fullName>Test</fullName>${EOL}</alerts>${EOL}</Workflow>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
       [
         'workflows',
@@ -74,6 +74,7 @@ const testContext = [
         new Set(['Account.Test']),
         'workflows.fieldUpdates',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<fieldUpdates>${EOL}<fullName>Test</fullName>${EOL}</fieldUpdates>${EOL}</Workflow>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
       [
         'workflows',
@@ -81,6 +82,7 @@ const testContext = [
         new Set(['Account.Test']),
         'workflows.outboundMessages',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<outboundMessages>${EOL}<fullName>Test</fullName>${EOL}</outboundMessages>${EOL}</Workflow>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
       [
         'workflows',
@@ -88,6 +90,7 @@ const testContext = [
         new Set(['Account.Test']),
         'workflows.rules',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<rules>${EOL}<fullName>Test</fullName>${EOL}</rules>${EOL}</Workflow>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
       [
         'workflows',
@@ -95,6 +98,7 @@ const testContext = [
         new Set(['Account.Test']),
         'workflows.flowActions',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<flowActions>${EOL}<fullName>Test</fullName>${EOL}</flowActions>${EOL}</Workflow>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
       [
         'labels',
@@ -102,6 +106,7 @@ const testContext = [
         new Set(['Label']),
         'labels.labels',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>Label</fullName>${EOL}</labels>${EOL}</CustomLabels>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</CustomLabels>`,
       ],
       [
         'sharingRules',
@@ -109,6 +114,7 @@ const testContext = [
         new Set(['Account.Criteria']),
         'sharingRules.sharingCriteriaRules',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>Criteria</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</SharingRules>`,
       ],
       [
         'sharingRules',
@@ -116,6 +122,7 @@ const testContext = [
         new Set(['Account.Criteria']),
         'sharingRules.sharingCriteriaRules',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>Criteria</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</SharingRules>`,
       ],
     ],
   ],
@@ -449,12 +456,13 @@ describe.each(testContext)('integration domain test', (handler, testData) => {
   describe(`${handler.name}`, () => {
     describe.each(testData)(
       '%s',
-      (type, changePath, expected, expectedType, xmlContent) => {
+      (type, changePath, expected, expectedType, xmlTo, xmlFrom) => {
         test('addition', async () => {
           // Arrange
-          fileGitDiff.mockImplementation(() =>
-            xmlContent?.split(EOL).map(x => `${PLUS} ${x}`)
-          )
+          if (xmlTo && xmlFrom) {
+            readPathFromGit.mockResolvedValueOnce(xmlTo)
+            readPathFromGit.mockResolvedValueOnce(xmlFrom)
+          }
           const sut = new handler(
             `${ADDITION}       ${changePath}`,
             type,
@@ -470,9 +478,10 @@ describe.each(testContext)('integration domain test', (handler, testData) => {
         })
         test('deletion', async () => {
           // Arrange
-          fileGitDiff.mockImplementation(() =>
-            xmlContent?.split(EOL).map(x => `${MINUS} ${x}`)
-          )
+          if (xmlTo && xmlFrom) {
+            readPathFromGit.mockResolvedValueOnce(xmlFrom)
+            readPathFromGit.mockResolvedValueOnce(xmlTo)
+          }
 
           const sut = new handler(
             `${DELETION}       ${changePath}`,
@@ -491,9 +500,10 @@ describe.each(testContext)('integration domain test', (handler, testData) => {
         })
         test('modification', async () => {
           // Arrange
-          fileGitDiff.mockImplementation(() =>
-            xmlContent?.split(EOL).map(x => `${PLUS} ${x}`)
-          )
+          if (xmlTo && xmlFrom) {
+            readPathFromGit.mockResolvedValueOnce(xmlTo)
+            readPathFromGit.mockResolvedValueOnce(xmlFrom)
+          }
           const sut = new handler(
             `${MODIFICATION}       ${changePath}`,
             type,
