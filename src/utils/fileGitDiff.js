@@ -8,21 +8,21 @@ let xmlObjectToPackageType
 
 // Store functional area
 // Side effect on store
-const addMember =
+const addToStore =
   store =>
   ({ type, member }) => {
     safeAdd({ store, type, member })
     return store
   }
 
-const contains = store => subType => fullName =>
-  store.get(getSubTypeDirName(subType))?.has(fullName)
+const hasMember = store => subType => member =>
+  store.get(getDirectoryNameForSubType(subType))?.has(member)
 
 // Metadata functional area
-const extractMetadata = metadata => meta => metadata.get(meta)
+const getMetadataByKey = metadata => meta => metadata.get(meta)
 
-const getChildMetadataDefinition = metadata => {
-  const extractType = extractMetadata(metadata)
+const getXmlTagToTypeDefinitionMap = metadata => {
+  const extractType = getMetadataByKey(metadata)
   return [...metadata.keys()]
     .filter(meta => extractType(meta)?.xmlTag)
     .reduce((acc, meta) => {
@@ -33,58 +33,63 @@ const getChildMetadataDefinition = metadata => {
 }
 
 // Metadata JSON structure functional area
-const extractRootMetadata = fileContent => Object.values(fileContent)?.[1]
+const getRootMetadata = fileContent => Object.values(fileContent)?.[1]
 
-const copyWithEmptyMetadata = fileContent => ({
+const clearMetadata = fileContent => ({
   ...fileContent,
   [Object.keys(fileContent)[1]]: {},
 })
 
-const getSubTypeDirName = subType =>
+const getDirectoryNameForSubType = subType =>
   xmlObjectToPackageType.get(subType).directoryName
 
-const authorizedKeys = fileContent =>
+const getSubTypeTags = fileContent =>
   Object.values(fileContent)
     .flatMap(tag => Object.keys(tag))
     .filter(tag => xmlObjectToPackageType.has(tag))
 
-const metadataExtractorFor = fileContent => subType =>
-  asArray(extractRootMetadata(fileContent)?.[subType])
+const extractMetadataForSubtype = fileContent => subType =>
+  asArray(getRootMetadata(fileContent)?.[subType])
 
 // Diff processing functional area
-const diffForRootType = dirName => (contentAtRef, otherContent, predicat) =>
-  authorizedKeys(contentAtRef)
-    .flatMap(processSubType(dirName, contentAtRef, otherContent, predicat))
-    .reduce((store, nameByType) => addMember(store)(nameByType), new Map())
+const processMetadataForRootType =
+  dir => (contentAtRef, otherContent, predicat) =>
+    getSubTypeTags(contentAtRef)
+      .flatMap(
+        processMetadataForSubType(dir, contentAtRef, otherContent, predicat)
+      )
+      .reduce((store, nameByType) => addToStore(store)(nameByType), new Map())
 
-const processSubType =
-  (dirName, baseContent, otherContent, predicat) => subType => {
-    const type = `${dirName}.${subType}`
-    const extractBase = metadataExtractorFor(baseContent)
-    const extreactOther = metadataExtractorFor(otherContent)
+const processMetadataForSubType =
+  (dir, baseContent, otherContent, predicat) => subType => {
+    const type = `${dir}.${subType}`
+    const extractBase = extractMetadataForSubtype(baseContent)
+    const extreactOther = extractMetadataForSubtype(otherContent)
     const baseMeta = extractBase(subType)
     const otherMeta = extreactOther(subType)
-    const processElement = processElementFactory(type, predicat, otherMeta)
+    const processElement = getElementProcessor(type, predicat, otherMeta)
     return baseMeta.map(processElement).filter(x => x !== undefined)
   }
 
-const processElementFactory = (type, predicat, otherMeta) => elem => {
+const getElementProcessor = (type, predicat, otherMeta) => elem => {
   if (predicat(otherMeta, elem)) {
     return { type, member: elem.fullName }
   }
 }
 
 // Partial JSON generation functional area
-const pruneContentFromStore = jsonContent => store => {
-  const extract = metadataExtractorFor(jsonContent)
-  const storeContains = contains(store)
-  return authorizedKeys(jsonContent).reduce((acc, subType) => {
+const generatePartialJSON = jsonContent => store => {
+  const extract = extractMetadataForSubtype(jsonContent)
+  const storeHasMember = hasMember(store)
+  return getSubTypeTags(jsonContent).reduce((acc, subType) => {
     const meta = extract(subType)
-    const isInType = storeContains(subType)
-    const rootMetadata = extractRootMetadata(acc)
-    rootMetadata[subType] = meta.filter(elem => isInType(elem.fullName))
+    const storeHasMemberForType = storeHasMember(subType)
+    const rootMetadata = getRootMetadata(acc)
+    rootMetadata[subType] = meta.filter(elem =>
+      storeHasMemberForType(elem.fullName)
+    )
     return acc
-  }, copyWithEmptyMetadata(jsonContent))
+  }, clearMetadata(jsonContent))
 }
 
 class FileGitDiff {
@@ -101,14 +106,14 @@ class FileGitDiff {
       to: this.config.from,
     }
     xmlObjectToPackageType =
-      xmlObjectToPackageType ?? getChildMetadataDefinition(metadata)
+      xmlObjectToPackageType ?? getXmlTagToTypeDefinitionMap(metadata)
   }
 
   async compare(path) {
     this.toContent = await parseXmlFileToJson(path, this.configTo)
     const fromContent = await parseXmlFileToJson(path, this.configFrom)
 
-    const diff = diffForRootType(this.parentDirectoryName)
+    const diff = processMetadataForRootType(this.parentDirectoryName)
 
     // Added or Modified
     this.added = diff(this.toContent, fromContent, (meta, elem) => {
@@ -128,7 +133,7 @@ class FileGitDiff {
   }
 
   prune() {
-    const prunedContent = pruneContentFromStore(this.toContent)(this.added)
+    const prunedContent = generatePartialJSON(this.toContent)(this.added)
     return convertJsonToXml(prunedContent)
   }
 }
