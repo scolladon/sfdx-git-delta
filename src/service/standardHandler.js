@@ -91,7 +91,7 @@ class StandardHandler {
     fillPackageWithParameter({
       store,
       type: this.type,
-      elementName: this._getElementName(),
+      member: this._getElementName(),
     })
   }
 

@@ -25,7 +25,7 @@ class BotHandler extends WaveHandler {
     fillPackageWithParameter({
       store: this.diffs.package,
       type: BOT_TYPE,
-      elementName: botName,
+      member: botName,
     })
 
     if (!this.config.generateDelta) return

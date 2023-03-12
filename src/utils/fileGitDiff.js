@@ -10,8 +10,10 @@ let xmlObjectToPackageType
 // Side effect on store
 const addMember =
   store =>
-  ({ type, elementName }) =>
-    safeAdd({ store, type, elementName })
+  ({ type, member }) => {
+    safeAdd({ store, type, member })
+    return store
+  }
 
 const contains = store => subType => fullName =>
   store.get(getSubTypeDirName(subType))?.has(fullName)
@@ -68,7 +70,7 @@ const processSubType =
 
 const processElementFactory = (type, predicat, otherMeta) => elem => {
   if (predicat(otherMeta, elem)) {
-    return { type, elementName: elem.fullName }
+    return { type, member: elem.fullName }
   }
 }
 

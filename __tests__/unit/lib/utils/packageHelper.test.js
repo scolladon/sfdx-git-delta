@@ -126,29 +126,29 @@ describe(`test if package builder`, () => {
 describe('fillPackageWithParameter', () => {
   describe('when called with proper params', () => {
     const type = 'test-type'
-    const elementName = 'test-name'
+    const member = 'test-name'
     describe.each([
       [new Map(), 'is empty'],
       [new Map([['other-type', new Set(['other-name'])]]), 'is not empty'],
       [new Map([[type, new Set()]]), 'contains the type'],
       [
-        new Map([[type, new Set([elementName])]]),
+        new Map([[type, new Set([member])]]),
         'contains the type and the element',
       ],
-    ])('when the package %o  %s', pack => {
+    ])('when the package %o  %s', store => {
       it('adds the element name under the type in the package', () => {
         // Arrange
         const params = {
-          store: pack,
+          store: store,
           type: type,
-          elementName: elementName,
+          member,
         }
 
         // Act
         fillPackageWithParameter(params)
 
         // Assert
-        expect(pack.get(type).has(elementName)).toBeTruthy()
+        expect(store.get(type).has(member)).toBeTruthy()
       })
     })
   })
@@ -159,12 +159,12 @@ describe('fillPackageWithParameter', () => {
       {
         store: {},
         type: [],
-        elementName: new Set(),
+        member: new Set(),
       },
       {
         piquouze: new Map(),
         top: 'top',
-        elementary: 'elementary',
+        member: 'elementary',
       },
     ])('when called with %o', params => {
       it('should fail', () => {

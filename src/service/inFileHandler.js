@@ -71,14 +71,14 @@ class InFileHandler extends StandardHandler {
       return
     }
 
-    const elementName = cleanUpPackageMember(
+    const member = cleanUpPackageMember(
       `${getNamePreffix({ subType, line: this.line })}${fullName}`
     )
 
     fillPackageWithParameter({
       store,
       type: subType,
-      elementName,
+      member,
     })
   }
 }

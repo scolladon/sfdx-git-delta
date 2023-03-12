@@ -22,7 +22,7 @@ class WaveHandler extends StandardHandler {
     fillPackageWithParameter({
       store,
       type: type,
-      elementName: this._getElementName(),
+      member: this._getElementName(),
     })
   }
 }

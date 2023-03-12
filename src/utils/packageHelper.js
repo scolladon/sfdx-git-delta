@@ -47,15 +47,15 @@ module.exports = class PackageBuilder {
   }
 }
 
-const fillPackageWithParameter = ({ store, type, elementName }) => {
-  safeAdd({ store, type, elementName })
+const fillPackageWithParameter = ({ store, type, member }) => {
+  safeAdd({ store, type, member })
 }
 
-const safeAdd = ({ store, type, elementName }) => {
+const safeAdd = ({ store, type, member }) => {
   if (!store.has(type)) {
     store.set(type, new Set())
   }
-  store.get(type).add(elementName)
+  store.get(type).add(member)
 }
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
