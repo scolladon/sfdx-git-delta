@@ -3,10 +3,10 @@ const InFile = require('../../../../src/service/inFileHandler')
 const { writeFile } = require('../../../../src/utils/fsHelper')
 
 const mockCompare = jest.fn()
-const mockpruneContent = jest.fn()
+const mockprune = jest.fn()
 jest.mock('../../../../src/utils/fileGitDiff', () => {
   return jest.fn().mockImplementation(() => {
-    return { compare: mockCompare, pruneContent: mockpruneContent }
+    return { compare: mockCompare, prune: mockprune }
   })
 })
 jest.mock('../../../../src/utils/fsHelper')
@@ -59,10 +59,10 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       )
 
       if (generateDelta) {
-        expect(mockpruneContent).toHaveBeenCalled()
+        expect(mockprune).toHaveBeenCalled()
         expect(writeFile).toHaveBeenCalled()
       } else {
-        expect(mockpruneContent).not.toHaveBeenCalled()
+        expect(mockprune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
       }
     })
@@ -97,10 +97,10 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       )
       expect(work.diffs.destructiveChanges.has('workflows')).toBe(false)
       if (generateDelta) {
-        expect(mockpruneContent).toHaveBeenCalled()
+        expect(mockprune).toHaveBeenCalled()
         expect(writeFile).toHaveBeenCalled()
       } else {
-        expect(mockpruneContent).not.toHaveBeenCalled()
+        expect(mockprune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
       }
     })
@@ -131,7 +131,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       expect(work.diffs.destructiveChanges.get('workflows.alerts')).toEqual(
         new Set(['Account.test'])
       )
-      expect(mockpruneContent).not.toHaveBeenCalled()
+      expect(mockprune).not.toHaveBeenCalled()
       expect(writeFile).not.toHaveBeenCalled()
     })
   })

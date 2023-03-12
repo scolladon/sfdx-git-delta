@@ -1,71 +1,121 @@
 'use strict'
 
 const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
-const { cloneDeep, isEqual } = require('lodash')
+const { isEqual } = require('lodash')
 const { safeAdd } = require('./packageHelper')
 
 let xmlObjectToPackageType
 
+// Store functional area
+// Side effect on store
+const addMember =
+  store =>
+  ({ type, elementName }) =>
+    safeAdd({ store, type, elementName })
+
+const contains = store => subType => fullName =>
+  store.get(getSubTypeDirName(subType))?.has(fullName)
+
+// Metadata functional area
+const extractMetadata = metadata => meta => metadata.get(meta)
+
+const getChildMetadataDefinition = metadata => {
+  const extractType = extractMetadata(metadata)
+  return [...metadata.keys()]
+    .filter(meta => extractType(meta)?.xmlTag)
+    .reduce((acc, meta) => {
+      const typeDef = extractType(meta)
+      acc.set(typeDef.xmlTag, typeDef)
+      return acc
+    }, new Map())
+}
+
+// Metadata JSON structure functional area
 const extractRootMetadata = fileContent => Object.values(fileContent)?.[1]
+
+const copyWithEmptyMetadata = fileContent => ({
+  ...fileContent,
+  [Object.keys(fileContent)[1]]: {},
+})
+
+const getSubTypeDirName = subType =>
+  xmlObjectToPackageType.get(subType).directoryName
 
 const authorizedKeys = fileContent =>
   Object.values(fileContent)
     .flatMap(tag => Object.keys(tag))
     .filter(tag => xmlObjectToPackageType.has(tag))
 
-// composition of asArray and extractRootMetadata
 const metadataExtractorFor = fileContent => subType =>
   asArray(extractRootMetadata(fileContent)?.[subType])
 
-const diffForRootType =
-  dirName => (contentAtRef, otherExtractor, store, predicat) => {
-    authorizedKeys(contentAtRef).forEach(subType => {
-      const type = `${dirName}.${subType}`
-      const baseExtractor = metadataExtractorFor(contentAtRef)
-      const baseMeta = baseExtractor(subType)
-      const otherMeta = otherExtractor(subType)
-      baseMeta
-        .filter(elem => predicat(otherMeta, elem))
-        .forEach(elem => safeAdd({ store, type, elementName: elem.fullName }))
-    })
+// Diff processing functional area
+const diffForRootType = dirName => (contentAtRef, otherContent, predicat) =>
+  authorizedKeys(contentAtRef)
+    .flatMap(processSubType(dirName, contentAtRef, otherContent, predicat))
+    .reduce((store, nameByType) => addMember(store)(nameByType), new Map())
+
+const processSubType =
+  (dirName, baseContent, otherContent, predicat) => subType => {
+    const type = `${dirName}.${subType}`
+    const extractBase = metadataExtractorFor(baseContent)
+    const extreactOther = metadataExtractorFor(otherContent)
+    const baseMeta = extractBase(subType)
+    const otherMeta = extreactOther(subType)
+    const processElement = processElementFactory(type, predicat, otherMeta)
+    return baseMeta.map(processElement).filter(x => x !== undefined)
   }
+
+const processElementFactory = (type, predicat, otherMeta) => elem => {
+  if (predicat(otherMeta, elem)) {
+    return { type, elementName: elem.fullName }
+  }
+}
+
+// Partial JSON generation functional area
+const pruneContentFromStore = jsonContent => store => {
+  const extract = metadataExtractorFor(jsonContent)
+  const storeContains = contains(store)
+  return authorizedKeys(jsonContent).reduce((acc, subType) => {
+    const meta = extract(subType)
+    const isInType = storeContains(subType)
+    const rootMetadata = extractRootMetadata(acc)
+    rootMetadata[subType] = meta.filter(elem => isInType(elem.fullName))
+    return acc
+  }, copyWithEmptyMetadata(jsonContent))
+}
 
 class FileGitDiff {
   constructor(parentDirectoryName, config, metadata) {
-    this.parentDirectoryName = parentDirectoryName
     this.config = config
+    this.parentDirectoryName = parentDirectoryName
     this.metadata = metadata
+    this.configTo = {
+      repo: this.config.repo,
+      to: this.config.to,
+    }
+    this.configFrom = {
+      repo: this.config.repo,
+      to: this.config.from,
+    }
     xmlObjectToPackageType =
-      xmlObjectToPackageType ??
-      [...metadata.keys()]
-        .filter(meta => metadata.get(meta)?.xmlTag)
-        .reduce(
-          (acc, meta) => acc.set(metadata.get(meta).xmlTag, metadata.get(meta)),
-          new Map()
-        )
+      xmlObjectToPackageType ?? getChildMetadataDefinition(metadata)
   }
 
   async compare(path) {
-    this.added = new Map()
-    const deleted = new Map()
-    this.contentAtToRef = await parseXmlFileToJson(path, this.config)
-    const contentAtFromRef = await parseXmlFileToJson(path, {
-      repo: this.config.repo,
-      to: this.config.from,
-    })
+    this.toContent = await parseXmlFileToJson(path, this.configTo)
+    const fromContent = await parseXmlFileToJson(path, this.configFrom)
 
-    const extractToMetadata = metadataExtractorFor(this.contentAtToRef)
-    const extractFromMetadata = metadataExtractorFor(contentAtFromRef)
     const diff = diffForRootType(this.parentDirectoryName)
 
     // Added or Modified
-    diff(this.contentAtToRef, extractFromMetadata, this.added, (meta, elem) => {
+    this.added = diff(this.toContent, fromContent, (meta, elem) => {
       const match = meta.find(el => el.fullName === elem.fullName)
       return !match || !isEqual(match, elem)
     })
 
     // Deleted
-    diff(contentAtFromRef, extractToMetadata, deleted, (meta, elem) => {
+    const deleted = diff(fromContent, this.toContent, (meta, elem) => {
       return !meta.some(el => el.fullName === elem.fullName)
     })
 
@@ -75,22 +125,9 @@ class FileGitDiff {
     }
   }
 
-  pruneContent() {
-    const added = this.added
-    const scopedJsonContent = cloneDeep(this.contentAtToRef)
-    const getMetadataFor = metadataExtractorFor(this.contentAtToRef)
-    const scopedRoot = extractRootMetadata(scopedJsonContent)
-
-    authorizedKeys(this.contentAtToRef).forEach(subType => {
-      const meta = getMetadataFor(subType)
-      scopedRoot[subType] = meta.filter(elem =>
-        added
-          .get(xmlObjectToPackageType.get(subType).directoryName)
-          ?.has(elem.fullName)
-      )
-    })
-
-    return convertJsonToXml(scopedJsonContent)
+  prune() {
+    const prunedContent = pruneContentFromStore(this.toContent)(this.added)
+    return convertJsonToXml(prunedContent)
   }
 }
 

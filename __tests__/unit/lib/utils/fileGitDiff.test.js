@@ -151,7 +151,7 @@ describe(`fileGitDiff`, () => {
       expect(added.get('workflows.alerts')).toEqual(new Set(['TestEmailAlert']))
     })
   })
-  describe('pruneContent', () => {
+  describe('prune', () => {
     it('given file contains only new element, it keeps the file identical', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alert)
@@ -159,7 +159,7 @@ describe(`fileGitDiff`, () => {
       await fileGitDiff.compare('file/path')
 
       // Act
-      fileGitDiff.pruneContent()
+      fileGitDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alert)
@@ -171,7 +171,7 @@ describe(`fileGitDiff`, () => {
       await fileGitDiff.compare('file/path')
 
       // Act
-      fileGitDiff.pruneContent()
+      fileGitDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
@@ -190,7 +190,7 @@ describe(`fileGitDiff`, () => {
       await fileGitDiff.compare('file/path')
 
       // Act
-      fileGitDiff.pruneContent()
+      fileGitDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
@@ -203,7 +203,7 @@ describe(`fileGitDiff`, () => {
       await fileGitDiff.compare('file/path')
 
       // Act
-      fileGitDiff.pruneContent()
+      fileGitDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith({
