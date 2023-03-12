@@ -18,9 +18,10 @@ const metadataExtractorFor = fileContent => subType =>
   asArray(extractRootMetadata(fileContent)?.[subType])
 
 const diffForRootType =
-  dirName => (contentAtRef, baseExtractor, otherExtractor, store, predicat) => {
+  dirName => (contentAtRef, otherExtractor, store, predicat) => {
     authorizedKeys(contentAtRef).forEach(subType => {
       const type = `${dirName}.${subType}`
+      const baseExtractor = metadataExtractorFor(contentAtRef)
       const baseMeta = baseExtractor(subType)
       const otherMeta = otherExtractor(subType)
       baseMeta
@@ -45,44 +46,31 @@ class FileGitDiff {
   }
 
   async compare(path) {
-    const added = new Map()
+    this.added = new Map()
     const deleted = new Map()
-    const contentAtToRef = await parseXmlFileToJson(path, this.config)
+    this.contentAtToRef = await parseXmlFileToJson(path, this.config)
     const contentAtFromRef = await parseXmlFileToJson(path, {
       repo: this.config.repo,
       to: this.config.from,
     })
 
-    const extractToMetadata = metadataExtractorFor(contentAtToRef)
+    const extractToMetadata = metadataExtractorFor(this.contentAtToRef)
     const extractFromMetadata = metadataExtractorFor(contentAtFromRef)
     const diff = diffForRootType(this.parentDirectoryName)
 
     // Added or Modified
-    diff(
-      contentAtToRef,
-      extractToMetadata,
-      extractFromMetadata,
-      added,
-      (meta, elem) => {
-        const match = meta.find(el => el.fullName === elem.fullName)
-        return !match || !isEqual(match, elem)
-      }
-    )
+    diff(this.contentAtToRef, extractFromMetadata, this.added, (meta, elem) => {
+      const match = meta.find(el => el.fullName === elem.fullName)
+      return !match || !isEqual(match, elem)
+    })
 
     // Deleted
-    diff(
-      contentAtFromRef,
-      extractFromMetadata,
-      extractToMetadata,
-      deleted,
-      (meta, elem) => !meta.some(el => el.fullName === elem.fullName)
-    )
-
-    this.added = added
-    this.contentAtToRef = contentAtToRef
+    diff(contentAtFromRef, extractToMetadata, deleted, (meta, elem) => {
+      return !meta.some(el => el.fullName === elem.fullName)
+    })
 
     return {
-      added,
+      added: this.added,
       deleted,
     }
   }
