@@ -186,7 +186,7 @@ OPTIONS
                                                                                     this command invocation
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.13.3/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
@@ -518,8 +518,9 @@ console.log(JSON.stringify(work))
 - [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - Validate XML, Parse XML to JS/JSON and vise versa, or parse XML to Nimn rapidly without C/C++ based libraries and no callback
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
-- [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
+- [lodash](https://github.com/lodash/lodash) - A modern JavaScript utility library delivering modularity, performance & extras.
 - [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
+- [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
 
 ## Versioning
 
