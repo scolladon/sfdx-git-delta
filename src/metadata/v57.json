@@ -1,5 +1,40 @@
 [
   {
+    "directoryName": "forecastingFilters",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "forecastingFilter",
+    "xmlName": "ForecastingFilter"
+  },
+  {
+    "directoryName": "ForecastingFilterConditions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "ForecastingFilterCondition",
+    "xmlName": "ForecastingFilterCondition"
+  },
+  {
+    "directoryName": "forecastingSourceDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "forecastingSourceDefinition",
+    "xmlName": "ForecastingSourceDefinition"
+  },
+  {
+    "directoryName": "forecastingTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "forecastingType",
+    "xmlName": "ForecastingType"
+  },
+  {
+    "directoryName": "ForecastingTypeSources",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "forecastingTypeSource",
+    "xmlName": "ForecastingTypeSource"
+  },
+  {
     "directoryName": "decisionMatrixDefinition",
     "inFolder": false,
     "metaFile": false,
