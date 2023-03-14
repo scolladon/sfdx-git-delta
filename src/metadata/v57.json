@@ -28,7 +28,7 @@
     "xmlName": "ForecastingType"
   },
   {
-    "directoryName": "ForecastingTypeSources",
+    "directoryName": "forecastingTypeSources",
     "inFolder": false,
     "metaFile": false,
     "suffix": "forecastingTypeSource",
