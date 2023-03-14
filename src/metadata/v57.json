@@ -7,11 +7,11 @@
     "xmlName": "ForecastingFilter"
   },
   {
-    "directoryName": "ForecastingFilterConditions",
+    "directoryName": "forecastingFilterConditions",
     "inFolder": false,
     "metaFile": false,
     "suffix": "forecastingFilterCondition",
-    "xmlName": "forecastingFilterCondition"
+    "xmlName": "ForecastingFilterCondition"
   },
   {
     "directoryName": "forecastingSourceDefinitions",
