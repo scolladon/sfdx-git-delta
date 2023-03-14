@@ -114,7 +114,7 @@ describe(`test if package builder`, () => {
 
   test.each(tests)(
     'can build %s destructiveChanges.xml',
-    (type, diff, expected) => {
+    (_, diff, expected) => {
       expect(packageConstructor.buildPackage(diff)).toBe(expected)
     }
   )
@@ -139,7 +139,7 @@ describe('fillPackageWithParameter', () => {
       it('adds the element name under the type in the package', () => {
         // Arrange
         const params = {
-          store: store,
+          store,
           type: type,
           member,
         }
