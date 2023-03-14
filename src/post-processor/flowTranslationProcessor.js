@@ -7,16 +7,10 @@ const {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
-const {
-  copyFiles,
-  scanExtension,
-  readPathFromGit,
-  isSubDir,
-} = require('../utils/fsHelper')
+const { copyFiles, scanExtension, isSubDir } = require('../utils/fsHelper')
 const { parse } = require('path')
 const { forPath } = require('../utils/ignoreHelper')
-const { XMLParser } = require('fast-xml-parser')
-const { asArray, XML_PARSER_OPTION } = require('../utils/fxpHelper')
+const { asArray, parseXmlFileToJson } = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
 
 const getTranslationName = translationPath =>
@@ -63,7 +57,7 @@ class FlowTranslationProcessor extends BaseProcessor {
     const copyTranslationsPromises = []
     for (const translationPath of this.translationPaths.keys()) {
       fillPackageWithParameter({
-        package: this.work.diffs.package,
+        store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
         elementName: getTranslationName(translationPath),
       })
@@ -75,10 +69,10 @@ class FlowTranslationProcessor extends BaseProcessor {
   }
 
   async _parseTranslationFile(translationPath) {
-    const translationXML = await readPathFromGit(translationPath, this.config)
-
-    const xmlParser = new XMLParser(XML_PARSER_OPTION)
-    const translationJSON = xmlParser.parse(translationXML)
+    const translationJSON = await parseXmlFileToJson(
+      translationPath,
+      this.config
+    )
     const flowDefinitions = asArray(
       translationJSON?.Translations?.flowDefinitions
     )

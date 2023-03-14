@@ -3,6 +3,7 @@ const StandardHandler = require('./standardHandler')
 const { join, parse } = require('path')
 const { pathExists, readDir } = require('../utils/fsHelper')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
+const { cleanUpPackageMember } = require('../utils/packageHelper')
 
 const STATICRESOURCE_TYPE = 'staticresources'
 const elementSrc = new Map()
@@ -43,7 +44,7 @@ class ResourceHandler extends StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return StandardHandler.cleanUpPackageMember(parsedPath.name)
+    return cleanUpPackageMember(parsedPath.name)
   }
 
   _getParsedPath() {
@@ -57,10 +58,10 @@ class ResourceHandler extends StandardHandler {
   _buildMatchingFiles(elementName) {
     const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
-    if (StandardHandler.metadata.get(this.type).metaFile) {
+    if (this.metadata.get(this.type).metaFile) {
       matchingFiles.push(
         `${parsedElementName}.${
-          StandardHandler.metadata.get(this.type).suffix
+          this.metadata.get(this.type).suffix
         }${METAFILE_SUFFIX}`
       )
     }

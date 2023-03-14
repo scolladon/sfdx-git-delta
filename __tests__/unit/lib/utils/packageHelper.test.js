@@ -1,6 +1,7 @@
 'use strict'
 const PackageBuilder = require('../../../../src/utils/packageHelper')
 const {
+  cleanUpPackageMember,
   fillPackageWithParameter,
 } = require('../../../../src/utils/packageHelper')
 
@@ -113,7 +114,7 @@ describe(`test if package builder`, () => {
 
   test.each(tests)(
     'can build %s destructiveChanges.xml',
-    (type, diff, expected) => {
+    (_, diff, expected) => {
       expect(packageConstructor.buildPackage(diff)).toBe(expected)
     }
   )
@@ -125,29 +126,29 @@ describe(`test if package builder`, () => {
 describe('fillPackageWithParameter', () => {
   describe('when called with proper params', () => {
     const type = 'test-type'
-    const elementName = 'test-name'
+    const member = 'test-name'
     describe.each([
       [new Map(), 'is empty'],
       [new Map([['other-type', new Set(['other-name'])]]), 'is not empty'],
       [new Map([[type, new Set()]]), 'contains the type'],
       [
-        new Map([[type, new Set([elementName])]]),
+        new Map([[type, new Set([member])]]),
         'contains the type and the element',
       ],
-    ])('when the package %o  %s', pack => {
+    ])('when the package %o  %s', store => {
       it('adds the element name under the type in the package', () => {
         // Arrange
         const params = {
-          package: pack,
+          store,
           type: type,
-          elementName: elementName,
+          member,
         }
 
         // Act
         fillPackageWithParameter(params)
 
         // Assert
-        expect(pack.get(type).has(elementName)).toBeTruthy()
+        expect(store.get(type).has(member)).toBeTruthy()
       })
     })
   })
@@ -156,14 +157,14 @@ describe('fillPackageWithParameter', () => {
     describe.each([
       undefined,
       {
-        package: {},
+        store: {},
         type: [],
-        elementName: new Set(),
+        member: new Set(),
       },
       {
         piquouze: new Map(),
         top: 'top',
-        elementary: 'elementary',
+        member: 'elementary',
       },
     ])('when called with %o', params => {
       it('should fail', () => {
@@ -175,6 +176,19 @@ describe('fillPackageWithParameter', () => {
           expect(ex).toBeTruthy()
         }
       })
+    })
+  })
+
+  describe('cleanUpPackageMember', () => {
+    it(`package member path delimiter with "/"`, () => {
+      // Arrange
+      const example = `Package\\Member`
+
+      // Act
+      const result = cleanUpPackageMember(example).split('/')
+
+      // Assert
+      expect(result.length).toBe(2)
     })
   })
 })

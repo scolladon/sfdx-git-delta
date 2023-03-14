@@ -1,8 +1,8 @@
 'use strict'
 const InResourceHandler = require('./inResourceHandler')
-const StandardHandler = require('./standardHandler')
 const { sep } = require('path')
 const { META_REGEX } = require('../utils/metadataConstants')
+const { cleanUpPackageMember } = require('../utils/packageHelper')
 
 class BundleHandler extends InResourceHandler {
   constructor(line, type, work, metadata) {
@@ -17,12 +17,9 @@ class BundleHandler extends InResourceHandler {
     const packageMember = bundlePath
       .join(sep)
       .replace(META_REGEX, '')
-      .replace(
-        new RegExp(`\\.${StandardHandler.metadata.get(this.type).suffix}$`),
-        ''
-      )
+      .replace(new RegExp(`\\.${this.metadata.get(this.type).suffix}$`), '')
 
-    return StandardHandler.cleanUpPackageMember(packageMember)
+    return cleanUpPackageMember(packageMember)
   }
 }
 

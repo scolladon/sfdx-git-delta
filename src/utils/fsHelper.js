@@ -3,7 +3,7 @@ const { readFile: fsReadFile } = require('fs').promises
 const { isAbsolute, join, relative } = require('path')
 const { outputFile } = require('fs-extra')
 const { spawn } = require('child_process')
-const { UTF8_ENCODING } = require('../utils/gitConstants')
+const { UTF8_ENCODING } = require('./gitConstants')
 const {
   EOLRegex,
   getStreamContent,
@@ -42,11 +42,11 @@ const copyFiles = async (config, src) => {
   }
 }
 
-const readPathFromGitAsBuffer = async (path, config) => {
+const readPathFromGitAsBuffer = async (path, { repo, to }) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
   const bufferData = await getStreamContent(
-    spawn('git', [...showCmd, `${config.to}:${normalizedPath}`], {
-      cwd: config.repo,
+    spawn('git', [...showCmd, `${to}:${normalizedPath}`], {
+      cwd: repo,
     })
   )
 
@@ -93,6 +93,10 @@ async function* scan(dir, config) {
   }
 }
 
+const writeFile = async (path, content, { output }) => {
+  await outputFile(join(output, treatPathSep(path)), content)
+}
+
 async function* filterExt(it, ext) {
   for await (const file of it) {
     if (file.endsWith(ext)) {
@@ -116,3 +120,4 @@ module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
 module.exports.scanExtension = (dir, ext, config) =>
   filterExt(scan(dir, config), ext)
+module.exports.writeFile = writeFile

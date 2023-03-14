@@ -1,6 +1,6 @@
 'use strict'
 const FlowTranslationProcessor = require('../../../../src/post-processor/flowTranslationProcessor')
-const { mockParse } = require('fast-xml-parser')
+const { parseXmlFileToJson } = require('../../../../src/utils/fxpHelper')
 const {
   FLOW_DIRECTORY_NAME,
   METAFILE_SUFFIX,
@@ -14,9 +14,17 @@ const {
 } = require('../../../../src/utils/fsHelper')
 const { forPath } = require('../../../../src/utils/ignoreHelper')
 jest.mock('fs-extra')
-jest.mock('fast-xml-parser')
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/ignoreHelper')
+jest.mock('../../../../src/utils/fxpHelper', () => {
+  const originalModule = jest.requireActual('../../../../src/utils/fxpHelper')
+
+  return {
+    ...originalModule,
+    parseXmlFileToJson: jest.fn(),
+    convertJsonToXml: jest.fn(),
+  }
+})
 
 const FR = 'fr'
 const EN = 'en'
@@ -70,7 +78,7 @@ describe('FlowTranslationProcessor', () => {
           EXTENSION,
           work.config
         )
-        expect(mockParse).not.toHaveBeenCalled()
+        expect(parseXmlFileToJson).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })
@@ -78,7 +86,7 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is a translation file without flow def', () => {
       beforeEach(() => {
         // Arrange
-        mockParse.mockImplementationOnce(() => ({}))
+        parseXmlFileToJson.mockResolvedValueOnce({})
       })
       it('should not add translation file', async () => {
         // Act
@@ -92,7 +100,7 @@ describe('FlowTranslationProcessor', () => {
           EXTENSION,
           work.config
         )
-        expect(mockParse).toHaveBeenCalledTimes(1)
+        expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })
@@ -103,9 +111,9 @@ describe('FlowTranslationProcessor', () => {
         work.diffs.package = new Map([
           [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
         ])
-        mockParse.mockImplementation(() => ({
+        parseXmlFileToJson.mockResolvedValue({
           Translations: { flowDefinitions: { fullName: flowFullName } },
-        }))
+        })
       })
       it('should add translation file', async () => {
         // Act
@@ -119,7 +127,7 @@ describe('FlowTranslationProcessor', () => {
           EXTENSION,
           work.config
         )
-        expect(mockParse).toHaveBeenCalledTimes(1)
+        expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalled()
       })
       describe('when the folder is not a git repository', () => {
@@ -161,7 +169,7 @@ describe('FlowTranslationProcessor', () => {
           EXTENSION,
           work.config
         )
-        expect(mockParse).not.toHaveBeenCalled()
+        expect(parseXmlFileToJson).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })
@@ -184,9 +192,9 @@ describe('FlowTranslationProcessor', () => {
       })
       describe('when there is no flow matching the translation', () => {
         beforeEach(() => {
-          mockParse.mockImplementation(() => ({
+          parseXmlFileToJson.mockResolvedValue({
             Translations: { flowDefinitions: [{ fullName: 'wrong' }] },
-          }))
+          })
         })
         it('should not add translation', async () => {
           // Arrange
@@ -202,7 +210,7 @@ describe('FlowTranslationProcessor', () => {
             EXTENSION,
             work.config
           )
-          expect(mockParse).toHaveBeenCalledTimes(2)
+          expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
           expect(copyFiles).not.toHaveBeenCalled()
         })
       })
@@ -212,9 +220,9 @@ describe('FlowTranslationProcessor', () => {
           'when config.generateDelta is %s',
           generateDelta => {
             beforeEach(() => {
-              mockParse.mockImplementation(() => ({
+              parseXmlFileToJson.mockResolvedValue({
                 Translations: { flowDefinitions: [{ fullName: flowFullName }] },
-              }))
+              })
               work.diffs.package = new Map([
                 [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
               ])
@@ -234,7 +242,7 @@ describe('FlowTranslationProcessor', () => {
                 EXTENSION,
                 work.config
               )
-              expect(mockParse).toHaveBeenCalledTimes(2)
+              expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
               if (generateDelta) expect(copyFiles).toHaveBeenCalledTimes(2)
               else expect(copyFiles).not.toHaveBeenCalled()
             })
@@ -262,7 +270,7 @@ describe('FlowTranslationProcessor', () => {
           work.config
         )
         expect(forPath).toHaveBeenCalledTimes(1)
-        expect(mockParse).not.toHaveBeenCalled()
+        expect(parseXmlFileToJson).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })
@@ -289,7 +297,7 @@ describe('FlowTranslationProcessor', () => {
           work.config
         )
         expect(forPath).toHaveBeenCalledTimes(1)
-        expect(mockParse).toHaveBeenCalledTimes(1)
+        expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(1)
       })
     })
@@ -307,7 +315,7 @@ describe('FlowTranslationProcessor', () => {
             }),
           }),
         }))
-        mockParse.mockImplementationOnce(() => ({}))
+        parseXmlFileToJson.mockResolvedValueOnce({})
         isSubDir.mockImplementation(() => true)
       })
       it('should not add translation file', async () => {
@@ -322,7 +330,7 @@ describe('FlowTranslationProcessor', () => {
           EXTENSION,
           work.config
         )
-        expect(mockParse).not.toHaveBeenCalled()
+        expect(parseXmlFileToJson).not.toHaveBeenCalled()
         expect(copyFiles).not.toHaveBeenCalled()
       })
     })

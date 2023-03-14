@@ -301,18 +301,3 @@ describe(`StandardHandler`, () => {
     )
   })
 })
-
-describe('cleanUpPackageMember', () => {
-  it(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
-    // Arrange
-    const example = `Package\\Member`
-
-    // Act
-    const result = StandardHandler.cleanUpPackageMember(example).split(
-      StandardHandler.PACKAGE_MEMBER_PATH_SEP
-    )
-
-    // Assert
-    expect(result.length).toBe(2)
-  })
-})

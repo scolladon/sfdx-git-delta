@@ -47,11 +47,22 @@ module.exports = class PackageBuilder {
   }
 }
 
-const fillPackageWithParameter = params => {
-  if (!params.package.has(params.type)) {
-    params.package.set(params.type, new Set())
-  }
-  params.package.get(params.type).add(params.elementName)
+const fillPackageWithParameter = ({ store, type, member }) => {
+  safeAdd({ store, type, member })
 }
 
+const safeAdd = ({ store, type, member }) => {
+  if (!store.has(type)) {
+    store.set(type, new Set())
+  }
+  store.get(type).add(member)
+}
+
+const PACKAGE_MEMBER_PATH_SEP = '/'
+const cleanUpPackageMember = packageMember => {
+  return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
+}
+
+module.exports.cleanUpPackageMember = cleanUpPackageMember
 module.exports.fillPackageWithParameter = fillPackageWithParameter
+module.exports.safeAdd = safeAdd

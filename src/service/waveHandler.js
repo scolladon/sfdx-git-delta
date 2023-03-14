@@ -8,7 +8,7 @@ class WaveHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
 
-    StandardHandler.metadata
+    this.metadata
       .get(this.type)
       .content.reduce(
         (acc, val) => acc.set(val.suffix, val.xmlName),
@@ -17,12 +17,12 @@ class WaveHandler extends StandardHandler {
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
-  _fillPackage(packageObject) {
+  _fillPackage(store) {
     const type = WAVE_SUBTYPE.get(this.ext)
     fillPackageWithParameter({
-      package: packageObject,
+      store,
       type: type,
-      elementName: this._getElementName(),
+      member: this._getElementName(),
     })
   }
 }

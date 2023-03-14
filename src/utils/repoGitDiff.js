@@ -6,7 +6,7 @@ const {
   ADDITION,
   DELETION,
   GIT_DIFF_TYPE_REGEX,
-  IGNORE_WHITESPACE_PARAMS_FOR_REPO,
+  IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   UTF8_ENCODING,
 } = require('./gitConstants')
@@ -44,7 +44,7 @@ class RepoGitDiff {
       encoding: UTF8_ENCODING,
     }
     this.ignoreWhitespaceParams = this.config.ignoreWhitespace
-      ? IGNORE_WHITESPACE_PARAMS_FOR_REPO
+      ? IGNORE_WHITESPACE_PARAMS
       : []
   }
 

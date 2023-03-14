@@ -5,6 +5,7 @@ const {
   META_REGEX,
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
+const { cleanUpPackageMember } = require('../utils/packageHelper')
 const { join, parse, sep } = require('path')
 const { readDir } = require('../utils/fsHelper')
 
@@ -22,8 +23,7 @@ class InFolderHandler extends StandardHandler {
     const [, folderPath, folderName] = this._parseLine()
 
     const folderFileName = `${folderName}.${
-      StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
-      METAFILE_SUFFIX
+      this.metadata.get(this.type).suffix.toLowerCase() + METAFILE_SUFFIX
     }`
 
     await this._copyWithMetaFile(join(folderPath, folderFileName))
@@ -48,7 +48,7 @@ class InFolderHandler extends StandardHandler {
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
 
-    return StandardHandler.cleanUpPackageMember(packageMember)
+    return cleanUpPackageMember(packageMember)
   }
 }
 

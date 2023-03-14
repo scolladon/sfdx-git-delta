@@ -7,18 +7,17 @@ const {
   MODIFICATION,
 } = require('../utils/gitConstants')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
-const { fillPackageWithParameter } = require('../utils/packageHelper')
+const {
+  cleanUpPackageMember,
+  fillPackageWithParameter,
+} = require('../utils/packageHelper')
 const { copyFiles } = require('../utils/fsHelper')
-
-const PACKAGE_MEMBER_PATH_SEP = '/'
 
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 class StandardHandler {
-  static metadata
-
   constructor(line, type, work, metadata) {
-    StandardHandler.metadata = StandardHandler.metadata ?? metadata
+    this.metadata = metadata
     ;[this.changeType] = line
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
@@ -29,13 +28,11 @@ class StandardHandler {
     this.warnings = work.warnings
     this.splittedLine = this.line.split(sep)
 
-    if (StandardHandler.metadata.get(this.type).metaFile === true) {
+    if (this.metadata.get(this.type).metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
-    this.suffixRegex = new RegExp(
-      `\\.${StandardHandler.metadata.get(this.type).suffix}$`
-    )
+    this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type).suffix}$`)
 
     this.handlerMap = {
       [ADDITION]: this.handleAddition,
@@ -87,21 +84,21 @@ class StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return StandardHandler.cleanUpPackageMember(parsedPath.base)
+    return cleanUpPackageMember(parsedPath.base)
   }
 
-  _fillPackage(packageObject) {
+  _fillPackage(store) {
     fillPackageWithParameter({
-      package: packageObject,
+      store,
       type: this.type,
-      elementName: this._getElementName(),
+      member: this._getElementName(),
     })
   }
 
   async _copyWithMetaFile(src) {
     await copyFiles(this.config, src)
     if (
-      StandardHandler.metadata.get(this.type).metaFile === true &&
+      this.metadata.get(this.type).metaFile === true &&
       !`${src}`.endsWith(METAFILE_SUFFIX)
     ) {
       await copyFiles(this.config, this._getMetaTypeFilePath(src))
@@ -120,18 +117,12 @@ class StandardHandler {
     return this.line.match(
       new RegExp(
         `(?<path>.*[/\\\\]${RegExpEscape(
-          StandardHandler.metadata.get(this.type).directoryName
+          this.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
     )
   }
-
-  static cleanUpPackageMember(packageMember) {
-    return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
-  }
-
-  static PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
 }
 
 module.exports = StandardHandler
