@@ -10,8 +10,8 @@
     "directoryName": "ForecastingFilterConditions",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "ForecastingFilterCondition",
-    "xmlName": "ForecastingFilterCondition"
+    "suffix": "forecastingFilterCondition",
+    "xmlName": "forecastingFilterCondition"
   },
   {
     "directoryName": "forecastingSourceDefinitions",
