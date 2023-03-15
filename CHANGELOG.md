@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.14.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.3...v5.14.0) (2023-03-14)
+
+
+### Features
+
+* add support for forecasting metadata types ([#518](https://github.com/scolladon/sfdx-git-delta/issues/518)) ([89d6aa7](https://github.com/scolladon/sfdx-git-delta/commit/89d6aa793c5aea6650e1dbffc7da7cf982379df8))
+* implement diff detection using file content comparison ([#511](https://github.com/scolladon/sfdx-git-delta/issues/511)) ([9bf60c5](https://github.com/scolladon/sfdx-git-delta/commit/9bf60c50e30d2ba0be7f58121404c2dabd85a303))
+
 ## [5.13.3](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.2...v5.13.3) (2023-02-26)
 
 
