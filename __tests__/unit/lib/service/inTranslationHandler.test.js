@@ -5,6 +5,7 @@ const { copyFiles } = require('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsHelper')
 
 const objectType = 'objectTranslations'
+const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
@@ -35,7 +36,7 @@ describe('InTranslation', () => {
 
       // Assert
       expect(copyFiles).not.toBeCalled()
-      expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+      expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
     })
   })
 
@@ -54,7 +55,7 @@ describe('InTranslation', () => {
         work.config,
         expect.stringContaining('Account-es.objectTranslation')
       )
-      expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+      expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
     })
 
     describe('when called with fieldTranslation', () => {
@@ -83,7 +84,7 @@ describe('InTranslation', () => {
           work.config,
           expect.stringContaining('Account-es.objectTranslation')
         )
-        expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+        expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
       })
     })
   })

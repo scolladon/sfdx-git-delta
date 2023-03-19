@@ -2,18 +2,17 @@
 const StandardHandler = require('./standardHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
 
-const WAVE_SUBTYPE = new Map()
+let WAVE_SUBTYPE
 
 class WaveHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-
-    this.metadata
-      .get(this.type)
-      .content.reduce(
-        (acc, val) => acc.set(val.suffix, val.xmlName),
-        WAVE_SUBTYPE
-      )
+    WAVE_SUBTYPE =
+      WAVE_SUBTYPE ??
+      [...metadata.values()]
+        .filter(meta => meta.content)
+        .flatMap(elem => elem.content)
+        .reduce((acc, val) => acc.set(val.suffix, val.xmlName), new Map())
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 

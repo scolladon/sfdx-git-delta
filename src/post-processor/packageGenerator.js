@@ -35,7 +35,7 @@ class PackageGenerator extends BaseProcessor {
   }
 
   async buildPackages() {
-    const pc = new PackageBuilder(this.config, this.metadata)
+    const pc = new PackageBuilder(this.config)
     await Promise.all(
       [
         {

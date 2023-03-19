@@ -44,16 +44,19 @@ const testContext = [
         'objects',
         'force-app/main/default/objects/Account/Account.object-meta.xml',
         new Set(['Account']),
+        'CustomObject',
       ],
       [
         'objects',
         'force-app/main/default/objects/Test/Account/Account.object-meta.xml',
         new Set(['Account']),
+        'CustomObject',
       ],
       [
         'territory2Models',
         'force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
         new Set(['EU']),
+        'Territory2Model',
       ],
     ],
   ],
@@ -64,7 +67,7 @@ const testContext = [
         'workflows',
         'force-app/main/default/workflows/Account.workflow-meta.xml',
         new Set(['Account.Test']),
-        'workflows.alerts',
+        'WorkflowAlert',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<alerts>${EOL}<fullName>Test</fullName>${EOL}</alerts>${EOL}</Workflow>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
@@ -72,7 +75,7 @@ const testContext = [
         'workflows',
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         new Set(['Account.Test']),
-        'workflows.fieldUpdates',
+        'WorkflowFieldUpdate',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<fieldUpdates>${EOL}<fullName>Test</fullName>${EOL}</fieldUpdates>${EOL}</Workflow>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
@@ -80,7 +83,7 @@ const testContext = [
         'workflows',
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         new Set(['Account.Test']),
-        'workflows.outboundMessages',
+        'WorkflowOutboundMessage',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<outboundMessages>${EOL}<fullName>Test</fullName>${EOL}</outboundMessages>${EOL}</Workflow>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
@@ -88,7 +91,7 @@ const testContext = [
         'workflows',
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         new Set(['Account.Test']),
-        'workflows.rules',
+        'WorkflowRule',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<rules>${EOL}<fullName>Test</fullName>${EOL}</rules>${EOL}</Workflow>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
       ],
@@ -96,23 +99,15 @@ const testContext = [
         'workflows',
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         new Set(['Account.Test']),
-        'workflows.flowActions',
+        'WorkflowFlowAction',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<flowActions>${EOL}<fullName>Test</fullName>${EOL}</flowActions>${EOL}</Workflow>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</Workflow>`,
-      ],
-      [
-        'labels',
-        'force-app/main/default/labels/CustomLabels.labels-meta.xml',
-        new Set(['Label']),
-        'labels.labels',
-        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>Label</fullName>${EOL}</labels>${EOL}</CustomLabels>`,
-        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</CustomLabels>`,
       ],
       [
         'sharingRules',
         'force-app/main/default/sharingRules/Account.sharingRules-meta.xml',
         new Set(['Account.Criteria']),
-        'sharingRules.sharingCriteriaRules',
+        'SharingCriteriaRule',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>Criteria</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</SharingRules>`,
       ],
@@ -120,9 +115,17 @@ const testContext = [
         'sharingRules',
         'force-app/main/default/sharingRules/Test/Account.sharingRules-meta.xml',
         new Set(['Account.Criteria']),
-        'sharingRules.sharingCriteriaRules',
+        'SharingCriteriaRule',
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<sharingCriteriaRules>${EOL}<fullName>Criteria</fullName>${EOL}</sharingCriteriaRules>${EOL}</SharingRules>`,
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</SharingRules>`,
+      ],
+      [
+        'labels',
+        'force-app/main/default/labels/CustomLabels.labels-meta.xml',
+        new Set(['Label']),
+        'CustomLabel',
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}<labels>${EOL}<fullName>Label</fullName>${EOL}</labels>${EOL}</CustomLabels>`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>${EOL}<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">${EOL}</CustomLabels>`,
       ],
     ],
   ],
@@ -133,26 +136,31 @@ const testContext = [
         'dashboards',
         'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
         new Set(['folder/file']),
+        'Dashboard',
       ],
       [
         'reports',
         'force-app/main/default/reports/folder.reportFolder-meta.xml',
         new Set(['folder']),
+        'Report',
       ],
       [
         'documents',
         'force-app/main/default/documents/folder.documentFolder-meta.xml',
         new Set(['folder']),
+        'Document',
       ],
       [
         'documents',
         'force-app/main/default/documents/folder/document.test.ext',
         new Set(['folder/document.test']),
+        'Document',
       ],
       [
         'documents',
         'force-app/main/default/documents/folder/document.test.document-meta.xml',
         new Set(['folder/document.test']),
+        'Document',
       ],
     ],
   ],
@@ -163,11 +171,13 @@ const testContext = [
         'objectTranslations',
         'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml',
         new Set(['Account-es']),
+        'CustomObjectTranslation',
       ],
       [
         'objectTranslations',
         'force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml',
         new Set(['Account-es']),
+        'CustomObjectTranslation',
       ],
     ],
   ],
@@ -178,41 +188,49 @@ const testContext = [
         'staticresources',
         'force-app/main/default/staticresources/test/content',
         new Set(['test']),
+        'StaticResource',
       ],
       [
         'staticresources',
         'force-app/main/default/staticresources/resource.js',
         new Set(['resource']),
+        'StaticResource',
       ],
       [
         'staticresources',
         'force-app/main/default/staticresources/erase.resource-meta.xml',
         new Set(['erase']),
+        'StaticResource',
       ],
       [
         'waveTemplates',
         'force-app/main/default/waveTemplates/WaveTemplateTest/template-info.json',
         new Set(['WaveTemplateTest']),
+        'WaveTemplateBundle',
       ],
       [
         'lwc',
         'force-app/main/default/lwc/component/component.js-meta.xml',
         new Set(['component']),
+        'LightningComponentBundle',
       ],
       [
         'aura',
         'force-app/main/default/aura/component/component.cmp-meta.xml',
         new Set(['component']),
+        'AuraDefinitionBundle',
       ],
       [
         'experiences',
         'force-app/main/default/experiences/component/subfolder/file.json',
         new Set(['component']),
+        'ExperienceBundle',
       ],
       [
         'experiences',
         'force-app/main/default/experiences/component-meta.xml',
         new Set(['component']),
+        'ExperienceBundle',
       ],
     ],
   ],
@@ -223,11 +241,13 @@ const testContext = [
         'digitalExperiences',
         'force-app/main/default/digitalExperiences/site/component.digitalExperience-meta.xml',
         new Set(['site/component']),
+        'DigitalExperienceBundle',
       ],
       [
         'digitalExperiences',
         'force-app/main/default/digitalExperiences/site/component/workspace/file.json',
         new Set(['site/component']),
+        'DigitalExperienceBundle',
       ],
     ],
   ],
@@ -238,36 +258,43 @@ const testContext = [
         'quickActions',
         'force-app/main/default/quickActions/Account.New.quickAction-meta.xml',
         new Set(['Account.New']),
+        'QuickAction',
       ],
       [
         'quickActions',
         'force-app/main/default/quickActions/NewGlobal.quickAction-meta.xml',
         new Set(['NewGlobal']),
+        'QuickAction',
       ],
       [
         'customMetadata',
         'force-app/main/default/customMetadata/GraphicsPackImages.md_png.md-meta.xml',
         new Set(['GraphicsPackImages.md_png']),
+        'CustomMetadata',
       ],
       [
         'weblinks',
         'force-app/main/default/objects/Account/weblinks/ClientStore.weblink-meta.xml',
         new Set(['ClientStore']),
+        'CustomPageWebLink',
       ],
       [
         'classes',
         'force-app/main/default/classes/controllers/Controller.cls-meta.xml',
         new Set(['Controller']),
+        'ApexClass',
       ],
       [
         'batchCalcJobDefinitions',
         'force-app/main/default/batchCalcJobDefinitions/Job.batchCalcJobDefinition-meta.xml',
         new Set(['Job']),
+        'BatchCalcJobDefinition',
       ],
       [
         'restrictionRules',
         'force-app/main/default/restrictionRules/Account.rule-meta.xml',
         new Set(['Account']),
+        'RestrictionRule',
       ],
     ],
   ],
@@ -278,36 +305,43 @@ const testContext = [
         'fields',
         'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
         new Set(['Account.awesome']),
+        'CustomField',
       ],
       [
         'indexes',
         'force-app/main/default/objects/Account/indexes/awesome.index-meta.xml',
         new Set(['Account.awesome']),
+        'Index',
       ],
       [
         'rules',
         'force-app/main/default/territory2Models/EU/rules/Location.territory2Rule-meta.xml',
         new Set(['EU.Location']),
+        'Territory2Rule',
       ],
       [
         'territories',
         'force-app/main/default/territory2Models/EU/territories/France.territory2-meta.xml',
         new Set(['EU.France']),
+        'Territory2',
       ],
       [
         'fields',
         'force-app/main/default/objects/Test/Account/fields/awesome.field-meta.xml',
         new Set(['Account.awesome']),
+        'CustomField',
       ],
       [
         'rules',
         'force-app/main/default/territory2Models/Test/EU/rules/Location.territory2Rule-meta.xml',
         new Set(['EU.Location']),
+        'Territory2Rule',
       ],
       [
         'territories',
         'force-app/main/default/territory2Models/Test/EU/territories/France.territory2-meta.xml',
         new Set(['EU.France']),
+        'Territory2',
       ],
     ],
   ],
@@ -474,7 +508,7 @@ describe.each(testContext)('integration domain test', (handler, testData) => {
           await sut.handle()
 
           // Assert
-          expect(work.diffs.package.get(expectedType ?? type)).toEqual(expected)
+          expect(work.diffs.package.get(expectedType)).toEqual(expected)
         })
         test('deletion', async () => {
           // Arrange
@@ -494,9 +528,9 @@ describe.each(testContext)('integration domain test', (handler, testData) => {
           await sut.handle()
 
           // Assert
-          expect(
-            work.diffs.destructiveChanges.get(expectedType ?? type)
-          ).toEqual(expected)
+          expect(work.diffs.destructiveChanges.get(expectedType)).toEqual(
+            expected
+          )
         })
         test('modification', async () => {
           // Arrange
@@ -515,7 +549,7 @@ describe.each(testContext)('integration domain test', (handler, testData) => {
           await sut.handle()
 
           // Assert
-          expect(work.diffs.package.get(expectedType ?? type)).toEqual(expected)
+          expect(work.diffs.package.get(expectedType)).toEqual(expected)
         })
       }
     )

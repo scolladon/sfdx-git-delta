@@ -7,7 +7,7 @@ const FULLNAME = 'fullName'
 const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
 const INFOLDER_SUFFIX = `Folder`
 const LABEL_EXTENSION = 'labels'
-const LABEL_DIRECTORY_NAME = `labels.${LABEL_EXTENSION}`
+const LABEL_XML_NAME = 'CustomLabel'
 const MASTER_DETAIL_TAG = '<type>MasterDetail</type>'
 const METAFILE_SUFFIX = '-meta.xml'
 const META_REGEX = new RegExp(`${METAFILE_SUFFIX}$`)
@@ -15,6 +15,7 @@ const OBJECT_META_XML_SUFFIX = `object${METAFILE_SUFFIX}`
 const OBJECT_TRANSLATION_TYPE = 'objectTranslations'
 const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_SUFFIX}`
 const OBJECT_TYPE = 'objects'
+const OBJECT_XML_NAME = 'CustomObject'
 const SUB_OBJECT_TYPES = [
   'businessProcesses',
   'compactLayouts',
@@ -41,7 +42,7 @@ module.exports.FULLNAME = FULLNAME
 module.exports.FULLNAME_XML_TAG = FULLNAME_XML_TAG
 module.exports.INFOLDER_SUFFIX = INFOLDER_SUFFIX
 module.exports.LABEL_EXTENSION = LABEL_EXTENSION
-module.exports.LABEL_DIRECTORY_NAME = LABEL_DIRECTORY_NAME
+module.exports.LABEL_XML_NAME = LABEL_XML_NAME
 module.exports.MASTER_DETAIL_TAG = MASTER_DETAIL_TAG
 module.exports.METAFILE_SUFFIX = METAFILE_SUFFIX
 module.exports.META_REGEX = META_REGEX
@@ -50,6 +51,7 @@ module.exports.OBJECT_TRANSLATION_META_XML_SUFFIX =
   OBJECT_TRANSLATION_META_XML_SUFFIX
 module.exports.OBJECT_TRANSLATION_TYPE = OBJECT_TRANSLATION_TYPE
 module.exports.OBJECT_TYPE = OBJECT_TYPE
+module.exports.OBJECT_XML_NAME = OBJECT_XML_NAME
 module.exports.SUB_OBJECT_TYPES = SUB_OBJECT_TYPES
 module.exports.TERRITORY_MODEL_TYPE = TERRITORY_MODEL_TYPE
 module.exports.TRANSLATION_EXTENSION = TRANSLATION_EXTENSION

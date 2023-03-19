@@ -103,8 +103,8 @@ describe(`test if the appli`, () => {
       generateDelta: true,
     })
 
-    expect(work.diffs.package.get('fields')).toContain('Account.changed')
-    expect(work.diffs.destructiveChanges.get('fields')).not.toContain(
+    expect(work.diffs.package.get('CustomField')).toContain('Account.changed')
+    expect(work.diffs.destructiveChanges.get('CustomField')).not.toContain(
       'Account.changed'
     )
   })
@@ -127,6 +127,6 @@ describe(`test if the appli`, () => {
       apiVersion: '46',
       generateDelta: true,
     })
-    expect(work.diffs.package.get('rules')).toContain('EU.France')
+    expect(work.diffs.package.get('Territory2Rule')).toContain('EU.France')
   })
 })

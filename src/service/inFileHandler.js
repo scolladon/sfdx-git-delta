@@ -1,12 +1,12 @@
 'use strict'
 const {
   LABEL_EXTENSION,
-  LABEL_DIRECTORY_NAME,
+  LABEL_XML_NAME,
 } = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
 const { writeFile } = require('../utils/fsHelper')
-const FileGitDiff = require('../utils/fileGitDiff')
+const MetadataDiff = require('../utils/metadataDiff')
 const {
   cleanUpPackageMember,
   fillPackageWithParameter,
@@ -14,16 +14,23 @@ const {
 
 const getRootType = line => basename(line).split('.')[0]
 const getNamePreffix = ({ subType, line }) =>
-  subType !== LABEL_DIRECTORY_NAME ? `${getRootType(line)}.` : ''
+  subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
+
+const getInFileAttributs = metadata => {
+  return [...metadata.values()]
+    .filter(meta => meta.xmlTag)
+    .reduce((acc, meta) => {
+      acc[meta.xmlTag] = { xmlName: meta.xmlName, key: 'fullName' }
+      return acc
+    }, {})
+}
+let inFileMetadata
 
 class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    this.fileGitDiff = new FileGitDiff(
-      metadata.get(this.type)?.directoryName,
-      this.config,
-      metadata
-    )
+    inFileMetadata = inFileMetadata ?? getInFileAttributs(metadata)
+    this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
   }
 
   async handleAddition() {
@@ -43,13 +50,13 @@ class InFileHandler extends StandardHandler {
   }
 
   async _compareRevision() {
-    const { added, deleted } = await this.fileGitDiff.compare(this.line)
+    const { added, deleted } = await this.metadataDiff.compare(this.line)
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
   }
 
   async _writeScopedContent() {
-    const xmlContent = this.fileGitDiff.prune()
+    const xmlContent = this.metadataDiff.prune()
     await writeFile(this.line, xmlContent, this.config)
   }
 

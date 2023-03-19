@@ -12,6 +12,7 @@ jest.mock('fs-extra')
 jest.mock('fs')
 
 const objectType = 'staticresources'
+const xmlName = 'StaticResource'
 const entityPath = 'force-app/main/default/staticresources/resource.js'
 const line = `A       ${entityPath}`
 let work
@@ -48,7 +49,7 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(...work.diffs.package.get(objectType)).toEqual('resource')
+        expect(...work.diffs.package.get(xmlName)).toEqual('resource')
         expect(copyFiles).not.toBeCalled()
       })
     })
@@ -71,17 +72,18 @@ describe('InResourceHandler', () => {
           )
         })
         it.each([
-          ['staticresources', 'image', 'image.png', 3],
-          ['staticresources', 'image', 'image/logo.png', 3],
+          ['staticresources', 'StaticResource', 'image', 'image.png', 3],
+          ['staticresources', 'StaticResource', 'image', 'image/logo.png', 3],
           [
             'experiences',
+            'ExperienceBundle',
             'my_experience_bundle',
             'my_experience_bundle/config/myexperiencebundle.json',
             5,
           ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file',
-          async (type, entity, path, expectedCount) => {
+          async (type, xmlName, entity, path, expectedCount) => {
             // Arrange
             const base = 'force-app/main/default/'
             const line = `A       ${base}${type}/${path}`
@@ -91,7 +93,7 @@ describe('InResourceHandler', () => {
             await sut.handle()
 
             // Assert
-            expect(...work.diffs.package.get(type)).toEqual(entity)
+            expect(...work.diffs.package.get(xmlName)).toEqual(entity)
             expect(copyFiles).toBeCalledTimes(expectedCount)
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
@@ -113,6 +115,7 @@ describe('InResourceHandler', () => {
         it('should copy the matching lwc', async () => {
           // Arrange
           const type = 'lwc'
+          const xmlName = 'LightningComponentBundle'
           const entity = 'lwcc'
           const path = 'lwcc/lwcc.js'
           const base = 'force-app/main/default/'
@@ -123,7 +126,7 @@ describe('InResourceHandler', () => {
           await sut.handle()
 
           // Assert
-          expect(...work.diffs.package.get(type)).toEqual(entity)
+          expect(...work.diffs.package.get(xmlName)).toEqual(entity)
           expect(copyFiles).toBeCalledTimes(1)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
@@ -147,7 +150,7 @@ describe('InResourceHandler', () => {
           await sut.handle()
 
           // Assert
-          expect(...work.diffs.package.get(objectType)).toEqual('resource')
+          expect(...work.diffs.package.get(xmlName)).toEqual('resource')
           expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
           expect(copyFiles).toHaveBeenCalledWith(
@@ -180,7 +183,7 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(...work.diffs.package.get(objectType)).toEqual('resource')
+        expect(...work.diffs.package.get(xmlName)).toEqual('resource')
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
           work.config
@@ -204,8 +207,8 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(work.diffs.package.has(objectType)).toBe(false)
-        expect(...work.diffs.destructiveChanges.get(objectType)).toEqual(
+        expect(work.diffs.package.has(xmlName)).toBe(false)
+        expect(...work.diffs.destructiveChanges.get(xmlName)).toEqual(
           'resource'
         )
         expect(pathExists).toHaveBeenCalledWith(

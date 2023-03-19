@@ -4,7 +4,7 @@ const { writeFile } = require('../../../../src/utils/fsHelper')
 
 const mockCompare = jest.fn()
 const mockprune = jest.fn()
-jest.mock('../../../../src/utils/fileGitDiff', () => {
+jest.mock('../../../../src/utils/metadataDiff', () => {
   return jest.fn().mockImplementation(() => {
     return { compare: mockCompare, prune: mockprune }
   })
@@ -43,7 +43,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         globalMetadata
       )
       mockCompare.mockReturnValue({
-        added: new Map([['workflows.alerts', new Set(['test'])]]),
+        added: new Map([['WorkflowAlert', new Set(['test'])]]),
         deleted: new Map(),
       })
     })
@@ -53,8 +53,8 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
 
       // Assert
       expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(work.diffs.package.get('workflows')).toEqual(new Set(['Account']))
-      expect(work.diffs.package.get('workflows.alerts')).toEqual(
+      expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
+      expect(work.diffs.package.get('WorkflowAlert')).toEqual(
         new Set(['Account.test'])
       )
 
@@ -79,8 +79,8 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         globalMetadata
       )
       mockCompare.mockReturnValue({
-        added: new Map([['workflows.alerts', new Set(['test'])]]),
-        deleted: new Map([['workflows.alerts', new Set(['deleted'])]]),
+        added: new Map([['WorkflowAlert', new Set(['test'])]]),
+        deleted: new Map([['WorkflowAlert', new Set(['deleted'])]]),
       })
     })
     it('should store the added metadata in the package and deleted in the destructiveChanges', async () => {
@@ -88,14 +88,14 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       await sut.handleModification()
 
       // Assert
-      expect(work.diffs.package.get('workflows')).toEqual(new Set(['Account']))
-      expect(work.diffs.package.get('workflows.alerts')).toEqual(
+      expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
+      expect(work.diffs.package.get('WorkflowAlert')).toEqual(
         new Set(['Account.test'])
       )
-      expect(work.diffs.destructiveChanges.get('workflows.alerts')).toEqual(
+      expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
         new Set(['Account.deleted'])
       )
-      expect(work.diffs.destructiveChanges.has('workflows')).toBe(false)
+      expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
       if (generateDelta) {
         expect(mockprune).toHaveBeenCalled()
         expect(writeFile).toHaveBeenCalled()
@@ -118,7 +118,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       )
       mockCompare.mockReturnValue({
         added: new Map(),
-        deleted: new Map([['workflows.alerts', new Set(['test'])]]),
+        deleted: new Map([['WorkflowAlert', new Set(['test'])]]),
       })
     })
     it('should store the deleted metadata in the destructiveChanges', async () => {
@@ -127,8 +127,8 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
 
       // Assert
       expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.has('workflows')).toBe(false)
-      expect(work.diffs.destructiveChanges.get('workflows.alerts')).toEqual(
+      expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
+      expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
         new Set(['Account.test'])
       )
       expect(mockprune).not.toHaveBeenCalled()

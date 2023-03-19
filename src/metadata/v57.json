@@ -140,14 +140,6 @@
     "xmlName": "InstalledPackage"
   },
   {
-    "childXmlNames": "CustomLabel",
-    "directoryName": "labels",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "labels",
-    "xmlName": "CustomLabels"
-  },
-  {
     "directoryName": "staticresources",
     "inFolder": false,
     "metaFile": true,
@@ -1435,12 +1427,14 @@
     "xmlTag": "fieldUpdates"
   },
   {
-    "directoryName": "labels.labels",
+    "directoryName": "labels",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "CustomLabels",
     "xmlName": "CustomLabel",
-    "xmlTag": "labels"
+    "xmlTag": "labels",
+    "childXmlNames": "CustomLabel",
+    "suffix": "labels"
   },
   {
     "directoryName": "workflows.outboundMessages",

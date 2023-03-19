@@ -90,7 +90,7 @@ class StandardHandler {
   _fillPackage(store) {
     fillPackageWithParameter({
       store,
-      type: this.type,
+      type: this.metadata.get(this.type).xmlName,
       member: this._getElementName(),
     })
   }
