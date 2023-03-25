@@ -2,7 +2,7 @@
 
 const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
 const { isEqual } = require('lodash')
-const { safeAdd } = require('./packageHelper')
+const { fillPackageWithParameter } = require('./packageHelper')
 
 const hasProp = object => key => ({}.hasOwnProperty.call(object, key))
 
@@ -11,7 +11,7 @@ const hasProp = object => key => ({}.hasOwnProperty.call(object, key))
 const addToStore =
   store =>
   ({ type, member }) => {
-    safeAdd({ store, type, member })
+    fillPackageWithParameter({ store, type, member })
     return store
   }
 

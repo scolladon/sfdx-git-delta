@@ -38,10 +38,6 @@ module.exports = class PackageBuilder {
 }
 
 const fillPackageWithParameter = ({ store, type, member }) => {
-  safeAdd({ store, type, member })
-}
-
-const safeAdd = ({ store, type, member }) => {
   if (!store.has(type)) {
     store.set(type, new Set())
   }
@@ -55,4 +51,3 @@ const cleanUpPackageMember = packageMember => {
 
 module.exports.cleanUpPackageMember = cleanUpPackageMember
 module.exports.fillPackageWithParameter = fillPackageWithParameter
-module.exports.safeAdd = safeAdd
