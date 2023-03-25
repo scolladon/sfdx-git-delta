@@ -80,6 +80,15 @@ const wfBase = {
   },
 }
 
+const wrongAttribut = {
+  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+  Workflow: {
+    wrong: {
+      fullName: 'TestEmailAlert',
+    },
+  },
+}
+
 const workFlowAttributs = {
   alerts: { xmlName: 'WorkflowAlert', key: 'fullName' },
 }
@@ -107,6 +116,19 @@ describe(`MetadataDiff`, () => {
   })
 
   describe('compare', () => {
+    it('does not detect unauthorized elements', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce(wrongAttribut)
+      parseXmlFileToJson.mockResolvedValueOnce(wfBase)
+
+      // Act
+      const { added, deleted } = await metadataDiff.compare('file/path')
+
+      // Assert
+      expect(deleted.size).toBe(0)
+      expect(added.size).toBe(0)
+    })
+
     it('detects added elements', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alert)
