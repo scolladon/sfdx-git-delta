@@ -120,6 +120,20 @@ const testContext = [
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><MatchingRules xmlns="http://soap.sforce.com/2006/04/metadata"></MatchingRules>`,
   ],
   [
+    'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
+    new Set(['Numbers-fr']),
+    'GlobalValueSetTranslation',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><GlobalValueSetTranslation xmlns="http://soap.sforce.com/2006/04/metadata"><valueTranslation><masterLabel>Three</masterLabel><translation>Trois</translation></valueTranslation></GlobalValueSetTranslation>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><GlobalValueSetTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></GlobalValueSetTranslation>`,
+  ],
+  [
+    'force-app/main/default/standardValueSetTranslations/Numbers-fr.standardValueSetTranslation-meta.xml',
+    new Set(['Numbers-fr']),
+    'StandardValueSetTranslation',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><StandardValueSetTranslation xmlns="http://soap.sforce.com/2006/04/metadata"><valueTranslation><masterLabel>Three</masterLabel><translation>Trois</translation></valueTranslation></StandardValueSetTranslation>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><StandardValueSetTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></StandardValueSetTranslation>`,
+  ],
+  [
     'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
     new Set(['folder/file']),
     'Dashboard',

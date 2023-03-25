@@ -621,8 +621,10 @@
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "GlobalValueSetTranslation",
+    "xmlName": "valueTranslation",
     "xmlTag": "valueTranslation",
-    "key": "masterLabel"
+    "key": "masterLabel",
+    "excluded": true
   },
   {
     "directoryName": "standardValueSetTranslations",
@@ -636,8 +638,10 @@
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "StandardValueSetTranslation",
+    "xmlName": "ValueTranslation",
     "xmlTag": "valueTranslation",
-    "key": "masterLabel"
+    "key": "masterLabel",
+    "excluded": true
   },
   {
     "directoryName": "classes",
