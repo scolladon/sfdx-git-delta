@@ -617,11 +617,27 @@
     "xmlName": "GlobalValueSetTranslation"
   },
   {
+    "directoryName": "globalValueSetTranslations.valueTranslation",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "GlobalValueSetTranslation",
+    "xmlTag": "valueTranslation",
+    "key": "masterLabel"
+  },
+  {
     "directoryName": "standardValueSetTranslations",
     "inFolder": false,
     "metaFile": false,
     "suffix": "standardValueSetTranslation",
     "xmlName": "StandardValueSetTranslation"
+  },
+  {
+    "directoryName": "standardValueSetTranslations.valueTranslation",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "StandardValueSetTranslation",
+    "xmlTag": "valueTranslation",
+    "key": "masterLabel"
   },
   {
     "directoryName": "classes",

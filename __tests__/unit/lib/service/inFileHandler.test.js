@@ -66,6 +66,41 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         expect(writeFile).not.toHaveBeenCalled()
       }
     })
+
+    describe('when metadata in file is not packageable', () => {
+      beforeEach(() => {
+        // Arrange
+        sut = new InFile(
+          'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
+          'globalValueSetTranslations',
+          work,
+          globalMetadata
+        )
+        mockCompare.mockReturnValue({
+          added: new Map([['ValueTranslation', new Set(['Three'])]]),
+          deleted: new Map(),
+        })
+      })
+      it('should only store file name and not the metadata in file', async () => {
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(work.diffs.package.get('GlobalValueSetTranslation')).toEqual(
+          new Set(['Numbers-fr'])
+        )
+        expect(work.diffs.package.size).toEqual(1)
+
+        if (generateDelta) {
+          expect(mockprune).toHaveBeenCalled()
+          expect(writeFile).toHaveBeenCalled()
+        } else {
+          expect(mockprune).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
+        }
+      })
+    })
   })
 
   describe('when file is modified', () => {
@@ -103,6 +138,41 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         expect(mockprune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
       }
+    })
+
+    describe('when metadata in file is not packageable', () => {
+      beforeEach(() => {
+        // Arrange
+        sut = new InFile(
+          'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
+          'globalValueSetTranslations',
+          work,
+          globalMetadata
+        )
+        mockCompare.mockReturnValue({
+          added: new Map([['ValueTranslation', new Set(['Three'])]]),
+          deleted: new Map(),
+        })
+      })
+      it('should only store file name and not the metadata in file', async () => {
+        // Act
+        await sut.handleModification()
+
+        // Assert
+        expect(work.diffs.destructiveChanges.size).toEqual(0)
+        expect(work.diffs.package.get('GlobalValueSetTranslation')).toEqual(
+          new Set(['Numbers-fr'])
+        )
+        expect(work.diffs.package.size).toEqual(1)
+
+        if (generateDelta) {
+          expect(mockprune).toHaveBeenCalled()
+          expect(writeFile).toHaveBeenCalled()
+        } else {
+          expect(mockprune).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
+        }
+      })
     })
   })
 

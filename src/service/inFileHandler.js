@@ -12,6 +12,9 @@ const {
   fillPackageWithParameter,
 } = require('../utils/packageHelper')
 
+const isPackageable = type =>
+  !Object.values(inFileMetadata).find(inFileDef => inFileDef.xmlName === type)
+    .excluded
 const getRootType = line => basename(line).split('.')[0]
 const getNamePreffix = ({ subType, line }) =>
   subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
@@ -20,7 +23,11 @@ const getInFileAttributs = metadata => {
   return [...metadata.values()]
     .filter(meta => meta.xmlTag)
     .reduce((acc, meta) => {
-      acc[meta.xmlTag] = { xmlName: meta.xmlName, key: meta.key }
+      acc[meta.xmlTag] = {
+        xmlName: meta.xmlName,
+        key: meta.key,
+        excluded: meta.excluded,
+      }
       return acc
     }, {})
 }
@@ -62,13 +69,13 @@ class InFileHandler extends StandardHandler {
 
   _storeComparison(store, content) {
     for (const [type, members] of content) {
-      for (const fullName of members) {
-        this._fillPackage(store, type, fullName)
+      for (const member of members) {
+        this._fillPackage(store, type, member)
       }
     }
   }
 
-  _fillPackage(store, subType, fullName) {
+  _fillPackage(store, subType, member) {
     // Call from super.handleAddition to add the Root Type
     // InFile element are not deployable when root component is not listed in package.xml...
     if (arguments.length === 1) {
@@ -78,15 +85,17 @@ class InFileHandler extends StandardHandler {
       return
     }
 
-    const member = cleanUpPackageMember(
-      `${getNamePreffix({ subType, line: this.line })}${fullName}`
-    )
+    if (isPackageable(subType)) {
+      const cleanedMember = cleanUpPackageMember(
+        `${getNamePreffix({ subType, line: this.line })}${member}`
+      )
 
-    fillPackageWithParameter({
-      store,
-      type: subType,
-      member,
-    })
+      fillPackageWithParameter({
+        store,
+        type: subType,
+        member: cleanedMember,
+      })
+    }
   }
 }
 
