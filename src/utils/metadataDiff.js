@@ -4,7 +4,7 @@ const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
 const { isEqual } = require('lodash')
 const { safeAdd } = require('./packageHelper')
 
-const hasProp = (object, key) => ({}.hasOwnProperty.call(object, key))
+const hasProp = object => key => ({}.hasOwnProperty.call(object, key))
 
 // Store functional area
 // Side effect on store
@@ -18,6 +18,8 @@ const addToStore =
 const hasMember = store => attributs => subType => member =>
   store.get(attributs[subType]?.xmlName)?.has(member)
 
+const selectKey = attributs => type => elem => elem[attributs[type].key]
+
 // Metadata JSON structure functional area
 const getRootMetadata = fileContent => Object.values(fileContent)?.[1] ?? {}
 
@@ -28,7 +30,7 @@ const clearMetadata = fileContent => ({
 
 const getSubTypeTags = attributs => fileContent =>
   Object.keys(getRootMetadata(fileContent)).filter(tag =>
-    hasProp(attributs, tag)
+    hasProp(attributs)(tag)
   )
 
 const extractMetadataForSubtype = fileContent => subType =>
@@ -56,8 +58,11 @@ const processMetadataForSubType =
   }
 
 const getElementProcessor = (type, predicat, otherMeta, attributs) => elem => {
-  if (predicat(otherMeta, elem)) {
-    return { type: attributs[type].xmlName, member: elem[attributs[type].key] }
+  if (predicat(otherMeta, type, elem)) {
+    return {
+      type: attributs[type].xmlName,
+      member: selectKey(attributs)(type)(elem),
+    }
   }
 }
 
@@ -68,9 +73,10 @@ const generatePartialJSON = attributs => jsonContent => store => {
   return getSubTypeTags(attributs)(jsonContent).reduce((acc, subType) => {
     const meta = extract(subType)
     const storeHasMemberForType = storeHasMember(subType)
+    const key = selectKey(attributs)(subType)
     const rootMetadata = getRootMetadata(acc)
     rootMetadata[subType] = meta.filter(elem =>
-      storeHasMemberForType(elem.fullName)
+      storeHasMemberForType(key(elem))
     )
     return acc
   }, clearMetadata(jsonContent))
@@ -98,15 +104,17 @@ class MetadataDiff {
     const diff = compareContent(this.attributs)
 
     // Added or Modified
-    this.add = diff(this.toContent, fromContent, (meta, elem) => {
-      const match = meta.find(el => el.fullName === elem.fullName)
+    this.add = diff(this.toContent, fromContent, (meta, type, elem) => {
+      const key = selectKey(this.attributs)(type)
+      const match = meta.find(el => key(el) === key(elem))
       return !match || !isEqual(match, elem)
     })
 
     // Will be done when not needed
     // Deleted
-    const del = diff(fromContent, this.toContent, (meta, elem) => {
-      return !meta.some(el => el.fullName === elem.fullName)
+    const del = diff(fromContent, this.toContent, (meta, type, elem) => {
+      const key = selectKey(this.attributs)(type)
+      return !meta.some(el => key(el) === key(elem))
     })
 
     return {
