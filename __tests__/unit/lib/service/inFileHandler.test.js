@@ -201,8 +201,36 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
         new Set(['Account.test'])
       )
+      expect(mockCompare).toHaveBeenCalled()
       expect(mockprune).not.toHaveBeenCalled()
       expect(writeFile).not.toHaveBeenCalled()
+    })
+    describe('when metadata in file is prune Only', () => {
+      beforeEach(() => {
+        // Arrange
+        sut = new InFile(
+          'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
+          'globalValueSetTranslations',
+          work,
+          globalMetadata
+        )
+      })
+      it('should only store file name and not the metadata in file', async () => {
+        // Act
+        await sut.handleDeletion()
+
+        // Assert
+        expect(work.diffs.package.size).toEqual(0)
+        expect(work.diffs.destructiveChanges.has('ValueTranslation')).toBe(
+          false
+        )
+        expect(
+          work.diffs.destructiveChanges.get('GlobalValueSetTranslation')
+        ).toEqual(new Set(['Numbers-fr']))
+        expect(mockCompare).not.toHaveBeenCalled()
+        expect(mockprune).not.toHaveBeenCalled()
+        expect(writeFile).not.toHaveBeenCalled()
+      })
     })
   })
 })

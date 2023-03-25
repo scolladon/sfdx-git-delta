@@ -49,7 +49,11 @@ class InFileHandler extends StandardHandler {
   }
 
   async handleDeletion() {
-    await this._compareRevision()
+    if (this.metadata.get(this.type).pruneOnly) {
+      await super.handleDeletion()
+    } else {
+      await this._compareRevision()
+    }
   }
 
   async handleModification() {

@@ -603,25 +603,19 @@
     "xmlName": "CustomObjectTranslation"
   },
   {
-    "directoryName": "translations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "translation",
-    "xmlName": "Translations"
-  },
-  {
     "directoryName": "globalValueSetTranslations",
     "inFolder": false,
     "metaFile": false,
     "suffix": "globalValueSetTranslation",
-    "xmlName": "GlobalValueSetTranslation"
+    "xmlName": "GlobalValueSetTranslation",
+    "pruneOnly": true
   },
   {
     "directoryName": "globalValueSetTranslations.valueTranslation",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "GlobalValueSetTranslation",
-    "xmlName": "valueTranslation",
+    "xmlName": "ValueTranslation",
     "xmlTag": "valueTranslation",
     "key": "masterLabel",
     "excluded": true
@@ -631,7 +625,8 @@
     "inFolder": false,
     "metaFile": false,
     "suffix": "standardValueSetTranslation",
-    "xmlName": "StandardValueSetTranslation"
+    "xmlName": "StandardValueSetTranslation",
+    "pruneOnly": true
   },
   {
     "directoryName": "standardValueSetTranslations.valueTranslation",
@@ -663,13 +658,6 @@
     "metaFile": false,
     "suffix": "testSuite",
     "xmlName": "ApexTestSuite"
-  },
-  {
-    "directoryName": "profiles",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "profile",
-    "xmlName": "Profile"
   },
   {
     "directoryName": "permissionsets",
@@ -1575,5 +1563,313 @@
     "xmlName": "WorkflowTask",
     "xmlTag": "tasks",
     "key": "fullName"
+  },
+  {
+    "directoryName": "profiles",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "profile",
+    "xmlName": "Profile",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "profiles.categoryGroupVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileApplicationVisibility",
+    "xmlTag": "categoryGroupVisibilities",
+    "key": "dataCategoryGroup",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.applicationVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCategoryGroupVisibility",
+    "xmlTag": "applicationVisibilities",
+    "key": "application",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.classAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileApexClassAccess",
+    "xmlTag": "classAccesses",
+    "key": "apexClass",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.customMetadataTypeAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCustomMetadataTypeAccess[",
+    "xmlTag": "customMetadataTypeAccesses",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.customPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCustomPermissions",
+    "xmlTag": "customPermissions",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.customSettingAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCustomSettingAccesses",
+    "xmlTag": "customSettingAccesses",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.externalDataSourceAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileExternalDataSourceAccess",
+    "xmlTag": "externalDataSourceAccesses",
+    "key": "externalDataSource",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.fieldLevelSecurities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileFieldLevelSecurity",
+    "xmlTag": "fieldLevelSecurities",
+    "key": "fullName",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.fieldPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileFieldLevelSecurity",
+    "xmlTag": "fieldPermissions",
+    "key": "field",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.flowAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileFlowAccess",
+    "xmlTag": "flowAccesses",
+    "key": "flow",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.layoutAssignments",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLayoutAssignments",
+    "xmlTag": "layoutAssignments",
+    "key": "layout",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.loginFlows",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "LoginFlow",
+    "xmlTag": "loginFlows",
+    "key": "friendlyname",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.objectPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileObjectPermissions",
+    "xmlTag": "objectPermissions",
+    "key": "object",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.pageAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileApexPageAccess",
+    "xmlTag": "pageAccesses",
+    "key": "apexPage",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.profileActionOverrides",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileActionOverride",
+    "xmlTag": "profileActionOverrides",
+    "key": "actionName",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.recordTypeVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileRecordTypeVisibility",
+    "xmlTag": "recordTypeVisibilities",
+    "key": "recordType",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.tabVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileTabVisibility",
+    "xmlTag": "tabVisibilities",
+    "key": "tab",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.userPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileUserPermission",
+    "xmlTag": "userPermissions",
+    "key": "name",
+    "excluded": true
+  },
+
+
+  {
+    "directoryName": "translations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "translation",
+    "xmlName": "Translations",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "translation.bots",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "BotTransltation",
+    "xmlTag": "bots",
+    "key": "fullName",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customApplications",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomApplicationTranslation",
+    "xmlTag": "customApplications",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customLabels",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomLabelTranslation",
+    "xmlTag": "customLabels",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customPageWebLinks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomPageWebLinkTranslation",
+    "xmlTag": "customPageWebLinks",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customTabs",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomTabTranslation",
+    "xmlTag": "customTabs",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.flowDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "FlowDefinitionTranslation",
+    "xmlTag": "flowDefinitions",
+    "key": "fullName",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.pipelineInspMetricConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "PipelineInspMetricConfigTranslation",
+    "xmlTag": "pipelineInspMetricConfigs",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.prompts",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "PromptTranslation",
+    "xmlTag": "prompts",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.quickActions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "GlobalQuickActionTranslation",
+    "xmlTag": "quickActions",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.reportTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "ReportTypeTranslation",
+    "xmlTag": "reportTypes",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.scontrols",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "ScontrolTranslation",
+    "xmlTag": "scontrols",
+    "key": "name",
+    "excluded": true
   }
 ]
