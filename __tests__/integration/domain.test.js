@@ -134,6 +134,20 @@ const testContext = [
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><StandardValueSetTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></StandardValueSetTranslation>`,
   ],
   [
+    'force-app/main/default/profiles/Admin.profile-meta.xml',
+    new Set(['Admin']),
+    'Profile',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Profile xmlns="http://soap.sforce.com/2006/04/metadata"><applicationVisibilities><application>MyApp</application><default>false</default><visible>false</visible></applicationVisibilities></Profile>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`,
+  ],
+  [
+    'force-app/main/default/translations/fr.translation-meta.xml',
+    new Set(['fr']),
+    'Translations',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customApplications><label>MyAppLabel</label><name>MyApp</name></customApplications></Translations>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`,
+  ],
+  [
     'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
     new Set(['folder/file']),
     'Dashboard',
