@@ -530,7 +530,8 @@
     "metaFile": false,
     "parentXmlName": "AssignmentRules",
     "xmlName": "AssignmentRule",
-    "xmlTag": "assignmentRule"
+    "xmlTag": "assignmentRule",
+    "key": "fullName"
   },
   {
     "childXmlNames": "AutoResponseRule",
@@ -546,7 +547,8 @@
     "metaFile": false,
     "parentXmlName": "AutoResponseRules",
     "xmlName": "AutoResponseRule",
-    "xmlTag": "autoResponseRule"
+    "xmlTag": "autoResponseRule",
+    "key": "fullName"
   },
   {
     "childXmlNames": "EscalationRule",
@@ -562,7 +564,8 @@
     "metaFile": false,
     "parentXmlName": "EscalationRules",
     "xmlName": "EscalationRule",
-    "xmlTag": "escalationRule"
+    "xmlTag": "escalationRule",
+    "key": "fullName"
   },
   {
     "directoryName": "postTemplates",
@@ -739,7 +742,8 @@
     "metaFile": false,
     "parentXmlName": "MatchingRules",
     "xmlName": "MatchingRule",
-    "xmlTag": "matchingRules"
+    "xmlTag": "matchingRules",
+    "key": "fullName"
   },
   {
     "directoryName": "duplicateRules",
@@ -1448,7 +1452,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowAlert",
-    "xmlTag": "alerts"
+    "xmlTag": "alerts",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.fieldUpdates",
@@ -1456,7 +1461,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowFieldUpdate",
-    "xmlTag": "fieldUpdates"
+    "xmlTag": "fieldUpdates",
+    "key": "fullName"
   },
   {
     "directoryName": "labels",
@@ -1464,9 +1470,10 @@
     "metaFile": false,
     "parentXmlName": "CustomLabels",
     "xmlName": "CustomLabel",
-    "xmlTag": "labels",
     "childXmlNames": "CustomLabel",
-    "suffix": "labels"
+    "suffix": "labels",
+    "xmlTag": "labels",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.outboundMessages",
@@ -1474,7 +1481,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowOutboundMessage",
-    "xmlTag": "outboundMessages"
+    "xmlTag": "outboundMessages",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.rules",
@@ -1482,7 +1490,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowRule",
-    "xmlTag": "rules"
+    "xmlTag": "rules",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.flowActions",
@@ -1490,7 +1499,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowFlowAction",
-    "xmlTag": "flowActions"
+    "xmlTag": "flowActions",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.knowledgePublishes",
@@ -1498,7 +1508,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowKnowledgePublish",
-    "xmlTag": "knowledgePublishes"
+    "xmlTag": "knowledgePublishes",
+    "key": "fullName"
   },
   {
     "directoryName": "sharingRules.sharingCriteriaRules",
@@ -1506,7 +1517,8 @@
     "metaFile": false,
     "parentXmlName": "SharingRules",
     "xmlName": "SharingCriteriaRule",
-    "xmlTag": "sharingCriteriaRules"
+    "xmlTag": "sharingCriteriaRules",
+    "key": "fullName"
   },
   {
     "directoryName": "sharingRules.sharingGuestRules",
@@ -1514,7 +1526,8 @@
     "metaFile": false,
     "parentXmlName": "SharingRules",
     "xmlName": "SharingGuestRule",
-    "xmlTag": "sharingGuestRules"
+    "xmlTag": "sharingGuestRules",
+    "key": "fullName"
   },
   {
     "directoryName": "sharingRules.sharingOwnerRules",
@@ -1522,7 +1535,8 @@
     "metaFile": false,
     "parentXmlName": "SharingRules",
     "xmlName": "SharingOwnerRule",
-    "xmlTag": "sharingOwnerRules"
+    "xmlTag": "sharingOwnerRules",
+    "key": "fullName"
   },
   {
     "directoryName": "sharingRules.sharingTerritoryRules",
@@ -1530,7 +1544,8 @@
     "metaFile": false,
     "parentXmlName": "SharingRules",
     "xmlName": "SharingTerritoryRule",
-    "xmlTag": "sharingTerritoryRules"
+    "xmlTag": "sharingTerritoryRules",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.tasks",
@@ -1538,6 +1553,7 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowTask",
-    "xmlTag": "tasks"
+    "xmlTag": "tasks",
+    "key": "fullName"
   }
 ]

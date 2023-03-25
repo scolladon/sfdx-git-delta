@@ -20,7 +20,7 @@ const getInFileAttributs = metadata => {
   return [...metadata.values()]
     .filter(meta => meta.xmlTag)
     .reduce((acc, meta) => {
-      acc[meta.xmlTag] = { xmlName: meta.xmlName, key: 'fullName' }
+      acc[meta.xmlTag] = { xmlName: meta.xmlName, key: meta.key }
       return acc
     }, {})
 }
