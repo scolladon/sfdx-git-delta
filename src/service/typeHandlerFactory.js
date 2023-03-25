@@ -13,6 +13,8 @@ const Wave = require('./waveHandler')
 const { getType } = require('../utils/typeUtils')
 
 const classes = {
+  assignmentRules: InFile,
+  autoResponseRules: InFile,
   aura: InResource,
   bots: Bot,
   businessProcesses: SubCustomObject,
@@ -22,6 +24,7 @@ const classes = {
   discovery: Wave,
   documents: InFolder,
   email: InFolder,
+  escalationRules: InFile,
   experiences: InResource,
   fieldSets: SubCustomObject,
   fields: SubCustomObject,
@@ -29,6 +32,7 @@ const classes = {
   labels: InFile,
   listViews: SubCustomObject,
   lwc: InResource,
+  matchingRules: InFile,
   objects: CustomObject,
   objectTranslations: InTranslation,
   recordTypes: SubCustomObject,

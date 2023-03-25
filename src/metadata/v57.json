@@ -525,6 +525,14 @@
     "xmlName": "AssignmentRules"
   },
   {
+    "directoryName": "assignmentRules.assignmentRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "AssignmentRules",
+    "xmlName": "AssignmentRule",
+    "xmlTag": "assignmentRule"
+  },
+  {
     "childXmlNames": "AutoResponseRule",
     "directoryName": "autoResponseRules",
     "inFolder": false,
@@ -533,12 +541,28 @@
     "xmlName": "AutoResponseRules"
   },
   {
+    "directoryName": "autoResponseRules.autoResponseRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "AutoResponseRules",
+    "xmlName": "AutoResponseRule",
+    "xmlTag": "autoResponseRule"
+  },
+  {
     "childXmlNames": "EscalationRule",
     "directoryName": "escalationRules",
     "inFolder": false,
     "metaFile": false,
     "suffix": "escalationRules",
     "xmlName": "EscalationRules"
+  },
+  {
+    "directoryName": "escalationRules.escalationRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "EscalationRules",
+    "xmlName": "EscalationRule",
+    "xmlTag": "escalationRule"
   },
   {
     "directoryName": "postTemplates",
@@ -708,6 +732,14 @@
     "metaFile": false,
     "suffix": "matchingRule",
     "xmlName": "MatchingRules"
+  },
+  {
+    "directoryName": "matchingRules.matchingRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "MatchingRules",
+    "xmlName": "MatchingRule",
+    "xmlTag": "matchingRules"
   },
   {
     "directoryName": "duplicateRules",
