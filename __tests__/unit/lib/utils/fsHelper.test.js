@@ -38,6 +38,7 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
 
 let work
 beforeEach(() => {
+  jest.clearAllMocks()
   work = {
     config: {
       output: '',
@@ -534,5 +535,20 @@ describe('isSubDir', () => {
         expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
       }
     )
+
+    it('call only once for the same path', async () => {
+      // Arrange
+
+      const output = 'root'
+      const content = 'content'
+      const path = 'other/path/file'
+      await writeFile(path, content, { output })
+
+      // Act
+      await writeFile(path, content, { output })
+
+      // Assert
+      expect(outputFile).toBeCalledTimes(1)
+    })
   })
 })
