@@ -9,14 +9,7 @@ const { writeFile } = require('../utils/fsHelper')
 const { parse, sep } = require('path')
 const MetadataDiff = require('../utils/metadataDiff')
 
-let inFileMetadata
-
 class ObjectTranslationHandler extends ResourceHandler {
-  constructor(line, type, work, metadata) {
-    super(line, type, work, metadata)
-    inFileMetadata = inFileMetadata ?? getInFileAttributs(metadata)
-  }
-
   async handleAddition() {
     await StandardHandler.prototype.handleAddition.apply(this)
     if (!this.config.generateDelta) return
@@ -26,6 +19,7 @@ class ObjectTranslationHandler extends ResourceHandler {
   }
 
   async _copyObjectTranslation(path) {
+    const inFileMetadata = getInFileAttributs(this.metadata)
     const metadataDiff = new MetadataDiff(
       this.config,
       this.metadata,

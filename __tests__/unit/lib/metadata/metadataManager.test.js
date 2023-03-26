@@ -84,15 +84,15 @@ describe(`test if metadata`, () => {
     let inFileAttributs = getInFileAttributs(metadata)
 
     // Assert
-    expect(inFileAttributs).not.toHaveProperty('waveTemplates')
-    expect(inFileAttributs).toHaveProperty('excluded')
-    expect(inFileAttributs).toHaveProperty('excluded')
-    expect(inFileAttributs['alerts']).toEqual({
+    expect(inFileAttributs.has('waveTemplates')).toBe(false)
+    expect(inFileAttributs.has('excluded')).toBe(true)
+    expect(inFileAttributs.has('alerts')).toBe(true)
+    expect(inFileAttributs.get('alerts')).toEqual({
       xmlName: 'WorkflowAlert',
       key: 'fullName',
       excluded: false,
     })
-    expect(inFileAttributs['excluded']).toEqual({
+    expect(inFileAttributs.get('excluded')).toEqual({
       xmlName: 'Excluded',
       key: 'other',
       excluded: true,

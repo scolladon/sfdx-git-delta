@@ -6,26 +6,24 @@ const {
 const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
 const { writeFile } = require('../utils/fsHelper')
-const { getInFileAttributs } = require('../metadata/metadataManager')
+const {
+  getInFileAttributs,
+  isPackageable,
+} = require('../metadata/metadataManager')
 const MetadataDiff = require('../utils/metadataDiff')
 const {
   cleanUpPackageMember,
   fillPackageWithParameter,
 } = require('../utils/packageHelper')
 
-const isPackageable = type =>
-  !Object.values(inFileMetadata).find(inFileDef => inFileDef.xmlName === type)
-    .excluded
 const getRootType = line => basename(line).split('.')[0]
 const getNamePreffix = ({ subType, line }) =>
   subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
-let inFileMetadata
-
 class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    inFileMetadata = inFileMetadata ?? getInFileAttributs(metadata)
+    const inFileMetadata = getInFileAttributs(metadata)
     this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
   }
 

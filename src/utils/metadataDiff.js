@@ -4,8 +4,6 @@ const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
 const { isEqual } = require('lodash')
 const { fillPackageWithParameter } = require('./packageHelper')
 
-const hasProp = object => key => ({}.hasOwnProperty.call(object, key))
-
 // Store functional area
 // Side effect on store
 const addToStore =
@@ -16,17 +14,15 @@ const addToStore =
   }
 
 const hasMember = store => attributs => subType => member =>
-  store.get(attributs[subType]?.xmlName)?.has(member)
+  store.get(attributs.get(subType)?.xmlName)?.has(member)
 
-const selectKey = attributs => type => elem => elem[attributs[type].key]
+const selectKey = attributs => type => elem => elem[attributs.get(type).key]
 
 // Metadata JSON structure functional area
 const getRootMetadata = fileContent => Object.values(fileContent)?.[1] ?? {}
 
 const getSubTypeTags = attributs => fileContent =>
-  Object.keys(getRootMetadata(fileContent)).filter(tag =>
-    hasProp(attributs)(tag)
-  )
+  Object.keys(getRootMetadata(fileContent)).filter(tag => attributs.has(tag))
 
 const extractMetadataForSubtype = fileContent => subType =>
   asArray(getRootMetadata(fileContent)?.[subType])
@@ -55,7 +51,7 @@ const processMetadataForSubType =
 const getElementProcessor = (type, predicat, otherMeta, attributs) => elem => {
   if (predicat(otherMeta, type, elem)) {
     return {
-      type: attributs[type].xmlName,
+      type: attributs.get(type).xmlName,
       member: selectKey(attributs)(type)(elem),
     }
   }

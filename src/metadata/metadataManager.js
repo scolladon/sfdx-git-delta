@@ -5,6 +5,7 @@ const { readdir } = require('fs').promises
 const _apiMap = new Map()
 let _latestVersion = null
 const describeMetadata = new Map()
+const inFileMetadata = new Map()
 
 const buildAPIMap = async () => {
   if (_apiMap.size === 0) {
@@ -44,20 +45,28 @@ const getDefinition = async (grouping, apiVersion) => {
   }, new Map())
 }
 
-const getInFileAttributs = metadata => {
-  return [...metadata.values()]
-    .filter(meta => meta.xmlTag)
-    .reduce((acc, meta) => {
-      acc[meta.xmlTag] = {
-        xmlName: meta.xmlName,
-        key: meta.key,
-        excluded: !!meta.excluded,
-      }
-      return acc
-    }, {})
-}
+const isPackageable = type =>
+  !Array.from(inFileMetadata.values()).find(
+    inFileDef => inFileDef.xmlName === type
+  ).excluded
+
+const getInFileAttributs = metadata =>
+  inFileMetadata.size
+    ? inFileMetadata
+    : Array.from(metadata.values())
+        .filter(meta => meta.xmlTag)
+        .reduce(
+          (acc, meta) =>
+            acc.set(meta.xmlTag, {
+              xmlName: meta.xmlName,
+              key: meta.key,
+              excluded: !!meta.excluded,
+            }),
+          inFileMetadata
+        )
 
 module.exports.getDefinition = getDefinition
 module.exports.getInFileAttributs = getInFileAttributs
 module.exports.getLatestSupportedVersion = getLatestSupportedVersion
+module.exports.isPackageable = isPackageable
 module.exports.isVersionSupported = isVersionSupported
