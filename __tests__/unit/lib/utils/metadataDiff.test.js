@@ -120,6 +120,19 @@ describe(`MetadataDiff`, () => {
   })
 
   describe('compare', () => {
+    it('does not detect null file content', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce('')
+      parseXmlFileToJson.mockResolvedValueOnce('')
+
+      // Act
+      const { added, deleted } = await metadataDiff.compare('file/path')
+
+      // Assert
+      expect(deleted.size).toBe(0)
+      expect(added.size).toBe(0)
+    })
+
     it('does not detect not tracked elements', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(unTracked)
@@ -150,6 +163,21 @@ describe(`MetadataDiff`, () => {
     it('detects removed elements', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(wfBase)
+      parseXmlFileToJson.mockResolvedValueOnce(alert)
+
+      // Act
+      const { added, deleted } = await metadataDiff.compare('file/path')
+
+      // Assert
+      expect(added.size).toBe(0)
+      expect(deleted.get('WorkflowAlert')).toEqual(
+        new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
+      )
+    })
+
+    it('detects deleted file', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce('')
       parseXmlFileToJson.mockResolvedValueOnce(alert)
 
       // Act
