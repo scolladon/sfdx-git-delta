@@ -3,6 +3,7 @@ const {
   getDefinition,
   getInFileAttributs,
   getLatestSupportedVersion,
+  getWaveMetadata,
   isVersionSupported,
 } = require('../../../../src/metadata/metadataManager')
 
@@ -97,5 +98,48 @@ describe(`test if metadata`, () => {
       key: 'other',
       excluded: true,
     })
+  })
+
+  test('getWaveMetadata', async () => {
+    // Arrange
+    const metadata = new Map([
+      [
+        'waveTemplates',
+        {
+          directoryName: 'waveTemplates',
+          inFolder: true,
+          metaFile: false,
+          xmlName: 'WaveTemplateBundle',
+        },
+      ],
+      [
+        'discovery',
+        {
+          directoryName: 'discovery',
+          inFolder: false,
+          metaFile: true,
+          content: [
+            {
+              suffix: 'model',
+              xmlName: 'DiscoveryAIModel',
+            },
+            {
+              suffix: 'goal',
+              xmlName: 'DiscoveryGoal',
+            },
+          ],
+        },
+      ],
+    ])
+
+    // Act
+    let waveMetadata = getWaveMetadata(metadata)
+
+    // Assert
+    expect(waveMetadata.has('discovery')).toBe(false)
+    expect(waveMetadata.has('goal')).toBe(true)
+    expect(waveMetadata.has('model')).toBe(true)
+    expect(waveMetadata.get('goal')).toEqual('DiscoveryGoal')
+    expect(waveMetadata.get('model')).toEqual('DiscoveryAIModel')
   })
 })

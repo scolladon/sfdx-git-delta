@@ -6,6 +6,7 @@ const _apiMap = new Map()
 let _latestVersion = null
 const describeMetadata = new Map()
 const inFileMetadata = new Map()
+const waveMetadata = new Map()
 
 const buildAPIMap = async () => {
   if (_apiMap.size === 0) {
@@ -65,8 +66,17 @@ const getInFileAttributs = metadata =>
           inFileMetadata
         )
 
+const getWaveMetadata = metadata =>
+  waveMetadata.size
+    ? waveMetadata
+    : Array.from(metadata.values())
+        .filter(meta => meta.content)
+        .flatMap(elem => elem.content)
+        .reduce((acc, val) => acc.set(val.suffix, val.xmlName), new Map())
+
 module.exports.getDefinition = getDefinition
 module.exports.getInFileAttributs = getInFileAttributs
 module.exports.getLatestSupportedVersion = getLatestSupportedVersion
+module.exports.getWaveMetadata = getWaveMetadata
 module.exports.isPackageable = isPackageable
 module.exports.isVersionSupported = isVersionSupported
