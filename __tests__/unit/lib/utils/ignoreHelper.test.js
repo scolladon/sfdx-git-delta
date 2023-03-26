@@ -92,6 +92,7 @@ describe('ignoreHelper', () => {
         `${ADDITION} path/to/file.ext`,
         `${MODIFICATION} path/to/file.ext`,
         `${DELETION} path/to/file.ext`,
+        `! path/to/file.ext`,
       ])('should keep "%s" line', line => {
         // Act
         const keep = sut.keep(line)

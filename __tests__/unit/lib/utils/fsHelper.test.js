@@ -101,6 +101,21 @@ describe('readPathFromGit', () => {
       expect(getStreamContent).toBeCalled()
     })
   })
+
+  describe.each([undefined, null])('when path returned "%s"', value => {
+    beforeEach(() => {
+      // Arrange
+      getStreamContent.mockImplementation(() => Promise.resolve(value))
+    })
+
+    it('should use "config.to" and "normalized path" to get git history', async () => {
+      // Act
+      const content = await readPathFromGit('path/file', work.config)
+
+      // Assert
+      expect(content).toBe('')
+    })
+  })
 })
 
 describe('copyFile', () => {
