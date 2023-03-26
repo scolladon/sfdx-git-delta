@@ -21,14 +21,6 @@
     "xmlName": "InstalledPackage"
   },
   {
-    "childXmlNames": "CustomLabel",
-    "directoryName": "labels",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "labels",
-    "xmlName": "CustomLabels"
-  },
-  {
     "directoryName": "staticresources",
     "inFolder": false,
     "metaFile": true,
@@ -375,46 +367,6 @@
     "xmlName": "EventDelivery"
   },
   {
-    "childXmlNames": [
-      "WorkflowFieldUpdate",
-      "WorkflowKnowledgePublish",
-      "WorkflowTask",
-      "WorkflowAlert",
-      "WorkflowSend",
-      "WorkflowOutboundMessage",
-      "WorkflowRule"
-    ],
-    "directoryName": "workflows",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "workflow",
-    "xmlName": "Workflow"
-  },
-  {
-    "childXmlNames": "AssignmentRule",
-    "directoryName": "assignmentRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "assignmentRules",
-    "xmlName": "AssignmentRules"
-  },
-  {
-    "childXmlNames": "AutoResponseRule",
-    "directoryName": "autoResponseRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "autoResponseRules",
-    "xmlName": "AutoResponseRules"
-  },
-  {
-    "childXmlNames": "EscalationRule",
-    "directoryName": "escalationRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "escalationRules",
-    "xmlName": "EscalationRules"
-  },
-  {
     "directoryName": "postTemplates",
     "inFolder": false,
     "metaFile": false,
@@ -443,27 +395,6 @@
     "xmlName": "HomePageLayout"
   },
   {
-    "directoryName": "objectTranslations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "objectTranslation",
-    "xmlName": "CustomObjectTranslation"
-  },
-  {
-    "directoryName": "globalValueSetTranslations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "globalValueSetTranslation",
-    "xmlName": "GlobalValueSetTranslation"
-  },
-  {
-    "directoryName": "standardValueSetTranslations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "standardValueSetTranslation",
-    "xmlName": "StandardValueSetTranslation"
-  },
-  {
     "directoryName": "classes",
     "inFolder": false,
     "metaFile": true,
@@ -483,13 +414,6 @@
     "metaFile": false,
     "suffix": "testSuite",
     "xmlName": "ApexTestSuite"
-  },
-  {
-    "directoryName": "profiles",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "profile",
-    "xmlName": "Profile"
   },
   {
     "directoryName": "permissionsets",
@@ -532,14 +456,6 @@
     "metaFile": false,
     "suffix": "cspTrustedSite",
     "xmlName": "CspTrustedSite"
-  },
-  {
-    "childXmlNames": "MatchingRule",
-    "directoryName": "matchingRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "matchingRule",
-    "xmlName": "MatchingRules"
   },
   {
     "directoryName": "duplicateRules",
@@ -1018,12 +934,30 @@
     ]
   },
   {
+    "childXmlNames": [
+      "WorkflowFieldUpdate",
+      "WorkflowKnowledgePublish",
+      "WorkflowTask",
+      "WorkflowAlert",
+      "WorkflowSend",
+      "WorkflowOutboundMessage",
+      "WorkflowFlowAction",
+      "WorkflowRule"
+    ],
+    "directoryName": "workflows",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "workflow",
+    "xmlName": "Workflow"
+  },
+  {
     "directoryName": "workflows.alerts",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowAlert",
-    "xmlTag": "alerts"
+    "xmlTag": "alerts",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.fieldUpdates",
@@ -1031,15 +965,19 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowFieldUpdate",
-    "xmlTag": "fieldUpdates"
+    "xmlTag": "fieldUpdates",
+    "key": "fullName"
   },
   {
-    "directoryName": "labels.labels",
+    "directoryName": "labels",
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "CustomLabels",
     "xmlName": "CustomLabel",
-    "xmlTag": "labels"
+    "childXmlNames": "CustomLabel",
+    "suffix": "labels",
+    "xmlTag": "labels",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.outboundMessages",
@@ -1047,7 +985,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowOutboundMessage",
-    "xmlTag": "outboundMessages"
+    "xmlTag": "outboundMessages",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.rules",
@@ -1055,7 +994,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowRule",
-    "xmlTag": "rules"
+    "xmlTag": "rules",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.flowActions",
@@ -1063,7 +1003,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowFlowAction",
-    "xmlTag": "flowActions"
+    "xmlTag": "flowActions",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.knowledgePublishes",
@@ -1071,39 +1012,8 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowKnowledgePublish",
-    "xmlTag": "knowledgePublishes"
-  },
-  {
-    "directoryName": "sharingRules.sharingCriteriaRules",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "SharingRules",
-    "xmlName": "SharingCriteriaRule",
-    "xmlTag": "sharingCriteriaRules"
-  },
-  {
-    "directoryName": "sharingRules.sharingGuestRules",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "SharingRules",
-    "xmlName": "SharingGuestRule",
-    "xmlTag": "sharingGuestRules"
-  },
-  {
-    "directoryName": "sharingRules.sharingOwnerRules",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "SharingRules",
-    "xmlName": "SharingOwnerRule",
-    "xmlTag": "sharingOwnerRules"
-  },
-  {
-    "directoryName": "sharingRules.sharingTerritoryRules",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "SharingRules",
-    "xmlName": "SharingTerritoryRule",
-    "xmlTag": "sharingTerritoryRules"
+    "xmlTag": "knowledgePublishes",
+    "key": "fullName"
   },
   {
     "directoryName": "workflows.tasks",
@@ -1111,6 +1021,563 @@
     "metaFile": false,
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowTask",
-    "xmlTag": "tasks"
+    "xmlTag": "tasks",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "sharingRules.sharingCriteriaRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingCriteriaRule",
+    "xmlTag": "sharingCriteriaRules",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "sharingRules.sharingGuestRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingGuestRule",
+    "xmlTag": "sharingGuestRules",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "sharingRules.sharingOwnerRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingOwnerRule",
+    "xmlTag": "sharingOwnerRules",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "sharingRules.sharingTerritoryRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "SharingRules",
+    "xmlName": "SharingTerritoryRule",
+    "xmlTag": "sharingTerritoryRules",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": "AssignmentRule",
+    "directoryName": "assignmentRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "assignmentRules",
+    "xmlName": "AssignmentRules"
+  },
+  {
+    "directoryName": "assignmentRules.assignmentRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "AssignmentRules",
+    "xmlName": "AssignmentRule",
+    "xmlTag": "assignmentRule",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": "AutoResponseRule",
+    "directoryName": "autoResponseRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "autoResponseRules",
+    "xmlName": "AutoResponseRules"
+  },
+  {
+    "directoryName": "autoResponseRules.autoResponseRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "AutoResponseRules",
+    "xmlName": "AutoResponseRule",
+    "xmlTag": "autoResponseRule",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": "EscalationRule",
+    "directoryName": "escalationRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "escalationRules",
+    "xmlName": "EscalationRules"
+  },
+  {
+    "directoryName": "escalationRules.escalationRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "EscalationRules",
+    "xmlName": "EscalationRule",
+    "xmlTag": "escalationRule",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": "MatchingRule",
+    "directoryName": "matchingRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "matchingRule",
+    "xmlName": "MatchingRules"
+  },
+  {
+    "directoryName": "matchingRules.matchingRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "MatchingRules",
+    "xmlName": "MatchingRule",
+    "xmlTag": "matchingRules",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "globalValueSetTranslations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "globalValueSetTranslation",
+    "xmlName": "GlobalValueSetTranslation",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "globalValueSetTranslations.valueTranslation",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "GlobalValueSetTranslation",
+    "xmlName": "ValueTranslation",
+    "xmlTag": "valueTranslation",
+    "key": "masterLabel",
+    "excluded": true
+  },
+  {
+    "directoryName": "standardValueSetTranslations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "standardValueSetTranslation",
+    "xmlName": "StandardValueSetTranslation",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "standardValueSetTranslations.valueTranslation",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "StandardValueSetTranslation",
+    "xmlName": "ValueTranslation",
+    "xmlTag": "valueTranslation",
+    "key": "masterLabel",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "profile",
+    "xmlName": "Profile",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "profiles.categoryGroupVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileApplicationVisibility",
+    "xmlTag": "categoryGroupVisibilities",
+    "key": "dataCategoryGroup",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.applicationVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCategoryGroupVisibility",
+    "xmlTag": "applicationVisibilities",
+    "key": "application",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.classAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileApexClassAccess",
+    "xmlTag": "classAccesses",
+    "key": "apexClass",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.customMetadataTypeAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCustomMetadataTypeAccess[",
+    "xmlTag": "customMetadataTypeAccesses",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.customPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCustomPermissions",
+    "xmlTag": "customPermissions",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.customSettingAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileCustomSettingAccesses",
+    "xmlTag": "customSettingAccesses",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.externalDataSourceAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileExternalDataSourceAccess",
+    "xmlTag": "externalDataSourceAccesses",
+    "key": "externalDataSource",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.fieldLevelSecurities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileFieldLevelSecurity",
+    "xmlTag": "fieldLevelSecurities",
+    "key": "fullName",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.fieldPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileFieldLevelSecurity",
+    "xmlTag": "fieldPermissions",
+    "key": "field",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.flowAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileFlowAccess",
+    "xmlTag": "flowAccesses",
+    "key": "flow",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.layoutAssignments",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLayoutAssignments",
+    "xmlTag": "layoutAssignments",
+    "key": "layout",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.loginFlows",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "LoginFlow",
+    "xmlTag": "loginFlows",
+    "key": "friendlyname",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.objectPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileObjectPermissions",
+    "xmlTag": "objectPermissions",
+    "key": "object",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.pageAccesses",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileApexPageAccess",
+    "xmlTag": "pageAccesses",
+    "key": "apexPage",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.profileActionOverrides",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileActionOverride",
+    "xmlTag": "profileActionOverrides",
+    "key": "actionName",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.recordTypeVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileRecordTypeVisibility",
+    "xmlTag": "recordTypeVisibilities",
+    "key": "recordType",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.tabVisibilities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileTabVisibility",
+    "xmlTag": "tabVisibilities",
+    "key": "tab",
+    "excluded": true
+  },
+  {
+    "directoryName": "profiles.userPermissions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileUserPermission",
+    "xmlTag": "userPermissions",
+    "key": "name",
+    "excluded": true
+  },
+
+
+  {
+    "directoryName": "translations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "translation",
+    "xmlName": "Translations",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "translation.bots",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "BotTransltation",
+    "xmlTag": "bots",
+    "key": "fullName",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customApplications",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomApplicationTranslation",
+    "xmlTag": "customApplications",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customLabels",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomLabelTranslation",
+    "xmlTag": "customLabels",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customPageWebLinks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomPageWebLinkTranslation",
+    "xmlTag": "customPageWebLinks",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.customTabs",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "CustomTabTranslation",
+    "xmlTag": "customTabs",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.flowDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "FlowDefinitionTranslation",
+    "xmlTag": "flowDefinitions",
+    "key": "fullName",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.pipelineInspMetricConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "PipelineInspMetricConfigTranslation",
+    "xmlTag": "pipelineInspMetricConfigs",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.prompts",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "PromptTranslation",
+    "xmlTag": "prompts",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.quickActions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "GlobalQuickActionTranslation",
+    "xmlTag": "quickActions",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.reportTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "ReportTypeTranslation",
+    "xmlTag": "reportTypes",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "translation.scontrols",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Translations",
+    "xmlName": "ScontrolTranslation",
+    "xmlTag": "scontrols",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "objectTranslation",
+    "xmlName": "CustomObjectTranslation",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "objectTranslations.fields",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "CustomFieldTranslation",
+    "xmlTag": "fields",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.fieldSets",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "FieldSetTranslation",
+    "xmlTag": "fieldSets",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.layouts",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "LayoutTranslation",
+    "xmlTag": "layouts",
+    "key": "layout",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.namedFilters",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "NamedFilterTranslation",
+    "xmlTag": "namedFilters",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.quickActions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "QuickActionTranslation",
+    "xmlTag": "quickActions",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.recordTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "RecordTypeTranslation",
+    "xmlTag": "recordTypes",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.sharingReasons",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "SharingReasonTranslation",
+    "xmlTag": "sharingReasons",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.validationRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "ValidationRuleTranslation",
+    "xmlTag": "validationRules",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.webLinks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "WebLinkTranslation",
+    "xmlTag": "webLinks",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.workflowTasks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "WorkflowTaskTranslation",
+    "xmlTag": "workflowTasks",
+    "key": "name",
+    "excluded": true
   }
 ]
