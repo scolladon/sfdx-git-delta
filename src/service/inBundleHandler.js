@@ -17,7 +17,7 @@ class BundleHandler extends InResourceHandler {
     const packageMember = bundlePath
       .join(sep)
       .replace(META_REGEX, '')
-      .replace(new RegExp(`\\.${this.metadata.get(this.type).suffix}$`), '')
+      .replace(this.suffixRegex, '')
 
     return cleanUpPackageMember(packageMember)
   }
