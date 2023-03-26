@@ -148,6 +148,20 @@ const testContext = [
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`,
   ],
   [
+    'force-app/main/default/objectTranslations/Account-fr/Account-fr.objectTranslation-meta.xml',
+    new Set(['Account-fr']),
+    'CustomObjectTranslation',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"><quickActions><label>Nouvelle Relation</label><name>NewRelationship</name></quickActions></CustomObjectTranslation>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></CustomObjectTranslation>`,
+  ],
+  [
+    'force-app/main/default/objectTranslations/Account-fr/BillingFloor__c.fieldTranslation-meta.xml',
+    new Set(['Account-fr']),
+    'CustomObjectTranslation',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"><quickActions><label>Nouvelle Relation</label><name>NewRelationship</name></quickActions></CustomObjectTranslation>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></CustomObjectTranslation>`,
+  ],
+  [
     'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
     new Set(['folder/file']),
     'Dashboard',
@@ -171,16 +185,6 @@ const testContext = [
     'force-app/main/default/documents/folder/document.test.document-meta.xml',
     new Set(['folder/document.test']),
     'Document',
-  ],
-  [
-    'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml',
-    new Set(['Account-es']),
-    'CustomObjectTranslation',
-  ],
-  [
-    'force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml',
-    new Set(['Account-es']),
-    'CustomObjectTranslation',
   ],
   [
     'force-app/main/default/staticresources/test/content',
