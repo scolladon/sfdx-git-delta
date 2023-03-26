@@ -596,13 +596,6 @@
     "xmlName": "HomePageLayout"
   },
   {
-    "directoryName": "objectTranslations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "objectTranslation",
-    "xmlName": "CustomObjectTranslation"
-  },
-  {
     "directoryName": "globalValueSetTranslations",
     "inFolder": false,
     "metaFile": false,
@@ -1869,6 +1862,114 @@
     "parentXmlName": "Translations",
     "xmlName": "ScontrolTranslation",
     "xmlTag": "scontrols",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "objectTranslation",
+    "xmlName": "CustomObjectTranslation",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "objectTranslations.fields",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "CustomFieldTranslation",
+    "xmlTag": "fields",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.fieldSets",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "FieldSetTranslation",
+    "xmlTag": "fieldSets",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.layouts",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "LayoutTranslation",
+    "xmlTag": "layouts",
+    "key": "layout",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.namedFilters",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "NamedFilterTranslation",
+    "xmlTag": "namedFilters",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.quickActions",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "QuickActionTranslation",
+    "xmlTag": "quickActions",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.recordTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "RecordTypeTranslation",
+    "xmlTag": "recordTypes",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.sharingReasons",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "SharingReasonTranslation",
+    "xmlTag": "sharingReasons",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.validationRules",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "ValidationRuleTranslation",
+    "xmlTag": "validationRules",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.webLinks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "WebLinkTranslation",
+    "xmlTag": "webLinks",
+    "key": "name",
+    "excluded": true
+  },
+  {
+    "directoryName": "objectTranslations.workflowTasks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "CustomObjectTranslation",
+    "xmlName": "WorkflowTaskTranslation",
+    "xmlTag": "workflowTasks",
     "key": "name",
     "excluded": true
   }

@@ -1,6 +1,13 @@
 'use strict'
 const ObjectTranslation = require('../../../../src/service/ObjectTranslationHandler')
-const { copyFiles } = require('../../../../src/utils/fsHelper')
+const { writeFile, copyFiles } = require('../../../../src/utils/fsHelper')
+const mockCompare = jest.fn()
+const mockprune = jest.fn()
+jest.mock('../../../../src/utils/metadataDiff', () => {
+  return jest.fn().mockImplementation(() => {
+    return { compare: mockCompare, prune: mockprune }
+  })
+})
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -8,6 +15,9 @@ const objectType = 'objectTranslations'
 const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
+
+const content = 'content'
+mockprune.mockReturnValue(content)
 
 let work
 beforeEach(() => {
@@ -35,7 +45,7 @@ describe('ObjectTranslation', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(copyFiles).not.toBeCalled()
+      expect(writeFile).not.toBeCalled()
       expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
     })
   })
@@ -50,10 +60,11 @@ describe('ObjectTranslation', () => {
 
       // Assert
 
-      expect(copyFiles).toBeCalledTimes(2)
-      expect(copyFiles).toHaveBeenCalledWith(
-        work.config,
-        expect.stringContaining('Account-es.objectTranslation')
+      expect(writeFile).toBeCalledTimes(1)
+      expect(writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('Account-es.objectTranslation'),
+        content,
+        work.config
       )
       expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
     })
@@ -74,20 +85,19 @@ describe('ObjectTranslation', () => {
         await sut.handleAddition()
 
         // Assert
-
-        expect(copyFiles).toBeCalledTimes(2)
+        expect(copyFiles).toBeCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           expect.stringContaining('BillingFloor__c.fieldTranslation')
         )
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          expect.stringContaining('Account-es.objectTranslation')
+        expect(writeFile).toBeCalledTimes(1)
+        expect(writeFile).toHaveBeenCalledWith(
+          expect.stringContaining('Account-es.objectTranslation'),
+          content,
+          work.config
         )
         expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
       })
     })
   })
-
-  // TODO add inFile pruning
 })
