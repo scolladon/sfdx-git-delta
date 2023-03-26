@@ -68,7 +68,7 @@ class InFileHandler extends StandardHandler {
 
   _fillPackage(store, subType, member) {
     // Call from super.handleAddition to add the Root Type
-    // InFile element are not deployable when root component is not listed in package.xml...
+    // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
     if (arguments.length === 1) {
       if (this.type !== LABEL_EXTENSION) {
         super._fillPackage(store)

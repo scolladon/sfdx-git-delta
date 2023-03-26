@@ -32,6 +32,7 @@ module.exports = class PackageBuilder {
   }
 
   _sortTypesWithMetadata = (x, y) => {
+    // QUESTION: Why Object needs to be ordered first in package.xml so it can be deployed ?
     if (x === OBJECT_XML_NAME) return -1 // @deprecated To remove when the order will not impact the result of the deployment
     return new Intl.Collator(frLocale).compare(x, y)
   }
