@@ -500,74 +500,6 @@
     "xmlName": "FlowDefinition"
   },
   {
-    "childXmlNames": [
-      "WorkflowFieldUpdate",
-      "WorkflowKnowledgePublish",
-      "WorkflowTask",
-      "WorkflowAlert",
-      "WorkflowSend",
-      "WorkflowOutboundMessage",
-      "WorkflowFlowAction",
-      "WorkflowRule"
-    ],
-    "directoryName": "workflows",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "workflow",
-    "xmlName": "Workflow"
-  },
-  {
-    "childXmlNames": "AssignmentRule",
-    "directoryName": "assignmentRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "assignmentRules",
-    "xmlName": "AssignmentRules"
-  },
-  {
-    "directoryName": "assignmentRules.assignmentRule",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "AssignmentRules",
-    "xmlName": "AssignmentRule",
-    "xmlTag": "assignmentRule",
-    "key": "fullName"
-  },
-  {
-    "childXmlNames": "AutoResponseRule",
-    "directoryName": "autoResponseRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "autoResponseRules",
-    "xmlName": "AutoResponseRules"
-  },
-  {
-    "directoryName": "autoResponseRules.autoResponseRule",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "AutoResponseRules",
-    "xmlName": "AutoResponseRule",
-    "xmlTag": "autoResponseRule",
-    "key": "fullName"
-  },
-  {
-    "childXmlNames": "EscalationRule",
-    "directoryName": "escalationRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "escalationRules",
-    "xmlName": "EscalationRules"
-  },
-  {
-    "directoryName": "escalationRules.escalationRule",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "EscalationRules",
-    "xmlName": "EscalationRule",
-    "xmlTag": "escalationRule",
-    "key": "fullName"
-  },
-  {
     "directoryName": "postTemplates",
     "inFolder": false,
     "metaFile": false,
@@ -594,42 +526,6 @@
     "metaFile": false,
     "suffix": "homePageLayout",
     "xmlName": "HomePageLayout"
-  },
-  {
-    "directoryName": "globalValueSetTranslations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "globalValueSetTranslation",
-    "xmlName": "GlobalValueSetTranslation",
-    "pruneOnly": true
-  },
-  {
-    "directoryName": "globalValueSetTranslations.valueTranslation",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "GlobalValueSetTranslation",
-    "xmlName": "ValueTranslation",
-    "xmlTag": "valueTranslation",
-    "key": "masterLabel",
-    "excluded": true
-  },
-  {
-    "directoryName": "standardValueSetTranslations",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "standardValueSetTranslation",
-    "xmlName": "StandardValueSetTranslation",
-    "pruneOnly": true
-  },
-  {
-    "directoryName": "standardValueSetTranslations.valueTranslation",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "StandardValueSetTranslation",
-    "xmlName": "ValueTranslation",
-    "xmlTag": "valueTranslation",
-    "key": "masterLabel",
-    "excluded": true
   },
   {
     "directoryName": "classes",
@@ -728,23 +624,6 @@
     "metaFile": false,
     "suffix": "redirectWhitelistUrl",
     "xmlName": "RedirectWhitelistUrl"
-  },
-  {
-    "childXmlNames": "MatchingRule",
-    "directoryName": "matchingRules",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "matchingRule",
-    "xmlName": "MatchingRules"
-  },
-  {
-    "directoryName": "matchingRules.matchingRule",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "MatchingRules",
-    "xmlName": "MatchingRule",
-    "xmlTag": "matchingRules",
-    "key": "fullName"
   },
   {
     "directoryName": "duplicateRules",
@@ -1447,6 +1326,24 @@
       }
     ]
   },
+
+  {
+    "childXmlNames": [
+      "WorkflowFieldUpdate",
+      "WorkflowKnowledgePublish",
+      "WorkflowTask",
+      "WorkflowAlert",
+      "WorkflowSend",
+      "WorkflowOutboundMessage",
+      "WorkflowFlowAction",
+      "WorkflowRule"
+    ],
+    "directoryName": "workflows",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "workflow",
+    "xmlName": "Workflow"
+  },
   {
     "directoryName": "workflows.alerts",
     "inFolder": false,
@@ -1513,6 +1410,15 @@
     "key": "fullName"
   },
   {
+    "directoryName": "workflows.tasks",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowTask",
+    "xmlTag": "tasks",
+    "key": "fullName"
+  },
+  {
     "directoryName": "sharingRules.sharingCriteriaRules",
     "inFolder": false,
     "metaFile": false,
@@ -1549,13 +1455,108 @@
     "key": "fullName"
   },
   {
-    "directoryName": "workflows.tasks",
+    "childXmlNames": "AssignmentRule",
+    "directoryName": "assignmentRules",
     "inFolder": false,
     "metaFile": false,
-    "parentXmlName": "Workflow",
-    "xmlName": "WorkflowTask",
-    "xmlTag": "tasks",
+    "suffix": "assignmentRules",
+    "xmlName": "AssignmentRules"
+  },
+  {
+    "directoryName": "assignmentRules.assignmentRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "AssignmentRules",
+    "xmlName": "AssignmentRule",
+    "xmlTag": "assignmentRule",
     "key": "fullName"
+  },
+  {
+    "childXmlNames": "AutoResponseRule",
+    "directoryName": "autoResponseRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "autoResponseRules",
+    "xmlName": "AutoResponseRules"
+  },
+  {
+    "directoryName": "autoResponseRules.autoResponseRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "AutoResponseRules",
+    "xmlName": "AutoResponseRule",
+    "xmlTag": "autoResponseRule",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": "EscalationRule",
+    "directoryName": "escalationRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "escalationRules",
+    "xmlName": "EscalationRules"
+  },
+  {
+    "directoryName": "escalationRules.escalationRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "EscalationRules",
+    "xmlName": "EscalationRule",
+    "xmlTag": "escalationRule",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": "MatchingRule",
+    "directoryName": "matchingRules",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "matchingRule",
+    "xmlName": "MatchingRules"
+  },
+  {
+    "directoryName": "matchingRules.matchingRule",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "MatchingRules",
+    "xmlName": "MatchingRule",
+    "xmlTag": "matchingRules",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "globalValueSetTranslations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "globalValueSetTranslation",
+    "xmlName": "GlobalValueSetTranslation",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "globalValueSetTranslations.valueTranslation",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "GlobalValueSetTranslation",
+    "xmlName": "ValueTranslation",
+    "xmlTag": "valueTranslation",
+    "key": "masterLabel",
+    "excluded": true
+  },
+  {
+    "directoryName": "standardValueSetTranslations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "standardValueSetTranslation",
+    "xmlName": "StandardValueSetTranslation",
+    "pruneOnly": true
+  },
+  {
+    "directoryName": "standardValueSetTranslations.valueTranslation",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "StandardValueSetTranslation",
+    "xmlName": "ValueTranslation",
+    "xmlTag": "valueTranslation",
+    "key": "masterLabel",
+    "excluded": true
   },
   {
     "directoryName": "profiles",
