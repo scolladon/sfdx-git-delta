@@ -6,6 +6,7 @@ const {
 const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
 const { writeFile } = require('../utils/fsHelper')
+const { getInFileAttributs } = require('../metadata/metadataManager')
 const MetadataDiff = require('../utils/metadataDiff')
 const {
   cleanUpPackageMember,
@@ -19,18 +20,6 @@ const getRootType = line => basename(line).split('.')[0]
 const getNamePreffix = ({ subType, line }) =>
   subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
-const getInFileAttributs = metadata => {
-  return [...metadata.values()]
-    .filter(meta => meta.xmlTag)
-    .reduce((acc, meta) => {
-      acc[meta.xmlTag] = {
-        xmlName: meta.xmlName,
-        key: meta.key,
-        excluded: meta.excluded,
-      }
-      return acc
-    }, {})
-}
 let inFileMetadata
 
 class InFileHandler extends StandardHandler {

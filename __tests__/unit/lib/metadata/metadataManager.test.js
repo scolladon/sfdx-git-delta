@@ -1,6 +1,7 @@
 'use strict'
 const {
   getDefinition,
+  getInFileAttributs,
   getLatestSupportedVersion,
   isVersionSupported,
 } = require('../../../../src/metadata/metadataManager')
@@ -38,5 +39,63 @@ describe(`test if metadata`, () => {
       const result = await isVersionSupported(data[0])
       expect(result).toEqual(data[1])
     }
+  })
+
+  test('getInFileAttributs', async () => {
+    // Arrange
+    const metadata = new Map([
+      [
+        'waveTemplates',
+        {
+          directoryName: 'waveTemplates',
+          inFolder: true,
+          metaFile: false,
+          xmlName: 'WaveTemplateBundle',
+        },
+      ],
+      [
+        'alerts',
+        {
+          directoryName: 'workflows.alerts',
+          inFolder: false,
+          metaFile: false,
+          parentXmlName: 'Workflow',
+          xmlName: 'WorkflowAlert',
+          xmlTag: 'alerts',
+          key: 'fullName',
+        },
+      ],
+      [
+        'excluded',
+        {
+          directoryName: 'excluded',
+          inFolder: false,
+          metaFile: false,
+          parentXmlName: 'Banished',
+          xmlName: 'Excluded',
+          xmlTag: 'excluded',
+          key: 'other',
+          excluded: true,
+        },
+      ],
+    ])
+
+    // Act
+    let inFileAttributs = getInFileAttributs(metadata)
+
+    // Assert
+    expect(inFileAttributs).not.toHaveProperty('waveTemplates')
+    expect(inFileAttributs).toHaveProperty('excluded')
+    expect(inFileAttributs).toHaveProperty('excluded')
+    expect(inFileAttributs['alerts']).toEqual({
+      xmlName: 'WorkflowAlert',
+      key: 'fullName',
+      excluded: false,
+    })
+    expect(inFileAttributs['excluded']).toEqual({
+      xmlName: 'Excluded',
+      key: 'other',
+      excluded: true,
+    })
   })
 })

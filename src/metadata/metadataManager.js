@@ -44,6 +44,20 @@ const getDefinition = async (grouping, apiVersion) => {
   }, new Map())
 }
 
+const getInFileAttributs = metadata => {
+  return [...metadata.values()]
+    .filter(meta => meta.xmlTag)
+    .reduce((acc, meta) => {
+      acc[meta.xmlTag] = {
+        xmlName: meta.xmlName,
+        key: meta.key,
+        excluded: !!meta.excluded,
+      }
+      return acc
+    }, {})
+}
+
 module.exports.getDefinition = getDefinition
+module.exports.getInFileAttributs = getInFileAttributs
 module.exports.getLatestSupportedVersion = getLatestSupportedVersion
 module.exports.isVersionSupported = isVersionSupported
