@@ -13,7 +13,7 @@ class SubCustomObjectHandler extends StandardHandler {
     if (!this.config.generateDelta) return
 
     const data = await readPathFromGit(this.line, this.config)
-    if (!data?.includes(MASTER_DETAIL_TAG)) return
+    if (!data.includes(MASTER_DETAIL_TAG)) return
 
     const customObjectDirPath = this.splittedLine
       .slice(0, [this.splittedLine.indexOf(this.type)])
