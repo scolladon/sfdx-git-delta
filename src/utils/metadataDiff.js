@@ -23,11 +23,6 @@ const selectKey = attributs => type => elem => elem[attributs[type].key]
 // Metadata JSON structure functional area
 const getRootMetadata = fileContent => Object.values(fileContent)?.[1] ?? {}
 
-const clearMetadata = fileContent => ({
-  ...fileContent,
-  [Object.keys(fileContent)[1]]: {},
-})
-
 const getSubTypeTags = attributs => fileContent =>
   Object.keys(getRootMetadata(fileContent)).filter(tag =>
     hasProp(attributs)(tag)
@@ -66,7 +61,8 @@ const getElementProcessor = (type, predicat, otherMeta, attributs) => elem => {
   }
 }
 
-// Partial JSON generation functional area
+// Partial JSON generation functional are
+// Side effect on jsonContent
 const generatePartialJSON = attributs => jsonContent => store => {
   const extract = extractMetadataForSubtype(jsonContent)
   const storeHasMember = hasMember(store)(attributs)
@@ -79,7 +75,7 @@ const generatePartialJSON = attributs => jsonContent => store => {
       storeHasMemberForType(key(elem))
     )
     return acc
-  }, clearMetadata(jsonContent))
+  }, jsonContent)
 }
 
 class MetadataDiff {
@@ -124,7 +120,6 @@ class MetadataDiff {
     }
   }
 
-  //prune(jsonContent = this.toContent, elements = this.add, predicat) {
   prune(jsonContent = this.toContent, elements = this.add) {
     const prunedContent = generatePartialJSON(this.attributs)(jsonContent)(
       elements
