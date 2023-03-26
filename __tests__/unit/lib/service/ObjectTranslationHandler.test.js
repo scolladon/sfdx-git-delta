@@ -1,5 +1,5 @@
 'use strict'
-const InTranslation = require('../../../../src/service/inTranslationHandler')
+const ObjectTranslation = require('../../../../src/service/ObjectTranslationHandler')
 const { copyFiles } = require('../../../../src/utils/fsHelper')
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -18,7 +18,7 @@ beforeEach(() => {
   }
 })
 
-describe('InTranslation', () => {
+describe('ObjectTranslation', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -29,7 +29,7 @@ describe('InTranslation', () => {
     it('should not copy files', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new InTranslation(line, objectType, work, globalMetadata)
+      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
 
       // Act
       await sut.handleAddition()
@@ -43,7 +43,7 @@ describe('InTranslation', () => {
   describe('when called with generateDelta true', () => {
     it('should copy object translations files', async () => {
       // Arrange
-      const sut = new InTranslation(line, objectType, work, globalMetadata)
+      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
 
       // Act
       await sut.handleAddition()
@@ -63,7 +63,7 @@ describe('InTranslation', () => {
         'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
       it('should copy object translations files and fieldTranslation', async () => {
         // Arrange
-        const sut = new InTranslation(
+        const sut = new ObjectTranslation(
           fieldTranslationline,
           objectType,
           work,

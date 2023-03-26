@@ -6,7 +6,7 @@ const {
 } = require('../utils/metadataConstants')
 const { parse, sep } = require('path')
 
-class TranslationHandler extends ResourceHandler {
+class ObjectTranslationHandler extends ResourceHandler {
   async handleAddition() {
     await StandardHandler.prototype.handleAddition.apply(this)
     if (!this.config.generateDelta) return
@@ -21,4 +21,4 @@ class TranslationHandler extends ResourceHandler {
   }
 }
 
-module.exports = TranslationHandler
+module.exports = ObjectTranslationHandler

@@ -7,7 +7,7 @@ const InFolder = require('./inFolderHandler')
 const InResource = require('./inResourceHandler')
 const Standard = require('./standardHandler')
 const SubCustomObject = require('./subCustomObjectHandler')
-const InTranslation = require('./inTranslationHandler')
+const ObjectTranslation = require('./ObjectTranslationHandler')
 const Wave = require('./waveHandler')
 
 const { getType } = require('../utils/typeUtils')
@@ -35,7 +35,7 @@ const classes = {
   lwc: InResource,
   matchingRules: InFile,
   objects: CustomObject,
-  objectTranslations: InTranslation,
+  objectTranslations: ObjectTranslation,
   profiles: InFile,
   recordTypes: SubCustomObject,
   reports: InFolder,
