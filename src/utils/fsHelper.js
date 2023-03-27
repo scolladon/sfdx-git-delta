@@ -18,7 +18,7 @@ const copiedFiles = new Set()
 const writtenFiles = new Set()
 
 const copyFiles = async (config, src) => {
-  if (copiedFiles.has(src)) return
+  if (copiedFiles.has(src) || writtenFiles.has(src)) return
   copiedFiles.add(src)
 
   const bufferData = await readPathFromGitAsBuffer(src, config)

@@ -134,6 +134,23 @@ describe('copyFile', () => {
     })
   })
 
+  describe('when file is already written', () => {
+    it('should not copy file', async () => {
+      // Arrange
+      treatPathSep.mockImplementationOnce(() => 'output/file')
+      await writeFile('source/file', 'content', work.config)
+      jest.resetAllMocks()
+
+      // Act
+      await copyFiles(work.config, 'source/file', 'output/file')
+
+      // Assert
+      expect(spawn).not.toBeCalled()
+      expect(getStreamContent).not.toBeCalled()
+      expect(outputFile).not.toBeCalled()
+    })
+  })
+
   describe('when source location is empty', () => {
     it('should not copy file', async () => {
       // Act
@@ -553,7 +570,6 @@ describe('isSubDir', () => {
 
     it('call only once for the same path', async () => {
       // Arrange
-
       const output = 'root'
       const content = 'content'
       const path = 'other/path/file'
