@@ -35,11 +35,6 @@ const getXmlTagToTypeDefinitionMap = metadata => {
 // Metadata JSON structure functional area
 const getRootMetadata = fileContent => Object.values(fileContent)?.[1]
 
-const clearMetadata = fileContent => ({
-  ...fileContent,
-  [Object.keys(fileContent)[1]]: {},
-})
-
 const getDirectoryNameForSubType = subType =>
   xmlObjectToPackageType.get(subType).directoryName
 
@@ -89,7 +84,7 @@ const generatePartialJSON = jsonContent => store => {
       storeHasMemberForType(elem.fullName)
     )
     return acc
-  }, clearMetadata(jsonContent))
+  }, jsonContent)
 }
 
 class FileGitDiff {
