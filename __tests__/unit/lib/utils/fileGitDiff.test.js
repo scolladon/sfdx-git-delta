@@ -15,81 +15,17 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
   }
 })
 
-const alert = {
-  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-  Workflow: {
-    alerts: [
-      {
-        fullName: 'TestEmailAlert',
-        description: 'awesome',
-        protected: 'false',
-        recipients: { field: 'OtherEmail', type: 'email' },
-        senderAddress: 'awesome@awesome.com',
-        senderType: 'OrgWideEmailAddress',
-        template: 'None',
-      },
-      {
-        fullName: 'OtherTestEmailAlert',
-        description: 'awesome',
-        protected: 'false',
-        recipients: { field: 'OtherEmail', type: 'email' },
-        senderAddress: 'awesome@awesome.com',
-        senderType: 'OrgWideEmailAddress',
-        template: 'None',
-      },
-    ],
-  },
-}
-
-const alertOther = {
-  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-  Workflow: {
-    alerts: [
-      {
-        fullName: 'OtherTestEmailAlert',
-        description: 'awesome',
-        protected: 'false',
-        recipients: { field: 'OtherEmail', type: 'email' },
-        senderAddress: 'awesome@awesome.com',
-        senderType: 'OrgWideEmailAddress',
-        template: 'None',
-      },
-    ],
-  },
-}
-
-const alertTest = {
-  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-  Workflow: {
-    alerts: {
-      fullName: 'TestEmailAlert',
-      description: 'awesome',
-      protected: 'false',
-      recipients: { field: 'OtherEmail', type: 'email' },
-      senderAddress: 'awesome@awesome.com',
-      senderType: 'OrgWideEmailAddress',
-      template: 'None',
-    },
-  },
-}
-
-const wfBase = {
-  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-  Workflow: {
-    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-  },
-}
-
 describe(`fileGitDiff`, () => {
   let fileGitDiff
   let globalMetadata
   let work
+  let alert, alertOther, alertTest, wfBase, unTracked
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
     work = {
       config: {
         repo: '',
@@ -100,9 +36,100 @@ describe(`fileGitDiff`, () => {
       warnings: [],
     }
     fileGitDiff = new FileGitDiff('workflows', work, globalMetadata)
+
+    alert = {
+      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      Workflow: {
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+        alerts: [
+          {
+            fullName: 'TestEmailAlert',
+            description: 'awesome',
+            protected: 'false',
+            recipients: { field: 'OtherEmail', type: 'email' },
+            senderAddress: 'awesome@awesome.com',
+            senderType: 'OrgWideEmailAddress',
+            template: 'None',
+          },
+          {
+            fullName: 'OtherTestEmailAlert',
+            description: 'awesome',
+            protected: 'false',
+            recipients: { field: 'OtherEmail', type: 'email' },
+            senderAddress: 'awesome@awesome.com',
+            senderType: 'OrgWideEmailAddress',
+            template: 'None',
+          },
+        ],
+      },
+    }
+
+    alertOther = {
+      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      Workflow: {
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+        alerts: [
+          {
+            fullName: 'OtherTestEmailAlert',
+            description: 'awesome',
+            protected: 'false',
+            recipients: { field: 'OtherEmail', type: 'email' },
+            senderAddress: 'awesome@awesome.com',
+            senderType: 'OrgWideEmailAddress',
+            template: 'None',
+          },
+        ],
+      },
+    }
+
+    alertTest = {
+      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      Workflow: {
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+        alerts: {
+          fullName: 'TestEmailAlert',
+          description: 'awesome',
+          protected: 'false',
+          recipients: { field: 'OtherEmail', type: 'email' },
+          senderAddress: 'awesome@awesome.com',
+          senderType: 'OrgWideEmailAddress',
+          template: 'None',
+        },
+      },
+    }
+
+    wfBase = {
+      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      Workflow: {
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+      },
+    }
+
+    unTracked = {
+      '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+      Workflow: {
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+        unTracked: {
+          fullName: 'untracked',
+        },
+      },
+    }
   })
 
   describe('compare', () => {
+    it('does not detect not tracked elements', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce(unTracked)
+      parseXmlFileToJson.mockResolvedValueOnce(wfBase)
+
+      // Act
+      const { added, deleted } = await fileGitDiff.compare('file/path')
+
+      // Assert
+      expect(deleted.size).toBe(0)
+      expect(added.size).toBe(0)
+    })
+
     it('detects added elements', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alert)
@@ -152,18 +179,6 @@ describe(`fileGitDiff`, () => {
     })
   })
   describe('prune', () => {
-    it('given file contains only new element, it keeps the file identical', async () => {
-      // Arrange
-      parseXmlFileToJson.mockResolvedValueOnce(alert)
-      parseXmlFileToJson.mockResolvedValueOnce(wfBase)
-      await fileGitDiff.compare('file/path')
-
-      // Act
-      fileGitDiff.prune()
-
-      // Assert
-      expect(convertJsonToXml).toHaveBeenCalledWith(alert)
-    })
     it('given one element added, the generated file contains only this element', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alert)
@@ -175,6 +190,37 @@ describe(`fileGitDiff`, () => {
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
+    })
+    it('given zero element added and one element delete, the generated file contains empty declaration', async () => {
+      // Arrange
+
+      parseXmlFileToJson.mockResolvedValueOnce(alertTest)
+      parseXmlFileToJson.mockResolvedValueOnce(alert)
+      await fileGitDiff.compare('file/path')
+
+      // Act
+      fileGitDiff.prune()
+
+      // Assert
+      expect(convertJsonToXml).toHaveBeenCalledWith({
+        ...wfBase,
+        Workflow: {
+          ...wfBase.Workflow,
+          alerts: [],
+        },
+      })
+    })
+    it('given file contains only new element, it keeps the file identical', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce(alert)
+      parseXmlFileToJson.mockResolvedValueOnce(wfBase)
+      await fileGitDiff.compare('file/path')
+
+      // Act
+      fileGitDiff.prune()
+
+      // Assert
+      expect(convertJsonToXml).toHaveBeenCalledWith(alert)
     })
 
     it('given one element modified, the generated file contains only this element', async () => {
@@ -196,20 +242,17 @@ describe(`fileGitDiff`, () => {
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
     })
 
-    it('given zero element added and one element delete, the generated file contains empty declaration', async () => {
+    it('given untracked element, nothing trackable changed, the generated file contains untracked elements', async () => {
       // Arrange
-      parseXmlFileToJson.mockResolvedValueOnce(alertTest)
-      parseXmlFileToJson.mockResolvedValueOnce(alert)
+      parseXmlFileToJson.mockResolvedValueOnce(unTracked)
+      parseXmlFileToJson.mockResolvedValueOnce(wfBase)
       await fileGitDiff.compare('file/path')
 
       // Act
       fileGitDiff.prune()
 
       // Assert
-      expect(convertJsonToXml).toHaveBeenCalledWith({
-        ...wfBase,
-        Workflow: { alerts: [] },
-      })
+      expect(convertJsonToXml).toHaveBeenCalledWith(unTracked)
     })
   })
 })
