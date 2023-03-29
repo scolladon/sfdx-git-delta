@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.15.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.14.0...v5.15.0) (2023-03-29)
+
+
+### Features
+
+* add DecisionTable and DecisionTableDataSetLink metadata ([#538](https://github.com/scolladon/sfdx-git-delta/issues/538)) ([d91b5ae](https://github.com/scolladon/sfdx-git-delta/commit/d91b5aedf35a007136241df69f57d7ce4d19d23f))
+
+
+### Bug Fixes
+
+* keep attributs not subject to comparison ([#539](https://github.com/scolladon/sfdx-git-delta/issues/539)) ([08cf667](https://github.com/scolladon/sfdx-git-delta/commit/08cf6677b71d0b7f41d56e1ab8b437650d758dd1))
+
 ## [5.14.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.3...v5.14.0) (2023-03-14)
 
 
