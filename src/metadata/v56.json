@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "decisionTables",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "decisionTable",
+    "xmlName": "DecisionTable"
+  },
+  {
+    "directoryName": "decisionTableDatasetLinks",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "decisionTableDatasetLink",
+    "xmlName": "DecisionTableDatasetLink"
+  },
+  {
     "directoryName": "forecastingFilters",
     "inFolder": false,
     "metaFile": false,
