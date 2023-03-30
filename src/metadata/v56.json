@@ -3,14 +3,14 @@
     "directoryName": "AssessmentQuestions",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "AssessmentQuestion",
+    "suffix": "aq",
     "xmlName": "AssessmentQuestion"
   },
   {
     "directoryName": "AssessmentQuestionSets",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "AssessmentQuestionSet",
+    "suffix": "aqs",
     "xmlName": "AssessmentQuestionSet"
   },
   {
