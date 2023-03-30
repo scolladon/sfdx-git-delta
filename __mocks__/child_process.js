@@ -17,7 +17,16 @@ childProcess.spawn.mockImplementation(() => {
         this.push(output.pop().join(EOL))
       }
       this.push(null)
-      mock.emit(error ? 'error' : 'close')
+      mock.emit('close')
+    },
+  })
+  mock.stderr = new Readable({
+    read() {
+      if (error) {
+        this.push('error')
+      }
+      this.push(null)
+      mock.emit('close')
     },
   })
   return mock
