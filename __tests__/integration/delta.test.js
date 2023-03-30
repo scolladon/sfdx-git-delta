@@ -1,8 +1,8 @@
 'use strict'
 const fs = require('fs')
 const child_process = require('child_process')
-const app = require('../src/main')
-const { COMMIT_REF_TYPE, GIT_FOLDER } = require('../src/utils/gitConstants')
+const app = require('../../src/main')
+const { COMMIT_REF_TYPE, GIT_FOLDER } = require('../../src/utils/gitConstants')
 const { outputFile } = require('fs-extra')
 jest.mock('fs')
 jest.mock('fs-extra')

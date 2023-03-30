@@ -4,3 +4,6 @@
 *-debug.log
 *-error.log
 sfdx-git-delta-*.tgz
+/.nyc_output
+stderr*.txt
+stdout*.txt
