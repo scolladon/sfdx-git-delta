@@ -44,18 +44,28 @@ When developing, use [jest](https://jestjs.io/en/) unit testing to provide test 
 
 ```bash
 # just run test
-yarn test
+yarn test:unit
 
 # run test with coverage details
-yarn test:coverage
+yarn test:unit:coverage
 ```
 
 To execute a particular test, use the following command:
 
 ```bash
-yarn test -- <path_to_test>
+yarn test:unit -- <path_to_test>
 
 ```
+
+### NUT Testing sgd
+
+When developing, use mocha testing to provide NUT functional test. To run the mocha tests use the following command from the root directory:
+
+```bash
+# run test
+yarn test:nut
+```
+
 ## Editor Configurations
 
 Configure your editor to use our lint and code style rules.
