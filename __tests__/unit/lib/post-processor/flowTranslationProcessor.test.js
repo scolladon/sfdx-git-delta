@@ -47,7 +47,7 @@ describe('FlowTranslationProcessor', () => {
           package: new Map(),
           destructiveChanges: new Map(),
         },
-        config: { source: '.', output: 'output', generateDelta: true },
+        config: { source: './', output: 'output', generateDelta: true },
       }
       sut = new FlowTranslationProcessor(work)
       flap = trueAfter(1)

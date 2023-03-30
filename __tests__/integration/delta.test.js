@@ -60,7 +60,7 @@ describe(`test if the appli`, () => {
     expect(
       await app({
         output: 'output',
-        repo: '.',
+        repo: './',
         source: '',
         to: 'test',
         from: 'main',
