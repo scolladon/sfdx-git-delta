@@ -55,8 +55,13 @@ const readPathFromGitAsBuffer = async (path, { repo, to }) => {
 }
 
 const readPathFromGit = async (path, config) => {
-  const bufferData = await readPathFromGitAsBuffer(path, config)
-  const utf8Data = bufferData.toString(UTF8_ENCODING)
+  let utf8Data = ''
+  try {
+    const bufferData = await readPathFromGitAsBuffer(path, config)
+    utf8Data = bufferData.toString(UTF8_ENCODING)
+  } catch {
+    /* empty */
+  }
   return utf8Data
 }
 

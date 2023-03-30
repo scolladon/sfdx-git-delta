@@ -289,13 +289,12 @@ describe('scan', () => {
         Promise.reject(new Error('mock'))
       )
     })
-    it('should throw', async () => {
+    it('should not throw', async () => {
       // Arrange
-      expect.assertions(1)
-      const g = scan('dir', work)
+      const res = await scan('dir', work)
 
       // Assert
-      expect(g.next()).rejects.toEqual(new Error('mock'))
+      expect(res).toMatchObject({})
     })
   })
   describe('when getStreamContent returns nothing', () => {
@@ -508,7 +507,7 @@ describe('isSubDir', () => {
       // Assert
       expect(result).toBe(false)
     })
-    it('throws when spawn throws', async () => {
+    it('do not throws when getStreamContent throws', async () => {
       expect.assertions(1)
       // Arrange
       getStreamContent.mockImplementationOnce(() =>
@@ -516,12 +515,10 @@ describe('isSubDir', () => {
       )
 
       // Act
-      try {
-        await pathExists('path', work.config)
-        // Assert
-      } catch (error) {
-        expect(error.message).toBe('spawn issue')
-      }
+      const exist = await pathExists('path', work.config)
+
+      // Assert
+      expect(exist).toBe(false)
     })
   })
 
