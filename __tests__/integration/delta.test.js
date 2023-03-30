@@ -3,10 +3,19 @@ const fs = require('fs')
 const child_process = require('child_process')
 const app = require('../../src/main')
 const { COMMIT_REF_TYPE, GIT_FOLDER } = require('../../src/utils/gitConstants')
-const { outputFile } = require('fs-extra')
+const { scanExtension } = require('../../src/utils/fsHelper')
 jest.mock('fs')
 jest.mock('fs-extra')
 jest.mock('child_process')
+jest.mock('../../src/utils/fsHelper')
+scanExtension.mockImplementation(() => ({
+  [Symbol.asyncIterator]: () => ({
+    next: () => ({
+      value: '',
+      done: () => true,
+    }),
+  }),
+}))
 
 const lines = [
   'D      force-app/main/default/objects/Account/fields/deleted.field-meta.xml',
@@ -61,9 +70,6 @@ describe(`test if the appli`, () => {
   })
 
   test('catch internal warnings', async () => {
-    outputFile.mockImplementationOnce(() =>
-      Promise.reject(new Error('Not writable'))
-    )
     child_process.__setOutput([
       lines,
       [],
