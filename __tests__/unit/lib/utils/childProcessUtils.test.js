@@ -24,6 +24,12 @@ describe('childProcessUtils', () => {
               stream.emit('close')
             },
           })
+          stream.stderr = new Readable({
+            read() {
+              this.push(null)
+              stream.emit('close')
+            },
+          })
 
           // Act
           const result = await getStreamContent(stream)
@@ -42,7 +48,15 @@ describe('childProcessUtils', () => {
         stream.stdout = new Readable({
           read() {
             this.push(null)
-            stream.emit('error')
+            stream.emit('close')
+          },
+        })
+
+        stream.stderr = new Readable({
+          read() {
+            this.push('error')
+            this.push(null)
+            stream.emit('close')
           },
         })
 
@@ -52,7 +66,7 @@ describe('childProcessUtils', () => {
 
           // Assert
         } catch (error) {
-          expect(error).toBeDefined()
+          expect(error.message).toEqual('error')
         }
       })
     })
