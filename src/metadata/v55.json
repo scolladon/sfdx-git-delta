@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "AssessmentQuestions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "aq",
+    "xmlName": "AssessmentQuestion"
+  },
+  {
+    "directoryName": "AssessmentQuestionSets",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "aqs",
+    "xmlName": "AssessmentQuestionSet"
+  },
+  {
     "directoryName": "decisionTables",
     "inFolder": false,
     "metaFile": false,
