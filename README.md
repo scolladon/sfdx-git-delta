@@ -172,9 +172,10 @@ OPTIONS
   -o, --output=output                                                               [default: ./output] source package
                                                                                     specific output
 
-  -r, --repo=repo                                                                   [default: .] git repository location
+  -r, --repo=repo                                                                   [default: ./] git repository
+                                                                                    location
 
-  -s, --source=source                                                               [default: .] source folder focus
+  -s, --source=source                                                               [default: ./] source folder focus
                                                                                     location related to --repo
 
   -t, --to=to                                                                       [default: HEAD] commit sha to where

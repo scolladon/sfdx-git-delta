@@ -38,6 +38,13 @@ const getStreamContent = async stream => {
   for await (const chunk of stream.stdout) {
     content.push(chunk)
   }
+  const error = []
+  for await (const chunk of stream.stderr) {
+    error.push(chunk)
+  }
+  if (error.length > 0) {
+    throw new Error(error.join(''))
+  }
   return Buffer.concat(content)
 }
 
