@@ -21,25 +21,26 @@ const copyFiles = async (config, src) => {
   if (copiedFiles.has(src) || writtenFiles.has(src)) return
   copiedFiles.add(src)
 
-  const bufferData = await readPathFromGitAsBuffer(src, config)
-  const utf8Data = bufferData?.toString(UTF8_ENCODING)
-  if (!utf8Data) {
-    return
-  }
+  try {
+    const bufferData = await readPathFromGitAsBuffer(src, config)
+    const utf8Data = bufferData?.toString(UTF8_ENCODING)
 
-  if (utf8Data.startsWith(FOLDER)) {
-    const [header, , ...files] = utf8Data.split(EOLRegex)
-    const folder = header.split(':')[1]
-    for (const file of files) {
-      const fileSrc = join(folder, file)
+    if (utf8Data.startsWith(FOLDER)) {
+      const [header, , ...files] = utf8Data.split(EOLRegex)
+      const folder = header.split(':')[1]
+      for (const file of files) {
+        const fileSrc = join(folder, file)
 
-      await copyFiles(config, fileSrc)
+        await copyFiles(config, fileSrc)
+      }
+    } else {
+      const dst = join(config.output, treatPathSep(src))
+      // Use Buffer to output the file content
+      // Let fs implementation detect the encoding ("utf8" or "binary")
+      await outputFile(dst, bufferData)
     }
-  } else {
-    const dst = join(config.output, treatPathSep(src))
-    // Use Buffer to output the file content
-    // Let fs implementation detect the encoding ("utf8" or "binary")
-    await outputFile(dst, bufferData)
+  } catch {
+    /* empty */
   }
 }
 
@@ -55,8 +56,13 @@ const readPathFromGitAsBuffer = async (path, { repo, to }) => {
 }
 
 const readPathFromGit = async (path, config) => {
-  const bufferData = await readPathFromGitAsBuffer(path, config)
-  const utf8Data = bufferData?.toString(UTF8_ENCODING) ?? ''
+  let utf8Data = ''
+  try {
+    const bufferData = await readPathFromGitAsBuffer(path, config)
+    utf8Data = bufferData.toString(UTF8_ENCODING)
+  } catch {
+    /* empty */
+  }
   return utf8Data
 }
 

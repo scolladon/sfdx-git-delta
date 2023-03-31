@@ -41,7 +41,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   work = {
     config: {
-      output: '',
+      output: '.',
       source: '',
       repo: '',
       generateDelta: false,
@@ -121,11 +121,11 @@ describe('readPathFromGit', () => {
 describe('copyFile', () => {
   describe('when file is already copied', () => {
     it('should not copy file', async () => {
-      await copyFiles(work.config, 'source/file', 'output/file')
+      await copyFiles(work.config, 'source/file')
       jest.resetAllMocks()
 
       // Act
-      await copyFiles(work.config, 'source/file', 'output/file')
+      await copyFiles(work.config, 'source/file')
 
       // Assert
       expect(spawn).not.toBeCalled()
@@ -152,14 +152,23 @@ describe('copyFile', () => {
   })
 
   describe('when source location is empty', () => {
-    it('should not copy file', async () => {
+    it('should copy file', async () => {
+      // Arrange
+      treatPathSep.mockImplementationOnce(() => 'output/source/copyFile')
+      getStreamContent.mockImplementation(() =>
+        Promise.resolve(Buffer.from(''))
+      )
+
       // Act
-      await copyFiles(work.config, 'source/doNotCopy', 'output/doNotCopy')
+      await copyFiles(work.config, 'source/doNotCopy')
 
       // Assert
       expect(spawn).toBeCalled()
       expect(getStreamContent).toBeCalled()
-      expect(outputFile).not.toBeCalled()
+      expect(outputFile).toBeCalledWith(
+        'output/source/copyFile',
+        Buffer.from('')
+      )
     })
   })
 
@@ -176,7 +185,7 @@ describe('copyFile', () => {
         )
 
         // Act
-        await copyFiles(work.config, 'source/copyDir', 'output/copyDir')
+        await copyFiles(work.config, 'source/copyDir')
 
         // Assert
         expect(spawn).toBeCalledTimes(2)
@@ -190,14 +199,15 @@ describe('copyFile', () => {
       })
     })
     describe('when content is not a git location', () => {
-      it('should ignore the path', async () => {
+      it('should ignore this path', async () => {
         // Arrange
+        const sourcePath = 'source/warning'
         getStreamContent.mockImplementation(() =>
-          Promise.resolve(Buffer.from(''))
+          Promise.reject(`fatal: path '${sourcePath}' does not exist in 'HEAD'`)
         )
 
         // Act
-        await copyFiles(work.config, 'source/warning', 'output/warning')
+        await copyFiles(work.config, sourcePath)
 
         // Assert
         expect(spawn).toBeCalled()
@@ -211,18 +221,18 @@ describe('copyFile', () => {
         getStreamContent.mockImplementation(() =>
           Promise.resolve(Buffer.from('content'))
         )
-        treatPathSep.mockImplementationOnce(() => 'output/copyFile')
+        treatPathSep.mockImplementationOnce(() => 'output/source/copyFile')
       })
       it('should copy the file', async () => {
         // Act
-        await copyFiles(work.config, 'source/copyfile', 'output/copyfile')
+        await copyFiles(work.config, 'source/copyfile')
 
         // Assert
         expect(spawn).toBeCalled()
         expect(getStreamContent).toBeCalled()
         expect(outputFile).toBeCalledTimes(1)
         expect(outputFile).toHaveBeenCalledWith(
-          'output/copyFile',
+          'output/source/copyFile',
           Buffer.from('content')
         )
         expect(treatPathSep).toBeCalledTimes(1)
@@ -312,13 +322,12 @@ describe('scan', () => {
         Promise.reject(new Error('mock'))
       )
     })
-    it('should throw', async () => {
+    it('should not throw', async () => {
       // Arrange
-      expect.assertions(1)
-      const g = scan('dir', work)
+      const res = await scan('dir', work)
 
       // Assert
-      expect(g.next()).rejects.toEqual(new Error('mock'))
+      expect(res).toMatchObject({})
     })
   })
   describe('when getStreamContent returns nothing', () => {
@@ -531,7 +540,7 @@ describe('isSubDir', () => {
       // Assert
       expect(result).toBe(false)
     })
-    it('throws when spawn throws', async () => {
+    it('do not throws when getStreamContent throws', async () => {
       expect.assertions(1)
       // Arrange
       getStreamContent.mockImplementationOnce(() =>
@@ -539,12 +548,10 @@ describe('isSubDir', () => {
       )
 
       // Act
-      try {
-        await pathExists('path', work.config)
-        // Assert
-      } catch (error) {
-        expect(error.message).toBe('spawn issue')
-      }
+      const exist = await pathExists('path', work.config)
+
+      // Assert
+      expect(exist).toBe(false)
     })
   })
 

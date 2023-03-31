@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.16.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.15.0...v5.16.0) (2023-03-31)
+
+
+### Features
+
+* add FSC `AssessmentQuestion*` metadata ([#542](https://github.com/scolladon/sfdx-git-delta/issues/542)) ([afc0d9f](https://github.com/scolladon/sfdx-git-delta/commit/afc0d9fe60de35b7f173c0c86024e82dafcaa303))
+
+
+### Bug Fixes
+
+* copy empty file from git ([#547](https://github.com/scolladon/sfdx-git-delta/issues/547)) ([577f750](https://github.com/scolladon/sfdx-git-delta/commit/577f75008bca785629b2fb4ccefeab0a392573e3))
+
 ## [5.15.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.14.0...v5.15.0) (2023-03-29)
 
 

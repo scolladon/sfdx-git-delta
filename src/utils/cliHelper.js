@@ -193,8 +193,7 @@ class CLIHelper {
 
   static TO_DEFAULT_VALUE = 'HEAD'
   static OUTPUT_DEFAULT_VALUE = './output'
-  static SOURCE_DEFAULT_VALUE = '.'
-  static REPO_DEFAULT_VALUE = '.'
-  static IGNORE_DEFAULT_VALUE = '.'
+  static SOURCE_DEFAULT_VALUE = './'
+  static REPO_DEFAULT_VALUE = './'
 }
 module.exports = CLIHelper
