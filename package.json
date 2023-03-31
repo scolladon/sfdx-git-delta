@@ -1,0 +1,22 @@
+{
+  "name": "sgd-e2e",
+  "version": "1.0.0",
+  "description": "E2E test for SGD",
+  "main": "index.js",
+  "repository": "git@github.com-personal:scolladon/sfdx-git-delta.git",
+  "author": "Sébastien Colladon <colladonsebastien@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "shx": "^0.3.4",
+    "simple-git": "^3.26.0"
+  },
+  "scripts": {
+    "clean": "shx rm -rf expected/*",
+    "pretest:e2e": "npm run clean",
+    "test:e2e": "sf sgd source delta --from \"origin/e2e/base\" --to \"origin/e2e/head\" --output-dir expected --generate-delta --repo-dir . --include-file .sgdinclude --include-destructive-file .sgdincludeDestructive --ignore-file .sgdignore --ignore-destructive-file .sgdignoreDestructive --ignore-whitespace",
+    "test:e2e:local": "../bin/run.js sgd source delta --from \"e2e/base\" --to \"e2e/head\" --output-dir expected --generate-delta --repo-dir . --include-file .sgdinclude --include-destructive-file .sgdincludeDestructive --ignore-file .sgdignore --ignore-destructive-file .sgdignoreDestructive --ignore-whitespace",
+    "posttest:e2e": "npm run validate",
+    "validate": "node validate.js",
+    "dependencies:upgrade": "shx rm -rf package-lock.json ; shx touch package-lock.json ; npm update ; npm audit fix"
+  }
+}
