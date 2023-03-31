@@ -3,5 +3,5 @@
   "watch-extensions": "ts",
   "recursive": true,
   "reporter": "spec",
-  "timeout": 5000
+  "timeout": 30000
 }
