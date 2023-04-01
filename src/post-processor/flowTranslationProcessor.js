@@ -1,7 +1,7 @@
 'use strict'
 const BaseProcessor = require('./baseProcessor')
 const {
-  FLOW_DIRECTORY_NAME,
+  FLOW_XML_NAME,
   META_REGEX,
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
@@ -85,7 +85,7 @@ class FlowTranslationProcessor extends BaseProcessor {
   }
 
   _addFlowPerTranslation({ translationPath, fullName }) {
-    const packagedElements = this.work.diffs.package.get(FLOW_DIRECTORY_NAME)
+    const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
     if (packagedElements?.has(fullName)) {
       this.translationPaths.add(translationPath)
     }

@@ -2,7 +2,7 @@
 const FlowTranslationProcessor = require('../../../../src/post-processor/flowTranslationProcessor')
 const { parseXmlFileToJson } = require('../../../../src/utils/fxpHelper')
 const {
-  FLOW_DIRECTORY_NAME,
+  FLOW_XML_NAME,
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
@@ -108,9 +108,7 @@ describe('FlowTranslationProcessor', () => {
     describe('when there is a translation file with one flow def', () => {
       beforeEach(() => {
         // Arrange
-        work.diffs.package = new Map([
-          [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
-        ])
+        work.diffs.package = new Map([[FLOW_XML_NAME, new Set([flowFullName])]])
         parseXmlFileToJson.mockResolvedValue({
           Translations: { flowDefinitions: { fullName: flowFullName } },
         })
@@ -224,7 +222,7 @@ describe('FlowTranslationProcessor', () => {
                 Translations: { flowDefinitions: [{ fullName: flowFullName }] },
               })
               work.diffs.package = new Map([
-                [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
+                [FLOW_XML_NAME, new Set([flowFullName])],
               ])
               work.config.generateDelta = generateDelta
             })
@@ -278,9 +276,7 @@ describe('FlowTranslationProcessor', () => {
     describe('when translation files are not ignored', () => {
       beforeEach(() => {
         // Arrange
-        work.diffs.package = new Map([
-          [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
-        ])
+        work.diffs.package = new Map([[FLOW_XML_NAME, new Set([flowFullName])]])
         work.config.ignore = '.forceignore'
         forPath.mockResolvedValue({ ignores: () => false })
       })
