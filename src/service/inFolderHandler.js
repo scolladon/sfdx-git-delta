@@ -5,6 +5,7 @@ const {
   META_REGEX,
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
+const { GIT_PATH_SEP } = require('../utils/gitConstants')
 const { cleanUpPackageMember } = require('../utils/packageHelper')
 const { join, parse, sep } = require('path')
 const { readDir } = require('../utils/fsHelper')
@@ -49,6 +50,16 @@ class InFolderHandler extends StandardHandler {
       .replace(EXTENSION_SUFFIX_REGEX, '')
 
     return cleanUpPackageMember(packageMember)
+  }
+
+  _isProcessable() {
+    const parsedLine = parse(this.line)
+    const parentFolder = parsedLine.dir.split(GIT_PATH_SEP).pop()
+    return (
+      super._isProcessable() ||
+      parentFolder !== this.type ||
+      this.ext.endsWith(INFOLDER_SUFFIX)
+    )
   }
 }
 
