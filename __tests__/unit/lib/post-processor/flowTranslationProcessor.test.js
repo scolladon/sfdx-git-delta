@@ -61,144 +61,30 @@ describe('FlowTranslationProcessor', () => {
       }))
     })
 
-    describe('when there is no translation file', () => {
-      beforeEach(() => {
-        // Arrange
-        flap = () => true
-      })
-      it('should not add translation file', async () => {
+    describe('when no flow have been modified', () => {
+      it('should not even look for translation files', async () => {
         // Act
         await sut.process()
 
         // Assert
+        expect(scanExtension).not.toHaveBeenCalled()
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(parseXmlFileToJson).not.toHaveBeenCalled()
-        expect(copyFiles).not.toHaveBeenCalled()
       })
     })
 
-    describe('when there is a translation file without flow def', () => {
+    describe('when flow have been modified', () => {
       beforeEach(() => {
-        // Arrange
-        parseXmlFileToJson.mockResolvedValueOnce({})
-      })
-      it('should not add translation file', async () => {
-        // Act
-        await sut.process()
-
-        // Assert
-        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when there is a translation file with one flow def', () => {
-      beforeEach(() => {
-        // Arrange
         work.diffs.package = new Map([
           [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
         ])
-        parseXmlFileToJson.mockResolvedValue({
-          Translations: { flowDefinitions: { fullName: flowFullName } },
-        })
       })
-      it('should add translation file', async () => {
-        // Act
-        await sut.process()
 
-        // Assert
-        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalled()
-      })
-      describe('when the folder is not a git repository', () => {
+      describe('when there is no translation file', () => {
         beforeEach(() => {
           // Arrange
-          copyFiles.mockImplementationOnce(() =>
-            Promise.reject(new Error('fatal: not a git repository'))
-          )
+          flap = () => true
         })
-        it('should throw an exception', async () => {
-          // Arrange
-          expect.assertions(2)
-
-          // Act
-          try {
-            await sut.process()
-          } catch (error) {
-            // Assert
-            expect(error).toBeTruthy()
-            expect(copyFiles).toHaveBeenCalled()
-          }
-        })
-      })
-    })
-
-    describe('when there is already a translation related to a flow', () => {
-      beforeEach(() => {
-        // Arrange
-        work.diffs.package = new Map([[TRANSLATION_TYPE, new Set([FR])]])
-      })
-      it('should not treat again the translation', async () => {
-        // Act
-        await sut.process()
-
-        // Assert
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(parseXmlFileToJson).not.toHaveBeenCalled()
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when there is multiple translation file with multiple flow def', () => {
-      beforeEach(() => {
-        // Arrange
-        flap = trueAfter(2)
-        let count = 0
-        const getTranslationName = () =>
-          [`${FR}.translation-meta.xml`, `${EN}.translation-meta.xml`][count++]
-        scanExtension.mockImplementation(() => ({
-          [Symbol.asyncIterator]: () => ({
-            next: () => ({
-              value: getTranslationName(),
-              done: flap(),
-            }),
-          }),
-        }))
-      })
-      describe('when there is no flow matching the translation', () => {
-        beforeEach(() => {
-          parseXmlFileToJson.mockResolvedValue({
-            Translations: { flowDefinitions: [{ fullName: 'wrong' }] },
-          })
-        })
-        it('should not add translation', async () => {
-          // Arrange
-
+        it('should not add translation file', async () => {
           // Act
           await sut.process()
 
@@ -210,128 +96,265 @@ describe('FlowTranslationProcessor', () => {
             EXTENSION,
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+          expect(parseXmlFileToJson).not.toHaveBeenCalled()
           expect(copyFiles).not.toHaveBeenCalled()
         })
       })
 
-      describe('when there is flow matching the translation', () => {
-        describe.each([true, false])(
-          'when config.generateDelta is %s',
-          generateDelta => {
-            beforeEach(() => {
-              parseXmlFileToJson.mockResolvedValue({
-                Translations: { flowDefinitions: [{ fullName: flowFullName }] },
-              })
-              work.diffs.package = new Map([
-                [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
-              ])
-              work.config.generateDelta = generateDelta
-            })
-            it('should add translation', async () => {
-              // Arrange
+      describe('when there is a translation file without flow def', () => {
+        beforeEach(() => {
+          // Arrange
+          parseXmlFileToJson.mockResolvedValueOnce({})
+        })
+        it('should not add translation file', async () => {
+          // Act
+          await sut.process()
 
-              // Act
+          // Assert
+          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(copyFiles).not.toHaveBeenCalled()
+        })
+      })
+
+      describe('when there is a translation file with one flow def', () => {
+        beforeEach(() => {
+          // Arrange
+          parseXmlFileToJson.mockResolvedValue({
+            Translations: { flowDefinitions: { fullName: flowFullName } },
+          })
+        })
+        it('should add translation file', async () => {
+          // Act
+          await sut.process()
+
+          // Assert
+          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(copyFiles).toHaveBeenCalled()
+        })
+        describe('when the folder is not a git repository', () => {
+          beforeEach(() => {
+            // Arrange
+            copyFiles.mockImplementationOnce(() =>
+              Promise.reject(new Error('fatal: not a git repository'))
+            )
+          })
+          it('should throw an exception', async () => {
+            // Arrange
+            expect.assertions(2)
+
+            // Act
+            try {
               await sut.process()
-
+            } catch (error) {
               // Assert
-              expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-              expect(scanExtension).toHaveBeenCalledTimes(1)
-              expect(scanExtension).toHaveBeenCalledWith(
-                work.config.source,
-                EXTENSION,
-                work.config
-              )
-              expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
-              if (generateDelta) expect(copyFiles).toHaveBeenCalledTimes(2)
-              else expect(copyFiles).not.toHaveBeenCalled()
-            })
-          }
-        )
+              expect(error).toBeTruthy()
+              expect(copyFiles).toHaveBeenCalled()
+            }
+          })
+        })
       })
-    })
 
-    describe('when translation files are ignored', () => {
-      beforeEach(() => {
-        // Arrange
-        work.config.ignore = '.forceignore'
-        forPath.mockResolvedValue({ ignores: () => true })
+      describe('when there is already a translation related to a flow', () => {
+        beforeEach(() => {
+          // Arrange
+          work.diffs.package = new Map([
+            [TRANSLATION_TYPE, new Set([FR])],
+            [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
+          ])
+        })
+        it('should not treat again the translation', async () => {
+          // Act
+          await sut.process()
+
+          // Assert
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(copyFiles).not.toHaveBeenCalled()
+        })
       })
-      it('should not add translation file', async () => {
-        // Act
-        await sut.process()
 
-        // Assert
-        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(forPath).toHaveBeenCalledTimes(1)
-        expect(parseXmlFileToJson).not.toHaveBeenCalled()
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when translation files are not ignored', () => {
-      beforeEach(() => {
-        // Arrange
-        work.diffs.package = new Map([
-          [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
-        ])
-        work.config.ignore = '.forceignore'
-        forPath.mockResolvedValue({ ignores: () => false })
-      })
-      it('should add translation file', async () => {
-        // Act
-        await sut.process()
-
-        // Assert
-        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(forPath).toHaveBeenCalledTimes(1)
-        expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-      })
-    })
-
-    describe('when the translation file is subDir of output', () => {
-      beforeEach(() => {
-        // Arrange
-        const out = 'out'
-        work.config.output = out
-        scanExtension.mockImplementation(() => ({
-          [Symbol.asyncIterator]: () => ({
-            next: () => ({
-              value: `${out}/${FR}.translation-meta.xml`,
-              done: flap(),
+      describe('when there is multiple translation file with multiple flow def', () => {
+        beforeEach(() => {
+          // Arrange
+          flap = trueAfter(2)
+          let count = 0
+          const getTranslationName = () =>
+            [`${FR}.translation-meta.xml`, `${EN}.translation-meta.xml`][
+              count++
+            ]
+          scanExtension.mockImplementation(() => ({
+            [Symbol.asyncIterator]: () => ({
+              next: () => ({
+                value: getTranslationName(),
+                done: flap(),
+              }),
             }),
-          }),
-        }))
-        parseXmlFileToJson.mockResolvedValueOnce({})
-        isSubDir.mockImplementation(() => true)
-      })
-      it('should not add translation file', async () => {
-        // Act
-        await sut.process()
+          }))
+        })
+        describe('when there is no flow matching the translation', () => {
+          beforeEach(() => {
+            parseXmlFileToJson.mockResolvedValue({
+              Translations: { flowDefinitions: [{ fullName: 'wrong' }] },
+            })
+          })
+          it('should not add translation', async () => {
+            // Arrange
 
-        // Assert
-        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-        expect(scanExtension).toHaveBeenCalledTimes(1)
-        expect(scanExtension).toHaveBeenCalledWith(
-          work.config.source,
-          EXTENSION,
-          work.config
-        )
-        expect(parseXmlFileToJson).not.toHaveBeenCalled()
-        expect(copyFiles).not.toHaveBeenCalled()
+            // Act
+            await sut.process()
+
+            // Assert
+            expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+            expect(scanExtension).toHaveBeenCalledTimes(1)
+            expect(scanExtension).toHaveBeenCalledWith(
+              work.config.source,
+              EXTENSION,
+              work.config
+            )
+            expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+            expect(copyFiles).not.toHaveBeenCalled()
+          })
+        })
+
+        describe('when there is flow matching the translation', () => {
+          describe.each([true, false])(
+            'when config.generateDelta is %s',
+            generateDelta => {
+              beforeEach(() => {
+                parseXmlFileToJson.mockResolvedValue({
+                  Translations: {
+                    flowDefinitions: [{ fullName: flowFullName }],
+                  },
+                })
+                work.diffs.package = new Map([
+                  [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
+                ])
+                work.config.generateDelta = generateDelta
+              })
+              it('should add translation', async () => {
+                // Arrange
+
+                // Act
+                await sut.process()
+
+                // Assert
+                expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+                expect(scanExtension).toHaveBeenCalledTimes(1)
+                expect(scanExtension).toHaveBeenCalledWith(
+                  work.config.source,
+                  EXTENSION,
+                  work.config
+                )
+                expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+                if (generateDelta) expect(copyFiles).toHaveBeenCalledTimes(2)
+                else expect(copyFiles).not.toHaveBeenCalled()
+              })
+            }
+          )
+        })
+      })
+
+      describe('when translation files are ignored', () => {
+        beforeEach(() => {
+          // Arrange
+          work.config.ignore = '.forceignore'
+          forPath.mockResolvedValue({ ignores: () => true })
+        })
+        it('should not add translation file', async () => {
+          // Act
+          await sut.process()
+
+          // Assert
+          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(forPath).toHaveBeenCalledTimes(1)
+          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(copyFiles).not.toHaveBeenCalled()
+        })
+      })
+
+      describe('when translation files are not ignored', () => {
+        beforeEach(() => {
+          // Arrange
+          work.diffs.package = new Map([
+            [FLOW_DIRECTORY_NAME, new Set([flowFullName])],
+          ])
+          work.config.ignore = '.forceignore'
+          forPath.mockResolvedValue({ ignores: () => false })
+        })
+        it('should add translation file', async () => {
+          // Act
+          await sut.process()
+
+          // Assert
+          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(forPath).toHaveBeenCalledTimes(1)
+          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(copyFiles).toHaveBeenCalledTimes(1)
+        })
+      })
+
+      describe('when the translation file is subDir of output', () => {
+        beforeEach(() => {
+          // Arrange
+          const out = 'out'
+          work.config.output = out
+          scanExtension.mockImplementation(() => ({
+            [Symbol.asyncIterator]: () => ({
+              next: () => ({
+                value: `${out}/${FR}.translation-meta.xml`,
+                done: flap(),
+              }),
+            }),
+          }))
+          parseXmlFileToJson.mockResolvedValueOnce({})
+          isSubDir.mockImplementation(() => true)
+        })
+        it('should not add translation file', async () => {
+          // Act
+          await sut.process()
+
+          // Assert
+          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(copyFiles).not.toHaveBeenCalled()
+        })
       })
     })
   })
