@@ -26,8 +26,10 @@ class FlowTranslationProcessor extends BaseProcessor {
   }
 
   async process() {
-    await this._buildFlowDefinitionsMap()
-    await this._handleFlowTranslation()
+    if (this._shouldProcess()) {
+      await this._buildFlowDefinitionsMap()
+      await this._handleFlowTranslation()
+    }
   }
 
   async _buildFlowDefinitionsMap() {
@@ -89,6 +91,10 @@ class FlowTranslationProcessor extends BaseProcessor {
     if (packagedElements?.has(fullName)) {
       this.translationPaths.add(translationPath)
     }
+  }
+
+  _shouldProcess() {
+    return this.work.diffs.package.has(FLOW_DIRECTORY_NAME)
   }
 
   async _getIgnoreInstance() {
