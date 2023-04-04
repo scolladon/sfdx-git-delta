@@ -2,7 +2,8 @@
 const StandardHandler = require('./standardHandler')
 const { join, parse } = require('path')
 const { pathExists, readDir } = require('../utils/fsHelper')
-const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
+const { META_REGEX } = require('../utils/metadataConstants')
+const { GIT_PATH_SEP } = require('../utils/gitConstants')
 const { cleanUpPackageMember } = require('../utils/packageHelper')
 
 const STATICRESOURCE_TYPE = 'staticresources'
@@ -12,20 +13,21 @@ class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
   }
+
   async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, srcPath, elementName] = this._parseLine()
+    const [, srcPath, elementFile] = this._parseLine()
     await this._buildElementMap(srcPath)
-
-    const matchingFiles = this._buildMatchingFiles(elementName)
+    const matchingFiles = this._buildMatchingFiles(elementFile)
+    const elementName = parse(elementFile).name
     await Promise.all(
       elementSrc
         .get(srcPath)
         .filter(
           src =>
             (this.type === STATICRESOURCE_TYPE &&
-              src.startsWith(parse(elementName).name)) ||
+              src.startsWith(elementName)) ||
             matchingFiles.includes(src)
         )
         .map(src => this._copyWithMetaFile(join(srcPath, src)))
@@ -59,11 +61,7 @@ class ResourceHandler extends StandardHandler {
     const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
     if (this.metadata.get(this.type).metaFile) {
-      matchingFiles.push(
-        `${parsedElementName}.${
-          this.metadata.get(this.type).suffix
-        }${METAFILE_SUFFIX}`
-      )
+      matchingFiles.push(this._getRelativeMetadataXmlFileName(elementName))
     }
     return matchingFiles
   }
@@ -76,6 +74,17 @@ class ResourceHandler extends StandardHandler {
         dirContent.map(f => f.replace(/\/$/, ''))
       )
     }
+  }
+
+  _isProcessable() {
+    const parsedLine = parse(this.line)
+    const parentFolder = parsedLine.dir.split(GIT_PATH_SEP).pop()
+
+    return (
+      super._isProcessable() ||
+      parentFolder !== this.type ||
+      !parsedLine.name.startsWith('.')
+    )
   }
 }
 

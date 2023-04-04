@@ -25,6 +25,10 @@ class WaveHandler extends StandardHandler {
       member: this._getElementName(),
     })
   }
+
+  _isProcessable() {
+    return super._isProcessable() || WAVE_SUBTYPE.has(this.ext)
+  }
 }
 
 module.exports = WaveHandler
