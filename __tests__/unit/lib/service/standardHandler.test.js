@@ -305,4 +305,26 @@ describe(`StandardHandler`, () => {
       }
     )
   })
+
+  describe('when the line should not be processed', () => {
+    it.each([`force-app/main/default/classes/folder/Random.file`])(
+      'does not handle the line',
+      async entityPath => {
+        // Arrange
+        const sut = new StandardHandler(
+          `A       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.size).toBe(0)
+        expect(copyFiles).not.toHaveBeenCalled()
+      }
+    )
+  })
 })

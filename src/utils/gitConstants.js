@@ -9,6 +9,7 @@ module.exports.TAG_REF_TYPE = TAG_REF_TYPE
 module.exports.POINTER_REF_TYPES = [COMMIT_REF_TYPE, TAG_REF_TYPE]
 module.exports.GIT_DIFF_TYPE_REGEX = /^.\s+/u
 module.exports.GIT_FOLDER = '.git'
+module.exports.GIT_PATH_SEP = '/'
 module.exports.MINUS = '-'
 module.exports.IGNORE_WHITESPACE_PARAMS = [
   '--ignore-all-space',

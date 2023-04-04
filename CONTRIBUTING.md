@@ -66,6 +66,30 @@ When developing, use mocha testing to provide NUT functional test. To run the mo
 yarn test:nut
 ```
 
+### E2E Testing sgd
+
+SGD has E2E executed at the PR level.
+Those test are located in the branch `e2e/base` and `e2e/head`
+Base scenario are implemented in `e2e/base` branch
+Updates to the metadata are implemented in `e2e/head`
+
+To run the E2E test locally, clone the repository in another folder and checkout the branch `e2e/head`
+Then execute:
+
+```bash
+# remove expected content
+yarn clean
+# run the test
+sfdx sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+# check expected is back to normal
+yarn test:e2e
+```
+
+Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
+```bash
+node path/to/sfdx-git-delta/bin/run sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+```
+
 ## Editor Configurations
 
 Configure your editor to use our lint and code style rules.
@@ -225,7 +249,8 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
 
 1. uninstall the previous version you may have `sfdx plugins:uninstall sfdx-git-delta`
 2. clone the repository
-3. checkout the branch to test
-4. install the dependencies `yarn install`
-5. run `yarn pack`, followed by `sfdx plugins:link`, from that local repository
-6. test the plugin!
+3. change directory for the repository folder
+4. checkout the branch to test
+5. install the dependencies `yarn install`
+6. run `yarn pack`, followed by `sfdx plugins:link`, from that local repository
+7. test the plugin!

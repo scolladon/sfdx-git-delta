@@ -92,21 +92,21 @@ const testContext = [
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata"></CustomLabels>`,
   ],
   [
-    'force-app/main/default/assignmentRules/Account.assignmentRule-meta.xml',
+    'force-app/main/default/assignmentRules/Account.assignmentRules-meta.xml',
     new Set(['Account.AccountRule']),
     'AssignmentRule',
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><AssignmentRules xmlns="http://soap.sforce.com/2006/04/metadata"><assignmentRule><fullName>AccountRule</fullName></assignmentRule></AssignmentRules>`,
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><AssignmentRules xmlns="http://soap.sforce.com/2006/04/metadata"></AssignmentRules>`,
   ],
   [
-    'force-app/main/default/autoResponseRules/Account.autoResponseRule-meta.xml',
+    'force-app/main/default/autoResponseRules/Account.autoResponseRules-meta.xml',
     new Set(['Account.AccountRule']),
     'AutoResponseRule',
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><AutoResponseRules xmlns="http://soap.sforce.com/2006/04/metadata"><autoResponseRule><fullName>AccountRule</fullName></autoResponseRule></AutoResponseRules>`,
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><AutoResponseRules xmlns="http://soap.sforce.com/2006/04/metadata"></AutoResponseRules>`,
   ],
   [
-    'force-app/main/default/escalationRules/Account.escalationRule-meta.xml',
+    'force-app/main/default/escalationRules/Account.escalationRules-meta.xml',
     new Set(['Account.AccountRule']),
     'EscalationRule',
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><EscalationRules xmlns="http://soap.sforce.com/2006/04/metadata"><escalationRule><fullName>AccountRule</fullName></escalationRule></EscalationRules>`,
@@ -416,7 +416,7 @@ beforeAll(async () => {
 let work
 let handlerFactory
 beforeEach(() => {
-  jest.clearAllMocks()
+  jest.resetAllMocks()
   work = {
     config: { output: '', source: '', repo: '', generateDelta: true },
     diffs: { package: new Map(), destructiveChanges: new Map() },

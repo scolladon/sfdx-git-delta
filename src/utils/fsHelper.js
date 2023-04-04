@@ -3,7 +3,7 @@ const { readFile: fsReadFile } = require('fs').promises
 const { isAbsolute, join, relative } = require('path')
 const { outputFile } = require('fs-extra')
 const { spawn } = require('child_process')
-const { UTF8_ENCODING } = require('./gitConstants')
+const { GIT_PATH_SEP, UTF8_ENCODING } = require('./gitConstants')
 const {
   EOLRegex,
   getStreamContent,
@@ -13,7 +13,7 @@ const {
 const FOLDER = 'tree'
 
 const showCmd = ['--no-pager', 'show']
-const gitPathSeparatorNormalizer = path => path?.replace(/\\+/g, '/')
+const gitPathSeparatorNormalizer = path => path?.replace(/\\+/g, GIT_PATH_SEP)
 const copiedFiles = new Set()
 const writtenFiles = new Set()
 
@@ -92,7 +92,7 @@ async function* scan(dir, config) {
   const entries = await readDir(dir, config)
   for (const file of entries) {
     const filePath = join(dir, file)
-    if (file.endsWith('/')) {
+    if (file.endsWith(GIT_PATH_SEP)) {
       yield* scan(filePath, config)
     } else {
       yield filePath

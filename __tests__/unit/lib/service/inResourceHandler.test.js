@@ -12,9 +12,12 @@ jest.mock('fs-extra')
 jest.mock('fs')
 
 const objectType = 'staticresources'
+const element = 'myResources'
+const basePath = 'force-app/main/default/staticresources'
+const entityPath = `${basePath}/${element}.js`
 const xmlName = 'StaticResource'
-const entityPath = 'force-app/main/default/staticresources/resource.js'
 const line = `A       ${entityPath}`
+const type = 'resource'
 let work
 beforeEach(() => {
   jest.clearAllMocks()
@@ -49,7 +52,7 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(...work.diffs.package.get(xmlName)).toEqual('resource')
+        expect(...work.diffs.package.get(xmlName)).toEqual(element)
         expect(copyFiles).not.toBeCalled()
       })
     })
@@ -136,7 +139,7 @@ describe('InResourceHandler', () => {
       })
 
       describe('when no matching resource exist', () => {
-        it('should not copy any files', async () => {
+        it('should not copy resource files', async () => {
           // Arrange
           const sut = new InResourceHandler(
             line,
@@ -150,12 +153,12 @@ describe('InResourceHandler', () => {
           await sut.handle()
 
           // Assert
-          expect(...work.diffs.package.get(xmlName)).toEqual('resource')
+          expect(...work.diffs.package.get(xmlName)).toEqual(element)
           expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
-          expect(copyFiles).toHaveBeenCalledWith(
+          expect(copyFiles).not.toHaveBeenCalledWith(
             work.config,
-            `${entityPath}${METAFILE_SUFFIX}`
+            `${basePath}/${element}.${type}${METAFILE_SUFFIX}`
           )
         })
       })
@@ -168,7 +171,7 @@ describe('InResourceHandler', () => {
     })
     describe('When only a ressource sub element is deleted', () => {
       beforeEach(() => {
-        pathExists.mockImplementationOnce(() => true)
+        pathExists.mockResolvedValue(true)
       })
       it('should treat it as a modification', async () => {
         // Arrange
@@ -183,7 +186,7 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(...work.diffs.package.get(xmlName)).toEqual('resource')
+        expect(...work.diffs.package.get(xmlName)).toEqual(element)
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
           work.config
@@ -192,7 +195,7 @@ describe('InResourceHandler', () => {
     })
     describe('When the ressource is deleted', () => {
       beforeEach(() => {
-        pathExists.mockImplementationOnce(() => false)
+        pathExists.mockResolvedValue(false)
       })
       it('should treat it as a deletion', async () => {
         // Arrange
@@ -208,14 +211,34 @@ describe('InResourceHandler', () => {
 
         // Assert
         expect(work.diffs.package.has(xmlName)).toBe(false)
-        expect(...work.diffs.destructiveChanges.get(xmlName)).toEqual(
-          'resource'
-        )
+        expect(...work.diffs.destructiveChanges.get(xmlName)).toEqual(element)
         expect(pathExists).toHaveBeenCalledWith(
-          expect.stringContaining('resource'),
+          expect.stringContaining(element),
           work.config
         )
       })
     })
+  })
+
+  describe('when the line should not be processed', () => {
+    it.each([`${basePath}/.eslintrc.json`])(
+      'does not handle the line',
+      async entityPath => {
+        // Arrange
+        const sut = new InResourceHandler(
+          `A       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.size).toBe(0)
+        expect(copyFiles).not.toHaveBeenCalled()
+      }
+    )
   })
 })

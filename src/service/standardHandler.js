@@ -40,11 +40,14 @@ class StandardHandler {
       [MODIFICATION]: this.handleModification,
     }
 
-    this.ext = parse(this.line).ext.substring(1)
+    this.ext = parse(this.line)
+      .base.replace(METAFILE_SUFFIX, '')
+      .split('.')
+      .pop()
   }
 
   async handle() {
-    if (this.handlerMap[this.changeType]) {
+    if (this.handlerMap[this.changeType] && this._isProcessable()) {
       try {
         await this.handlerMap[this.changeType].apply(this)
       } catch (error) {
@@ -122,6 +125,16 @@ class StandardHandler {
         'u'
       )
     )
+  }
+
+  _getRelativeMetadataXmlFileName(path) {
+    return `${parse(path).base.replace(this.ext, '').replace(/\.$/, '')}.${
+      this.metadata.get(this.type).suffix
+    }${METAFILE_SUFFIX}`
+  }
+
+  _isProcessable() {
+    return this.metadata.get(this.type).suffix === this.ext
   }
 }
 

@@ -76,11 +76,36 @@ jobs:
         with:
           eslint: true
 
+  mutation-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Build plugin
+        run: yarn pack
+      
+      - name: Mutation test
+        run: yarn test:mutation
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mutation-test-report
+          path: reports/mutation
+
   build:
     uses: ./.github/workflows/reusable-build.yml
     secrets: inherit     
 
-  installation-check:
+  e2e-check:
     needs: [build, source-lint]
     strategy:
       matrix:
@@ -90,28 +115,45 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        with: 
+          path: ./plugin
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with: 
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
 
       - name: Setup node
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
         
-      - name: Setup dependencies, cache and install in prod context
-        uses: ./.github/actions/install
-        with:
-          prod-context: true
+      - name: Install dependencies in production mode
+        working-directory: ./plugin
+        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
+        shell: bash
 
       - name: Install build dependencies
+        working-directory: ./plugin
         run: yarn add @salesforce/dev-config typescript
 
       - name: Build plugin
+        working-directory: ./plugin
         run: yarn pack
 
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli
 
       - name: Install plugin
-        run: sfdx plugins:link .
+        working-directory: ./plugin
+        run: |
+          sfdx plugins:link .
+          sfdx plugins
 
-      - name: Test installation
-        run: sfdx sgd:source:delta --help
+      - name: E2E Tests
+        working-directory: ./e2e
+        run: |
+          yarn
+          yarn test:e2e
