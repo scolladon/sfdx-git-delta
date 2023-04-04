@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.17.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.16.0...v5.17.0) (2023-04-04)
+
+
+### Features
+
+* fast `flowTranslationProcessor` exit ([#553](https://github.com/scolladon/sfdx-git-delta/issues/553)) ([2e8f9fb](https://github.com/scolladon/sfdx-git-delta/commit/2e8f9fb6be4c6b613f0b6c42bc70278c7762d358))
+* process lines related to metadata entity only ([#554](https://github.com/scolladon/sfdx-git-delta/issues/554)) ([f4c5483](https://github.com/scolladon/sfdx-git-delta/commit/f4c54834461db2de6902532fdcf70369c40a2a0e))
+
 ## [5.16.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.15.0...v5.16.0) (2023-03-31)
 
 
