@@ -5,7 +5,6 @@ const {
   META_REGEX,
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
-const { GIT_PATH_SEP } = require('../utils/gitConstants')
 const { cleanUpPackageMember } = require('../utils/packageHelper')
 const { join, parse, sep } = require('path')
 const { readDir } = require('../utils/fsHelper')
@@ -54,7 +53,7 @@ class InFolderHandler extends StandardHandler {
 
   _isProcessable() {
     const parsedLine = parse(this.line)
-    const parentFolder = parsedLine.dir.split(GIT_PATH_SEP).pop()
+    const parentFolder = parsedLine.dir.split(sep).pop()
     return (
       super._isProcessable() ||
       parentFolder !== this.type ||

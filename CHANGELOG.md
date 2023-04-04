@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.17.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.17.0...v5.17.1) (2023-04-04)
+
+
+### Bug Fixes
+
+* get parent folder name portability ([#562](https://github.com/scolladon/sfdx-git-delta/issues/562)) ([49b882e](https://github.com/scolladon/sfdx-git-delta/commit/49b882ee651a03e9b53d50919904f077b983fa87))
+
 ## [5.17.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.16.0...v5.17.0) (2023-04-04)
 
 
