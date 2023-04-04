@@ -53,6 +53,18 @@ jobs:
     needs: [prepare-release, release]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with: 
+          ref: 'e2e/head'
+          fetch-depth: 0
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli
 
@@ -61,5 +73,11 @@ jobs:
 
       - name: Test new plugin version
         run: sfdx sgd:source:delta --help
+
+      - name: E2E Tests
+        working-directory: ./e2e
+        run: |
+          yarn
+          yarn test:e2e
 
 
