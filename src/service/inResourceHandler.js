@@ -3,7 +3,7 @@ const StandardHandler = require('./standardHandler')
 const { join, parse } = require('path')
 const { pathExists, readDir } = require('../utils/fsHelper')
 const { META_REGEX } = require('../utils/metadataConstants')
-const { GIT_PATH_SEP } = require('../utils/gitConstants')
+const { sep } = require('path')
 const { cleanUpPackageMember } = require('../utils/packageHelper')
 
 const STATICRESOURCE_TYPE = 'staticresources'
@@ -78,7 +78,7 @@ class ResourceHandler extends StandardHandler {
 
   _isProcessable() {
     const parsedLine = parse(this.line)
-    const parentFolder = parsedLine.dir.split(GIT_PATH_SEP).pop()
+    const parentFolder = parsedLine.dir.split(sep).pop()
 
     return (
       super._isProcessable() ||
