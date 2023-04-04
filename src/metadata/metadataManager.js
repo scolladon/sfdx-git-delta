@@ -72,7 +72,7 @@ const getWaveMetadata = metadata =>
     : Array.from(metadata.values())
         .filter(meta => meta.content)
         .flatMap(elem => elem.content)
-        .reduce((acc, val) => acc.set(val.suffix, val.xmlName), new Map())
+        .reduce((acc, val) => acc.set(val.suffix, val.xmlName), waveMetadata)
 
 module.exports.getDefinition = getDefinition
 module.exports.getInFileAttributs = getInFileAttributs

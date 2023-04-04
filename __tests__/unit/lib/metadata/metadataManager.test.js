@@ -98,6 +98,12 @@ describe(`test if metadata`, () => {
       key: 'other',
       excluded: true,
     })
+
+    // Act
+    let otherinFileAttributs = getInFileAttributs(metadata)
+
+    // Assert
+    expect(otherinFileAttributs).toBe(inFileAttributs)
   })
 
   test('getWaveMetadata', async () => {
@@ -141,5 +147,11 @@ describe(`test if metadata`, () => {
     expect(waveMetadata.has('model')).toBe(true)
     expect(waveMetadata.get('goal')).toEqual('DiscoveryGoal')
     expect(waveMetadata.get('model')).toEqual('DiscoveryAIModel')
+
+    // Act
+    let otherWaveMetadata = getWaveMetadata(metadata)
+
+    // Assert
+    expect(otherWaveMetadata).toBe(waveMetadata)
   })
 })
