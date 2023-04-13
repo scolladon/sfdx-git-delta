@@ -4,7 +4,7 @@
    <masterLabel>Test</masterLabel>
    <action>Block</action>
    <active>true</active>
-   <userMessage>You can't use %BLOCKED_KEYWORD% </userMessage>
+   <userMessage>You cannot use %BLOCKED_KEYWORD% </userMessage>
    <!-- Applies the rule to FeedComment.RawCommentBody (an internal only field), if it contains words from the keyword list specified -->
    <entitiesAndFields>
      <entityName>FeedComment</entityName>

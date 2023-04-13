@@ -9,6 +9,6 @@
             <fieldName>BillingCity</fieldName>
             <matchingMethod>City</matchingMethod>
         </matchingRuleItems>
-        <ruleStatus>Inactive</ruleStatus>
+        <ruleStatus>active</ruleStatus>
     </matchingRules>
 </MatchingRule>

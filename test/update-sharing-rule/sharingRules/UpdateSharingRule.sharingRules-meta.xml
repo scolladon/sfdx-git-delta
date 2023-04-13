@@ -2,7 +2,7 @@
 <SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">
     <sharingOwnerRules>
         <fullName>UpdateSharingOwnerRule</fullName>
-        <accessLevel>Edit</accessLevel>
+        <accessLevel>Read</accessLevel>
         <label>UpdateSharingOwnerRule</label>
         <sharedTo>
             <role>GOD</role>
@@ -26,7 +26,7 @@
     </sharingCriteriaRules>
     <sharingGuestRules>
         <fullName>UpdateSharingGuestRule</fullName>
-        <accessLevel>Edit</accessLevel>
+        <accessLevel>Read</accessLevel>
         <includeHVUOwnedRecords>false</includeHVUOwnedRecords>
     </sharingGuestRules>
     <sharingTerritoryRules>
