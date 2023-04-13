@@ -12,35 +12,39 @@
     </categoryGroupVisibilities>
     <classAccesses>
         <apexClass>ApexClass</apexClass>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </classAccesses>
     <customMetadataTypeAccesses>
         <name>CMDT</name>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </customMetadataTypeAccesses>
     <customPermissions>
         <name>CustomPermission</name>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </customPermissions>
     <customSettingAccesses>
         <name>CustomSetting</name>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </customSettingAccesses>
     <externalDataSourceAccesses>
         <externalDataSource>ExternalDataSource</externalDataSource>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </externalDataSourceAccesses>
     <fieldPermissions>
         <field></field>
         <enabled>true</enabled>
-        <visible>true</visible>
+        <visible>false</visible>
     </fieldPermissions>
     <flowAccesses>
         <flow>Flow</flow>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </flowAccesses>
     <layoutAssignments>
         <layout>Layout</layout>
+        <recordType>Change RecordType</recordType>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Other Layout</layout>
         <recordType>RecordType</recordType>
     </layoutAssignments>
     <loginHours>
@@ -52,12 +56,17 @@
         <endAddress>168.0.0.255</endAddress>
         <startAddress>168.0.0.0</startAddress>
     </loginIpRanges>
+    <loginIpRanges>
+        <description>Another Login IP Range</description>
+        <endAddress>192.164.0.255</endAddress>
+        <startAddress>192.164.0.0</startAddress>
+    </loginIpRanges>
     <loginFlows>
         <flow>Flow</flow>
         <flowtype>UI</flowtype>
         <friendlyname>Flow</friendlyname>
         <uiLoginFlowType>VisualWorkflow</uiLoginFlowType>
-        <useLightningRuntime>true</useLightningRuntime>
+        <useLightningRuntime>false</useLightningRuntime>
     </loginFlows>
     <objectPermissions>
         <object>Object</object>
@@ -66,11 +75,11 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <viewAllRecords>true</viewAllRecords>
+        <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <pageAccesses>
         <apexPage>VisualForcePage</apexPage>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
     </pageAccesses>
     <profileActionOverrides>
         <recordType>RecordType</recordType>
@@ -78,12 +87,12 @@
         <content>flexipage</content>
         <formFactor>Large</formFactor>
         <pageOrSobjectType>standard</pageOrSobjectType>
-        <type>new</type>
+        <type>edit</type>
     </profileActionOverrides>
     <recordTypeVisibilities>
         <default>true</default>
         <recordType>Object__c.RecordType__c</recordType>
-        <visible>true</visible>
+        <visible>false</visible>
     </recordTypeVisibilities>
     <tabVisibilities>
         <tab>Tab</tab>
@@ -92,7 +101,7 @@
     <custom>true</custom>
     <userLicense>Salesforce</userLicense>
     <userPermissions>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
         <name>Permission</name>
     </userPermissions>
 </Profile>

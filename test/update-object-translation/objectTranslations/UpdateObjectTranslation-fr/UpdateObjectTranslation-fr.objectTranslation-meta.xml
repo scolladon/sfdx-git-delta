@@ -3,79 +3,79 @@
     <caseValues>
         <caseType>Nominative</caseType>
         <plural>false</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Nominative</caseType>
         <plural>true</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Accusative</caseType>
         <plural>false</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Accusative</caseType>
         <plural>true</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Genitive</caseType>
         <plural>false</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Genitive</caseType>
         <plural>true</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Dative</caseType>
         <plural>false</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Dative</caseType>
         <plural>true</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Instrumental</caseType>
         <plural>false</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Instrumental</caseType>
         <plural>true</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Locative</caseType>
         <plural>false</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <caseValues>
         <caseType>Locative</caseType>
         <plural>true</plural>
-        <value>UpdateObjectTranslation</value>
+        <value>UpdateObjectTranslation!</value>
     </caseValues>
     <gender>Feminine</gender>
     <nameFieldLabel>Name</nameFieldLabel>
     <quickActions>
-        <label>Quick</label>
+        <label>new Quick!</label>
         <name>Quick</name>
     </quickActions>
     <fields>
-        <label>LabelField</label>
+        <label>LabelField!</label>
         <name>FieldAPIName__c</name>
     </fields>
     <fieldSets>
-        <label>LabelFieldSet</label>
+        <label>LabelFieldSet!</label>
         <name>FieldSetAPIName__c</name>
     </fieldSets>
     <layouts>
-        <layout>Layout</layout>
+        <layout>Layout!</layout>
         <layoutType>Full</layoutType>
         <sections>
             <label>Test</label>
@@ -83,29 +83,29 @@
         </sections>
     </layouts>
     <namedFilters>
-        <errorMessage>message</errorMessage>
+        <errorMessage>message!</errorMessage>
         <informationalMessage>message</informationalMessage>
         <name>namedFilter</name>
     </namedFilters>
     <recordTypes>
-        <description>description</description>
+        <description>description!</description>
         <label>label</label>
         <name>recordType</name>
     </recordTypes>
     <sharingReasons>
-        <label>Reason</label>
+        <label>Reason!</label>
         <name>Reason</name>
     </sharingReasons>
     <sharingReasons>
-        <errorMessage>message</errorMessage>
+        <errorMessage>message!</errorMessage>
         <name>ValidationRule</name>
     </sharingReasons>
     <webLinks>
-        <label>WebLink</label>
+        <label>WebLink!</label>
         <name>WebLink</name>
     </webLinks>
     <workflowTasks>
-        <description>description</description>
+        <description>description!</description>
         <subject>subject</subject>
         <name>workflow task</name>
     </workflowTasks>

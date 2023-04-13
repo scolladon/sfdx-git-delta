@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <alert>
     <fullName>UpdateDecomposedAlert</fullName>
-    <description>UpdateDecomposedAlert</description>
+    <description>UpdateDecomposedAlert Description</description>
     <protected>false</protected>
     <recipients>
         <field>ContactEmail</field>
