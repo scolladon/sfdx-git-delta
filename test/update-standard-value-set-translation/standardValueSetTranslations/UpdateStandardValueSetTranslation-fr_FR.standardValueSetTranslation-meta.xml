@@ -2,6 +2,6 @@
 <ValueTranslation xmlns="http://soap.sforce.com/2006/04/metadata">
     <valueTranslation>
         <masterLabel>Active</masterLabel>
-        <translation>Actif</translation>
+        <translation>Actifs</translation>
     </valueTranslation>
 </ValueTranslation>
