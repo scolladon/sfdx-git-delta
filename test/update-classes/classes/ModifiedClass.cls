@@ -1,2 +1,3 @@
 class ModifiedClass {
+    public ModifiedClass(){}
 }

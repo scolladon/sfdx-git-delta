@@ -2,7 +2,7 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>55.0</apiVersion>
     <interviewLabel>SGD {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Update Flow With Translation</label>
+    <label>Updated Flow With Translation</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

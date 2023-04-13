@@ -3,12 +3,12 @@
     <bots>
         <fullName>BotName</fullName>
         <botVersions>
-            <botDialogs>Dialog</botDialogs>
+            <botDialogs>Dialogs</botDialogs>
             <fullName>DialogName</fullName>
         </botVersions>
     </bots>
     <customApplications>
-        <label>Application Label</label>
+        <label>Application Label!</label>
         <name>Application</name>
     </customApplications>
     <customLabels>
@@ -16,15 +16,15 @@
         <name>Label</name>
     </customLabels>
     <customPageWebLinks>
-        <label>WebPageLinkLabel</label>
+        <label>WebPageLinkLabel!</label>
         <name>WebPageLink</name>
     </customPageWebLinks>
     <customTabs>
-        <label>Tab Label</label>
+        <label>Tab Label!</label>
         <name>Tab</name>
     </customTabs>
     <flowDefinitions>
-        <label>Flow Label</label>
+        <label>Flow Label!</label>
         <fullName>Flow</fullName>
         <flows>
             <fullName>Flow Version</fullName>
@@ -32,11 +32,11 @@
         </flows>
     </flowDefinitions>
     <pipelineInspMetricConfigs>
-        <label>PipelineMetric Label</label>
+        <label>PipelineMetric Label!</label>
         <name>PipelineMetric</name>
     </pipelineInspMetricConfigs>
     <prompts>
-        <label>Prompt Label</label>
+        <label>Prompt Label!</label>
         <desctiption>Prompt Description</desctiption>
         <name>Prompt</name>
         <promptVersions>
@@ -45,12 +45,12 @@
         </promptVersions>
     </prompts>
     <quickActions>
-        <label>QuickAction Label</label>
+        <label>QuickAction Label!</label>
         <name>QuickAction</name>
         <aspect>Master</aspect>
     </quickActions>
     <reportTypes>
-        <label>Report Type Label</label>
+        <label>Report Type Label!</label>
         <desctiption>Report Type Description</desctiption>
         <name>Report Type</name>
         <sections>
@@ -63,7 +63,7 @@
         </sections>
     </reportTypes>
     <scontrols>
-        <label>SControl Label</label>
+        <label>SControl Label!</label>
         <name>SControl</name>
     </scontrols>
 </Translations>

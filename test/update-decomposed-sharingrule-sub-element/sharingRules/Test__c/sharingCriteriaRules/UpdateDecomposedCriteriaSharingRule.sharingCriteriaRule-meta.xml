@@ -5,7 +5,7 @@
         <group>GOD</group>
     </sharedTo>
     <criteriaItems>
-        <field>FirstName</field>
+        <field>LastName</field>
         <operation>equals</operation>
         <value>GOD</value>
     </criteriaItems>
