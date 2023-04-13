@@ -11,7 +11,7 @@
         <field>SuppliedEmail</field>
         <type>email</type>
     </recipients>
-    <senderAddress>e2e@sgd.dev</senderAddress>
+    <senderAddress>e2e@sgd.qa</senderAddress>
     <senderType>OrgWideEmailAddress</senderType>
     <template>email/template</template>
 </alert>
