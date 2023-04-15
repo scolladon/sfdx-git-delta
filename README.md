@@ -78,7 +78,7 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
 
-![delta_principle](/img/delta_principles.png)
+![delta_principle](img/delta_principles.png)
 
 ## Is SGD for you?
 
@@ -271,7 +271,7 @@ In our example, the latest commit to main is composed of:
 - _Apex Class modified:_ TestDataFactory
 - _Apex Class deleted:_ AnotherTriggerFramework
 
-![commit](/img/example_commit.png)
+![commit](img/example_commit.png)
 
 In this situation, we would expect the CI pipeline to:
 
@@ -297,12 +297,12 @@ The `sfdx sgd:source:delta` command produces 2 useful artifacts:
 **1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains just the added/changed metadata to deploy to the target org.
 
 _Content of the `package.xml` file in our scenario:_
-![package](/img/example_package.png)
+![package](img/example_package.png)
 
 **2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains just the removed/renamed metadata to delete from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file, because deploying destructive changes requires a package.xml (even an empty one).
 
 _Content of the `destructiveChanges.xml` file in our scenario:_
-![destructiveChange](/img/example_destructiveChange.png)
+![destructiveChange](img/example_destructiveChange.png)
 
 Note: it is also possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter. See the "Advanced use-cases" section for more examples.
 
@@ -361,7 +361,7 @@ It generates the `package` and `destructiveChanges` folders, and copies added/ch
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 
-![delta-source](/img/example_generateDelta.png)
+![delta-source](img/example_generateDelta.png)
 
 > ⚠️ Use `--generate-delta (-d)` when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
 > If you need to use it with `--to (-t)` pointing to another commit than "HEAD", checkout that commit first. Example:
@@ -512,7 +512,7 @@ console.log(JSON.stringify(work))
 
 ## Changelog
 
-[changelog.md](/CHANGELOG.md) is available for consultation.
+[changelog.md](CHANGELOG.md) is available for consultation.
 
 ## Built With
 
@@ -536,7 +536,7 @@ Versioning follows [SemVer](http://semver.org/) specification.
 
 Contributions are what make the trailblazer community such an amazing place. I regard this component as a way to inspire and learn from others. Any contributions you make are **appreciated**.
 
-See [contributing.md](/CONTRIBUTING.md) for sgd contribution principles.
+See [contributing.md](CONTRIBUTING.md) for sgd contribution principles.
 
 ## License
 

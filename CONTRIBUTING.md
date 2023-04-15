@@ -97,11 +97,11 @@ Configure your editor to use our lint and code style rules.
 ### Code formatting
 
 [Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace. 
-This repository provide [.prettierignore](/.prettierignore) and [.prettierrc](/.prettierrc.json) files to control the behaviour of the Prettier formatter.
+This repository provide [.prettierignore](.prettierignore) and [.prettierrc](.prettierrc.json) files to control the behaviour of the Prettier formatter.
 
 ### Code linting
 
-[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. This repository provide [.eslintignore](/.eslintignore) file to exclude specific files from the linting process.
+[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. This repository provide [.eslintignore](.eslintignore) file to exclude specific files from the linting process.
 
 ### Commit linting
 
@@ -200,7 +200,7 @@ Test your change by running the unit tests and integration tests. Instructions [
 ### Create a pull request
 
 If you've never created a pull request before, follow [these
-instructions][creating-a-pull-request]. Pull request samples [here](https://github.com/salesforce/sfdx-git-delta/pulls)
+instructions][creating-a-pull-request]. Pull request samples [here](https://github.com/scolladon/sfdx-git-delta/pulls)
 
 ### Update the pull request
 
