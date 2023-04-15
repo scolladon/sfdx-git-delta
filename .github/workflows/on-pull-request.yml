@@ -8,6 +8,10 @@ on:
       - "**.md"
       - "img/**"
 
+concurrency:
+  group: '${{ github.workflow }}-${{ github.head_ref }}'
+  cancel-in-progress: true
+
 jobs:
   commit-lint:
     runs-on: ubuntu-latest
