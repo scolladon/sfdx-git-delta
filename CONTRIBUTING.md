@@ -124,13 +124,13 @@ It needs to follow our commit lint convention and it will be check at the PR lev
 The process of submitting a pull request is straightforward and
 generally follows the same pattern each time:
 
-1. [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
-1. [Create a feature branch](#create-a-feature-branch)
-1. [Make your changes](#make-your-changes)
-1. [Rebase](#rebase)
-1. [Check your submission](#check-your-submission)
-1. [Create a pull request](#create-a-pull-request)
-1. [Update the pull request](#update-the-pull-request)
+- [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
+- [Create a feature branch](#create-a-feature-branch)
+- [Make your changes](#make-your-changes)
+- [Rebase](#rebase)
+- [Check your submission](#check-your-submission)
+- [Create a pull request](#create-a-pull-request)
+- [Update the pull request](#update-the-pull-request)
 
 ### Fork the sfdx-git-delta repo
 
@@ -215,10 +215,11 @@ _note: If your pull request needs more changes, keep working on your feature bra
 
 CI validates prettifying, linting and tests
 
-[fork-a-repo]: https://help.github.com/en/articles/fork-a-repo
-[configuring-a-remote-for-a-fork]: https://help.github.com/en/articles/configuring-a-remote-for-a-fork
-[creating-a-pull-request]: https://help.github.com/articles/creating-a-pull-request/
-[eslint-integrations]: http://eslint.org/docs/user-guide/integrations
+- [fork-a-repo](https://help.github.com/en/articles/fork-a-repo)
+- [configuring-a-remote-for-a-fork](https://help.github.com/en/articles/configuring-a-remote-for-a-fork)
+- [setup-github-ssh](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/)
+- [creating-a-pull-request](https://help.github.com/articles/creating-a-pull-request/)
+- [eslint-integrations](http://eslint.org/docs/user-guide/integrations)
 
 ### Collaborate on the pull request
 
