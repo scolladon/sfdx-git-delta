@@ -220,6 +220,7 @@ CI validates prettifying, linting and tests
 - [setup-github-ssh](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/)
 - [creating-a-pull-request](https://help.github.com/articles/creating-a-pull-request/)
 - [eslint-integrations](http://eslint.org/docs/user-guide/integrations)
+- [MegaLinter](https://megalinter.io)
 
 ### Collaborate on the pull request
 
