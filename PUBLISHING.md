@@ -8,7 +8,7 @@ This repository uses [release-please](https://github.com/google-github-actions/r
 
 Merge the release pull request to create a new version, it will take care of:
 - defining next version number
-- updating `package.json` version attribut
+- updating `package.json` version attribute
 - create the changelog
 - create a tag version
 - create a github release

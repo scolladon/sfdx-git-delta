@@ -382,9 +382,9 @@ describe(`test if the application`, () => {
 
     describe('when apiVersion parameter is not set', () => {
       describe('when sfdx-project.json file exist', () => {
-        describe('when "sourceApiVersion" attribut is set with supported value', () => {
+        describe('when "sourceApiVersion" attribute is set with supported value', () => {
           test.each(['46', '52', '55', '46.0', '52.0', '55.0'])(
-            'config.apiVersion (%s) equals the "sourceApiVersion" attribut',
+            'config.apiVersion (%s) equals the "sourceApiVersion" attribute',
             async version => {
               // Arrange
               fs.__setMockFiles({
@@ -411,7 +411,7 @@ describe(`test if the application`, () => {
             }
           )
         })
-        describe('when "sourceApiVersion" attribut is set with unsupported value', () => {
+        describe('when "sourceApiVersion" attribute is set with unsupported value', () => {
           test.each([NaN, '40', 'awesome', 1000000000, ''])(
             'config.apiVersion (%s) equals the latest version',
             async version => {
@@ -441,7 +441,7 @@ describe(`test if the application`, () => {
           )
         })
 
-        test('when "sourceApiVersion" attribut is not set', async () => {
+        test('when "sourceApiVersion" attribute is not set', async () => {
           // Arrange
           fs.__setMockFiles({
             ...mockFiles,

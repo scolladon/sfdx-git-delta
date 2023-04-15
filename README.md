@@ -153,7 +153,7 @@ OPTIONS
 
   -a, --api-version=api-version                                                     salesforce metadata API version,
                                                                                     default to sfdx-project.json
-                                                                                    "sourceApiVersion" attribut or
+                                                                                    "sourceApiVersion" attribute or
                                                                                     latest version
 
   -d, --generate-delta                                                              generate delta files in [--output]
@@ -454,7 +454,7 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 ```
 
 > The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
-> The `--source` path msut be relative to the `--repo` path
+> The `--source` path must be relative to the `--repo` path
 
 ### Generate a comma-separated list of the added and modified Apex classes
 

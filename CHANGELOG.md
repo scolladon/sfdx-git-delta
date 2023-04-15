@@ -318,7 +318,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* ignore white space parameter `--ignore-whitepsace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
+* ignore white space parameter `--ignore-whitespace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
 
 ### [5.0.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.1...v5.0.2) (2022-03-16)
 
@@ -338,7 +338,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Features
 
-* decommissionate sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
+* decommission sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
 
 
 ### Bug Fixes

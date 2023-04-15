@@ -120,7 +120,7 @@ describe('PackageGenerator', () => {
       ],
 
       [
-        'overlaping map',
+        'overlapping map',
         new Map([['a', new Set(['a'])]]),
         new Map([['a', new Set(['a', 'b'])]]),
         new Map([['a', new Set(['b'])]]),

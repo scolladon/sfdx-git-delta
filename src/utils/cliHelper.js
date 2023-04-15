@@ -36,7 +36,7 @@ const isGit = async dir => {
 const isBlank = str => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS = ['to', 'from']
-const SOURCE_API_VERSION_ATTRIBUT = 'sourceApiVersion'
+const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 class CLIHelper {
@@ -151,7 +151,7 @@ class CLIHelper {
         const sfdxProjectRaw = await readFile(sfdxProjectPath)
         const sfdxProject = JSON.parse(sfdxProjectRaw)
         this.config.apiVersion =
-          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || 'default'
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) || 'default'
       }
     }
   }
