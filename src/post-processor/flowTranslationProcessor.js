@@ -50,7 +50,7 @@ class FlowTranslationProcessor extends BaseProcessor {
         !ign?.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
-        this._parseTranslationFile(translationName)
+        this._parseTranslationFile(translationPath)
       }
     }
   }
@@ -61,7 +61,7 @@ class FlowTranslationProcessor extends BaseProcessor {
       fillPackageWithParameter({
         store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
-        elementName: getTranslationName(translationPath),
+        member: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
         copyTranslationsPromises.push(copyFiles(this.config, translationPath))

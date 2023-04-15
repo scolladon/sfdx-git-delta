@@ -32,7 +32,7 @@ const SUB_OBJECT_TYPES = [
 ]
 const TERRITORY_MODEL_TYPE = 'territory2Models'
 const TRANSLATION_EXTENSION = 'translation'
-const TRANSLATION_TYPE = 'translations'
+const TRANSLATION_TYPE = 'Translations'
 const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
 const XML_HEADER_TAG_END = '?>'
 
