@@ -18,7 +18,7 @@ Merge the release pull request to create a new version, it will take care of:
 ## Update tag version
 
 ```sh
-$ npm dist-tag add sfdx-git-delta@<version-source> <version-target> 
+$ npm dist-tag add sfdx-git-delta@<version-source> <version-target>
 ```
 
 It will set the `version-source` release channel to the `version-target` specific release (`vX.Y.Z`).
@@ -46,7 +46,7 @@ Use the **"Manage Versions"** manual github action to do the same thing with poi
 ## Deprecate version expression
 
 ```sh
-$ npm deprecate sfdx-git-delta@<version-expression> "<message>" 
+$ npm deprecate sfdx-git-delta@<version-expression> "<message>"
 ```
 
 It will deprecate the `version-expression` with the `message`.
@@ -55,7 +55,7 @@ Or a [version range](https://semver.npmjs.com/)
 
 Do not specify a `message` ("") to un-deprecate a version expression
 ```sh
-$ npm deprecate sfdx-git-delta@<version-expression> "" 
+$ npm deprecate sfdx-git-delta@<version-expression> ""
 ```
 
 Use the **"Deprecate Versions"** manual github action to do the same thing with point & click
