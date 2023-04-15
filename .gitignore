@@ -9,3 +9,5 @@ stderr*.txt
 stdout*.txt
 # stryker temp files
 .stryker-tmp
+
+megalinter-reports/
