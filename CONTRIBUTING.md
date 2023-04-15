@@ -96,7 +96,7 @@ Configure your editor to use our lint and code style rules.
 
 ### Code formatting
 
-[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace. 
+[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace.
 This repository provide [.prettierignore](.prettierignore) and [.prettierrc](.prettierrc.json) files to control the behaviour of the Prettier formatter.
 
 ### Code linting
@@ -217,7 +217,6 @@ CI validates prettifying, linting and tests
 
 [fork-a-repo]: https://help.github.com/en/articles/fork-a-repo
 [configuring-a-remote-for-a-fork]: https://help.github.com/en/articles/configuring-a-remote-for-a-fork
-[setup-github-ssh]: https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/
 [creating-a-pull-request]: https://help.github.com/articles/creating-a-pull-request/
 [eslint-integrations]: http://eslint.org/docs/user-guide/integrations
 
