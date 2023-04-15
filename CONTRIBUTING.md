@@ -124,13 +124,13 @@ It needs to follow our commit lint convention and it will be check at the PR lev
 The process of submitting a pull request is straightforward and
 generally follows the same pattern each time:
 
-- [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
-- [Create a feature branch](#create-a-feature-branch)
-- [Make your changes](#make-your-changes)
-- [Rebase](#rebase)
-- [Check your submission](#check-your-submission)
-- [Create a pull request](#create-a-pull-request)
-- [Update the pull request](#update-the-pull-request)
+1. [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
+2. [Create a feature branch](#create-a-feature-branch)
+3. [Make your changes](#make-your-changes)
+4. [Rebase](#rebase)
+5. [Check your submission](#check-your-submission)
+6. [Create a pull request](#create-a-pull-request)
+7. [Update the pull request](#update-the-pull-request)
 
 ### Fork the sfdx-git-delta repo
 
