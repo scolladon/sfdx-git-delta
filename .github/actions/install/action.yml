@@ -5,7 +5,7 @@ inputs:
   prod-context:
     required: false
     description: drive installation mode
-    default: false
+    default: "false"
 
 runs:
   using: composite
