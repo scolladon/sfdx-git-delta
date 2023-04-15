@@ -209,7 +209,7 @@ sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because 
 ### CI/CD specificity
 
 In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetch only the last commit of the branch currently evaluated.
-You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well, 
+You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well,
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
 
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
@@ -340,9 +340,9 @@ echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
-## Advanced use-cases:
+## Advanced use-cases
 
-### Generate a folder containing only the added/modified sources:
+### Generate a folder containing only the added/modified sources
 
 Using a package.xml for deployment is the simplest approach to delta deployments. But in some cases you may want to have only the actual recently changed source files.
 
@@ -379,7 +379,7 @@ Then it is possible to deploy the `change-sources` folder using `force:source:de
 sfdx force:source:deploy -p change-sources
 ```
 
-### Exclude some metadata only from destructiveChanges.xml:
+### Exclude some metadata only from destructiveChanges.xml
 
 The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
 element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
@@ -404,7 +404,7 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructive [-D]`) the plugin will apply it to added/changed/deleted elements.
 
-### Explicitly including specific files for inclusion or destruction regardless of diff:
+### Explicitly including specific files for inclusion or destruction regardless of diff
 
 The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not.
 Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
@@ -456,7 +456,7 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 > The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
 > The `--source` path msut be relative to the `--repo` path
 
-### Generate a comma-separated list of the added and modified Apex classes:
+### Generate a comma-separated list of the added and modified Apex classes
 
 Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example.
 To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
