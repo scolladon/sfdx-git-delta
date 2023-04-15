@@ -66,8 +66,8 @@ const testContext = [
   [
     'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
     new Set(['Account.Test']),
-    'WorkflowFlowAction',
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Workflow xmlns="http://soap.sforce.com/2006/04/metadata"><flowActions><fullName>Test</fullName></flowActions></Workflow>`,
+    'WorkflowKnowledgePublish',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Workflow xmlns="http://soap.sforce.com/2006/04/metadata"><knowledgePublishes><fullName>Test</fullName></knowledgePublishes></Workflow>`,
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Workflow xmlns="http://soap.sforce.com/2006/04/metadata"></Workflow>`,
   ],
   [

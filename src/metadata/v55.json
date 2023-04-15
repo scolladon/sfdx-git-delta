@@ -1341,7 +1341,6 @@
       "WorkflowAlert",
       "WorkflowSend",
       "WorkflowOutboundMessage",
-      "WorkflowFlowAction",
       "WorkflowRule"
     ],
     "directoryName": "workflows",
@@ -1395,15 +1394,6 @@
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowRule",
     "xmlTag": "rules",
-    "key": "fullName"
-  },
-  {
-    "directoryName": "workflows.flowActions",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "Workflow",
-    "xmlName": "WorkflowFlowAction",
-    "xmlTag": "flowActions",
     "key": "fullName"
   },
   {
