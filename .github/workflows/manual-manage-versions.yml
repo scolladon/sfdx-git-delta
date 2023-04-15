@@ -1,3 +1,4 @@
+---
 name: Manage versions
 
 on:
@@ -7,10 +8,10 @@ on:
         description: version alias to map to a version number
         required: true
         type: choice
-        options: 
-        - stable
-        - latest
-        - latest-rc
+        options:
+          - stable
+          - latest
+          - latest-rc
       version-number:
         description: version number (semver format)
         required: true
@@ -23,7 +24,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:

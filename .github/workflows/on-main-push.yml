@@ -1,8 +1,9 @@
+---
 name: Main
 
 on:
   push:
-    branches: 
+    branches:
       - main
     paths-ignore:
       - "**.md"
@@ -27,7 +28,7 @@ jobs:
           package-name: sfdx-git-delta
           token: ${{ secrets.RELEASE_PAT }}
 
-  release: 
+  release:
     needs: prepare-release
     runs-on: ubuntu-latest
     if: needs.prepare-release.outputs.release_created == 'true'
@@ -40,7 +41,7 @@ jobs:
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
-      
+
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
@@ -61,5 +62,3 @@ jobs:
 
       - name: Test new plugin version
         run: sfdx sgd:source:delta --help
-
-

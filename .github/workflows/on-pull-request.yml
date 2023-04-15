@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -17,10 +18,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
+
       - name: Setup node
         uses: ./.github/actions/install
-        
 
       - name: Lint commits
         uses: wagoid/commitlint-github-action@v5
@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
@@ -61,7 +61,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-      
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
@@ -92,10 +92,10 @@ jobs:
 
       - name: Build plugin
         run: yarn pack
-      
+
       - name: Mutation test
         run: yarn test:mutation
-      
+
       - uses: actions/upload-artifact@v3
         with:
           name: mutation-test-report
@@ -129,7 +129,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-        
+
       - name: Install dependencies in production mode
         working-directory: ./plugin
         run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
