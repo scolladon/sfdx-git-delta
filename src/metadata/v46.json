@@ -1233,16 +1233,6 @@
     "excluded": true
   },
   {
-    "directoryName": "profiles.fieldLevelSecurities",
-    "inFolder": false,
-    "metaFile": false,
-    "parentXmlName": "Profile",
-    "xmlName": "ProfileFieldLevelSecurity",
-    "xmlTag": "fieldLevelSecurities",
-    "key": "fullName",
-    "excluded": true
-  },
-  {
     "directoryName": "profiles.fieldPermissions",
     "inFolder": false,
     "metaFile": false,
