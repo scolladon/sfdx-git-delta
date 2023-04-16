@@ -522,6 +522,7 @@ console.log(JSON.stringify(work))
 - [lodash](https://github.com/lodash/lodash) - A modern JavaScript utility library delivering modularity, performance & extras.
 - [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
 - [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
+- [MegaLinter](https://megalinter.io) - Open-Source tool for CI/CD workflows that analyzes the consistency of your code, IAC, configuration, and scripts
 
 ## Versioning
 
