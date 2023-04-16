@@ -4,13 +4,10 @@
   "ignore": [
     "**/node_modules/**",
     "**/.git/**",
-    "**/.rbenv/**",
-    "**/.venv/**",
     "**/*cache*/**",
     "**/.github/**",
-    "**/.idea/**",
     "**/report/**",
-    "**/*.svg",
+    "**/img/**",
     "**/__tests__/**"
   ]
 }
