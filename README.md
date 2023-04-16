@@ -240,21 +240,21 @@ Here are examples of how to compare the content of different branches:
 - **Comparing between commits in different branches**
   For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
 
-```
+```sh
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
 - **Comparing branches (all changes)**
   Comparing all changes between the `develop` branch and the `main` branch:
 
-```
+```sh
 sfdx sgd:source:delta --to develop --from main --output .
 ```
 
 - **Comparing branches (from a common ancestor)**
   To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
 
-```
+```sh
 sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
 ```
 
