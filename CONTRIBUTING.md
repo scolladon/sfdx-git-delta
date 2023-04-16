@@ -134,7 +134,7 @@ generally follows the same pattern each time:
 
 ### Fork the sfdx-git-delta repo
 
-[Fork][fork-a-repo] the [scolladon/sfdx-git-delta](https://github.com/scolladon/sfdx-git-delta) repo. Clone your fork in your local workspace and [configure][configuring-a-remote-for-a-fork] your remote repository settings.
+[Fork](https://help.github.com/en/articles/fork-a-repo) the [scolladon/sfdx-git-delta](https://github.com/scolladon/sfdx-git-delta) repo. Clone your fork in your local workspace and [configure](https://help.github.com/en/articles/configuring-a-remote-for-a-fork) your remote repository settings.
 
 ```bash
 git clone git@github.com:<YOUR-USERNAME>/sfdx-git-delta.git
@@ -189,7 +189,7 @@ yarn lint
 
 The above command may display lint issues not related to your changes.
 The recommended way to avoid lint issues is to [configure your
-editor][eslint-integrations] to warn you in real time as you edit the file.
+editor](http://eslint.org/docs/user-guide/integrations) to warn you in real time as you edit the file.
 
 Fixing all existing lint issues is a tedious task so please pitch in by fixing
 the ones related to the files you make changes to!
@@ -200,11 +200,11 @@ Test your change by running the unit tests and integration tests. Instructions [
 ### Create a pull request
 
 If you've never created a pull request before, follow [these
-instructions][creating-a-pull-request]. Pull request samples [here](https://github.com/scolladon/sfdx-git-delta/pulls)
+instructions](https://help.github.com/articles/creating-a-pull-request/). Pull request samples [here](https://github.com/scolladon/sfdx-git-delta/pulls)
 
 ### Update the pull request
 
-```sh
+```bash
 git fetch origin
 git rebase origin/${base_branch}
 
@@ -214,13 +214,6 @@ git push origin ${feature_branch} --force-with-lease
 _note: If your pull request needs more changes, keep working on your feature branch as described above._
 
 CI validates prettifying, linting and tests
-
-- [fork-a-repo](https://help.github.com/en/articles/fork-a-repo)
-- [configuring-a-remote-for-a-fork](https://help.github.com/en/articles/configuring-a-remote-for-a-fork)
-- [setup-github-ssh](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/)
-- [creating-a-pull-request](https://help.github.com/articles/creating-a-pull-request/)
-- [eslint-integrations](http://eslint.org/docs/user-guide/integrations)
-- [MegaLinter](https://megalinter.io)
 
 ### Collaborate on the pull request
 
@@ -232,7 +225,7 @@ Pull Request comments are not enforced, it is more a way to help the reviewers a
 The repo contains a script to increment the Salesforce API version supported by SGD.
 To upgrade the API version, run the following command:
 
-```
+```bash
 yarn && yarn increment:apiversion
 ```
 
