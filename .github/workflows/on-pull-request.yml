@@ -105,12 +105,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # ADD YOUR CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
 
-      # Upload MegaLinter artifacts
-      - name: Archive production artifacts
-        if: ${{ success() }} || ${{ failure() }}
-        uses: actions/upload-artifact@v3
+     - uses: actions/upload-artifact@v3
+        if: always()
         with:
-          name: MegaLinter reports
+          name: megalinter-reports
           path: |
             megalinter-reports
             mega-linter.log
