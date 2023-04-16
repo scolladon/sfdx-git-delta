@@ -1,12 +1,11 @@
 {
     "ignorePaths": [
+	"CHANGELOG.md",
         "**/node_modules/**",
-        "**/vscode-extension/**",
         "**/.git/**",
-        "**/.pnpm-lock.json",
         ".vscode",
         "megalinter",
-        "package-lock.json",
+        "yarn.lock",
         "report"
     ],
     "language": "en",
