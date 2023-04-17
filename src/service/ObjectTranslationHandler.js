@@ -1,7 +1,7 @@
 'use strict'
 const ResourceHandler = require('./inResourceHandler')
 const StandardHandler = require('./standardHandler')
-const { getInFileAttributs } = require('../metadata/metadataManager')
+const { getInFileAttributes } = require('../metadata/metadataManager')
 const {
   OBJECT_TRANSLATION_META_XML_SUFFIX,
 } = require('../utils/metadataConstants')
@@ -19,7 +19,7 @@ class ObjectTranslationHandler extends ResourceHandler {
   }
 
   async _copyObjectTranslation(path) {
-    const inFileMetadata = getInFileAttributs(this.metadata)
+    const inFileMetadata = getInFileAttributes(this.metadata)
     const metadataDiff = new MetadataDiff(
       this.config,
       this.metadata,
@@ -32,7 +32,7 @@ class ObjectTranslationHandler extends ResourceHandler {
 
   getObjectTranslationPath() {
     // Return Object Translation Path for both objectTranslation and fieldTranslation
-    // QUESTION: Why fieldTranslation element are not deployable when objectTanslation element is not in the deployed sources ?
+    // QUESTION: Why fieldTranslation element are not deployable when objectTranslation element is not in the deployed sources ?
     return `${parse(this.line).dir}${sep}${
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`

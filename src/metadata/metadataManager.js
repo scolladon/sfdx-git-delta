@@ -46,12 +46,12 @@ const getDefinition = async (grouping, apiVersion) => {
   }, new Map())
 }
 
-const isPackageable = type =>
+const isPackable = type =>
   !Array.from(inFileMetadata.values()).find(
     inFileDef => inFileDef.xmlName === type
   ).excluded
 
-const getInFileAttributs = metadata =>
+const getInFileAttributes = metadata =>
   inFileMetadata.size
     ? inFileMetadata
     : Array.from(metadata.values())
@@ -75,8 +75,8 @@ const getWaveMetadata = metadata =>
         .reduce((acc, val) => acc.set(val.suffix, val.xmlName), waveMetadata)
 
 module.exports.getDefinition = getDefinition
-module.exports.getInFileAttributs = getInFileAttributs
+module.exports.getInFileAttributes = getInFileAttributes
 module.exports.getLatestSupportedVersion = getLatestSupportedVersion
 module.exports.getWaveMetadata = getWaveMetadata
-module.exports.isPackageable = isPackageable
+module.exports.isPackable = isPackable
 module.exports.isVersionSupported = isVersionSupported

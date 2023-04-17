@@ -7,8 +7,8 @@ const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
 const { writeFile } = require('../utils/fsHelper')
 const {
-  getInFileAttributs,
-  isPackageable,
+  getInFileAttributes,
+  isPackable,
 } = require('../metadata/metadataManager')
 const MetadataDiff = require('../utils/metadataDiff')
 const {
@@ -23,7 +23,7 @@ const getNamePrefix = ({ subType, line }) =>
 class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    const inFileMetadata = getInFileAttributs(metadata)
+    const inFileMetadata = getInFileAttributes(metadata)
     this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
   }
 
@@ -76,7 +76,7 @@ class InFileHandler extends StandardHandler {
       return
     }
 
-    if (isPackageable(subType)) {
+    if (isPackable(subType)) {
       const cleanedMember = cleanUpPackageMember(
         `${getNamePrefix({ subType, line: this.line })}${member}`
       )

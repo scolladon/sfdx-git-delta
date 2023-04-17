@@ -67,7 +67,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       }
     })
 
-    describe('when metadata in file is not packageable', () => {
+    describe('when metadata in file is not packable', () => {
       beforeEach(() => {
         // Arrange
         sut = new InFile(
@@ -140,7 +140,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       }
     })
 
-    describe('when metadata in file is not packageable', () => {
+    describe('when metadata in file is not packable', () => {
       beforeEach(() => {
         // Arrange
         sut = new InFile(

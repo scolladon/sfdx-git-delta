@@ -1653,7 +1653,7 @@
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Translations",
-    "xmlName": "BotTransltation",
+    "xmlName": "BotTranslation",
     "xmlTag": "bots",
     "key": "fullName",
     "excluded": true

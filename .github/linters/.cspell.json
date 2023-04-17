@@ -63,6 +63,7 @@
         "flowtype",
         "forceignore",
         "forceinclude",
+        "friendlyname",
         "geodata",
         "iframe",
         "ignorewarnings",

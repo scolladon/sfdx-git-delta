@@ -13,59 +13,64 @@ const addToStore =
     return store
   }
 
-const hasMember = store => attributs => subType => member =>
-  store.get(attributs.get(subType)?.xmlName)?.has(member)
+const hasMember = store => attributes => subType => member =>
+  store.get(attributes.get(subType)?.xmlName)?.has(member)
 
-const selectKey = attributs => type => elem => elem[attributs.get(type).key]
+const selectKey = attributes => type => elem => elem[attributes.get(type).key]
 
 // Metadata JSON structure functional area
 const getRootMetadata = fileContent => Object.values(fileContent)?.[1] ?? {}
 
-const getSubTypeTags = attributs => fileContent =>
-  Object.keys(getRootMetadata(fileContent)).filter(tag => attributs.has(tag))
+const getSubTypeTags = attributes => fileContent =>
+  Object.keys(getRootMetadata(fileContent)).filter(tag => attributes.has(tag))
 
 const extractMetadataForSubtype = fileContent => subType =>
   asArray(getRootMetadata(fileContent)?.[subType])
 
 // Diff processing functional area
-const compareContent = attributs => (contentAtRef, otherContent, predicat) =>
-  getSubTypeTags(attributs)(contentAtRef)
+const compareContent = attributes => (contentAtRef, otherContent, predicat) =>
+  getSubTypeTags(attributes)(contentAtRef)
     .flatMap(
-      processMetadataForSubType(contentAtRef, otherContent, predicat, attributs)
+      processMetadataForSubType(
+        contentAtRef,
+        otherContent,
+        predicat,
+        attributes
+      )
     )
     .reduce((store, nameByType) => addToStore(store)(nameByType), new Map())
 
 const processMetadataForSubType =
-  (baseContent, otherContent, predicat, attributs) => subType => {
+  (baseContent, otherContent, predicat, attributes) => subType => {
     const baseMeta = extractMetadataForSubtype(baseContent)(subType)
     const otherMeta = extractMetadataForSubtype(otherContent)(subType)
     const processElement = getElementProcessor(
       subType,
       predicat,
       otherMeta,
-      attributs
+      attributes
     )
     return baseMeta.map(processElement).filter(x => x !== undefined)
   }
 
-const getElementProcessor = (type, predicat, otherMeta, attributs) => elem => {
+const getElementProcessor = (type, predicat, otherMeta, attributes) => elem => {
   if (predicat(otherMeta, type, elem)) {
     return {
-      type: attributs.get(type).xmlName,
-      member: selectKey(attributs)(type)(elem),
+      type: attributes.get(type).xmlName,
+      member: selectKey(attributes)(type)(elem),
     }
   }
 }
 
 // Partial JSON generation functional are
 // Side effect on jsonContent
-const generatePartialJSON = attributs => jsonContent => store => {
+const generatePartialJSON = attributes => jsonContent => store => {
   const extract = extractMetadataForSubtype(jsonContent)
-  const storeHasMember = hasMember(store)(attributs)
-  return getSubTypeTags(attributs)(jsonContent).reduce((acc, subType) => {
+  const storeHasMember = hasMember(store)(attributes)
+  return getSubTypeTags(attributes)(jsonContent).reduce((acc, subType) => {
     const meta = extract(subType)
     const storeHasMemberForType = storeHasMember(subType)
-    const key = selectKey(attributs)(subType)
+    const key = selectKey(attributes)(subType)
     const rootMetadata = getRootMetadata(acc)
     rootMetadata[subType] = meta.filter(elem =>
       storeHasMemberForType(key(elem))
@@ -75,10 +80,10 @@ const generatePartialJSON = attributs => jsonContent => store => {
 }
 
 class MetadataDiff {
-  constructor(config, metadata, attributs) {
+  constructor(config, metadata, attributes) {
     this.config = config
     this.metadata = metadata
-    this.attributs = attributs
+    this.attributes = attributes
     this.configTo = {
       repo: this.config.repo,
       to: this.config.to,
@@ -93,11 +98,11 @@ class MetadataDiff {
     this.toContent = await parseXmlFileToJson(path, this.configTo)
     const fromContent = await parseXmlFileToJson(path, this.configFrom)
 
-    const diff = compareContent(this.attributs)
+    const diff = compareContent(this.attributes)
 
     // Added or Modified
     this.add = diff(this.toContent, fromContent, (meta, type, elem) => {
-      const key = selectKey(this.attributs)(type)
+      const key = selectKey(this.attributes)(type)
       const match = meta.find(el => key(el) === key(elem))
       return !match || !isEqual(match, elem)
     })
@@ -105,7 +110,7 @@ class MetadataDiff {
     // Will be done when not needed
     // Deleted
     const del = diff(fromContent, this.toContent, (meta, type, elem) => {
-      const key = selectKey(this.attributs)(type)
+      const key = selectKey(this.attributes)(type)
       return !meta.some(el => key(el) === key(elem))
     })
 
@@ -117,7 +122,7 @@ class MetadataDiff {
   }
 
   prune(jsonContent = this.toContent, elements = this.add) {
-    const prunedContent = generatePartialJSON(this.attributs)(jsonContent)(
+    const prunedContent = generatePartialJSON(this.attributes)(jsonContent)(
       elements
     )
     return convertJsonToXml(prunedContent)

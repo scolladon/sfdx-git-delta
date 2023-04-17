@@ -14,7 +14,7 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
     convertJsonToXml: jest.fn(),
   }
 })
-const workFlowAttributs = new Map([
+const workFlowAttributes = new Map([
   ['alerts', { xmlName: 'WorkflowAlert', key: 'fullName' }],
 ])
 
@@ -38,7 +38,7 @@ describe(`MetadataDiff`, () => {
       diffs: { package: new Map(), destructiveChanges: new Map() },
       warnings: [],
     }
-    metadataDiff = new MetadataDiff(work, globalMetadata, workFlowAttributs)
+    metadataDiff = new MetadataDiff(work, globalMetadata, workFlowAttributes)
 
     alert = {
       '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },

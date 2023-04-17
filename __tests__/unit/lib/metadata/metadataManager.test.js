@@ -1,7 +1,7 @@
 'use strict'
 const {
   getDefinition,
-  getInFileAttributs,
+  getInFileAttributes,
   getLatestSupportedVersion,
   getWaveMetadata,
   isVersionSupported,
@@ -42,7 +42,7 @@ describe(`test if metadata`, () => {
     }
   })
 
-  test('getInFileAttributs', async () => {
+  test('getInFileAttributes', async () => {
     // Arrange
     const metadata = new Map([
       [
@@ -82,28 +82,28 @@ describe(`test if metadata`, () => {
     ])
 
     // Act
-    let inFileAttributs = getInFileAttributs(metadata)
+    let inFileAttributes = getInFileAttributes(metadata)
 
     // Assert
-    expect(inFileAttributs.has('waveTemplates')).toBe(false)
-    expect(inFileAttributs.has('excluded')).toBe(true)
-    expect(inFileAttributs.has('alerts')).toBe(true)
-    expect(inFileAttributs.get('alerts')).toEqual({
+    expect(inFileAttributes.has('waveTemplates')).toBe(false)
+    expect(inFileAttributes.has('excluded')).toBe(true)
+    expect(inFileAttributes.has('alerts')).toBe(true)
+    expect(inFileAttributes.get('alerts')).toEqual({
       xmlName: 'WorkflowAlert',
       key: 'fullName',
       excluded: false,
     })
-    expect(inFileAttributs.get('excluded')).toEqual({
+    expect(inFileAttributes.get('excluded')).toEqual({
       xmlName: 'Excluded',
       key: 'other',
       excluded: true,
     })
 
     // Act
-    let otherinFileAttributs = getInFileAttributs(metadata)
+    let otherInFileAttributes = getInFileAttributes(metadata)
 
     // Assert
-    expect(otherinFileAttributs).toBe(inFileAttributs)
+    expect(otherInFileAttributes).toBe(inFileAttributes)
   })
 
   test('getWaveMetadata', async () => {
