@@ -13,7 +13,7 @@ const {
 } = require('../utils/packageHelper')
 
 const getRootType = line => basename(line).split('.')[0]
-const getNamePreffix = ({ subType, line }) =>
+const getNamePrefix = ({ subType, line }) =>
   subType !== LABEL_DIRECTORY_NAME ? `${getRootType(line)}.` : ''
 
 class InFileHandler extends StandardHandler {
@@ -72,7 +72,7 @@ class InFileHandler extends StandardHandler {
     }
 
     const member = cleanUpPackageMember(
-      `${getNamePreffix({ subType, line: this.line })}${fullName}`
+      `${getNamePrefix({ subType, line: this.line })}${fullName}`
     )
 
     fillPackageWithParameter({

@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD040 MD041 -->
 ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/Main/badge.svg)
 [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta)
 [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability)
@@ -38,12 +39,12 @@
 - [Walkthrough](#walkthrough)
   - [Execute sgd](#execute-sgd)
   - [Deploy the delta metadata](#deploy-the-delta-metadata)
-- [Advanced use-cases:](#advanced-use-cases)
-  - [Generate a folder containing only the added/modified sources:](#generate-a-folder-containing-only-the-addedmodified-sources)
-  - [Exclude some metadata only from destructiveChanges.xml:](#exclude-some-metadata-only-from-destructivechangesxml)
-  - [Explicitly including specific files for inclusion or destruction regardless of diff:](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
+- [Advanced use-cases](#advanced-use-cases)
+  - [Generate a folder containing only the added/modified sources](#generate-a-folder-containing-only-the-addedmodified-sources)
+  - [Exclude some metadata only from destructiveChanges.xml](#exclude-some-metadata-only-from-destructivechangesxml)
+  - [Explicitly including specific files for inclusion or destruction regardless of diff](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
   - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
-  - [Generate a comma-separated list of the added and modified Apex classes:](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
+  - [Generate a comma-separated list of the added and modified Apex classes](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
 - [Changelog](#changelog)
@@ -78,7 +79,7 @@ sfdx force:source:deploy -x package/package.xml --postdestructivechanges destruc
 
 Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
 
-![delta_principle](/img/delta_principles.png)
+![delta_principle](img/delta_principles.png)
 
 ## Is SGD for you?
 
@@ -153,7 +154,7 @@ OPTIONS
 
   -a, --api-version=api-version                                                     salesforce metadata API version,
                                                                                     default to sfdx-project.json
-                                                                                    "sourceApiVersion" attribut or
+                                                                                    "sourceApiVersion" attribute or
                                                                                     latest version
 
   -d, --generate-delta                                                              generate delta files in [--output]
@@ -209,7 +210,7 @@ sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because 
 ### CI/CD specificity
 
 In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetch only the last commit of the branch currently evaluated.
-You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well, 
+You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well,
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
 
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
@@ -240,21 +241,21 @@ Here are examples of how to compare the content of different branches:
 - **Comparing between commits in different branches**
   For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
 
-```
+```sh
 sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
 - **Comparing branches (all changes)**
   Comparing all changes between the `develop` branch and the `main` branch:
 
-```
+```sh
 sfdx sgd:source:delta --to develop --from main --output .
 ```
 
 - **Comparing branches (from a common ancestor)**
   To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
 
-```
+```sh
 sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
 ```
 
@@ -271,7 +272,7 @@ In our example, the latest commit to main is composed of:
 - _Apex Class modified:_ TestDataFactory
 - _Apex Class deleted:_ AnotherTriggerFramework
 
-![commit](/img/example_commit.png)
+![commit](img/example_commit.png)
 
 In this situation, we would expect the CI pipeline to:
 
@@ -297,12 +298,12 @@ The `sfdx sgd:source:delta` command produces 2 useful artifacts:
 **1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains just the added/changed metadata to deploy to the target org.
 
 _Content of the `package.xml` file in our scenario:_
-![package](/img/example_package.png)
+![package](img/example_package.png)
 
 **2) A `destructiveChanges.xml` file, inside a `destructiveChanges` folder.** This `destructiveChanges.xml` file contains just the removed/renamed metadata to delete from the target org. Note: the `destructiveChanges` folder also contains a minimal package.xml file, because deploying destructive changes requires a package.xml (even an empty one).
 
 _Content of the `destructiveChanges.xml` file in our scenario:_
-![destructiveChange](/img/example_destructiveChange.png)
+![destructiveChange](img/example_destructiveChange.png)
 
 Note: it is also possible to generate a **source** folder containing added/changed metadata with the [`--generate-delta (-d)`](#scoping-delta-generation-to-a-specific-folder) parameter. See the "Advanced use-cases" section for more examples.
 
@@ -340,9 +341,9 @@ echo "--- Deleting removed metadata ---"
 sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
 ```
 
-## Advanced use-cases:
+## Advanced use-cases
 
-### Generate a folder containing only the added/modified sources:
+### Generate a folder containing only the added/modified sources
 
 Using a package.xml for deployment is the simplest approach to delta deployments. But in some cases you may want to have only the actual recently changed source files.
 
@@ -361,7 +362,7 @@ It generates the `package` and `destructiveChanges` folders, and copies added/ch
 
 _Content of the output folder when using the --generate-delta option, with the same scenario as above:_
 
-![delta-source](/img/example_generateDelta.png)
+![delta-source](img/example_generateDelta.png)
 
 > ⚠️ Use `--generate-delta (-d)` when `--to (-t)` value is set to "HEAD" or to the "HEAD commit SHA".
 > If you need to use it with `--to (-t)` pointing to another commit than "HEAD", checkout that commit first. Example:
@@ -379,7 +380,7 @@ Then it is possible to deploy the `change-sources` folder using `force:source:de
 sfdx force:source:deploy -p change-sources
 ```
 
-### Exclude some metadata only from destructiveChanges.xml:
+### Exclude some metadata only from destructiveChanges.xml
 
 The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
 element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
@@ -404,7 +405,7 @@ $ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
 
 Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructive [-D]`) the plugin will apply it to added/changed/deleted elements.
 
-### Explicitly including specific files for inclusion or destruction regardless of diff:
+### Explicitly including specific files for inclusion or destruction regardless of diff
 
 The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not.
 Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
@@ -454,9 +455,9 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 ```
 
 > The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
-> The `--source` path msut be relative to the `--repo` path
+> The `--source` path must be relative to the `--repo` path
 
-### Generate a comma-separated list of the added and modified Apex classes:
+### Generate a comma-separated list of the added and modified Apex classes
 
 Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example.
 To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
@@ -512,7 +513,7 @@ console.log(JSON.stringify(work))
 
 ## Changelog
 
-[changelog.md](/CHANGELOG.md) is available for consultation.
+[changelog.md](CHANGELOG.md) is available for consultation.
 
 ## Built With
 
@@ -522,6 +523,7 @@ console.log(JSON.stringify(work))
 - [lodash](https://github.com/lodash/lodash) - A modern JavaScript utility library delivering modularity, performance & extras.
 - [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
 - [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
+- [MegaLinter](https://megalinter.io) - Open-Source tool for CI/CD workflows that analyzes the consistency of your code, IAC, configuration, and scripts
 
 ## Versioning
 
@@ -536,7 +538,7 @@ Versioning follows [SemVer](http://semver.org/) specification.
 
 Contributions are what make the trailblazer community such an amazing place. I regard this component as a way to inspire and learn from others. Any contributions you make are **appreciated**.
 
-See [contributing.md](/CONTRIBUTING.md) for sgd contribution principles.
+See [contributing.md](CONTRIBUTING.md) for sgd contribution principles.
 
 ## License
 

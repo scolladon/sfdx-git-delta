@@ -1,3 +1,4 @@
+---
 name: Install
 description: Install dependencies
 
@@ -5,7 +6,7 @@ inputs:
   prod-context:
     required: false
     description: drive installation mode
-    default: false
+    default: "false"
 
 runs:
   using: composite
@@ -25,7 +26,7 @@ runs:
       if: ${{ inputs.prod-context == 'true' }}
       run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
       shell: bash
-    
+
     - name: Install dependencies in integration mode
       if: ${{ inputs.prod-context == 'false' }}
       run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile

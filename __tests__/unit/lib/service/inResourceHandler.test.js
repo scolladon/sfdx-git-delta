@@ -166,7 +166,7 @@ describe('InResourceHandler', () => {
     beforeEach(() => {
       work.config.generateDelta = false
     })
-    describe('When only a ressource sub element is deleted', () => {
+    describe('When only a resource sub element is deleted', () => {
       beforeEach(() => {
         pathExists.mockResolvedValue(true)
       })
@@ -190,7 +190,7 @@ describe('InResourceHandler', () => {
         )
       })
     })
-    describe('When the ressource is deleted', () => {
+    describe('When the resource is deleted', () => {
       beforeEach(() => {
         pathExists.mockResolvedValue(false)
       })

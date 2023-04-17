@@ -59,9 +59,9 @@ const processMetadataForSubType =
   (dir, baseContent, otherContent, predicat) => subType => {
     const type = `${dir}.${subType}`
     const extractBase = extractMetadataForSubtype(baseContent)
-    const extreactOther = extractMetadataForSubtype(otherContent)
+    const extractOther = extractMetadataForSubtype(otherContent)
     const baseMeta = extractBase(subType)
-    const otherMeta = extreactOther(subType)
+    const otherMeta = extractOther(subType)
     const processElement = getElementProcessor(type, predicat, otherMeta)
     return baseMeta.map(processElement).filter(x => x !== undefined)
   }

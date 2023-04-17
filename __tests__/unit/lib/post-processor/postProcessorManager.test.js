@@ -7,7 +7,7 @@ const BaseProcessor = require('../../../../src/post-processor/baseProcessor')
 
 const processSpy = jest.fn()
 
-class TestProcesor extends BaseProcessor {
+class TestProcessor extends BaseProcessor {
   constructor() {
     super({})
   }
@@ -37,7 +37,7 @@ describe('postProcessorManager', () => {
       const processorCount = sut.postProcessors.length
 
       // Act
-      sut.use(new TestProcesor())
+      sut.use(new TestProcessor())
 
       // Assert
       expect(processorCount).toBeLessThan(sut.postProcessors.length)
@@ -46,11 +46,11 @@ describe('postProcessorManager', () => {
 
   describe.each([
     [new PostProcessorManager(), 0],
-    [new PostProcessorManager().use(new TestProcesor()), 1],
+    [new PostProcessorManager().use(new TestProcessor()), 1],
     [
       new PostProcessorManager()
-        .use(new TestProcesor())
-        .use(new TestProcesor()),
+        .use(new TestProcessor())
+        .use(new TestProcessor()),
       2,
     ],
   ])('when calling `execute`', (processorManager, expectedCount) => {
@@ -74,7 +74,7 @@ describe('postProcessorManager', () => {
         warnings: [],
       }
       const sut = new PostProcessorManager(work)
-      sut.use(new TestProcesor())
+      sut.use(new TestProcessor())
       processSpy.mockImplementationOnce(() => Promise.reject('Error'))
 
       // Act
