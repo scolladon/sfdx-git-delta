@@ -2,7 +2,7 @@
 Thanks for sending a pull request! Please make sure to have a look to the contribution guidelines, then fill out the blanks below.
 -->
 
-## Explain your changes
+# Explain your changes
 
 ---
 
@@ -10,7 +10,7 @@ Thanks for sending a pull request! Please make sure to have a look to the contri
   Describe with your own words the content of the Pull Request
 -->
 
-## Does this close any currently open issues?
+# Does this close any currently open issues?
 
 ---
 
@@ -23,7 +23,7 @@ closes #
 
 - [ ] Jest test added to check the fix is applied.
 
-## Any particular element that can be tested locally
+# Any particular element that can be tested locally
 
 ---
 
@@ -31,7 +31,7 @@ closes #
   Provide any new parameters or new behaviour with existing parameters
 -->
 
-## Any other comments
+# Any other comments
 
 ---
 

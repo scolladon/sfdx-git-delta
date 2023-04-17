@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD024 MD025 -->
 # Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
@@ -39,7 +40,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* keep attributs not subject to comparison ([#539](https://github.com/scolladon/sfdx-git-delta/issues/539)) ([08cf667](https://github.com/scolladon/sfdx-git-delta/commit/08cf6677b71d0b7f41d56e1ab8b437650d758dd1))
+* keep attributes not subject to comparison ([#539](https://github.com/scolladon/sfdx-git-delta/issues/539)) ([08cf667](https://github.com/scolladon/sfdx-git-delta/commit/08cf6677b71d0b7f41d56e1ab8b437650d758dd1))
 
 ## [5.14.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.3...v5.14.0) (2023-03-14)
 
@@ -318,7 +319,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* ignore white space parameter `--ignore-whitepsace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
+* ignore white space parameter `--ignore-whitespace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
 
 ### [5.0.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.1...v5.0.2) (2022-03-16)
 
@@ -338,7 +339,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Features
 
-* decommissionate sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
+* decommission sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
 
 
 ### Bug Fixes

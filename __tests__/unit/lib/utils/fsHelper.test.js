@@ -519,7 +519,7 @@ describe('isSubDir', () => {
     it('returns true when path is file', async () => {
       // Arrange
       getStreamContent.mockImplementationOnce(() =>
-        Promise.resolve(Buffer.from('{"attribut":"content"}'))
+        Promise.resolve(Buffer.from('{"attribute":"content"}'))
       )
 
       // Act

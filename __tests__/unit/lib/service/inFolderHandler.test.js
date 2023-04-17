@@ -20,7 +20,7 @@ beforeEach(() => {
   }
 })
 
-describe('InFolderHander', () => {
+describe('InFolderHandler', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef

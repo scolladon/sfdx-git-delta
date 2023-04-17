@@ -1,8 +1,9 @@
+---
 name: Main
 
 on:
   push:
-    branches: 
+    branches:
       - main
     paths-ignore:
       - "**.md"
@@ -27,10 +28,10 @@ jobs:
           package-name: sfdx-git-delta
           token: ${{ secrets.RELEASE_PAT }}
 
-  release: 
+  release:
     needs: prepare-release
     runs-on: ubuntu-latest
-    if: ${{ needs.prepare-release.outputs.release_created == 'true' }}
+    if: needs.prepare-release.outputs.release_created == 'true'
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -40,12 +41,12 @@ jobs:
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
-      
+
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
       - name: Publish to npm
-        run: yarn publish --access public --tag latest-rc --new-version ${{ needs.prepare-release.outputs.version }}
+        run: yarn publish --access public --tag latest-rc --new-version ${{ needs.prepare-release.outputs.version }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
@@ -69,7 +70,7 @@ jobs:
         run: npm install -g sfdx-cli
 
       - name: Install new plugin version
-        run: echo y | sfdx plugins:install sfdx-git-delta@${{ needs.prepare-release.outputs.version }}
+        run: echo y | sfdx plugins:install sfdx-git-delta@${{ needs.prepare-release.outputs.version }}
 
       - name: Test new plugin version
         run: sfdx sgd:source:delta --help

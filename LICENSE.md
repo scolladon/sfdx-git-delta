@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 MIT License
 
 Copyright (c) 2019 Sebastien Colladon
