@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with: 
+        with:
           ref: 'e2e/head'
           fetch-depth: 0
 
@@ -80,5 +80,3 @@ jobs:
         run: |
           yarn
           yarn test:e2e
-
-
