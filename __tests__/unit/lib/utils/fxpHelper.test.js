@@ -3,6 +3,7 @@ const {
   asArray,
   parseXmlFileToJson,
   convertJsonToXml,
+  xml2Json,
 } = require('../../../../src/utils/fxpHelper')
 const { readPathFromGit } = require('../../../../src/utils/fsHelper')
 
@@ -125,6 +126,38 @@ describe('fxpHelper', () => {
         // Assert
         expect(jsonContent).toStrictEqual(`<0>s</0>
 `)
+      })
+    })
+  })
+
+  describe('xml2Json', () => {
+    describe('when called with empty content', () => {
+      it('returns empty object', () => {
+        // Act
+        const jsonResult = xml2Json('')
+
+        // Assert
+        expect(jsonResult).toStrictEqual({})
+      })
+    })
+    describe('when called with xml content', () => {
+      it('returns json content', async () => {
+        // Act
+        const jsonContent = await xml2Json(
+          '<root a="nice" checked><a>wow</a></root>'
+        )
+
+        // Assert
+        expect(jsonContent).toEqual({ root: { '@_a': 'nice', a: 'wow' } })
+      })
+    })
+    describe('when called with non xml content', () => {
+      it('returns empty object', async () => {
+        // Act
+        const jsonContent = await xml2Json({ attribute: 'value' })
+
+        // Assert
+        expect(jsonContent).toStrictEqual({})
       })
     })
   })
