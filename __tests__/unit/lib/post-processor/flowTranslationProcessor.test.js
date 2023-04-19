@@ -8,11 +8,13 @@ const {
   TRANSLATION_TYPE,
 } = require('../../../../src/utils/metadataConstants')
 const {
-  copyFiles,
+  writeFile,
   scanExtension,
   isSubDir,
+  readFile,
 } = require('../../../../src/utils/fsHelper')
 const { forPath } = require('../../../../src/utils/ignoreHelper')
+const { pathExists } = require('fs-extra')
 jest.mock('fs-extra')
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/ignoreHelper')
@@ -22,7 +24,6 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
   return {
     ...originalModule,
     parseXmlFileToJson: jest.fn(),
-    convertJsonToXml: jest.fn(),
   }
 })
 
@@ -99,7 +100,7 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(copyFiles).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
         })
       })
 
@@ -121,7 +122,7 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(copyFiles).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
         })
       })
 
@@ -145,40 +146,23 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(copyFiles).toHaveBeenCalled()
-        })
-        describe('when the folder is not a git repository', () => {
-          beforeEach(() => {
-            // Arrange
-            copyFiles.mockImplementationOnce(() =>
-              Promise.reject(new Error('fatal: not a git repository'))
-            )
-          })
-          it('should throw an exception', async () => {
-            // Arrange
-            expect.assertions(2)
-
-            // Act
-            try {
-              await sut.process()
-            } catch (error) {
-              // Assert
-              expect(error).toBeTruthy()
-              expect(copyFiles).toHaveBeenCalled()
-            }
-          })
+          expect(writeFile).toHaveBeenCalled()
         })
       })
 
-      describe('when there is already a translation related to a flow', () => {
+      describe('when there is already a translation with flow definition related to a flow', () => {
         beforeEach(() => {
           // Arrange
           work.diffs.package = new Map([
             [TRANSLATION_TYPE, new Set([FR])],
             [FLOW_XML_NAME, new Set([flowFullName])],
           ])
+          pathExists.mockResolvedValue(true)
+          readFile.mockResolvedValue(
+            `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
+          )
         })
-        it('should not treat again the translation', async () => {
+        it('the flowDefinitions translations should be added to the translation file', async () => {
           // Act
           await sut.process()
 
@@ -189,8 +173,56 @@ describe('FlowTranslationProcessor', () => {
             EXTENSION,
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(copyFiles).not.toHaveBeenCalled()
+          expect(parseXmlFileToJson).toHaveBeenCalled()
+          expect(writeFile).toHaveBeenCalledTimes(1)
+          expect(writeFile).toHaveBeenCalledWith(
+            'fr.translation-meta.xml',
+            expect.stringContaining('test-flow'),
+            work.config
+          )
+          expect(writeFile).toHaveBeenCalledWith(
+            'fr.translation-meta.xml',
+            expect.stringContaining('TestB'),
+            work.config
+          )
+          expect(writeFile).toHaveBeenCalledWith(
+            'fr.translation-meta.xml',
+            expect.stringContaining('TestA'),
+            work.config
+          )
+        })
+      })
+
+      describe('when there is no copied flowTranslation changed already for the flow', () => {
+        beforeEach(() => {
+          // Arrange
+          work.diffs.package = new Map([
+            //[TRANSLATION_TYPE, new Set([FR])],
+            [FLOW_XML_NAME, new Set([flowFullName])],
+          ])
+          pathExists.mockResolvedValue(true)
+          readFile.mockResolvedValue(
+            `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
+          )
+        })
+        it('the flowDefinitions translations should be added to the translation file', async () => {
+          // Act
+          await sut.process()
+
+          // Assert
+          expect(scanExtension).toHaveBeenCalledTimes(1)
+          expect(scanExtension).toHaveBeenCalledWith(
+            work.config.source,
+            EXTENSION,
+            work.config
+          )
+          expect(parseXmlFileToJson).toHaveBeenCalled()
+          expect(writeFile).toHaveBeenCalledTimes(1)
+          expect(writeFile).toHaveBeenCalledWith(
+            'fr.translation-meta.xml',
+            expect.stringContaining('test-flow'),
+            work.config
+          )
         })
       })
 
@@ -233,7 +265,7 @@ describe('FlowTranslationProcessor', () => {
               work.config
             )
             expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
-            expect(copyFiles).not.toHaveBeenCalled()
+            expect(writeFile).not.toHaveBeenCalled()
           })
         })
 
@@ -244,11 +276,14 @@ describe('FlowTranslationProcessor', () => {
               beforeEach(() => {
                 parseXmlFileToJson.mockResolvedValue({
                   Translations: {
-                    flowDefinitions: [{ fullName: flowFullName }],
+                    flowDefinitions: [
+                      { fullName: flowFullName },
+                      { fullName: 'otherFlow' },
+                    ],
                   },
                 })
                 work.diffs.package = new Map([
-                  [FLOW_XML_NAME, new Set([flowFullName])],
+                  [FLOW_XML_NAME, new Set([flowFullName, 'otherFlow'])],
                 ])
                 work.config.generateDelta = generateDelta
               })
@@ -267,8 +302,8 @@ describe('FlowTranslationProcessor', () => {
                   work.config
                 )
                 expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
-                if (generateDelta) expect(copyFiles).toHaveBeenCalledTimes(2)
-                else expect(copyFiles).not.toHaveBeenCalled()
+                if (generateDelta) expect(writeFile).toHaveBeenCalledTimes(2)
+                else expect(writeFile).not.toHaveBeenCalled()
               })
             }
           )
@@ -295,7 +330,7 @@ describe('FlowTranslationProcessor', () => {
           )
           expect(forPath).toHaveBeenCalledTimes(1)
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(copyFiles).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
         })
       })
 
@@ -322,7 +357,7 @@ describe('FlowTranslationProcessor', () => {
           )
           expect(forPath).toHaveBeenCalledTimes(1)
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(copyFiles).toHaveBeenCalledTimes(1)
+          expect(writeFile).toHaveBeenCalledTimes(1)
         })
       })
 
@@ -355,7 +390,7 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(copyFiles).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
         })
       })
     })
