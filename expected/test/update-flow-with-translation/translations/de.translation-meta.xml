@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Translations xmlns="http://soap.sforce.com/2006/04/metadata">
+    <flowDefinitions>
+        <flows>
+            <screens>
+                <fields>
+                    <fieldText>This is a the text translated to German</fieldText>
+                    <name>Translated_Text</name>
+                </fields>
+                <name>Screen_To_Translate</name>
+            </screens>
+        </flows>
+        <fullName>UpdateFlowWithTranslation</fullName>
+    </flowDefinitions>
+</Translations>

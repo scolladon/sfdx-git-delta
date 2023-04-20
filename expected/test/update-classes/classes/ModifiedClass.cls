@@ -1,0 +1,3 @@
+class ModifiedClass {
+    public ModifiedClass(){}
+}
