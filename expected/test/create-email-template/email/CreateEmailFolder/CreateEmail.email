@@ -1,0 +1,5 @@
+<messaging:emailTemplate subject="Test" recipientType="Contact" >
+    <messaging:htmlEmailBody >
+        <html><body>Test email content</body></html>
+    </messaging:htmlEmailBody>
+</messaging:emailTemplate>

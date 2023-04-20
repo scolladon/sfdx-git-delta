@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sharingOwnerRules>
+        <fullName>UpdateSharingOwnerRule</fullName>
+        <accessLevel>Read</accessLevel>
+        <label>UpdateSharingOwnerRule</label>
+        <sharedTo>
+            <role>GOD</role>
+        </sharedTo>
+        <sharedFrom>
+            <role>GOD</role>
+        </sharedFrom>
+    </sharingOwnerRules>
+    <sharingGuestRules>
+        <fullName>UpdateSharingGuestRule</fullName>
+        <accessLevel>Read</accessLevel>
+        <includeHVUOwnedRecords>false</includeHVUOwnedRecords>
+    </sharingGuestRules>
+</SharingRules>
