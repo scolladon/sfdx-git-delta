@@ -5,6 +5,7 @@ const InBundleHandler = require('./inBundleHandler')
 const InFile = require('./inFileHandler')
 const InFolder = require('./inFolderHandler')
 const InResource = require('./inResourceHandler')
+const LwcHandler = require('./lwcHandler')
 const Standard = require('./standardHandler')
 const SubCustomObject = require('./subCustomObjectHandler')
 const ObjectTranslation = require('./ObjectTranslationHandler')
@@ -15,7 +16,7 @@ const { getType } = require('../utils/typeUtils')
 const classes = {
   assignmentRules: InFile,
   autoResponseRules: InFile,
-  aura: InResource,
+  aura: LwcHandler,
   bots: Bot,
   businessProcesses: SubCustomObject,
   compactLayouts: SubCustomObject,
@@ -32,7 +33,7 @@ const classes = {
   indexes: SubCustomObject,
   labels: InFile,
   listViews: SubCustomObject,
-  lwc: InResource,
+  lwc: LwcHandler,
   matchingRules: InFile,
   objects: CustomObject,
   objectTranslations: ObjectTranslation,
