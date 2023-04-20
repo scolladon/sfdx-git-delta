@@ -82,34 +82,37 @@ class FlowTranslationProcessor extends BaseProcessor {
         member: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        const translationPathInOutputFolder = join(
-          this.config.output,
-          treatPathSep(translationPath)
-        )
-        const translationExist = await pathExists(translationPathInOutputFolder)
-
-        let jsonTranslation = getDefaultTranslation()
-        if (translationExist) {
-          const xmlTranslation = await readFile(translationPathInOutputFolder)
-          jsonTranslation = xml2Json(xmlTranslation)
-        }
-
-        const flowDefinitions =
-          jsonTranslation.Translations?.flowDefinitions ?? []
-        const fullNames = flowDefinitions.map(flowDef => flowDef.fullName)
-
-        const flowDefinitionsImpacted = this.translationPaths
-          .get(translationPath)
-          .filter(flowDef => !fullNames.includes(flowDef.fullName))
-        jsonTranslation.Translations.flowDefinitions = flowDefinitions.concat(
-          flowDefinitionsImpacted
-        )
-
-        const xmlTranslation = convertJsonToXml(jsonTranslation)
-
-        await writeFile(translationPath, xmlTranslation, this.config)
+        this._scrapTranslationFile(translationPath)
       }
     }
+  }
+
+  async _scrapTranslationFile(translationPath) {
+    const translationPathInOutputFolder = join(
+      this.config.output,
+      treatPathSep(translationPath)
+    )
+    const translationExist = await pathExists(translationPathInOutputFolder)
+
+    let jsonTranslation = getDefaultTranslation()
+    if (translationExist) {
+      const xmlTranslation = await readFile(translationPathInOutputFolder)
+      jsonTranslation = xml2Json(xmlTranslation)
+    }
+
+    const flowDefinitions = jsonTranslation.Translations?.flowDefinitions ?? []
+    const fullNames = flowDefinitions.map(flowDef => flowDef.fullName)
+
+    const flowDefinitionsImpacted = this.translationPaths
+      .get(translationPath)
+      .filter(flowDef => !fullNames.includes(flowDef.fullName))
+    jsonTranslation.Translations.flowDefinitions = flowDefinitions.concat(
+      flowDefinitionsImpacted
+    )
+
+    const xmlTranslation = convertJsonToXml(jsonTranslation)
+
+    await writeFile(translationPath, xmlTranslation, this.config)
   }
 
   async _parseTranslationFile(translationPath) {
