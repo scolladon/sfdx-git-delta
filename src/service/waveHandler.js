@@ -1,24 +1,19 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
-
-const WAVE_SUBTYPE = new Map()
+const { getWaveMetadata } = require('../metadata/metadataManager')
 
 class WaveHandler extends StandardHandler {
+  waveMetadata
+
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-
-    this.metadata
-      .get(this.type)
-      .content.reduce(
-        (acc, val) => acc.set(val.suffix, val.xmlName),
-        WAVE_SUBTYPE
-      )
     this.suffixRegex = new RegExp(`\\.${this.ext}$`)
+    this.waveMetadata = getWaveMetadata(this.metadata)
   }
 
   _fillPackage(store) {
-    const type = WAVE_SUBTYPE.get(this.ext)
+    const type = this.waveMetadata.get(this.ext)
     fillPackageWithParameter({
       store,
       type: type,
@@ -27,7 +22,7 @@ class WaveHandler extends StandardHandler {
   }
 
   _isProcessable() {
-    return super._isProcessable() || WAVE_SUBTYPE.has(this.ext)
+    return super._isProcessable() || this.waveMetadata.has(this.ext)
   }
 }
 

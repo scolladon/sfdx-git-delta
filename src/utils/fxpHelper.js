@@ -23,10 +23,14 @@ const asArray = node => {
   return node != null ? (Array.isArray(node) ? node : [node]) : []
 }
 
-const parseXmlFileToJson = async (line, config) => {
-  const xmlContent = await readPathFromGit(line, config)
+const xml2Json = xmlContent => {
   const xmlParser = new XMLParser(XML_PARSER_OPTION)
   return xmlParser.parse(xmlContent)
+}
+
+const parseXmlFileToJson = async (line, config) => {
+  const xmlContent = await readPathFromGit(line, config)
+  return xml2Json(xmlContent)
 }
 
 const convertJsonToXml = jsonContent => {
@@ -39,3 +43,4 @@ const convertJsonToXml = jsonContent => {
 module.exports.asArray = asArray
 module.exports.convertJsonToXml = convertJsonToXml
 module.exports.parseXmlFileToJson = parseXmlFileToJson
+module.exports.xml2Json = xml2Json

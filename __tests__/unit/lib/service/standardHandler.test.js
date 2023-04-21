@@ -11,6 +11,7 @@ const { copyFiles } = require('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsHelper')
 
 const objectType = 'classes'
+const xmlName = 'ApexClass'
 const entity = 'MyClass'
 const extension = 'cls'
 const basePath = 'force-app/main/default/'
@@ -54,7 +55,7 @@ describe(`StandardHandler`, () => {
 
     // Assert
     expect(work.warnings.length).toEqual(1)
-    expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+    expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
     expect(work.diffs.destructiveChanges.size).toEqual(0)
     expect(copyFiles).toBeCalled()
   })
@@ -100,7 +101,7 @@ describe(`StandardHandler`, () => {
 
       // Assert
       expect(work.warnings).toEqual([])
-      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
       expect(work.diffs.destructiveChanges.size).toEqual(0)
       expect(copyFiles).not.toBeCalled()
     })
@@ -119,7 +120,7 @@ describe(`StandardHandler`, () => {
       // Assert
       expect(work.warnings).toEqual([])
       expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get(objectType)).toEqual(
+      expect(work.diffs.destructiveChanges.get(xmlName)).toEqual(
         new Set([entity])
       )
       expect(copyFiles).not.toBeCalled()
@@ -145,7 +146,7 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
@@ -168,7 +169,7 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
@@ -194,7 +195,9 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
+        expect(work.diffs.package.get('ApexTestSuite')).toEqual(
+          new Set(['suite'])
+        )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledTimes(1)
         expect(copyFiles).toBeCalledWith(work.config, entityPath)
@@ -219,7 +222,9 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
+        expect(work.diffs.package.get('ApexTestSuite')).toEqual(
+          new Set(['suite'])
+        )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledTimes(1)
         expect(copyFiles).toBeCalledWith(work.config, entityPath)
@@ -249,7 +254,7 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledWith(work.config, entityPath)
       }
@@ -269,7 +274,7 @@ describe(`StandardHandler`, () => {
       // Assert
       expect(work.warnings).toEqual([])
       expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get(objectType)).toEqual(
+      expect(work.diffs.destructiveChanges.get(xmlName)).toEqual(
         new Set([entity])
       )
       expect(copyFiles).not.toBeCalled()

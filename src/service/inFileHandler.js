@@ -1,12 +1,16 @@
 'use strict'
 const {
   LABEL_EXTENSION,
-  LABEL_DIRECTORY_NAME,
+  LABEL_XML_NAME,
 } = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
 const { writeFile } = require('../utils/fsHelper')
-const FileGitDiff = require('../utils/fileGitDiff')
+const {
+  getInFileAttributes,
+  isPackable,
+} = require('../metadata/metadataManager')
+const MetadataDiff = require('../utils/metadataDiff')
 const {
   cleanUpPackageMember,
   fillPackageWithParameter,
@@ -14,16 +18,13 @@ const {
 
 const getRootType = line => basename(line).split('.')[0]
 const getNamePrefix = ({ subType, line }) =>
-  subType !== LABEL_DIRECTORY_NAME ? `${getRootType(line)}.` : ''
+  subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
 class InFileHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
-    this.fileGitDiff = new FileGitDiff(
-      metadata.get(this.type)?.directoryName,
-      this.config,
-      metadata
-    )
+    const inFileMetadata = getInFileAttributes(metadata)
+    this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
   }
 
   async handleAddition() {
@@ -35,7 +36,11 @@ class InFileHandler extends StandardHandler {
   }
 
   async handleDeletion() {
-    await this._compareRevision()
+    if (this.metadata.get(this.type).pruneOnly) {
+      await super.handleDeletion()
+    } else {
+      await this._compareRevision()
+    }
   }
 
   async handleModification() {
@@ -43,27 +48,27 @@ class InFileHandler extends StandardHandler {
   }
 
   async _compareRevision() {
-    const { added, deleted } = await this.fileGitDiff.compare(this.line)
+    const { added, deleted } = await this.metadataDiff.compare(this.line)
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
   }
 
   async _writeScopedContent() {
-    const xmlContent = this.fileGitDiff.prune()
+    const xmlContent = this.metadataDiff.prune()
     await writeFile(this.line, xmlContent, this.config)
   }
 
   _storeComparison(store, content) {
     for (const [type, members] of content) {
-      for (const fullName of members) {
-        this._fillPackage(store, type, fullName)
+      for (const member of members) {
+        this._fillPackage(store, type, member)
       }
     }
   }
 
-  _fillPackage(store, subType, fullName) {
+  _fillPackage(store, subType, member) {
     // Call from super.handleAddition to add the Root Type
-    // InFile element are not deployable when root component is not listed in package.xml...
+    // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
     if (arguments.length === 1) {
       if (this.type !== LABEL_EXTENSION) {
         super._fillPackage(store)
@@ -71,15 +76,17 @@ class InFileHandler extends StandardHandler {
       return
     }
 
-    const member = cleanUpPackageMember(
-      `${getNamePrefix({ subType, line: this.line })}${fullName}`
-    )
+    if (isPackable(subType)) {
+      const cleanedMember = cleanUpPackageMember(
+        `${getNamePrefix({ subType, line: this.line })}${member}`
+      )
 
-    fillPackageWithParameter({
-      store,
-      type: subType,
-      member,
-    })
+      fillPackageWithParameter({
+        store,
+        type: subType,
+        member: cleanedMember,
+      })
+    }
   }
 }
 

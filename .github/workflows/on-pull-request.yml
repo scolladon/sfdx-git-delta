@@ -61,28 +61,7 @@ jobs:
         run: yarn audit
         continue-on-error: true
 
-  source-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-          registry-url: https://registry.npmjs.org/
-
-      - name: Setup node
-        uses: ./.github/actions/install
-
-      - name: Lint sources
-        uses: wearerequired/lint-action@v2
-        with:
-          eslint: true
-
   megalinter:
-    name: MegaLinter
     runs-on: ubuntu-latest
     steps:
       # Git Checkout
@@ -143,7 +122,7 @@ jobs:
     secrets: inherit
 
   e2e-check:
-    needs: [build, source-lint]
+    needs: [build, megalinter]
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]

@@ -1,28 +1,49 @@
 'use strict'
 const BaseProcessor = require('./baseProcessor')
 const {
-  FLOW_DIRECTORY_NAME,
+  FLOW_XML_NAME,
   META_REGEX,
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } = require('../utils/metadataConstants')
-const { copyFiles, scanExtension, isSubDir } = require('../utils/fsHelper')
-const { parse } = require('path')
+const {
+  writeFile,
+  scanExtension,
+  isSubDir,
+  readFile,
+} = require('../utils/fsHelper')
+const { pathExists } = require('fs-extra')
+const { parse, join } = require('path')
 const { forPath } = require('../utils/ignoreHelper')
-const { asArray, parseXmlFileToJson } = require('../utils/fxpHelper')
+const {
+  asArray,
+  parseXmlFileToJson,
+  xml2Json,
+  convertJsonToXml,
+} = require('../utils/fxpHelper')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
+const { treatPathSep } = require('../utils/childProcessUtils')
+
+const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 
 const getTranslationName = translationPath =>
   parse(translationPath.replace(META_REGEX, '')).name
 
-const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
+const getDefaultTranslation = () => ({
+  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+  Translations: {
+    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+    flowDefinitions: [],
+  },
+})
+
 class FlowTranslationProcessor extends BaseProcessor {
   translationPaths
 
   constructor(work, metadata) {
     super(work, metadata)
-    this.translationPaths = new Set()
+    this.translationPaths = new Map()
   }
 
   async process() {
@@ -44,30 +65,48 @@ class FlowTranslationProcessor extends BaseProcessor {
     const ign = await this._getIgnoreInstance()
 
     for await (const translationPath of translationsIterator) {
-      const translationName = getTranslationName(translationPath)
       if (
-        !this.work.diffs.package.get(TRANSLATION_TYPE)?.has(translationName) &&
         !ign?.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
-        this._parseTranslationFile(translationName)
+        this._parseTranslationFile(translationPath)
       }
     }
   }
 
   async _handleFlowTranslation() {
-    const copyTranslationsPromises = []
     for (const translationPath of this.translationPaths.keys()) {
       fillPackageWithParameter({
         store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
-        elementName: getTranslationName(translationPath),
+        member: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        copyTranslationsPromises.push(copyFiles(this.config, translationPath))
+        const jsonTranslation = await this._getTranslationAsJSON(
+          translationPath
+        )
+        this._scrapTranslationFile(
+          jsonTranslation,
+          this.translationPaths.get(translationPath)
+        )
+        const scrappedTranslation = convertJsonToXml(jsonTranslation)
+        await writeFile(translationPath, scrappedTranslation, this.config)
       }
     }
-    await Promise.all(copyTranslationsPromises)
+  }
+
+  _scrapTranslationFile(jsonTranslation, actualFlowDefinition) {
+    const flowDefinitions = asArray(
+      jsonTranslation.Translations?.flowDefinitions
+    )
+    const fullNames = new Set(flowDefinitions.map(flowDef => flowDef.fullName))
+    const strippedActualFlowDefinition = actualFlowDefinition.filter(
+      flowDef => !fullNames.has(flowDef.fullName)
+    )
+
+    jsonTranslation.Translations.flowDefinitions = flowDefinitions.concat(
+      strippedActualFlowDefinition
+    )
   }
 
   async _parseTranslationFile(translationPath) {
@@ -81,20 +120,39 @@ class FlowTranslationProcessor extends BaseProcessor {
     flowDefinitions.forEach(flowDefinition =>
       this._addFlowPerTranslation({
         translationPath,
-        fullName: flowDefinition.fullName,
+        flowDefinition,
       })
     )
   }
 
-  _addFlowPerTranslation({ translationPath, fullName }) {
-    const packagedElements = this.work.diffs.package.get(FLOW_DIRECTORY_NAME)
-    if (packagedElements?.has(fullName)) {
-      this.translationPaths.add(translationPath)
+  _addFlowPerTranslation({ translationPath, flowDefinition }) {
+    const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
+    if (packagedElements.has(flowDefinition.fullName)) {
+      if (!this.translationPaths.has(translationPath)) {
+        this.translationPaths.set(translationPath, [])
+      }
+      this.translationPaths.get(translationPath).push(flowDefinition)
     }
   }
 
+  async _getTranslationAsJSON(translationPath) {
+    const translationPathInOutputFolder = join(
+      this.config.output,
+      treatPathSep(translationPath)
+    )
+    const translationExist = await pathExists(translationPathInOutputFolder)
+
+    let jsonTranslation = getDefaultTranslation()
+    if (translationExist) {
+      const xmlTranslation = await readFile(translationPathInOutputFolder)
+      jsonTranslation = xml2Json(xmlTranslation)
+    }
+
+    return jsonTranslation
+  }
+
   _shouldProcess() {
-    return this.work.diffs.package.has(FLOW_DIRECTORY_NAME)
+    return this.work.diffs.package.has(FLOW_XML_NAME)
   }
 
   async _getIgnoreInstance() {

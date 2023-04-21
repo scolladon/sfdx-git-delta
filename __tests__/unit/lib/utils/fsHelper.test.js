@@ -38,6 +38,7 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
 
 let work
 beforeEach(() => {
+  jest.clearAllMocks()
   work = {
     config: {
       output: '.',
@@ -100,6 +101,21 @@ describe('readPathFromGit', () => {
       expect(getStreamContent).toBeCalled()
     })
   })
+
+  describe.each([undefined, null])('when path returned "%s"', value => {
+    beforeEach(() => {
+      // Arrange
+      getStreamContent.mockImplementation(() => Promise.resolve(value))
+    })
+
+    it('should use "config.to" and "normalized path" to get git history', async () => {
+      // Act
+      const content = await readPathFromGit('path/file', work.config)
+
+      // Assert
+      expect(content).toBe('')
+    })
+  })
 })
 
 describe('copyFile', () => {
@@ -110,6 +126,23 @@ describe('copyFile', () => {
 
       // Act
       await copyFiles(work.config, 'source/file')
+
+      // Assert
+      expect(spawn).not.toBeCalled()
+      expect(getStreamContent).not.toBeCalled()
+      expect(outputFile).not.toBeCalled()
+    })
+  })
+
+  describe('when file is already written', () => {
+    it('should not copy file', async () => {
+      // Arrange
+      treatPathSep.mockImplementationOnce(() => 'output/file')
+      await writeFile('source/file', 'content', work.config)
+      jest.resetAllMocks()
+
+      // Act
+      await copyFiles(work.config, 'source/file', 'output/file')
 
       // Assert
       expect(spawn).not.toBeCalled()
@@ -541,5 +574,19 @@ describe('isSubDir', () => {
         expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
       }
     )
+
+    it('call only once for the same path', async () => {
+      // Arrange
+      const output = 'root'
+      const content = 'content'
+      const path = 'other/path/file'
+      await writeFile(path, content, { output })
+
+      // Act
+      await writeFile(path, content, { output })
+
+      // Assert
+      expect(outputFile).toBeCalledTimes(1)
+    })
   })
 })

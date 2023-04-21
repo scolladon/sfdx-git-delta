@@ -8,6 +8,7 @@ jest.mock('../../../../src/utils/fsHelper')
 const entity = 'folder/test'
 const extension = 'document'
 const objectType = 'documents'
+const xmlName = 'Document'
 const line = `A       force-app/main/default/${objectType}/${entity}.${extension}-meta.xml`
 
 let work
@@ -38,7 +39,7 @@ describe('InFolderHandler', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
       expect(copyFiles).not.toHaveBeenCalled()
     })
   })
@@ -57,7 +58,7 @@ describe('InFolderHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(3)
         expect(copyFiles).toHaveBeenCalledWith(
@@ -79,7 +80,7 @@ describe('InFolderHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(5)
       })

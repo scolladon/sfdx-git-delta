@@ -1,5 +1,5 @@
 'use strict'
-const FileGitDiff = require('../../../../src/utils/fileGitDiff')
+const MetadataDiff = require('../../../../src/utils/metadataDiff')
 const {
   parseXmlFileToJson,
   convertJsonToXml,
@@ -14,9 +14,12 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
     convertJsonToXml: jest.fn(),
   }
 })
+const workFlowAttributes = new Map([
+  ['alerts', { xmlName: 'WorkflowAlert', key: 'fullName' }],
+])
 
-describe(`fileGitDiff`, () => {
-  let fileGitDiff
+describe(`MetadataDiff`, () => {
+  let metadataDiff
   let globalMetadata
   let work
   let alert, alertOther, alertTest, wfBase, unTracked
@@ -35,7 +38,7 @@ describe(`fileGitDiff`, () => {
       diffs: { package: new Map(), destructiveChanges: new Map() },
       warnings: [],
     }
-    fileGitDiff = new FileGitDiff('workflows', work, globalMetadata)
+    metadataDiff = new MetadataDiff(work, globalMetadata, workFlowAttributes)
 
     alert = {
       '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
@@ -117,13 +120,26 @@ describe(`fileGitDiff`, () => {
   })
 
   describe('compare', () => {
+    it('does not detect null file content', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce('')
+      parseXmlFileToJson.mockResolvedValueOnce('')
+
+      // Act
+      const { added, deleted } = await metadataDiff.compare('file/path')
+
+      // Assert
+      expect(deleted.size).toBe(0)
+      expect(added.size).toBe(0)
+    })
+
     it('does not detect not tracked elements', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(unTracked)
       parseXmlFileToJson.mockResolvedValueOnce(wfBase)
 
       // Act
-      const { added, deleted } = await fileGitDiff.compare('file/path')
+      const { added, deleted } = await metadataDiff.compare('file/path')
 
       // Assert
       expect(deleted.size).toBe(0)
@@ -136,11 +152,11 @@ describe(`fileGitDiff`, () => {
       parseXmlFileToJson.mockResolvedValueOnce(wfBase)
 
       // Act
-      const { added, deleted } = await fileGitDiff.compare('file/path')
+      const { added, deleted } = await metadataDiff.compare('file/path')
 
       // Assert
       expect(deleted.size).toBe(0)
-      expect(added.get('workflows.alerts')).toEqual(
+      expect(added.get('WorkflowAlert')).toEqual(
         new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
       )
     })
@@ -150,11 +166,26 @@ describe(`fileGitDiff`, () => {
       parseXmlFileToJson.mockResolvedValueOnce(alert)
 
       // Act
-      const { added, deleted } = await fileGitDiff.compare('file/path')
+      const { added, deleted } = await metadataDiff.compare('file/path')
 
       // Assert
       expect(added.size).toBe(0)
-      expect(deleted.get('workflows.alerts')).toEqual(
+      expect(deleted.get('WorkflowAlert')).toEqual(
+        new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
+      )
+    })
+
+    it('detects deleted file', async () => {
+      // Arrange
+      parseXmlFileToJson.mockResolvedValueOnce('')
+      parseXmlFileToJson.mockResolvedValueOnce(alert)
+
+      // Act
+      const { added, deleted } = await metadataDiff.compare('file/path')
+
+      // Assert
+      expect(added.size).toBe(0)
+      expect(deleted.get('WorkflowAlert')).toEqual(
         new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
       )
     })
@@ -171,11 +202,11 @@ describe(`fileGitDiff`, () => {
       })
 
       // Act
-      const { added, deleted } = await fileGitDiff.compare('file/path')
+      const { added, deleted } = await metadataDiff.compare('file/path')
 
       // Assert
       expect(deleted.size).toBe(0)
-      expect(added.get('workflows.alerts')).toEqual(new Set(['TestEmailAlert']))
+      expect(added.get('WorkflowAlert')).toEqual(new Set(['TestEmailAlert']))
     })
   })
   describe('prune', () => {
@@ -183,23 +214,22 @@ describe(`fileGitDiff`, () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alert)
       parseXmlFileToJson.mockResolvedValueOnce(alertTest)
-      await fileGitDiff.compare('file/path')
+      await metadataDiff.compare('file/path')
 
       // Act
-      fileGitDiff.prune()
+      metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
     })
     it('given zero element added and one element delete, the generated file contains empty declaration', async () => {
       // Arrange
-
       parseXmlFileToJson.mockResolvedValueOnce(alertTest)
       parseXmlFileToJson.mockResolvedValueOnce(alert)
-      await fileGitDiff.compare('file/path')
+      await metadataDiff.compare('file/path')
 
       // Act
-      fileGitDiff.prune()
+      metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -214,10 +244,10 @@ describe(`fileGitDiff`, () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alert)
       parseXmlFileToJson.mockResolvedValueOnce(wfBase)
-      await fileGitDiff.compare('file/path')
+      await metadataDiff.compare('file/path')
 
       // Act
-      fileGitDiff.prune()
+      metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alert)
@@ -233,10 +263,10 @@ describe(`fileGitDiff`, () => {
           alerts: { ...alertOther.Workflow.alerts, description: 'amazing' },
         },
       })
-      await fileGitDiff.compare('file/path')
+      await metadataDiff.compare('file/path')
 
       // Act
-      fileGitDiff.prune()
+      metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
@@ -246,10 +276,10 @@ describe(`fileGitDiff`, () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(unTracked)
       parseXmlFileToJson.mockResolvedValueOnce(wfBase)
-      await fileGitDiff.compare('file/path')
+      await metadataDiff.compare('file/path')
 
       // Act
-      fileGitDiff.prune()
+      metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(unTracked)

@@ -28,11 +28,11 @@ class StandardHandler {
     this.warnings = work.warnings
     this.splittedLine = this.line.split(sep)
 
-    if (this.metadata.get(this.type).metaFile === true) {
+    if (this.metadata.get(this.type)?.metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
-    this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type).suffix}$`)
+    this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type)?.suffix}$`)
 
     this.handlerMap = {
       [ADDITION]: this.handleAddition,
@@ -93,7 +93,7 @@ class StandardHandler {
   _fillPackage(store) {
     fillPackageWithParameter({
       store,
-      type: this.type,
+      type: this.metadata.get(this.type).xmlName,
       member: this._getElementName(),
     })
   }

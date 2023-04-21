@@ -23,6 +23,7 @@ class CustomObjectHandler extends StandardHandler {
     const exists = await pathExists(fieldsFolder, this.config)
     if (!exists) return
 
+    // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
     const fields = await readDir(fieldsFolder, this.config)
     const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
       const content = await readPathFromGit(

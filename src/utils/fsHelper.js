@@ -15,9 +15,10 @@ const FOLDER = 'tree'
 const showCmd = ['--no-pager', 'show']
 const gitPathSeparatorNormalizer = path => path?.replace(/\\+/g, GIT_PATH_SEP)
 const copiedFiles = new Set()
+const writtenFiles = new Set()
 
 const copyFiles = async (config, src) => {
-  if (copiedFiles.has(src)) return
+  if (copiedFiles.has(src) || writtenFiles.has(src)) return
   copiedFiles.add(src)
 
   try {
@@ -100,6 +101,8 @@ async function* scan(dir, config) {
 }
 
 const writeFile = async (path, content, { output }) => {
+  if (writtenFiles.has(path)) return
+  writtenFiles.add(path)
   await outputFile(join(output, treatPathSep(path)), content)
 }
 

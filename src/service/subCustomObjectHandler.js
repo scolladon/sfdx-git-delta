@@ -12,8 +12,9 @@ class SubCustomObjectHandler extends StandardHandler {
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
+    // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
     const data = await readPathFromGit(this.line, this.config)
-    if (!data?.includes(MASTER_DETAIL_TAG)) return
+    if (!data.includes(MASTER_DETAIL_TAG)) return
 
     const customObjectDirPath = this.splittedLine
       .slice(0, [this.splittedLine.indexOf(this.type)])

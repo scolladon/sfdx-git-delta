@@ -1,12 +1,23 @@
 'use strict'
-const InTranslation = require('../../../../src/service/inTranslationHandler')
-const { copyFiles } = require('../../../../src/utils/fsHelper')
+const ObjectTranslation = require('../../../../src/service/ObjectTranslationHandler')
+const { writeFile, copyFiles } = require('../../../../src/utils/fsHelper')
+const mockCompare = jest.fn()
+const mockprune = jest.fn()
+jest.mock('../../../../src/utils/metadataDiff', () => {
+  return jest.fn().mockImplementation(() => {
+    return { compare: mockCompare, prune: mockprune }
+  })
+})
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const objectType = 'objectTranslations'
+const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
+
+const content = 'content'
+mockprune.mockReturnValue(content)
 
 let work
 beforeEach(() => {
@@ -17,7 +28,7 @@ beforeEach(() => {
   }
 })
 
-describe('InTranslation', () => {
+describe('ObjectTranslation', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -28,33 +39,34 @@ describe('InTranslation', () => {
     it('should not copy files', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new InTranslation(line, objectType, work, globalMetadata)
+      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
 
       // Act
       await sut.handleAddition()
 
       // Assert
-      expect(copyFiles).not.toBeCalled()
-      expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+      expect(writeFile).not.toBeCalled()
+      expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
     })
   })
 
   describe('when called with generateDelta true', () => {
     it('should copy object translations files', async () => {
       // Arrange
-      const sut = new InTranslation(line, objectType, work, globalMetadata)
+      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
 
       // Act
       await sut.handleAddition()
 
       // Assert
 
-      expect(copyFiles).toBeCalledTimes(2)
-      expect(copyFiles).toHaveBeenCalledWith(
-        work.config,
-        expect.stringContaining('Account-es.objectTranslation')
+      expect(writeFile).toBeCalledTimes(1)
+      expect(writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('Account-es.objectTranslation'),
+        content,
+        work.config
       )
-      expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+      expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
     })
 
     describe('when called with fieldTranslation', () => {
@@ -62,7 +74,7 @@ describe('InTranslation', () => {
         'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
       it('should copy object translations files and fieldTranslation', async () => {
         // Arrange
-        const sut = new InTranslation(
+        const sut = new ObjectTranslation(
           fieldTranslationline,
           objectType,
           work,
@@ -73,17 +85,18 @@ describe('InTranslation', () => {
         await sut.handleAddition()
 
         // Assert
-
-        expect(copyFiles).toBeCalledTimes(2)
+        expect(copyFiles).toBeCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           expect.stringContaining('BillingFloor__c.fieldTranslation')
         )
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          expect.stringContaining('Account-es.objectTranslation')
+        expect(writeFile).toBeCalledTimes(1)
+        expect(writeFile).toHaveBeenCalledWith(
+          expect.stringContaining('Account-es.objectTranslation'),
+          content,
+          work.config
         )
-        expect(...work.diffs.package.get(objectType)).toEqual('Account-es')
+        expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
       })
     })
   })

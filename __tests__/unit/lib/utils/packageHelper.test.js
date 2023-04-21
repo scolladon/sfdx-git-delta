@@ -11,7 +11,7 @@ const tests = [
     'Object',
     new Map(
       Object.entries({
-        objects: new Set([
+        CustomObject: new Set([
           'Object',
           'YetAnotherObject',
           'OtherObject',
@@ -45,11 +45,11 @@ const tests = [
     'full',
     new Map(
       Object.entries({
-        dashboards: new Set(['Dashboard']),
-        documents: new Set(['Document']),
-        fields: new Set(['Field']),
-        lwc: new Set(['Component']),
-        objects: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
+        CustomField: new Set(['Field']),
+        CustomObject: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
+        Dashboard: new Set(['Dashboard']),
+        Document: new Set(['Document']),
+        LightningComponentBundle: new Set(['Component']),
         WaveLens: new Set(['Lens']),
         WaveRecipe: new Set(['Recipe']),
       })
@@ -104,20 +104,14 @@ const tests = [
 ]
 
 describe(`test if package builder`, () => {
-  let globalMetadata
   let packageConstructor
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
-    globalMetadata = await getGlobalMetadata()
-    packageConstructor = new PackageBuilder(options, globalMetadata)
+    packageConstructor = new PackageBuilder(options)
   })
 
-  test.each(tests)(
-    'can build %s destructiveChanges.xml',
-    (_, diff, expected) => {
-      expect(packageConstructor.buildPackage(diff)).toBe(expected)
-    }
-  )
+  test.each(tests)('can build %s manifest', (_, diff, expected) => {
+    expect(packageConstructor.buildPackage(diff)).toBe(expected)
+  })
   test('can handle null diff', () => {
     expect(packageConstructor.buildPackage(null)).toBe(undefined)
   })

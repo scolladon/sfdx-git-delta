@@ -15,6 +15,7 @@ const objectType = 'staticresources'
 const element = 'myResources'
 const basePath = 'force-app/main/default/staticresources'
 const entityPath = `${basePath}/${element}.js`
+const xmlName = 'StaticResource'
 const line = `A       ${entityPath}`
 const type = 'resource'
 let work
@@ -51,7 +52,7 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(...work.diffs.package.get(objectType)).toEqual(element)
+        expect(...work.diffs.package.get(xmlName)).toEqual(element)
         expect(copyFiles).not.toBeCalled()
       })
     })
@@ -74,17 +75,18 @@ describe('InResourceHandler', () => {
           )
         })
         it.each([
-          ['staticresources', 'image', 'image.png', 3],
-          ['staticresources', 'image', 'image/logo.png', 3],
+          ['staticresources', 'StaticResource', 'image', 'image.png', 3],
+          ['staticresources', 'StaticResource', 'image', 'image/logo.png', 3],
           [
             'experiences',
+            'ExperienceBundle',
             'my_experience_bundle',
             'my_experience_bundle/config/myexperiencebundle.json',
             5,
           ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file',
-          async (type, entity, path, expectedCount) => {
+          async (type, xmlName, entity, path, expectedCount) => {
             // Arrange
             const base = 'force-app/main/default/'
             const line = `A       ${base}${type}/${path}`
@@ -94,7 +96,7 @@ describe('InResourceHandler', () => {
             await sut.handle()
 
             // Assert
-            expect(...work.diffs.package.get(type)).toEqual(entity)
+            expect(...work.diffs.package.get(xmlName)).toEqual(entity)
             expect(copyFiles).toBeCalledTimes(expectedCount)
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
@@ -116,6 +118,7 @@ describe('InResourceHandler', () => {
         it('should copy the matching lwc', async () => {
           // Arrange
           const type = 'lwc'
+          const xmlName = 'LightningComponentBundle'
           const entity = 'lwcc'
           const path = 'lwcc/lwcc.js'
           const base = 'force-app/main/default/'
@@ -126,7 +129,7 @@ describe('InResourceHandler', () => {
           await sut.handle()
 
           // Assert
-          expect(...work.diffs.package.get(type)).toEqual(entity)
+          expect(...work.diffs.package.get(xmlName)).toEqual(entity)
           expect(copyFiles).toBeCalledTimes(1)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
@@ -150,7 +153,7 @@ describe('InResourceHandler', () => {
           await sut.handle()
 
           // Assert
-          expect(...work.diffs.package.get(objectType)).toEqual(element)
+          expect(...work.diffs.package.get(xmlName)).toEqual(element)
           expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
           expect(copyFiles).not.toHaveBeenCalledWith(
@@ -183,7 +186,7 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(...work.diffs.package.get(objectType)).toEqual(element)
+        expect(...work.diffs.package.get(xmlName)).toEqual(element)
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
           work.config
@@ -207,37 +210,13 @@ describe('InResourceHandler', () => {
         await sut.handle()
 
         // Assert
-        expect(work.diffs.package.has(objectType)).toBe(false)
-        expect(...work.diffs.destructiveChanges.get(objectType)).toEqual(
-          element
-        )
+        expect(work.diffs.package.has(xmlName)).toBe(false)
+        expect(...work.diffs.destructiveChanges.get(xmlName)).toEqual(element)
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining(element),
           work.config
         )
       })
     })
-  })
-
-  describe('when the line should not be processed', () => {
-    it.each([`${basePath}/.eslintrc.json`])(
-      'does not handle the line',
-      async entityPath => {
-        // Arrange
-        const sut = new InResourceHandler(
-          `A       ${entityPath}`,
-          objectType,
-          work,
-          globalMetadata
-        )
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.diffs.package.size).toBe(0)
-        expect(copyFiles).not.toHaveBeenCalled()
-      }
-    )
   })
 })

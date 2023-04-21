@@ -5,6 +5,8 @@ const { readdir } = require('fs').promises
 const _apiMap = new Map()
 let _latestVersion = null
 const describeMetadata = new Map()
+const inFileMetadata = new Map()
+const waveMetadata = new Map()
 
 const buildAPIMap = async () => {
   if (_apiMap.size === 0) {
@@ -44,6 +46,37 @@ const getDefinition = async (grouping, apiVersion) => {
   }, new Map())
 }
 
+const isPackable = type =>
+  !Array.from(inFileMetadata.values()).find(
+    inFileDef => inFileDef.xmlName === type
+  ).excluded
+
+const getInFileAttributes = metadata =>
+  inFileMetadata.size
+    ? inFileMetadata
+    : Array.from(metadata.values())
+        .filter(meta => meta.xmlTag)
+        .reduce(
+          (acc, meta) =>
+            acc.set(meta.xmlTag, {
+              xmlName: meta.xmlName,
+              key: meta.key,
+              excluded: !!meta.excluded,
+            }),
+          inFileMetadata
+        )
+
+const getWaveMetadata = metadata =>
+  waveMetadata.size
+    ? waveMetadata
+    : Array.from(metadata.values())
+        .filter(meta => meta.content)
+        .flatMap(elem => elem.content)
+        .reduce((acc, val) => acc.set(val.suffix, val.xmlName), waveMetadata)
+
 module.exports.getDefinition = getDefinition
+module.exports.getInFileAttributes = getInFileAttributes
 module.exports.getLatestSupportedVersion = getLatestSupportedVersion
+module.exports.getWaveMetadata = getWaveMetadata
+module.exports.isPackable = isPackable
 module.exports.isVersionSupported = isVersionSupported
