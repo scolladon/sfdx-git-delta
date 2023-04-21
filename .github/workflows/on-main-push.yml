@@ -76,7 +76,6 @@ jobs:
         run: sfdx sgd:source:delta --help
 
       - name: E2E Tests
-        working-directory: ./e2e
         run: |
           yarn
           yarn test:e2e
