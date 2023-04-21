@@ -3,6 +3,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.18.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.17.1...v5.18.0) (2023-04-21)
+
+
+### Features
+
+* extend metadata content pruning to more eligible types ([#533](https://github.com/scolladon/sfdx-git-delta/issues/533)) ([2576cf7](https://github.com/scolladon/sfdx-git-delta/commit/2576cf7e53f3a961b05267f11976a3146e51498a))
+
 ## [5.17.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.17.0...v5.17.1) (2023-04-04)
 
 
