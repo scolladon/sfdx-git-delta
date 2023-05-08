@@ -76,7 +76,7 @@
     "@oclif/dev-cli": "^1.26.10",
     "@oclif/plugin-help": "^5.2.9",
     "@oclif/test": "^2.3.16",
-    "@salesforce/cli-plugins-testkit": "^3.3.3",
+    "@salesforce/cli-plugins-testkit": "^3.3.6",
     "@salesforce/dev-config": "^3.1.0",
     "@salesforce/ts-sinon": "^1.4.6",
     "@stryker-mutator/core": "^6.4.2",
