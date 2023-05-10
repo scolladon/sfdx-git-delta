@@ -35,6 +35,7 @@ const classes = {
   listViews: SubCustomObject,
   lwc: LwcHandler,
   matchingRules: InFile,
+  moderation: Wave,
   objects: CustomObject,
   objectTranslations: ObjectTranslation,
   profiles: InFile,
