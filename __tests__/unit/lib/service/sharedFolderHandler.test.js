@@ -1,5 +1,5 @@
 'use strict'
-const WaveHandler = require('../../../../src/service/waveHandler')
+const SharedFolderHandler = require('../../../../src/service/sharedFolderHandler')
 
 const objectType = 'discovery'
 const entityName = 'DiscoveryAIModelTest'
@@ -16,7 +16,7 @@ beforeEach(() => {
   }
 })
 
-describe('Wavehandler', () => {
+describe('SharedFolderHandler', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -25,7 +25,7 @@ describe('Wavehandler', () => {
 
   it('should add the metadata component under the right type to the package', async () => {
     // Arrange
-    const sut = new WaveHandler(line, objectType, work, globalMetadata)
+    const sut = new SharedFolderHandler(line, objectType, work, globalMetadata)
 
     // Act
     await sut.handleAddition()
