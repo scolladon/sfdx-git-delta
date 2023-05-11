@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.18.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.18.0...v5.18.1) (2023-05-11)
+
+
+### Bug Fixes
+
+* handle `ModerationRule` and `KeywordList` with shared folder type ([#594](https://github.com/scolladon/sfdx-git-delta/issues/594)) ([770b1ba](https://github.com/scolladon/sfdx-git-delta/commit/770b1bab2a3cfcbcfb84223d427ac3679e851035))
+
 ## [5.18.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.17.1...v5.18.0) (2023-04-21)
 
 
