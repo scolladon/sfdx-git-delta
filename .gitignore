@@ -1,6 +1,7 @@
 /node_modules
 /reports
 /lib
+/.yarn
 *-debug.log
 *-error.log
 sfdx-git-delta-*.tgz

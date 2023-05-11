@@ -6,4 +6,4 @@ yarn pack
 yarn test:unit:coverage
 yarn test:nut
 yarn analysis force-app
-yarn outdated || true
+npm outdated || true
