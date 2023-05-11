@@ -155,7 +155,7 @@ jobs:
 
       - name: Install dependencies in production mode
         working-directory: ./plugin
-        run: yarn install --immutable --immutable-cache --check-cache --prod
+        run: yarn workspaces focus --all --production
         shell: bash
 
       - name: Install build dependencies
@@ -172,6 +172,7 @@ jobs:
       - name: Install plugin
         working-directory: ./plugin
         run: |
+          yarn set version classic
           sfdx plugins:link .
           sfdx plugins
 
