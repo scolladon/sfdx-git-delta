@@ -3,7 +3,7 @@ const {
   getDefinition,
   getInFileAttributes,
   getLatestSupportedVersion,
-  getWaveMetadata,
+  getSharedFolderMetadata,
   isVersionSupported,
 } = require('../../../../src/metadata/metadataManager')
 
@@ -106,7 +106,7 @@ describe(`test if metadata`, () => {
     expect(otherInFileAttributes).toBe(inFileAttributes)
   })
 
-  test('getWaveMetadata', async () => {
+  test('getSharedFolderMetadata', async () => {
     // Arrange
     const metadata = new Map([
       [
@@ -139,19 +139,19 @@ describe(`test if metadata`, () => {
     ])
 
     // Act
-    let waveMetadata = getWaveMetadata(metadata)
+    let sharedFolderMetadata = getSharedFolderMetadata(metadata)
 
     // Assert
-    expect(waveMetadata.has('discovery')).toBe(false)
-    expect(waveMetadata.has('goal')).toBe(true)
-    expect(waveMetadata.has('model')).toBe(true)
-    expect(waveMetadata.get('goal')).toEqual('DiscoveryGoal')
-    expect(waveMetadata.get('model')).toEqual('DiscoveryAIModel')
+    expect(sharedFolderMetadata.has('discovery')).toBe(false)
+    expect(sharedFolderMetadata.has('goal')).toBe(true)
+    expect(sharedFolderMetadata.has('model')).toBe(true)
+    expect(sharedFolderMetadata.get('goal')).toEqual('DiscoveryGoal')
+    expect(sharedFolderMetadata.get('model')).toEqual('DiscoveryAIModel')
 
     // Act
-    let otherWaveMetadata = getWaveMetadata(metadata)
+    let otherSharedFolderMetadata = getSharedFolderMetadata(metadata)
 
     // Assert
-    expect(otherWaveMetadata).toBe(waveMetadata)
+    expect(otherSharedFolderMetadata).toBe(sharedFolderMetadata)
   })
 })

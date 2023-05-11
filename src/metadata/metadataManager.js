@@ -6,7 +6,7 @@ const _apiMap = new Map()
 let _latestVersion = null
 const describeMetadata = new Map()
 const inFileMetadata = new Map()
-const waveMetadata = new Map()
+const sharedFolderMetadata = new Map()
 
 const buildAPIMap = async () => {
   if (_apiMap.size === 0) {
@@ -66,17 +66,20 @@ const getInFileAttributes = metadata =>
           inFileMetadata
         )
 
-const getWaveMetadata = metadata =>
-  waveMetadata.size
-    ? waveMetadata
+const getSharedFolderMetadata = metadata =>
+  sharedFolderMetadata.size
+    ? sharedFolderMetadata
     : Array.from(metadata.values())
         .filter(meta => meta.content)
         .flatMap(elem => elem.content)
-        .reduce((acc, val) => acc.set(val.suffix, val.xmlName), waveMetadata)
+        .reduce(
+          (acc, val) => acc.set(val.suffix, val.xmlName),
+          sharedFolderMetadata
+        )
 
 module.exports.getDefinition = getDefinition
 module.exports.getInFileAttributes = getInFileAttributes
 module.exports.getLatestSupportedVersion = getLatestSupportedVersion
-module.exports.getWaveMetadata = getWaveMetadata
+module.exports.getSharedFolderMetadata = getSharedFolderMetadata
 module.exports.isPackable = isPackable
 module.exports.isVersionSupported = isVersionSupported

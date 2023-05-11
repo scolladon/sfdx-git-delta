@@ -307,6 +307,16 @@ const testContext = [
     'Territory2',
   ],
   [
+    'force-app/main/default/moderation/site.block.rule-meta.xml',
+    new Set(['site.block']),
+    'ModerationRule',
+  ],
+  [
+    'force-app/main/default/moderation/site.block.keywords-meta.xml',
+    new Set(['site.block']),
+    'KeywordList',
+  ],
+  [
     'force-app/main/default/discovery/DiscoveryAIModelTest.model',
     new Set(['DiscoveryAIModelTest']),
     'DiscoveryAIModel',

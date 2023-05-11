@@ -926,13 +926,6 @@
     "xmlName": "ManagedTopics"
   },
   {
-    "directoryName": "moderation",
-    "inFolder": false,
-    "metaFile": false,
-    "suffix": "keywords",
-    "xmlName": "KeywordList"
-  },
-  {
     "directoryName": "userCriteria",
     "inFolder": false,
     "metaFile": false,
@@ -943,8 +936,16 @@
     "directoryName": "moderation",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "rule",
-    "xmlName": "ModerationRule"
+    "content": [
+      {
+        "suffix": "keywords",
+        "xmlName": "KeywordList"
+      },
+      {
+        "suffix": "rule",
+        "xmlName": "ModerationRule"
+      }
+    ]
   },
   {
     "directoryName": "cmsConnectSource",

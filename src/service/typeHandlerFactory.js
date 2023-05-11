@@ -9,7 +9,7 @@ const LwcHandler = require('./lwcHandler')
 const Standard = require('./standardHandler')
 const SubCustomObject = require('./subCustomObjectHandler')
 const ObjectTranslation = require('./ObjectTranslationHandler')
-const Wave = require('./waveHandler')
+const SharedFolder = require('./sharedFolderHandler')
 
 const { getType } = require('../utils/typeUtils')
 
@@ -22,7 +22,7 @@ const classes = {
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
   digitalExperiences: InBundleHandler,
-  discovery: Wave,
+  discovery: SharedFolder,
   documents: InFolder,
   email: InFolder,
   escalationRules: InFile,
@@ -35,6 +35,7 @@ const classes = {
   listViews: SubCustomObject,
   lwc: LwcHandler,
   matchingRules: InFile,
+  moderation: SharedFolder,
   objects: CustomObject,
   objectTranslations: ObjectTranslation,
   profiles: InFile,
@@ -49,7 +50,7 @@ const classes = {
   territory2Models: CustomObject,
   translations: InFile,
   validationRules: SubCustomObject,
-  wave: Wave,
+  wave: SharedFolder,
   waveTemplates: InResource,
   webLinks: SubCustomObject,
   workflows: InFile,

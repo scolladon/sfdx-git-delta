@@ -21,7 +21,8 @@ Thanks for sending a pull request! Please make sure to have a look to the contri
 
 closes #
 
-- [ ] Jest test added to check the fix is applied.
+- [ ] Jest tests added to cover the fix.
+- [ ] E2E tests added to cover the fix.
 
 # Any particular element that can be tested locally
 

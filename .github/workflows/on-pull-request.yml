@@ -55,11 +55,9 @@ jobs:
 
       - name: Check outdated dependencies
         run: yarn outdated
-        continue-on-error: true
 
       - name: Audit dependencies
         run: yarn audit
-        continue-on-error: true
 
   megalinter:
     runs-on: ubuntu-latest
