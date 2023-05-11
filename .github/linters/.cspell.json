@@ -18,10 +18,13 @@
         "Cherfaoui",
         "Colladon",
         "Commitlint",
+        "Corepack",
+        "corepack",
         "FORCEIGNORE",
         "FORCEINCLUDE",
         "FULLNAME",
         "Flexi",
+        "hardlinks",
         "Iframe",
         "METAFILE",
         "Mehdi",
@@ -141,6 +144,7 @@
         "weblinks",
         "wlens",
         "xmlbuilder",
+        "yarnrc",
         "\u00c0gain"
     ]
 }

@@ -25,6 +25,11 @@ jobs:
           fetch-depth: 0
 
       - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
       - name: Lint commits
@@ -53,11 +58,14 @@ jobs:
           node-version: 16
           registry-url: https://registry.npmjs.org/
 
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
       - name: Check outdated dependencies
-        run: yarn outdated
+        run: npm outdated
 
       - name: Audit dependencies
-        run: yarn audit
+        run: yarn npm audit
 
   megalinter:
     runs-on: ubuntu-latest
@@ -147,7 +155,7 @@ jobs:
 
       - name: Install dependencies in production mode
         working-directory: ./plugin
-        run: yarn install --immutable --immutable-cache --check-cache --frozen-lockfile --prod
+        run: yarn install --immutable --immutable-cache --check-cache --prod
         shell: bash
 
       - name: Install build dependencies
