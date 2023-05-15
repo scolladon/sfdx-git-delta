@@ -122,6 +122,7 @@ jobs:
   e2e-check:
     needs: [build, megalinter]
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
         node: [14, 16, 18]

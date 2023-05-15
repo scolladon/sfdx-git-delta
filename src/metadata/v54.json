@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "loyaltyProgramSetups",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "loyaltyProgramSetup",
+    "xmlName": "LoyaltyProgramSetup"
+  },
+  {
     "directoryName": "decisionTables",
     "inFolder": false,
     "metaFile": false,
