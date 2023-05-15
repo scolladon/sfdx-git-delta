@@ -1249,10 +1249,10 @@
     "@salesforce/ts-types" "^1.7.1"
     chalk "^2.4.2"
 
-"@salesforce/core@^3.34.8", "@salesforce/core@^3.36.0":
-  version "3.36.0"
-  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-3.36.0.tgz#cbff147d888eee0b921e368c1fdc1a1a3c2eacab"
-  integrity sha512-LOeSJgozf5B1S8C98/K3afewRsathfEm+HrXxaFXJjITFfIhxqcIDB5xC1cw0VikfRUlq7dQocmVsvezcK0Ghw==
+"@salesforce/core@^3.34.8", "@salesforce/core@^3.36.0", "@salesforce/core@^3.36.1":
+  version "3.36.1"
+  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-3.36.1.tgz#053a5e1079b9749b62e461e6ac3e630b5689694a"
+  integrity sha512-kcjyr9bj35nnL8Bqv8U39xeho3CrZYXJiS/X5X1eEHVNZLd9zckrmKrh1V7z8ElCFpsJrewT989SJsdvi9kE8w==
   dependencies:
     "@salesforce/bunyan" "^2.0.0"
     "@salesforce/kit" "^1.9.2"
