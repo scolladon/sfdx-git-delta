@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.19.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.18.1...v5.19.0) (2023-05-15)
+
+
+### Features
+
+* add `LoyaltyProgramSetup` metadata ([#605](https://github.com/scolladon/sfdx-git-delta/issues/605)) ([5970905](https://github.com/scolladon/sfdx-git-delta/commit/5970905779d31911267ecb68e7c4afc9ede1e334))
+
 ## [5.18.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.18.0...v5.18.1) (2023-05-11)
 
 
