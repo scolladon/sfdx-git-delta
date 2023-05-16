@@ -1259,7 +1259,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oclif/command@npm:^1.8.14, @oclif/command@npm:^1.8.15, @oclif/command@npm:^1.8.24":
+"@oclif/command@npm:^1.8.14, @oclif/command@npm:^1.8.15":
   version: 1.8.24
   resolution: "@oclif/command@npm:1.8.24"
   dependencies:
@@ -1272,6 +1272,22 @@ __metadata:
   peerDependencies:
     "@oclif/config": ^1
   checksum: 43af5dc9256c6fb25ea2a9e1baa4e66ba4aceb26abbe313b8d14e1f34a0beb723d2cf81886aaf2ab174c50c1507176dd545e9cc99ad8de79b13fa9854d207316
+  languageName: node
+  linkType: hard
+
+"@oclif/command@npm:^1.8.25":
+  version: 1.8.25
+  resolution: "@oclif/command@npm:1.8.25"
+  dependencies:
+    "@oclif/config": ^1.18.2
+    "@oclif/errors": ^1.3.6
+    "@oclif/help": ^1.0.1
+    "@oclif/parser": ^3.8.10
+    debug: ^4.1.1
+    semver: ^7.5.1
+  peerDependencies:
+    "@oclif/config": ^1
+  checksum: 896290dc5ddd39dcab9f5b0c8197dc32288cdb60807ca9dc938788d198d8b4a218ecd1caef4ca3d7d78f57bb035722a379c90eb8bbdd036ff00f9f59f96fc572
   languageName: node
   linkType: hard
 
@@ -1517,13 +1533,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oclif/test@npm:^2.2.21, @oclif/test@npm:^2.3.19":
+"@oclif/test@npm:^2.2.21":
   version: 2.3.19
   resolution: "@oclif/test@npm:2.3.19"
   dependencies:
     "@oclif/core": ^2.8.5
     fancy-test: ^2.0.21
   checksum: efceafdbbb3f4db928bc51699e88b1272e145365ddbd0279d579c90a8ba86d74b30579b2a9856fe3a4071e4c7593f38f27f159a19a56ccf491c103c02bda4f32
+  languageName: node
+  linkType: hard
+
+"@oclif/test@npm:^2.3.20":
+  version: 2.3.20
+  resolution: "@oclif/test@npm:2.3.20"
+  dependencies:
+    "@oclif/core": ^2.8.5
+    fancy-test: ^2.0.22
+  checksum: f996db66d9526140b6565002653c4e1ff6aa97a7d5f7ec76fc2a0d22890aeb034914780274ab16ba6f937954266fc52ec4fe01a7848c940fed8a1809a1e10cc0
   languageName: node
   linkType: hard
 
@@ -1586,9 +1612,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/cli-plugins-testkit@npm:^3.3.6":
-  version: 3.3.6
-  resolution: "@salesforce/cli-plugins-testkit@npm:3.3.6"
+"@salesforce/cli-plugins-testkit@npm:^3.4.0":
+  version: 3.4.0
+  resolution: "@salesforce/cli-plugins-testkit@npm:3.4.0"
   dependencies:
     "@salesforce/core": ^3.34.8
     "@salesforce/kit": ^1.9.2
@@ -1599,25 +1625,25 @@ __metadata:
     shelljs: ^0.8.4
     strip-ansi: 6.0.1
     ts-retry-promise: ^0.7.0
-  checksum: 14e089bcf02b6d8d80716ad91baec58fb09d44eb8f3f9a5924230b407df85dd4594886df4d24898c1f85c73aeedc9d784eb35e1f1387056828582b586c9495a8
+  checksum: 0a6c68bdea4ee5068d59682228de77d45b4d7c3c24108d9a71bce8fe708f953f7b1455fcb4d9594c5b7e699c7e742d39d3e01364dc9ad59116bccf70fce9cb77
   languageName: node
   linkType: hard
 
-"@salesforce/command@npm:^5.3.7":
-  version: 5.3.7
-  resolution: "@salesforce/command@npm:5.3.7"
+"@salesforce/command@npm:^5.3.8":
+  version: 5.3.8
+  resolution: "@salesforce/command@npm:5.3.8"
   dependencies:
     "@oclif/core": ^1.25.0
     "@oclif/test": ^2.2.21
-    "@salesforce/core": ^3.36.0
+    "@salesforce/core": ^3.36.1
     "@salesforce/kit": ^1.8.5
     "@salesforce/ts-types": ^1.7.1
     chalk: ^2.4.2
-  checksum: 80c917102ffbeaa863bc8f08d2889073937112c79b92a6a9dc57c5eb4251accb37ce0b1f976693cf48c8fa2dabbb04088a16cafe115fff4c2800f9307228d251
+  checksum: 19c351a631ca3c53973e9dc502ccc7fd936c6d0565e927a72264ab2ede1e83c897f2540ce15b670fb6edb4d7248026468b596b675cb3ea2b9c9ace4a8b4b5832
   languageName: node
   linkType: hard
 
-"@salesforce/core@npm:^3.34.8, @salesforce/core@npm:^3.36.0":
+"@salesforce/core@npm:^3.34.8":
   version: 3.36.0
   resolution: "@salesforce/core@npm:3.36.0"
   dependencies:
@@ -1637,6 +1663,29 @@ __metadata:
     jsonwebtoken: 9.0.0
     ts-retry-promise: ^0.7.0
   checksum: 2a82bba386b3bb4cf025379972a6d173f17a2b5abd0986cf2d21b116ad8c0c04262e540bea19fa26000909c50997596a32811b610d2c4ae161793a935363cc59
+  languageName: node
+  linkType: hard
+
+"@salesforce/core@npm:^3.36.1":
+  version: 3.36.1
+  resolution: "@salesforce/core@npm:3.36.1"
+  dependencies:
+    "@salesforce/bunyan": ^2.0.0
+    "@salesforce/kit": ^1.9.2
+    "@salesforce/schemas": ^1.5.1
+    "@salesforce/ts-types": ^1.7.2
+    "@types/semver": ^7.3.13
+    ajv: ^8.12.0
+    archiver: ^5.3.0
+    change-case: ^4.1.2
+    debug: ^3.2.7
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsforce: ^2.0.0-beta.21
+    jsonwebtoken: 9.0.0
+    ts-retry-promise: ^0.7.0
+  checksum: a15894210d263e4bcf99113dae38ddc8ff73738d1e8cfd891fe74cf9394aaa69f759262257dbb6b34708aff573bfe90d415622f10b809f7cfbc9d8e7f1868a1a
   languageName: node
   linkType: hard
 
@@ -1869,90 +1918,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-arm64@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-darwin-arm64@npm:1.3.57"
+"@swc/core-darwin-arm64@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-darwin-arm64@npm:1.3.58"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-x64@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-darwin-x64@npm:1.3.57"
+"@swc/core-darwin-x64@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-darwin-x64@npm:1.3.58"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm-gnueabihf@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.3.57"
+"@swc/core-linux-arm-gnueabihf@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.3.58"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-gnu@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-linux-arm64-gnu@npm:1.3.57"
+"@swc/core-linux-arm64-gnu@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.3.58"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-musl@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-linux-arm64-musl@npm:1.3.57"
+"@swc/core-linux-arm64-musl@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-linux-arm64-musl@npm:1.3.58"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-gnu@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-linux-x64-gnu@npm:1.3.57"
+"@swc/core-linux-x64-gnu@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-linux-x64-gnu@npm:1.3.58"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-musl@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-linux-x64-musl@npm:1.3.57"
+"@swc/core-linux-x64-musl@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-linux-x64-musl@npm:1.3.58"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@swc/core-win32-arm64-msvc@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-win32-arm64-msvc@npm:1.3.57"
+"@swc/core-win32-arm64-msvc@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.3.58"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@swc/core-win32-ia32-msvc@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-win32-ia32-msvc@npm:1.3.57"
+"@swc/core-win32-ia32-msvc@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.3.58"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
 
-"@swc/core-win32-x64-msvc@npm:1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core-win32-x64-msvc@npm:1.3.57"
+"@swc/core-win32-x64-msvc@npm:1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core-win32-x64-msvc@npm:1.3.58"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@swc/core@npm:^1.3.57":
-  version: 1.3.57
-  resolution: "@swc/core@npm:1.3.57"
+"@swc/core@npm:^1.3.58":
+  version: 1.3.58
+  resolution: "@swc/core@npm:1.3.58"
   dependencies:
-    "@swc/core-darwin-arm64": 1.3.57
-    "@swc/core-darwin-x64": 1.3.57
-    "@swc/core-linux-arm-gnueabihf": 1.3.57
-    "@swc/core-linux-arm64-gnu": 1.3.57
-    "@swc/core-linux-arm64-musl": 1.3.57
-    "@swc/core-linux-x64-gnu": 1.3.57
-    "@swc/core-linux-x64-musl": 1.3.57
-    "@swc/core-win32-arm64-msvc": 1.3.57
-    "@swc/core-win32-ia32-msvc": 1.3.57
-    "@swc/core-win32-x64-msvc": 1.3.57
+    "@swc/core-darwin-arm64": 1.3.58
+    "@swc/core-darwin-x64": 1.3.58
+    "@swc/core-linux-arm-gnueabihf": 1.3.58
+    "@swc/core-linux-arm64-gnu": 1.3.58
+    "@swc/core-linux-arm64-musl": 1.3.58
+    "@swc/core-linux-x64-gnu": 1.3.58
+    "@swc/core-linux-x64-musl": 1.3.58
+    "@swc/core-win32-arm64-msvc": 1.3.58
+    "@swc/core-win32-ia32-msvc": 1.3.58
+    "@swc/core-win32-x64-msvc": 1.3.58
   peerDependencies:
     "@swc/helpers": ^0.5.0
   dependenciesMeta:
@@ -1979,7 +2028,7 @@ __metadata:
   peerDependenciesMeta:
     "@swc/helpers":
       optional: true
-  checksum: 4e900d05f8ea8fe7051d06b90bcedf13edd1305f9f2d50d0cbe3b28256a0f1512488c0f3fece6e9b5413e3bc8dc9c7e559c2bb384676aaf80971661e89d39241
+  checksum: 34e5a1046aab51e55b35b966e54de8f1bcdef2535c297d76a9b0e38cba126599c24b5062c9c6ce9d4c6b5745c91e8a2eda596fe39ab27093459e8aa2934cf387
   languageName: node
   linkType: hard
 
@@ -2171,7 +2220,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^20.1.2":
+"@types/node@npm:*":
   version: 20.1.2
   resolution: "@types/node@npm:20.1.2"
   checksum: 9bb2cf0a846e60cc06c44a5622c1998d8373c8675b24d11c86845a29f32c60f5bca9627f2a2535640f902be3dbcc60f126a895abe8e10f12e1467ae3deaba56d
@@ -2182,6 +2231,13 @@ __metadata:
   version: 12.20.55
   resolution: "@types/node@npm:12.20.55"
   checksum: e4f86785f4092706e0d3b0edff8dca5a13b45627e4b36700acd8dfe6ad53db71928c8dee914d4276c7fd3b6ccd829aa919811c9eb708a2c8e4c6eb3701178c37
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.1.5":
+  version: 20.1.5
+  resolution: "@types/node@npm:20.1.5"
+  checksum: 0d073ed7b9cc51e2354dcf3a8ccca84d08c7d513fa8fac9462cabc164435b30f2ad296e9f2f911e6ce72da837b704f1075379be84a93bb24f76d328a2d9e8561
   languageName: node
   linkType: hard
 
@@ -2255,14 +2311,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:^5.59.5":
-  version: 5.59.5
-  resolution: "@typescript-eslint/eslint-plugin@npm:5.59.5"
+"@typescript-eslint/eslint-plugin@npm:^5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/eslint-plugin@npm:5.59.6"
   dependencies:
     "@eslint-community/regexpp": ^4.4.0
-    "@typescript-eslint/scope-manager": 5.59.5
-    "@typescript-eslint/type-utils": 5.59.5
-    "@typescript-eslint/utils": 5.59.5
+    "@typescript-eslint/scope-manager": 5.59.6
+    "@typescript-eslint/type-utils": 5.59.6
+    "@typescript-eslint/utils": 5.59.6
     debug: ^4.3.4
     grapheme-splitter: ^1.0.4
     ignore: ^5.2.0
@@ -2275,11 +2331,11 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: cc0e5ad8d70e140f0dada2fd1ad69d7c31d3f3dfe75939286fdc3950ff2e37033889acc7c9d92c074b67de3bbb6e46916d688e848fb98dde63b23c08a8b07884
+  checksum: fc495b5eadc70603f0d677921a70f151ac94453ebd76b77abbf7ed213c09daf05a3e2b2e2b16139b30dc6574d068d988e4e53c017759f3d3307fa394cfd4ae39
   languageName: node
   linkType: hard
 
-"@typescript-eslint/parser@npm:^5.10.0, @typescript-eslint/parser@npm:^5.59.5":
+"@typescript-eslint/parser@npm:^5.10.0":
   version: 5.59.5
   resolution: "@typescript-eslint/parser@npm:5.59.5"
   dependencies:
@@ -2296,6 +2352,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/parser@npm:^5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/parser@npm:5.59.6"
+  dependencies:
+    "@typescript-eslint/scope-manager": 5.59.6
+    "@typescript-eslint/types": 5.59.6
+    "@typescript-eslint/typescript-estree": 5.59.6
+    debug: ^4.3.4
+  peerDependencies:
+    eslint: ^6.0.0 || ^7.0.0 || ^8.0.0
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 1f6e259f501e3d13f9632bd71da2cf3d11150f1276079522e8d5c392a07c3aea867c855481981fca3bf32beb6bef046ef64cdfceba8ea4150f27099e44d9a92c
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/scope-manager@npm:5.59.5":
   version: 5.59.5
   resolution: "@typescript-eslint/scope-manager@npm:5.59.5"
@@ -2306,12 +2379,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/type-utils@npm:5.59.5":
-  version: 5.59.5
-  resolution: "@typescript-eslint/type-utils@npm:5.59.5"
+"@typescript-eslint/scope-manager@npm:5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/scope-manager@npm:5.59.6"
   dependencies:
-    "@typescript-eslint/typescript-estree": 5.59.5
-    "@typescript-eslint/utils": 5.59.5
+    "@typescript-eslint/types": 5.59.6
+    "@typescript-eslint/visitor-keys": 5.59.6
+  checksum: 65cce7b3fc320e264ef966da9a26bb7cba014ec5a0c9c5518cb08a624d67ac6eb67dd8e2df49b33eeaaaacaf42c73f291d56f93a9d1ec82c58bd1e7e872e530b
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/type-utils@npm:5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/type-utils@npm:5.59.6"
+  dependencies:
+    "@typescript-eslint/typescript-estree": 5.59.6
+    "@typescript-eslint/utils": 5.59.6
     debug: ^4.3.4
     tsutils: ^3.21.0
   peerDependencies:
@@ -2319,7 +2402,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 9ef2b219c71abe3d2ffa4c791ec3da8d120b6a202e7f9c7722d1e8193f8709d6ebec2abc2862b9fa78dffe6214d033898d21c925fc961feb4488070b66aab9f5
+  checksum: f8e09dc16f413090ec464d48bd86e1b44a569e5a6ed78370f3e8132e80a464dfcdc1525f4f0706b79e397841b1865016cb38353475264beec49851d78a7fdd36
   languageName: node
   linkType: hard
 
@@ -2327,6 +2410,13 @@ __metadata:
   version: 5.59.5
   resolution: "@typescript-eslint/types@npm:5.59.5"
   checksum: 98c93d354d6410934f468ba8bd468d2746f20b2910c0ef5b08fc788c0742aa7cb82eb2edc4194c85d3fabac5563c1a91d377e84bf5c25caeb4ac9e871aabd4bb
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/types@npm:5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/types@npm:5.59.6"
+  checksum: e898ca629d95b69f5dbfb7c9a3d28f943e5a372d37bf7efaefb41341d2d7147372cd4956b35b637e9b3a1b8555d64a5b35776650b815c4227b114513247ec2b5
   languageName: node
   linkType: hard
 
@@ -2348,21 +2438,39 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/utils@npm:5.59.5":
-  version: 5.59.5
-  resolution: "@typescript-eslint/utils@npm:5.59.5"
+"@typescript-eslint/typescript-estree@npm:5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/typescript-estree@npm:5.59.6"
+  dependencies:
+    "@typescript-eslint/types": 5.59.6
+    "@typescript-eslint/visitor-keys": 5.59.6
+    debug: ^4.3.4
+    globby: ^11.1.0
+    is-glob: ^4.0.3
+    semver: ^7.3.7
+    tsutils: ^3.21.0
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 65b7879e8cd4ccb987c1e1fa75cd84250cb46799ba0de6cdcaec70f6700b45ae4efcebb24163ca7946152e1b12595ee58e35bfb31ea6d35b3f39deaf973d4f1a
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/utils@npm:5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/utils@npm:5.59.6"
   dependencies:
     "@eslint-community/eslint-utils": ^4.2.0
     "@types/json-schema": ^7.0.9
     "@types/semver": ^7.3.12
-    "@typescript-eslint/scope-manager": 5.59.5
-    "@typescript-eslint/types": 5.59.5
-    "@typescript-eslint/typescript-estree": 5.59.5
+    "@typescript-eslint/scope-manager": 5.59.6
+    "@typescript-eslint/types": 5.59.6
+    "@typescript-eslint/typescript-estree": 5.59.6
     eslint-scope: ^5.1.1
     semver: ^7.3.7
   peerDependencies:
     eslint: ^6.0.0 || ^7.0.0 || ^8.0.0
-  checksum: 2703972653d3c6eab2423d9a2586908086afa3b89580969ed38e454bc372265d5ca9fadf7967e4ea639d482ad069f763981ef4a03a42d79df28f43f00ee9d43a
+  checksum: 40ffe1d2f1fbf6c30aa05f4a68785fb1e77aa09772ea45b001daf4068e504830cf60a441a819b2c6ffe4a19216aba404869300b2ce6bc2a67d093f74ded504a7
   languageName: node
   linkType: hard
 
@@ -2373,6 +2481,16 @@ __metadata:
     "@typescript-eslint/types": 5.59.5
     eslint-visitor-keys: ^3.3.0
   checksum: 94db281ec8ea3a7ede46763aaa0d3349e035b19334fd03e2e560f89c70faebcfa937d51b53d2eaad2506b60a5d901428cc8b5a65ad8e90ca1c12a133dbe977fc
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/visitor-keys@npm:5.59.6":
+  version: 5.59.6
+  resolution: "@typescript-eslint/visitor-keys@npm:5.59.6"
+  dependencies:
+    "@typescript-eslint/types": 5.59.6
+    eslint-visitor-keys: ^3.3.0
+  checksum: 8f216411344f5ed618ab838fa3fc4b04f3041f33e08d9b160df4db988f496c71f934c4b0362f686ce63ecf7f5d926c67190d5116c91945c1957544728449ec6b
   languageName: node
   linkType: hard
 
@@ -4432,6 +4550,22 @@ __metadata:
     nock: ^13.3.1
     stdout-stderr: ^0.1.9
   checksum: 63fe7984d7a9677fa176a7fa7b5e806e6c2a4c0999f44a5eb4a5eaf9d504401fc6ab2e842a914538d4e4c0fbe4b2641a65130b1c060f1b30d1426cef5690c148
+  languageName: node
+  linkType: hard
+
+"fancy-test@npm:^2.0.22":
+  version: 2.0.23
+  resolution: "fancy-test@npm:2.0.23"
+  dependencies:
+    "@types/chai": "*"
+    "@types/lodash": "*"
+    "@types/node": "*"
+    "@types/sinon": "*"
+    lodash: ^4.17.13
+    mock-stdin: ^1.0.0
+    nock: ^13.3.1
+    stdout-stderr: ^0.1.9
+  checksum: cf22ab6c57e5eb6cb76e3ee121cb50398e8fefe3ab142c8b81367ddd350c93b53a8f62ce8d901f7d3168f3eab0774127ee5d4a6fc3486d900057c286236c10d5
   languageName: node
   linkType: hard
 
@@ -8503,6 +8637,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semver@npm:^7.5.1":
+  version: 7.5.1
+  resolution: "semver@npm:7.5.1"
+  dependencies:
+    lru-cache: ^6.0.0
+  bin:
+    semver: bin/semver.js
+  checksum: d16dbedad53c65b086f79524b9ef766bf38670b2395bdad5c957f824dcc566b624988013564f4812bcace3f9d405355c3635e2007396a39d1bffc71cfec4a2fc
+  languageName: node
+  linkType: hard
+
 "semver@npm:~7.3.7":
   version: 7.3.8
   resolution: "semver@npm:7.3.8"
@@ -8555,26 +8700,26 @@ __metadata:
     "@commitlint/cli": ^17.6.3
     "@commitlint/config-conventional": ^17.6.3
     "@commitlint/prompt-cli": ^17.6.3
-    "@oclif/command": ^1.8.24
+    "@oclif/command": ^1.8.25
     "@oclif/config": ^1.18.8
     "@oclif/core": ^2.8.5
     "@oclif/dev-cli": ^1.26.10
     "@oclif/errors": ^1.3.6
     "@oclif/plugin-help": ^5.2.9
-    "@oclif/test": ^2.3.19
-    "@salesforce/cli-plugins-testkit": ^3.3.6
-    "@salesforce/command": ^5.3.7
-    "@salesforce/core": ^3.36.0
+    "@oclif/test": ^2.3.20
+    "@salesforce/cli-plugins-testkit": ^3.4.0
+    "@salesforce/command": ^5.3.8
+    "@salesforce/core": ^3.36.1
     "@salesforce/dev-config": ^4.0.1
     "@salesforce/ts-sinon": ^1.4.6
     "@stryker-mutator/core": ^6.4.2
     "@stryker-mutator/jest-runner": ^6.4.2
-    "@swc/core": ^1.3.57
+    "@swc/core": ^1.3.58
     "@types/chai": ^4.3.5
     "@types/mocha": ^10.0.1
-    "@types/node": ^20.1.2
-    "@typescript-eslint/eslint-plugin": ^5.59.5
-    "@typescript-eslint/parser": ^5.59.5
+    "@types/node": ^20.1.5
+    "@typescript-eslint/eslint-plugin": ^5.59.6
+    "@typescript-eslint/parser": ^5.59.6
     chai: ^4.3.7
     eslint: ^8.40.0
     eslint-config-prettier: ^8.8.0
