@@ -120,7 +120,7 @@ jobs:
     secrets: inherit
 
   e2e-check:
-    needs: [build, megalinter]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
