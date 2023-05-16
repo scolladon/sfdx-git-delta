@@ -52,7 +52,12 @@ jobs:
 
   test-release:
     needs: [prepare-release, release]
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: [14, 16, 18]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -63,7 +68,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org/
 
       - name: Install sfdx-cli
