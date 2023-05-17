@@ -1,10 +1,13 @@
 /node_modules
 /reports
 /lib
+/.nyc_output
+/.yarn/cache
+install-state.gz
 *-debug.log
 *-error.log
 sfdx-git-delta-*.tgz
-/.nyc_output
+package.tgz
 stderr*.txt
 stdout*.txt
 # stryker temp files

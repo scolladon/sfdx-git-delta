@@ -1,12 +1,11 @@
 {
     "ignorePaths": [
-	"CHANGELOG.md",
+	    "CHANGELOG.md",
         "**/node_modules/**",
         "**/.git/**",
-        ".vscode",
         "megalinter",
-        "yarn.lock",
-        "report"
+        "**/yarn.lock",
+        "**/.yarnrc.yml"
     ],
     "language": "en",
     "noConfigSearch": true,
@@ -18,10 +17,13 @@
         "Cherfaoui",
         "Colladon",
         "Commitlint",
+        "Corepack",
+        "corepack",
         "FORCEIGNORE",
         "FORCEINCLUDE",
         "FULLNAME",
         "Flexi",
+        "hardlinks",
         "Iframe",
         "METAFILE",
         "Mehdi",
@@ -141,6 +143,7 @@
         "weblinks",
         "wlens",
         "xmlbuilder",
+        "yarnrc",
         "\u00c0gain"
     ]
 }
