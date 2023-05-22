@@ -8,6 +8,7 @@ jest.mock('../../../../src/utils/fsHelper')
 const entity = 'folder/test'
 const extension = 'document'
 const objectType = 'documents'
+const xmlName = 'Document'
 const line = `A       force-app/main/default/${objectType}/${entity}.${extension}-meta.xml`
 
 let work
@@ -19,7 +20,7 @@ beforeEach(() => {
   }
 })
 
-describe('InFolderHander', () => {
+describe('InFolderHandler', () => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -38,7 +39,7 @@ describe('InFolderHander', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
       expect(copyFiles).not.toHaveBeenCalled()
     })
   })
@@ -57,12 +58,11 @@ describe('InFolderHander', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(3)
         expect(copyFiles).toHaveBeenCalledWith(
-          work,
-          expect.stringContaining(METAFILE_SUFFIX),
+          work.config,
           expect.stringContaining(METAFILE_SUFFIX)
         )
       })
@@ -80,10 +80,31 @@ describe('InFolderHander', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(readDir).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(5)
       })
     })
+  })
+  describe('when the line should not be processed', () => {
+    it.each([`force-app/main/default/${objectType}/test.otherExtension`])(
+      'does not handle the line',
+      async entityPath => {
+        // Arrange
+        const sut = new InFolder(
+          `A       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.size).toBe(0)
+        expect(copyFiles).not.toHaveBeenCalled()
+      }
+    )
   })
 })

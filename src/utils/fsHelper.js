@@ -3,64 +3,80 @@ const { readFile: fsReadFile } = require('fs').promises
 const { isAbsolute, join, relative } = require('path')
 const { outputFile } = require('fs-extra')
 const { spawn } = require('child_process')
-const { UTF8_ENCODING } = require('../utils/gitConstants')
-const { EOLRegex, getStreamContent } = require('./childProcessUtils')
+const { GIT_PATH_SEP, UTF8_ENCODING } = require('./gitConstants')
+const {
+  EOLRegex,
+  getStreamContent,
+  treatPathSep,
+} = require('./childProcessUtils')
 
 const FOLDER = 'tree'
-const FATAL = 'fatal'
 
 const showCmd = ['--no-pager', 'show']
+const gitPathSeparatorNormalizer = path => path?.replace(/\\+/g, GIT_PATH_SEP)
 const copiedFiles = new Set()
+const writtenFiles = new Set()
 
-const copyFiles = async (work, src, dst) => {
-  const config = work.config
-  if (copiedFiles.has(src)) return
+const copyFiles = async (config, src) => {
+  if (copiedFiles.has(src) || writtenFiles.has(src)) return
   copiedFiles.add(src)
 
-  src = relative(config.source, src)
-  const data = await readPathFromGit(src, config)
-  if (!data) {
-    return
-  }
-  if (data.startsWith(FOLDER)) {
-    const [header, , ...files] = data.split(EOLRegex)
-    const folder = header.split(':')[1]
-    for (const file of files) {
-      const fileDst = join(config.output, folder, file)
-      const fileSrc = join(config.repo, folder, file)
+  try {
+    const bufferData = await readPathFromGitAsBuffer(src, config)
+    const utf8Data = bufferData?.toString(UTF8_ENCODING)
 
-      await copyFiles(work, fileSrc, fileDst)
+    if (utf8Data.startsWith(FOLDER)) {
+      const [header, , ...files] = utf8Data.split(EOLRegex)
+      const folder = header.split(':')[1]
+      for (const file of files) {
+        const fileSrc = join(folder, file)
+
+        await copyFiles(config, fileSrc)
+      }
+    } else {
+      const dst = join(config.output, treatPathSep(src))
+      // Use Buffer to output the file content
+      // Let fs implementation detect the encoding ("utf8" or "binary")
+      await outputFile(dst, bufferData)
     }
-  } else if (data.startsWith(FATAL)) {
-    work.warnings.push(data)
-  } else {
-    await outputFile(dst, data)
+  } catch {
+    /* empty */
   }
 }
 
-const readPathFromGit = async (path, config) => {
-  const data = await getStreamContent(
-    spawn('git', [...showCmd, `${config.to}:${path}`], {
-      cwd: config.repo,
+const readPathFromGitAsBuffer = async (path, { repo, to }) => {
+  const normalizedPath = gitPathSeparatorNormalizer(path)
+  const bufferData = await getStreamContent(
+    spawn('git', [...showCmd, `${to}:${normalizedPath}`], {
+      cwd: repo,
     })
   )
 
-  return data
+  return bufferData
 }
 
-const pathExists = async (path, work) => {
-  const data = await readPathFromGit(path, work)
-  return data.startsWith(FATAL)
+const readPathFromGit = async (path, config) => {
+  let utf8Data = ''
+  try {
+    const bufferData = await readPathFromGitAsBuffer(path, config)
+    utf8Data = bufferData.toString(UTF8_ENCODING)
+  } catch {
+    /* empty */
+  }
+  return utf8Data
 }
 
-const readDir = async (dir, work) => {
-  const data = await readPathFromGit(dir, work)
+const pathExists = async (path, config) => {
+  const data = await readPathFromGit(path, config)
+  return !!data
+}
+
+const readDir = async (dir, config) => {
+  const data = await readPathFromGit(dir, config)
   const dirContent = []
   if (data.startsWith(FOLDER)) {
     const [, , ...files] = data.split(EOLRegex)
-    for (const file of files) {
-      dirContent.push(join(dir, file))
-    }
+    dirContent.push(...files)
   }
   return dirContent
 }
@@ -72,15 +88,22 @@ const readFile = async path => {
   return file
 }
 
-async function* scan(dir, work) {
-  const entries = await readDir(dir, work)
+async function* scan(dir, config) {
+  const entries = await readDir(dir, config)
   for (const file of entries) {
-    if (file.endsWith('/')) {
-      yield* scan(file, work)
+    const filePath = join(dir, file)
+    if (file.endsWith(GIT_PATH_SEP)) {
+      yield* scan(filePath, config)
     } else {
-      yield file
+      yield filePath
     }
   }
+}
+
+const writeFile = async (path, content, { output }) => {
+  if (writtenFiles.has(path)) return
+  writtenFiles.add(path)
+  await outputFile(join(output, treatPathSep(path)), content)
 }
 
 async function* filterExt(it, ext) {
@@ -97,11 +120,13 @@ const isSubDir = (parent, dir) => {
 }
 
 module.exports.copyFiles = copyFiles
+module.exports.gitPathSeparatorNormalizer = gitPathSeparatorNormalizer
 module.exports.isSubDir = isSubDir
 module.exports.pathExists = pathExists
 module.exports.readDir = readDir
 module.exports.readFile = readFile
 module.exports.readPathFromGit = readPathFromGit
 module.exports.scan = scan
-module.exports.scanExtension = (dir, ext, work) =>
-  filterExt(scan(dir, work), ext)
+module.exports.scanExtension = (dir, ext, config) =>
+  filterExt(scan(dir, config), ext)
+module.exports.writeFile = writeFile

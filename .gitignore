@@ -1,11 +1,16 @@
-.envrc
+/node_modules
+/reports
+/lib
+/.nyc_output
+/.yarn/cache
+install-state.gz
 *-debug.log
 *-error.log
-/.nyc_output
-/dist
-/lib
-/tmp
-node_modules
-coverage
-output
 sfdx-git-delta-*.tgz
+package.tgz
+stderr*.txt
+stdout*.txt
+# stryker temp files
+.stryker-tmp
+
+megalinter-reports/

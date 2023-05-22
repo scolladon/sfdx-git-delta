@@ -30,7 +30,7 @@ This will install all the tools needed to contribute
 yarn
 ```
 
-### 2) Build application
+### 3) Build application
 
 ```bash
 yarn pack
@@ -46,30 +46,64 @@ When developing, use [jest](https://jestjs.io/en/) unit testing to provide test 
 
 ```bash
 # just run test
-yarn test
+yarn test:unit
 
 # run test with coverage details
-yarn test:coverage
+yarn test:unit:coverage
 ```
 
 To execute a particular test, use the following command:
 
 ```bash
-yarn test -- <path_to_test>
+yarn test:unit -- <path_to_test>
 
 ```
+
+### NUT Testing sgd
+
+When developing, use mocha testing to provide NUT functional test. To run the mocha tests use the following command from the root directory:
+
+```bash
+# run test
+yarn test:nut
+```
+
+### E2E Testing sgd
+
+SGD has E2E executed at the PR level.
+Those test are located in the branch `e2e/base` and `e2e/head`
+Base scenario are implemented in `e2e/base` branch
+Updates to the metadata are implemented in `e2e/head`
+
+To run the E2E test locally, clone the repository in another folder and checkout the branch `e2e/head`
+Then execute:
+
+```bash
+# remove expected content
+yarn clean
+# run the test
+sfdx sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+# check expected is back to normal
+yarn test:e2e
+```
+
+Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
+```bash
+node path/to/sfdx-git-delta/bin/run sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+```
+
 ## Editor Configurations
 
 Configure your editor to use our lint and code style rules.
 
 ### Code formatting
 
-[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace. 
-This repository provide [.prettierignore](/.prettierignore) and [.prettierrc](/.prettierrc.json) files to control the behaviour of the Prettier formatter.
+[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace.
+This repository provide [.prettierignore](.prettierignore) and [.prettierrc](.prettierrc.json) files to control the behaviour of the Prettier formatter.
 
 ### Code linting
 
-[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. This repository provide [.eslintignore](/.eslintignore) file to exclude specific files from the linting process.
+[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs. This repository provide [.eslintignore](.eslintignore) file to exclude specific files from the linting process.
 
 ### Commit linting
 
@@ -93,16 +127,16 @@ The process of submitting a pull request is straightforward and
 generally follows the same pattern each time:
 
 1. [Fork the sfdx-git-delta repo](#fork-the-sfdx-git-delta-repo)
-1. [Create a feature branch](#create-a-feature-branch)
-1. [Make your changes](#make-your-changes)
-1. [Rebase](#rebase)
-1. [Check your submission](#check-your-submission)
-1. [Create a pull request](#create-a-pull-request)
-1. [Update the pull request](#update-the-pull-request)
+2. [Create a feature branch](#create-a-feature-branch)
+3. [Make your changes](#make-your-changes)
+4. [Rebase](#rebase)
+5. [Check your submission](#check-your-submission)
+6. [Create a pull request](#create-a-pull-request)
+7. [Update the pull request](#update-the-pull-request)
 
 ### Fork the sfdx-git-delta repo
 
-[Fork][fork-a-repo] the [scolladon/sfdx-git-delta](https://github.com/scolladon/sfdx-git-delta) repo. Clone your fork in your local workspace and [configure][configuring-a-remote-for-a-fork] your remote repository settings.
+[Fork](https://help.github.com/en/articles/fork-a-repo) the [scolladon/sfdx-git-delta](https://github.com/scolladon/sfdx-git-delta) repo. Clone your fork in your local workspace and [configure](https://help.github.com/en/articles/configuring-a-remote-for-a-fork) your remote repository settings.
 
 ```bash
 git clone git@github.com:<YOUR-USERNAME>/sfdx-git-delta.git
@@ -157,7 +191,7 @@ yarn lint
 
 The above command may display lint issues not related to your changes.
 The recommended way to avoid lint issues is to [configure your
-editor][eslint-integrations] to warn you in real time as you edit the file.
+editor](http://eslint.org/docs/user-guide/integrations) to warn you in real time as you edit the file.
 
 Fixing all existing lint issues is a tedious task so please pitch in by fixing
 the ones related to the files you make changes to!
@@ -168,11 +202,11 @@ Test your change by running the unit tests and integration tests. Instructions [
 ### Create a pull request
 
 If you've never created a pull request before, follow [these
-instructions][creating-a-pull-request]. Pull request samples [here](https://github.com/salesforce/sfdx-git-delta/pulls)
+instructions](https://help.github.com/articles/creating-a-pull-request/). Pull request samples [here](https://github.com/scolladon/sfdx-git-delta/pulls)
 
 ### Update the pull request
 
-```sh
+```bash
 git fetch origin
 git rebase origin/${base_branch}
 
@@ -182,12 +216,6 @@ git push origin ${feature_branch} --force-with-lease
 _note: If your pull request needs more changes, keep working on your feature branch as described above._
 
 CI validates prettifying, linting and tests
-
-[fork-a-repo]: https://help.github.com/en/articles/fork-a-repo
-[configuring-a-remote-for-a-fork]: https://help.github.com/en/articles/configuring-a-remote-for-a-fork
-[setup-github-ssh]: https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/
-[creating-a-pull-request]: https://help.github.com/articles/creating-a-pull-request/
-[eslint-integrations]: http://eslint.org/docs/user-guide/integrations
 
 ### Collaborate on the pull request
 
@@ -199,7 +227,7 @@ Pull Request comments are not enforced, it is more a way to help the reviewers a
 The repo contains a script to increment the Salesforce API version supported by SGD.
 To upgrade the API version, run the following command:
 
-```
+```bash
 yarn && yarn increment:apiversion
 ```
 
@@ -217,7 +245,8 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
 
 1. uninstall the previous version you may have `sfdx plugins:uninstall sfdx-git-delta`
 2. clone the repository
-3. checkout the branch to test
-4. install the dependencies `yarn install`
-5. run `yarn pack`, followed by `sfdx plugins:link`, from that local repository
-6. test the plugin!
+3. change directory for the repository folder
+4. checkout the branch to test
+5. install the dependencies `yarn install`
+6. run `yarn pack`, followed by `sfdx plugins:link`, from that local repository
+7. test the plugin!

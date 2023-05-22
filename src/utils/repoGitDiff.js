@@ -1,5 +1,5 @@
 'use strict'
-const cpUtils = require('./childProcessUtils')
+const { linify, treatPathSep } = require('./childProcessUtils')
 const { getType } = require('./typeUtils')
 const { buildIgnoreHelper } = require('./ignoreHelper')
 const {
@@ -16,10 +16,10 @@ const {
   OBJECT_TRANSLATION_TYPE,
 } = require('./metadataConstants')
 const { spawn } = require('child_process')
-const { readFile } = require('./fsHelper')
+const { gitPathSeparatorNormalizer, readFile } = require('./fsHelper')
 const micromatch = require('micromatch')
 const os = require('os')
-const path = require('path')
+const { parse, sep } = require('path')
 
 const DIFF_FILTER = '--diff-filter'
 
@@ -69,8 +69,8 @@ class RepoGitDiff {
       this.spawnConfig
     )
     const lines = []
-    for await (const line of cpUtils.linify(gitLs.stdout)) {
-      lines.push(cpUtils.treatPathSep(line))
+    for await (const line of linify(gitLs.stdout)) {
+      lines.push(treatPathSep(line))
     }
     return RepoGitDiff._addIncludes(lines, includeSetup)
   }
@@ -95,15 +95,13 @@ class RepoGitDiff {
         ...this.ignoreWhitespaceParams,
         this.config.from,
         this.config.to,
-        this.config.source,
+        gitPathSeparatorNormalizer(this.config.source),
       ],
       this.spawnConfig
     )
-    for await (const line of cpUtils.linify(gitDiff.stdout)) {
+    for await (const line of linify(gitDiff.stdout)) {
       lines.push(
-        cpUtils
-          .treatPathSep(line)
-          .replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
+        treatPathSep(line).replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
       )
     }
     return lines
@@ -135,14 +133,14 @@ class RepoGitDiff {
   _filterInternal(line, deletedRenamed) {
     return (
       !deletedRenamed.includes(line) &&
-      line.split(path.sep).some(part => this.metadata.has(part))
+      line.split(sep).some(part => this.metadata.has(part))
     )
   }
 
   static _addIncludes(lines, setup) {
     return setup.flatMap(obj =>
       micromatch(lines, obj.content).map(
-        include => `${obj.prefix}      ${include}`
+        includedLine => `${obj.prefix}${TAB}${treatPathSep(includedLine)}`
       )
     )
   }
@@ -167,11 +165,11 @@ class RepoGitDiff {
 
   _extractComparisonName(line) {
     const type = getType(line, this.metadata)
-    const el = path.parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
+    const el = parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
     let comparisonName = el.base
     if (pathType.includes(type)) {
       comparisonName = line
-        .split(path.sep)
+        .split(sep)
         .reduce(
           (acc, value) => (acc || this.metadata.has(value) ? acc + value : acc),
           ''

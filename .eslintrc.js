@@ -13,7 +13,7 @@ Happy linting! 💖
 */
 module.exports = {
   extends: ['eslint:recommended', 'plugin:prettier/recommended', 'prettier'],
-  ignorePatterns: ['lib/**/*', 'node_modules', '.next', 'output', 'coverage'],
+  ignorePatterns: ['lib/**/*', 'node_modules', '.next', 'output', 'reports'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2020,

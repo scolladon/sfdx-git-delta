@@ -2,16 +2,11 @@
 const { create } = require('xmlbuilder2')
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
+const { OBJECT_XML_NAME } = require('../utils/metadataConstants')
 
 module.exports = class PackageBuilder {
-  constructor(config, metadata) {
+  constructor(config) {
     this.config = config
-    this.metadata = metadata
-    this.looseMetadata = [...this.metadata.keys()]
-      .filter(type => this.metadata.get(type).content)
-      .flatMap(type =>
-        this.metadata.get(type).content.map(content => content.xmlName)
-      )
   }
 
   buildPackage(strucDiffPerType) {
@@ -21,9 +16,6 @@ module.exports = class PackageBuilder {
       xmlns: 'http://soap.sforce.com/2006/04/metadata',
     })
     Array.from(strucDiffPerType.keys())
-      .filter(
-        type => this.metadata.has(type) || this.looseMetadata.includes(type)
-      )
       .sort(this._sortTypesWithMetadata)
       .forEach(metadataType =>
         [...strucDiffPerType.get(metadataType)]
@@ -33,25 +25,30 @@ module.exports = class PackageBuilder {
             return type
           }, xml.ele('types'))
           .ele('name')
-          .txt(this.metadata.get(metadataType)?.xmlName ?? metadataType)
+          .txt(metadataType)
       )
     xml.ele('version').txt(`${this.config.apiVersion}.0`)
     return xml.end(xmlConf)
   }
 
   _sortTypesWithMetadata = (x, y) => {
-    if (x === 'objects') return -1 // @deprecated To remove when the order will not impact the result of the deployment
-    const xMeta = this.metadata.get(x)?.xmlName ?? x
-    const yMeta = this.metadata.get(y)?.xmlName ?? y
-    return new Intl.Collator(frLocale).compare(xMeta, yMeta)
+    // QUESTION: Why Object needs to be ordered first in package.xml so it can be deployed ?
+    if (x === OBJECT_XML_NAME) return -1 // @deprecated To remove when the order will not impact the result of the deployment
+    return new Intl.Collator(frLocale).compare(x, y)
   }
 }
 
-const fillPackageWithParameter = params => {
-  if (!params.package.has(params.type)) {
-    params.package.set(params.type, new Set())
+const fillPackageWithParameter = ({ store, type, member }) => {
+  if (!store.has(type)) {
+    store.set(type, new Set())
   }
-  params.package.get(params.type).add(params.elementName)
+  store.get(type).add(member)
 }
 
+const PACKAGE_MEMBER_PATH_SEP = '/'
+const cleanUpPackageMember = packageMember => {
+  return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
+}
+
+module.exports.cleanUpPackageMember = cleanUpPackageMember
 module.exports.fillPackageWithParameter = fillPackageWithParameter

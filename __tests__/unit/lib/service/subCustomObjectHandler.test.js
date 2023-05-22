@@ -47,6 +47,7 @@ describe('SubCustomObjectHandler', () => {
     describe(`when field is not master detail`, () => {
       it('should not handle master detail exception', async () => {
         // Arrange
+        readPathFromGit.mockResolvedValueOnce('')
         const sut = new SubCustomObjectHandler(
           line,
           objectType,
@@ -65,7 +66,7 @@ describe('SubCustomObjectHandler', () => {
     describe(`when field is master detail`, () => {
       it('should copy the parent object', async () => {
         // Arrange
-        readPathFromGit.mockImplementationOnce(() => MASTER_DETAIL_TAG)
+        readPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
         const sut = new SubCustomObjectHandler(
           line,
           objectType,

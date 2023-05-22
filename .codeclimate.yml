@@ -12,6 +12,6 @@ exclude_patterns:
   - __tests__/**/*
   - __mocks__/**/*
   - output/**/*
-  - coverage/**/*
+  - reports/**/*
   - .github/**/*
   - lib/**/*

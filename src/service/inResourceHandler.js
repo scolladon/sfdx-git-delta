@@ -2,7 +2,8 @@
 const StandardHandler = require('./standardHandler')
 const { join, parse } = require('path')
 const { pathExists, readDir } = require('../utils/fsHelper')
-const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
+const { META_REGEX } = require('../utils/metadataConstants')
+const { cleanUpPackageMember } = require('../utils/packageHelper')
 
 const STATICRESOURCE_TYPE = 'staticresources'
 const elementSrc = new Map()
@@ -11,37 +12,30 @@ class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
   }
+
   async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, , srcPath, elementName] = this._parseLine()
-    const [targetPath] = `${join(this.config.output, this.line)}`.match(
-      new RegExp(
-        `.*[/\\\\]${StandardHandler.metadata.get(this.type).directoryName}`,
-        'u'
-      )
-    )
+    const [, srcPath, elementFile] = this._parseLine()
     await this._buildElementMap(srcPath)
-
-    const matchingFiles = this._buildMatchingFiles(elementName)
+    const matchingFiles = this._buildMatchingFiles(elementFile)
+    const elementName = parse(elementFile).name
     await Promise.all(
       elementSrc
         .get(srcPath)
         .filter(
           src =>
             (this.type === STATICRESOURCE_TYPE &&
-              src.startsWith(parse(elementName).name)) ||
+              src.startsWith(elementName)) ||
             matchingFiles.includes(src)
         )
-        .map(src =>
-          this._copyWithMetaFile(join(srcPath, src), join(targetPath, src))
-        )
+        .map(src => this._copyWithMetaFile(join(srcPath, src)))
     )
   }
 
   async handleDeletion() {
-    const [, , srcPath, elementName] = this._parseLine()
-    const exists = await pathExists(join(srcPath, elementName), this.work)
+    const [, srcPath, elementName] = this._parseLine()
+    const exists = await pathExists(join(srcPath, elementName), this.config)
     if (exists) {
       await this.handleModification()
     } else {
@@ -51,7 +45,7 @@ class ResourceHandler extends StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return StandardHandler.cleanUpPackageMember(parsedPath.name)
+    return cleanUpPackageMember(parsedPath.name)
   }
 
   _getParsedPath() {
@@ -65,21 +59,24 @@ class ResourceHandler extends StandardHandler {
   _buildMatchingFiles(elementName) {
     const parsedElementName = parse(elementName).name
     const matchingFiles = [parsedElementName]
-    if (StandardHandler.metadata.get(this.type).metaFile) {
-      matchingFiles.push(
-        `${parsedElementName}.${
-          StandardHandler.metadata.get(this.type).suffix
-        }${METAFILE_SUFFIX}`
-      )
+    if (this.metadata.get(this.type).metaFile) {
+      matchingFiles.push(this._getRelativeMetadataXmlFileName(elementName))
     }
     return matchingFiles
   }
 
   async _buildElementMap(srcPath) {
     if (!elementSrc.has(srcPath)) {
-      const dirContent = await readDir(srcPath, this.work)
-      elementSrc.set(srcPath, dirContent)
+      const dirContent = await readDir(srcPath, this.config)
+      elementSrc.set(
+        srcPath,
+        dirContent.map(f => f.replace(/\/$/, ''))
+      )
     }
+  }
+
+  _isProcessable() {
+    return true
   }
 }
 

@@ -11,6 +11,7 @@ const { copyFiles } = require('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsHelper')
 
 const objectType = 'classes'
+const xmlName = 'ApexClass'
 const entity = 'MyClass'
 const extension = 'cls'
 const basePath = 'force-app/main/default/'
@@ -39,7 +40,9 @@ describe(`StandardHandler`, () => {
 
   it('should catch errors silently and store them', async () => {
     // Arrange
-    copyFiles.mockImplementationOnce(() => Promise.reject(new Error('test')))
+    copyFiles.mockImplementationOnce(() =>
+      Promise.reject(new Error('fatal: not a git repository'))
+    )
     const sut = new StandardHandler(
       `${ADDITION}       ${entityPath}`,
       objectType,
@@ -52,7 +55,7 @@ describe(`StandardHandler`, () => {
 
     // Assert
     expect(work.warnings.length).toEqual(1)
-    expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+    expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
     expect(work.diffs.destructiveChanges.size).toEqual(0)
     expect(copyFiles).toBeCalled()
   })
@@ -98,7 +101,7 @@ describe(`StandardHandler`, () => {
 
       // Assert
       expect(work.warnings).toEqual([])
-      expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+      expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
       expect(work.diffs.destructiveChanges.size).toEqual(0)
       expect(copyFiles).not.toBeCalled()
     })
@@ -117,7 +120,7 @@ describe(`StandardHandler`, () => {
       // Assert
       expect(work.warnings).toEqual([])
       expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get(objectType)).toEqual(
+      expect(work.diffs.destructiveChanges.get(xmlName)).toEqual(
         new Set([entity])
       )
       expect(copyFiles).not.toBeCalled()
@@ -143,12 +146,11 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
-          work,
-          entityPath.replace(METAFILE_SUFFIX, ''),
+          work.config,
           entityPath.replace(METAFILE_SUFFIX, '')
         )
       })
@@ -167,12 +169,11 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
-          work,
-          entityPath.replace(METAFILE_SUFFIX, ''),
+          work.config,
           entityPath.replace(METAFILE_SUFFIX, '')
         )
       })
@@ -194,13 +195,14 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
+        expect(work.diffs.package.get('ApexTestSuite')).toEqual(
+          new Set(['suite'])
+        )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).toBeCalledWith(
-          work,
-          expect.stringContaining(METAFILE_SUFFIX),
+          work.config,
           expect.stringContaining(METAFILE_SUFFIX)
         )
       })
@@ -220,13 +222,14 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get('testSuites')).toEqual(new Set(['suite']))
+        expect(work.diffs.package.get('ApexTestSuite')).toEqual(
+          new Set(['suite'])
+        )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
         expect(copyFiles).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
         expect(copyFiles).not.toBeCalledWith(
-          work,
-          expect.stringContaining(METAFILE_SUFFIX),
+          work.config,
           expect.stringContaining(METAFILE_SUFFIX)
         )
       })
@@ -251,9 +254,9 @@ describe(`StandardHandler`, () => {
 
         // Assert
         expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(objectType)).toEqual(new Set([entity]))
+        expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work, entityPath, entityPath)
+        expect(copyFiles).toBeCalledWith(work.config, entityPath)
       }
     )
     it('should add deleted element to destructiveChanges and do not copy file', async () => {
@@ -271,7 +274,7 @@ describe(`StandardHandler`, () => {
       // Assert
       expect(work.warnings).toEqual([])
       expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get(objectType)).toEqual(
+      expect(work.diffs.destructiveChanges.get(xmlName)).toEqual(
         new Set([entity])
       )
       expect(copyFiles).not.toBeCalled()
@@ -280,7 +283,7 @@ describe(`StandardHandler`, () => {
 
   describe('_parseLine', () => {
     it.each(['.', '', 'other'])(
-      'should return repo, path and name part of a line with config.repo "%s"',
+      'should return path and name part of a line "%s"',
       repoPath => {
         // Arrange
         work.config.repo = repoPath
@@ -295,31 +298,33 @@ describe(`StandardHandler`, () => {
         const result = sut._parseLine()
 
         // Assert
-        expect(result.length).toBe(4)
-        expect(result[0]).toBe(
-          `${!['', '.'].includes(repoPath) ? `${repoPath}/` : ''}${entityPath}`
-        )
-        expect(result[1]).toBe(['', '.'].includes(repoPath) ? '' : repoPath)
-        expect(result[2]).toBe(
-          `${!['', '.'].includes(repoPath) ? '/' : ''}${basePath}${objectType}`
-        )
-        expect(result[3]).toBe(`${entity}.${extension}`)
+        expect(result.length).toBe(3)
+        expect(result[0]).toBe(`${entityPath}`)
+        expect(result[1]).toBe(`${basePath}${objectType}`)
+        expect(result[2]).toBe(`${entity}.${extension}`)
       }
     )
   })
-})
 
-describe('cleanUpPackageMember', () => {
-  it(`package member path delimiter is "${StandardHandler.PACKAGE_MEMBER_PATH_SEP}"`, () => {
-    // Arrange
-    const example = `Package\\Member`
+  describe('when the line should not be processed', () => {
+    it.each([`force-app/main/default/classes/folder/Random.file`])(
+      'does not handle the line',
+      async entityPath => {
+        // Arrange
+        const sut = new StandardHandler(
+          `A       ${entityPath}`,
+          objectType,
+          work,
+          globalMetadata
+        )
 
-    // Act
-    const result = StandardHandler.cleanUpPackageMember(example).split(
-      StandardHandler.PACKAGE_MEMBER_PATH_SEP
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.size).toBe(0)
+        expect(copyFiles).not.toHaveBeenCalled()
+      }
     )
-
-    // Assert
-    expect(result.length).toBe(2)
   })
 })

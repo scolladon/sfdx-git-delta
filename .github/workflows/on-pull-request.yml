@@ -1,0 +1,183 @@
+---
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "img/**"
+
+# Manage concurrency to stop running jobs and start new ones in case of new commit pushed
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  commit-lint:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Lint commits
+        uses: wagoid/commitlint-github-action@v5
+        env:
+          NODE_PATH: ${{ github.workspace }}/node_modules
+        continue-on-error: true
+
+  pull-request-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lint PR
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  npm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Check outdated dependencies
+        run: npm outdated
+
+      - name: Audit dependencies
+        run: yarn npm audit
+
+  megalinter:
+    runs-on: ubuntu-latest
+    steps:
+      # Git Checkout
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # MegaLinter
+      - name: MegaLinter
+        id: ml
+        # You can override MegaLinter flavor used to have faster performances
+        # More info at https://megalinter.io/flavors/
+        uses: oxsecurity/megalinter/flavors/javascript@v6
+        env:
+          # All available variables are described in documentation
+          # https://megalinter.io/configuration/
+          APPLY_FIXES: all
+          VALIDATE_ALL_CODEBASE: true # Set ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }} to validate only diff with main branch
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ADD YOUR CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: megalinter-reports
+          path: |
+            megalinter-reports
+            mega-linter.log
+
+  mutation-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Build plugin
+        run: yarn pack
+
+      - name: Mutation test
+        run: yarn test:mutation
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mutation-test-report
+          path: reports/mutation
+
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+    secrets: inherit
+
+  e2e-check:
+    needs: [build]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: [14, 16, 18]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          path: ./plugin
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install dependencies in production mode
+        working-directory: ./plugin
+        run: yarn workspaces focus --all --production
+        shell: bash
+
+      - name: Install build dependencies
+        working-directory: ./plugin
+        run: yarn add @salesforce/dev-config typescript
+
+      - name: Build plugin
+        working-directory: ./plugin
+        run: yarn pack
+
+      - name: Install sfdx-cli
+        run: npm install -g sfdx-cli
+
+      - name: Install plugin
+        working-directory: ./plugin
+        run: |
+          yarn set version classic
+          sfdx plugins:link .
+          sfdx plugins
+
+      - name: E2E Tests
+        working-directory: ./e2e
+        run: |
+          yarn
+          yarn test:e2e

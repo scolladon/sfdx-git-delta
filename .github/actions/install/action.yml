@@ -1,0 +1,71 @@
+---
+name: Install
+description: Install dependencies
+
+inputs:
+  prod-context:
+    required: false
+    description: drive installation mode
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: ⚙️ Enable Corepack
+      run: corepack enable
+      shell: bash
+
+    - name: Cache prep
+      id: yarn-config
+      run: |
+        echo "CACHE_FOLDER=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
+        echo "node-version="node-$(node --version)"" >> $GITHUB_OUTPUT
+      shell: bash
+      env:
+        YARN_ENABLE_GLOBAL_CACHE: 'false'
+
+    - name: Restore yarn cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.yarn-config.outputs.CACHE_FOLDER }}
+        key: yarn-download-cache-${{ hashFiles('**/yarn.lock', '.yarnrc.yml') }}
+        restore-keys: |
+          yarn-download-cache-
+
+    - name: Restore node_modules
+      id: yarn-nm-cache
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: yarn-nm-cache-${{ runner.os }}-${{ steps.yarn-config.outputs.node-version }}-${{ github.ref }}-${{ hashFiles('**/yarn.lock', '.yarnrc.yml') }}
+
+    - name: Restore yarn install state
+      id: yarn-install-state-cache
+      uses: actions/cache@v3
+      with:
+        path: .yarn/
+        key: yarn-install-state-cache-${{ runner.os }}-${{ steps.yarn-config.outputs.node-version }}-${{ github.ref }}-${{ hashFiles('**/yarn.lock', '.yarnrc.yml') }}
+
+    - name: Install dependencies in production mode
+      if: ${{ inputs.prod-context == 'true' }}
+      run: yarn install --immutable --check-cache --prod
+      shell: bash
+      env:
+        # Overrides/align yarnrc.yml options (v3, v4) for a CI context
+        YARN_ENABLE_GLOBAL_CACHE: 'false' # Use local cache folder to keep downloaded archives
+        YARN_NM_MODE: 'hardlinks-local' # Reduce node_modules size
+        YARN_INSTALL_STATE_PATH: '.yarn/install-state.gz' # Might speed up resolution step when node_modules present
+        # Other environment variables
+        HUSKY: '0' # By default do not run HUSKY install
+
+    - name: Install dependencies in integration mode
+      if: ${{ inputs.prod-context == 'false' }}
+      run: yarn install --immutable --check-cache
+      shell: bash
+      env:
+        # Overrides/align yarnrc.yml options (v3, v4) for a CI context
+        YARN_ENABLE_GLOBAL_CACHE: 'false' # Use local cache folder to keep downloaded archives
+        YARN_NM_MODE: 'hardlinks-local' # Reduce node_modules size
+        YARN_INSTALL_STATE_PATH: '.yarn/install-state.gz' # Might speed up resolution step when node_modules present
+        # Other environment variables
+        HUSKY: '0' # By default do not run HUSKY install

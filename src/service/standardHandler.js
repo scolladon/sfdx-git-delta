@@ -7,18 +7,17 @@ const {
   MODIFICATION,
 } = require('../utils/gitConstants')
 const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
-const { fillPackageWithParameter } = require('../utils/packageHelper')
+const {
+  cleanUpPackageMember,
+  fillPackageWithParameter,
+} = require('../utils/packageHelper')
 const { copyFiles } = require('../utils/fsHelper')
-
-const PACKAGE_MEMBER_PATH_SEP = '/'
 
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 class StandardHandler {
-  static metadata
-
   constructor(line, type, work, metadata) {
-    StandardHandler.metadata = StandardHandler.metadata ?? metadata
+    this.metadata = metadata
     ;[this.changeType] = line
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
@@ -29,13 +28,11 @@ class StandardHandler {
     this.warnings = work.warnings
     this.splittedLine = this.line.split(sep)
 
-    if (StandardHandler.metadata.get(this.type).metaFile === true) {
+    if (this.metadata.get(this.type)?.metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
-    this.suffixRegex = new RegExp(
-      `\\.${StandardHandler.metadata.get(this.type).suffix}$`
-    )
+    this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type)?.suffix}$`)
 
     this.handlerMap = {
       [ADDITION]: this.handleAddition,
@@ -43,11 +40,14 @@ class StandardHandler {
       [MODIFICATION]: this.handleModification,
     }
 
-    this.ext = parse(this.line).ext.substring(1)
+    this.ext = parse(this.line)
+      .base.replace(METAFILE_SUFFIX, '')
+      .split('.')
+      .pop()
   }
 
   async handle() {
-    if (this.handlerMap[this.changeType]) {
+    if (this.handlerMap[this.changeType] && this._isProcessable()) {
       try {
         await this.handlerMap[this.changeType].apply(this)
       } catch (error) {
@@ -61,10 +61,7 @@ class StandardHandler {
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
-    const source = join(this.config.repo, this.line)
-    const target = join(this.config.output, this.line)
-
-    await this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(this.line)
   }
 
   handleDeletion() {
@@ -90,30 +87,25 @@ class StandardHandler {
 
   _getElementName() {
     const parsedPath = this._getParsedPath()
-    return StandardHandler.cleanUpPackageMember(parsedPath.base)
+    return cleanUpPackageMember(parsedPath.base)
   }
 
-  _fillPackage(packageObject) {
+  _fillPackage(store) {
     fillPackageWithParameter({
-      package: packageObject,
-      type: this.type,
-      elementName: this._getElementName(),
+      store,
+      type: this.metadata.get(this.type).xmlName,
+      member: this._getElementName(),
     })
   }
 
-  async _copyWithMetaFile(src, dst) {
-    const file = copyFiles(this.work, src, dst)
+  async _copyWithMetaFile(src) {
+    await copyFiles(this.config, src)
     if (
-      StandardHandler.metadata.get(this.type).metaFile === true &&
+      this.metadata.get(this.type).metaFile === true &&
       !`${src}`.endsWith(METAFILE_SUFFIX)
     ) {
-      await copyFiles(
-        this.work,
-        this._getMetaTypeFilePath(src),
-        this._getMetaTypeFilePath(dst)
-      )
+      await copyFiles(this.config, this._getMetaTypeFilePath(src))
     }
-    await file
   }
 
   _getMetaTypeFilePath(path) {
@@ -125,22 +117,25 @@ class StandardHandler {
   }
 
   _parseLine() {
-    const regexRepo = this.config.repo !== '.' ? this.config.repo : ''
-    return join(this.config.repo, this.line).match(
+    return this.line.match(
       new RegExp(
-        `(?<repo>${RegExpEscape(regexRepo)})(?<path>.*[/\\\\]${RegExpEscape(
-          StandardHandler.metadata.get(this.type).directoryName
+        `(?<path>.*[/\\\\]${RegExpEscape(
+          this.metadata.get(this.type).directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
     )
   }
 
-  static cleanUpPackageMember(packageMember) {
-    return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
+  _getRelativeMetadataXmlFileName(path) {
+    return `${parse(path).base.replace(this.ext, '').replace(/\.$/, '')}.${
+      this.metadata.get(this.type).suffix
+    }${METAFILE_SUFFIX}`
   }
 
-  static PACKAGE_MEMBER_PATH_SEP = PACKAGE_MEMBER_PATH_SEP
+  _isProcessable() {
+    return this.metadata.get(this.type).suffix === this.ext
+  }
 }
 
 module.exports = StandardHandler

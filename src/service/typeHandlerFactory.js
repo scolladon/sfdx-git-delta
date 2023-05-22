@@ -5,42 +5,52 @@ const InBundleHandler = require('./inBundleHandler')
 const InFile = require('./inFileHandler')
 const InFolder = require('./inFolderHandler')
 const InResource = require('./inResourceHandler')
+const LwcHandler = require('./lwcHandler')
 const Standard = require('./standardHandler')
 const SubCustomObject = require('./subCustomObjectHandler')
-const InTranslation = require('./inTranslationHandler')
-const Wave = require('./waveHandler')
+const ObjectTranslation = require('./ObjectTranslationHandler')
+const SharedFolder = require('./sharedFolderHandler')
 
 const { getType } = require('../utils/typeUtils')
 
 const classes = {
-  aura: InResource,
+  assignmentRules: InFile,
+  autoResponseRules: InFile,
+  aura: LwcHandler,
   bots: Bot,
   businessProcesses: SubCustomObject,
   compactLayouts: SubCustomObject,
   dashboards: InFolder,
   digitalExperiences: InBundleHandler,
-  discovery: Wave,
+  discovery: SharedFolder,
   documents: InFolder,
   email: InFolder,
+  escalationRules: InFile,
   experiences: InResource,
   fieldSets: SubCustomObject,
   fields: SubCustomObject,
+  globalValueSetTranslations: InFile,
   indexes: SubCustomObject,
   labels: InFile,
   listViews: SubCustomObject,
-  lwc: InResource,
+  lwc: LwcHandler,
+  matchingRules: InFile,
+  moderation: SharedFolder,
   objects: CustomObject,
-  objectTranslations: InTranslation,
+  objectTranslations: ObjectTranslation,
+  profiles: InFile,
   recordTypes: SubCustomObject,
   reports: InFolder,
   rules: SubCustomObject,
   sharingReasons: SubCustomObject,
   sharingRules: InFile,
+  standardValueSetTranslations: InFile,
   staticresources: InResource,
   territories: SubCustomObject,
   territory2Models: CustomObject,
+  translations: InFile,
   validationRules: SubCustomObject,
-  wave: Wave,
+  wave: SharedFolder,
   waveTemplates: InResource,
   webLinks: SubCustomObject,
   workflows: InFile,

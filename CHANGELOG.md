@@ -1,6 +1,179 @@
+<!-- markdownlint-disable MD024 MD025 -->
+<!-- markdown-link-check-disable -->
 # Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+## [5.19.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.18.1...v5.19.0) (2023-05-15)
+
+
+### Features
+
+* add `LoyaltyProgramSetup` metadata ([#605](https://github.com/scolladon/sfdx-git-delta/issues/605)) ([5970905](https://github.com/scolladon/sfdx-git-delta/commit/5970905779d31911267ecb68e7c4afc9ede1e334))
+
+## [5.18.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.18.0...v5.18.1) (2023-05-11)
+
+
+### Bug Fixes
+
+* handle `ModerationRule` and `KeywordList` with shared folder type ([#594](https://github.com/scolladon/sfdx-git-delta/issues/594)) ([770b1ba](https://github.com/scolladon/sfdx-git-delta/commit/770b1bab2a3cfcbcfb84223d427ac3679e851035))
+
+## [5.18.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.17.1...v5.18.0) (2023-04-21)
+
+
+### Features
+
+* extend metadata content pruning to more eligible types ([#533](https://github.com/scolladon/sfdx-git-delta/issues/533)) ([2576cf7](https://github.com/scolladon/sfdx-git-delta/commit/2576cf7e53f3a961b05267f11976a3146e51498a))
+
+## [5.17.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.17.0...v5.17.1) (2023-04-04)
+
+
+### Bug Fixes
+
+* get parent folder name portability ([#562](https://github.com/scolladon/sfdx-git-delta/issues/562)) ([49b882e](https://github.com/scolladon/sfdx-git-delta/commit/49b882ee651a03e9b53d50919904f077b983fa87))
+
+## [5.17.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.16.0...v5.17.0) (2023-04-04)
+
+
+### Features
+
+* fast `flowTranslationProcessor` exit ([#553](https://github.com/scolladon/sfdx-git-delta/issues/553)) ([2e8f9fb](https://github.com/scolladon/sfdx-git-delta/commit/2e8f9fb6be4c6b613f0b6c42bc70278c7762d358))
+* process lines related to metadata entity only ([#554](https://github.com/scolladon/sfdx-git-delta/issues/554)) ([f4c5483](https://github.com/scolladon/sfdx-git-delta/commit/f4c54834461db2de6902532fdcf70369c40a2a0e))
+
+## [5.16.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.15.0...v5.16.0) (2023-03-31)
+
+
+### Features
+
+* add FSC `AssessmentQuestion*` metadata ([#542](https://github.com/scolladon/sfdx-git-delta/issues/542)) ([afc0d9f](https://github.com/scolladon/sfdx-git-delta/commit/afc0d9fe60de35b7f173c0c86024e82dafcaa303))
+
+
+### Bug Fixes
+
+* copy empty file from git ([#547](https://github.com/scolladon/sfdx-git-delta/issues/547)) ([577f750](https://github.com/scolladon/sfdx-git-delta/commit/577f75008bca785629b2fb4ccefeab0a392573e3))
+
+## [5.15.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.14.0...v5.15.0) (2023-03-29)
+
+
+### Features
+
+* add DecisionTable and DecisionTableDataSetLink metadata ([#538](https://github.com/scolladon/sfdx-git-delta/issues/538)) ([d91b5ae](https://github.com/scolladon/sfdx-git-delta/commit/d91b5aedf35a007136241df69f57d7ce4d19d23f))
+
+
+### Bug Fixes
+
+* keep attributes not subject to comparison ([#539](https://github.com/scolladon/sfdx-git-delta/issues/539)) ([08cf667](https://github.com/scolladon/sfdx-git-delta/commit/08cf6677b71d0b7f41d56e1ab8b437650d758dd1))
+
+## [5.14.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.3...v5.14.0) (2023-03-14)
+
+
+### Features
+
+* add support for forecasting metadata types ([#518](https://github.com/scolladon/sfdx-git-delta/issues/518)) ([89d6aa7](https://github.com/scolladon/sfdx-git-delta/commit/89d6aa793c5aea6650e1dbffc7da7cf982379df8))
+* implement diff detection using file content comparison ([#511](https://github.com/scolladon/sfdx-git-delta/issues/511)) ([9bf60c5](https://github.com/scolladon/sfdx-git-delta/commit/9bf60c50e30d2ba0be7f58121404c2dabd85a303))
+
+## [5.13.3](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.2...v5.13.3) (2023-02-26)
+
+
+### Bug Fixes
+
+* `fsHelper.pathExist` when path does not exist ([#482](https://github.com/scolladon/sfdx-git-delta/issues/482)) ([fef6734](https://github.com/scolladon/sfdx-git-delta/commit/fef6734c947c7811d5d6995320f996fdfd329d2a))
+* flow translation post processing ([#487](https://github.com/scolladon/sfdx-git-delta/issues/487)) ([225c435](https://github.com/scolladon/sfdx-git-delta/commit/225c4356a95fc781f4fbe938d57709a7fa795a6e))
+* in file comparison while ignoring whitespace ([#478](https://github.com/scolladon/sfdx-git-delta/issues/478) ([0855dcc](https://github.com/scolladon/sfdx-git-delta/commit/0855dcc5bdae8cfe47788fd3201f9a44c9b2743c))
+* typos in readme ([a3459b0](https://github.com/scolladon/sfdx-git-delta/commit/a3459b0e61cee0d270a0f4c4007316a6a6b496eb))
+
+## [5.13.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.1...v5.13.2) (2023-02-16)
+
+
+### Bug Fixes
+
+* version output usage ([ea23411](https://github.com/scolladon/sfdx-git-delta/commit/ea23411d58ee24748f31a0309d85d2d42f4466e6))
+* version output usage in release automation ([#467](https://github.com/scolladon/sfdx-git-delta/issues/467)) ([ea23411](https://github.com/scolladon/sfdx-git-delta/commit/ea23411d58ee24748f31a0309d85d2d42f4466e6))
+
+## [5.13.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.13.0...v5.13.1) (2023-02-16)
+
+
+### Bug Fixes
+
+* remove escaping in the published release message ([#464](https://github.com/scolladon/sfdx-git-delta/issues/464)) ([9d80ccd](https://github.com/scolladon/sfdx-git-delta/commit/9d80ccd2cafeb89b17a87bb77a7c2dd0994fa191))
+
+## [5.13.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.12.0...v5.13.0) (2023-02-16)
+
+
+### Features
+
+* add Industry Cloud metadata ([#461](https://github.com/scolladon/sfdx-git-delta/issues/461)) ([b5321db](https://github.com/scolladon/sfdx-git-delta/commit/b5321dbd4464957d92e87014225e433719fb87db))
+
+
+### Bug Fixes
+
+* commit lint dependencies issue ([#462](https://github.com/scolladon/sfdx-git-delta/issues/462)) ([aac9d5d](https://github.com/scolladon/sfdx-git-delta/commit/aac9d5d69a521f6eb386b51b53b6d6d6aa99d019))
+* introduce chore commit type ([#463](https://github.com/scolladon/sfdx-git-delta/issues/463)) ([529441f](https://github.com/scolladon/sfdx-git-delta/commit/529441f875f5bf22505558e22d330e079e87f240))
+* migrate to conventional ([529441f](https://github.com/scolladon/sfdx-git-delta/commit/529441f875f5bf22505558e22d330e079e87f240))
+* publish to npm automation ([#454](https://github.com/scolladon/sfdx-git-delta/issues/454)) ([f50715f](https://github.com/scolladon/sfdx-git-delta/commit/f50715f405d108c41cd7cc2fa38d17d8ac952be6))
+
+## [5.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.11.4...v5.12.0) (2023-02-14)
+
+
+### Features
+
+* add FSC metadata ([#444](https://github.com/scolladon/sfdx-git-delta/issues/444)) ([fcf9e02](https://github.com/scolladon/sfdx-git-delta/commit/fcf9e02f9f9733703f59cd3ec57c9ec69508f34f))
+* bump Salesforce api version 57 ([#451](https://github.com/scolladon/sfdx-git-delta/issues/451)) ([2bf0737](https://github.com/scolladon/sfdx-git-delta/commit/2bf07376af15cca6595a8cf9d1a5ce0eeb32301c))
+* implement `release-please` release workflow ([#442](https://github.com/scolladon/sfdx-git-delta/issues/442)) ([d79891b](https://github.com/scolladon/sfdx-git-delta/commit/d79891b5f01ad3a1b30a9e68846087b310bb0c83))
+
+
+### Bug Fixes
+
+* windows path separator with micromatch ([#448](https://github.com/scolladon/sfdx-git-delta/issues/448)) ([d49f161](https://github.com/scolladon/sfdx-git-delta/commit/d49f16199b454d2ca4dd7f20fc718ef18e0616f2))
+
+### 5.11.4 (2023-02-01)
+
+
+### Bug Fixes
+
+* binary file copy ([#440](https://github.com/scolladon/sfdx-git-delta/issues/440)) ([b0e363a](https://github.com/scolladon/sfdx-git-delta/commit/b0e363a2bdcdb438ea651def621bd4cf03ac1782))
+
+### 5.11.3 (2023-01-30)
+
+
+### Bug Fixes
+
+* windows path separator with git ([#436](https://github.com/scolladon/sfdx-git-delta/issues/436)) ([b760a7e](https://github.com/scolladon/sfdx-git-delta/commit/b760a7ee0381777bdd7d422d1df7f3b291cab9d2))
+
+### 5.11.2 (2023-01-26)
+
+
+### Bug Fixes
+
+* relative `repo` and `source` parameters ([#433](https://github.com/scolladon/sfdx-git-delta/issues/433)) ([7e5409d](https://github.com/scolladon/sfdx-git-delta/commit/7e5409d94598b68a743dddd0a86d759ac31f0bde))
+
+### 5.11.1 (2023-01-24)
+
+
+### Bug Fixes
+
+* generate incremental (`-d`) with source (`-s`) parameter ([#432](https://github.com/scolladon/sfdx-git-delta/issues/432)) ([24da138](https://github.com/scolladon/sfdx-git-delta/commit/24da1380638181ed8efcfdc8031698b53427ddcb))
+
+## 5.11.0 (2023-01-23)
+
+
+### Features
+
+* add RelationshipGraphDefinition metadata for v55 and v56 ([#428](https://github.com/scolladon/sfdx-git-delta/issues/428)) ([de4ac84](https://github.com/scolladon/sfdx-git-delta/commit/de4ac846df690cb2d306b6508311ed7f548caf1c))
+
+### 5.10.2 (2023-01-19)
+
+
+### Bug Fixes
+
+* experience metadata meta file suffix ([#423](https://github.com/scolladon/sfdx-git-delta/issues/423)) ([b18e388](https://github.com/scolladon/sfdx-git-delta/commit/b18e388ce4616c0e934b4c8c45bbc8d008bb94b2)), closes [#397](https://github.com/scolladon/sfdx-git-delta/issues/397)
+
+### 5.10.1 (2023-01-17)
+
+
+### Bug Fixes
+
+* readDir git based implementation ([#419](https://github.com/scolladon/sfdx-git-delta/issues/419)) ([187cbf4](https://github.com/scolladon/sfdx-git-delta/commit/187cbf449bf46c095ca7826a0c14420449e4e4ec))
 
 ## 5.10.0 (2022-12-16)
 
@@ -168,7 +341,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Bug Fixes
 
-* ignore white space parameter `--ignore-whitepsace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
+* ignore white space parameter `--ignore-whitespace, -W` ([#267](https://github.com/scolladon/sfdx-git-delta/issues/267)) ([d9f560e](https://github.com/scolladon/sfdx-git-delta/commit/d9f560eb1af28b749c08af4018dd626fe4720222))
 
 ### [5.0.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.0.1...v5.0.2) (2022-03-16)
 
@@ -188,7 +361,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Features
 
-* decommissionate sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
+* decommission sgd ([#221](https://github.com/scolladon/sfdx-git-delta/issues/221)) ([ecd146f](https://github.com/scolladon/sfdx-git-delta/commit/ecd146f0e6480f68bbf08362e3a535c7f0fe24ba))
 
 
 ### Bug Fixes

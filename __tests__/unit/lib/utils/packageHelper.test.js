@@ -1,6 +1,7 @@
 'use strict'
 const PackageBuilder = require('../../../../src/utils/packageHelper')
 const {
+  cleanUpPackageMember,
   fillPackageWithParameter,
 } = require('../../../../src/utils/packageHelper')
 
@@ -10,7 +11,7 @@ const tests = [
     'Object',
     new Map(
       Object.entries({
-        objects: new Set([
+        CustomObject: new Set([
           'Object',
           'YetAnotherObject',
           'OtherObject',
@@ -44,11 +45,11 @@ const tests = [
     'full',
     new Map(
       Object.entries({
-        dashboards: new Set(['Dashboard']),
-        documents: new Set(['Document']),
-        fields: new Set(['Field']),
-        lwc: new Set(['Component']),
-        objects: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
+        CustomField: new Set(['Field']),
+        CustomObject: new Set(['Object', 'YetAnotherObject', 'OtherObject']),
+        Dashboard: new Set(['Dashboard']),
+        Document: new Set(['Document']),
+        LightningComponentBundle: new Set(['Component']),
         WaveLens: new Set(['Lens']),
         WaveRecipe: new Set(['Recipe']),
       })
@@ -103,20 +104,14 @@ const tests = [
 ]
 
 describe(`test if package builder`, () => {
-  let globalMetadata
   let packageConstructor
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
-    globalMetadata = await getGlobalMetadata()
-    packageConstructor = new PackageBuilder(options, globalMetadata)
+    packageConstructor = new PackageBuilder(options)
   })
 
-  test.each(tests)(
-    'can build %s destructiveChanges.xml',
-    (type, diff, expected) => {
-      expect(packageConstructor.buildPackage(diff)).toBe(expected)
-    }
-  )
+  test.each(tests)('can build %s manifest', (_, diff, expected) => {
+    expect(packageConstructor.buildPackage(diff)).toBe(expected)
+  })
   test('can handle null diff', () => {
     expect(packageConstructor.buildPackage(null)).toBe(undefined)
   })
@@ -125,29 +120,29 @@ describe(`test if package builder`, () => {
 describe('fillPackageWithParameter', () => {
   describe('when called with proper params', () => {
     const type = 'test-type'
-    const elementName = 'test-name'
+    const member = 'test-name'
     describe.each([
       [new Map(), 'is empty'],
       [new Map([['other-type', new Set(['other-name'])]]), 'is not empty'],
       [new Map([[type, new Set()]]), 'contains the type'],
       [
-        new Map([[type, new Set([elementName])]]),
+        new Map([[type, new Set([member])]]),
         'contains the type and the element',
       ],
-    ])('when the package %o  %s', pack => {
+    ])('when the package %o  %s', store => {
       it('adds the element name under the type in the package', () => {
         // Arrange
         const params = {
-          package: pack,
+          store,
           type: type,
-          elementName: elementName,
+          member,
         }
 
         // Act
         fillPackageWithParameter(params)
 
         // Assert
-        expect(pack.get(type).has(elementName)).toBeTruthy()
+        expect(store.get(type).has(member)).toBeTruthy()
       })
     })
   })
@@ -156,14 +151,14 @@ describe('fillPackageWithParameter', () => {
     describe.each([
       undefined,
       {
-        package: {},
+        store: {},
         type: [],
-        elementName: new Set(),
+        member: new Set(),
       },
       {
         piquouze: new Map(),
         top: 'top',
-        elementary: 'elementary',
+        member: 'elementary',
       },
     ])('when called with %o', params => {
       it('should fail', () => {
@@ -175,6 +170,19 @@ describe('fillPackageWithParameter', () => {
           expect(ex).toBeTruthy()
         }
       })
+    })
+  })
+
+  describe('cleanUpPackageMember', () => {
+    it(`package member path delimiter with "/"`, () => {
+      // Arrange
+      const example = `Package\\Member`
+
+      // Act
+      const result = cleanUpPackageMember(example).split('/')
+
+      // Assert
+      expect(result.length).toBe(2)
     })
   })
 })

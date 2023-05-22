@@ -1,12 +1,12 @@
 'use strict'
-const WaveHandler = require('./waveHandler')
+const ShareFolderHandler = require('./sharedFolderHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
-const { join, parse, sep } = require('path')
+const { parse, sep } = require('path')
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
 
-class BotHandler extends WaveHandler {
+class BotHandler extends ShareFolderHandler {
   _getElementName() {
     const parsedPath = this._getParsedPath()
     const elementName = new Set([
@@ -23,18 +23,16 @@ class BotHandler extends WaveHandler {
   async _addParentBot() {
     const botName = this._getParsedPath().dir.split(sep).pop()
     fillPackageWithParameter({
-      package: this.diffs.package,
+      store: this.diffs.package,
       type: BOT_TYPE,
-      elementName: botName,
+      member: botName,
     })
 
     if (!this.config.generateDelta) return
 
     const botPath = `${parse(this.line).dir}${sep}${botName}.${BOT_EXTENSION}`
-    const source = join(this.config.repo, botPath)
-    const target = join(this.config.output, botPath)
 
-    await this._copyWithMetaFile(source, target)
+    await this._copyWithMetaFile(botPath)
   }
 }
 

@@ -1,20 +1,21 @@
-name: Manage Versions
+---
+name: Manage versions
 
 on:
   workflow_dispatch:
     inputs:
       version-alias:
-        description: 'version alias to map to a version number'
+        description: version alias to map to a version number
         required: true
         type: choice
-        options: 
-        - stable
-        - latest
-        - latest-rc
+        options:
+          - stable
+          - latest
+          - latest-rc
       version-number:
-        description: 'version number (semver format)'
+        description: version number (semver format)
         required: true
-        default: 'vX.Y.Z'
+        default: vX.Y.Z
         type: string
 
 jobs:
@@ -27,10 +28,10 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 14.x
+          node-version: 16
           registry-url: https://registry.npmjs.org/
 
       - name: Change version
-        run: npm dist-tag add "sfdx-git-delta@${{ github.event.inputs.version-number }}" "${{ github.event.inputs.version-alias }}"
+        run: npm dist-tag add sfdx-git-delta@${{ github.event.inputs.version-number }} ${{ github.event.inputs.version-alias }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

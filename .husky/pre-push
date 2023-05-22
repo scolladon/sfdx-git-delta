@@ -3,6 +3,7 @@
 
 yarn lint
 yarn pack
-yarn test:coverage
+yarn test:unit:coverage
+yarn test:nut
 yarn analysis force-app
-yarn outdated || true
+npm outdated || true

@@ -111,6 +111,6 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     if (!output.success || !this.flags.silent) {
       this.ux.log(JSON.stringify(output, null, 2))
     }
-    return null
+    return output
   }
 }

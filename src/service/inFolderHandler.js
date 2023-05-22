@@ -5,7 +5,8 @@ const {
   META_REGEX,
   METAFILE_SUFFIX,
 } = require('../utils/metadataConstants')
-const { join, normalize, parse, sep } = require('path')
+const { cleanUpPackageMember } = require('../utils/packageHelper')
+const { join, parse, sep } = require('path')
 const { readDir } = require('../utils/fsHelper')
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
@@ -19,32 +20,23 @@ class InFolderHandler extends StandardHandler {
   }
 
   async _copyFolderMetaFile() {
-    const [, , folderPath, folderName] = this._parseLine()
+    const [, folderPath, folderName] = this._parseLine()
 
     const folderFileName = `${folderName}.${
-      StandardHandler.metadata.get(this.type).suffix.toLowerCase() +
-      METAFILE_SUFFIX
+      this.metadata.get(this.type).suffix.toLowerCase() + METAFILE_SUFFIX
     }`
 
-    await this._copyWithMetaFile(
-      normalize(join(this.config.repo, folderPath, folderFileName)),
-      normalize(join(this.config.output, folderPath, folderFileName))
-    )
+    await this._copyWithMetaFile(join(folderPath, folderFileName))
   }
 
   async _copySpecialExtension() {
     const parsedLine = parse(this.line)
-    const dirContent = await readDir(parsedLine.dir, this.work)
+    const dirContent = await readDir(parsedLine.dir, this.config)
 
     await Promise.all(
       dirContent
         .filter(file => file.includes(parsedLine.name))
-        .map(file =>
-          this._copyWithMetaFile(
-            normalize(join(this.config.repo, parsedLine.dir, file)),
-            normalize(join(this.config.output, parsedLine.dir, file))
-          )
-        )
+        .map(file => this._copyWithMetaFile(join(parsedLine.dir, file)))
     )
   }
 
@@ -56,7 +48,17 @@ class InFolderHandler extends StandardHandler {
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
 
-    return StandardHandler.cleanUpPackageMember(packageMember)
+    return cleanUpPackageMember(packageMember)
+  }
+
+  _isProcessable() {
+    const parsedLine = parse(this.line)
+    const parentFolder = parsedLine.dir.split(sep).pop()
+    return (
+      super._isProcessable() ||
+      parentFolder !== this.type ||
+      this.ext.endsWith(INFOLDER_SUFFIX)
+    )
   }
 }
 

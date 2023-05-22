@@ -36,7 +36,7 @@ const isGit = async dir => {
 const isBlank = str => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS = ['to', 'from']
-const SOURCE_API_VERSION_ATTRIBUT = 'sourceApiVersion'
+const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 class CLIHelper {
@@ -110,7 +110,9 @@ class CLIHelper {
 
   _filterDirectories() {
     return asyncFilter(
-      [this.config.output, this.config.source].filter(Boolean),
+      [this.config.output, join(this.config.repo, this.config.source)].filter(
+        Boolean
+      ),
       async dir => {
         const exist = await dirExists(dir)
         return !exist
@@ -149,7 +151,7 @@ class CLIHelper {
         const sfdxProjectRaw = await readFile(sfdxProjectPath)
         const sfdxProject = JSON.parse(sfdxProjectRaw)
         this.config.apiVersion =
-          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUT]) || 'default'
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) || 'default'
       }
     }
   }
@@ -191,8 +193,7 @@ class CLIHelper {
 
   static TO_DEFAULT_VALUE = 'HEAD'
   static OUTPUT_DEFAULT_VALUE = './output'
-  static SOURCE_DEFAULT_VALUE = '.'
-  static REPO_DEFAULT_VALUE = '.'
-  static IGNORE_DEFAULT_VALUE = '.'
+  static SOURCE_DEFAULT_VALUE = './'
+  static REPO_DEFAULT_VALUE = './'
 }
 module.exports = CLIHelper
