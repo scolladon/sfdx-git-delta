@@ -40,7 +40,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
-          registry-url: https://registry.npmjs.org/
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -69,7 +68,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-          registry-url: https://registry.npmjs.org/
 
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli

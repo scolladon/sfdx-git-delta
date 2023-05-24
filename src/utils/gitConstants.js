@@ -10,12 +10,10 @@ module.exports.POINTER_REF_TYPES = [COMMIT_REF_TYPE, TAG_REF_TYPE]
 module.exports.GIT_DIFF_TYPE_REGEX = /^.\s+/u
 module.exports.GIT_FOLDER = '.git'
 module.exports.GIT_PATH_SEP = '/'
-module.exports.MINUS = '-'
 module.exports.IGNORE_WHITESPACE_PARAMS = [
   '--ignore-all-space',
   '--ignore-blank-lines',
   '--ignore-cr-at-eol',
   '--word-diff-regex=|[^[:space:]]',
 ]
-module.exports.PLUS = '+'
 module.exports.UTF8_ENCODING = 'utf8'

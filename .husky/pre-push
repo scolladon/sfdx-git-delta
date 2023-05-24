@@ -7,3 +7,5 @@ yarn test:unit:coverage
 yarn test:nut
 yarn analysis force-app
 npm outdated || true
+yarn npm audit || true
+yarn lint:dependencies || true

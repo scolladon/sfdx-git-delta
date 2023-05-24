@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
-          registry-url: https://registry.npmjs.org/
 
       - name: Change version
         run: npm deprecate sfdx-git-delta@$"${{ github.event.inputs.version-expression }}" "${{ github.event.inputs.rationale }}"

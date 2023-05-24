@@ -56,13 +56,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
-          registry-url: https://registry.npmjs.org/
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
       - name: Check outdated dependencies
         run: npm outdated
+
+      - name: Check unused dependencies
+        run: yarn lint:dependencies
+        continue-on-error: true
 
       - name: Audit dependencies
         run: yarn npm audit
