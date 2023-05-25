@@ -40,7 +40,7 @@
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
     "analysis": "codeclimate analyze",
-    "clean": "shx rm -rf lib ; shx rm -rf reports/* ; shx rm -rf .stryker-tmp/* ; shx rm -rf .nyc_output ; shx rm -f oclif.manifest.json ; shx rm -rf sfdx-git-delta-v*.tgz ; shx rm -rf stderr*.txt ; shx rm -rf stdout*.txt",
+    "clean": "shx rm -rf lib 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*'",
     "commit": "commit",
     "increment:apiversion": "filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname",
     "lint": "eslint src/",
