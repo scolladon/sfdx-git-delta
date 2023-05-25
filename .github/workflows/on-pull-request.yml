@@ -76,12 +76,9 @@ jobs:
       # Git Checkout
       - name: Checkout Code
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       # MegaLinter
       - name: MegaLinter
-        id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
         uses: oxsecurity/megalinter/flavors/javascript@v6
@@ -89,9 +86,8 @@ jobs:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/
           APPLY_FIXES: all
-          VALIDATE_ALL_CODEBASE: true # Set ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }} to validate only diff with main branch
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # ADD YOUR CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
+          VALIDATE_ALL_CODEBASE: true
+          # ADD CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
 
       - uses: actions/upload-artifact@v3
         if: always()
