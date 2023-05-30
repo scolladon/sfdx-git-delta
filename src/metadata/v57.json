@@ -1,5 +1,13 @@
 [
   {
+
+    "directoryName": "ActionLauncherItemDef",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "actionLauncherItemDef",
+    "xmlName": "ActionLauncherItemDef"
+  },
+  {
     "directoryName": "loyaltyProgramSetups",
     "inFolder": false,
     "metaFile": false,
