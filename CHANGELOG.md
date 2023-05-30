@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.20.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.19.0...v5.20.0) (2023-05-30)
+
+
+### Features
+
+* add `ActionLauncherItemDef` for `v57.0` API ([#618](https://github.com/scolladon/sfdx-git-delta/issues/618)) ([c72c708](https://github.com/scolladon/sfdx-git-delta/commit/c72c708e923f419a2f1027eddc250a067b85b6d6))
+
+
+### Bug Fixes
+
+* how `--json` parameter output is handled ([#608](https://github.com/scolladon/sfdx-git-delta/issues/608)) ([3484e31](https://github.com/scolladon/sfdx-git-delta/commit/3484e31e64d895cc3738cf3aa046afb221208afb))
+
 ## [5.19.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.18.1...v5.19.0) (2023-05-15)
 
 
