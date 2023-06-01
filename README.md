@@ -108,8 +108,8 @@ It's also important to implement a way to switch back to full deployment in case
 
 The plugin requires git command line on the running environment.
 
-**Node v14.6.0 or above is required**.
-To check if Salesforce CLI runs under a supported node version for SGD, run `sfdx --version`. You should see a node version above v.14.6.0 to use SGD.
+**Node v16.20.0 or above is required**.
+To check if Salesforce CLI runs under a supported node version for SGD, run `sfdx --version`. You should see a node version above v.16.20.0 to use SGD.
 
 If you encounter this issue whereas the node version is OK on the running environment, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`).
 
