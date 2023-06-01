@@ -1,10 +1,7 @@
 'use strict'
-const { MINUS, PLUS } = require('../utils/gitConstants')
 
 const FIELD_DIRECTORY_NAME = 'fields'
 const FLOW_XML_NAME = 'Flow'
-const FULLNAME = 'fullName'
-const FULLNAME_XML_TAG = new RegExp(`<${FULLNAME}>(.*)</${FULLNAME}>`)
 const INFOLDER_SUFFIX = `Folder`
 const LABEL_EXTENSION = 'labels'
 const LABEL_XML_NAME = 'CustomLabel'
@@ -33,13 +30,10 @@ const SUB_OBJECT_TYPES = [
 const TERRITORY_MODEL_TYPE = 'territory2Models'
 const TRANSLATION_EXTENSION = 'translation'
 const TRANSLATION_TYPE = 'Translations'
-const XML_TAG = new RegExp(`^[${MINUS}${PLUS}]?\\s*<([^(/><.)]+)>\\s*$`)
 const XML_HEADER_TAG_END = '?>'
 
 module.exports.FIELD_DIRECTORY_NAME = FIELD_DIRECTORY_NAME
 module.exports.FLOW_XML_NAME = FLOW_XML_NAME
-module.exports.FULLNAME = FULLNAME
-module.exports.FULLNAME_XML_TAG = FULLNAME_XML_TAG
 module.exports.INFOLDER_SUFFIX = INFOLDER_SUFFIX
 module.exports.LABEL_EXTENSION = LABEL_EXTENSION
 module.exports.LABEL_XML_NAME = LABEL_XML_NAME
@@ -56,5 +50,4 @@ module.exports.SUB_OBJECT_TYPES = SUB_OBJECT_TYPES
 module.exports.TERRITORY_MODEL_TYPE = TERRITORY_MODEL_TYPE
 module.exports.TRANSLATION_EXTENSION = TRANSLATION_EXTENSION
 module.exports.TRANSLATION_TYPE = TRANSLATION_TYPE
-module.exports.XML_TAG = XML_TAG
 module.exports.XML_HEADER_TAG_END = XML_HEADER_TAG_END

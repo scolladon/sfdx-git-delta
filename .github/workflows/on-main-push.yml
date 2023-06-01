@@ -40,13 +40,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
-          registry-url: https://registry.npmjs.org/
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
       - name: Publish to npm
-        run: yarn publish --access public --tag latest-rc --new-version ${{ needs.prepare-release.outputs.version }}
+        run: yarn npm publish --access public --tag latest-rc
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
@@ -56,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [14, 16, 18]
+        node: [16, 18, 20]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
@@ -69,7 +68,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-          registry-url: https://registry.npmjs.org/
 
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli
