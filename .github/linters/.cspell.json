@@ -1,11 +1,12 @@
 {
     "ignorePaths": [
-	    "CHANGELOG.md",
+	    "**/CHANGELOG.md",
         "**/node_modules/**",
         "**/.git/**",
-        "megalinter",
+        "**/megalinter.yml",
         "**/yarn.lock",
-        "**/.yarnrc.yml"
+        "**/.yarnrc.yml",
+        "**/src/metadata/**"
     ],
     "language": "en",
     "noConfigSearch": true,
