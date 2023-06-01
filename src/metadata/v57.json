@@ -1,6 +1,19 @@
 [
   {
-
+    "directoryName": "slackapps",
+    "inFolder": false,
+    "metaFile": true,
+    "suffix": "slackapp",
+    "xmlName": "SlackApp"
+  },
+  {
+    "directoryName": "viewdefinitions",
+    "inFolder": false,
+    "metaFile": true,
+    "suffix": "view",
+    "xmlName": "ViewDefinition"
+  },
+  {
     "directoryName": "ActionLauncherItemDef",
     "inFolder": false,
     "metaFile": false,
