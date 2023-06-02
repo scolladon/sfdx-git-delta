@@ -152,14 +152,20 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install dependencies in production mode
+      - name: Get yarn cache directory path
         working-directory: ./plugin
-        run: yarn workspaces focus --all --production
+        id: yarn-cache-dir-path
+        run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
         shell: bash
 
-      - name: Install build dependencies
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.yarn-cache }}
+          key: ${{ runner.os }}-${{ matrix.node }}-yarn-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies
         working-directory: ./plugin
-        run: yarn add @salesforce/dev-config typescript
+        run: yarn install --immutable --check-cache
 
       - name: Build plugin
         working-directory: ./plugin

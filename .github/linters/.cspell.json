@@ -122,6 +122,7 @@
         "scontrols",
         "sfdx",
         "sgdignore",
+        "shellcheck",
         "staticresources",
         "stefanzweifel",
         "struc",
