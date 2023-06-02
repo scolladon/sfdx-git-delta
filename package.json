@@ -47,7 +47,7 @@
     "lint:dependencies": "knip",
     "lint:fix": "eslint --fix src/",
     "test": "yarn test:unit && yarn test:nut",
-    "test:build:local": "shx rm -rf node_modules ; yarn && yarn pack && yarn test",
+    "test:build:local": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
     "test:mutation": "stryker run",
     "test:nut": "nyc mocha **/*.nut.ts",
     "test:unit": "jest",
