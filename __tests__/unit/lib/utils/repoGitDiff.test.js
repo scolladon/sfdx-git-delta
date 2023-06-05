@@ -1,4 +1,5 @@
 'use strict'
+const { resetInstance } = require('../../../../src/utils/ignoreHelper')
 const RepoGitDiff = require('../../../../src/utils/repoGitDiff')
 const {
   ADDITION,
@@ -23,6 +24,7 @@ describe(`test if repoGitDiff`, () => {
   beforeEach(() => {
     child_process.__setOutput([])
     child_process.__setError(false)
+    resetInstance()
   })
   test('can parse git correctly', async () => {
     const output = []

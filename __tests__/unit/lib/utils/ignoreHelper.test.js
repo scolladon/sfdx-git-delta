@@ -1,6 +1,6 @@
 const {
-  forPath,
   buildIgnoreHelper,
+  resetInstance,
 } = require('../../../../src/utils/ignoreHelper')
 const { readFile } = require('../../../../src/utils/fsHelper')
 const {
@@ -11,64 +11,9 @@ const {
 jest.mock('../../../../src/utils/fsHelper')
 
 describe('ignoreHelper', () => {
-  beforeEach(() => {})
-  describe('forPath', () => {
-    describe('when path exist', () => {
-      it('returns an ignore instance', async () => {
-        // Arrange
-        expect.assertions(2)
-        readFile.mockImplementationOnce(() => {
-          return ''
-        })
-
-        // Act
-        const actual = await forPath('.forceignore')
-
-        // Assert
-        expect(actual).toBeTruthy()
-        expect(readFile).toHaveBeenCalledTimes(1)
-      })
-    })
-
-    describe('when path is asked multiple times', () => {
-      it('returns the same ignore instance', async () => {
-        // Arrange
-        expect.assertions(3)
-        const ignorePath = '.ignore'
-        readFile.mockImplementationOnce(() => {
-          return ''
-        })
-        const expected = await forPath(ignorePath)
-
-        // Act
-        const actual = await forPath(ignorePath)
-
-        // Assert
-        expect(actual).toBeTruthy()
-        expect(expected).toBe(actual)
-        expect(readFile).toHaveBeenCalledTimes(1)
-      })
-    })
-
-    describe('when path does not exist', () => {
-      it('throws exception', async () => {
-        // Arrange
-        expect.assertions(2)
-        readFile.mockRejectedValue(new Error())
-
-        // Act
-        let actual
-        try {
-          actual = await forPath('.notexist')
-        } catch (e) {
-          // Assert
-          expect(actual).toBeFalsy()
-          expect(readFile).toHaveBeenCalledTimes(1)
-        }
-      })
-    })
+  afterEach(() => {
+    jest.resetAllMocks()
   })
-
   describe('buildIgnoreHelper', () => {
     describe('when config does not have ignore neither destructive ignore', () => {
       let sut
@@ -77,15 +22,18 @@ describe('ignoreHelper', () => {
         const config = {}
         sut = await buildIgnoreHelper(config)
       })
-
-      it('helper should not have globalInstance', () => {
-        // Assert
-        expect(sut.globalIgnore).toBeUndefined()
+      afterAll(() => {
+        resetInstance()
       })
 
-      it('helper should not have destructiveInstance', () => {
+      it('global helper should be defined', () => {
         // Assert
-        expect(sut.destructiveIgnore).toBeUndefined()
+        expect(sut.globalIgnore).toBeDefined()
+      })
+
+      it('destructive helper should be defined', () => {
+        // Assert
+        expect(sut.destructiveIgnore).toBeDefined()
       })
 
       it.each([
@@ -105,17 +53,21 @@ describe('ignoreHelper', () => {
       let sut
       beforeAll(async () => {
         // Arrange
-        readFile.mockImplementationOnce(() => Promise.resolve('*ignoreFile*'))
+        readFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
         const config = { ignoreDestructive: 'path' }
         sut = await buildIgnoreHelper(config)
       })
 
-      it('helper should not have globalInstance', () => {
-        // Assert
-        expect(sut.globalIgnore).toBeUndefined()
+      afterAll(() => {
+        resetInstance()
       })
 
-      it('helper should have destructiveInstance', () => {
+      it('global helper should be defined', () => {
+        // Assert
+        expect(sut.globalIgnore).toBeDefined()
+      })
+
+      it('destructive helper should be defined', () => {
         // Assert
         expect(sut.destructiveIgnore).toBeDefined()
       })
@@ -147,6 +99,19 @@ describe('ignoreHelper', () => {
       )
 
       it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should not keep deleted "%s" line matching default ignore pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
+
+      it.each([
         `${ADDITION} path/to/file.ext`,
         `${MODIFICATION} path/to/file.ext`,
       ])('should keep changed "%s" line', line => {
@@ -161,9 +126,13 @@ describe('ignoreHelper', () => {
       let sut
       beforeAll(async () => {
         // Arrange
-        readFile.mockImplementationOnce(() => Promise.resolve('*ignoreFile*'))
+        readFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
         const config = { ignore: 'path' }
         sut = await buildIgnoreHelper(config)
+      })
+
+      afterAll(() => {
+        resetInstance()
       })
 
       it('helper should have globalInstance', () => {
@@ -171,10 +140,10 @@ describe('ignoreHelper', () => {
         expect(sut.globalIgnore).toBeDefined()
       })
 
-      it('helper should have destructiveInstance (same as globalInstance)', () => {
+      it('helper should have destructiveInstance (with default ignore)', () => {
         // Assert
         expect(sut.destructiveIgnore).toBeDefined()
-        expect(sut.destructiveIgnore).toStrictEqual(sut.globalIgnore)
+        expect(sut.destructiveIgnore._rules).toHaveLength(2)
       })
 
       it.each([
@@ -222,6 +191,19 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(false)
       })
+
+      it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should not keep deleted "%s" line matching default ignore pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
     })
     describe('when config has ignore and destructive ignore', () => {
       let sut
@@ -231,6 +213,10 @@ describe('ignoreHelper', () => {
         readFile.mockImplementationOnce(() => Promise.resolve('*ignoreFile*'))
         const config = { ignore: 'path', ignoreDestructive: 'otherPath' }
         sut = await buildIgnoreHelper(config)
+      })
+
+      afterAll(() => {
+        resetInstance()
       })
 
       it('helper should have globalInstance', () => {
@@ -288,6 +274,19 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(false)
       })
+
+      it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should not keep deleted "%s" line matching default ignore pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
     })
   })
 })

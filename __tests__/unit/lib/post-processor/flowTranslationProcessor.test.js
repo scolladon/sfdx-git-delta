@@ -13,11 +13,18 @@ const {
   isSubDir,
   readFile,
 } = require('../../../../src/utils/fsHelper')
-const { forPath } = require('../../../../src/utils/ignoreHelper')
 const { pathExists } = require('fs-extra')
 jest.mock('fs-extra')
 jest.mock('../../../../src/utils/fsHelper')
-jest.mock('../../../../src/utils/ignoreHelper')
+
+const mockIgnores = jest.fn()
+jest.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: jest.fn(() => ({
+    globalIgnore: {
+      ignores: mockIgnores,
+    },
+  })),
+}))
 jest.mock('../../../../src/utils/fxpHelper', () => {
   const originalModule = jest.requireActual('../../../../src/utils/fxpHelper')
 
@@ -43,6 +50,7 @@ describe('FlowTranslationProcessor', () => {
     let sut
     let flap
     beforeEach(() => {
+      mockIgnores.mockReset()
       work = {
         diffs: {
           package: new Map(),
@@ -314,7 +322,7 @@ describe('FlowTranslationProcessor', () => {
         beforeEach(() => {
           // Arrange
           work.config.ignore = '.forceignore'
-          forPath.mockResolvedValue({ ignores: () => true })
+          mockIgnores.mockReturnValue(true)
         })
         it('should not add translation file', async () => {
           // Act
@@ -328,7 +336,6 @@ describe('FlowTranslationProcessor', () => {
             EXTENSION,
             work.config
           )
-          expect(forPath).toHaveBeenCalledTimes(1)
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
         })
@@ -341,7 +348,7 @@ describe('FlowTranslationProcessor', () => {
             [FLOW_XML_NAME, new Set([flowFullName])],
           ])
           work.config.ignore = '.forceignore'
-          forPath.mockResolvedValue({ ignores: () => false })
+          mockIgnores.mockReturnValue(false)
         })
         it('should add translation file', async () => {
           // Act
@@ -355,7 +362,6 @@ describe('FlowTranslationProcessor', () => {
             EXTENSION,
             work.config
           )
-          expect(forPath).toHaveBeenCalledTimes(1)
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
           expect(writeFile).toHaveBeenCalledTimes(1)
         })

@@ -15,7 +15,7 @@ const {
 } = require('../utils/fsHelper')
 const { pathExists } = require('fs-extra')
 const { parse, join } = require('path')
-const { forPath } = require('../utils/ignoreHelper')
+const { buildIgnoreHelper } = require('../utils/ignoreHelper')
 const {
   asArray,
   parseXmlFileToJson,
@@ -62,11 +62,11 @@ class FlowTranslationProcessor extends BaseProcessor {
       this.work.config
     )
 
-    const ign = await this._getIgnoreInstance()
+    const ignoreHelper = await buildIgnoreHelper(this.config)
 
     for await (const translationPath of translationsIterator) {
       if (
-        !ign?.ignores(translationPath) &&
+        !ignoreHelper?.globalIgnore?.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
         this._parseTranslationFile(translationPath)
@@ -153,14 +153,6 @@ class FlowTranslationProcessor extends BaseProcessor {
 
   _shouldProcess() {
     return this.work.diffs.package.has(FLOW_XML_NAME)
-  }
-
-  async _getIgnoreInstance() {
-    let ign
-    if (this.config.ignore) {
-      ign = await forPath(this.config.ignore)
-    }
-    return ign
   }
 }
 
