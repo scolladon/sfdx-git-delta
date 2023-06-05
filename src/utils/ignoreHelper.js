@@ -6,13 +6,16 @@ const {
   MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
 } = require('./gitConstants')
+
+const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
+
 class IgnoreHelper {
   globalIgnore
   destructiveIgnore
 
   constructor(globalIgnore, destructiveIgnore) {
     this.globalIgnore = globalIgnore
-    this.destructiveIgnore = destructiveIgnore ?? globalIgnore
+    this.destructiveIgnore = destructiveIgnore
   }
 
   keep(line) {
@@ -31,25 +34,37 @@ class IgnoreHelper {
   }
 }
 
+let instance
 const buildIgnoreHelper = async config => {
-  const globalIgnore = await forPath(config.ignore)
-  const destructiveIgnore = await forPath(config.ignoreDestructive)
+  if (!instance) {
+    const globalIgnore = await _buildIgnore(config.ignore)
+    let destructiveIgnore = config.ignoreDestructive
+      ? await _buildIgnore(config.ignoreDestructive)
+      : await _buildIgnore(config.ignore)
 
-  return new IgnoreHelper(globalIgnore, destructiveIgnore)
+    await _addDefaultDestructiveIgnore(destructiveIgnore)
+
+    instance = new IgnoreHelper(globalIgnore, destructiveIgnore)
+  }
+  return instance
 }
 
-const ignorePerPath = new Map()
-const forPath = async ignorePath => {
-  let ign = null
-  if (ignorePath && !ignorePerPath.has(ignorePath)) {
-    ign = ignore()
+const _buildIgnore = async ignorePath => {
+  const ign = ignore()
+  if (ignorePath) {
     const content = await readFile(ignorePath)
     ign.add(content.toString())
-    ignorePerPath.set(ignorePath, ign)
   }
-
-  return ignorePerPath.get(ignorePath)
+  return ign
 }
 
-module.exports.forPath = forPath
+const _addDefaultDestructiveIgnore = async destructiveIgnore => {
+  destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
+}
+
+const resetInstance = () => {
+  instance = null
+}
+
 module.exports.buildIgnoreHelper = buildIgnoreHelper
+module.exports.resetInstance = resetInstance
