@@ -81,7 +81,7 @@ jobs:
       - name: MegaLinter
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter/flavors/javascript@v6
+        uses: oxsecurity/megalinter/flavors/javascript@v7
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/
