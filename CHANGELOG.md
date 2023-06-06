@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.21.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.20.0...v5.21.0) (2023-06-05)
+
+
+### Features
+
+* add `SlackApp` and `ViewDefinition` metadata type ([#624](https://github.com/scolladon/sfdx-git-delta/issues/624)) ([2dd9ce8](https://github.com/scolladon/sfdx-git-delta/commit/2dd9ce809d1a114008959ed0d5caec679e3eeac5))
+* ignore not deletable metadata by default ([#631](https://github.com/scolladon/sfdx-git-delta/issues/631)) ([5ff3379](https://github.com/scolladon/sfdx-git-delta/commit/5ff33797d31f2d8ada30e503c6a3036d8ba57426))
+
 ## [5.20.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.19.0...v5.20.0) (2023-05-30)
 
 
