@@ -1617,20 +1617,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/cli-plugins-testkit@npm:^3.4.0":
-  version: 3.4.0
-  resolution: "@salesforce/cli-plugins-testkit@npm:3.4.0"
+"@salesforce/cli-plugins-testkit@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "@salesforce/cli-plugins-testkit@npm:4.0.1"
   dependencies:
-    "@salesforce/core": ^3.34.8
-    "@salesforce/kit": ^1.9.2
-    "@salesforce/ts-types": ^1.7.3
+    "@salesforce/core": ^4.0.1
+    "@salesforce/kit": ^3.0.2
+    "@salesforce/ts-types": ^2.0.2
     "@types/shelljs": ^0.8.12
     archiver: ^5.2.0
     debug: ^4.3.1
     shelljs: ^0.8.4
     strip-ansi: 6.0.1
     ts-retry-promise: ^0.7.0
-  checksum: 0a6c68bdea4ee5068d59682228de77d45b4d7c3c24108d9a71bce8fe708f953f7b1455fcb4d9594c5b7e699c7e742d39d3e01364dc9ad59116bccf70fce9cb77
+  checksum: f6eb238c1cf76525db0658b7814814083003169dd7ebef4415af00f9bebb6057790ec1653fc46eb2b5e19afcbd6bb5d8c4cd63ebffaba07148a3ac6db560a90f
   languageName: node
   linkType: hard
 
@@ -1648,7 +1648,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/core@npm:^3.34.8, @salesforce/core@npm:^3.36.2":
+"@salesforce/core@npm:^3.36.2":
   version: 3.36.2
   resolution: "@salesforce/core@npm:3.36.2"
   dependencies:
@@ -1671,6 +1671,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@salesforce/core@npm:^4.0.1":
+  version: 4.1.3
+  resolution: "@salesforce/core@npm:4.1.3"
+  dependencies:
+    "@salesforce/bunyan": ^2.0.0
+    "@salesforce/kit": ^3.0.2
+    "@salesforce/schemas": ^1.5.1
+    "@salesforce/ts-types": ^2.0.1
+    "@types/semver": ^7.5.0
+    ajv: ^8.12.0
+    archiver: ^5.3.0
+    change-case: ^4.1.2
+    debug: ^3.2.7
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsforce: ^2.0.0-beta.23
+    jsonwebtoken: 9.0.0
+    proper-lockfile: ^4.1.2
+    ts-retry-promise: ^0.7.0
+  checksum: ba23a2422d8931256f5b8cc462209bf6c09d1e64e63d7c694ac1df67288cd0af52013ad10eaefc9c4d34dd5d50bfd4b196fde260c409c8495e9f888d8c000e98
+  languageName: node
+  linkType: hard
+
 "@salesforce/dev-config@npm:^4.0.1":
   version: 4.0.1
   resolution: "@salesforce/dev-config@npm:4.0.1"
@@ -1686,6 +1710,16 @@ __metadata:
     shx: ^0.3.3
     tslib: ^2.5.0
   checksum: 2741875fdcd12061105b388225e6fbd209fbaafca150e3a7def89d2eefa118de60ea63367ba5b59ef5a7208e505bb933f4a89d6667cc23442a24bc628f148b31
+  languageName: node
+  linkType: hard
+
+"@salesforce/kit@npm:^3.0.2":
+  version: 3.0.3
+  resolution: "@salesforce/kit@npm:3.0.3"
+  dependencies:
+    "@salesforce/ts-types": ^2.0.1
+    tslib: ^2.5.2
+  checksum: 45fa5ef7837fd32df0a8c5b4b6b789f0128daf3c33b7f34029a9bb4cf06941e3730b34a8cc960927a9c785a3533db8138cc627385bd5abe64fc658ed3e4eb838
   languageName: node
   linkType: hard
 
@@ -1713,6 +1747,15 @@ __metadata:
   dependencies:
     tslib: ^2.5.0
   checksum: cd813de99ed0ca3171e1b8a353888dd43f40d780446f680853b687a4de7bd5704930965152b16ca8e1946631b0aca752d09c9dceac74329a30d7ee98e16bcd31
+  languageName: node
+  linkType: hard
+
+"@salesforce/ts-types@npm:^2.0.1, @salesforce/ts-types@npm:^2.0.2":
+  version: 2.0.3
+  resolution: "@salesforce/ts-types@npm:2.0.3"
+  dependencies:
+    tslib: ^2.5.3
+  checksum: 1fe335ee3eaf262cd0c0dbd470715b714cde1f09d751070bb0899669e2e0ecfe4d550519ea28abe2f1946ef87d47e99dc9a7aa602f83330ada6fb7c58dd9bf4e
   languageName: node
   linkType: hard
 
@@ -2261,7 +2304,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/semver@npm:^7.3.13":
+"@types/semver@npm:^7.3.13, @types/semver@npm:^7.5.0":
   version: 7.5.0
   resolution: "@types/semver@npm:7.5.0"
   checksum: 0a64b9b9c7424d9a467658b18dd70d1d781c2d6f033096a6e05762d20ebbad23c1b69b0083b0484722aabf35640b78ccc3de26368bcae1129c87e9df028a22e2
@@ -5250,7 +5293,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graceful-fs@npm:^4.1.15, graceful-fs@npm:^4.1.2, graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0, graceful-fs@npm:^4.2.6, graceful-fs@npm:^4.2.9":
+"graceful-fs@npm:^4.1.15, graceful-fs@npm:^4.1.2, graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0, graceful-fs@npm:^4.2.4, graceful-fs@npm:^4.2.6, graceful-fs@npm:^4.2.9":
   version: 4.2.11
   resolution: "graceful-fs@npm:4.2.11"
   checksum: ac85f94da92d8eb6b7f5a8b20ce65e43d66761c55ce85ac96df6865308390da45a8d3f0296dd3a663de65d30ba497bd46c696cc1e248c72b13d6d567138a4fc7
@@ -8405,6 +8448,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"proper-lockfile@npm:^4.1.2":
+  version: 4.1.2
+  resolution: "proper-lockfile@npm:4.1.2"
+  dependencies:
+    graceful-fs: ^4.2.4
+    retry: ^0.12.0
+    signal-exit: ^3.0.2
+  checksum: 00078ee6a61c216a56a6140c7d2a98c6c733b3678503002dc073ab8beca5d50ca271de4c85fca13b9b8ee2ff546c36674d1850509b84a04a5d0363bcb8638939
+  languageName: node
+  linkType: hard
+
 "pseudomap@npm:^1.0.2":
   version: 1.0.2
   resolution: "pseudomap@npm:1.0.2"
@@ -9002,7 +9056,7 @@ __metadata:
     "@commitlint/config-conventional": ^17.6.5
     "@commitlint/prompt-cli": ^17.6.5
     "@oclif/dev-cli": ^1.26.10
-    "@salesforce/cli-plugins-testkit": ^3.4.0
+    "@salesforce/cli-plugins-testkit": ^4.0.1
     "@salesforce/command": ^5.3.9
     "@salesforce/dev-config": ^4.0.1
     "@salesforce/ts-sinon": ^1.4.7
@@ -9883,6 +9937,13 @@ __metadata:
   version: 2.5.2
   resolution: "tslib@npm:2.5.2"
   checksum: 4d3c1e238b94127ed0e88aa0380db3c2ddae581dc0f4bae5a982345e9f50ee5eda90835b8bfba99b02df10a5734470be197158c36f9129ac49fdc14a6a9da222
+  languageName: node
+  linkType: hard
+
+"tslib@npm:^2.5.3":
+  version: 2.5.3
+  resolution: "tslib@npm:2.5.3"
+  checksum: 88902b309afaf83259131c1e13da1dceb0ad1682a213143a1346a649143924d78cf3760c448b84d796938fd76127183894f8d85cbb3bf9c4fddbfcc140c0003c
   languageName: node
   linkType: hard
 
