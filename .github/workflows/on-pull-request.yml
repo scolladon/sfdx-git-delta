@@ -65,7 +65,6 @@ jobs:
 
       - name: Check unused dependencies
         run: yarn lint:dependencies
-        continue-on-error: true
 
       - name: Audit dependencies
         run: yarn npm audit
