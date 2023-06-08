@@ -60,7 +60,7 @@
     "prebuild": "yarn clean",
     "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky install",
-    "upgrade:dependencies": "yarn-upgrade-all ; yarn-audit-fix"
+    "upgrade:dependencies": "shx rm -rf yarn.lock ; shx touch yarn.lock ; yarn-upgrade-all ; yarn-audit-fix"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.6.5",
@@ -103,5 +103,5 @@
   "publishConfig": {
     "access": "public"
   },
-  "packageManager": "yarn@3.5.1"
+  "packageManager": "yarn@3.6.0"
 }
