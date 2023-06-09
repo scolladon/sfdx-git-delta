@@ -1322,21 +1322,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oclif/config@npm:1.18.6":
-  version: 1.18.6
-  resolution: "@oclif/config@npm:1.18.6"
-  dependencies:
-    "@oclif/errors": ^1.3.6
-    "@oclif/parser": ^3.8.9
-    debug: ^4.3.4
-    globby: ^11.1.0
-    is-wsl: ^2.1.1
-    tslib: ^2.3.1
-  checksum: 25baa87943d95428d2a5e64856fb9368474592badc5dad5fc2302d2f263885c766158a0ff071f1b4c0a69c39b279adfdd35037f2445fccec1544946aaf7a978a
-  languageName: node
-  linkType: hard
-
-"@oclif/config@npm:^1.18.2":
+"@oclif/config@npm:1.18.9, @oclif/config@npm:^1.18.2":
   version: 1.18.9
   resolution: "@oclif/config@npm:1.18.9"
   dependencies:
@@ -1473,10 +1459,10 @@ __metadata:
   linkType: hard
 
 "@oclif/help@npm:^1.0.0, @oclif/help@npm:^1.0.1":
-  version: 1.0.5
-  resolution: "@oclif/help@npm:1.0.5"
+  version: 1.0.7
+  resolution: "@oclif/help@npm:1.0.7"
   dependencies:
-    "@oclif/config": 1.18.6
+    "@oclif/config": 1.18.9
     "@oclif/errors": 1.3.6
     chalk: ^4.1.2
     indent-string: ^4.0.0
@@ -1485,7 +1471,7 @@ __metadata:
     strip-ansi: ^6.0.0
     widest-line: ^3.1.0
     wrap-ansi: ^6.2.0
-  checksum: d71e034532def4d45cd7c843ef5ff4da812d886ac1b1dad511340a61294749f552de2f805ecdd460f1c8ff05152720829f8b27be880b0359180a72c8ee95de18
+  checksum: c455d1a36ec5e8331281e933f3a80958c4e68d30a0a19144be33c955ac249db8c7e6e659203a257197f2700721f90a35cfe4225f7472e6dcdd7e761ead646bb5
   languageName: node
   linkType: hard
 
@@ -1496,7 +1482,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oclif/parser@npm:^3.8.0, @oclif/parser@npm:^3.8.11, @oclif/parser@npm:^3.8.9":
+"@oclif/parser@npm:^3.8.0, @oclif/parser@npm:^3.8.11":
   version: 3.8.11
   resolution: "@oclif/parser@npm:3.8.11"
   dependencies:
@@ -9879,7 +9865,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.0, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.1, tslib@npm:^2.4.1, tslib@npm:^2.5.0, tslib@npm:^2.5.2, tslib@npm:~2.5.0":
+"tslib@npm:^2.0.0, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.4.1, tslib@npm:^2.5.0, tslib@npm:^2.5.2, tslib@npm:~2.5.0":
   version: 2.5.2
   resolution: "tslib@npm:2.5.2"
   checksum: 4d3c1e238b94127ed0e88aa0380db3c2ddae581dc0f4bae5a982345e9f50ee5eda90835b8bfba99b02df10a5734470be197158c36f9129ac49fdc14a6a9da222
