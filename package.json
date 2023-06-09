@@ -42,7 +42,7 @@
     "analysis": "codeclimate analyze",
     "clean": "shx rm -rf lib 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*'",
     "commit": "commit",
-    "increment:apiversion": "filename=`ls src/metadata/v*.json | tail -1` && version=${filename//[!0-9]/} && ((version++)) && targetname=\"src/metadata/v${version}.json\" && \\cp $filename $targetname",
+    "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint": "eslint src/",
     "lint:dependencies": "knip",
     "lint:fix": "eslint --fix src/",
