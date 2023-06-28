@@ -105,6 +105,34 @@
     "xmlName": "ExpressionSetDefinition"
   },
   {
+    "directoryName": "ExplainabilityActionDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "explainabilityActionDefinition",
+    "xmlName": "ExplainabilityActionDefinition"
+  },
+  {
+    "directoryName": "ExplainabilityActionVersions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "explainabilityActionVersion",
+    "xmlName": "ExplainabilityActionVersion"
+  },
+  {
+    "directoryName": "ApplicationSubtypeDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "applicationSubtypeDefinition",
+    "xmlName": "ApplicationSubtypeDefinition"
+  },
+  {
+    "directoryName": "BusinessProcessTypeDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "businessProcessTypeDefinition",
+    "xmlName": "BusinessProcessTypeDefinition"
+  },
+  {
     "directoryName": "actionPlanTemplates",
     "inFolder": false,
     "metaFile": false,
