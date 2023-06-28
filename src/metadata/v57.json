@@ -105,28 +105,28 @@
     "xmlName": "ExpressionSetDefinition"
   },
   {
-    "directoryName": "ExplainabilityActionDefinitions",
+    "directoryName": "explainabilityActionDefinition",
     "inFolder": false,
     "metaFile": false,
     "suffix": "explainabilityActionDefinition",
     "xmlName": "ExplainabilityActionDefinition"
   },
   {
-    "directoryName": "ExplainabilityActionVersions",
+    "directoryName": "explainabilityActionVersion",
     "inFolder": false,
     "metaFile": false,
     "suffix": "explainabilityActionVersion",
     "xmlName": "ExplainabilityActionVersion"
   },
   {
-    "directoryName": "ApplicationSubtypeDefinitions",
+    "directoryName": "applicationSubtypeDefinition",
     "inFolder": false,
     "metaFile": false,
     "suffix": "applicationSubtypeDefinition",
     "xmlName": "ApplicationSubtypeDefinition"
   },
   {
-    "directoryName": "BusinessProcessTypeDefinitions",
+    "directoryName": "businessProcessTypeDefinition",
     "inFolder": false,
     "metaFile": false,
     "suffix": "businessProcessTypeDefinition",
