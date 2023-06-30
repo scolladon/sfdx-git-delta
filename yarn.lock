@@ -4562,8 +4562,8 @@ __metadata:
   linkType: hard
 
 "fancy-test@npm:^2.0.23":
-  version: 2.0.23
-  resolution: "fancy-test@npm:2.0.23"
+  version: 2.0.27
+  resolution: "fancy-test@npm:2.0.27"
   dependencies:
     "@types/chai": "*"
     "@types/lodash": "*"
@@ -4573,7 +4573,7 @@ __metadata:
     mock-stdin: ^1.0.0
     nock: ^13.3.1
     stdout-stderr: ^0.1.9
-  checksum: cf22ab6c57e5eb6cb76e3ee121cb50398e8fefe3ab142c8b81367ddd350c93b53a8f62ce8d901f7d3168f3eab0774127ee5d4a6fc3486d900057c286236c10d5
+  checksum: 9e7e4f49d67f132e6612a4b4f942dc607833e863dccb95448a98c0821ccd0e95f8bc7954f13400a01d52a8b90b925f26fb39da5dd93be58d5b650b666d425e4f
   languageName: node
   linkType: hard
 
