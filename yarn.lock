@@ -1617,20 +1617,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/cli-plugins-testkit@npm:^3.4.0":
-  version: 3.4.0
-  resolution: "@salesforce/cli-plugins-testkit@npm:3.4.0"
+"@salesforce/cli-plugins-testkit@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "@salesforce/cli-plugins-testkit@npm:4.1.1"
   dependencies:
-    "@salesforce/core": ^3.34.8
-    "@salesforce/kit": ^1.9.2
-    "@salesforce/ts-types": ^1.7.3
+    "@salesforce/core": ^4.1.3
+    "@salesforce/kit": ^3.0.2
+    "@salesforce/ts-types": ^2.0.2
     "@types/shelljs": ^0.8.12
-    archiver: ^5.2.0
     debug: ^4.3.1
+    jszip: ^3.10.1
     shelljs: ^0.8.4
     strip-ansi: 6.0.1
     ts-retry-promise: ^0.7.0
-  checksum: 0a6c68bdea4ee5068d59682228de77d45b4d7c3c24108d9a71bce8fe708f953f7b1455fcb4d9594c5b7e699c7e742d39d3e01364dc9ad59116bccf70fce9cb77
+  checksum: 4cd3b6a2e889fe232a68ff30bf772b401a6754af676d077b2c74e0968ca7216c068f1ee347bb0c1ab55273b316b9abad4c47e181b46c5ab7a62900e765121211
   languageName: node
   linkType: hard
 
@@ -1648,7 +1648,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/core@npm:^3.34.8, @salesforce/core@npm:^3.36.2":
+"@salesforce/core@npm:^3.36.2":
   version: 3.36.2
   resolution: "@salesforce/core@npm:3.36.2"
   dependencies:
@@ -1671,6 +1671,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@salesforce/core@npm:^4.1.3":
+  version: 4.3.5
+  resolution: "@salesforce/core@npm:4.3.5"
+  dependencies:
+    "@salesforce/bunyan": ^2.0.0
+    "@salesforce/kit": ^3.0.3
+    "@salesforce/schemas": ^1.5.1
+    "@salesforce/ts-types": ^2.0.2
+    "@types/semver": ^7.5.0
+    ajv: ^8.12.0
+    change-case: ^4.1.2
+    debug: ^3.2.7
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsforce: ^2.0.0-beta.27
+    jsonwebtoken: 9.0.0
+    jszip: 3.10.1
+    proper-lockfile: ^4.1.2
+    ts-retry-promise: ^0.7.0
+  checksum: 5b365792a2b1ec5b73a3d179a101f5ef8b3d60f1e07a5919f17dc64b4ef1153081456ea2cc18163439be128ee1495aa882157d385b3bae404923ea6e9d39277a
+  languageName: node
+  linkType: hard
+
 "@salesforce/dev-config@npm:^4.0.1":
   version: 4.0.1
   resolution: "@salesforce/dev-config@npm:4.0.1"
@@ -1686,6 +1710,16 @@ __metadata:
     shx: ^0.3.3
     tslib: ^2.5.0
   checksum: 2741875fdcd12061105b388225e6fbd209fbaafca150e3a7def89d2eefa118de60ea63367ba5b59ef5a7208e505bb933f4a89d6667cc23442a24bc628f148b31
+  languageName: node
+  linkType: hard
+
+"@salesforce/kit@npm:^3.0.2, @salesforce/kit@npm:^3.0.3":
+  version: 3.0.3
+  resolution: "@salesforce/kit@npm:3.0.3"
+  dependencies:
+    "@salesforce/ts-types": ^2.0.1
+    tslib: ^2.5.2
+  checksum: 45fa5ef7837fd32df0a8c5b4b6b789f0128daf3c33b7f34029a9bb4cf06941e3730b34a8cc960927a9c785a3533db8138cc627385bd5abe64fc658ed3e4eb838
   languageName: node
   linkType: hard
 
@@ -1713,6 +1747,15 @@ __metadata:
   dependencies:
     tslib: ^2.5.0
   checksum: cd813de99ed0ca3171e1b8a353888dd43f40d780446f680853b687a4de7bd5704930965152b16ca8e1946631b0aca752d09c9dceac74329a30d7ee98e16bcd31
+  languageName: node
+  linkType: hard
+
+"@salesforce/ts-types@npm:^2.0.1, @salesforce/ts-types@npm:^2.0.2":
+  version: 2.0.3
+  resolution: "@salesforce/ts-types@npm:2.0.3"
+  dependencies:
+    tslib: ^2.5.3
+  checksum: 1fe335ee3eaf262cd0c0dbd470715b714cde1f09d751070bb0899669e2e0ecfe4d550519ea28abe2f1946ef87d47e99dc9a7aa602f83330ada6fb7c58dd9bf4e
   languageName: node
   linkType: hard
 
@@ -2261,7 +2304,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/semver@npm:^7.3.13":
+"@types/semver@npm:^7.3.13, @types/semver@npm:^7.5.0":
   version: 7.5.0
   resolution: "@types/semver@npm:7.5.0"
   checksum: 0a64b9b9c7424d9a467658b18dd70d1d781c2d6f033096a6e05762d20ebbad23c1b69b0083b0484722aabf35640b78ccc3de26368bcae1129c87e9df028a22e2
@@ -2652,7 +2695,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"archiver@npm:^5.2.0, archiver@npm:^5.3.0":
+"archiver@npm:^5.3.0":
   version: 5.3.1
   resolution: "archiver@npm:5.3.1"
   dependencies:
@@ -5250,7 +5293,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graceful-fs@npm:^4.1.15, graceful-fs@npm:^4.1.2, graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0, graceful-fs@npm:^4.2.6, graceful-fs@npm:^4.2.9":
+"graceful-fs@npm:^4.1.15, graceful-fs@npm:^4.1.2, graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0, graceful-fs@npm:^4.2.4, graceful-fs@npm:^4.2.6, graceful-fs@npm:^4.2.9":
   version: 4.2.11
   resolution: "graceful-fs@npm:4.2.11"
   checksum: ac85f94da92d8eb6b7f5a8b20ce65e43d66761c55ce85ac96df6865308390da45a8d3f0296dd3a663de65d30ba497bd46c696cc1e248c72b13d6d567138a4fc7
@@ -5498,6 +5541,13 @@ __metadata:
   version: 5.2.4
   resolution: "ignore@npm:5.2.4"
   checksum: 3d4c309c6006e2621659311783eaea7ebcd41fe4ca1d78c91c473157ad6666a57a2df790fe0d07a12300d9aac2888204d7be8d59f9aaf665b1c7fcdb432517ef
+  languageName: node
+  linkType: hard
+
+"immediate@npm:~3.0.5":
+  version: 3.0.6
+  resolution: "immediate@npm:3.0.6"
+  checksum: f9b3486477555997657f70318cc8d3416159f208bec4cca3ff3442fd266bc23f50f0c9bd8547e1371a6b5e82b821ec9a7044a4f7b944798b25aa3cc6d5e63e62
   languageName: node
   linkType: hard
 
@@ -6550,6 +6600,37 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jsforce@npm:^2.0.0-beta.27":
+  version: 2.0.0-beta.27
+  resolution: "jsforce@npm:2.0.0-beta.27"
+  dependencies:
+    "@babel/runtime": ^7.12.5
+    "@babel/runtime-corejs3": ^7.12.5
+    "@types/node": ^12.19.9
+    abort-controller: ^3.0.0
+    base64url: ^3.0.1
+    commander: ^4.0.1
+    core-js: ^3.6.4
+    csv-parse: ^4.8.2
+    csv-stringify: ^5.3.4
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    fs-extra: ^8.1.0
+    https-proxy-agent: ^5.0.0
+    inquirer: ^7.0.0
+    multistream: ^3.1.0
+    node-fetch: ^2.6.1
+    open: ^7.0.0
+    regenerator-runtime: ^0.13.3
+    strip-ansi: ^6.0.0
+    xml2js: ^0.5.0
+  bin:
+    jsforce: bin/jsforce
+    jsforce-gen-schema: bin/jsforce-gen-schema
+  checksum: 9c3af6b142c2902d236aac9d36cd6ed45512a29f024dc4fda8bc5ae181c1cb4525d0038842abb86df3b09ef08acd78a611e963573fb7d315022d49907f99da97
+  languageName: node
+  linkType: hard
+
 "json-parse-better-errors@npm:^1.0.1":
   version: 1.0.2
   resolution: "json-parse-better-errors@npm:1.0.2"
@@ -6652,6 +6733,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jszip@npm:3.10.1, jszip@npm:^3.10.1":
+  version: 3.10.1
+  resolution: "jszip@npm:3.10.1"
+  dependencies:
+    lie: ~3.3.0
+    pako: ~1.0.2
+    readable-stream: ~2.3.6
+    setimmediate: ^1.0.5
+  checksum: abc77bfbe33e691d4d1ac9c74c8851b5761fba6a6986630864f98d876f3fcc2d36817dfc183779f32c00157b5d53a016796677298272a714ae096dfe6b1c8b60
+  languageName: node
+  linkType: hard
+
 "just-extend@npm:^4.0.2":
   version: 4.2.1
   resolution: "just-extend@npm:4.2.1"
@@ -6744,6 +6837,15 @@ __metadata:
     prelude-ls: ^1.2.1
     type-check: ~0.4.0
   checksum: 12c5021c859bd0f5248561bf139121f0358285ec545ebf48bb3d346820d5c61a4309535c7f387ed7d84361cf821e124ce346c6b7cef8ee09a67c1473b46d0fc4
+  languageName: node
+  linkType: hard
+
+"lie@npm:~3.3.0":
+  version: 3.3.0
+  resolution: "lie@npm:3.3.0"
+  dependencies:
+    immediate: ~3.0.5
+  checksum: 33102302cf19766f97919a6a98d481e01393288b17a6aa1f030a3542031df42736edde8dab29ffdbf90bebeffc48c761eb1d064dc77592ca3ba3556f9fe6d2a8
   languageName: node
   linkType: hard
 
@@ -8095,6 +8197,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pako@npm:~1.0.2":
+  version: 1.0.11
+  resolution: "pako@npm:1.0.11"
+  checksum: 1be2bfa1f807608c7538afa15d6f25baa523c30ec870a3228a89579e474a4d992f4293859524e46d5d87fd30fa17c5edf34dbef0671251d9749820b488660b16
+  languageName: node
+  linkType: hard
+
 "param-case@npm:^3.0.4":
   version: 3.0.4
   resolution: "param-case@npm:3.0.4"
@@ -8405,6 +8514,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"proper-lockfile@npm:^4.1.2":
+  version: 4.1.2
+  resolution: "proper-lockfile@npm:4.1.2"
+  dependencies:
+    graceful-fs: ^4.2.4
+    retry: ^0.12.0
+    signal-exit: ^3.0.2
+  checksum: 00078ee6a61c216a56a6140c7d2a98c6c733b3678503002dc073ab8beca5d50ca271de4c85fca13b9b8ee2ff546c36674d1850509b84a04a5d0363bcb8638939
+  languageName: node
+  linkType: hard
+
 "pseudomap@npm:^1.0.2":
   version: 1.0.2
   resolution: "pseudomap@npm:1.0.2"
@@ -8561,7 +8681,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"readable-stream@npm:^2.0.0, readable-stream@npm:^2.0.5":
+"readable-stream@npm:^2.0.0, readable-stream@npm:^2.0.5, readable-stream@npm:~2.3.6":
   version: 2.3.8
   resolution: "readable-stream@npm:2.3.8"
   dependencies:
@@ -8994,6 +9114,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"setimmediate@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "setimmediate@npm:1.0.5"
+  checksum: c9a6f2c5b51a2dabdc0247db9c46460152ffc62ee139f3157440bd48e7c59425093f42719ac1d7931f054f153e2d26cf37dfeb8da17a794a58198a2705e527fd
+  languageName: node
+  linkType: hard
+
 "sfdx-git-delta@workspace:.":
   version: 0.0.0-use.local
   resolution: "sfdx-git-delta@workspace:."
@@ -9002,7 +9129,7 @@ __metadata:
     "@commitlint/config-conventional": ^17.6.5
     "@commitlint/prompt-cli": ^17.6.5
     "@oclif/dev-cli": ^1.26.10
-    "@salesforce/cli-plugins-testkit": ^3.4.0
+    "@salesforce/cli-plugins-testkit": ^4.1.1
     "@salesforce/command": ^5.3.9
     "@salesforce/dev-config": ^4.0.1
     "@salesforce/ts-sinon": ^1.4.7
@@ -9883,6 +10010,13 @@ __metadata:
   version: 2.5.2
   resolution: "tslib@npm:2.5.2"
   checksum: 4d3c1e238b94127ed0e88aa0380db3c2ddae581dc0f4bae5a982345e9f50ee5eda90835b8bfba99b02df10a5734470be197158c36f9129ac49fdc14a6a9da222
+  languageName: node
+  linkType: hard
+
+"tslib@npm:^2.5.3":
+  version: 2.6.0
+  resolution: "tslib@npm:2.6.0"
+  checksum: c01066038f950016a18106ddeca4649b4d76caa76ec5a31e2a26e10586a59fceb4ee45e96719bf6c715648e7c14085a81fee5c62f7e9ebee68e77a5396e5538f
   languageName: node
   linkType: hard
 
