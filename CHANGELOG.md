@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.23.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.22.0...v5.23.0) (2023-06-30)
+
+
+### Features
+
+* add "Business Rules Engine" metadata support for v57+ ([#644](https://github.com/scolladon/sfdx-git-delta/issues/644)) ([7d915a2](https://github.com/scolladon/sfdx-git-delta/commit/7d915a2a57f9d3306ba16bb1f4f43f6dd25079de))
+
 ## [5.22.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.21.0...v5.22.0) (2023-06-09)
 
 
