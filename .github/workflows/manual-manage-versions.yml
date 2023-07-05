@@ -29,6 +29,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Change version
         run: npm dist-tag add sfdx-git-delta@${{ github.event.inputs.version-number }} ${{ github.event.inputs.version-alias }}
