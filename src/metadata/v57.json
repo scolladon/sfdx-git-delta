@@ -2027,5 +2027,19 @@
     "xmlTag": "workflowTasks",
     "key": "name",
     "excluded": true
+  },
+  {
+    "directoryName": "uiObjectRelationConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "uiObjectRelationConfig",
+    "xmlName": "UIObjectRelationConfig"
+  },
+  {
+    "directoryName": "timelineObjectDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "timelineObjectDefinition",
+    "xmlName": "TimelineObjectDefinition"
   }
 ]
