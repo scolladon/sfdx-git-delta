@@ -8,9 +8,9 @@
 [![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
 
 <br />
-<div align="center">
-
-  <h3 align="center">SFDX-Git-Delta </h3>
+<div align="center">  
+  <img src="img/SGD_logo.png" width="128">
+  <h1 align="center">SFDX-Git-Delta </h1>
 
   <p align="center">
     SFDX plugin to generate Incremental Salesforce deployments manifests and artifacts
