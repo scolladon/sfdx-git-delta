@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.24.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.23.0...v5.24.0) (2023-07-07)
+
+
+### Features
+
+* add support for Health Cloud metadata ([#651](https://github.com/scolladon/sfdx-git-delta/issues/651)) ([0421f45](https://github.com/scolladon/sfdx-git-delta/commit/0421f459437890ea5d341f3eb698c658e4f6d688))
+
 ## [5.23.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.22.0...v5.23.0) (2023-06-30)
 
 
