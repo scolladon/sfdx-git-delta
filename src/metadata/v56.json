@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "uiObjectRelationConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "uiObjectRelationConfig",
+    "xmlName": "UIObjectRelationConfig"
+  },
+  {
+    "directoryName": "timelineObjectDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "timelineObjectDefinition",
+    "xmlName": "TimelineObjectDefinition"
+  },
+  {
     "directoryName": "slackapps",
     "inFolder": false,
     "metaFile": true,
