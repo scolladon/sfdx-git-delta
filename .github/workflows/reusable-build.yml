@@ -19,8 +19,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Build plugin
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
+
         run: yarn pack
 
       - name: Unit test

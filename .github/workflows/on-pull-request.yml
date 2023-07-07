@@ -111,8 +111,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Build plugin
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
+
         run: yarn pack
 
       - name: Mutation test
@@ -170,8 +169,7 @@ jobs:
 
       - name: Build plugin
         working-directory: ./plugin
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
+
         run: yarn pack
 
       - name: Install sfdx-cli
