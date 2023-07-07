@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "uiObjectRelationConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "uiObjectRelationConfig",
+    "xmlName": "UIObjectRelationConfig"
+  },
+  {
     "directoryName": "slackapps",
     "inFolder": false,
     "metaFile": true,
