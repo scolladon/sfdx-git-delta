@@ -47,6 +47,7 @@
         "authprovider",
         "authproviders",
         "behaviour",
+        "benchmarkjs",
         "brqh",
         "codeclimate",
         "codecov",
