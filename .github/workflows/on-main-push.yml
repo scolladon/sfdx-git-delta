@@ -98,7 +98,7 @@ jobs:
         with:
           ref: 'e2e/head'
           fetch-depth: 0
-          path: ./e2e
+          path: ./sgd-e2e
 
       - name: Setup node
         uses: actions/setup-node@v3
@@ -135,15 +135,15 @@ jobs:
           sfdx plugins
 
       - name: Run benchmark
-        working-directory: ./plugin/__tests__/perf
-        run: node bench.js | tee output.txt
+        working-directory: ./plugin
+        run: yarn test:perf
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Benchmark.js Benchmark
           tool: 'benchmarkjs'
-          output-file-path: ./plugin/__tests__/perf/output.txt
+          output-file-path: ./plugin/perf-result.txt
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           alert-threshold: '130%'

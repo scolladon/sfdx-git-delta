@@ -40,7 +40,7 @@
   "homepage": "https://github.com/scolladon/sfdx-git-delta#readme",
   "scripts": {
     "analysis": "codeclimate analyze",
-    "clean": "shx rm -rf lib 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*'",
+    "clean": "shx rm -rf lib 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint": "eslint src/",
     "lint:dependencies": "depcheck",
@@ -49,6 +49,7 @@
     "test:build:local": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
     "test:mutation": "stryker run",
     "test:nut": "nyc mocha **/*.nut.ts",
+    "test:perf": "node __tests__/perf/bench.js | tee perf-result.txt",
     "test:unit": "jest",
     "test:unit:clear:cache": "jest --clearCache",
     "test:unit:coverage": "jest --coverage",

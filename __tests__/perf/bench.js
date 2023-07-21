@@ -6,7 +6,7 @@ const suite = new Benchmark.Suite()
 suite
   .add('e2e-test', () => {
     execCmd(
-      'sfdx sgd:source:delta --from "origin/e2e/base" --to "origin/e2e/head" --output expected --generate-delta --repo ../../../e2e',
+      'sgd:source:delta --from "origin/e2e/base" --to "origin/e2e/head" --output ../sgd-e2e/expected --generate-delta --repo ../sgd-e2e',
       {
         ensureExitCode: 0,
       }
