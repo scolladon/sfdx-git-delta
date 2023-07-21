@@ -169,7 +169,6 @@ jobs:
 
       - name: Build plugin
         working-directory: ./plugin
-
         run: yarn pack
 
       - name: Install sfdx-cli
