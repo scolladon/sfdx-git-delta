@@ -1,5 +1,3 @@
-// @ts-check
-/** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 const config = {
   packageManager: 'yarn',
   reporters: ['html', 'clear-text', 'progress'],

@@ -5,7 +5,7 @@ yarn lint
 yarn pack
 yarn test:unit:coverage
 yarn test:nut
-yarn analysis force-app
+yarn analysis src
 npm outdated || true
 yarn npm audit || true
 yarn lint:dependencies || true
