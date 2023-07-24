@@ -154,6 +154,7 @@ module.exports = {
     '/node_modules/',
     '/__tests__/__utils__/',
     '/reports/',
+    '/e2e',
   ],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files

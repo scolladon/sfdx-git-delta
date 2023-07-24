@@ -1,3 +1,4 @@
+/e2e
 /node_modules
 /reports
 /lib
@@ -10,6 +11,7 @@ sfdx-git-delta-*.tgz
 package.tgz
 stderr*.txt
 stdout*.txt
+perf-result.txt
 # stryker temp files
 .stryker-tmp
 
