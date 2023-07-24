@@ -87,7 +87,7 @@ jobs:
   perf:
     needs: prepare-release
     runs-on: ubuntu-latest
-    if: needs.prepare-release.outputs.release_created == 'false'
+    if: needs.prepare-release.outputs.release_created != 'true'
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
