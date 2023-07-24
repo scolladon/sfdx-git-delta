@@ -4,7 +4,7 @@ const config = {
   testRunner: 'jest',
   coverageAnalysis: 'perTest',
   ignoreStatic: true,
-  ignorePatterns: ['lib/', 'reports/', 'bin/'],
+  ignorePatterns: ['lib/', 'reports/', 'bin/', 'e2e'],
   mutate: ['src/**/*.js'],
 }
 export default config
