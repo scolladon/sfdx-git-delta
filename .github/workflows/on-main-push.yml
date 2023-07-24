@@ -85,7 +85,7 @@ jobs:
           yarn test:e2e
 
   perf:
-    needs: build
+    needs: prepare-release
     runs-on: ubuntu-latest
     if: needs.prepare-release.outputs.release_created == 'false'
     steps:
@@ -121,7 +121,7 @@ jobs:
           yarn set version classic
           sfdx plugins:link .
           sfdx plugins
-      
+
       - name: Checkout e2e sources
         uses: actions/checkout@v3
         with:
