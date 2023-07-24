@@ -87,18 +87,10 @@ jobs:
   perf:
     needs: build
     runs-on: ubuntu-latest
+    if: needs.prepare-release.outputs.release_created == 'false'
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-        with:
-          path: ./plugin
-
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          ref: 'e2e/head'
-          fetch-depth: 0
-          path: ./sgd-e2e
 
       - name: Setup node
         uses: actions/setup-node@v3
@@ -106,7 +98,6 @@ jobs:
           node-version: 16
 
       - name: Get yarn cache directory path
-        working-directory: ./plugin
         id: yarn-cache-dir-path
         run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
         shell: bash
@@ -117,25 +108,28 @@ jobs:
           key: ${{ runner.os }}-16-yarn-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install dependencies
-        working-directory: ./plugin
         run: yarn install --immutable --check-cache
 
       - name: Build plugin
-        working-directory: ./plugin
         run: yarn pack
 
       - name: Install sfdx-cli
         run: npm install -g sfdx-cli
 
       - name: Install plugin
-        working-directory: ./plugin
         run: |
           yarn set version classic
           sfdx plugins:link .
           sfdx plugins
+      
+      - name: Checkout e2e sources
+        uses: actions/checkout@v3
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
 
       - name: Run benchmark
-        working-directory: ./plugin
         run: yarn test:perf
 
       - name: Store benchmark result
