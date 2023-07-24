@@ -83,3 +83,68 @@ jobs:
         run: |
           yarn
           yarn test:e2e
+
+  perf:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    if: needs.prepare-release.outputs.release_created != 'true'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.yarn-cache }}
+          key: ${{ runner.os }}-16-yarn-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies
+        run: yarn install --immutable --check-cache
+
+      - name: Build plugin
+        run: yarn pack
+
+      - name: Install sfdx-cli
+        run: npm install -g sfdx-cli
+
+      - name: Install plugin
+        run: |
+          yarn set version classic
+          sfdx plugins:link .
+          sfdx plugins
+
+      - name: Checkout e2e sources
+        uses: actions/checkout@v3
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
+
+      - name: Run benchmark
+        run: |
+          git config --local core.hooksPath /dev/null
+          git checkout -f main
+          yarn test:perf
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Benchmark.js Benchmark
+          tool: 'benchmarkjs'
+          output-file-path: ./perf-result.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '130%'
+          comment-on-alert: true
+          fail-on-alert: true
+          summary-always: true
+          alert-comment-cc-users: '@scolladon'

@@ -19,6 +19,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Build plugin
+
         run: yarn pack
 
       - name: Unit test

@@ -1,0 +1,8 @@
+ignores: [
+  '@commitlint/*',
+  '@salesforce/*',
+  '@stryker-mutator/*',
+  'lint-staged',
+  'chai',
+  'sinon',
+]

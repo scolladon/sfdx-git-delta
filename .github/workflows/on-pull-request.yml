@@ -65,7 +65,6 @@ jobs:
 
       - name: Check unused dependencies
         run: yarn lint:dependencies
-        continue-on-error: true
 
       - name: Audit dependencies
         run: yarn npm audit
@@ -112,6 +111,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Build plugin
+
         run: yarn pack
 
       - name: Mutation test

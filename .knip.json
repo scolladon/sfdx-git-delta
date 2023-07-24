@@ -1,4 +1,0 @@
-{
-    "entry": ["src/main.js"],
-    "project": ["src/**/*.ts", "src/**/*.js", "__tests__/**/*.js", "__tests__/**/*.ts"]
-  }
