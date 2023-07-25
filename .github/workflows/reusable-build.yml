@@ -31,6 +31,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
+      - name: Checkout e2e sources
+        uses: actions/checkout@v3
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
+
       - name: Functional test
         run: yarn test:nut
 
