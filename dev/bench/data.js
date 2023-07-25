@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690290200507,
+  "lastUpdate": 1690290205104,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -29,6 +29,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.12,
             "range": "±5.37%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sébastien Colladon",
+            "username": "scolladon"
+          },
+          "distinct": true,
+          "id": "5bfbdac7cc20ef72f3d5e617f40b978fb7951217",
+          "message": "test: improve NUT test with E2E tests (#659)",
+          "timestamp": "2023-07-25T14:54:21+02:00",
+          "tree_id": "420639758c6c55620c979fc19ce3829618ca6b5f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/5bfbdac7cc20ef72f3d5e617f40b978fb7951217"
+        },
+        "date": 1690290199429,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.11,
+            "range": "±3.73%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
