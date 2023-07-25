@@ -122,7 +122,7 @@ jobs:
           sfdx plugins:link .
           sfdx plugins
 
-      - name: Checkout e2e sources
+      - name: Checkout e2e test subject
         uses: actions/checkout@v3
         with:
           ref: 'e2e/head'
@@ -131,7 +131,6 @@ jobs:
 
       - name: Run benchmark
         run: |
-          git config --local core.hooksPath /dev/null
           git checkout -f main
           yarn test:perf
 
