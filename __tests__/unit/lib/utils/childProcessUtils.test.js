@@ -9,6 +9,22 @@ const {
 const { EventEmitter, Readable } = require('stream')
 const { sep } = require('path')
 
+const arrangeStream = (data, error, isError) => {
+  const getReadable = content => {
+    return new Readable({
+      read() {
+        if (content) this.push(content)
+        this.push(null)
+      },
+    })
+  }
+  const stream = new EventEmitter()
+  stream.stdout = getReadable(data)
+  stream.stderr = getReadable(error)
+  setTimeout(() => stream.emit('close', isError ? 1 : 0), 0)
+  return stream
+}
+
 describe('childProcessUtils', () => {
   describe('getStreamContent', () => {
     describe.each([Buffer.from('text'), 'text'])(
@@ -16,20 +32,7 @@ describe('childProcessUtils', () => {
       content => {
         it('returns Buffer', async () => {
           // Arrange
-          const stream = new EventEmitter()
-          stream.stdout = new Readable({
-            read() {
-              this.push(content)
-              this.push(null)
-              stream.emit('close')
-            },
-          })
-          stream.stderr = new Readable({
-            read() {
-              this.push(null)
-              stream.emit('close')
-            },
-          })
+          const stream = arrangeStream(content, null, false)
 
           // Act
           const result = await getStreamContent(stream)
@@ -40,25 +43,12 @@ describe('childProcessUtils', () => {
       }
     )
 
-    describe('when stream emit error', () => {
+    describe('when stream emits error', () => {
       it('throws the error', async () => {
         // Arrange
         expect.assertions(1)
-        const stream = new EventEmitter()
-        stream.stdout = new Readable({
-          read() {
-            this.push(null)
-            stream.emit('close')
-          },
-        })
 
-        stream.stderr = new Readable({
-          read() {
-            this.push('error')
-            this.push(null)
-            stream.emit('close')
-          },
-        })
+        const stream = arrangeStream('irrelevant std out output', 'error', true)
 
         // Act
         try {
@@ -67,6 +57,24 @@ describe('childProcessUtils', () => {
           // Assert
         } catch (error) {
           expect(error.message).toEqual('error')
+        }
+      })
+    })
+
+    describe('when stream emits error but no stderr output', () => {
+      it('throws an empty error', async () => {
+        // Arrange
+        expect.assertions(1)
+
+        const stream = arrangeStream('irrelevant std out output', null, true)
+
+        // Act
+        try {
+          await getStreamContent(stream)
+
+          // Assert
+        } catch (error) {
+          expect(error.message).toEqual('')
         }
       })
     })
