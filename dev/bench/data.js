@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690290205104,
+  "lastUpdate": 1690484543623,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -91,6 +91,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.11,
             "range": "±3.73%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "gdman@users.noreply.github.com",
+            "name": "Andrew Goodman",
+            "username": "gdman"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "97ccab0376b67ce28e8258861c4631617788b2d5",
+          "message": "fix: stream in error without error content handling (#662)\n\nCo-authored-by: Sebastien <colladonsebastien@gmail.com>",
+          "timestamp": "2023-07-27T20:53:21+02:00",
+          "tree_id": "78008d77050ff8804f37e80d2321df85dfad9b80",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/97ccab0376b67ce28e8258861c4631617788b2d5"
+        },
+        "date": 1690484543058,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.12,
+            "range": "±5.11%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
