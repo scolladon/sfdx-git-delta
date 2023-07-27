@@ -27,7 +27,7 @@ childProcess.spawn.mockImplementation(() => {
       this.push(null)
     },
   })
-  setTimeout(() => mock.emit('close', error ? 1 : 0), 10)
+  setTimeout(() => mock.emit('close', error ? 1 : 0), 0)
   return mock
 })
 
