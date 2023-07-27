@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.24.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.24.0...v5.24.1) (2023-07-27)
+
+
+### Bug Fixes
+
+* stream in error without error content handling ([#662](https://github.com/scolladon/sfdx-git-delta/issues/662)) ([97ccab0](https://github.com/scolladon/sfdx-git-delta/commit/97ccab0376b67ce28e8258861c4631617788b2d5))
+
 ## [5.24.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.23.0...v5.24.0) (2023-07-07)
 
 
