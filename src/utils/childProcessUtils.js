@@ -48,7 +48,7 @@ const getStreamContent = async stream => {
     })
 
     stream.on('close', code => {
-      if (code != 0) {
+      if (code !== 0) {
         reject(new Error(error.join('')))
       }
 
