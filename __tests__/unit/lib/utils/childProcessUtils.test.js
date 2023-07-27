@@ -9,6 +9,22 @@ const {
 const { EventEmitter, Readable } = require('stream')
 const { sep } = require('path')
 
+const arrangeStream = (data, error, isError) => {
+  const getReadable = content => {
+    return new Readable({
+      read() {
+        if (content) this.push(content)
+        this.push(null)
+      },
+    })
+  }
+  const stream = new EventEmitter()
+  stream.stdout = getReadable(data)
+  stream.stderr = getReadable(error)
+  setTimeout(() => stream.emit('close', isError ? 1 : 0), 0)
+  return stream
+}
+
 describe('childProcessUtils', () => {
   describe('getStreamContent', () => {
     describe.each([Buffer.from('text'), 'text'])(
@@ -16,20 +32,7 @@ describe('childProcessUtils', () => {
       content => {
         it('returns Buffer', async () => {
           // Arrange
-          const stream = new EventEmitter()
-          stream.stdout = new Readable({
-            read() {
-              this.push(content)
-              this.push(null)
-            },
-          })
-          stream.stderr = new Readable({
-            read() {
-              this.push(null)
-            },
-          })
-
-          setTimeout(() => stream.emit('close', 0), 10)
+          const stream = arrangeStream(content, null, false)
 
           // Act
           const result = await getStreamContent(stream)
@@ -44,22 +47,8 @@ describe('childProcessUtils', () => {
       it('throws the error', async () => {
         // Arrange
         expect.assertions(1)
-        const stream = new EventEmitter()
-        stream.stdout = new Readable({
-          read() {
-            this.push('irrelevant std out output')
-            this.push(null)
-          },
-        })
 
-        stream.stderr = new Readable({
-          read() {
-            this.push('error')
-            this.push(null)
-          },
-        })
-
-        setTimeout(() => stream.emit('close', 1), 10)
+        const stream = arrangeStream('irrelevant std out output', 'error', true)
 
         // Act
         try {
@@ -76,21 +65,8 @@ describe('childProcessUtils', () => {
       it('throws an empty error', async () => {
         // Arrange
         expect.assertions(1)
-        const stream = new EventEmitter()
-        stream.stdout = new Readable({
-          read() {
-            this.push('irrelevant std out output')
-            this.push(null)
-          },
-        })
 
-        stream.stderr = new Readable({
-          read() {
-            this.push(null)
-          },
-        })
-
-        setTimeout(() => stream.emit('close', 1), 10)
+        const stream = arrangeStream('irrelevant std out output', null, true)
 
         // Act
         try {
