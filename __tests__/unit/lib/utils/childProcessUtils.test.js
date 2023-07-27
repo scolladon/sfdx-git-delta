@@ -87,9 +87,10 @@ describe('childProcessUtils', () => {
         stream.stderr = new Readable({
           read() {
             this.push(null)
-            stream.emit('close', 1)
           },
         })
+
+        setTimeout(() => stream.emit('close', 1), 10)
 
         // Act
         try {
