@@ -34,18 +34,27 @@ async function* linify(stream) {
 }
 
 const getStreamContent = async stream => {
-  const content = []
-  for await (const chunk of stream.stdout) {
-    content.push(chunk)
-  }
-  const error = []
-  for await (const chunk of stream.stderr) {
-    error.push(chunk)
-  }
-  if (error.length > 0) {
-    throw new Error(error.join(''))
-  }
-  return Buffer.concat(content)
+  return new Promise((resolve, reject) => {
+    const content = []
+    const error = []
+
+    stream.stdout.on('data', data => {
+      content.push(data)
+    })
+
+    stream.stderr.setEncoding('utf8')
+    stream.stderr.on('data', data => {
+      error.push(data.toString())
+    })
+
+    stream.on('close', code => {
+      if (code != 0) {
+        reject(new Error(error.join('')))
+      }
+
+      resolve(Buffer.concat(content))
+    })
+  })
 }
 
 module.exports.EOLRegex = EOLRegex

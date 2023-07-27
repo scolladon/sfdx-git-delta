@@ -21,15 +21,15 @@ describe('childProcessUtils', () => {
             read() {
               this.push(content)
               this.push(null)
-              stream.emit('close')
             },
           })
           stream.stderr = new Readable({
             read() {
               this.push(null)
-              stream.emit('close')
             },
           })
+
+          setTimeout(() => stream.emit('close', 0), 10)
 
           // Act
           const result = await getStreamContent(stream)
@@ -40,15 +40,15 @@ describe('childProcessUtils', () => {
       }
     )
 
-    describe('when stream emit error', () => {
+    describe('when stream emits error', () => {
       it('throws the error', async () => {
         // Arrange
         expect.assertions(1)
         const stream = new EventEmitter()
         stream.stdout = new Readable({
           read() {
+            this.push('irrelevant std out output')
             this.push(null)
-            stream.emit('close')
           },
         })
 
@@ -56,7 +56,38 @@ describe('childProcessUtils', () => {
           read() {
             this.push('error')
             this.push(null)
-            stream.emit('close')
+          },
+        })
+
+        setTimeout(() => stream.emit('close', 1), 10)
+
+        // Act
+        try {
+          await getStreamContent(stream)
+
+          // Assert
+        } catch (error) {
+          expect(error.message).toEqual('error')
+        }
+      })
+    })
+
+    describe('when stream emits error but no stderr output', () => {
+      it('throws an empty error', async () => {
+        // Arrange
+        expect.assertions(1)
+        const stream = new EventEmitter()
+        stream.stdout = new Readable({
+          read() {
+            this.push('irrelevant std out output')
+            this.push(null)
+          },
+        })
+
+        stream.stderr = new Readable({
+          read() {
+            this.push(null)
+            stream.emit('close', 1)
           },
         })
 
@@ -66,7 +97,7 @@ describe('childProcessUtils', () => {
 
           // Assert
         } catch (error) {
-          expect(error.message).toEqual('error')
+          expect(error.message).toEqual('')
         }
       })
     })
