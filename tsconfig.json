@@ -4,7 +4,7 @@
     "declaration": true,
     "outDir": "./lib",
     "importHelpers": true,
-    "allowJs": true,
+    "allowJs": false,
     "resolveJsonModule": true,
     "skipLibCheck": true
   },
