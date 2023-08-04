@@ -49,13 +49,16 @@ class InFileHandler extends StandardHandler {
 
   async _compareRevision() {
     const { added, deleted } = await this.metadataDiff.compare(this.line)
+    this._addedMembers = added
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
   }
 
   async _writeScopedContent() {
-    const xmlContent = this.metadataDiff.prune()
-    await writeFile(this.line, xmlContent, this.config)
+    if (this._addedMembers.size > 0) {
+      const xmlContent = this.metadataDiff.prune()
+      await writeFile(this.line, xmlContent, this.config)
+    }
   }
 
   _storeComparison(store, content) {
@@ -87,6 +90,10 @@ class InFileHandler extends StandardHandler {
         member: cleanedMember,
       })
     }
+  }
+
+  _delegateFileCopy() {
+    return false
   }
 }
 

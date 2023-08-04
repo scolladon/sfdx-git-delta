@@ -99,12 +99,14 @@ class StandardHandler {
   }
 
   async _copyWithMetaFile(src) {
-    await copyFiles(this.config, src)
-    if (
-      this.metadata.get(this.type).metaFile === true &&
-      !`${src}`.endsWith(METAFILE_SUFFIX)
-    ) {
-      await copyFiles(this.config, this._getMetaTypeFilePath(src))
+    if (this._delegateFileCopy()) {
+      await copyFiles(this.config, src)
+      if (
+        this.metadata.get(this.type).metaFile === true &&
+        !`${src}`.endsWith(METAFILE_SUFFIX)
+      ) {
+        await copyFiles(this.config, this._getMetaTypeFilePath(src))
+      }
     }
   }
 
@@ -135,6 +137,10 @@ class StandardHandler {
 
   _isProcessable() {
     return this.metadata.get(this.type).suffix === this.ext
+  }
+
+  _delegateFileCopy() {
+    return true
   }
 }
 

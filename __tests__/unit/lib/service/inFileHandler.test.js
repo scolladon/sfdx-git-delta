@@ -42,7 +42,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         work,
         globalMetadata
       )
-      mockCompare.mockReturnValue({
+      mockCompare.mockResolvedValue({
         added: new Map([['WorkflowAlert', new Set(['test'])]]),
         deleted: new Map(),
       })
@@ -76,7 +76,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
           work,
           globalMetadata
         )
-        mockCompare.mockReturnValue({
+        mockCompare.mockResolvedValue({
           added: new Map([['ValueTranslation', new Set(['Three'])]]),
           deleted: new Map(),
         })
@@ -105,39 +105,72 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
 
   describe('when file is modified', () => {
     let sut
-    beforeEach(() => {
-      // Arrange
-      sut = new InFile(
-        'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
-        'workflows',
-        work,
-        globalMetadata
-      )
-      mockCompare.mockReturnValue({
-        added: new Map([['WorkflowAlert', new Set(['test'])]]),
-        deleted: new Map([['WorkflowAlert', new Set(['deleted'])]]),
+
+    describe('when element are added and deleted', () => {
+      beforeEach(() => {
+        // Arrange
+        sut = new InFile(
+          'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+          'workflows',
+          work,
+          globalMetadata
+        )
+        mockCompare.mockResolvedValue({
+          added: new Map([['WorkflowAlert', new Set(['test'])]]),
+          deleted: new Map([['WorkflowAlert', new Set(['deleted'])]]),
+        })
+      })
+      it('should store the added metadata in the package and deleted in the destructiveChanges', async () => {
+        // Act
+        await sut.handleModification()
+
+        // Assert
+        expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
+        expect(work.diffs.package.get('WorkflowAlert')).toEqual(
+          new Set(['Account.test'])
+        )
+        expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
+          new Set(['Account.deleted'])
+        )
+        expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
+        if (generateDelta) {
+          expect(mockprune).toHaveBeenCalled()
+          expect(writeFile).toHaveBeenCalled()
+        } else {
+          expect(mockprune).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
+        }
       })
     })
-    it('should store the added metadata in the package and deleted in the destructiveChanges', async () => {
-      // Act
-      await sut.handleModification()
 
-      // Assert
-      expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
-      expect(work.diffs.package.get('WorkflowAlert')).toEqual(
-        new Set(['Account.test'])
-      )
-      expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
-        new Set(['Account.deleted'])
-      )
-      expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
-      if (generateDelta) {
-        expect(mockprune).toHaveBeenCalled()
-        expect(writeFile).toHaveBeenCalled()
-      } else {
+    describe('when element are deleted and nothing is added', () => {
+      beforeEach(() => {
+        // Arrange
+        sut = new InFile(
+          'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+          'workflows',
+          work,
+          globalMetadata
+        )
+        mockCompare.mockResolvedValue({
+          added: new Map(),
+          deleted: new Map([['WorkflowAlert', new Set(['deleted'])]]),
+        })
+      })
+      it('should store the deleted in the destructiveChanges and not copy the file', async () => {
+        // Act
+        await sut.handleModification()
+
+        // Assert
+        expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
+        expect(work.diffs.package.get('WorkflowAlert')).toBeUndefined()
+        expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
+          new Set(['Account.deleted'])
+        )
+        expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
         expect(mockprune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
-      }
+      })
     })
 
     describe('when metadata in file is not packable', () => {
@@ -149,7 +182,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
           work,
           globalMetadata
         )
-        mockCompare.mockReturnValue({
+        mockCompare.mockResolvedValue({
           added: new Map([['ValueTranslation', new Set(['Three'])]]),
           deleted: new Map(),
         })
@@ -186,7 +219,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         work,
         globalMetadata
       )
-      mockCompare.mockReturnValue({
+      mockCompare.mockResolvedValue({
         added: new Map(),
         deleted: new Map([['WorkflowAlert', new Set(['test'])]]),
       })
