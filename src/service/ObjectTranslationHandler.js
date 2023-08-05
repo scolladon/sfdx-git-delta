@@ -37,6 +37,10 @@ class ObjectTranslationHandler extends ResourceHandler {
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
   }
+
+  _delegateFileCopy() {
+    return !this.line.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
+  }
 }
 
 module.exports = ObjectTranslationHandler

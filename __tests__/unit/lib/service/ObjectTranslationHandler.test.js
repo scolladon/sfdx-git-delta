@@ -59,7 +59,7 @@ describe('ObjectTranslation', () => {
       await sut.handleAddition()
 
       // Assert
-
+      expect(copyFiles).not.toBeCalled()
       expect(writeFile).toBeCalledTimes(1)
       expect(writeFile).toHaveBeenCalledWith(
         expect.stringContaining('Account-es.objectTranslation'),
