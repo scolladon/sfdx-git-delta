@@ -32,7 +32,7 @@ class ObjectTranslationHandler extends ResourceHandler {
 
   getObjectTranslationPath() {
     // Return Object Translation Path for both objectTranslation and fieldTranslation
-    // QUESTION: Why fieldTranslation element are not deployable when objectTranslation element is not in the deployed sources ?
+    // QUESTION: Why fieldTranslation element are not deployable when objectTranslation element is not in the deployed sources (even if objectTranslation file is empty) ?
     return `${parse(this.line).dir}${sep}${
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
