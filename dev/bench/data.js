@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690484547320,
+  "lastUpdate": 1691479566631,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -153,6 +153,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.12,
             "range": "±5.11%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2d5c60cf999998d467b75346e8bb4258c6ddf229",
+          "message": "fix: copy empty metadata file not deployable (#667)",
+          "timestamp": "2023-08-08T09:17:17+02:00",
+          "tree_id": "afe145a53c1ad6c2ad398194b7a45fdbce5a0304",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2d5c60cf999998d467b75346e8bb4258c6ddf229"
+        },
+        "date": 1691479566162,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.14,
+            "range": "±1.84%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
