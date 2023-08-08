@@ -57,7 +57,7 @@ describe('sgd:source:delta NUTS', () => {
     const packageLineCount = await getFileLineNumber(
       'e2e/expected/package/package.xml'
     )
-    expect(packageLineCount).to.equal(194)
+    expect(packageLineCount).to.equal(209)
     expect(result).to.include('"error": null')
     expect(result).to.include('"success": true')
   })

@@ -1,12 +1,12 @@
 'use strict'
-const ShareFolderHandler = require('./sharedFolderHandler')
+const SharedFolderHandler = require('./sharedFolderHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
 const { parse, sep } = require('path')
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
 
-class BotHandler extends ShareFolderHandler {
+class BotHandler extends SharedFolderHandler {
   _getElementName() {
     const parsedPath = this._getParsedPath()
     const elementName = new Set([
