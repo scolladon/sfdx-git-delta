@@ -2,6 +2,7 @@
 const SharedFolderHandler = require('./sharedFolderHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
 const { parse, sep } = require('path')
+const { DOT } = require('../utils/fsHelper')
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
@@ -13,7 +14,7 @@ class BotHandler extends SharedFolderHandler {
       parsedPath.dir.split(sep).pop(),
       parsedPath.name,
     ])
-    return [...elementName].join('.')
+    return [...elementName].join(DOT)
   }
   async handleAddition() {
     await super.handleAddition()

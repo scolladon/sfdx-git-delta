@@ -11,7 +11,7 @@ const {
   cleanUpPackageMember,
   fillPackageWithParameter,
 } = require('../utils/packageHelper')
-const { copyFiles } = require('../utils/fsHelper')
+const { copyFiles, DOT } = require('../utils/fsHelper')
 
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -42,7 +42,7 @@ class StandardHandler {
     this.parsedLine = parse(this.line)
     this.ext = this.parsedLine.base
       .replace(METAFILE_SUFFIX, '')
-      .split('.')
+      .split(DOT)
       .pop()
 
     this.parentFolder = this.parsedLine.dir.split(sep).slice(-1)[0]
