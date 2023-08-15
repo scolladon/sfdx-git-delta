@@ -21,7 +21,7 @@ class BotHandler extends SharedFolderHandler {
   }
 
   async _addParentBot() {
-    const botName = this._getParsedPath().dir.split(sep).pop()
+    const botName = this.parentFolder.split(sep).pop()
     fillPackageWithParameter({
       store: this.diffs.package,
       type: BOT_TYPE,
