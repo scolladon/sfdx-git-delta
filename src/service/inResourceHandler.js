@@ -1,41 +1,29 @@
 'use strict'
 const StandardHandler = require('./standardHandler')
-const { join, parse } = require('path')
-const { pathExists, readDir } = require('../utils/fsHelper')
-const { META_REGEX } = require('../utils/metadataConstants')
+const { join, parse, sep } = require('path')
+const { pathExists } = require('../utils/fsHelper')
+const { META_REGEX, METAFILE_SUFFIX } = require('../utils/metadataConstants')
 const { cleanUpPackageMember } = require('../utils/packageHelper')
-
-const STATICRESOURCE_TYPE = 'staticresources'
-const elementSrc = new Map()
+const { DOT } = require('../utils/fsHelper')
 
 class ResourceHandler extends StandardHandler {
   constructor(line, type, work, metadata) {
     super(line, type, work, metadata)
+    this.metadataName = this._getMetadataName()
   }
 
   async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
-    const [, srcPath, elementFile] = this._parseLine()
-    await this._buildElementMap(srcPath)
-    const matchingFiles = this._buildMatchingFiles(elementFile)
-    const elementName = parse(elementFile).name
-    await Promise.all(
-      elementSrc
-        .get(srcPath)
-        .filter(
-          src =>
-            (this.type === STATICRESOURCE_TYPE &&
-              src.startsWith(elementName)) ||
-            matchingFiles.includes(src)
-        )
-        .map(src => this._copyWithMetaFile(join(srcPath, src)))
-    )
+
+    if (this.line !== this.metadataName && this._parentFolderIsNotTheType()) {
+      await this._copy(this.metadataName)
+    }
   }
 
   async handleDeletion() {
-    const [, srcPath, elementName] = this._parseLine()
-    const exists = await pathExists(join(srcPath, elementName), this.config)
+    const [, elementPath, elementName] = this._parseLine()
+    const exists = await pathExists(join(elementPath, elementName), this.config)
     if (exists) {
       await this.handleModification()
     } else {
@@ -56,27 +44,31 @@ class ResourceHandler extends StandardHandler {
     )
   }
 
-  _buildMatchingFiles(elementName) {
-    const parsedElementName = parse(elementName).name
-    const matchingFiles = [parsedElementName]
-    if (this.metadata.get(this.type).metaFile) {
-      matchingFiles.push(this._getRelativeMetadataXmlFileName(elementName))
-    }
-    return matchingFiles
-  }
-
-  async _buildElementMap(srcPath) {
-    if (!elementSrc.has(srcPath)) {
-      const dirContent = await readDir(srcPath, this.config)
-      elementSrc.set(
-        srcPath,
-        dirContent.map(f => f.replace(/\/$/, ''))
-      )
-    }
-  }
-
   _isProcessable() {
     return true
+  }
+
+  _getMetadataName() {
+    const resourcePath = []
+    for (const pathElement of this.splittedLine) {
+      if (resourcePath.slice(-2)[0] === this.type) {
+        break
+      }
+      resourcePath.push(pathElement)
+    }
+    let lastPathElement = resourcePath[resourcePath.length - 1].split(DOT)
+    if (lastPathElement.length > 1) {
+      lastPathElement.pop()
+    }
+
+    resourcePath[resourcePath.length - 1] = lastPathElement.join(DOT)
+    return `${resourcePath.join(sep)}`
+  }
+
+  _getMetaTypeFilePath() {
+    return `${this.metadataName}.${
+      this.metadata.get(this.type).suffix
+    }${METAFILE_SUFFIX}`
   }
 }
 
