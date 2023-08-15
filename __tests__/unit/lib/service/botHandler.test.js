@@ -65,7 +65,7 @@ describe('BotHandler', () => {
     })
 
     describe('when called with generateDelta true', () => {
-      it('should add and copy the related bot', async () => {
+      it('should add and copy the related parent bot', async () => {
         const sut = new BotHandler(line, objectType, work, globalMetadata)
 
         // Act
