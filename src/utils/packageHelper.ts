@@ -1,18 +1,19 @@
 'use strict'
 import { create } from 'xmlbuilder2'
 import { OBJECT_XML_NAME } from '../utils/metadataConstants'
+import { Config } from '../types/config'
 
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
 
 export default class PackageBuilder {
-  config
+  config: Config
 
-  constructor(config) {
+  constructor(config: Config) {
     this.config = config
   }
 
-  buildPackage(strucDiffPerType: Map<string, any>) {
+  buildPackage(strucDiffPerType: Map<string, Set<string>>) {
     if (!strucDiffPerType) return
 
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
@@ -34,14 +35,14 @@ export default class PackageBuilder {
     return xml.end(xmlConf)
   }
 
-  _sortTypesWithMetadata = (x, y) => {
+  _sortTypesWithMetadata = (x: string, y: string) => {
     // QUESTION: Why Object needs to be ordered first in package.xml so it can be deployed ?
     if (x === OBJECT_XML_NAME) return -1 // @deprecated To remove when the order will not impact the result of the deployment
     return new Intl.Collator(frLocale).compare(x, y)
   }
 }
 
-export const fillPackageWithParameter = ({ store, type, member }) => {
+export const fillPackageWithParameter = ({ store, type: string, member }) => {
   if (!store.has(type)) {
     store.set(type, new Set())
   }

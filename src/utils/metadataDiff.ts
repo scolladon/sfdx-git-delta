@@ -9,11 +9,16 @@ import {
 import { isEqual } from 'lodash'
 import { fillPackageWithParameter } from './packageHelper'
 
+type ManifestTypeMember = {
+  type: string
+  member: string
+}
+
 // Store functional area
 // Side effect on store
 const addToStore =
   store =>
-  ({ type, member }) => {
+  ({ type, member }: ManifestTypeMember) => {
     fillPackageWithParameter({ store, type, member })
     return store
   }
@@ -49,8 +54,8 @@ const compareContent = attributes => (contentAtRef, otherContent, predicat) =>
       )
     )
     .reduce(
-      (store, nameByType: any) => addToStore(store)(nameByType),
-      new Map()
+      (store, nameByType: ManifestTypeMember) => addToStore(store)(nameByType),
+      new Map<string, Set<string>>()
     )
 
 const processMetadataForSubType =

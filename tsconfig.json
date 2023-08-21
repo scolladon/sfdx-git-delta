@@ -6,6 +6,9 @@
     "importHelpers": true,
     "allowJs": false,
     "resolveJsonModule": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "alwaysStrict": true,
     "skipLibCheck": true
   },
   "include": [

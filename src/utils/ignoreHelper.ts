@@ -1,4 +1,4 @@
-import ignore from 'ignore'
+import ignore, { Ignore } from 'ignore'
 import { readFile } from './fsHelper'
 import {
   ADDITION,
@@ -21,7 +21,7 @@ class IgnoreHelper {
   keep(line) {
     const changeType = line.charAt(0)
 
-    let ignInstance: any = null
+    let ignInstance!: Ignore
     if (DELETION == changeType) {
       ignInstance = this.destructiveIgnore
     } else if ([ADDITION, MODIFICATION].includes(changeType)) {

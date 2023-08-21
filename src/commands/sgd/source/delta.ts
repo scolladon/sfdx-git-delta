@@ -1,6 +1,5 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
-import { AnyJson } from '@salesforce/ts-types'
 import { sgd } from '../../../main'
 import {
   TO_DEFAULT_VALUE,
@@ -8,6 +7,8 @@ import {
   SOURCE_DEFAULT_VALUE,
   OUTPUT_DEFAULT_VALUE,
 } from '../../../utils/cliHelper'
+import { Config } from '../../../types/config'
+import { Output } from '../../../types/output'
 
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
@@ -76,9 +77,8 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     }),
   }
 
-  public async run(): Promise<AnyJson> {
-    const output: any = {
-      error: null,
+  public async run(): Promise<Output> {
+    const output: Output = {
       output: this.flags.output,
       success: true,
       warnings: [],
@@ -97,9 +97,9 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         generateDelta: this.flags['generate-delta'],
         include: this.flags.include,
         includeDestructive: this.flags['include-destructive'],
-      })
+      } as Config)
       output.warnings = jobResult?.warnings?.map(
-        (warning: any) => warning.message
+        (warning: Error) => warning.message
       )
     } catch (err) {
       output.success = false

@@ -12,6 +12,7 @@ import ObjectTranslation from './objectTranslationHandler'
 import SharedFolder from './sharedFolderHandler'
 
 import { getType } from '../utils/typeUtils'
+import { Work } from '../types/work'
 
 const classes = {
   assignmentRules: InFile,
@@ -57,7 +58,7 @@ const classes = {
 }
 
 export default class TypeHandlerFactory {
-  work
+  work: Work
   metadata
 
   constructor(work, metadata) {
