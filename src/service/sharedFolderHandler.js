@@ -2,6 +2,8 @@
 const StandardHandler = require('./standardHandler')
 const { fillPackageWithParameter } = require('../utils/packageHelper')
 const { getSharedFolderMetadata } = require('../metadata/metadataManager')
+const { METAFILE_SUFFIX } = require('../utils/metadataConstants')
+const { parse, join } = require('path')
 
 class SharedFolderHandler extends StandardHandler {
   sharedFolderMetadata
@@ -23,6 +25,14 @@ class SharedFolderHandler extends StandardHandler {
 
   _isProcessable() {
     return super._isProcessable() || this.sharedFolderMetadata.has(this.ext)
+  }
+
+  _getMetaTypeFilePath(path) {
+    const parsedPath = parse(path)
+    return join(
+      parsedPath.dir,
+      `${parsedPath.name}${parsedPath.ext}${METAFILE_SUFFIX}`
+    )
   }
 }
 

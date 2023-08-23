@@ -75,18 +75,30 @@ describe('InResourceHandler', () => {
           )
         })
         it.each([
-          ['staticresources', 'StaticResource', 'image', 'image.png', 3],
-          ['staticresources', 'StaticResource', 'image', 'image/logo.png', 3],
           [
+            'imageFile.png',
+            'staticresources',
+            'StaticResource',
+            'imageFile',
+            2,
+          ],
+          [
+            'imageFolder/logo.png',
+            'staticresources',
+            'StaticResource',
+            'imageFolder',
+            3,
+          ],
+          [
+            'my_experience_bundle/config/myexperiencebundle.json',
             'experiences',
             'ExperienceBundle',
             'my_experience_bundle',
-            'my_experience_bundle/config/myexperiencebundle.json',
-            5,
+            3,
           ],
         ])(
-          'should copy the matching folder resource, matching meta file and subject file',
-          async (type, xmlName, entity, path, expectedCount) => {
+          'should copy the matching folder resource, matching meta file and subject file %s',
+          async (path, type, xmlName, entity, expectedCopyCount) => {
             // Arrange
             const base = 'force-app/main/default/'
             const line = `A       ${base}${type}/${path}`
@@ -97,14 +109,10 @@ describe('InResourceHandler', () => {
 
             // Assert
             expect(...work.diffs.package.get(xmlName)).toEqual(entity)
-            expect(copyFiles).toBeCalledTimes(expectedCount)
+            expect(copyFiles).toBeCalledTimes(expectedCopyCount)
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
               `${base}${type}/${path}`
-            )
-            expect(copyFiles).toHaveBeenCalledWith(
-              work.config,
-              `${base}${type}/${path}${METAFILE_SUFFIX}`
             )
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
@@ -130,7 +138,7 @@ describe('InResourceHandler', () => {
 
           // Assert
           expect(...work.diffs.package.get(xmlName)).toEqual(entity)
-          expect(copyFiles).toBeCalledTimes(1)
+          expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
             `${base}${type}/${path}`
@@ -139,7 +147,7 @@ describe('InResourceHandler', () => {
       })
 
       describe('when no matching resource exist', () => {
-        it('should not copy resource files', async () => {
+        it('should try copy resource files', async () => {
           // Arrange
           const sut = new InResourceHandler(
             line,
@@ -156,7 +164,7 @@ describe('InResourceHandler', () => {
           expect(...work.diffs.package.get(xmlName)).toEqual(element)
           expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
-          expect(copyFiles).not.toHaveBeenCalledWith(
+          expect(copyFiles).toHaveBeenCalledWith(
             work.config,
             `${basePath}/${element}.${type}${METAFILE_SUFFIX}`
           )

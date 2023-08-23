@@ -65,7 +65,7 @@ describe('BotHandler', () => {
     })
 
     describe('when called with generateDelta true', () => {
-      it('should add and copy the related bot', async () => {
+      it('should add and copy the related parent bot', async () => {
         const sut = new BotHandler(line, objectType, work, globalMetadata)
 
         // Act
@@ -77,7 +77,25 @@ describe('BotHandler', () => {
           new Set(['TestBot.v1'])
         )
         expect(copyFiles).toBeCalledTimes(4)
+        expect(copyFiles).toBeCalledWith(
+          work.config,
+          `force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`
+        )
+        expect(copyFiles).toBeCalledWith(
+          work.config,
+          `force-app/main/default/bots/TestBot/v1.botVersion`
+        )
+        expect(copyFiles).toBeCalledWith(
+          work.config,
+          `force-app/main/default/bots/TestBot/TestBot.bot`
+        )
+        expect(copyFiles).toBeCalledWith(
+          work.config,
+          `force-app/main/default/bots/TestBot/TestBot.bot-meta.xml`
+        )
       })
     })
   })
+
+  // TODO getMetaTypeFilePath
 })

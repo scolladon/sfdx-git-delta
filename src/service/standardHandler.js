@@ -11,7 +11,7 @@ const {
   cleanUpPackageMember,
   fillPackageWithParameter,
 } = require('../utils/packageHelper')
-const { copyFiles } = require('../utils/fsHelper')
+const { copyFiles, DOT } = require('../utils/fsHelper')
 
 const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -39,11 +39,13 @@ class StandardHandler {
       [DELETION]: this.handleDeletion,
       [MODIFICATION]: this.handleModification,
     }
-
-    this.ext = parse(this.line)
-      .base.replace(METAFILE_SUFFIX, '')
-      .split('.')
+    this.parsedLine = parse(this.line)
+    this.ext = this.parsedLine.base
+      .replace(METAFILE_SUFFIX, '')
+      .split(DOT)
       .pop()
+
+    this.parentFolder = this.parsedLine.dir.split(sep).slice(-1)[0]
   }
 
   async handle() {
@@ -100,13 +102,19 @@ class StandardHandler {
 
   async _copyWithMetaFile(src) {
     if (this._delegateFileCopy()) {
-      await copyFiles(this.config, src)
+      await this._copy(src)
       if (
         this.metadata.get(this.type).metaFile === true &&
         !`${src}`.endsWith(METAFILE_SUFFIX)
       ) {
-        await copyFiles(this.config, this._getMetaTypeFilePath(src))
+        await this._copy(this._getMetaTypeFilePath(src))
       }
+    }
+  }
+
+  async _copy(elementPath) {
+    if (this._delegateFileCopy()) {
+      await copyFiles(this.config, elementPath)
     }
   }
 
@@ -114,7 +122,9 @@ class StandardHandler {
     const parsedPath = parse(path)
     return join(
       parsedPath.dir,
-      `${parsedPath.name}.${this.ext}${METAFILE_SUFFIX}`
+      `${parsedPath.name}.${
+        this.metadata.get(this.type).suffix
+      }${METAFILE_SUFFIX}`
     )
   }
 
@@ -129,18 +139,16 @@ class StandardHandler {
     )
   }
 
-  _getRelativeMetadataXmlFileName(path) {
-    return `${parse(path).base.replace(this.ext, '').replace(/\.$/, '')}.${
-      this.metadata.get(this.type).suffix
-    }${METAFILE_SUFFIX}`
-  }
-
   _isProcessable() {
     return this.metadata.get(this.type).suffix === this.ext
   }
 
   _delegateFileCopy() {
     return true
+  }
+
+  _parentFolderIsNotTheType() {
+    return this.parentFolder !== this.type
   }
 }
 

@@ -82,9 +82,8 @@ class FlowTranslationProcessor extends BaseProcessor {
         member: getTranslationName(translationPath),
       })
       if (this.config.generateDelta) {
-        const jsonTranslation = await this._getTranslationAsJSON(
-          translationPath
-        )
+        const jsonTranslation =
+          await this._getTranslationAsJSON(translationPath)
         this._scrapTranslationFile(
           jsonTranslation,
           this.translationPaths.get(translationPath)

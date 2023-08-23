@@ -52,11 +52,9 @@ class InFolderHandler extends StandardHandler {
   }
 
   _isProcessable() {
-    const parsedLine = parse(this.line)
-    const parentFolder = parsedLine.dir.split(sep).pop()
     return (
       super._isProcessable() ||
-      parentFolder !== this.type ||
+      this._parentFolderIsNotTheType() ||
       this.ext.endsWith(INFOLDER_SUFFIX)
     )
   }

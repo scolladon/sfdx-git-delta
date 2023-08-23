@@ -130,3 +130,4 @@ module.exports.scan = scan
 module.exports.scanExtension = (dir, ext, config) =>
   filterExt(scan(dir, config), ext)
 module.exports.writeFile = writeFile
+module.exports.DOT = '.'

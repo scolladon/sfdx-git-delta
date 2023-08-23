@@ -5,7 +5,7 @@ const {
 } = require('../utils/metadataConstants')
 const StandardHandler = require('./standardHandler')
 const { basename } = require('path')
-const { writeFile } = require('../utils/fsHelper')
+const { writeFile, DOT } = require('../utils/fsHelper')
 const {
   getInFileAttributes,
   isPackable,
@@ -16,7 +16,7 @@ const {
   fillPackageWithParameter,
 } = require('../utils/packageHelper')
 
-const getRootType = line => basename(line).split('.')[0]
+const getRootType = line => basename(line).split(DOT)[0]
 const getNamePrefix = ({ subType, line }) =>
   subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
