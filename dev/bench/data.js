@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1691479570161,
+  "lastUpdate": 1692794526967,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -215,6 +215,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.14,
             "range": "±1.84%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dd6eca650af02e557643a18f8a72eaf5cb4f5f8a",
+          "message": "refactor: copy files smarter (#672)",
+          "timestamp": "2023-08-23T14:32:21+02:00",
+          "tree_id": "09aab88aab62b1e2872cc2b8ee627c3463027b3f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/dd6eca650af02e557643a18f8a72eaf5cb4f5f8a"
+        },
+        "date": 1692794525846,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.11,
+            "range": "±1.69%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
