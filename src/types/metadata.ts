@@ -22,3 +22,5 @@ export type Metadata = BaseMetadata &
     metaFile: boolean
     childXmlNames?: string[]
   }
+
+export type MetadataRepository = Map<string, Metadata>

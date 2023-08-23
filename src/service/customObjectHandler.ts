@@ -25,16 +25,19 @@ export default class CustomObjectHandler extends StandardHandler {
 
     // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
     const fields = await readDir(fieldsFolder, this.config)
-    const masterDetailsFields = await asyncFilter(fields, async fieldPath => {
-      const content = await readPathFromGit(
-        join(fieldsFolder, fieldPath),
-        this.config
-      )
-      return content.includes(MASTER_DETAIL_TAG)
-    })
+    const masterDetailsFields = await asyncFilter(
+      fields,
+      async (fieldPath: string) => {
+        const content = await readPathFromGit(
+          join(fieldsFolder, fieldPath),
+          this.config
+        )
+        return content.includes(MASTER_DETAIL_TAG)
+      }
+    )
 
     await Promise.all(
-      masterDetailsFields.map(field =>
+      masterDetailsFields.map((field: string) =>
         this._copyWithMetaFile(join(fieldsFolder, field))
       )
     )

@@ -6,7 +6,7 @@ const {
 
 const getMetadata = async () => {
   const apiVersion = await getLatestSupportedVersion()
-  const metadata = await getDefinition('directoryName', apiVersion)
+  const metadata = await getDefinition(apiVersion)
   return metadata
 }
 

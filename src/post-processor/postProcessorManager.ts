@@ -1,10 +1,12 @@
 'use strict'
-import BaseProcessort from './baseProcessor'
+import BaseProcessor from './baseProcessor'
 import PackageGenerator from './packageGenerator'
 import FlowTranslationProcessor from './flowTranslationProcessor'
 import IncludeProcessor from './includeProcessor'
+import { Work } from '../types/work'
+import { MetadataRepository } from '../types/metadata'
 
-const processors: Array<typeof BaseProcessort> = [
+const processors: Array<typeof BaseProcessor> = [
   FlowTranslationProcessor,
   IncludeProcessor,
 ]
@@ -13,15 +15,15 @@ const processors: Array<typeof BaseProcessort> = [
 processors.push(PackageGenerator)
 
 export default class PostProcessorManager {
-  postProcessors
-  work
+  postProcessors: BaseProcessor[]
+  work: Work
 
-  constructor(work) {
+  constructor(work: Work) {
     this.postProcessors = []
     this.work = work
   }
 
-  use(postProcessor) {
+  use(postProcessor: BaseProcessor) {
     this.postProcessors.push(postProcessor)
     return this
   }
@@ -37,7 +39,7 @@ export default class PostProcessorManager {
   }
 }
 
-export const getPostProcessors = (work, metadata) => {
+export const getPostProcessors = (work: Work, metadata: MetadataRepository) => {
   const postProcessor = new PostProcessorManager(work)
 
   for (const processor of processors) {

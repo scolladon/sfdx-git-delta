@@ -12,39 +12,46 @@ import { format } from 'util'
 import { stat } from 'node:fs/promises'
 import { readFile } from './fsHelper'
 import { join } from 'path'
+import { Work } from '../types/work'
+import { Config } from '../types/config'
 
-const fsExists = async (dir, fn) => {
+const dirExists = async (dir: string) => {
   try {
     const st = await stat(dir)
-    return st[fn]()
+    return st.isDirectory()
   } catch {
     return false
   }
 }
 
-const dirExists = async dir => await fsExists(dir, 'isDirectory')
+const fileExists = async (file: string) => {
+  try {
+    const st = await stat(file)
+    return st.isFile()
+  } catch {
+    return false
+  }
+}
 
-const fileExists = async file => await fsExists(file, 'isFile')
-
-const isGit = async dir => {
+const isGit = async (dir: string) => {
   const isGitDir = await dirExists(join(dir, GIT_FOLDER))
   const isGitFile = await fileExists(join(dir, GIT_FOLDER))
 
   return isGitDir || isGitFile
 }
 
-const isBlank = str => !str || /^\s*$/.test(str)
+const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS = ['to', 'from']
 const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 export default class CLIHelper {
-  work
-  config
-  repoSetup
+  work: Work
+  config: Config
+  repoSetup: RepoSetup
 
-  constructor(work) {
+  constructor(work: Work) {
     this.work = work
     this.config = work.config
     this.repoSetup = new RepoSetup(work.config)
@@ -53,23 +60,21 @@ export default class CLIHelper {
   async _validateGitSha() {
     const errors: string[] = []
     await Promise.all(
-      GIT_SHA_PARAMETERS.filter(
-        field =>
-          !isBlank(this.config[field]) ||
-          !errors.push(
-            format(messages.errorGitSHAisBlank, field, this.config[field])
+      GIT_SHA_PARAMETERS.filter((shaParameter: keyof Config) => {
+        const shaValue: string = this.config[shaParameter] as string
+        if (isBlank(shaValue)) {
+          errors.push(
+            format(messages.errorGitSHAisBlank, shaParameter, shaValue)
           )
-      ).map(async field => {
-        const refType = await this.repoSetup.getCommitRefType(
-          this.config[field]
-        )
+          return false
+        }
+        return true
+      }).map(async (shaParameter: keyof Config) => {
+        const shaValue: string = this.config[shaParameter] as string
+        const refType = await this.repoSetup.getCommitRefType(shaValue)
         if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
           errors.push(
-            format(
-              messages.errorParameterIsNotGitSHA,
-              field,
-              this.config[field]
-            )
+            format(messages.errorParameterIsNotGitSHA, shaParameter, shaValue)
           )
         }
       })
@@ -88,12 +93,12 @@ export default class CLIHelper {
     const filesPromise = this._filterFiles()
 
     const directories = await directoriesPromise
-    directories.forEach(dir =>
+    directories.forEach((dir: string) =>
       errors.push(format(messages.errorPathIsNotDir, dir))
     )
 
     const files = await filesPromise
-    files.forEach(file =>
+    files.forEach((file: string) =>
       errors.push(format(messages.errorPathIsNotFile, file))
     )
 
@@ -117,7 +122,7 @@ export default class CLIHelper {
       [this.config.output, join(this.config.repo, this.config.source)].filter(
         Boolean
       ),
-      async dir => {
+      async (dir: string) => {
         const exist = await dirExists(dir)
         return !exist
       }
@@ -132,7 +137,7 @@ export default class CLIHelper {
         this.config.include,
         this.config.includeDestructive,
       ].filter(Boolean),
-      async file => {
+      async (file: string) => {
         const exist = await fileExists(file)
         return !exist
       }
@@ -155,7 +160,7 @@ export default class CLIHelper {
         const sfdxProjectRaw = await readFile(sfdxProjectPath)
         const sfdxProject = JSON.parse(sfdxProjectRaw)
         this.config.apiVersion =
-          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) || 'default'
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) ?? -1
       }
     }
   }
@@ -171,19 +176,20 @@ export default class CLIHelper {
         this.config.apiVersion !== undefined &&
         this.config.apiVersion !== null
       ) {
-        this.work.warnings.push({
-          message: format(
-            messages.warningApiVersionNotSupported,
-            latestAPIVersionSupported
-          ),
-        })
+        this.work.warnings.push(
+          new Error(
+            format(
+              messages.warningApiVersionNotSupported,
+              latestAPIVersionSupported
+            )
+          )
+        )
       }
       this.config.apiVersion = latestAPIVersionSupported
     }
   }
 
   _sanitizeConfig() {
-    this.config.apiVersion = parseInt(this.config.apiVersion)
     this.config.repo = sanitizePath(this.config.repo)
     this.config.source = sanitizePath(this.config.source)
     this.config.output = sanitizePath(this.config.output)

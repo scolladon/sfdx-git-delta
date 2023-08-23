@@ -22,7 +22,7 @@ export default class BotHandler extends ShareFolderHandler {
   }
 
   async _addParentBot() {
-    const botName = this.parentFolder.split(sep).pop()
+    const botName = this.parentFolder.split(sep).pop() as string
     fillPackageWithParameter({
       store: this.diffs.package,
       type: BOT_TYPE,

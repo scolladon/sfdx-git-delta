@@ -9,16 +9,16 @@ import {
 
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
-class IgnoreHelper {
-  globalIgnore
-  destructiveIgnore
+export class IgnoreHelper {
+  globalIgnore: Ignore
+  destructiveIgnore: Ignore
 
-  constructor(globalIgnore, destructiveIgnore) {
+  constructor(globalIgnore: Ignore, destructiveIgnore: Ignore) {
     this.globalIgnore = globalIgnore
     this.destructiveIgnore = destructiveIgnore
   }
 
-  keep(line) {
+  keep(line: string) {
     const changeType = line.charAt(0)
 
     let ignInstance!: Ignore
@@ -34,8 +34,14 @@ class IgnoreHelper {
   }
 }
 
-let ignoreInstance
-export const buildIgnoreHelper = async ({ ignore, ignoreDestructive }) => {
+let ignoreInstance: IgnoreHelper | null
+export const buildIgnoreHelper = async ({
+  ignore,
+  ignoreDestructive,
+}: {
+  ignore: string
+  ignoreDestructive: string
+}) => {
   if (!ignoreInstance) {
     const globalIgnore = await _buildIgnore(ignore)
     const destructiveIgnore = ignoreDestructive
@@ -49,8 +55,14 @@ export const buildIgnoreHelper = async ({ ignore, ignoreDestructive }) => {
   return ignoreInstance
 }
 
-let includeInstance
-export const buildIncludeHelper = async ({ include, includeDestructive }) => {
+let includeInstance: IgnoreHelper | null
+export const buildIncludeHelper = async ({
+  include,
+  includeDestructive,
+}: {
+  include: string
+  includeDestructive: string
+}) => {
   if (!includeInstance) {
     const globalIgnore = await _buildIgnore(include)
     const destructiveIgnore = await _buildIgnore(includeDestructive)
@@ -60,7 +72,7 @@ export const buildIncludeHelper = async ({ include, includeDestructive }) => {
   return includeInstance
 }
 
-const _buildIgnore = async ignorePath => {
+const _buildIgnore = async (ignorePath: string) => {
   const ign = ignore()
   if (ignorePath) {
     const content = await readFile(ignorePath)
@@ -69,7 +81,7 @@ const _buildIgnore = async ignorePath => {
   return ign
 }
 
-const _addDefaultDestructiveIgnore = async destructiveIgnore => {
+const _addDefaultDestructiveIgnore = async (destructiveIgnore: Ignore) => {
   destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
 }
 

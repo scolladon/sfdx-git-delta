@@ -6,7 +6,7 @@ import RepoGitDiff from './utils/repoGitDiff'
 import { getPostProcessors } from './post-processor/postProcessorManager'
 import { Config } from './types/config'
 import { Work } from './types/work'
-import { Metadata } from './types/metadata'
+import { MetadataRepository } from './types/metadata'
 
 export const sgd = async (config: Config): Promise<Work> => {
   const work: Work = {
@@ -17,10 +17,7 @@ export const sgd = async (config: Config): Promise<Work> => {
   const cliHelper = new CLIHelper(work)
   await cliHelper.validateConfig()
 
-  const metadata: Map<string, Metadata> = await getDefinition(
-    'directoryName',
-    config.apiVersion
-  )
+  const metadata: MetadataRepository = await getDefinition(config.apiVersion)
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
   const lines = await repoGitDiffHelper.getLines()

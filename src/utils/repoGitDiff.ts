@@ -8,7 +8,6 @@ import {
   GIT_DIFF_TYPE_REGEX,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
-  UTF8_ENCODING,
   GIT_COMMAND,
 } from './gitConstants'
 import {
@@ -16,9 +15,11 @@ import {
   OBJECT_TYPE,
   OBJECT_TRANSLATION_TYPE,
 } from './metadataConstants'
-import { spawn } from 'child_process'
+import { SpawnOptionsWithoutStdio, spawn } from 'child_process'
 import { gitPathSeparatorNormalizer } from './fsHelper'
 import { parse, sep } from 'path'
+import { MetadataRepository } from '../types/metadata'
+import { Config } from '../types/config'
 
 const DIFF_FILTER = '--diff-filter'
 
@@ -28,23 +29,23 @@ const filterAdded = [`${DIFF_FILTER}=${ADDITION}`]
 const filterModification = [`${DIFF_FILTER}=${MODIFICATION}`]
 const TAB = '\t'
 const NUM_STAT_REGEX = /^((-|\d+)\t){2}/
-const lcSensitivity = {
+const lcSensitivity: Intl.CollatorOptions = {
   sensitivity: 'accent',
 }
 
 const pathType = [OBJECT_TYPE, OBJECT_TRANSLATION_TYPE, ...SUB_OBJECT_TYPES]
-export default class RepoGitDiff {
-  config
-  metadata
-  spawnConfig
-  ignoreWhitespaceParams
 
-  constructor(config, metadata) {
+export default class RepoGitDiff {
+  config: Config
+  metadata: MetadataRepository
+  spawnConfig: SpawnOptionsWithoutStdio
+  ignoreWhitespaceParams: string[]
+
+  constructor(config: Config, metadata: MetadataRepository) {
     this.config = config
     this.metadata = metadata
     this.spawnConfig = {
       cwd: this.config.repo,
-      encoding: UTF8_ENCODING,
     }
     this.ignoreWhitespaceParams = this.config.ignoreWhitespace
       ? IGNORE_WHITESPACE_PARAMS
@@ -66,7 +67,7 @@ export default class RepoGitDiff {
     return treatedLines
   }
 
-  async _spawnGitDiff(filter, changeType) {
+  async _spawnGitDiff(filter: string[], changeType: string): Promise<string[]> {
     const lines: string[] = []
     const gitDiff = spawn(
       GIT_COMMAND,
@@ -88,37 +89,43 @@ export default class RepoGitDiff {
     return lines
   }
 
-  async _treatResult(lines) {
-    const linesPerDiffType = lines.reduce(
-      (acc, line) => (acc[line.charAt(0)]?.push(line), acc),
-      { [ADDITION]: [], [DELETION]: [] }
+  async _treatResult(lines: string[]): Promise<string[]> {
+    const linesPerDiffType: Map<string, string[]> = lines.reduce(
+      (acc: Map<string, string[]>, line: string) => {
+        const idx: string = line.charAt(0)
+        acc.get(idx)?.push(line)
+        return acc
+      },
+      new Map()
     )
-    const AfileNames = linesPerDiffType[ADDITION].map(line =>
-      this._extractComparisonName(line)
-    )
-    const deletedRenamed = linesPerDiffType[DELETION].filter(line => {
-      const dEl = this._extractComparisonName(line)
-      return AfileNames.some(
-        aEl => !aEl.localeCompare(dEl, undefined, lcSensitivity)
-      )
-    })
+    const AfileNames: string[] =
+      linesPerDiffType
+        .get(ADDITION)
+        ?.map(line => this._extractComparisonName(line)) ?? []
+    const deletedRenamed: string[] =
+      linesPerDiffType.get(DELETION)?.filter((line: string) => {
+        const dEl = this._extractComparisonName(line)
+        return AfileNames.some(
+          aEl => !aEl.localeCompare(dEl, undefined, lcSensitivity)
+        )
+      }) ?? []
 
     const ignoreHelper = await buildIgnoreHelper(this.config)
 
     return lines
       .filter(Boolean)
-      .filter(line => this._filterInternal(line, deletedRenamed))
-      .filter(line => ignoreHelper.keep(line))
+      .filter((line: string) => this._filterInternal(line, deletedRenamed))
+      .filter((line: string) => ignoreHelper.keep(line))
   }
 
-  _filterInternal(line, deletedRenamed) {
+  _filterInternal(line: string, deletedRenamed: string[]): boolean {
     return (
       !deletedRenamed.includes(line) &&
       line.split(sep).some(part => this.metadata.has(part))
     )
   }
 
-  _extractComparisonName(line) {
+  _extractComparisonName(line: string) {
     const type = getType(line, this.metadata)
     const el = parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
     let comparisonName = el.base
@@ -126,7 +133,8 @@ export default class RepoGitDiff {
       comparisonName = line
         .split(sep)
         .reduce(
-          (acc, value) => (acc || this.metadata.has(value) ? acc + value : acc),
+          (acc: string, value: string) =>
+            acc || this.metadata.has(value) ? acc + value : acc,
           ''
         )
     }

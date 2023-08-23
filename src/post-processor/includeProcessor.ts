@@ -1,17 +1,19 @@
 'use strict'
 import BaseProcessor from './baseProcessor'
-import { buildIncludeHelper } from '../utils/ignoreHelper'
+import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
 import RepoSetup from '../utils/repoSetup'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
 import { treatPathSep } from '../utils/childProcessUtils'
 import { ADDITION, DELETION } from '../utils/gitConstants'
+import { Work } from '../types/work'
+import { MetadataRepository } from '../types/metadata'
 const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {
-  gitHelper
-  from
-  includeHelper
-  constructor(work, metadata) {
+  gitHelper: RepoSetup
+  from: string
+  includeHelper: IgnoreHelper
+  constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
     this.gitHelper = new RepoSetup(this.config)
   }
@@ -37,7 +39,10 @@ export default class IncludeProcessor extends BaseProcessor {
   }
 
   async _process() {
-    const includeHolder = {
+    const includeHolder: {
+      [ADDITION]: string[]
+      [DELETION]: string[]
+    } = {
       [ADDITION]: [],
       [DELETION]: [],
     }
@@ -46,7 +51,9 @@ export default class IncludeProcessor extends BaseProcessor {
       Object.keys(includeHolder).forEach(changeType => {
         const changedLine = `${changeType}${TAB}${treatPathSep(line)}`
         if (!this.includeHelper.keep(changedLine)) {
-          includeHolder[changeType].push(changedLine)
+          includeHolder[changeType as keyof typeof includeHolder].push(
+            changedLine
+          )
         }
       })
     }
@@ -60,12 +67,12 @@ export default class IncludeProcessor extends BaseProcessor {
     }
   }
 
-  async _processInclude(lines) {
+  async _processInclude(lines: string[]) {
     const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
     await lineProcessor.process(lines)
   }
 
-  async _processIncludeDestructive(lines) {
+  async _processIncludeDestructive(lines: string[]) {
     const to = this.config.to
     this.config.to = this.config.from
     this.config.from = to

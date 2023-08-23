@@ -5,6 +5,7 @@ import { outputFile } from 'fs-extra'
 import { spawn } from 'child_process'
 import { GIT_PATH_SEP, UTF8_ENCODING } from './gitConstants'
 import { EOLRegex, getStreamContent, treatPathSep } from './childProcessUtils'
+import { Config } from '../types/config'
 
 const FOLDER = 'tree'
 
@@ -14,7 +15,7 @@ export const gitPathSeparatorNormalizer = (path: string) =>
 const copiedFiles = new Set()
 const writtenFiles = new Set()
 
-export const copyFiles = async (config, src) => {
+export const copyFiles = async (config: Config, src: string) => {
   if (copiedFiles.has(src) || writtenFiles.has(src)) return
   copiedFiles.add(src)
 
@@ -41,7 +42,10 @@ export const copyFiles = async (config, src) => {
   }
 }
 
-const readPathFromGitAsBuffer = async (path, { repo, to }) => {
+const readPathFromGitAsBuffer = async (
+  path: string,
+  { repo, to }: { repo: string; to: string }
+) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
   const bufferData: Buffer = await getStreamContent(
     spawn('git', [...showCmd, `${to}:${normalizedPath}`], {
@@ -52,7 +56,7 @@ const readPathFromGitAsBuffer = async (path, { repo, to }) => {
   return bufferData
 }
 
-export const readPathFromGit = async (path, config) => {
+export const readPathFromGit = async (path: string, config: Config) => {
   let utf8Data = ''
   try {
     const bufferData = await readPathFromGitAsBuffer(path, config)
@@ -63,12 +67,12 @@ export const readPathFromGit = async (path, config) => {
   return utf8Data
 }
 
-export const pathExists = async (path, config) => {
+export const pathExists = async (path: string, config: Config) => {
   const data = await readPathFromGit(path, config)
   return !!data
 }
 
-export const readDir = async (dir, config) => {
+export const readDir = async (dir: string, config: Config) => {
   const data = await readPathFromGit(dir, config)
   const dirContent: string[] = []
   if (data.startsWith(FOLDER)) {
@@ -78,14 +82,17 @@ export const readDir = async (dir, config) => {
   return dirContent
 }
 
-export const readFile = async path => {
+export const readFile = async (path: string) => {
   const file = await fsReadFile(path, {
     encoding: UTF8_ENCODING,
   })
   return file
 }
 
-export async function* scan(dir, config) {
+export async function* scan(
+  dir: string,
+  config: Config
+): AsyncGenerator<string, void, void> {
   const entries = await readDir(dir, config)
   for (const file of entries) {
     const filePath = join(dir, file)
@@ -93,30 +100,39 @@ export async function* scan(dir, config) {
       yield* scan(filePath, config)
     } else {
       yield filePath
+      //yield new Promise<string>(resolve => resolve(filePath))
     }
   }
 }
 
-export const writeFile = async (path, content, { output }) => {
+export const writeFile = async (
+  path: string,
+  content: string,
+  { output }: Config
+) => {
   if (writtenFiles.has(path)) return
   writtenFiles.add(path)
   await outputFile(join(output, treatPathSep(path)), content)
 }
 
-async function* filterExt(it, ext) {
+async function* filterExt(
+  it: AsyncGenerator<string, void, void>,
+  ext: string
+): AsyncGenerator<string, void, void> {
   for await (const file of it) {
     if (file.endsWith(ext)) {
       yield file
+      //yield new Promise<string>(resolve => resolve(file))
     }
   }
 }
 
-export const isSubDir = (parent, dir) => {
+export const isSubDir = (parent: string, dir: string) => {
   const rel = relative(parent, dir)
   return !!rel && !rel.startsWith('..') && !isAbsolute(rel)
 }
 
-export const scanExtension = (dir, ext, config) =>
+export const scanExtension = (dir: string, ext: string, config: Config) =>
   filterExt(scan(dir, config), ext)
 
 export const DOT = '.'

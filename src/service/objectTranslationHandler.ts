@@ -16,7 +16,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     await this._copyObjectTranslation(objectTranslationPath)
   }
 
-  async _copyObjectTranslation(path) {
+  async _copyObjectTranslation(path: string) {
     const inFileMetadata = getInFileAttributes(this.metadata)
     const metadataDiff = new MetadataDiff(
       this.config,

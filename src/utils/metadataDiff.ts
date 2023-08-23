@@ -8,6 +8,9 @@ import {
 } from './fxpHelper'
 import { isEqual } from 'lodash'
 import { fillPackageWithParameter } from './packageHelper'
+import { Manifest } from '../types/work'
+import { Config } from '../types/config'
+import { MetadataRepository, SharedFileMetadata } from '../types/metadata'
 
 type ManifestTypeMember = {
   type: string
@@ -17,35 +20,55 @@ type ManifestTypeMember = {
 // Store functional area
 // Side effect on store
 const addToStore =
-  store =>
-  ({ type, member }: ManifestTypeMember) => {
+  (store: Manifest) =>
+  ({ type, member }: ManifestTypeMember): Manifest => {
     fillPackageWithParameter({ store, type, member })
     return store
   }
 
-const hasMember = store => attributes => subType => member =>
-  store.get(attributes.get(subType)?.xmlName)?.has(member)
+const hasMember =
+  (store: Manifest) =>
+  (attributes: Map<string, SharedFileMetadata>) =>
+  (subType: string) =>
+  (member: string) =>
+    !!store.get(attributes.get(subType)?.xmlName ?? '')?.has(member)
 
-const selectKey = attributes => type => elem => elem[attributes.get(type).key]
+const selectKey =
+  (attributes: Map<string, SharedFileMetadata>) =>
+  (type: string) =>
+  (elem: any) =>
+    elem[attributes.get(type)!.key!]
 
 // Metadata JSON structure functional area
-const getRootMetadata = fileContent => Object.values(fileContent)?.[1] ?? {}
+const getRootMetadata = (fileContent: any): any =>
+  Object.values(fileContent)?.[1] ?? {}
 
-const getSubTypeTags = attributes => fileContent =>
-  Object.keys(getRootMetadata(fileContent)).filter(tag => attributes.has(tag))
+const getSubTypeTags =
+  (attributes: Map<string, SharedFileMetadata>) => (fileContent: any) =>
+    Object.keys(getRootMetadata(fileContent)).filter(tag => attributes.has(tag))
 
-const extractMetadataForSubtype = fileContent => subType =>
-  asArray(getRootMetadata(fileContent)?.[subType])
+const extractMetadataForSubtype =
+  (fileContent: any) =>
+  (subType: string): string[] =>
+    asArray(getRootMetadata(fileContent)?.[subType])
 
-const isEmpty = fileContent =>
+const isEmpty = (fileContent: any) =>
   Object.entries(getRootMetadata(fileContent))
     .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
     .every(([, value]) => Array.isArray(value) && value.length === 0)
 
 // Diff processing functional area
-const compareContent = attributes => (contentAtRef, otherContent, predicat) =>
-  getSubTypeTags(attributes)(contentAtRef)
-    .flatMap(
+const compareContent =
+  (attributes: Map<string, SharedFileMetadata>) =>
+  (
+    contentAtRef: any,
+    otherContent: any,
+    // eslint-disable-next-line no-unused-vars
+    predicat: (arg0: any, arg1: string, arg2: string) => boolean
+  ): Manifest => {
+    const v: ManifestTypeMember[] = getSubTypeTags(attributes)(
+      contentAtRef
+    ).flatMap(
       processMetadataForSubType(
         contentAtRef,
         otherContent,
@@ -53,13 +76,20 @@ const compareContent = attributes => (contentAtRef, otherContent, predicat) =>
         attributes
       )
     )
-    .reduce(
-      (store, nameByType: ManifestTypeMember) => addToStore(store)(nameByType),
-      new Map<string, Set<string>>()
-    )
+    const store: Manifest = new Map()
+    v.forEach((nameByType: ManifestTypeMember) => addToStore(store)(nameByType))
+    return store
+  }
 
 const processMetadataForSubType =
-  (baseContent, otherContent, predicat, attributes) => subType => {
+  (
+    baseContent: any,
+    otherContent: any,
+    // eslint-disable-next-line no-unused-vars
+    predicat: (arg0: any, arg1: string, arg2: string) => boolean,
+    attributes: Map<string, SharedFileMetadata>
+  ) =>
+  (subType: string): ManifestTypeMember[] => {
     const baseMeta = extractMetadataForSubtype(baseContent)(subType)
     const otherMeta = extractMetadataForSubtype(otherContent)(subType)
     const processElement = getElementProcessor(
@@ -68,76 +98,101 @@ const processMetadataForSubType =
       otherMeta,
       attributes
     )
-    return baseMeta.map(processElement).filter(x => x !== undefined)
+    return baseMeta
+      .map(processElement)
+      .filter(x => x !== undefined) as ManifestTypeMember[]
   }
 
-const getElementProcessor = (type, predicat, otherMeta, attributes) => elem => {
-  if (predicat(otherMeta, type, elem)) {
-    return {
-      type: attributes.get(type).xmlName,
-      member: selectKey(attributes)(type)(elem),
+const getElementProcessor =
+  (
+    type: string,
+    // eslint-disable-next-line no-unused-vars
+    predicat: (arg0: any, arg1: string, arg2: string) => boolean,
+    otherMeta: string[],
+    attributes: Map<string, SharedFileMetadata>
+  ) =>
+  (elem: any) => {
+    if (predicat(otherMeta, type, elem)) {
+      return {
+        type: attributes.get(type)!.xmlName,
+        member: selectKey(attributes)(type)(elem),
+      }
     }
   }
-}
 
 // Partial JSON generation functional are
 // Side effect on jsonContent
-const generatePartialJSON = attributes => jsonContent => store => {
-  const extract = extractMetadataForSubtype(jsonContent)
-  const storeHasMember = hasMember(store)(attributes)
-  return getSubTypeTags(attributes)(jsonContent).reduce((acc, subType) => {
-    const meta = extract(subType)
-    const storeHasMemberForType = storeHasMember(subType)
-    const key = selectKey(attributes)(subType)
-    const rootMetadata = getRootMetadata(acc)
-    rootMetadata[subType] = meta.filter(elem =>
-      storeHasMemberForType(key(elem))
-    )
-    return acc
-  }, jsonContent)
-}
+const generatePartialJSON =
+  (attributes: Map<string, SharedFileMetadata>) =>
+  (jsonContent: any) =>
+  (store: Manifest) => {
+    const extract = extractMetadataForSubtype(jsonContent)
+    const storeHasMember = hasMember(store)(attributes)
+    return getSubTypeTags(attributes)(jsonContent).reduce((acc, subType) => {
+      const meta = extract(subType)
+      const storeHasMemberForType = storeHasMember(subType)
+      const key = selectKey(attributes)(subType)
+      const rootMetadata = getRootMetadata(acc)
+      rootMetadata[subType] = meta.filter(elem =>
+        storeHasMemberForType(key(elem))
+      )
+      return acc
+    }, jsonContent)
+  }
 
 export default class MetadataDiff {
-  config
-  metadata
-  attributes
-  configTo
-  configFrom
-  toContent
-  add
-  constructor(config, metadata, attributes) {
+  config: Config
+  metadata: MetadataRepository
+  attributes: Map<string, SharedFileMetadata>
+  configTo: Config
+  configFrom: Config
+  toContent: any
+  add: Manifest
+  constructor(
+    config: Config,
+    metadata: MetadataRepository,
+    attributes: Map<string, SharedFileMetadata>
+  ) {
     this.config = config
     this.metadata = metadata
     this.attributes = attributes
     this.configTo = {
       repo: this.config.repo,
       to: this.config.to,
-    }
+    } as Config
     this.configFrom = {
       repo: this.config.repo,
       to: this.config.from,
-    }
+    } as Config
   }
 
-  async compare(path) {
+  async compare(path: string) {
     this.toContent = await parseXmlFileToJson(path, this.configTo)
     const fromContent = await parseXmlFileToJson(path, this.configFrom)
 
     const diff = compareContent(this.attributes)
 
     // Added or Modified
-    this.add = diff(this.toContent, fromContent, (meta, type, elem) => {
-      const key = selectKey(this.attributes)(type)
-      const match = meta.find(el => key(el) === key(elem))
-      return !match || !isEqual(match, elem)
-    })
+    this.add = diff(
+      this.toContent,
+      fromContent,
+      (meta: any[], type: string, elem: string) => {
+        const key = selectKey(this.attributes)(type)
+        const match = meta.find((el: string) => key(el) === key(elem))
+        return !match || !isEqual(match, elem)
+      }
+    )
 
     // Will be done when not needed
     // Deleted
-    const del = diff(fromContent, this.toContent, (meta, type, elem) => {
-      const key = selectKey(this.attributes)(type)
-      return !meta.some(el => key(el) === key(elem))
-    })
+    const del = diff(
+      fromContent,
+      this.toContent,
+      (meta: any[], type: string, elem: string) => {
+        const key = selectKey(this.attributes)(type)
+        return !meta.some((el: string) => key(el) === key(elem))
+      }
+    )
 
     return {
       added: this.add,

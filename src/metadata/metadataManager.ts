@@ -2,14 +2,16 @@
 import { resolve } from 'path'
 import { readdir } from 'fs/promises'
 import {
+  BaseMetadata,
   Metadata,
+  MetadataRepository,
   SharedFileMetadata,
   SharedFolderMetadata,
 } from '../types/metadata'
 
 const _apiMap = new Map<number, string>()
 let _latestVersion: number = -Infinity
-const describeMetadata = new Map<string, Metadata[]>()
+const describeMetadata = new Map<number, Metadata[]>()
 const inFileMetadata = new Map<string, SharedFileMetadata>()
 const sharedFolderMetadata = new Map<string, string>()
 
@@ -31,42 +33,47 @@ export const getLatestSupportedVersion = async () => {
   return _latestVersion
 }
 
-export const isVersionSupported = async version => {
+export const isVersionSupported = async (version: number) => {
   await buildAPIMap()
   return _apiMap.has(version)
 }
 
 export const getDefinition = async (
-  grouping,
-  apiVersion
-): Promise<Map<string, Metadata>> => {
+  apiVersion: number
+): Promise<MetadataRepository> => {
   if (!describeMetadata.has(apiVersion)) {
     await buildAPIMap()
-    const apiFile = _apiMap.has(apiVersion)
-      ? _apiMap.get(apiVersion)
-      : _apiMap.get(_latestVersion)
+    const apiFile = (
+      _apiMap.has(apiVersion)
+        ? _apiMap.get(apiVersion)
+        : _apiMap.get(_latestVersion)
+    ) as string
     describeMetadata.set(apiVersion, require(resolve(__dirname, apiFile)))
   }
 
-  return describeMetadata.get(apiVersion).reduce((metadata, describe) => {
-    metadata.set(describe[grouping], describe)
-    return metadata
-  }, new Map<string, Metadata>())
+  const metadataRepository: MetadataRepository = new Map<string, Metadata>()
+  describeMetadata
+    .get(apiVersion)
+    ?.reduce((metadata: MetadataRepository, describe: Metadata) => {
+      metadata.set(describe.directoryName, describe)
+      return metadata
+    }, metadataRepository)
+  return metadataRepository
 }
 
-export const isPackable = type =>
-  !Array.from(inFileMetadata.values()).find(
-    inFileDef => inFileDef.xmlName === type
-  ).excluded
+export const isPackable = (type: string) =>
+  Array.from(inFileMetadata.values()).find(
+    (inFileDef: SharedFileMetadata) => inFileDef.xmlName === type
+  )?.excluded !== true
 
-export const getInFileAttributes = (metadata: Map<string, Metadata>) =>
+export const getInFileAttributes = (metadata: MetadataRepository) =>
   inFileMetadata.size
     ? inFileMetadata
     : Array.from(metadata.values())
         .filter((meta: Metadata) => meta.xmlTag)
         .reduce(
           (acc: Map<string, SharedFileMetadata>, meta: Metadata) =>
-            acc.set(meta.xmlTag, {
+            acc.set(meta.xmlTag!, {
               xmlName: meta.xmlName,
               key: meta.key,
               excluded: !!meta.excluded,
@@ -74,13 +81,14 @@ export const getInFileAttributes = (metadata: Map<string, Metadata>) =>
           inFileMetadata
         )
 
-export const getSharedFolderMetadata = metadata =>
+export const getSharedFolderMetadata = (metadata: MetadataRepository) =>
   sharedFolderMetadata.size
     ? sharedFolderMetadata
     : Array.from(metadata.values())
         .filter((meta: Metadata) => meta.content)
         .flatMap((elem: SharedFolderMetadata) => elem.content)
         .reduce(
-          (acc, val) => acc.set(val.suffix, val.xmlName),
+          (acc: Map<string, string>, val: BaseMetadata) =>
+            acc.set(val.suffix!, val.xmlName),
           sharedFolderMetadata
         )

@@ -20,10 +20,10 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   async _copyFolderMetaFile() {
-    const [, folderPath, folderName] = this._parseLine()
+    const [, folderPath, folderName] = this._parseLine()!
 
     const folderFileName = `${folderName}.${
-      this.metadata.get(this.type).suffix.toLowerCase() + METAFILE_SUFFIX
+      this.metadataDef.suffix!.toLowerCase() + METAFILE_SUFFIX
     }`
 
     await this._copyWithMetaFile(join(folderPath, folderFileName))
@@ -55,7 +55,7 @@ export default class InFolderHandler extends StandardHandler {
     return (
       super._isProcessable() ||
       this._parentFolderIsNotTheType() ||
-      this.ext.endsWith(INFOLDER_SUFFIX)
+      this.ext!.endsWith(INFOLDER_SUFFIX)
     )
   }
 }

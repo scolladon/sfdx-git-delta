@@ -17,7 +17,7 @@ export default class SubCustomObjectHandler extends StandardHandler {
     if (!data.includes(MASTER_DETAIL_TAG)) return
 
     const customObjectDirPath = this.splittedLine
-      .slice(0, [this.splittedLine.indexOf(this.type)])
+      .slice(0, this.splittedLine.indexOf(this.type))
       .join(sep)
     const customObjectName =
       this.splittedLine[this.splittedLine.indexOf(this.type) - 1]

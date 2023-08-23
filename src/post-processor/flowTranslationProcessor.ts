@@ -19,10 +19,12 @@ import {
 } from '../utils/fxpHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 import { treatPathSep } from '../utils/childProcessUtils'
+import { Work } from '../types/work'
+import { MetadataRepository } from '../types/metadata'
 
 const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 
-const getTranslationName = translationPath =>
+const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
 
 const getDefaultTranslation = () => ({
@@ -34,9 +36,9 @@ const getDefaultTranslation = () => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
-  translationPaths
+  translationPaths: Map<string, any>
 
-  constructor(work, metadata) {
+  constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
     this.translationPaths = new Map()
   }
@@ -89,13 +91,15 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     }
   }
 
-  _scrapTranslationFile(jsonTranslation, actualFlowDefinition) {
+  _scrapTranslationFile(jsonTranslation: any, actualFlowDefinition: any) {
     const flowDefinitions = asArray(
       jsonTranslation.Translations?.flowDefinitions
     )
-    const fullNames = new Set(flowDefinitions.map(flowDef => flowDef.fullName))
+    const fullNames = new Set(
+      flowDefinitions.map((flowDef: any) => flowDef.fullName)
+    )
     const strippedActualFlowDefinition = actualFlowDefinition.filter(
-      flowDef => !fullNames.has(flowDef.fullName)
+      (flowDef: any) => !fullNames.has(flowDef.fullName)
     )
 
     jsonTranslation.Translations.flowDefinitions = flowDefinitions.concat(
@@ -103,7 +107,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
-  async _parseTranslationFile(translationPath) {
+  async _parseTranslationFile(translationPath: string) {
     const translationJSON = await parseXmlFileToJson(
       translationPath,
       this.config
@@ -119,9 +123,15 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
-  _addFlowPerTranslation({ translationPath, flowDefinition }) {
+  _addFlowPerTranslation({
+    translationPath,
+    flowDefinition,
+  }: {
+    translationPath: string
+    flowDefinition: any
+  }) {
     const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
-    if (packagedElements.has(flowDefinition.fullName)) {
+    if (packagedElements?.has(flowDefinition.fullName)) {
       if (!this.translationPaths.has(translationPath)) {
         this.translationPaths.set(translationPath, [])
       }
@@ -129,7 +139,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     }
   }
 
-  async _getTranslationAsJSON(translationPath) {
+  async _getTranslationAsJSON(translationPath: string) {
     const translationPathInOutputFolder = join(
       this.config.output,
       treatPathSep(translationPath)

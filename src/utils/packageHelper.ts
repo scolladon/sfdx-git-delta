@@ -2,6 +2,7 @@
 import { create } from 'xmlbuilder2'
 import { OBJECT_XML_NAME } from '../utils/metadataConstants'
 import { Config } from '../types/config'
+import { Manifest } from '../types/work'
 
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
@@ -13,7 +14,7 @@ export default class PackageBuilder {
     this.config = config
   }
 
-  buildPackage(strucDiffPerType: Map<string, Set<string>>) {
+  buildPackage(strucDiffPerType: Manifest) {
     if (!strucDiffPerType) return
 
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
@@ -22,7 +23,7 @@ export default class PackageBuilder {
     Array.from(strucDiffPerType.keys())
       .sort(this._sortTypesWithMetadata)
       .forEach(metadataType =>
-        [...strucDiffPerType.get(metadataType)]
+        [...(strucDiffPerType.get(metadataType) ?? [])]
           .sort(Intl.Collator(frLocale).compare)
           .reduce((type, member) => {
             type.ele('members').txt(member)
@@ -42,14 +43,22 @@ export default class PackageBuilder {
   }
 }
 
-export const fillPackageWithParameter = ({ store, type: string, member }) => {
+export const fillPackageWithParameter = ({
+  store,
+  type,
+  member,
+}: {
+  store: Manifest
+  type: string
+  member: string
+}) => {
   if (!store.has(type)) {
     store.set(type, new Set())
   }
-  store.get(type).add(member)
+  store.get(type)?.add(member)
 }
 
 const PACKAGE_MEMBER_PATH_SEP = '/'
-export const cleanUpPackageMember = packageMember => {
+export const cleanUpPackageMember = (packageMember: string) => {
   return `${packageMember}`.replace(/\\+/g, PACKAGE_MEMBER_PATH_SEP)
 }

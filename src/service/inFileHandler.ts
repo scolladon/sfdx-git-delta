@@ -9,14 +9,22 @@ import {
   cleanUpPackageMember,
   fillPackageWithParameter,
 } from '../utils/packageHelper'
+import { Manifest, Work } from '../types/work'
+import { MetadataRepository } from '../types/metadata'
 
-const getRootType = line => basename(line).split(DOT)[0]
-const getNamePrefix = ({ subType, line }) =>
+const getRootType = (line: string) => basename(line).split(DOT)[0]
+const getNamePrefix = ({ subType, line }: { subType: string; line: string }) =>
   subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
 export default class InFileHandler extends StandardHandler {
-  metadataDiff
-  constructor(line, type, work, metadata) {
+  metadataDiff: MetadataDiff
+  _addedMembers: Manifest
+  constructor(
+    line: string,
+    type: string,
+    work: Work,
+    metadata: MetadataRepository
+  ) {
     super(line, type, work, metadata)
     const inFileMetadata = getInFileAttributes(metadata)
     this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
@@ -31,7 +39,7 @@ export default class InFileHandler extends StandardHandler {
   }
 
   async handleDeletion() {
-    if (this.metadata.get(this.type).pruneOnly) {
+    if (this.metadataDef.pruneOnly) {
       await super.handleDeletion()
     } else {
       await this._compareRevision()
@@ -56,7 +64,7 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  _storeComparison(store, content) {
+  _storeComparison(store: Manifest, content: Manifest) {
     for (const [type, members] of content) {
       for (const member of members) {
         this._fillPackageForInfileMetadata(store, type, member)
@@ -64,7 +72,11 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  _fillPackageForInfileMetadata(store, subType, member) {
+  _fillPackageForInfileMetadata(
+    store: Manifest,
+    subType: string,
+    member: string
+  ) {
     if (isPackable(subType)) {
       const cleanedMember = cleanUpPackageMember(
         `${getNamePrefix({ subType, line: this.line })}${member}`
@@ -82,7 +94,7 @@ export default class InFileHandler extends StandardHandler {
     return false
   }
 
-  _fillPackage(store) {
+  _fillPackage(store: Manifest) {
     // Call from super.handleAddition to add the Root Type
     // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
     if (this.type !== LABEL_EXTENSION) {

@@ -13,8 +13,9 @@ import SharedFolder from './sharedFolderHandler'
 
 import { getType } from '../utils/typeUtils'
 import { Work } from '../types/work'
+import { MetadataRepository } from '../types/metadata'
 
-const classes = {
+const handlerMap = {
   assignmentRules: InFile,
   autoResponseRules: InFile,
   aura: LwcHandler,
@@ -59,18 +60,18 @@ const classes = {
 
 export default class TypeHandlerFactory {
   work: Work
-  metadata
+  metadata: MetadataRepository
 
-  constructor(work, metadata) {
+  constructor(work: Work, metadata: MetadataRepository) {
     this.work = work
     this.metadata = metadata
   }
 
-  getTypeHandler(line) {
-    const type = getType(line, this.metadata)
+  getTypeHandler(line: string) {
+    const type = getType(line, this.metadata) as keyof typeof handlerMap
 
-    return classes[type]
-      ? new classes[type](line, type, this.work, this.metadata)
+    return type in handlerMap
+      ? new handlerMap[type](line, type, this.work, this.metadata)
       : new Standard(line, type, this.work, this.metadata)
   }
 }

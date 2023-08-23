@@ -9,13 +9,13 @@ const {
 
 describe(`test if metadata`, () => {
   test('when grouped per directoryName, have classes', async () => {
-    const metadata = await getDefinition('directoryName')
+    const metadata = await getDefinition()
     expect(metadata.get('classes')).toBeDefined()
   })
 
   test('when grouped per directoryName, do not have do not exist', async () => {
-    let metadata = await getDefinition('directoryName', '48')
-    metadata = await getDefinition('directoryName', '46')
+    let metadata = await getDefinition('48')
+    metadata = await getDefinition('46')
     expect(metadata).toBeDefined()
     expect(metadata.get('do not exist')).toBeFalsy()
   })

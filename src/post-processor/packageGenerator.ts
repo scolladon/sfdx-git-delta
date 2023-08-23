@@ -24,10 +24,10 @@ export default class PackageGenerator extends BaseProcessor {
         destructive.set(
           type,
           new Set(
-            [...destructive.get(type)].filter(element => !members.has(element))
+            [...destructive.get(type)!].filter(element => !members.has(element))
           )
         )
-        if (destructive.get(type).size === 0) {
+        if (destructive.get(type)!.size === 0) {
           destructive.delete(type)
         }
       }

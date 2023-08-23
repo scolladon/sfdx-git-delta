@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse, sep } from 'path'
+import { join, parse, sep, ParsedPath } from 'path'
 import {
   ADDITION,
   DELETION,
@@ -12,28 +12,43 @@ import {
   fillPackageWithParameter,
 } from '../utils/packageHelper'
 import { copyFiles, DOT } from '../utils/fsHelper'
+import { Manifest, Manifests, Work } from '../types/work'
+import { Metadata, MetadataRepository } from '../types/metadata'
+import { Config } from '../types/config'
 
-const RegExpEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+type HandlerDef = {
+  [ADDITION]: () => Promise<void>
+  [DELETION]: () => void
+  [MODIFICATION]: () => Promise<void>
+}
 
 export default class StandardHandler {
-  metadata
-  changeType
-  line
-  type
-  work
-  diffs
-  config
-  warnings
-  splittedLine
-  suffixRegex
-  handlerMap
-  ext
-  parsedLine
-  parentFolder
+  metadata: MetadataRepository
+  changeType: keyof HandlerDef
+  line: string
+  type: string
+  work: Work
+  diffs: Manifests
+  config: Config
+  warnings: Error[]
+  splittedLine: string[]
+  suffixRegex: RegExp
+  handlerMap: HandlerDef
+  ext: string
+  metadataDef: Metadata
+  parsedLine: ParsedPath
+  parentFolder: string
 
-  constructor(line, type, work, metadata) {
+  constructor(
+    line: string,
+    type: string,
+    work: Work,
+    metadata: MetadataRepository
+  ) {
     this.metadata = metadata
-    ;[this.changeType] = line
+    this.changeType = line.charAt(0) as keyof HandlerDef
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     this.type = type
     this.work = work
@@ -58,9 +73,10 @@ export default class StandardHandler {
     this.ext = this.parsedLine.base
       .replace(METAFILE_SUFFIX, '')
       .split(DOT)
-      .pop()
+      .pop() as string
 
     this.parentFolder = this.parsedLine.dir.split(sep).slice(-1)[0]
+    this.metadataDef = this.metadata.get(this.type) as Metadata
   }
 
   async handle() {
@@ -107,19 +123,19 @@ export default class StandardHandler {
     return cleanUpPackageMember(parsedPath.base)
   }
 
-  _fillPackage(store) {
+  _fillPackage(store: Manifest) {
     fillPackageWithParameter({
       store,
-      type: this.metadata.get(this.type).xmlName,
+      type: this.metadata.get(this.type)!.xmlName,
       member: this._getElementName(),
     })
   }
 
-  async _copyWithMetaFile(src) {
+  async _copyWithMetaFile(src: string) {
     if (this._delegateFileCopy()) {
       await this._copy(src)
       if (
-        this.metadata.get(this.type).metaFile === true &&
+        this.metadataDef.metaFile === true &&
         !`${src}`.endsWith(METAFILE_SUFFIX)
       ) {
         await this._copy(this._getMetaTypeFilePath(src))
@@ -127,19 +143,17 @@ export default class StandardHandler {
     }
   }
 
-  async _copy(elementPath) {
+  async _copy(elementPath: string) {
     if (this._delegateFileCopy()) {
       await copyFiles(this.config, elementPath)
     }
   }
 
-  _getMetaTypeFilePath(path) {
+  _getMetaTypeFilePath(path: string) {
     const parsedPath = parse(path)
     return join(
       parsedPath.dir,
-      `${parsedPath.name}.${
-        this.metadata.get(this.type).suffix
-      }${METAFILE_SUFFIX}`
+      `${parsedPath.name}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
     )
   }
 
@@ -147,7 +161,7 @@ export default class StandardHandler {
     return this.line.match(
       new RegExp(
         `(?<path>.*[/\\\\]${RegExpEscape(
-          this.metadata.get(this.type).directoryName
+          this.metadataDef.directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
@@ -155,7 +169,7 @@ export default class StandardHandler {
   }
 
   _isProcessable() {
-    return this.metadata.get(this.type).suffix === this.ext
+    return this.metadataDef.suffix === this.ext
   }
 
   _delegateFileCopy() {

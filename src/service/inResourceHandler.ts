@@ -5,11 +5,18 @@ import { pathExists } from '../utils/fsHelper'
 import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
 import { cleanUpPackageMember } from '../utils/packageHelper'
 import { DOT } from '../utils/fsHelper'
+import { Work } from '../types/work'
+import { MetadataRepository } from '../types/metadata'
 
 export default class ResourceHandler extends StandardHandler {
   metadataName: string
 
-  constructor(line, type, work, metadata) {
+  constructor(
+    line: string,
+    type: string,
+    work: Work,
+    metadata: MetadataRepository
+  ) {
     super(line, type, work, metadata)
     this.metadataName = this._getMetadataName()
   }
@@ -24,7 +31,7 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   async handleDeletion() {
-    const [, elementPath, elementName] = this._parseLine()
+    const [, elementPath, elementName] = this._parseLine()!
     const exists = await pathExists(join(elementPath, elementName), this.config)
     if (exists) {
       await this.handleModification()
@@ -68,8 +75,6 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   _getMetaTypeFilePath() {
-    return `${this.metadataName}.${
-      this.metadata.get(this.type).suffix
-    }${METAFILE_SUFFIX}`
+    return `${this.metadataName}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
   }
 }
