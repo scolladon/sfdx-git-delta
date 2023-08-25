@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1692794531966,
+  "lastUpdate": 1692985247786,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -277,6 +277,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.11,
             "range": "±1.69%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jow.accounts@gmail.com",
+            "name": "jow5",
+            "username": "jow5"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2982f02ed06d48b9febded3947bd11b51cb96d62",
+          "message": "feat: add support for Net Zero Cloud metadata (#675)",
+          "timestamp": "2023-08-25T19:31:11+02:00",
+          "tree_id": "f68396e157efb759887041ab0bcd3f1a5586296c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2982f02ed06d48b9febded3947bd11b51cb96d62"
+        },
+        "date": 1692985247292,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.13,
+            "range": "±0.96%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
