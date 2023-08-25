@@ -2041,5 +2041,61 @@
     "xmlTag": "workflowTasks",
     "key": "name",
     "excluded": true
+  },
+  {
+    "directoryName": "clauseCatgConfigurations",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "clauseCatgConfiguration",
+    "xmlName": "ClauseCatgConfiguration"
+  },
+  {
+    "directoryName": "disclosureDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "disclosureDefinition",
+    "xmlName": "DisclosureDefinition"
+  },
+  {
+    "directoryName": "disclosureDefinitionVersions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "disclosureDefinitionVersion",
+    "xmlName": "DisclosureDefinitionVersion"
+  },
+  {
+    "directoryName": "disclosureTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "disclosureType ",
+    "xmlName": "DisclosureType"
+  },
+  {
+    "directoryName": "fuelTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "fuelType",
+    "xmlName": "FuelType"
+  },
+  {
+    "directoryName": "fuelTypeSustnUoms",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "fuelTypeSustnUom",
+    "xmlName": "FuelTypeSustnUom"
+  },
+  {
+    "directoryName": "sustnUomConversions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "sustnUomConversion",
+    "xmlName": "SustnUomConversion"
+  },
+  {
+    "directoryName": "sustainabilityUoms",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "sustainabilityUom",
+    "xmlName": "SustainabilityUom"
   }
 ]
