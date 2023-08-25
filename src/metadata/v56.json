@@ -2006,5 +2006,12 @@
     "xmlTag": "workflowTasks",
     "key": "name",
     "excluded": true
+  },
+  {
+    "directoryName": "sustainabilityUoms",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "sustainabilityUom",
+    "xmlName": "SustainabilityUom"
   }
 ]
