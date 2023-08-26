@@ -15,15 +15,13 @@ export default class PackageBuilder {
   }
 
   buildPackage(strucDiffPerType: Manifest) {
-    if (!strucDiffPerType) return
-
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
       xmlns: 'http://soap.sforce.com/2006/04/metadata',
     })
     Array.from(strucDiffPerType.keys())
       .sort(this._sortTypesWithMetadata)
       .forEach(metadataType =>
-        [...(strucDiffPerType.get(metadataType) ?? [])]
+        [...strucDiffPerType.get(metadataType)!]
           .sort(Intl.Collator(frLocale).compare)
           .reduce((type, member) => {
             type.ele('members').txt(member)

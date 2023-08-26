@@ -3,42 +3,16 @@ import asyncFilter from './asyncFilter'
 import messages from '../locales/en'
 import RepoSetup from './repoSetup'
 import { sanitizePath } from './childProcessUtils'
-import { GIT_FOLDER, POINTER_REF_TYPES } from './gitConstants'
+import { POINTER_REF_TYPES } from './gitConstants'
 import {
   getLatestSupportedVersion,
   isVersionSupported,
 } from '../metadata/metadataManager'
 import { format } from 'util'
-import { stat } from 'node:fs/promises'
-import { readFile } from './fsHelper'
+import { readFile, dirExists, fileExists, isGit } from './fsHelper'
 import { join } from 'path'
 import { Work } from '../types/work'
 import { Config } from '../types/config'
-
-const dirExists = async (dir: string) => {
-  try {
-    const st = await stat(dir)
-    return st.isDirectory()
-  } catch {
-    return false
-  }
-}
-
-const fileExists = async (file: string) => {
-  try {
-    const st = await stat(file)
-    return st.isFile()
-  } catch {
-    return false
-  }
-}
-
-const isGit = async (dir: string) => {
-  const isGitDir = await dirExists(join(dir, GIT_FOLDER))
-  const isGitFile = await fileExists(join(dir, GIT_FOLDER))
-
-  return isGitDir || isGitFile
-}
 
 const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
@@ -160,7 +134,7 @@ export default class CLIHelper {
         const sfdxProjectRaw = await readFile(sfdxProjectPath)
         const sfdxProject = JSON.parse(sfdxProjectRaw)
         this.config.apiVersion =
-          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) ?? -1
+          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) || -1
       }
     }
   }

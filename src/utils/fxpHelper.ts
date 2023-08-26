@@ -21,7 +21,7 @@ const JSON_PARSER_OPTION = {
 }
 
 export const asArray = (node: string[] | string) => {
-  return node != null ? (Array.isArray(node) ? node : [node]) : []
+  return Array.isArray(node) ? node : [node]
 }
 
 export const xml2Json = (xmlContent: string) => {
@@ -34,6 +34,7 @@ export const parseXmlFileToJson = async (line: string, config: Config) => {
   return xml2Json(xmlContent)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const convertJsonToXml = (jsonContent: any) => {
   const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
   return xmlBuilder

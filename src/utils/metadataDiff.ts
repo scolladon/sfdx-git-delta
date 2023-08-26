@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict'
 
 import {
@@ -31,13 +32,14 @@ const hasMember =
   (attributes: Map<string, SharedFileMetadata>) =>
   (subType: string) =>
   (member: string) =>
-    !!store.get(attributes.get(subType)?.xmlName ?? '')?.has(member)
+    attributes.has(subType) &&
+    store.get(attributes.get(subType)!.xmlName)?.has(member)
 
 const selectKey =
   (attributes: Map<string, SharedFileMetadata>) =>
   (type: string) =>
   (elem: any) =>
-    elem[attributes.get(type)!.key!]
+    elem?.[attributes.get(type)!.key!]
 
 // Metadata JSON structure functional area
 const getRootMetadata = (fileContent: any): any =>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict'
 import BaseProcessor from './baseProcessor'
 import {
@@ -53,7 +54,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translationPaths.clear()
 
-    const translationsIterator = scanExtension(
+    const translationsIterator = await scanExtension(
       this.config.source,
       EXTENSION,
       this.work.config
@@ -61,12 +62,12 @@ export default class FlowTranslationProcessor extends BaseProcessor {
 
     const ignoreHelper = await buildIgnoreHelper(this.config)
 
-    for await (const translationPath of translationsIterator) {
+    for (const translationPath of translationsIterator) {
       if (
         !ignoreHelper?.globalIgnore?.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
-        this._parseTranslationFile(translationPath)
+        await this._parseTranslationFile(translationPath)
       }
     }
   }
@@ -96,10 +97,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       jsonTranslation.Translations?.flowDefinitions
     )
     const fullNames = new Set(
-      flowDefinitions.map((flowDef: any) => flowDef.fullName)
+      flowDefinitions.map((flowDef: any) => flowDef?.fullName)
     )
     const strippedActualFlowDefinition = actualFlowDefinition.filter(
-      (flowDef: any) => !fullNames.has(flowDef.fullName)
+      (flowDef: any) => !fullNames.has(flowDef?.fullName)
     )
 
     jsonTranslation.Translations.flowDefinitions = flowDefinitions.concat(
@@ -131,7 +132,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     flowDefinition: any
   }) {
     const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
-    if (packagedElements?.has(flowDefinition.fullName)) {
+    if (packagedElements?.has(flowDefinition?.fullName)) {
       if (!this.translationPaths.has(translationPath)) {
         this.translationPaths.set(translationPath, [])
       }

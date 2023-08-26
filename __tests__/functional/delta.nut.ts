@@ -1,8 +1,8 @@
 'use strict'
-const { execCmd } = require('@salesforce/cli-plugins-testkit')
-const { expect } = require('@salesforce/command/lib/test')
-const readline = require('readline')
-const fs = require('fs')
+import { expect } from '@salesforce/command/lib/test'
+import { execCmd } from '@salesforce/cli-plugins-testkit'
+import readline from 'readline'
+import fs from 'fs'
 
 describe('sgd:source:delta NUTS', () => {
   it('run help', () => {
@@ -67,7 +67,7 @@ describe('sgd:source:delta NUTS', () => {
   })
 })
 
-const getFileLineNumber = async path => {
+const getFileLineNumber = async (path: string) => {
   let linesCount = 0
   const rl = readline.createInterface({
     input: fs.createReadStream(path),

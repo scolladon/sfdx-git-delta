@@ -1,6 +1,6 @@
 'use strict'
 import { resolve } from 'path'
-import { readdir } from 'fs/promises'
+import { readFile, readdir } from 'fs-extra'
 import {
   BaseMetadata,
   Metadata,
@@ -48,7 +48,11 @@ export const getDefinition = async (
         ? _apiMap.get(apiVersion)
         : _apiMap.get(_latestVersion)
     ) as string
-    describeMetadata.set(apiVersion, require(resolve(__dirname, apiFile)))
+    const fileContent: string = await readFile(
+      resolve(__dirname, apiFile),
+      'utf-8'
+    )
+    describeMetadata.set(apiVersion, JSON.parse(fileContent))
   }
 
   const metadataRepository: MetadataRepository = new Map<string, Metadata>()

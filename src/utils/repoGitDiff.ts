@@ -1,5 +1,5 @@
 'use strict'
-import { linify, treatPathSep } from './childProcessUtils'
+import { getSpawnContentByLine, treatPathSep } from './childProcessUtils'
 import { getType } from './typeUtils'
 import { buildIgnoreHelper } from './ignoreHelper'
 import {
@@ -15,7 +15,7 @@ import {
   OBJECT_TYPE,
   OBJECT_TRANSLATION_TYPE,
 } from './metadataConstants'
-import { SpawnOptionsWithoutStdio, spawn } from 'child_process'
+import { SpawnOptionsWithoutStdio } from 'child_process'
 import { gitPathSeparatorNormalizer } from './fsHelper'
 import { parse, sep } from 'path'
 import { MetadataRepository } from '../types/metadata'
@@ -68,8 +68,7 @@ export default class RepoGitDiff {
   }
 
   async _spawnGitDiff(filter: string[], changeType: string): Promise<string[]> {
-    const lines: string[] = []
-    const gitDiff = spawn(
+    const diffContent = await getSpawnContentByLine(
       GIT_COMMAND,
       [
         ...fullDiffParams,
@@ -81,19 +80,20 @@ export default class RepoGitDiff {
       ],
       this.spawnConfig
     )
-    for await (const line of linify(gitDiff.stdout)) {
-      lines.push(
-        treatPathSep(line).replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
-      )
-    }
-    return lines
+
+    return diffContent.map(line =>
+      treatPathSep(line).replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
+    )
   }
 
   async _treatResult(lines: string[]): Promise<string[]> {
     const linesPerDiffType: Map<string, string[]> = lines.reduce(
       (acc: Map<string, string[]>, line: string) => {
         const idx: string = line.charAt(0)
-        acc.get(idx)?.push(line)
+        if (!acc.has(idx)) {
+          acc.set(idx, [])
+        }
+        acc.get(idx)!.push(line)
         return acc
       },
       new Map()

@@ -81,7 +81,6 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     const output: Output = {
       output: this.flags.output,
       success: true,
-      warnings: [],
     }
     try {
       const jobResult = await sgd({
@@ -98,9 +97,11 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         include: this.flags.include,
         includeDestructive: this.flags['include-destructive'],
       } as Config)
-      output.warnings = jobResult?.warnings?.map(
-        (warning: Error) => warning.message
-      )
+      if (jobResult.warnings?.length > 0) {
+        output.warnings = jobResult.warnings.map(
+          (warning: Error) => warning.message
+        )
+      }
     } catch (err) {
       output.success = false
       output.error = err.message

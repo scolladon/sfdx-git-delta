@@ -1,17 +1,21 @@
 'use strict'
-import { readFile as fsReadFile } from 'node:fs/promises'
+import { readFile as fsReadFile } from 'fs-extra'
 import { isAbsolute, join, relative } from 'path'
-import { outputFile } from 'fs-extra'
-import { spawn } from 'child_process'
-import { GIT_PATH_SEP, UTF8_ENCODING } from './gitConstants'
-import { EOLRegex, getStreamContent, treatPathSep } from './childProcessUtils'
+import { outputFile, stat } from 'fs-extra'
+import {
+  GIT_COMMAND,
+  GIT_FOLDER,
+  GIT_PATH_SEP,
+  UTF8_ENCODING,
+} from './gitConstants'
+import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
 
 const showCmd = ['--no-pager', 'show']
 export const gitPathSeparatorNormalizer = (path: string) =>
-  path?.replace(/\\+/g, GIT_PATH_SEP)
+  path.replace(/\\+/g, GIT_PATH_SEP)
 const copiedFiles = new Set()
 const writtenFiles = new Set()
 
@@ -47,10 +51,12 @@ const readPathFromGitAsBuffer = async (
   { repo, to }: { repo: string; to: string }
 ) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
-  const bufferData: Buffer = await getStreamContent(
-    spawn('git', [...showCmd, `${to}:${normalizedPath}`], {
+  const bufferData: Buffer = await getSpawnContent(
+    GIT_COMMAND,
+    [...showCmd, `${to}:${normalizedPath}`],
+    {
       cwd: repo,
-    })
+    }
   )
 
   return bufferData
@@ -115,24 +121,48 @@ export const writeFile = async (
   await outputFile(join(output, treatPathSep(path)), content)
 }
 
-async function* filterExt(
-  it: AsyncGenerator<string, void, void>,
-  ext: string
-): AsyncGenerator<string, void, void> {
-  for await (const file of it) {
-    if (file.endsWith(ext)) {
-      yield file
-      //yield new Promise<string>(resolve => resolve(file))
-    }
-  }
-}
-
 export const isSubDir = (parent: string, dir: string) => {
   const rel = relative(parent, dir)
   return !!rel && !rel.startsWith('..') && !isAbsolute(rel)
 }
 
-export const scanExtension = (dir: string, ext: string, config: Config) =>
-  filterExt(scan(dir, config), ext)
+export const scanExtension = async (
+  dir: string,
+  ext: string,
+  config: Config
+): Promise<string[]> => {
+  const result = []
+  for await (const file of scan(dir, config)) {
+    if (file.endsWith(ext)) {
+      result.push(file)
+    }
+  }
+  return result
+}
+
+export const dirExists = async (dir: string) => {
+  try {
+    const st = await stat(dir)
+    return st.isDirectory()
+  } catch {
+    return false
+  }
+}
+
+export const fileExists = async (file: string) => {
+  try {
+    const st = await stat(file)
+    return st.isFile()
+  } catch {
+    return false
+  }
+}
+
+export const isGit = async (dir: string) => {
+  const isGitDir = await dirExists(join(dir, GIT_FOLDER))
+  const isGitFile = await fileExists(join(dir, GIT_FOLDER))
+
+  return isGitDir || isGitFile
+}
 
 export const DOT = '.'

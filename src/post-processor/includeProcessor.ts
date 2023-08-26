@@ -46,8 +46,8 @@ export default class IncludeProcessor extends BaseProcessor {
       [ADDITION]: [],
       [DELETION]: [],
     }
-    const linesStream = await this.gitHelper.getAllFilesAsLineStream()
-    for await (const line of linesStream) {
+    const lines: string[] = await this.gitHelper.getAllFilesAsLineStream()
+    for (const line of lines) {
       Object.keys(includeHolder).forEach(changeType => {
         const changedLine = `${changeType}${TAB}${treatPathSep(line)}`
         if (!this.includeHelper.keep(changedLine)) {

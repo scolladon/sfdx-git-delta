@@ -65,7 +65,7 @@ export default class ResourceHandler extends StandardHandler {
       }
       resourcePath.push(pathElement)
     }
-    let lastPathElement = resourcePath[resourcePath.length - 1].split(DOT)
+    const lastPathElement = resourcePath[resourcePath.length - 1].split(DOT)
     if (lastPathElement.length > 1) {
       lastPathElement.pop()
     }
