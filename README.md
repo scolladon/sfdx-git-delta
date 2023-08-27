@@ -161,8 +161,7 @@ OPTIONS
                                                                                     folder
 
   -f, --from=from                                                                   (required) commit sha from where the
-                                                                                    diff is done [git rev-list
-                                                                                    --max-parents=0 HEAD]
+                                                                                    diff is done
 
   -i, --ignore=ignore                                                               file listing paths to explicitly
                                                                                     ignore for any diff actions
