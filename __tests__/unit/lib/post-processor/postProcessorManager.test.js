@@ -15,7 +15,9 @@ class TestProcessor extends BaseProcessor {
 }
 
 describe('postProcessorManager', () => {
-  const work = {}
+  const work = {
+    config: {},
+  }
   describe('getPostProcessors', () => {
     describe('when called', () => {
       it('returns a post processor manager with a list of post processor', () => {
