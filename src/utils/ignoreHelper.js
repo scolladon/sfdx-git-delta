@@ -35,12 +35,12 @@ class IgnoreHelper {
 }
 
 let instance
-const buildIgnoreHelper = async config => {
+const buildIgnoreHelper = async ({ ignore, ignoreDestructive }) => {
   if (!instance) {
-    const globalIgnore = await _buildIgnore(config.ignore)
-    let destructiveIgnore = config.ignoreDestructive
-      ? await _buildIgnore(config.ignoreDestructive)
-      : await _buildIgnore(config.ignore)
+    const globalIgnore = await _buildIgnore(ignore)
+    let destructiveIgnore = ignoreDestructive
+      ? await _buildIgnore(ignoreDestructive)
+      : await _buildIgnore(ignore)
 
     await _addDefaultDestructiveIgnore(destructiveIgnore)
 
