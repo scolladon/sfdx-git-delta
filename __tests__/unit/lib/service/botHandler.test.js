@@ -96,6 +96,4 @@ describe('BotHandler', () => {
       })
     })
   })
-
-  // TODO getMetaTypeFilePath
 })
