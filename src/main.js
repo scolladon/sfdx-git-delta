@@ -1,6 +1,7 @@
 'use strict'
-const TypeHandlerFactory = require('./service/typeHandlerFactory')
+
 const { getDefinition } = require('./metadata/metadataManager')
+const DiffLineInterpreter = require('./service/diffLineInterpreter')
 const CLIHelper = require('./utils/cliHelper')
 const RepoGitDiff = require('./utils/repoGitDiff')
 const { getPostProcessors } = require('./post-processor/postProcessorManager')
@@ -18,16 +19,8 @@ module.exports = async config => {
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
   const lines = await repoGitDiffHelper.getLines()
-  await treatDiff(work, lines, metadata)
-  return work
-}
-
-const treatDiff = async (work, lines, metadata) => {
-  const typeHandlerFactory = new TypeHandlerFactory(work, metadata)
-
-  for (const line of lines) {
-    await typeHandlerFactory.getTypeHandler(line).handle()
-  }
-
+  const lineProcessor = new DiffLineInterpreter(work, metadata)
+  await lineProcessor.process(lines)
   await getPostProcessors(work, metadata).execute()
+  return work
 }
