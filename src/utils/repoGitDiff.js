@@ -9,6 +9,7 @@ const {
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   UTF8_ENCODING,
+  GIT_COMMAND,
 } = require('./gitConstants')
 const {
   SUB_OBJECT_TYPES,
@@ -16,9 +17,7 @@ const {
   OBJECT_TRANSLATION_TYPE,
 } = require('./metadataConstants')
 const { spawn } = require('child_process')
-const { gitPathSeparatorNormalizer, readFile } = require('./fsHelper')
-const micromatch = require('micromatch')
-const os = require('os')
+const { gitPathSeparatorNormalizer } = require('./fsHelper')
 const { parse, sep } = require('path')
 
 const DIFF_FILTER = '--diff-filter'
@@ -29,7 +28,6 @@ const filterAdded = [`${DIFF_FILTER}=${ADDITION}`]
 const filterModification = [`${DIFF_FILTER}=${MODIFICATION}`]
 const TAB = '\t'
 const NUM_STAT_REGEX = /^((-|\d+)\t){2}/
-const allFilesParams = ['ls-tree', '--name-only', '-r']
 const lcSensitivity = {
   sensitivity: 'accent',
 }
@@ -49,30 +47,8 @@ class RepoGitDiff {
   }
 
   async getLines() {
-    const lines = await Promise.all([
-      this._getIncludedFiles(),
-      this._getFilteredDiff(),
-    ])
-
+    const lines = await this._getFilteredDiff()
     return Array.from(new Set([...lines.flat().filter(Boolean)]))
-  }
-
-  async _getIncludedFiles() {
-    const includeSetup = await RepoGitDiff._setupIncludes(this.config)
-    if (includeSetup.length === 0) {
-      return
-    }
-
-    const gitLs = spawn(
-      'git',
-      [...allFilesParams, this.config.to],
-      this.spawnConfig
-    )
-    const lines = []
-    for await (const line of linify(gitLs.stdout)) {
-      lines.push(treatPathSep(line))
-    }
-    return RepoGitDiff._addIncludes(lines, includeSetup)
   }
 
   async _getFilteredDiff() {
@@ -88,7 +64,7 @@ class RepoGitDiff {
   async _spawnGitDiff(filter, changeType) {
     const lines = []
     const gitDiff = spawn(
-      'git',
+      GIT_COMMAND,
       [
         ...fullDiffParams,
         ...filter,
@@ -135,32 +111,6 @@ class RepoGitDiff {
       !deletedRenamed.includes(line) &&
       line.split(sep).some(part => this.metadata.has(part))
     )
-  }
-
-  static _addIncludes(lines, setup) {
-    return setup.flatMap(obj =>
-      micromatch(lines, obj.content).map(
-        includedLine => `${obj.prefix}${TAB}${treatPathSep(includedLine)}`
-      )
-    )
-  }
-
-  static async _setupIncludes(config) {
-    const setup = await Promise.all(
-      [
-        { include: config.include, prefix: ADDITION },
-        { include: config.includeDestructive, prefix: DELETION },
-      ]
-        .filter(obj => obj.include)
-        .map(async obj => {
-          const content = await readFile(obj.include)
-          return {
-            ...obj,
-            content: content.toString().split(os.EOL).filter(Boolean),
-          }
-        })
-    )
-    return setup
   }
 
   _extractComparisonName(line) {
