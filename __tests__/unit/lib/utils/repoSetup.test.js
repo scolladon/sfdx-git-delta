@@ -45,4 +45,20 @@ describe(`test if repoSetup`, () => {
       expect(commitRef).toBe('')
     })
   })
+
+  describe('getFirstCommitRef', () => {
+    test('returns the first commit SHA', async () => {
+      // Arrange
+      const config = { repo: './' }
+      child_process.__setOutput([['firstsha']])
+
+      // Act
+      const repoSetup = new RepoSetup(config)
+      const commitRef = await repoSetup.getFirstCommitRef()
+
+      // Assert
+
+      expect(commitRef).toBe('firstsha')
+    })
+  })
 })
