@@ -524,7 +524,6 @@ console.log(JSON.stringify(work))
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
 - [lodash](https://github.com/lodash/lodash) - A modern JavaScript utility library delivering modularity, performance & extras.
-- [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
 - [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
 - [MegaLinter](https://megalinter.io) - Open-Source tool for CI/CD workflows that analyzes the consistency of your code, IAC, configuration, and scripts
 
