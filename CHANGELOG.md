@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.25.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.24.2...v5.25.0) (2023-08-28)
+
+
+### Features
+
+* add support for Net Zero Cloud metadata ([#675](https://github.com/scolladon/sfdx-git-delta/issues/675)) ([2982f02](https://github.com/scolladon/sfdx-git-delta/commit/2982f02ed06d48b9febded3947bd11b51cb96d62))
+
+
+### Bug Fixes
+
+* `--include` parameter for metadata contained in file ([#678](https://github.com/scolladon/sfdx-git-delta/issues/678)) ([281fa33](https://github.com/scolladon/sfdx-git-delta/commit/281fa33f7c153c87d933cb5c9095dc86d50752cb))
+
 ## [5.24.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.24.1...v5.24.2) (2023-08-08)
 
 
