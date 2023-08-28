@@ -45,4 +45,41 @@ describe(`test if repoSetup`, () => {
       expect(commitRef).toBe('')
     })
   })
+
+  describe('getFirstCommitRef', () => {
+    test('returns the first commit SHA', async () => {
+      // Arrange
+      const config = { repo: './' }
+      child_process.__setOutput([['firstsha']])
+
+      // Act
+      const repoSetup = new RepoSetup(config)
+      const commitRef = await repoSetup.getFirstCommitRef()
+
+      // Assert
+
+      expect(commitRef).toBe('firstsha')
+    })
+  })
+
+  describe('getAllFilesAsLineStream', () => {
+    test('returns all the file at <to> sha', async () => {
+      // Arrange
+      const expected = ['file/path/name.ext', 'other/file/path/name.ext']
+      const config = { repo: './' }
+      child_process.__setOutput([[expected.join('\n')]])
+
+      // Act
+      const repoSetup = new RepoSetup(config)
+      const linesStream = await repoSetup.getAllFilesAsLineStream()
+
+      // Assert
+      const lines = []
+      for await (const line of linesStream) {
+        lines.push(line)
+      }
+
+      expect(lines).toStrictEqual(expected)
+    })
+  })
 })

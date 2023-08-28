@@ -161,8 +161,7 @@ OPTIONS
                                                                                     folder
 
   -f, --from=from                                                                   (required) commit sha from where the
-                                                                                    diff is done [git rev-list
-                                                                                    --max-parents=0 HEAD]
+                                                                                    diff is done
 
   -i, --ignore=ignore                                                               file listing paths to explicitly
                                                                                     ignore for any diff actions
@@ -212,6 +211,7 @@ sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because 
 In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetch only the last commit of the branch currently evaluated.
 You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well,
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
+If you use `-n` (`--include`) with metadata contained inside files you will need to have the full repo locally for the command to fully work.
 
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
 If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
@@ -407,13 +407,16 @@ Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructi
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff
 
-The `--include [-n]` parameter allows you to specify a file based on [micromatch glob matching](https://github.com/micromatch/micromatch) to include specific files. Regardless whether they appears in the diff or not.
+The `--include [-n]` parameter allows you to specify a file based on [gitignore glob matching](https://git-scm.com/docs/gitignore) to include specific files. Regardless whether they appears in the diff or not.
 Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
-SGD will include every line matching the pattern from the include file specified in the `--include [-n]`.
+SGD will include every metadata from the repo at the `to` parameter state, matching the pattern from the include file specified in the `--include [-n]`.
 
 As with `--ignore`, you may need different policies for the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
 
-Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output. Here, you will show which files should the `destructiveChanges.xml` should include .
+Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output.
+
+/!\ In order to work properly with metadata contained inside files (Labels, Workflow, MatchingRules, etc) the local repo must have the full historic.
+
 Consider the following:
 
 - a repository containing many sub-folders (force-app/main,force-app/sample, etc)
@@ -521,7 +524,6 @@ console.log(JSON.stringify(work))
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
 - [lodash](https://github.com/lodash/lodash) - A modern JavaScript utility library delivering modularity, performance & extras.
-- [micromatch](https://github.com/micromatch/micromatch) - a file glob matcher utility
 - [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
 - [MegaLinter](https://megalinter.io) - Open-Source tool for CI/CD workflows that analyzes the consistency of your code, IAC, configuration, and scripts
 

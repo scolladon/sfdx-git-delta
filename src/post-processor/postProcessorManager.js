@@ -1,8 +1,12 @@
 'use strict'
 const PackageGenerator = require('./packageGenerator')
 const FlowTranslationProcessor = require('./flowTranslationProcessor')
+const IncludeProcessor = require('./includeProcessor')
 
-const processors = [FlowTranslationProcessor, PackageGenerator]
+const processors = [FlowTranslationProcessor, IncludeProcessor]
+
+// It must be done last
+processors.push(PackageGenerator)
 
 class PostProcessorManager {
   postProcessors

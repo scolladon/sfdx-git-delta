@@ -1,5 +1,5 @@
 'use strict'
-const { resetInstance } = require('../../../../src/utils/ignoreHelper')
+const { resetIgnoreInstance } = require('../../../../src/utils/ignoreHelper')
 const RepoGitDiff = require('../../../../src/utils/repoGitDiff')
 const {
   ADDITION,
@@ -10,7 +10,6 @@ jest.mock('child_process')
 const child_process = require('child_process')
 
 const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
-const FORCEINCLUDE_MOCK_PATH = '__mocks__/.forceinclude'
 
 const TAB = '\t'
 
@@ -24,7 +23,7 @@ describe(`test if repoGitDiff`, () => {
   beforeEach(() => {
     child_process.__setOutput([])
     child_process.__setError(false)
-    resetInstance()
+    resetIgnoreInstance()
   })
   test('can parse git correctly', async () => {
     const output = []
@@ -311,87 +310,6 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(expected)
   })
 
-  test('can explicitly include files', async () => {
-    const output = ['force-app/main/default/lwc/jsconfig.json']
-    child_process.__setOutput([output, [], [], []])
-    const repoGitDiff = new RepoGitDiff(
-      {
-        output: '',
-        repo: '',
-        source: '',
-        include: FORCEINCLUDE_MOCK_PATH,
-      },
-      globalMetadata
-    )
-    const work = await repoGitDiff.getLines()
-    const expected = [`A${TAB}force-app/main/default/lwc/jsconfig.json`]
-    expect(work).toStrictEqual(expected)
-  })
-
-  test('can explicitly include destructive files', async () => {
-    const output = ['force-app/main/default/lwc/jsconfig.json']
-    child_process.__setOutput([output, [], [], []])
-    const repoGitDiff = new RepoGitDiff(
-      {
-        output: '',
-        repo: '',
-        source: '',
-        includeDestructive: FORCEINCLUDE_MOCK_PATH,
-      },
-      globalMetadata
-    )
-    const work = await repoGitDiff.getLines()
-    const expected = [`D${TAB}force-app/main/default/lwc/jsconfig.json`]
-    expect(work).toStrictEqual(expected)
-  })
-
-  test('can explicitly include multiple files', async () => {
-    const output = [
-      'force-app/main/default/lwc/jsconfig.json',
-      'force-app/main/default/staticresources/jsconfig.json',
-    ]
-    child_process.__setOutput([output, [], [], []])
-    const repoGitDiff = new RepoGitDiff(
-      {
-        output: '',
-        repo: '',
-        source: '',
-        include: FORCEINCLUDE_MOCK_PATH,
-      },
-      globalMetadata
-    )
-    const work = await repoGitDiff.getLines()
-    //should be empty
-    const expected = [
-      `A${TAB}force-app/main/default/lwc/jsconfig.json`,
-      `A${TAB}force-app/main/default/staticresources/jsconfig.json`,
-    ]
-    expect(work).toStrictEqual(expected)
-  })
-
-  test('can explicitly include destructive multiple files', async () => {
-    const output = [
-      'force-app/main/default/lwc/jsconfig.json',
-      'force-app/main/default/staticresources/jsconfig.json',
-    ]
-    child_process.__setOutput([output, [], [], []])
-    const repoGitDiff = new RepoGitDiff(
-      {
-        output: '',
-        repo: '',
-        source: '',
-        includeDestructive: FORCEINCLUDE_MOCK_PATH,
-      },
-      globalMetadata
-    )
-    const work = await repoGitDiff.getLines()
-    const expected = [
-      `D${TAB}force-app/main/default/lwc/jsconfig.json`,
-      `D${TAB}force-app/main/default/staticresources/jsconfig.json`,
-    ]
-    expect(work).toStrictEqual(expected)
-  })
-
   test('can reject in case of error', async () => {
     child_process.__setError(true)
     try {
@@ -400,5 +318,41 @@ describe(`test if repoGitDiff`, () => {
     } catch (e) {
       expect(e).toBeDefined()
     }
+  })
+
+  describe('_extractComparisonName', () => {
+    let sut
+    beforeEach(() => {
+      sut = new RepoGitDiff({ repo: '.' }, globalMetadata)
+    })
+    describe('when called with normal type', () => {
+      it('returns the file name', () => {
+        // Arrange
+        const line = 'A path/to/classes/Test.cls'
+
+        // Act
+        const result = sut._extractComparisonName(line)
+
+        // Assert
+        expect(result).toBe('Test.cls')
+      })
+    })
+
+    describe.each([
+      'objects/Account/fields/custom__c.field',
+      'objects/Account/custom__c.object',
+      'objectTranslations/Account/custom__c.objectTranslation',
+    ])('when called with path type', elPath => {
+      it('returns the file name with the parent path', () => {
+        // Arrange
+        const line = `A path/to/${elPath}`
+
+        // Act
+        const result = sut._extractComparisonName(line)
+
+        // Assert
+        expect(result).toBe(elPath.replaceAll('/', ''))
+      })
+    })
   })
 })

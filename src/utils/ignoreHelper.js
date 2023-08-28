@@ -34,19 +34,30 @@ class IgnoreHelper {
   }
 }
 
-let instance
-const buildIgnoreHelper = async config => {
-  if (!instance) {
-    const globalIgnore = await _buildIgnore(config.ignore)
-    let destructiveIgnore = config.ignoreDestructive
-      ? await _buildIgnore(config.ignoreDestructive)
-      : await _buildIgnore(config.ignore)
+let ignoreInstance
+const buildIgnoreHelper = async ({ ignore, ignoreDestructive }) => {
+  if (!ignoreInstance) {
+    const globalIgnore = await _buildIgnore(ignore)
+    const destructiveIgnore = ignoreDestructive
+      ? await _buildIgnore(ignoreDestructive)
+      : await _buildIgnore(ignore)
 
     await _addDefaultDestructiveIgnore(destructiveIgnore)
 
-    instance = new IgnoreHelper(globalIgnore, destructiveIgnore)
+    ignoreInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
   }
-  return instance
+  return ignoreInstance
+}
+
+let includeInstance
+const buildIncludeHelper = async ({ include, includeDestructive }) => {
+  if (!includeInstance) {
+    const globalIgnore = await _buildIgnore(include)
+    const destructiveIgnore = await _buildIgnore(includeDestructive)
+
+    includeInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
+  }
+  return includeInstance
 }
 
 const _buildIgnore = async ignorePath => {
@@ -62,9 +73,15 @@ const _addDefaultDestructiveIgnore = async destructiveIgnore => {
   destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
 }
 
-const resetInstance = () => {
-  instance = null
+const resetIgnoreInstance = () => {
+  ignoreInstance = null
 }
 
+const resetIncludeInstance = () => {
+  includeInstance = null
+}
+
+module.exports.resetIgnoreInstance = resetIgnoreInstance
+module.exports.resetIncludeInstance = resetIncludeInstance
 module.exports.buildIgnoreHelper = buildIgnoreHelper
-module.exports.resetInstance = resetInstance
+module.exports.buildIncludeHelper = buildIncludeHelper

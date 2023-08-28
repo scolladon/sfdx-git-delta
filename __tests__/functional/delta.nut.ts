@@ -47,7 +47,7 @@ describe('sgd:source:delta NUTS', () => {
   it('run `e2e` tests', async () => {
     // Act
     const result = execCmd(
-      'sgd:source:delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --ignore e2e/.sgdignore',
+      'sgd:source:delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --include e2e/.sgdinclude --include-destructive e2e/.sgdincludeDestructive --ignore e2e/.sgdignore --ignore-destructive e2e/.sgdignoreDestructive',
       {
         ensureExitCode: 0,
       }
@@ -57,7 +57,11 @@ describe('sgd:source:delta NUTS', () => {
     const packageLineCount = await getFileLineNumber(
       'e2e/expected/package/package.xml'
     )
-    expect(packageLineCount).to.equal(209)
+    const destructiveChangesLineCount = await getFileLineNumber(
+      'e2e/expected/destructiveChanges/destructiveChanges.xml'
+    )
+    expect(packageLineCount).to.equal(211)
+    expect(destructiveChangesLineCount).to.equal(118)
     expect(result).to.include('"error": null')
     expect(result).to.include('"success": true')
   })

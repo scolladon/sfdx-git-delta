@@ -17,3 +17,4 @@ module.exports.IGNORE_WHITESPACE_PARAMS = [
   '--word-diff-regex=|[^[:space:]]',
 ]
 module.exports.UTF8_ENCODING = 'utf8'
+module.exports.GIT_COMMAND = 'git'
