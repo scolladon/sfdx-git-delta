@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693231205212,
+  "lastUpdate": 1693231210013,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -339,6 +339,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.13,
             "range": "±0.96%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "281fa33f7c153c87d933cb5c9095dc86d50752cb",
+          "message": "fix: `--include` parameter for metadata contained in file (#678)\n\nCo-authored-by: Mehdi Cherfaoui <mcherfaoui@salesforce.com>",
+          "timestamp": "2023-08-28T15:51:32+02:00",
+          "tree_id": "90b048c831d0706d463b9a172fe9499eac6e2983",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/281fa33f7c153c87d933cb5c9095dc86d50752cb"
+        },
+        "date": 1693231204191,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.18,
+            "range": "±1.82%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
