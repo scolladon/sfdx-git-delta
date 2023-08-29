@@ -26,7 +26,7 @@ class ObjectTranslationHandler extends ResourceHandler {
       inFileMetadata
     )
     await metadataDiff.compare(path)
-    const xmlContent = metadataDiff.prune()
+    const { xmlContent } = metadataDiff.prune()
     await writeFile(path, xmlContent, this.config)
   }
 

@@ -1,6 +1,11 @@
 'use strict'
 
-const { asArray, parseXmlFileToJson, convertJsonToXml } = require('./fxpHelper')
+const {
+  asArray,
+  parseXmlFileToJson,
+  convertJsonToXml,
+  ATTRIBUT_PREFFIX,
+} = require('./fxpHelper')
 const { isEqual } = require('lodash')
 const { fillPackageWithParameter } = require('./packageHelper')
 
@@ -26,6 +31,16 @@ const getSubTypeTags = attributes => fileContent =>
 
 const extractMetadataForSubtype = fileContent => subType =>
   asArray(getRootMetadata(fileContent)?.[subType])
+
+const isEmpty = fileContent =>
+  Object.entries(getRootMetadata(fileContent))
+    .filter(([key]) => !key.startsWith(ATTRIBUT_PREFFIX))
+    .every(
+      value =>
+        value === null ||
+        value === undefined ||
+        (Array.isArray(value) && value.length === 0)
+    )
 
 // Diff processing functional area
 const compareContent = attributes => (contentAtRef, otherContent, predicat) =>
@@ -117,15 +132,17 @@ class MetadataDiff {
     return {
       added: this.add,
       deleted: del,
-      jsonContent: this.toContent,
     }
   }
 
-  prune(jsonContent = this.toContent, elements = this.add) {
-    const prunedContent = generatePartialJSON(this.attributes)(jsonContent)(
-      elements
+  prune() {
+    const prunedContent = generatePartialJSON(this.attributes)(this.toContent)(
+      this.add
     )
-    return convertJsonToXml(prunedContent)
+    return {
+      xmlContent: convertJsonToXml(prunedContent),
+      isEmpty: isEmpty(prunedContent),
+    }
   }
 }
 
