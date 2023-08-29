@@ -178,7 +178,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         }
       })
 
-      describe('when no metadata element are added/deleted and the file does not contains attributs', () => {
+      describe('when no metadata element are added/deleted and the file does not contains attributes', () => {
         beforeEach(() => {
           // Arrange
           sut = new InFile(
@@ -214,7 +214,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         })
       })
 
-      describe('when no metadata element are added, some are deleted but the file contains attributs', () => {
+      describe('when no metadata element are added, some are deleted but the file contains attributes', () => {
         beforeEach(() => {
           // Arrange
           sut = new InFile(

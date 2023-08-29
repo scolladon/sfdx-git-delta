@@ -4,7 +4,7 @@ const {
   asArray,
   parseXmlFileToJson,
   convertJsonToXml,
-  ATTRIBUT_PREFFIX,
+  ATTRIBUTE_PREFIX,
 } = require('./fxpHelper')
 const { isEqual } = require('lodash')
 const { fillPackageWithParameter } = require('./packageHelper')
@@ -34,7 +34,7 @@ const extractMetadataForSubtype = fileContent => subType =>
 
 const isEmpty = fileContent =>
   Object.entries(getRootMetadata(fileContent))
-    .filter(([key]) => !key.startsWith(ATTRIBUT_PREFFIX))
+    .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
     .every(
       value =>
         value === null ||
