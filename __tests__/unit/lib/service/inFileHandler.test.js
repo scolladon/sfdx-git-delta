@@ -3,15 +3,15 @@ const InFile = require('../../../../src/service/inFileHandler')
 const { writeFile } = require('../../../../src/utils/fsHelper')
 
 const mockCompare = jest.fn()
-const mockprune = jest.fn()
+const mockPrune = jest.fn()
 jest.mock('../../../../src/utils/metadataDiff', () => {
   return jest.fn().mockImplementation(() => {
-    return { compare: mockCompare, prune: mockprune }
+    return { compare: mockCompare, prune: mockPrune }
   })
 })
 jest.mock('../../../../src/utils/fsHelper')
 
-describe.each([true, false])(`inFileHandler`, generateDelta => {
+describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
   let globalMetadata
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -30,6 +30,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       diffs: { package: new Map(), destructiveChanges: new Map() },
       warnings: [],
     }
+    mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
   })
 
   describe('when file is added', () => {
@@ -59,10 +60,10 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
       )
 
       if (generateDelta) {
-        expect(mockprune).toHaveBeenCalled()
+        expect(mockPrune).toHaveBeenCalled()
         expect(writeFile).toHaveBeenCalled()
       } else {
-        expect(mockprune).not.toHaveBeenCalled()
+        expect(mockPrune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
       }
     })
@@ -93,10 +94,10 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         expect(work.diffs.package.size).toEqual(1)
 
         if (generateDelta) {
-          expect(mockprune).toHaveBeenCalled()
+          expect(mockPrune).toHaveBeenCalled()
           expect(writeFile).toHaveBeenCalled()
         } else {
-          expect(mockprune).not.toHaveBeenCalled()
+          expect(mockPrune).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
         }
       })
@@ -134,10 +135,10 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         )
         expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
         if (generateDelta) {
-          expect(mockprune).toHaveBeenCalled()
+          expect(mockPrune).toHaveBeenCalled()
           expect(writeFile).toHaveBeenCalled()
         } else {
-          expect(mockprune).not.toHaveBeenCalled()
+          expect(mockPrune).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
         }
       })
@@ -168,8 +169,87 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
           new Set(['Account.deleted'])
         )
         expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
-        expect(mockprune).not.toHaveBeenCalled()
-        expect(writeFile).not.toHaveBeenCalled()
+        if (generateDelta) {
+          expect(mockPrune).toHaveBeenCalled()
+          expect(writeFile).toHaveBeenCalled()
+        } else {
+          expect(mockPrune).not.toHaveBeenCalled()
+          expect(writeFile).not.toHaveBeenCalled()
+        }
+      })
+
+      describe('when no metadata element are added/deleted and the file does not contains attributes', () => {
+        beforeEach(() => {
+          // Arrange
+          sut = new InFile(
+            'force-app/main/default/labels/CustomLabel.label-meta.xml',
+            'labels',
+            work,
+            globalMetadata
+          )
+          mockCompare.mockResolvedValue({
+            added: new Map(),
+            deleted: new Map(),
+          })
+
+          mockPrune.mockReturnValue({
+            xmlContent: '<xmlContent>',
+            isEmpty: true,
+          })
+        })
+        it('nothing should be stored and the file should not be copied', async () => {
+          // Act
+          await sut.handleModification()
+
+          // Assert
+          expect(work.diffs.package.size).toEqual(0)
+          expect(work.diffs.destructiveChanges.size).toEqual(0)
+          if (generateDelta) {
+            expect(mockPrune).toHaveBeenCalled()
+            expect(writeFile).not.toHaveBeenCalled()
+          } else {
+            expect(mockPrune).not.toHaveBeenCalled()
+            expect(writeFile).not.toHaveBeenCalled()
+          }
+        })
+      })
+
+      describe('when no metadata element are added, some are deleted but the file contains attributes', () => {
+        beforeEach(() => {
+          // Arrange
+          sut = new InFile(
+            'force-app/main/default/labels/CustomLabel.label-meta.xml',
+            'labels',
+            work,
+            globalMetadata
+          )
+          mockCompare.mockResolvedValue({
+            added: new Map(),
+            deleted: new Map([['CustomLabel', new Set(['Deleted'])]]),
+          })
+          mockPrune.mockReturnValue({
+            xmlContent: '<xmlContent>',
+            isEmpty: false,
+          })
+        })
+        it('should store the added metadata in the package and the file should be copied', async () => {
+          // Act
+          await sut.handleModification()
+
+          // Assert
+          expect(work.diffs.package.size).toEqual(0)
+          expect(work.diffs.destructiveChanges.size).toEqual(1)
+          expect(work.diffs.destructiveChanges.get('CustomLabel')).toEqual(
+            new Set(['Deleted'])
+          )
+          if (generateDelta) {
+            expect(mockPrune).toHaveBeenCalled()
+            expect(writeFile).toHaveBeenCalled()
+          } else {
+            expect(mockPrune).not.toHaveBeenCalled()
+            expect(writeFile).not.toHaveBeenCalled()
+          }
+        })
       })
     })
 
@@ -199,10 +279,10 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         expect(work.diffs.package.size).toEqual(1)
 
         if (generateDelta) {
-          expect(mockprune).toHaveBeenCalled()
+          expect(mockPrune).toHaveBeenCalled()
           expect(writeFile).toHaveBeenCalled()
         } else {
-          expect(mockprune).not.toHaveBeenCalled()
+          expect(mockPrune).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
         }
       })
@@ -235,7 +315,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
         new Set(['Account.test'])
       )
       expect(mockCompare).toHaveBeenCalled()
-      expect(mockprune).not.toHaveBeenCalled()
+      expect(mockPrune).not.toHaveBeenCalled()
       expect(writeFile).not.toHaveBeenCalled()
     })
     describe('when metadata in file is prune Only', () => {
@@ -261,7 +341,7 @@ describe.each([true, false])(`inFileHandler`, generateDelta => {
           work.diffs.destructiveChanges.get('GlobalValueSetTranslation')
         ).toEqual(new Set(['Numbers-fr']))
         expect(mockCompare).not.toHaveBeenCalled()
-        expect(mockprune).not.toHaveBeenCalled()
+        expect(mockPrune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
       })
     })

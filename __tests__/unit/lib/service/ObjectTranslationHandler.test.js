@@ -16,8 +16,8 @@ const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
-const content = 'content'
-mockprune.mockReturnValue(content)
+const xmlContent = '<xmlContent>'
+mockprune.mockReturnValue({ xmlContent })
 
 let work
 beforeEach(() => {
@@ -63,7 +63,7 @@ describe('ObjectTranslation', () => {
       expect(writeFile).toBeCalledTimes(1)
       expect(writeFile).toHaveBeenCalledWith(
         expect.stringContaining('Account-es.objectTranslation'),
-        content,
+        xmlContent,
         work.config
       )
       expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')
@@ -93,7 +93,7 @@ describe('ObjectTranslation', () => {
         expect(writeFile).toBeCalledTimes(1)
         expect(writeFile).toHaveBeenCalledWith(
           expect.stringContaining('Account-es.objectTranslation'),
-          content,
+          xmlContent,
           work.config
         )
         expect(...work.diffs.package.get(xmlName)).toEqual('Account-es')

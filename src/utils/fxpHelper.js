@@ -44,3 +44,4 @@ module.exports.asArray = asArray
 module.exports.convertJsonToXml = convertJsonToXml
 module.exports.parseXmlFileToJson = parseXmlFileToJson
 module.exports.xml2Json = xml2Json
+module.exports.ATTRIBUTE_PREFIX = '@_'

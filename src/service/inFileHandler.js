@@ -49,14 +49,14 @@ class InFileHandler extends StandardHandler {
 
   async _compareRevision() {
     const { added, deleted } = await this.metadataDiff.compare(this.line)
-    this._addedMembers = added
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
   }
 
   async _writeScopedContent() {
-    if (this._addedMembers.size > 0) {
-      const xmlContent = this.metadataDiff.prune()
+    const { xmlContent, isEmpty } = this.metadataDiff.prune()
+
+    if (!isEmpty) {
       await writeFile(this.line, xmlContent, this.config)
     }
   }
