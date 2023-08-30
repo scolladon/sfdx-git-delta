@@ -217,19 +217,20 @@ describe(`MetadataDiff`, () => {
       await metadataDiff.compare('file/path')
 
       // Act
-      metadataDiff.prune()
+      const { isEmpty } = metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
+      expect(isEmpty).toBe(false)
     })
-    it('given zero element added and one element delete, the generated file contains empty declaration', async () => {
+    it('given every element deleted, the generated file is empty', async () => {
       // Arrange
       parseXmlFileToJson.mockResolvedValueOnce(alertTest)
       parseXmlFileToJson.mockResolvedValueOnce(alert)
       await metadataDiff.compare('file/path')
 
       // Act
-      metadataDiff.prune()
+      const { isEmpty } = metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -239,6 +240,7 @@ describe(`MetadataDiff`, () => {
           alerts: [],
         },
       })
+      expect(isEmpty).toBe(true)
     })
     it('given file contains only new element, it keeps the file identical', async () => {
       // Arrange
@@ -247,10 +249,11 @@ describe(`MetadataDiff`, () => {
       await metadataDiff.compare('file/path')
 
       // Act
-      metadataDiff.prune()
+      const { isEmpty } = metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alert)
+      expect(isEmpty).toBe(false)
     })
 
     it('given one element modified, the generated file contains only this element', async () => {
@@ -266,10 +269,11 @@ describe(`MetadataDiff`, () => {
       await metadataDiff.compare('file/path')
 
       // Act
-      metadataDiff.prune()
+      const { isEmpty } = metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(alertOther)
+      expect(isEmpty).toBe(false)
     })
 
     it('given untracked element, nothing trackable changed, the generated file contains untracked elements', async () => {
@@ -279,10 +283,11 @@ describe(`MetadataDiff`, () => {
       await metadataDiff.compare('file/path')
 
       // Act
-      metadataDiff.prune()
+      const { isEmpty } = metadataDiff.prune()
 
       // Assert
       expect(convertJsonToXml).toHaveBeenCalledWith(unTracked)
+      expect(isEmpty).toBe(false)
     })
   })
 })

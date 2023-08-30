@@ -35,12 +35,7 @@ const extractMetadataForSubtype = fileContent => subType =>
 const isEmpty = fileContent =>
   Object.entries(getRootMetadata(fileContent))
     .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
-    .every(
-      value =>
-        value === null ||
-        value === undefined ||
-        (Array.isArray(value) && value.length === 0)
-    )
+    .every(([, value]) => Array.isArray(value) && value.length === 0)
 
 // Diff processing functional area
 const compareContent = attributes => (contentAtRef, otherContent, predicat) =>
