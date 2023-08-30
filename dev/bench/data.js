@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1693385365684,
+  "lastUpdate": 1693410826202,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -463,6 +463,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.15,
             "range": "±2.76%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "66ef9d9c6bde0153b7a3f69f228fcbdac89a0b62",
+          "message": "fix: empty inFile metadata detection (#683)",
+          "timestamp": "2023-08-30T17:45:53+02:00",
+          "tree_id": "3b2f1dfdf4df1b93e655e9000b45053ff17e534f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/66ef9d9c6bde0153b7a3f69f228fcbdac89a0b62"
+        },
+        "date": 1693410825732,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.18,
+            "range": "±1.07%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
