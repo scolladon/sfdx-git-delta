@@ -57,6 +57,7 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
         node: [16, 18, 20]
+        cli: [sfdx-cli, '@salesforce/cli']
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
@@ -70,8 +71,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install sfdx-cli
-        run: npm install -g sfdx-cli
+      - name: Install cli
+        run: npm install -g ${{matrix.cli}}
 
       - name: Install new plugin version
         run: echo y | sfdx plugins:install sfdx-git-delta@${{ needs.prepare-release.outputs.version }}
