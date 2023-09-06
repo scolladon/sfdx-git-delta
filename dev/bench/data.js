@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694005461030,
+  "lastUpdate": 1694005464640,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -525,6 +525,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.18,
             "range": "±1.07%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "25ea2ffb8c7f0cf9988406305ba625c648639cc2",
+          "message": "ci: add sf-v2 dimension in e2e test and release test (#687)",
+          "timestamp": "2023-09-06T14:56:24+02:00",
+          "tree_id": "6efb8f74c806608e4ef0ff7ea7e18fa6f5e0cb81",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/25ea2ffb8c7f0cf9988406305ba625c648639cc2"
+        },
+        "date": 1694005460469,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.17,
+            "range": "±8.36%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
