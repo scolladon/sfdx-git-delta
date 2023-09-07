@@ -31,7 +31,7 @@ export default class CLIHelper {
     this.repoSetup = new RepoSetup(work.config)
   }
 
-  async _validateGitSha() {
+  protected async _validateGitSha() {
     const errors: string[] = []
     await Promise.all(
       GIT_SHA_PARAMETERS.filter((shaParameter: keyof Config) => {
@@ -57,7 +57,7 @@ export default class CLIHelper {
     return errors
   }
 
-  async validateConfig() {
+  public async validateConfig() {
     this._sanitizeConfig()
     await this._handleDefault()
     const errors: string[] = []
@@ -91,7 +91,7 @@ export default class CLIHelper {
     await this.repoSetup.repoConfiguration()
   }
 
-  _filterDirectories() {
+  protected _filterDirectories() {
     return asyncFilter(
       [this.config.output, join(this.config.repo, this.config.source)].filter(
         Boolean
@@ -103,7 +103,7 @@ export default class CLIHelper {
     )
   }
 
-  _filterFiles() {
+  protected _filterFiles() {
     return asyncFilter(
       [
         this.config.ignore,
@@ -118,12 +118,12 @@ export default class CLIHelper {
     )
   }
 
-  async _handleDefault() {
+  protected async _handleDefault() {
     await this._getApiVersion()
     await this._apiVersionDefault()
   }
 
-  async _getApiVersion() {
+  protected async _getApiVersion() {
     const isInputVersionSupported = await isVersionSupported(
       this.config.apiVersion
     )
@@ -139,7 +139,7 @@ export default class CLIHelper {
     }
   }
 
-  async _apiVersionDefault() {
+  protected async _apiVersionDefault() {
     const isInputVersionSupported = await isVersionSupported(
       this.config.apiVersion
     )
@@ -163,7 +163,7 @@ export default class CLIHelper {
     }
   }
 
-  _sanitizeConfig() {
+  protected _sanitizeConfig() {
     this.config.repo = sanitizePath(this.config.repo)
     this.config.source = sanitizePath(this.config.source)
     this.config.output = sanitizePath(this.config.output)

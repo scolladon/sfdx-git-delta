@@ -296,7 +296,7 @@ describe(`StandardHandler`, () => {
         )
 
         // Act
-        const result: RegExpMatchArray = sut._parseLine()!
+        const result: RegExpMatchArray = sut['_parseLine']()!
 
         // Assert
         expect(result.length).toBe(3)

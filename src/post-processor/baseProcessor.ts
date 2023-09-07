@@ -15,7 +15,7 @@ export default class BaseProcessor {
     this.metadata = metadata
   }
 
-  async process() {
+  public async process() {
     throw new Error('this class should be derived')
   }
 }

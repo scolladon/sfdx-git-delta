@@ -18,7 +18,7 @@ export default class IncludeProcessor extends BaseProcessor {
     this.gitHelper = new RepoSetup(this.config)
   }
 
-  async process() {
+  public override async process() {
     if (this._shouldProcess()) {
       await this._prepare()
       await this._process()
@@ -26,11 +26,11 @@ export default class IncludeProcessor extends BaseProcessor {
     }
   }
 
-  _shouldProcess() {
+  protected _shouldProcess() {
     return !!this.config.include || !!this.config.includeDestructive
   }
 
-  async _prepare() {
+  protected async _prepare() {
     this.from = this.config.from
     const firstSha = await this.gitHelper.getFirstCommitRef()
     this.config.from = firstSha
@@ -38,7 +38,7 @@ export default class IncludeProcessor extends BaseProcessor {
     this.includeHelper = await buildIncludeHelper(this.config)
   }
 
-  async _process() {
+  protected async _process() {
     const includeHolder: {
       [ADDITION]: string[]
       [DELETION]: string[]
@@ -67,12 +67,12 @@ export default class IncludeProcessor extends BaseProcessor {
     }
   }
 
-  async _processInclude(lines: string[]) {
+  protected async _processInclude(lines: string[]) {
     const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
     await lineProcessor.process(lines)
   }
 
-  async _processIncludeDestructive(lines: string[]) {
+  protected async _processIncludeDestructive(lines: string[]) {
     const to = this.config.to
     this.config.to = this.config.from
     this.config.from = to
@@ -81,7 +81,7 @@ export default class IncludeProcessor extends BaseProcessor {
     this.config.to = to
   }
 
-  async _cleanup() {
+  protected async _cleanup() {
     this.config.from = this.from
   }
 }

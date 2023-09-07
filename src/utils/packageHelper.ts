@@ -14,7 +14,7 @@ export default class PackageBuilder {
     this.config = config
   }
 
-  buildPackage(strucDiffPerType: Manifest) {
+  public buildPackage(strucDiffPerType: Manifest) {
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
       xmlns: 'http://soap.sforce.com/2006/04/metadata',
     })

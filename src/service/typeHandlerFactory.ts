@@ -67,7 +67,7 @@ export default class TypeHandlerFactory {
     this.metadata = metadata
   }
 
-  getTypeHandler(line: string) {
+  public getTypeHandler(line: string) {
     const type = getType(line, this.metadata) as keyof typeof handlerMap
 
     return type in handlerMap

@@ -16,7 +16,7 @@ export default class BundleHandler extends InResourceHandler {
     super(line, type, work, metadata)
   }
 
-  _getElementName() {
+  protected override _getElementName() {
     const bundlePath: string[] = this.splittedLine
       .slice(this.splittedLine.indexOf(this.type) + 1)
       .slice(0, 2)

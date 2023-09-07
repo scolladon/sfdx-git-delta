@@ -79,7 +79,7 @@ export default class StandardHandler {
     this.metadataDef = this.metadata.get(this.type) as Metadata
   }
 
-  async handle() {
+  public async handle() {
     if (this.handlerMap[this.changeType] && this._isProcessable()) {
       try {
         await this.handlerMap[this.changeType].apply(this)
@@ -90,22 +90,22 @@ export default class StandardHandler {
     }
   }
 
-  async handleAddition() {
+  public async handleAddition() {
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
     await this._copyWithMetaFile(this.line)
   }
 
-  handleDeletion() {
+  public handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
-  async handleModification() {
+  public async handleModification() {
     await this.handleAddition()
   }
 
-  _getParsedPath() {
+  protected _getParsedPath() {
     return parse(
       this.splittedLine
         .slice(
@@ -118,12 +118,12 @@ export default class StandardHandler {
     )
   }
 
-  _getElementName() {
+  protected _getElementName() {
     const parsedPath = this._getParsedPath()
     return cleanUpPackageMember(parsedPath.base)
   }
 
-  _fillPackage(store: Manifest) {
+  protected _fillPackage(store: Manifest) {
     fillPackageWithParameter({
       store,
       type: this.metadata.get(this.type)!.xmlName,
@@ -131,7 +131,7 @@ export default class StandardHandler {
     })
   }
 
-  async _copyWithMetaFile(src: string) {
+  protected async _copyWithMetaFile(src: string) {
     if (this._delegateFileCopy()) {
       await this._copy(src)
       if (
@@ -143,13 +143,13 @@ export default class StandardHandler {
     }
   }
 
-  async _copy(elementPath: string) {
+  protected async _copy(elementPath: string) {
     if (this._delegateFileCopy()) {
       await copyFiles(this.config, elementPath)
     }
   }
 
-  _getMetaTypeFilePath(path: string) {
+  protected _getMetaTypeFilePath(path: string) {
     const parsedPath = parse(path)
     return join(
       parsedPath.dir,
@@ -157,7 +157,7 @@ export default class StandardHandler {
     )
   }
 
-  _parseLine() {
+  protected _parseLine() {
     return this.line.match(
       new RegExp(
         `(?<path>.*[/\\\\]${RegExpEscape(
@@ -168,15 +168,15 @@ export default class StandardHandler {
     )
   }
 
-  _isProcessable() {
+  protected _isProcessable() {
     return this.metadataDef.suffix === this.ext
   }
 
-  _delegateFileCopy() {
+  protected _delegateFileCopy() {
     return true
   }
 
-  _parentFolderIsNotTheType() {
+  protected _parentFolderIsNotTheType() {
     return this.parentFolder !== this.type
   }
 }

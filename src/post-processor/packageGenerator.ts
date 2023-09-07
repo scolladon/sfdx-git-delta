@@ -11,12 +11,12 @@ const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
 export default class PackageGenerator extends BaseProcessor {
-  async process() {
-    this.cleanPackages()
-    await this.buildPackages()
+  public override async process() {
+    this._cleanPackages()
+    await this._buildPackages()
   }
 
-  cleanPackages() {
+  protected _cleanPackages() {
     const additive = this.work.diffs[PACKAGE_FILE_NAME]
     const destructive = this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME]
     for (const [type, members] of additive) {
@@ -34,7 +34,7 @@ export default class PackageGenerator extends BaseProcessor {
     }
   }
 
-  async buildPackages() {
+  protected async _buildPackages() {
     const pc = new PackageBuilder(this.config)
     await Promise.all(
       [

@@ -16,6 +16,7 @@ import { Config } from '../../../../src/types/config'
 import { MetadataRepository } from '../../../../src/types/metadata'
 
 jest.mock('../../../../src/utils/childProcessUtils', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual(
     '../../../../src/utils/childProcessUtils'
   )
@@ -358,7 +359,7 @@ describe(`test if repoGitDiff`, () => {
         const line = 'A path/to/classes/Test.cls'
 
         // Act
-        const result = sut._extractComparisonName(line)
+        const result = sut['_extractComparisonName'](line)
 
         // Assert
         expect(result).toBe('Test.cls')
@@ -375,7 +376,7 @@ describe(`test if repoGitDiff`, () => {
         const line = `A path/to/${elPath}`
 
         // Act
-        const result = sut._extractComparisonName(line)
+        const result = sut['_extractComparisonName'](line)
 
         // Assert
         expect(result).toBe(elPath.replace(/\//g, ''))

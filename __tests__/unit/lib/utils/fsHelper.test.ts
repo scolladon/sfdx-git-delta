@@ -27,6 +27,7 @@ import { Config } from '../../../../src/types/config'
 
 jest.mock('fs-extra')
 jest.mock('../../../../src/utils/childProcessUtils', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual(
     '../../../../src/utils/childProcessUtils'
   )

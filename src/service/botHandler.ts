@@ -8,7 +8,7 @@ const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
 
 export default class BotHandler extends ShareFolderHandler {
-  _getElementName() {
+  protected override _getElementName() {
     const parsedPath = this._getParsedPath()
     const elementName = new Set([
       parsedPath.dir.split(sep).pop(),
@@ -16,12 +16,12 @@ export default class BotHandler extends ShareFolderHandler {
     ])
     return [...elementName].join(DOT)
   }
-  async handleAddition() {
+  public override async handleAddition() {
     await super.handleAddition()
     await this._addParentBot()
   }
 
-  async _addParentBot() {
+  protected async _addParentBot() {
     const botName = this.parentFolder.split(sep).pop() as string
     fillPackageWithParameter({
       store: this.diffs.package,

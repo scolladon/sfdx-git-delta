@@ -18,6 +18,7 @@ import {
 import { format } from 'util'
 
 jest.mock('../../../../src/utils/childProcessUtils', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual(
     '../../../../src/utils/childProcessUtils'
   )
@@ -487,7 +488,7 @@ describe(`test if the application`, () => {
           const cliHelper = new CLIHelper(work)
 
           // Act
-          await cliHelper._handleDefault()
+          await cliHelper['_handleDefault']()
 
           // Assert
           expect(work.config.apiVersion).toEqual(version)
@@ -505,7 +506,7 @@ describe(`test if the application`, () => {
           const cliHelper = new CLIHelper(work)
 
           // Act
-          await cliHelper._handleDefault()
+          await cliHelper['_handleDefault']()
 
           // Assert
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -529,7 +530,7 @@ describe(`test if the application`, () => {
               const cliHelper = new CLIHelper(work)
 
               // Act
-              await cliHelper._handleDefault()
+              await cliHelper['_handleDefault']()
 
               // Assert
               expect(work.config.apiVersion).toEqual(+version)
@@ -550,7 +551,7 @@ describe(`test if the application`, () => {
               const cliHelper = new CLIHelper(work)
 
               // Act
-              await cliHelper._handleDefault()
+              await cliHelper['_handleDefault']()
 
               // Assert
               expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -567,7 +568,7 @@ describe(`test if the application`, () => {
           const cliHelper = new CLIHelper(work)
 
           // Act
-          await cliHelper._handleDefault()
+          await cliHelper['_handleDefault']()
 
           // Assert
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -582,7 +583,7 @@ describe(`test if the application`, () => {
         const cliHelper = new CLIHelper(work)
 
         // Act
-        await cliHelper._handleDefault()
+        await cliHelper['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)

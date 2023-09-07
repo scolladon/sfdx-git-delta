@@ -30,7 +30,7 @@ describe('InBundleHandler', () => {
         const sut = new InBundleHandler(line, objectType, work, globalMetadata)
 
         // Act
-        const result = sut._getElementName()
+        const result = sut['_getElementName']()
 
         // Assert
         expect(result).toEqual('site/component')
@@ -46,7 +46,7 @@ describe('InBundleHandler', () => {
         const sut = new InBundleHandler(line, objectType, work, globalMetadata)
 
         // Act
-        const result = sut._getElementName()
+        const result = sut['_getElementName']()
 
         // Assert
         expect(result).toEqual('site/component')

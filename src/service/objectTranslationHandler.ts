@@ -8,15 +8,15 @@ import { parse, sep } from 'path'
 import MetadataDiff from '../utils/metadataDiff'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
-  async handleAddition() {
+  public override async handleAddition() {
     await StandardHandler.prototype.handleAddition.apply(this)
     if (!this.config.generateDelta) return
 
-    const objectTranslationPath = this.getObjectTranslationPath()
+    const objectTranslationPath = this._getObjectTranslationPath()
     await this._copyObjectTranslation(objectTranslationPath)
   }
 
-  async _copyObjectTranslation(path: string) {
+  protected async _copyObjectTranslation(path: string) {
     const inFileMetadata = getInFileAttributes(this.metadata)
     const metadataDiff = new MetadataDiff(
       this.config,
@@ -28,7 +28,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     await writeFile(path, xmlContent, this.config)
   }
 
-  getObjectTranslationPath() {
+  protected _getObjectTranslationPath() {
     // Return Object Translation Path for both objectTranslation and fieldTranslation
     // QUESTION: Why fieldTranslation element are not deployable when objectTranslation element is not in the deployed sources (even if objectTranslation file is empty) ?
     return `${parse(this.line).dir}${sep}${
@@ -36,7 +36,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
   }
 
-  _delegateFileCopy() {
+  protected override _delegateFileCopy() {
     return !this.line.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
   }
 }

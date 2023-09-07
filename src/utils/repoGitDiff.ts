@@ -52,12 +52,12 @@ export default class RepoGitDiff {
       : []
   }
 
-  async getLines() {
+  public async getLines() {
     const lines = await this._getFilteredDiff()
     return Array.from(new Set([...lines.flat().filter(Boolean)]))
   }
 
-  async _getFilteredDiff() {
+  protected async _getFilteredDiff() {
     const lines = await Promise.all([
       this._spawnGitDiff(filterAdded, ADDITION),
       this._spawnGitDiff(filterDeleted, DELETION),
@@ -67,7 +67,10 @@ export default class RepoGitDiff {
     return treatedLines
   }
 
-  async _spawnGitDiff(filter: string[], changeType: string): Promise<string[]> {
+  protected async _spawnGitDiff(
+    filter: string[],
+    changeType: string
+  ): Promise<string[]> {
     const diffContent = await getSpawnContentByLine(
       GIT_COMMAND,
       [
@@ -86,7 +89,7 @@ export default class RepoGitDiff {
     )
   }
 
-  async _treatResult(lines: string[]): Promise<string[]> {
+  protected async _treatResult(lines: string[]): Promise<string[]> {
     const linesPerDiffType: Map<string, string[]> = lines.reduce(
       (acc: Map<string, string[]>, line: string) => {
         const idx: string = line.charAt(0)
@@ -118,14 +121,14 @@ export default class RepoGitDiff {
       .filter((line: string) => ignoreHelper.keep(line))
   }
 
-  _filterInternal(line: string, deletedRenamed: string[]): boolean {
+  protected _filterInternal(line: string, deletedRenamed: string[]): boolean {
     return (
       !deletedRenamed.includes(line) &&
       line.split(sep).some(part => this.metadata.has(part))
     )
   }
 
-  _extractComparisonName(line: string) {
+  protected _extractComparisonName(line: string) {
     const type = getType(line, this.metadata)
     const el = parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
     let comparisonName = el.base

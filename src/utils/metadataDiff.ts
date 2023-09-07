@@ -168,7 +168,7 @@ export default class MetadataDiff {
     } as Config
   }
 
-  async compare(path: string) {
+  public async compare(path: string) {
     this.toContent = await parseXmlFileToJson(path, this.configTo)
     const fromContent = await parseXmlFileToJson(path, this.configFrom)
 
@@ -202,7 +202,7 @@ export default class MetadataDiff {
     }
   }
 
-  prune() {
+  public prune() {
     const prunedContent = generatePartialJSON(this.attributes)(this.toContent)(
       this.add
     )

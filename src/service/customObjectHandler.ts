@@ -10,13 +10,13 @@ import {
 import { join, parse } from 'path'
 
 export default class CustomObjectHandler extends StandardHandler {
-  async handleAddition() {
+  public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._handleMasterDetailException()
   }
 
-  async _handleMasterDetailException() {
+  protected async _handleMasterDetailException() {
     if (this.type !== OBJECT_TYPE) return
 
     const fieldsFolder = join(parse(this.line).dir, FIELD_DIRECTORY_NAME)

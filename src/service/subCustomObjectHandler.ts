@@ -8,7 +8,7 @@ import { readPathFromGit } from '../utils/fsHelper'
 import { join, sep } from 'path'
 
 export default class SubCustomObjectHandler extends StandardHandler {
-  async handleAddition() {
+  public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
@@ -30,7 +30,7 @@ export default class SubCustomObjectHandler extends StandardHandler {
     await this._copyWithMetaFile(customObjectPath)
   }
 
-  _getElementName() {
+  protected override _getElementName() {
     const prefix = this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
     const elementName = super._getElementName()
     return `${prefix}.${elementName}`

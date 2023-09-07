@@ -18,7 +18,7 @@ export class IgnoreHelper {
     this.destructiveIgnore = destructiveIgnore
   }
 
-  keep(line: string) {
+  public keep(line: string) {
     const changeType = line.charAt(0)
 
     let ignInstance!: Ignore

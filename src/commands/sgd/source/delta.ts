@@ -19,9 +19,9 @@ const COMMAND_NAME = 'delta'
 const messages = Messages.loadMessages('sfdx-git-delta', COMMAND_NAME)
 
 export default class SourceDeltaGenerate extends SfdxCommand {
-  public static description = messages.getMessage('command', [])
+  public static override description = messages.getMessage('command', [])
 
-  protected static flagsConfig = {
+  protected static override flagsConfig = {
     to: flags.string({
       char: 't',
       description: messages.getMessage('toFlag'),

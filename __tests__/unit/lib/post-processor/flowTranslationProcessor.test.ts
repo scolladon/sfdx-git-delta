@@ -37,6 +37,7 @@ jest.mock('../../../../src/utils/ignoreHelper', () => ({
   })),
 }))
 jest.mock('../../../../src/utils/fxpHelper', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const originalModule: any = jest.requireActual(
     '../../../../src/utils/fxpHelper'
   )

@@ -12,7 +12,7 @@ export default class DiffLineInterpreter {
     this.metadata = metadata
   }
 
-  async process(lines: string[]) {
+  public async process(lines: string[]) {
     const typeHandlerFactory = new TypeHandlerFactory(this.work, this.metadata)
     for (const line of lines) {
       await typeHandlerFactory.getTypeHandler(line).handle()

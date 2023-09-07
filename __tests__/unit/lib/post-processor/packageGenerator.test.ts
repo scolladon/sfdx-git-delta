@@ -35,7 +35,7 @@ describe('PackageGenerator', () => {
         const sut = new PackageGenerator(work, metadata)
 
         // Act
-        sut.cleanPackages()
+        sut['_cleanPackages']()
 
         // Assert
         expect(additive.get(type)!.has(element)).toEqual(true)
@@ -55,7 +55,7 @@ describe('PackageGenerator', () => {
           const sut = new PackageGenerator(work, metadata)
 
           // Act
-          sut.cleanPackages()
+          sut['_cleanPackages']()
 
           // Assert
           expect(additive.get(type)!.has(element)).toEqual(true)
@@ -77,7 +77,7 @@ describe('PackageGenerator', () => {
         const sut = new PackageGenerator(work, metadata)
 
         // Act
-        sut.cleanPackages()
+        sut['_cleanPackages']()
 
         // Assert
         expect(additive.get(type)!.has(element)).toEqual(true)
@@ -95,7 +95,7 @@ describe('PackageGenerator', () => {
     })
     it('calls `fse.outputFile` for %s', async () => {
       // Act
-      await sut.buildPackages()
+      await sut['_buildPackages']()
 
       // Assert
       expect(fse.outputFile).toHaveBeenCalledTimes(3)
@@ -103,7 +103,7 @@ describe('PackageGenerator', () => {
 
     it('calls `PackageBuilder.buildPackage` for %s', async () => {
       // Act
-      await sut.buildPackages()
+      await sut['_buildPackages']()
 
       // Assert
       expect(mockBuildPackage).toHaveBeenCalledTimes(3)

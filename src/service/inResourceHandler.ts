@@ -21,7 +21,7 @@ export default class ResourceHandler extends StandardHandler {
     this.metadataName = this._getMetadataName()
   }
 
-  async handleAddition() {
+  public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
@@ -30,7 +30,7 @@ export default class ResourceHandler extends StandardHandler {
     }
   }
 
-  async handleDeletion() {
+  public override async handleDeletion() {
     const [, elementPath, elementName] = this._parseLine()!
     const exists = await pathExists(join(elementPath, elementName), this.config)
     if (exists) {
@@ -40,12 +40,12 @@ export default class ResourceHandler extends StandardHandler {
     }
   }
 
-  _getElementName() {
+  protected override _getElementName() {
     const parsedPath = this._getParsedPath()
     return cleanUpPackageMember(parsedPath.name)
   }
 
-  _getParsedPath() {
+  protected override _getParsedPath() {
     return parse(
       this.splittedLine[this.splittedLine.indexOf(this.type) + 1]
         .replace(META_REGEX, '')
@@ -53,11 +53,11 @@ export default class ResourceHandler extends StandardHandler {
     )
   }
 
-  _isProcessable() {
+  protected override _isProcessable() {
     return true
   }
 
-  _getMetadataName() {
+  protected _getMetadataName() {
     const resourcePath = []
     for (const pathElement of this.splittedLine) {
       if (resourcePath.slice(-2)[0] === this.type) {
@@ -74,7 +74,7 @@ export default class ResourceHandler extends StandardHandler {
     return `${resourcePath.join(sep)}`
   }
 
-  _getMetaTypeFilePath() {
+  protected override _getMetaTypeFilePath() {
     return `${this.metadataName}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
   }
 }

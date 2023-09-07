@@ -13,7 +13,7 @@ class TestProcessor extends BaseProcessor {
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
   }
-  async process() {
+  override async process() {
     return processSpy() as Promise<void>
   }
 }

@@ -44,7 +44,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     this.translationPaths = new Map()
   }
 
-  async process() {
+  public override async process() {
     if (this._shouldProcess()) {
       await this._buildFlowDefinitionsMap()
       await this._handleFlowTranslation()
@@ -72,7 +72,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     }
   }
 
-  async _handleFlowTranslation() {
+  protected async _handleFlowTranslation() {
     for (const translationPath of this.translationPaths.keys()) {
       fillPackageWithParameter({
         store: this.work.diffs.package,
@@ -92,7 +92,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     }
   }
 
-  _scrapTranslationFile(jsonTranslation: any, actualFlowDefinition: any) {
+  protected _scrapTranslationFile(
+    jsonTranslation: any,
+    actualFlowDefinition: any
+  ) {
     const flowDefinitions = asArray(
       jsonTranslation.Translations?.flowDefinitions
     )
@@ -108,7 +111,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
-  async _parseTranslationFile(translationPath: string) {
+  protected async _parseTranslationFile(translationPath: string) {
     const translationJSON = await parseXmlFileToJson(
       translationPath,
       this.config
@@ -124,7 +127,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
-  _addFlowPerTranslation({
+  protected _addFlowPerTranslation({
     translationPath,
     flowDefinition,
   }: {
@@ -140,7 +143,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     }
   }
 
-  async _getTranslationAsJSON(translationPath: string) {
+  protected async _getTranslationAsJSON(translationPath: string) {
     const translationPathInOutputFolder = join(
       this.config.output,
       treatPathSep(translationPath)

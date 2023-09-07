@@ -19,11 +19,11 @@ export default class RepoSetup {
     }
   }
 
-  async repoConfiguration() {
+  public async repoConfiguration() {
     await getSpawnContent(GIT_COMMAND, gitConfig, this.spawnConfig)
   }
 
-  async getCommitRefType(commitRef: string) {
+  public async getCommitRefType(commitRef: string) {
     const data: Buffer = await getSpawnContent(
       GIT_COMMAND,
       [...commitCheckParams, commitRef],
@@ -35,7 +35,7 @@ export default class RepoSetup {
     return data?.toString(UTF8_ENCODING)
   }
 
-  async getFirstCommitRef() {
+  public async getFirstCommitRef() {
     const data: Buffer = await getSpawnContent(GIT_COMMAND, firstCommitParams, {
       cwd: this.config.repo,
     })
@@ -43,7 +43,7 @@ export default class RepoSetup {
     return data?.toString(UTF8_ENCODING)
   }
 
-  async getAllFilesAsLineStream() {
+  public async getAllFilesAsLineStream() {
     const result = await getSpawnContentByLine(
       GIT_COMMAND,
       [...allFilesParams, this.config.to],

@@ -23,12 +23,12 @@ export default class PostProcessorManager {
     this.work = work
   }
 
-  use(postProcessor: BaseProcessor) {
+  public use(postProcessor: BaseProcessor) {
     this.postProcessors.push(postProcessor)
     return this
   }
 
-  async execute() {
+  public async execute() {
     for (const postProcessor of this.postProcessors) {
       try {
         await postProcessor.process()

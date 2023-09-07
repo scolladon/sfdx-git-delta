@@ -10,6 +10,7 @@ import { MetadataRepository } from '../../../../src/types/metadata'
 import { Work } from '../../../../src/types/work'
 
 jest.mock('../../../../src/utils/fxpHelper', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual(
     '../../../../src/utils/fxpHelper'
   )

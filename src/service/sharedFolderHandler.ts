@@ -21,7 +21,7 @@ export default class SharedFolderHandler extends StandardHandler {
     this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
   }
 
-  _fillPackage(store: Manifest) {
+  protected override _fillPackage(store: Manifest) {
     const type = this.sharedFolderMetadata.get(this.ext!) as string
     fillPackageWithParameter({
       store,
@@ -30,11 +30,11 @@ export default class SharedFolderHandler extends StandardHandler {
     })
   }
 
-  _isProcessable() {
+  protected override _isProcessable() {
     return super._isProcessable() || this.sharedFolderMetadata.has(this.ext)
   }
 
-  _getMetaTypeFilePath(path: string) {
+  protected override _getMetaTypeFilePath(path: string) {
     const parsedPath = parse(path)
     return join(
       parsedPath.dir,

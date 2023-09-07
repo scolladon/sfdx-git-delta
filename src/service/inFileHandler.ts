@@ -30,7 +30,7 @@ export default class InFileHandler extends StandardHandler {
     this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
   }
 
-  async handleAddition() {
+  public override async handleAddition() {
     await super.handleAddition()
     await this._compareRevision()
 
@@ -38,7 +38,7 @@ export default class InFileHandler extends StandardHandler {
     await this._writeScopedContent()
   }
 
-  async handleDeletion() {
+  public override async handleDeletion() {
     if (this.metadataDef.pruneOnly) {
       await super.handleDeletion()
     } else {
@@ -46,17 +46,17 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  async handleModification() {
+  public override async handleModification() {
     await this.handleAddition()
   }
 
-  async _compareRevision() {
+  protected async _compareRevision() {
     const { added, deleted } = await this.metadataDiff.compare(this.line)
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
   }
 
-  async _writeScopedContent() {
+  protected async _writeScopedContent() {
     const { xmlContent, isEmpty } = this.metadataDiff.prune()
 
     if (!isEmpty) {
@@ -64,7 +64,7 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  _storeComparison(store: Manifest, content: Manifest) {
+  protected _storeComparison(store: Manifest, content: Manifest) {
     for (const [type, members] of content) {
       for (const member of members) {
         this._fillPackageForInfileMetadata(store, type, member)
@@ -72,7 +72,7 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  _fillPackageForInfileMetadata(
+  protected _fillPackageForInfileMetadata(
     store: Manifest,
     subType: string,
     member: string
@@ -90,11 +90,11 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  _delegateFileCopy() {
+  override _delegateFileCopy() {
     return false
   }
 
-  _fillPackage(store: Manifest) {
+  override _fillPackage(store: Manifest) {
     // Call from super.handleAddition to add the Root Type
     // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
     if (this.type !== LABEL_EXTENSION) {
