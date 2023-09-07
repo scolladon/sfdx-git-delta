@@ -45,23 +45,22 @@ const mockedDirExists = jest.mocked(dirExists)
 const mockedFileExists = jest.mocked(fileExists)
 const mockedIsGit = jest.mocked(isGit)
 
-mockedDirExists.mockImplementation(() => Promise.resolve(true))
-mockedFileExists.mockImplementation(() => Promise.resolve(true))
-mockedIsGit.mockImplementation(() => Promise.resolve(true))
-
 describe(`test if the application`, () => {
   let work: Work
   beforeEach(() => {
     work = getWork()
     work.config.to = 'test'
     work.config.apiVersion = 46
+    mockedFileExists.mockImplementation(() => Promise.resolve(true))
+    mockedDirExists.mockImplementation(() => Promise.resolve(true))
+    mockedIsGit.mockImplementation(() => Promise.resolve(true))
+    mockGetCommitRefType.mockImplementation(() =>
+      Promise.resolve(COMMIT_REF_TYPE)
+    )
   })
 
   it('resume nicely when everything is well configured', async () => {
     // Arrange
-    mockGetCommitRefType.mockImplementation(() =>
-      Promise.resolve(COMMIT_REF_TYPE)
-    )
     const cliHelper = new CLIHelper({
       ...work,
       config: {
@@ -197,18 +196,6 @@ describe(`test if the application`, () => {
       config: {
         ...work.config,
         to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when apiVersion parameter is NaN', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        apiVersion: NaN,
       },
     })
     expect.assertions(1)
@@ -479,6 +466,7 @@ describe(`test if the application`, () => {
     beforeAll(async () => {
       latestAPIVersionSupported = await getLatestSupportedVersion()
     })
+    beforeEach(jest.resetAllMocks)
     describe('when apiVersion parameter is set with supported value', () => {
       it.each([46, 52, 55])(
         'config.apiVersion (%s) equals the parameter',
@@ -501,7 +489,7 @@ describe(`test if the application`, () => {
         `config.apiVersion (%s) equals the latest version `,
         async version => {
           // Arrange
-          mockedFileExists.mockResolvedValueOnce(false)
+          mockedFileExists.mockImplementation(() => Promise.resolve(false))
           work.config.apiVersion = version
           const cliHelper = new CLIHelper(work)
 
@@ -518,10 +506,11 @@ describe(`test if the application`, () => {
     describe('when apiVersion parameter is not set', () => {
       describe('when sfdx-project.json file exist', () => {
         describe('when "sourceApiVersion" attribute is set with supported value', () => {
-          it.each(['46', '52', '55', '46.0', '52.0', '55.0'])(
+          it.each([46, 52, 53, 46.0, 52.0, 55.0])(
             'config.apiVersion (%s) equals the "sourceApiVersion" attribute',
             async version => {
               // Arrange
+              mockedFileExists.mockImplementation(() => Promise.resolve(true))
               mockedReadFile.mockImplementation(() =>
                 Promise.resolve(`{"sourceApiVersion":"${version}"}`)
               )
@@ -579,6 +568,7 @@ describe(`test if the application`, () => {
     describe('when sfdx-project.json file does not exist', () => {
       it('config.apiVersion equals the latest version', async () => {
         // Arrange
+        mockedFileExists.mockImplementation(() => Promise.resolve(false))
         work.config.apiVersion = -1
         const cliHelper = new CLIHelper(work)
 

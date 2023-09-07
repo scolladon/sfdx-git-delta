@@ -79,8 +79,10 @@ export default class SourceDeltaGenerate extends SfdxCommand {
 
   public async run(): Promise<Output> {
     const output: Output = {
+      error: null,
       output: this.flags.output,
       success: true,
+      warnings: [],
     }
     try {
       const jobResult = await sgd({

@@ -4,9 +4,14 @@ import { normalize, sep } from 'path'
 
 export const EOLRegex: RegExp = /\r?\n/g
 
-export const treatPathSep = (data: string) => data.replace(/[/\\]+/g, sep)
+export const treatPathSep = (data: string) => data?.replace(/[/\\]+/g, sep)
 
-export const sanitizePath = (data: string) => normalize(treatPathSep(data))
+export const sanitizePath = (data: string) => {
+  if (data) {
+    return normalize(treatPathSep(data))
+  }
+  return data
+}
 
 export const getSpawnContentByLine = async (
   command: string,
