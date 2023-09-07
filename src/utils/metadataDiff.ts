@@ -114,12 +114,14 @@ const getElementProcessor =
     attributes: Map<string, SharedFileMetadata>
   ) =>
   (elem: any) => {
+    let metadataMember
     if (predicat(otherMeta, type, elem)) {
-      return {
+      metadataMember = {
         type: attributes.get(type)!.xmlName,
         member: selectKey(attributes)(type)(elem),
       }
     }
+    return metadataMember
   }
 
 // Partial JSON generation functional are

@@ -6,12 +6,13 @@
     "importHelpers": true,
     "allowJs": false,
     "resolveJsonModule": true,
+    "esModuleInterop": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "alwaysStrict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
     "skipLibCheck": true,
-    "esModuleInterop": true,
-    "noImplicitOverride": true
   },
   "include": [
     "./src/**/*",
