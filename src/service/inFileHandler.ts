@@ -17,8 +17,7 @@ const getNamePrefix = ({ subType, line }: { subType: string; line: string }) =>
   subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
 export default class InFileHandler extends StandardHandler {
-  metadataDiff: MetadataDiff
-  _addedMembers: Manifest
+  protected readonly metadataDiff: MetadataDiff
   constructor(
     line: string,
     type: string,

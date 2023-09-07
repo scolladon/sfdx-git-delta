@@ -37,7 +37,7 @@ const getDefaultTranslation = () => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
-  translationPaths: Map<string, any>
+  protected readonly translationPaths: Map<string, any>
 
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)

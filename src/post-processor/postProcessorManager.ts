@@ -15,8 +15,8 @@ const processors: Array<typeof BaseProcessor> = [
 processors.push(PackageGenerator)
 
 export default class PostProcessorManager {
-  postProcessors: BaseProcessor[]
-  work: Work
+  protected readonly postProcessors: BaseProcessor[]
+  protected readonly work: Work
 
   constructor(work: Work) {
     this.postProcessors = []

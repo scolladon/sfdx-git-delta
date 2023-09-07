@@ -8,7 +8,7 @@ const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
 
 export default class PackageBuilder {
-  config: Config
+  protected readonly config: Config
 
   constructor(config: Config) {
     this.config = config

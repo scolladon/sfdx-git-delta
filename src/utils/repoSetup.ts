@@ -9,8 +9,8 @@ const allFilesParams = ['ls-tree', '--name-only', '-r']
 const gitConfig = ['config', 'core.quotepath', 'off']
 
 export default class RepoSetup {
-  config: Config
-  spawnConfig: SpawnOptionsWithoutStdio
+  protected readonly config: Config
+  protected readonly spawnConfig: SpawnOptionsWithoutStdio
 
   constructor(config: Config) {
     this.config = config

@@ -59,8 +59,8 @@ const handlerMap = {
 }
 
 export default class TypeHandlerFactory {
-  work: Work
-  metadata: MetadataRepository
+  protected readonly work: Work
+  protected readonly metadata: MetadataRepository
 
   constructor(work: Work, metadata: MetadataRepository) {
     this.work = work

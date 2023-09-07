@@ -9,7 +9,7 @@ import { Work } from '../types/work'
 import { MetadataRepository } from '../types/metadata'
 
 export default class ResourceHandler extends StandardHandler {
-  metadataName: string
+  protected readonly metadataName: string
 
   constructor(
     line: string,

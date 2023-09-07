@@ -35,7 +35,7 @@ describe('postProcessorManager', () => {
         const result = sut(work, metadata)
 
         // Assert
-        expect(result.postProcessors.length).toBeGreaterThan(0)
+        expect(result['postProcessors'].length).toBeGreaterThan(0)
       })
     })
   })
@@ -43,13 +43,13 @@ describe('postProcessorManager', () => {
     it('should add a processor to the list', () => {
       // Arrange
       const sut = new PostProcessorManager(work)
-      const processorCount = sut.postProcessors.length
+      const processorCount = sut['postProcessors'].length
 
       // Act
       sut.use(new TestProcessor(work, metadata) as BaseProcessor)
 
       // Assert
-      expect(processorCount).toBeLessThan(sut.postProcessors.length)
+      expect(processorCount).toBeLessThan(sut['postProcessors'].length)
     })
   })
 

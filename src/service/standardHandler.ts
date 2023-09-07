@@ -25,21 +25,21 @@ type HandlerDef = {
 }
 
 export default class StandardHandler {
-  metadata: MetadataRepository
-  changeType: keyof HandlerDef
-  line: string
-  type: string
-  work: Work
-  diffs: Manifests
-  config: Config
-  warnings: Error[]
-  splittedLine: string[]
-  suffixRegex: RegExp
-  handlerMap: HandlerDef
-  ext: string
-  metadataDef: Metadata
-  parsedLine: ParsedPath
-  parentFolder: string
+  protected readonly metadata: MetadataRepository
+  protected readonly changeType: keyof HandlerDef
+  protected readonly line: string
+  protected readonly type: string
+  protected readonly work: Work
+  protected readonly diffs: Manifests
+  protected readonly config: Config
+  protected readonly warnings: Error[]
+  protected readonly splittedLine: string[]
+  protected suffixRegex: RegExp
+  protected readonly handlerMap: HandlerDef
+  protected readonly ext: string
+  protected readonly metadataDef: Metadata
+  protected readonly parsedLine: ParsedPath
+  protected readonly parentFolder: string
 
   constructor(
     line: string,

@@ -5,9 +5,9 @@ import { MetadataRepository } from '../types/metadata'
 import { Work } from '../types/work'
 
 export default class BaseProcessor {
-  work: Work
-  config: Config
-  metadata: MetadataRepository
+  protected readonly work: Work
+  protected readonly config: Config
+  protected readonly metadata: MetadataRepository
 
   constructor(work: Work, metadata: MetadataRepository) {
     this.work = work

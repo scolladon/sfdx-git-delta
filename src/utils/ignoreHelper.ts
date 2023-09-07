@@ -10,8 +10,8 @@ import {
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {
-  globalIgnore: Ignore
-  destructiveIgnore: Ignore
+  public readonly globalIgnore: Ignore
+  protected readonly destructiveIgnore: Ignore
 
   constructor(globalIgnore: Ignore, destructiveIgnore: Ignore) {
     this.globalIgnore = globalIgnore

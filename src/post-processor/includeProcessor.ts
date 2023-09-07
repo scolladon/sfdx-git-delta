@@ -10,9 +10,9 @@ import { MetadataRepository } from '../types/metadata'
 const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {
-  gitHelper: RepoSetup
-  from: string
-  includeHelper: IgnoreHelper
+  protected readonly gitHelper: RepoSetup
+  protected from: string
+  protected includeHelper: IgnoreHelper
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
     this.gitHelper = new RepoSetup(this.config)

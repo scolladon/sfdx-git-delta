@@ -4,8 +4,8 @@ import { Work } from '../types/work'
 import TypeHandlerFactory from './typeHandlerFactory'
 
 export default class DiffLineInterpreter {
-  work: Work
-  metadata: MetadataRepository
+  protected work: Work
+  protected metadata: MetadataRepository
 
   constructor(work: Work, metadata: MetadataRepository) {
     this.work = work
