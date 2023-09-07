@@ -9,11 +9,10 @@ const allFilesParams = ['ls-tree', '--name-only', '-r']
 const gitConfig = ['config', 'core.quotepath', 'off']
 
 export default class RepoSetup {
-  protected readonly config: Config
   protected readonly spawnConfig: SpawnOptionsWithoutStdio
 
-  constructor(config: Config) {
-    this.config = config
+  // eslint-disable-next-line no-unused-vars
+  constructor(protected readonly config: Config) {
     this.spawnConfig = {
       cwd: this.config.repo,
     }

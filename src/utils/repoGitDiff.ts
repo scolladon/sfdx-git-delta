@@ -36,14 +36,15 @@ const lcSensitivity: Intl.CollatorOptions = {
 const pathType = [OBJECT_TYPE, OBJECT_TRANSLATION_TYPE, ...SUB_OBJECT_TYPES]
 
 export default class RepoGitDiff {
-  protected readonly config: Config
-  protected readonly metadata: MetadataRepository
   protected readonly spawnConfig: SpawnOptionsWithoutStdio
   protected readonly ignoreWhitespaceParams: string[]
 
-  constructor(config: Config, metadata: MetadataRepository) {
-    this.config = config
-    this.metadata = metadata
+  constructor(
+    // eslint-disable-next-line no-unused-vars
+    protected readonly config: Config,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly metadata: MetadataRepository
+  ) {
     this.spawnConfig = {
       cwd: this.config.repo,
     }

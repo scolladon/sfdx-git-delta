@@ -10,13 +10,12 @@ import {
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {
-  public readonly globalIgnore: Ignore
-  protected readonly destructiveIgnore: Ignore
-
-  constructor(globalIgnore: Ignore, destructiveIgnore: Ignore) {
-    this.globalIgnore = globalIgnore
-    this.destructiveIgnore = destructiveIgnore
-  }
+  constructor(
+    // eslint-disable-next-line no-unused-vars
+    public readonly globalIgnore: Ignore,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly destructiveIgnore: Ignore
+  ) {}
 
   public keep(line: string) {
     const changeType = line.charAt(0)

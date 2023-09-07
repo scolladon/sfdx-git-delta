@@ -25,11 +25,7 @@ type HandlerDef = {
 }
 
 export default class StandardHandler {
-  protected readonly metadata: MetadataRepository
   protected readonly changeType: keyof HandlerDef
-  protected readonly line: string
-  protected readonly type: string
-  protected readonly work: Work
   protected readonly diffs: Manifests
   protected readonly config: Config
   protected readonly warnings: Error[]
@@ -42,16 +38,15 @@ export default class StandardHandler {
   protected readonly parentFolder: string
 
   constructor(
-    line: string,
-    type: string,
-    work: Work,
-    metadata: MetadataRepository
+    protected readonly line: string,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly type: string,
+    protected readonly work: Work,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly metadata: MetadataRepository
   ) {
-    this.metadata = metadata
     this.changeType = line.charAt(0) as keyof HandlerDef
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
-    this.type = type
-    this.work = work
     // internal getters
     this.diffs = work.diffs
     this.config = work.config

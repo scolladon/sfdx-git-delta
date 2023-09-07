@@ -145,17 +145,14 @@ const generatePartialJSON =
   }
 
 export default class MetadataDiff {
-  protected readonly config: Config
-  protected readonly metadata: MetadataRepository
-  protected readonly attributes: Map<string, SharedFileMetadata>
   protected readonly configTo: Config
   protected readonly configFrom: Config
   protected toContent: any
   protected add: Manifest
   constructor(
-    config: Config,
-    metadata: MetadataRepository,
-    attributes: Map<string, SharedFileMetadata>
+    protected readonly config: Config,
+    protected readonly metadata: MetadataRepository,
+    protected readonly attributes: Map<string, SharedFileMetadata>
   ) {
     this.config = config
     this.metadata = metadata

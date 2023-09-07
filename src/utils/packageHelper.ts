@@ -8,11 +8,8 @@ const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
 
 export default class PackageBuilder {
-  protected readonly config: Config
-
-  constructor(config: Config) {
-    this.config = config
-  }
+  // eslint-disable-next-line no-unused-vars
+  constructor(protected readonly config: Config) {}
 
   public buildPackage(strucDiffPerType: Manifest) {
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {

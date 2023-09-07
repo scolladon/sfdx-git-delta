@@ -59,13 +59,12 @@ const handlerMap = {
 }
 
 export default class TypeHandlerFactory {
-  protected readonly work: Work
-  protected readonly metadata: MetadataRepository
-
-  constructor(work: Work, metadata: MetadataRepository) {
-    this.work = work
-    this.metadata = metadata
-  }
+  constructor(
+    // eslint-disable-next-line no-unused-vars
+    protected readonly work: Work,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly metadata: MetadataRepository
+  ) {}
 
   public getTypeHandler(line: string) {
     const type = getType(line, this.metadata) as keyof typeof handlerMap

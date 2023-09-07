@@ -4,13 +4,12 @@ import { Work } from '../types/work'
 import TypeHandlerFactory from './typeHandlerFactory'
 
 export default class DiffLineInterpreter {
-  protected work: Work
-  protected metadata: MetadataRepository
-
-  constructor(work: Work, metadata: MetadataRepository) {
-    this.work = work
-    this.metadata = metadata
-  }
+  constructor(
+    // eslint-disable-next-line no-unused-vars
+    protected readonly work: Work,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly metadata: MetadataRepository
+  ) {}
 
   public async process(lines: string[]) {
     const typeHandlerFactory = new TypeHandlerFactory(this.work, this.metadata)

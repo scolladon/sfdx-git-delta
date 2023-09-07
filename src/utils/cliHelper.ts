@@ -21,12 +21,10 @@ const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 export default class CLIHelper {
-  protected readonly work: Work
   protected readonly config: Config
   protected readonly repoSetup: RepoSetup
 
-  constructor(work: Work) {
-    this.work = work
+  constructor(protected readonly work: Work) {
     this.config = work.config
     this.repoSetup = new RepoSetup(work.config)
   }

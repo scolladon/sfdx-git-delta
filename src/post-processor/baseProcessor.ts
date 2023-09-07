@@ -5,14 +5,14 @@ import { MetadataRepository } from '../types/metadata'
 import { Work } from '../types/work'
 
 export default class BaseProcessor {
-  protected readonly work: Work
   protected readonly config: Config
-  protected readonly metadata: MetadataRepository
 
-  constructor(work: Work, metadata: MetadataRepository) {
-    this.work = work
+  constructor(
+    protected readonly work: Work,
+    // eslint-disable-next-line no-unused-vars
+    protected readonly metadata: MetadataRepository
+  ) {
     this.config = work.config
-    this.metadata = metadata
   }
 
   public async process() {
