@@ -1,7 +1,7 @@
 'use strict'
-const { execCmd } = require('@salesforce/cli-plugins-testkit')
-const Benchmark = require('benchmark')
-const suite = new Benchmark.Suite()
+import { execCmd } from '@salesforce/cli-plugins-testkit'
+import benchmark from 'benchmark'
+const suite = new benchmark.Suite()
 
 suite
   .add('e2e-test', () => {

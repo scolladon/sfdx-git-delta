@@ -1,5 +1,9 @@
 'use strict'
-import { SpawnOptionsWithoutStdio, spawn } from 'child_process'
+import {
+  ChildProcessWithoutNullStreams,
+  SpawnOptionsWithoutStdio,
+  spawn,
+} from 'child_process'
 import { normalize, sep } from 'path'
 
 export const EOLRegex: RegExp = /\r?\n/g
@@ -19,39 +23,8 @@ export const getSpawnContentByLine = async (
   options: SpawnOptionsWithoutStdio = {}
 ): Promise<string[]> => {
   const stream = spawn(command, [...args], options)
-  return new Promise<string[]>((resolve, reject) => {
-    const content: string[] = []
-    const error: string[] = []
-
-    let previous = ''
-
-    stream.stdout.on('data', (data: Buffer) => {
-      previous += data
-      let eolIndex = previous.search(EOLRegex)
-      while (eolIndex >= 0) {
-        content.push(previous.slice(0, eolIndex))
-        previous = previous.slice(eolIndex + 1)
-        eolIndex = previous.search(EOLRegex)
-      }
-    })
-
-    stream.stderr.setEncoding('utf8')
-    stream.stderr.on('data', (data: string) => {
-      error.push(data.toString())
-    })
-
-    stream.on('close', (code: number) => {
-      if (code !== 0) {
-        reject(new Error(error.join('')))
-      }
-
-      if (previous.length > 0) {
-        content.push(previous)
-      }
-
-      resolve(content)
-    })
-  })
+  const handler = new LineStreamHandler()
+  return handleStream(stream, handler) as Promise<string[]>
 }
 
 export const getSpawnContent = async (
@@ -60,25 +33,73 @@ export const getSpawnContent = async (
   options: SpawnOptionsWithoutStdio = {}
 ): Promise<Buffer> => {
   const stream = spawn(command, [...args], options)
-  return new Promise<Buffer>((resolve, reject) => {
-    const content: Buffer[] = []
-    const error: string[] = []
+  const handler = new BufferStreamHandler()
+  return handleStream(stream, handler) as Promise<Buffer>
+}
 
-    stream.stdout.on('data', (data: Buffer) => {
-      content.push(data)
-    })
+const handleStream = (
+  stream: ChildProcessWithoutNullStreams,
+  handler: StreamHandler
+): Promise<Buffer | string[]> => {
+  return new Promise((resolve, reject) => {
+    stream.stdout.on('data', (data: Buffer) => handler.onData(data))
 
     stream.stderr.setEncoding('utf8')
-    stream.stderr.on('data', (data: string) => {
-      error.push(data.toString())
-    })
+    stream.stderr.on('data', (data: string) => handler.onError(data))
 
     stream.on('close', (code: number) => {
       if (code !== 0) {
-        reject(new Error(error.join('')))
+        reject(new Error(handler.getError()))
+        return
       }
 
-      resolve(Buffer.concat(content))
+      const result = handler.getContent()
+      resolve(result)
     })
   })
+}
+
+abstract class StreamHandler {
+  protected readonly error: string[] = []
+  // eslint-disable-next-line no-unused-vars
+  public abstract onData(data: Buffer): void
+  public onError(data: string) {
+    this.error.push(data.toString())
+  }
+  public getError() {
+    return this.error.join('')
+  }
+  public abstract getContent(): Buffer | string[]
+}
+
+class BufferStreamHandler extends StreamHandler {
+  protected readonly content: Buffer[] = []
+  public override onData(data: Buffer): void {
+    this.content.push(data)
+  }
+  public override getContent(): Buffer {
+    return Buffer.concat(this.content)
+  }
+}
+
+class LineStreamHandler extends StreamHandler {
+  protected readonly content: string[] = []
+  protected chunk: string = ''
+  public override onData(data: Buffer): void {
+    this.chunk += data
+    let eolIndex = this.chunk.search(EOLRegex)
+    while (eolIndex >= 0) {
+      this.content.push(this.chunk.slice(0, eolIndex))
+      this.chunk = this.chunk.slice(eolIndex + 1)
+      eolIndex = this.chunk.search(EOLRegex)
+    }
+  }
+
+  public override getContent(): string[] {
+    if (this.chunk.length > 0) {
+      this.content.push(this.chunk)
+    }
+
+    return this.content
+  }
 }

@@ -8,8 +8,8 @@ import {
 import { Config } from '../../../../src/types/config'
 jest.mock('../../../../src/utils/childProcessUtils')
 
-const mockedGetSpawContent = jest.mocked(getSpawnContent)
-const mockedGetSpawContentByLine = jest.mocked(getSpawnContentByLine)
+const mockedGetSpawnContent = jest.mocked(getSpawnContent)
+const mockedGetSpawnContentByLine = jest.mocked(getSpawnContentByLine)
 
 describe(`test if repoSetup`, () => {
   const config: Config = {
@@ -30,10 +30,10 @@ describe(`test if repoSetup`, () => {
     it('can set core.quotepath to off', async () => {
       config.repo = './'
       config.from = 'HEAD~1'
-      mockedGetSpawContent.mockResolvedValue(Buffer.from(''))
+      mockedGetSpawnContent.mockResolvedValue(Buffer.from(''))
       const repoSetup = new RepoSetup(config)
       await repoSetup.repoConfiguration()
-      expect(mockedGetSpawContent).toBeCalledTimes(1)
+      expect(mockedGetSpawnContent).toBeCalledTimes(1)
     })
   })
 
@@ -42,7 +42,7 @@ describe(`test if repoSetup`, () => {
       const shaRef = 'HEAD'
       config.repo = './'
       config.to = shaRef
-      mockedGetSpawContent.mockResolvedValue(Buffer.from('commit'))
+      mockedGetSpawnContent.mockResolvedValue(Buffer.from('commit'))
       const repoSetup = new RepoSetup(config)
       const commitRef = await repoSetup.getCommitRefType(shaRef)
 
@@ -53,7 +53,7 @@ describe(`test if repoSetup`, () => {
       const shaRef = 'tag'
       config.repo = './'
       config.to = shaRef
-      mockedGetSpawContent.mockResolvedValue(Buffer.from('tag'))
+      mockedGetSpawnContent.mockResolvedValue(Buffer.from('tag'))
       const repoSetup = new RepoSetup(config)
       const commitRef = await repoSetup.getCommitRefType(shaRef)
 
@@ -64,7 +64,7 @@ describe(`test if repoSetup`, () => {
       const shaRef = 'wrong sha'
       config.repo = './'
       config.to = shaRef
-      mockedGetSpawContent.mockResolvedValue(Buffer.from(''))
+      mockedGetSpawnContent.mockResolvedValue(Buffer.from(''))
       const repoSetup = new RepoSetup(config)
       const commitRef = await repoSetup.getCommitRefType(shaRef)
 
@@ -76,7 +76,7 @@ describe(`test if repoSetup`, () => {
     it('returns the first commit SHA', async () => {
       // Arrange
       config.repo = './'
-      mockedGetSpawContent.mockResolvedValue(Buffer.from('firstsha'))
+      mockedGetSpawnContent.mockResolvedValue(Buffer.from('firstsha'))
 
       // Act
       const repoSetup = new RepoSetup(config)
@@ -93,7 +93,7 @@ describe(`test if repoSetup`, () => {
       // Arrange
       const expected = ['file/path/name.ext', 'other/file/path/name.ext']
       config.repo = './'
-      mockedGetSpawContentByLine.mockResolvedValue(expected)
+      mockedGetSpawnContentByLine.mockResolvedValue(expected)
 
       // Act
       const repoSetup = new RepoSetup(config)

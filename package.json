@@ -48,7 +48,7 @@
     "test:build:local": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
     "test:mutation": "stryker run",
     "test:nut": "nyc mocha **/*.nut.ts",
-    "test:perf": "node __tests__/perf/bench.js | tee perf-result.txt",
+    "test:perf": "node __tests__/perf/bench.mjs | tee perf-result.txt",
     "test:unit": "jest",
     "test:unit:clear:cache": "jest --clearCache",
     "test:unit:coverage": "jest --coverage",

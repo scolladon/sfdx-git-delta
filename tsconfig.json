@@ -12,7 +12,7 @@
     "alwaysStrict": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "./src/**/*",

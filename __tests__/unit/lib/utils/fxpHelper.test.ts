@@ -92,7 +92,7 @@ describe('fxpHelper', () => {
     describe('when called with non xml content', () => {
       beforeEach(() => {
         // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce('{"attribut": "value"}')
+        mockedReadPathFromGit.mockResolvedValueOnce('{"attribute": "value"}')
       })
       it('returns empty object', async () => {
         // Act

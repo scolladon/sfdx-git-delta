@@ -5,11 +5,11 @@ import LwcHandler from '../../../../src/service/lwcHandler'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
 import { MetadataRepository } from '../../../../src/types/metadata'
-const {
+import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} = require('../../../../src/utils/gitConstants')
+} from '../../../../src/utils/gitConstants'
 
 jest.mock('../../../../src/utils/fsHelper')
 

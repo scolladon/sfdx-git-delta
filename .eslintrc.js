@@ -33,6 +33,7 @@ module.exports = {
   },
   plugins: ['prettier', '@typescript-eslint'],
   rules: {
+    '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/brace-style': 'off',
     '@typescript-eslint/comma-dangle': 'off',
     '@typescript-eslint/comma-spacing': 'off',
