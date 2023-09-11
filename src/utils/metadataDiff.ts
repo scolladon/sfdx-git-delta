@@ -148,7 +148,7 @@ export default class MetadataDiff {
   protected readonly configTo: Config
   protected readonly configFrom: Config
   protected toContent: any
-  protected add: Manifest
+  protected add!: Manifest
   constructor(
     protected readonly config: Config,
     protected readonly metadata: MetadataRepository,

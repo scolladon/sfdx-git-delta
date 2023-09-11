@@ -12,10 +12,11 @@ const TAB = '\t'
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitHelper: RepoSetup
   protected from: string
-  protected includeHelper: IgnoreHelper
+  protected includeHelper!: IgnoreHelper
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
     this.gitHelper = new RepoSetup(this.config)
+    this.from = this.config.from
   }
 
   public override async process() {
@@ -31,7 +32,6 @@ export default class IncludeProcessor extends BaseProcessor {
   }
 
   protected async _prepare() {
-    this.from = this.config.from
     const firstSha = await this.gitHelper.getFirstCommitRef()
     this.config.from = firstSha
 
