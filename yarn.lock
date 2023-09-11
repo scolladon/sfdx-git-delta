@@ -9347,6 +9347,7 @@ __metadata:
   dependencies:
     "@commitlint/cli": ^17.7.1
     "@commitlint/config-conventional": ^17.7.0
+    "@jest/globals": ^29.6.4
     "@oclif/dev-cli": ^1.26.10
     "@salesforce/cli-plugins-testkit": ^4.3.2
     "@salesforce/command": ^5.3.9

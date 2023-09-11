@@ -1,5 +1,6 @@
 ignores: [
   '@commitlint/*',
+  '@types/jest',
   '@salesforce/*',
   '@stryker-mutator/*',
   'lint-staged',
