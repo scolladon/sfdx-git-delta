@@ -22,7 +22,7 @@ describe('BaseProcessor', () => {
         await sut.process()
       } catch (error) {
         // Assert
-        expect(error.message).toEqual('this class should be derived')
+        expect((error as Error).message).toEqual('this class should be derived')
       }
     })
   })

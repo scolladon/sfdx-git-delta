@@ -3,8 +3,8 @@ import { join, parse, sep, ParsedPath } from 'path'
 import {
   ADDITION,
   DELETION,
-  GIT_DIFF_TYPE_REGEX,
   MODIFICATION,
+  GIT_DIFF_TYPE_REGEX,
 } from '../utils/gitConstants'
 import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
 import {
@@ -18,20 +18,13 @@ import { Config } from '../types/config'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-type HandlerDef = {
-  [ADDITION]: () => Promise<void>
-  [DELETION]: () => void
-  [MODIFICATION]: () => Promise<void>
-}
-
 export default class StandardHandler {
-  protected readonly changeType: keyof HandlerDef
+  protected readonly changeType: string
   protected readonly diffs: Manifests
   protected readonly config: Config
   protected readonly warnings: Error[]
   protected readonly splittedLine: string[]
   protected suffixRegex: RegExp
-  protected readonly handlerMap: HandlerDef
   protected readonly ext: string
   protected readonly metadataDef: Metadata
   protected readonly parsedLine: ParsedPath
@@ -45,7 +38,7 @@ export default class StandardHandler {
     // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
   ) {
-    this.changeType = line.charAt(0) as keyof HandlerDef
+    this.changeType = line.charAt(0) as string
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
     // internal getters
     this.diffs = work.diffs
@@ -59,11 +52,6 @@ export default class StandardHandler {
 
     this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type)?.suffix}$`)
 
-    this.handlerMap = {
-      [ADDITION]: this.handleAddition,
-      [DELETION]: this.handleDeletion,
-      [MODIFICATION]: this.handleModification,
-    }
     this.parsedLine = parse(this.line)
     this.ext = this.parsedLine.base
       .replace(METAFILE_SUFFIX, '')
@@ -75,12 +63,24 @@ export default class StandardHandler {
   }
 
   public async handle() {
-    if (this.handlerMap[this.changeType] && this._isProcessable()) {
+    if (this._isProcessable()) {
       try {
-        await this.handlerMap[this.changeType].apply(this)
+        switch (this.changeType) {
+          case ADDITION:
+            await this.handleAddition()
+            break
+          case DELETION:
+            await this.handleDeletion()
+            break
+          case MODIFICATION:
+            await this.handleModification()
+            break
+        }
       } catch (error) {
-        error.message = `${this.line}: ${error.message}`
-        this.warnings.push(error)
+        if (error instanceof Error) {
+          error.message = `${this.line}: ${error.message}`
+          this.warnings.push(error)
+        }
       }
     }
   }
@@ -92,7 +92,7 @@ export default class StandardHandler {
     await this._copyWithMetaFile(this.line)
   }
 
-  public handleDeletion() {
+  public async handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
   }
 

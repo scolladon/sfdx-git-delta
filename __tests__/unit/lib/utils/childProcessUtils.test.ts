@@ -74,7 +74,7 @@ describe('childProcessUtils', () => {
 
           // Assert
         } catch (error) {
-          expect(error.message).toEqual('error')
+          expect((error as Error).message).toEqual('error')
         }
       })
     })
@@ -92,7 +92,7 @@ describe('childProcessUtils', () => {
 
           // Assert
         } catch (error) {
-          expect(error.message).toEqual('')
+          expect((error as Error).message).toEqual('')
         }
       })
     })
@@ -145,7 +145,7 @@ describe('childProcessUtils', () => {
 
           // Assert
         } catch (error) {
-          expect(error.message).toEqual('error')
+          expect((error as Error).message).toEqual('error')
         }
       })
     })
@@ -163,7 +163,7 @@ describe('childProcessUtils', () => {
 
           // Assert
         } catch (error) {
-          expect(error.message).toEqual('')
+          expect((error as Error).message).toEqual('')
         }
       })
     })

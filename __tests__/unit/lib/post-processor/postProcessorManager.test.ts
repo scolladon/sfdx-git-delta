@@ -88,7 +88,9 @@ describe('postProcessorManager', () => {
       expect.assertions(1)
       const sut = new PostProcessorManager(work)
       sut.use(new TestProcessor(work, metadata) as BaseProcessor)
-      processSpy.mockImplementationOnce(() => Promise.reject('Error'))
+      processSpy.mockImplementationOnce(() =>
+        Promise.reject(new Error('Error'))
+      )
 
       // Act
       await sut.execute()

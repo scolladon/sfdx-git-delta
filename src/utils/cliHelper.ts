@@ -16,7 +16,7 @@ import { Config } from '../types/config'
 
 const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
-const GIT_SHA_PARAMETERS = ['to', 'from']
+const GIT_SHA_PARAMETERS: (keyof Config)[] = ['to', 'from']
 const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 

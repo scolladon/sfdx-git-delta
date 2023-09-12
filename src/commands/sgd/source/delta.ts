@@ -80,23 +80,23 @@ export default class SourceDeltaGenerate extends SfdxCommand {
   public async run(): Promise<Output> {
     const output: Output = {
       error: null,
-      output: this.flags.output,
+      output: this.flags['output'],
       success: true,
       warnings: [],
     }
     try {
       const jobResult = await sgd({
-        to: this.flags.to,
-        from: this.flags.from,
-        output: this.flags.output,
-        source: this.flags.source,
-        ignore: this.flags.ignore,
+        to: this.flags['to'],
+        from: this.flags['from'],
+        output: this.flags['output'],
+        source: this.flags['source'],
+        ignore: this.flags['ignore'],
         ignoreDestructive: this.flags['ignore-destructive'],
         apiVersion: this.flags['api-version'],
-        repo: this.flags.repo,
+        repo: this.flags['repo'],
         ignoreWhitespace: this.flags['ignore-whitespace'],
         generateDelta: this.flags['generate-delta'],
-        include: this.flags.include,
+        include: this.flags['include'],
         includeDestructive: this.flags['include-destructive'],
       } as Config)
       if (jobResult.warnings?.length > 0) {
@@ -105,8 +105,10 @@ export default class SourceDeltaGenerate extends SfdxCommand {
         )
       }
     } catch (err) {
+      if (err instanceof Error) {
+        output.error = err.message
+      }
       output.success = false
-      output.error = err.message
       process.exitCode = 1
     }
     this.ux.log(JSON.stringify(output, null, 2))

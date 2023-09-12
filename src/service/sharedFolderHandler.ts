@@ -8,7 +8,7 @@ import { Manifest, Work } from '../types/work'
 import { MetadataRepository } from '../types/metadata'
 
 export default class SharedFolderHandler extends StandardHandler {
-  protected readonly sharedFolderMetadata
+  protected readonly sharedFolderMetadata: Map<string, string>
 
   constructor(
     line: string,
