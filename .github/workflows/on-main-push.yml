@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [16, 18, 20]
+        node: [18, 20]
         cli: [sfdx-cli, '@salesforce/cli']
     runs-on: ${{ matrix.os }}
     steps:
