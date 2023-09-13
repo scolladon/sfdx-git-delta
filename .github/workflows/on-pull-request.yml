@@ -27,7 +27,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -55,7 +55,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -105,7 +105,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
