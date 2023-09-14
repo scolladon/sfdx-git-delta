@@ -45,7 +45,7 @@
     "lint:dependencies": "depcheck",
     "lint:fix": "eslint --fix src/",
     "test": "yarn test:unit && yarn test:nut",
-    "test:build:local": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
+    "test:build": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
     "test:mutation": "stryker run",
     "test:nut": "nyc mocha **/*.nut.ts",
     "test:perf": "node __tests__/perf/bench.mjs | tee perf-result.txt",
