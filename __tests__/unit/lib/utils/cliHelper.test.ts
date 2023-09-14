@@ -505,12 +505,14 @@ describe(`test if the application`, () => {
 
     describe('when apiVersion parameter is not set', () => {
       describe('when sfdx-project.json file exist', () => {
+        beforeEach(() => {
+          mockedFileExists.mockImplementation(() => Promise.resolve(true))
+        })
         describe('when "sourceApiVersion" attribute is set with supported value', () => {
           it.each([46, 52, 53, 46.0, 52.0, 55.0])(
             'config.apiVersion (%s) equals the "sourceApiVersion" attribute',
             async version => {
               // Arrange
-              mockedFileExists.mockImplementation(() => Promise.resolve(true))
               mockedReadFile.mockImplementation(() =>
                 Promise.resolve(`{"sourceApiVersion":"${version}"}`)
               )
