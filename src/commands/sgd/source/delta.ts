@@ -1,13 +1,14 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
-import { AnyJson } from '@salesforce/ts-types'
-import * as sgd from '../../../main'
-const {
+import { sgd } from '../../../main'
+import {
   TO_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,
   SOURCE_DEFAULT_VALUE,
   OUTPUT_DEFAULT_VALUE,
-} = require('../../../utils/cliHelper')
+} from '../../../utils/cliHelper'
+import { Config } from '../../../types/config'
+import { Output } from '../../../types/output'
 
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname)
@@ -18,9 +19,9 @@ const COMMAND_NAME = 'delta'
 const messages = Messages.loadMessages('sfdx-git-delta', COMMAND_NAME)
 
 export default class SourceDeltaGenerate extends SfdxCommand {
-  public static description = messages.getMessage('command', [])
+  public static override description = messages.getMessage('command', [])
 
-  protected static flagsConfig = {
+  protected static override flagsConfig = {
     to: flags.string({
       char: 't',
       description: messages.getMessage('toFlag'),
@@ -76,32 +77,38 @@ export default class SourceDeltaGenerate extends SfdxCommand {
     }),
   }
 
-  public async run(): Promise<AnyJson> {
-    const output = {
+  public async run(): Promise<Output> {
+    const output: Output = {
       error: null,
-      output: this.flags.output,
+      output: this.flags['output'],
       success: true,
       warnings: [],
     }
     try {
       const jobResult = await sgd({
-        to: this.flags.to,
-        from: this.flags.from,
-        output: this.flags.output,
-        source: this.flags.source,
-        ignore: this.flags.ignore,
+        to: this.flags['to'],
+        from: this.flags['from'],
+        output: this.flags['output'],
+        source: this.flags['source'],
+        ignore: this.flags['ignore'],
         ignoreDestructive: this.flags['ignore-destructive'],
         apiVersion: this.flags['api-version'],
-        repo: this.flags.repo,
+        repo: this.flags['repo'],
         ignoreWhitespace: this.flags['ignore-whitespace'],
         generateDelta: this.flags['generate-delta'],
-        include: this.flags.include,
+        include: this.flags['include'],
         includeDestructive: this.flags['include-destructive'],
-      })
-      output.warnings = jobResult?.warnings?.map(warning => warning.message)
+      } as Config)
+      if (jobResult.warnings?.length > 0) {
+        output.warnings = jobResult.warnings.map(
+          (warning: Error) => warning.message
+        )
+      }
     } catch (err) {
+      if (err instanceof Error) {
+        output.error = err.message
+      }
       output.success = false
-      output.error = err.message
       process.exitCode = 1
     }
     this.ux.log(JSON.stringify(output, null, 2))

@@ -20,3 +20,4 @@ jobs:
             $ sfdx plugins:install sfdx-git-delta@latest-rc
             $ sfdx plugins:install sfdx-git-delta@{release_tag}
             ```
+            Happy incremental deployment!
