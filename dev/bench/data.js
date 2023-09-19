@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1694005464640,
+  "lastUpdate": 1695136539753,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -587,6 +587,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.17,
             "range": "±8.36%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "443034b31bae3b07bf450e53eff506989e91d620",
+          "message": "refactor: migrate to typescript (#691)",
+          "timestamp": "2023-09-19T17:06:08+02:00",
+          "tree_id": "71909f4d184c76ddd7efd528ab9729c00b912142",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/443034b31bae3b07bf450e53eff506989e91d620"
+        },
+        "date": 1695136538656,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.14,
+            "range": "±2.40%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
