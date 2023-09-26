@@ -23,9 +23,15 @@ const buildAPIMap = async () => {
       .forEach((file: string) => {
         const version: number = parseInt(file.match(/\d+/)?.[0] as string)
         _apiMap.set(version, file)
-        _latestVersion = Math.max(_latestVersion, version)
       })
+    setLatestSupportedVersion()
   }
+}
+
+const setLatestSupportedVersion = () => {
+  const versions: number[] = Array.from(_apiMap.keys())
+  versions.sort((a, b) => a - b)
+  _latestVersion = versions[versions.length - 2]
 }
 
 export const getLatestSupportedVersion = async () => {
@@ -41,23 +47,20 @@ export const isVersionSupported = async (version: number) => {
 export const getDefinition = async (
   apiVersion: number
 ): Promise<MetadataRepository> => {
-  if (!describeMetadata.has(apiVersion)) {
-    await buildAPIMap()
-    const apiFile = (
-      _apiMap.has(apiVersion)
-        ? _apiMap.get(apiVersion)
-        : _apiMap.get(_latestVersion)
-    ) as string
+  await buildAPIMap()
+  const version: number = _apiMap.has(apiVersion) ? apiVersion : _latestVersion
+  if (!describeMetadata.has(version)) {
+    const apiFile = _apiMap.get(version)
     const fileContent: string = await readFile(
-      resolve(__dirname, apiFile),
+      resolve(__dirname, apiFile!),
       'utf-8'
     )
-    describeMetadata.set(apiVersion, JSON.parse(fileContent))
+    describeMetadata.set(version, JSON.parse(fileContent))
   }
 
   const metadataRepository: MetadataRepository = new Map<string, Metadata>()
   describeMetadata
-    .get(apiVersion)
+    .get(version)
     ?.reduce((metadata: MetadataRepository, describe: Metadata) => {
       metadata.set(describe.directoryName, describe)
       return metadata

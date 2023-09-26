@@ -11,10 +11,14 @@ import { Metadata, MetadataRepository } from '../../../../src/types/metadata'
 
 describe(`test if metadata`, () => {
   it('provide latest when apiVersion does not exist', async () => {
-    let metadata = await getDefinition(0)
+    const metadata = await getDefinition(0)
+    const latestVersionSupported = await getLatestSupportedVersion()
+    const latestMetadataDef = await getDefinition(latestVersionSupported)
+
     expect(metadata).toBeDefined()
-    expect(metadata.get('classes')).toBeDefined()
-    expect(metadata.get('do not exist')).toBeFalsy()
+    expect(metadata).toEqual(latestMetadataDef)
+    expect(latestMetadataDef.get('classes')).toBeDefined()
+    expect(latestMetadataDef.get('do not exist')).toBeUndefined()
   })
 
   it('has classes', async () => {
@@ -30,9 +34,23 @@ describe(`test if metadata`, () => {
   })
 
   it('getLatestSupportedVersion', async () => {
-    let latestVersion = await getLatestSupportedVersion()
+    const latestVersion = await getLatestSupportedVersion()
     expect(latestVersion).toBeDefined()
     expect(latestVersion).toEqual(expect.any(Number))
+  })
+
+  it('latest supported version is the second last version', async () => {
+    // Arrange
+    let i = 45
+
+    // Act(s)
+    while (await isVersionSupported(++i));
+    // Here latest version should not be supported because it is equal to last version + 1
+
+    // Assert
+    const defaultLatestSupportedVersion = await getLatestSupportedVersion()
+    // defaultLatestSupportedVersion should be equal to i + 1 (latest) + 1 (iteration)
+    expect(i).toBe(defaultLatestSupportedVersion + 2)
   })
 
   it('isVersionSupported', async () => {
@@ -91,7 +109,7 @@ describe(`test if metadata`, () => {
     ])
 
     // Act
-    let inFileAttributes = getInFileAttributes(metadata)
+    const inFileAttributes = getInFileAttributes(metadata)
 
     // Assert
     expect(inFileAttributes.has('waveTemplates')).toBe(false)
@@ -109,7 +127,7 @@ describe(`test if metadata`, () => {
     })
 
     // Act
-    let otherInFileAttributes = getInFileAttributes(metadata)
+    const otherInFileAttributes = getInFileAttributes(metadata)
 
     // Assert
     expect(otherInFileAttributes).toBe(inFileAttributes)
