@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1695136545016,
+  "lastUpdate": 1695743280450,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -649,6 +649,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.14,
             "range": "±2.40%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "91966d5f213c4eac61dde09e523c3974170d8251",
+          "message": "feat: add v59 metadata definition (#698)",
+          "timestamp": "2023-09-26T17:39:26+02:00",
+          "tree_id": "2d9cf62747d22b206527f43321908e520349d1d3",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/91966d5f213c4eac61dde09e523c3974170d8251"
+        },
+        "date": 1695743279951,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.18,
+            "range": "±0.41%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
