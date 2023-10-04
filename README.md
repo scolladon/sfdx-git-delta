@@ -496,6 +496,8 @@ Then use the JavaScript module
 ```js
 // sample/app.js
 const sgd = require('sfdx-git-delta')
+// or
+// import sgd from 'sfdx-git-delta'
 
 const work = await sgd({
   to: '', // commit sha to where the diff is done. [default : "HEAD"]
