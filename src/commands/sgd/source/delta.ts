@@ -1,6 +1,6 @@
 import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
-import { sgd } from '../../../main'
+import sgd from '../../../main'
 import {
   TO_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,
