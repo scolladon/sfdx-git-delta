@@ -8,7 +8,7 @@ import { Config } from './types/config'
 import { Work } from './types/work'
 import { MetadataRepository } from './types/metadata'
 
-export const sgd = async (config: Config): Promise<Work> => {
+const sgd = async (config: Config): Promise<Work> => {
   const work: Work = {
     config,
     diffs: { package: new Map(), destructiveChanges: new Map() },
@@ -26,3 +26,5 @@ export const sgd = async (config: Config): Promise<Work> => {
   await getPostProcessors(work, metadata).execute()
   return work
 }
+
+export default sgd
