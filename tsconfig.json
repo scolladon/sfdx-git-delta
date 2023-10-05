@@ -1,5 +1,5 @@
 {
-  "extends": "./node_modules/@salesforce/dev-config/tsconfig",
+  "extends": "./node_modules/@salesforce/dev-config/tsconfig.json",
   "compilerOptions": {
     "declaration": true,
     "outDir": "./lib",
@@ -28,6 +28,6 @@
   },
   "include": [
     "./src/**/*",
-    "./src/**/*.json"
+    "./src/**/*.json",
   ]
 }

@@ -18,7 +18,7 @@
     "/messages",
     "/oclif.manifest.json"
   ],
-  "main": "lib/main.js",
+  "main": "lib/index.cjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/scolladon/sfdx-git-delta.git"
