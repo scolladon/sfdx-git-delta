@@ -27,4 +27,4 @@ const sgd = async (config: Config): Promise<Work> => {
   return work
 }
 
-export default sgd
+export = sgd
