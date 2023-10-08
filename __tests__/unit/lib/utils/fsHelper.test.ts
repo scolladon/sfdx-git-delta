@@ -21,11 +21,13 @@ import {
   treatPathSep,
 } from '../../../../src/utils/childProcessUtils'
 import { Stats, outputFile, stat } from 'fs-extra'
+import { copyLFS, isLFS } from '../../../../src/utils/gitLfsHelper'
 import { EOL } from 'os'
 import { Work } from '../../../../src/types/work'
 import { Config } from '../../../../src/types/config'
 
 jest.mock('fs-extra')
+jest.mock('../../../../src/utils/gitLfsHelper')
 jest.mock('../../../../src/utils/childProcessUtils', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual(
@@ -41,6 +43,7 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
 const mockedGetStreamContent = jest.mocked(getSpawnContent)
 const mockedTreatPathSep = jest.mocked(treatPathSep)
 const mockedStat = jest.mocked(stat)
+const mockedIsLFS = jest.mocked(isLFS)
 
 let work: Work
 beforeEach(() => {
@@ -192,23 +195,53 @@ describe('copyFile', () => {
       })
     })
     describe('when content is a file', () => {
-      beforeEach(async () => {
-        // Arrange
-        mockedGetStreamContent.mockResolvedValue(Buffer.from('content'))
-        mockedTreatPathSep.mockReturnValueOnce('source/copyFile')
-      })
-      it('should copy the file', async () => {
-        // Act
-        await copyFiles(work.config, 'source/copyfile')
+      mockedIsLFS.mockReturnValue(false)
+      describe('when file is LSF', () => {
+        const content = `version https://git-lfs.github.com/spec/v1
+        oid sha256:0a4ca7e5eca75024197fff96ef7e5de1b2ca35d6c058ce76e7e0d84bee1c8b14
+        size 72`
+        beforeEach(async () => {
+          // Arrange
+          const bufferContent = Buffer.from(content)
+          mockedGetStreamContent.mockResolvedValue(bufferContent)
+          mockedTreatPathSep.mockReturnValueOnce('source/copyLFSFile')
+          mockedIsLFS.mockReturnValue(true)
+        })
+        it('should copy the file', async () => {
+          // Act
+          await copyFiles(work.config, 'source/copyLFSfile')
 
-        // Assert
-        expect(getSpawnContent).toBeCalled()
-        expect(outputFile).toBeCalledTimes(1)
-        expect(outputFile).toHaveBeenCalledWith(
-          'output/source/copyFile',
-          Buffer.from('content')
-        )
-        expect(treatPathSep).toBeCalledTimes(1)
+          // Assert
+          expect(getSpawnContent).toBeCalled()
+          expect(treatPathSep).toBeCalledTimes(1)
+          expect(copyLFS).toBeCalledTimes(1)
+          expect(copyLFS).toHaveBeenCalledWith(
+            work.config,
+            'output/source/copyLFSFile',
+            content
+          )
+        })
+      })
+      describe('when file is not LSF', () => {
+        beforeEach(async () => {
+          // Arrange
+          mockedGetStreamContent.mockResolvedValue(Buffer.from('content'))
+          mockedTreatPathSep.mockReturnValueOnce('source/copyFile')
+          mockedIsLFS.mockReturnValue(false)
+        })
+        it('should copy the file', async () => {
+          // Act
+          await copyFiles(work.config, 'source/copyfile')
+
+          // Assert
+          expect(getSpawnContent).toBeCalled()
+          expect(treatPathSep).toBeCalledTimes(1)
+          expect(outputFile).toBeCalledTimes(1)
+          expect(outputFile).toHaveBeenCalledWith(
+            'output/source/copyFile',
+            Buffer.from('content')
+          )
+        })
       })
     })
   })
