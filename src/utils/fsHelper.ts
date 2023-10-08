@@ -9,6 +9,7 @@ import {
   UTF8_ENCODING,
 } from './gitConstants'
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
+import { isLFS, copyLFS } from './gitLfsHelper'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
@@ -37,12 +38,18 @@ export const copyFiles = async (config: Config, src: string) => {
       }
     } else {
       const dst = join(config.output, treatPathSep(src))
-      // Use Buffer to output the file content
-      // Let fs implementation detect the encoding ("utf8" or "binary")
-      await outputFile(dst, bufferData)
+      const content = bufferData.toString(UTF8_ENCODING)
+      if (isLFS(content)) {
+        await copyLFS(config, dst, content)
+      } else {
+        // Use Buffer to output the file content
+        // Let fs implementation detect the encoding ("utf8" or "binary")
+        await outputFile(dst, bufferData)
+      }
     }
-  } catch {
+  } catch (e) {
     /* empty */
+    console.log(e)
   }
 }
 
