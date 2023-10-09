@@ -20,8 +20,11 @@ import {
   getSpawnContent,
   treatPathSep,
 } from '../../../../src/utils/childProcessUtils'
-import { Stats, outputFile, stat } from 'fs-extra'
-import { copyLFS, isLFS } from '../../../../src/utils/gitLfsHelper'
+import { readFile as fsReadFile, Stats, outputFile, stat } from 'fs-extra'
+import {
+  isLFS,
+  getLFSObjectContentPath,
+} from '../../../../src/utils/gitLfsHelper'
 import { EOL } from 'os'
 import { Work } from '../../../../src/types/work'
 import { Config } from '../../../../src/types/config'
@@ -44,6 +47,7 @@ const mockedGetStreamContent = jest.mocked(getSpawnContent)
 const mockedTreatPathSep = jest.mocked(treatPathSep)
 const mockedStat = jest.mocked(stat)
 const mockedIsLFS = jest.mocked(isLFS)
+const mockedGetLFSObjectContentPath = jest.mocked(getLFSObjectContentPath)
 
 let work: Work
 beforeEach(() => {
@@ -102,6 +106,30 @@ describe('readPathFromGit', () => {
 
       // Assert
       expect(content).toBe('')
+    })
+  })
+  describe('when file is LSF', () => {
+    const bufferContent =
+      Buffer.from(`version https://git-lfs.github.com/spec/v1
+    oid sha256:0a4ca7e5eca75024197fff96ef7e5de1b2ca35d6c058ce76e7e0d84bee1c8b14
+    size 72`)
+    beforeEach(async () => {
+      // Arrange
+      mockedGetStreamContent.mockResolvedValue(bufferContent)
+      mockedIsLFS.mockReturnValueOnce(true)
+      mockedGetLFSObjectContentPath.mockImplementationOnce(
+        () => 'lfs/objects/oid'
+      )
+    })
+    it('should copy the file', async () => {
+      // Act
+      await readPathFromGit('path/lfs/file', work.config)
+
+      // Assert
+      expect(getSpawnContent).toBeCalled()
+      expect(getLFSObjectContentPath).toBeCalledTimes(1)
+      expect(getLFSObjectContentPath).toHaveBeenCalledWith(bufferContent)
+      expect(fsReadFile).toBeCalledWith('lfs/objects/oid')
     })
   })
 })
@@ -195,53 +223,24 @@ describe('copyFile', () => {
       })
     })
     describe('when content is a file', () => {
-      mockedIsLFS.mockReturnValue(false)
-      describe('when file is LSF', () => {
-        const content = `version https://git-lfs.github.com/spec/v1
-        oid sha256:0a4ca7e5eca75024197fff96ef7e5de1b2ca35d6c058ce76e7e0d84bee1c8b14
-        size 72`
-        beforeEach(async () => {
-          // Arrange
-          const bufferContent = Buffer.from(content)
-          mockedGetStreamContent.mockResolvedValue(bufferContent)
-          mockedTreatPathSep.mockReturnValueOnce('source/copyLFSFile')
-          mockedIsLFS.mockReturnValue(true)
-        })
-        it('should copy the file', async () => {
-          // Act
-          await copyFiles(work.config, 'source/copyLFSfile')
-
-          // Assert
-          expect(getSpawnContent).toBeCalled()
-          expect(treatPathSep).toBeCalledTimes(1)
-          expect(copyLFS).toBeCalledTimes(1)
-          expect(copyLFS).toHaveBeenCalledWith(
-            work.config,
-            'output/source/copyLFSFile',
-            content
-          )
-        })
+      beforeEach(async () => {
+        // Arrange
+        mockedGetStreamContent.mockResolvedValue(Buffer.from('content'))
+        mockedTreatPathSep.mockReturnValueOnce('source/copyFile')
+        mockedIsLFS.mockReturnValue(false)
       })
-      describe('when file is not LSF', () => {
-        beforeEach(async () => {
-          // Arrange
-          mockedGetStreamContent.mockResolvedValue(Buffer.from('content'))
-          mockedTreatPathSep.mockReturnValueOnce('source/copyFile')
-          mockedIsLFS.mockReturnValue(false)
-        })
-        it('should copy the file', async () => {
-          // Act
-          await copyFiles(work.config, 'source/copyfile')
+      it('should copy the file', async () => {
+        // Act
+        await copyFiles(work.config, 'source/copyfile')
 
-          // Assert
-          expect(getSpawnContent).toBeCalled()
-          expect(treatPathSep).toBeCalledTimes(1)
-          expect(outputFile).toBeCalledTimes(1)
-          expect(outputFile).toHaveBeenCalledWith(
-            'output/source/copyFile',
-            Buffer.from('content')
-          )
-        })
+        // Assert
+        expect(getSpawnContent).toBeCalled()
+        expect(treatPathSep).toBeCalledTimes(1)
+        expect(outputFile).toBeCalledTimes(1)
+        expect(outputFile).toHaveBeenCalledWith(
+          'output/source/copyFile',
+          Buffer.from('content')
+        )
       })
     })
   })

@@ -9,7 +9,7 @@ import {
   UTF8_ENCODING,
 } from './gitConstants'
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
-import { isLFS, copyLFS } from './gitLfsHelper'
+import { isLFS, getLFSObjectContentPath } from './gitLfsHelper'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
@@ -38,14 +38,9 @@ export const copyFiles = async (config: Config, src: string) => {
       }
     } else {
       const dst = join(config.output, treatPathSep(src))
-      const content = bufferData.toString(UTF8_ENCODING)
-      if (isLFS(content)) {
-        await copyLFS(config, dst, content)
-      } else {
-        // Use Buffer to output the file content
-        // Let fs implementation detect the encoding ("utf8" or "binary")
-        await outputFile(dst, bufferData)
-      }
+      // Use Buffer to output the file content
+      // Let fs implementation detect the encoding ("utf8" or "binary")
+      await outputFile(dst, bufferData)
     }
   } catch (e) {
     /* empty */
@@ -58,13 +53,17 @@ const readPathFromGitAsBuffer = async (
   { repo, to }: { repo: string; to: string }
 ) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
-  const bufferData: Buffer = await getSpawnContent(
+  let bufferData: Buffer = await getSpawnContent(
     GIT_COMMAND,
     [...showCmd, `${to}:${normalizedPath}`],
     {
       cwd: repo,
     }
   )
+  if (isLFS(bufferData)) {
+    const lsfPath = getLFSObjectContentPath(bufferData)
+    bufferData = await fsReadFile(join(repo, lsfPath))
+  }
 
   return bufferData
 }
