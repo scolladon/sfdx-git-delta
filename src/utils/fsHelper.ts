@@ -3,7 +3,6 @@ import { readFile as fsReadFile } from 'fs-extra'
 import { isAbsolute, join, relative } from 'path'
 import { outputFile, stat } from 'fs-extra'
 import {
-  GIT_COMMAND,
   GIT_FOLDER,
   GIT_PATH_SEP,
   UTF8_ENCODING,
@@ -13,7 +12,6 @@ import { Config } from '../types/config'
 
 const FOLDER = 'tree'
 
-const showCmd = ['--no-pager', 'show']
 export const gitPathSeparatorNormalizer = (path: string) =>
   path.replace(/\\+/g, GIT_PATH_SEP)
 const copiedFiles = new Set()
@@ -46,14 +44,12 @@ export const copyFiles = async (config: Config, src: string) => {
   }
 }
 
-const readPathFromGitAsBuffer = async (
-  path: string,
-  { repo, to }: { repo: string; to: string }
-) => {
+const readPathFromGitAsBuffer = async (path: string, { repo, to }: { repo: string; to: string }) => {
+  to = to
   const normalizedPath = gitPathSeparatorNormalizer(path)
   const bufferData: Buffer = await getSpawnContent(
-    GIT_COMMAND,
-    [...showCmd, `${to}:${normalizedPath}`],
+    "cat",
+    [`${normalizedPath}`],
     {
       cwd: repo,
     }
