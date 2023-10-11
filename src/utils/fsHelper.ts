@@ -42,9 +42,8 @@ export const copyFiles = async (config: Config, src: string) => {
       // Let fs implementation detect the encoding ("utf8" or "binary")
       await outputFile(dst, bufferData)
     }
-  } catch (e) {
+  } catch {
     /* empty */
-    console.log(e)
   }
 }
 
