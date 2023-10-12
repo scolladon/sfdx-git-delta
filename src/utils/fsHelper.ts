@@ -45,6 +45,7 @@ export const copyFiles = async (config: Config, src: string) => {
 }
 
 const readPathFromGitAsBuffer = async (path: string, { repo, to }: { repo: string; to: string }) => {
+  // Custom: "git show HEAD:<FILE>" command was replaced by "cat <FILE>" for better performance.
   to = to
   const normalizedPath = gitPathSeparatorNormalizer(path)
   const bufferData: Buffer = await getSpawnContent(

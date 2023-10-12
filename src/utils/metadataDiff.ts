@@ -137,9 +137,11 @@ const generatePartialJSON =
       const storeHasMemberForType = storeHasMember(subType)
       const key = selectKey(attributes)(subType)
       const rootMetadata = getRootMetadata(acc)
-      rootMetadata[subType] = meta.filter(elem =>
-        storeHasMemberForType(key(elem))
-      )
+      // Custom: Logic has been disabled because a modified CustomLabel file wouldn't be copied to the output dir due to 
+      // becoming an empty file.
+      // rootMetadata[subType] = meta.filter(elem =>
+      //   storeHasMemberForType(key(elem))
+      // )
       return acc
     }, jsonContent)
   }
