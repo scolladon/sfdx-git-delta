@@ -31,9 +31,12 @@ const hasMember =
   (store: Manifest) =>
   (attributes: Map<string, SharedFileMetadata>) =>
   (subType: string) =>
-  (member: string) =>
-    attributes.has(subType) &&
-    store.get(attributes.get(subType)!.xmlName)?.has(member)
+  (member: string) => {
+    return (
+      attributes.has(subType) &&
+      store.get(attributes.get(subType)!.xmlName)?.has(member)
+    )
+  }
 
 const selectKey =
   (attributes: Map<string, SharedFileMetadata>) =>
@@ -137,11 +140,9 @@ const generatePartialJSON =
       const storeHasMemberForType = storeHasMember(subType)
       const key = selectKey(attributes)(subType)
       const rootMetadata = getRootMetadata(acc)
-      // Custom: Logic has been disabled because a modified CustomLabel file wouldn't be copied to the output dir due to 
-      // becoming an empty file.
-      // rootMetadata[subType] = meta.filter(elem =>
-      //   storeHasMemberForType(key(elem))
-      // )
+      rootMetadata[subType] = meta.filter(elem =>
+        storeHasMemberForType(key(elem))
+      )
       return acc
     }, jsonContent)
   }

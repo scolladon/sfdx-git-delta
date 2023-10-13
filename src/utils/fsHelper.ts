@@ -48,13 +48,19 @@ const readPathFromGitAsBuffer = async (path: string, { repo, to }: { repo: strin
   // Custom: "git show HEAD:<FILE>" command was replaced by "cat <FILE>" for better performance.
   to = to
   const normalizedPath = gitPathSeparatorNormalizer(path)
-  const bufferData: Buffer = await getSpawnContent(
-    "cat",
-    [`${normalizedPath}`],
-    {
-      cwd: repo,
-    }
-  )
+
+  let command = 'git'
+  let args = ['--no-pager', 'show', `${to}:${normalizedPath}`]
+  let options = {
+    cwd: repo,
+  }
+
+  if (to == 'HEAD') {
+    command = 'cat'
+    args = [`${normalizedPath}`]
+  }
+
+  const bufferData: Buffer = await getSpawnContent(command, args, options)
 
   return bufferData
 }
