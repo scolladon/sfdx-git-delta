@@ -10,6 +10,8 @@ import {
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
 import { Config } from '../types/config'
 
+import { lstatSync } from 'fs'
+
 const FOLDER = 'tree'
 
 export const gitPathSeparatorNormalizer = (path: string) =>
@@ -44,6 +46,15 @@ export const copyFiles = async (config: Config, src: string) => {
   }
 }
 
+const isDirectory = async (path: string) => {
+  try {
+    return lstatSync(path).isDirectory()
+  } catch {
+    // Path does not exist. Defaulting to false
+    return false;
+  }
+}
+
 const readPathFromGitAsBuffer = async (path: string, { repo, to }: { repo: string; to: string }) => {
   // Custom: "git show HEAD:<FILE>" command was replaced by "cat <FILE>" for better performance.
   to = to
@@ -51,11 +62,11 @@ const readPathFromGitAsBuffer = async (path: string, { repo, to }: { repo: strin
 
   let command = 'git'
   let args = ['--no-pager', 'show', `${to}:${normalizedPath}`]
-  let options = {
+  const options = {
     cwd: repo,
   }
 
-  if (to == 'HEAD') {
+  if (to == 'HEAD' && !isDirectory(path)) {
     command = 'cat'
     args = [`${normalizedPath}`]
   }
@@ -70,7 +81,7 @@ export const readPathFromGit = async (path: string, config: Config) => {
   try {
     const bufferData = await readPathFromGitAsBuffer(path, config)
     utf8Data = bufferData.toString(UTF8_ENCODING)
-  } catch {
+  } catch (e) {
     /* empty */
   }
   return utf8Data
