@@ -66,8 +66,13 @@ const readPathFromGitAsBuffer = async (path: string, { repo, to }: { repo: strin
     cwd: repo,
   }
 
-  if (to == 'HEAD' && !isDirectory(path)) {
+  if (to == 'HEAD') {
     command = 'cat'
+    args = [`${normalizedPath}`]
+  }
+
+  if (await isDirectory(path)) {
+    command = 'ls'
     args = [`${normalizedPath}`]
   }
 
