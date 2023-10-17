@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1696838840570,
+  "lastUpdate": 1697547537404,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -835,6 +835,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.18,
             "range": "±0.80%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b27abc8276cc7c91dbe204dae0fe7aee543f3830",
+          "message": "feat: support `git-lfs` (#707)\n\n\r\n\r\nCo-authored-by: Russell Laboe <russell-laboe@outlook.com>",
+          "timestamp": "2023-10-17T14:49:27+02:00",
+          "tree_id": "da1350c38870ae4c0f0ad9ff16d359187b14bf0c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/b27abc8276cc7c91dbe204dae0fe7aee543f3830"
+        },
+        "date": 1697547536602,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.14,
+            "range": "±4.13%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
