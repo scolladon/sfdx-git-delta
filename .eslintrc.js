@@ -105,6 +105,7 @@ module.exports = {
     'no-compare-neg-zero': 'error',
     'no-cond-assign': 'error',
     'no-confusing-arrow': 'off',
+    'no-console': 'error',
     'no-const-assign': 'error',
     'no-constant-condition': 'error',
     'no-control-regex': 'error',

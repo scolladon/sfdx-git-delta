@@ -9,6 +9,7 @@ import {
   UTF8_ENCODING,
 } from './gitConstants'
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
+import { isLFS, getLFSObjectContentPath } from './gitLfsHelper'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
@@ -51,13 +52,17 @@ const readPathFromGitAsBuffer = async (
   { repo, to }: { repo: string; to: string }
 ) => {
   const normalizedPath = gitPathSeparatorNormalizer(path)
-  const bufferData: Buffer = await getSpawnContent(
+  let bufferData: Buffer = await getSpawnContent(
     GIT_COMMAND,
     [...showCmd, `${to}:${normalizedPath}`],
     {
       cwd: repo,
     }
   )
+  if (isLFS(bufferData)) {
+    const lsfPath = getLFSObjectContentPath(bufferData)
+    bufferData = await fsReadFile(join(repo, lsfPath))
+  }
 
   return bufferData
 }
