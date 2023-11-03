@@ -244,6 +244,10 @@ It is the user responsibility to ensure LFS content is present when the plugin i
 
 Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD, etc.).
 
+`--from` parameter is the base commit (the first, the oldest, the closest)
+`--to` parameter is the target commit (the last, the youngest, the farthest)
+If you want to deploy incrementally the content of a PR, `--from` parameter will be the base branch the PR branch wants to merge to, and `--to` parameter will be the PR branch.
+
 Here are examples of how to compare the content of different branches:
 
 - **Comparing between commits in different branches**
