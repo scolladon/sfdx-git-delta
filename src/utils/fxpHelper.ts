@@ -3,7 +3,7 @@
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
 import { XML_HEADER_TAG_END } from '../constant/metadataConstants'
 import { Config } from '../types/config'
-import GitAdapter from '../adapter/GitAdapter'
+import { readPathFromGit } from './fsHelper'
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',
@@ -38,8 +38,7 @@ export const xml2Json = (xmlContent: string) => {
 }
 
 export const parseXmlFileToJson = async (line: string, config: Config) => {
-  const gitAdapter = GitAdapter.getInstance(config)
-  const xmlContent = await gitAdapter.getStringContent(line)
+  const xmlContent = await readPathFromGit(line, config)
   return xml2Json(xmlContent)
 }
 
