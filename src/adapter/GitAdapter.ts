@@ -18,6 +18,15 @@ import { join } from 'path'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
+const BLOB_TYPE = 'blob'
+const TREE_TYPE = 'tree'
+
+// Walk Optimisation:
+// use custom iterate method to throttle and queue recursion using a Pool (using async module https://github.com/caolan/async)
+// use global cache to avoid re-reading the same tree
+// return tree instead of getting blob content
+
+// TODO test with very diff and filelist with very big repository
 
 export const gitPathSeparatorNormalizer = (path: string) =>
   path.replace(/\\+/g, GIT_PATH_SEP)
@@ -77,9 +86,9 @@ export default class GitAdapter {
     })
   }
 
-  public async parseRev(rev: string) {
-    // it should throw when does not exist or is empty
-    const parsedRev = await this.simpleGit.revparse([rev])
+  public async parseRev(ref: string) {
+    // TODO check it should throw when does not exist or is empty
+    const parsedRev = await git.resolveRef({ fs, dir: this.config.repo, ref })
     return parsedRev
   }
 
@@ -91,7 +100,7 @@ export default class GitAdapter {
         oid: this.config.to,
         filepath: path,
       })
-      return ['tree', 'blob'].includes(type)
+      return [TREE_TYPE, BLOB_TYPE].includes(type)
     } catch {
       return false
     }
@@ -116,7 +125,7 @@ export default class GitAdapter {
           return
         }
         const treeType = await tree!.type()
-        if (treeType !== 'blob') {
+        if (treeType !== BLOB_TYPE) {
           return
         }
         return gitPathSeparatorNormalizer(filepath)
@@ -131,7 +140,9 @@ export default class GitAdapter {
       oid: this.config.to,
       filepath: path,
     })
-    if (object.type === 'tree') {
+    // Return object exposing async getContent
+    // Iterate over and output file using the getContent API when needed
+    if (object.type === TREE_TYPE) {
       return await git.walk({
         fs,
         dir: this.config.repo,
@@ -141,7 +152,7 @@ export default class GitAdapter {
             return
           }
           const treeType = await tree!.type()
-          if (treeType !== 'blob') {
+          if (treeType !== BLOB_TYPE) {
             return
           }
 
@@ -153,7 +164,7 @@ export default class GitAdapter {
           }
         },
       })
-    } else if (object.type === 'blob') {
+    } else if (object.type === BLOB_TYPE) {
       const content = await this.getBufferFromBlob(object.object as Uint8Array)
       return [
         {
@@ -206,8 +217,7 @@ const getFileStateChanges = async (
   dir: string,
   ignoreWhiteChar: boolean
 ) => {
-  const stripWhiteChar = (content: string) =>
-    Buffer.from(content).toString().replace(/\s+/g, '')
+  const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
   return git.walk({
     fs,
     dir,
@@ -219,8 +229,8 @@ const getFileStateChanges = async (
 
       for (const tree of trees.filter(Boolean)) {
         const type = await tree!.type()
-        //if (![undefined, 'blob'].includes(type)) {
-        if (type !== 'blob') {
+        //if (![undefined, BLOB_TYPE].includes(type)) {
+        if (type !== BLOB_TYPE) {
           return
         }
       }
@@ -236,20 +246,13 @@ const getFileStateChanges = async (
         type = DELETION
       } else {
         if (ignoreWhiteChar) {
-          const [fromContent, toContent] = (
-            await Promise.all(trees.map(tree => tree!.content()))
-          ).map(content => Buffer.from(content as Uint8Array).toString())
-          const fromContentWithoutWhiteChar = stripWhiteChar(fromContent)
-          const toContentWithoutWhiteChar = stripWhiteChar(toContent)
-          if (
-            fromContentWithoutWhiteChar.localeCompare(
-              toContentWithoutWhiteChar,
-              undefined,
-              {
-                sensitivity: 'accent',
-              }
-            ) === 0
-          ) {
+          const [fromContent, toContent] = await Promise.all(
+            trees.map(async tree => {
+              const content = (await tree!.content()) as Uint8Array
+              return stripWhiteChar(Buffer.from(content).toString())
+            })
+          )
+          if (fromContent === toContent) {
             return
           }
         }
