@@ -119,6 +119,13 @@
     "xmlName": "ActionPlanTemplate"
   },
   {
+    "directoryName": "documentTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "documentType",
+    "xmlName": "DocumentType"
+  },
+  {
     "directoryName": "recommendationStrategies",
     "inFolder": false,
     "metaFile": false,
