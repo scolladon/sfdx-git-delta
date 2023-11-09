@@ -11,7 +11,8 @@ import {
   cleanUpPackageMember,
   fillPackageWithParameter,
 } from '../utils/packageHelper'
-import { copyFiles, DOT } from '../utils/fsHelper'
+import { copyFiles } from '../utils/fsHelper'
+import { DOT } from '../utils/fsUtils'
 import { Manifest, Manifests, Work } from '../types/work'
 import { Metadata } from '../types/metadata'
 import { Config } from '../types/config'

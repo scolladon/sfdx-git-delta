@@ -8,8 +8,8 @@ import {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
-import { isSubDir, readFile } from '../utils/fsUtils'
-import { writeFile, readDir } from '../utils/fsHelper'
+import { writeFile, readDir, readFile, treatPathSep } from '../utils/fsHelper'
+import { isSubDir } from '../utils/fsUtils'
 import { pathExists } from 'fs-extra'
 import { parse, join } from 'path'
 import { buildIgnoreHelper } from '../utils/ignoreHelper'
@@ -20,7 +20,6 @@ import {
   convertJsonToXml,
 } from '../utils/fxpHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
-import { treatPathSep } from '../utils/fsHelper'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 

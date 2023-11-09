@@ -7,8 +7,8 @@ import {
   isVersionSupported,
 } from '../metadata/metadataManager'
 import { format } from 'util'
-import { sanitizePath } from './fsHelper'
-import { readFile, dirExists, fileExists } from './fsUtils'
+import { readFile, sanitizePath } from './fsHelper'
+import { dirExists, fileExists } from './fsUtils'
 import { join } from 'path'
 import { Work } from '../types/work'
 import { Config } from '../types/config'
@@ -175,8 +175,3 @@ export default class CLIHelper {
     )
   }
 }
-
-export const TO_DEFAULT_VALUE = 'HEAD'
-export const OUTPUT_DEFAULT_VALUE = './output'
-export const SOURCE_DEFAULT_VALUE = './'
-export const REPO_DEFAULT_VALUE = './'

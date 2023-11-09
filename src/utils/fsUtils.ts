@@ -32,3 +32,5 @@ export const readFile = async (path: string) => {
   })
   return file
 }
+
+export const DOT = '.'

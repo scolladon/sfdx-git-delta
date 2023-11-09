@@ -2,8 +2,8 @@
 import { sep } from 'path'
 import { GIT_FOLDER } from '../constant/gitConstants'
 import { UTF8_ENCODING } from '../constant/fsConstants'
-import { EOLRegex } from './fsHelper'
 
+const EOLRegex: RegExp = /\r?\n/g
 const LFS_HEADER = Buffer.from('version https://git-lfs')
 
 export const isLFS = (content: Buffer): boolean =>

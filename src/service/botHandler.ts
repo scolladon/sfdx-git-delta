@@ -2,7 +2,7 @@
 import ShareFolderHandler from './sharedFolderHandler'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 import { parse, sep } from 'path'
-import { DOT } from '../utils/fsHelper'
+import { DOT } from '../utils/fsUtils'
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'

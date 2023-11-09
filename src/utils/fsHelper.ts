@@ -9,7 +9,6 @@ import GitAdapter from '../adapter/GitAdapter'
 const copiedFiles = new Set()
 const writtenFiles = new Set()
 
-export const EOLRegex: RegExp = /\r?\n/g
 export const treatPathSep = (data: string) => data?.replace(/[/\\]+/g, sep)
 export const sanitizePath = (data: string) => {
   if (data) {
@@ -49,7 +48,7 @@ export const readPathFromGit = async (path: string, config: Config) => {
   try {
     const gitAdapter = GitAdapter.getInstance(config)
     utf8Data = await gitAdapter.getStringContent(path)
-  } catch {
+  } catch (error) {
     /* empty */
   }
   return utf8Data
@@ -57,7 +56,11 @@ export const readPathFromGit = async (path: string, config: Config) => {
 
 export const pathExists = async (path: string, config: Config) => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.pathExists(path)
+  try {
+    return await gitAdapter.pathExists(path)
+  } catch {
+    return false
+  }
 }
 
 export const readDir = async (
@@ -91,5 +94,3 @@ export const writeFile = async (
   }
   await outputFile(join(config.output, treatPathSep(path)), content)
 }
-
-export const DOT = '.'
