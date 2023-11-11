@@ -18,15 +18,13 @@ jest.mock('../../../../src/service/diffLineInterpreter', () => {
   })
 })
 
-const mockGetAllFilesAsLineStream = jest.fn()
-jest.mock('../../../../src/utils/repoSetup', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      getAllFilesAsLineStream: mockGetAllFilesAsLineStream,
-      getFirstCommitRef: jest.fn(),
-    }
-  })
-})
+const mockGetFilesPath = jest.fn()
+jest.mock('../../../../src/adapter/GitAdapter', () => ({
+  getInstance: jest.fn(() => ({
+    getFilesPath: mockGetFilesPath,
+    getFirstCommitRef: jest.fn(),
+  })),
+}))
 
 jest.mock('../../../../src/utils/ignoreHelper')
 const mockedBuildIncludeHelper = jest.mocked(buildIncludeHelper)
@@ -65,7 +63,7 @@ describe('IncludeProcessor', () => {
 
   describe('when include is configured', () => {
     beforeAll(() => {
-      mockGetAllFilesAsLineStream.mockImplementation(() => ['test'])
+      mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
     })
 
     describe('when no file matches the patterns', () => {
@@ -107,7 +105,7 @@ describe('IncludeProcessor', () => {
 
   describe('when includeDestructive is configured', () => {
     beforeAll(() => {
-      mockGetAllFilesAsLineStream.mockImplementation(() => ['test'])
+      mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
     })
     describe('when no file matches the patterns', () => {
       beforeEach(() => {

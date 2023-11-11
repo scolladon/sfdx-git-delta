@@ -7,8 +7,8 @@ import {
   isVersionSupported,
 } from '../metadata/metadataManager'
 import { format } from 'util'
-import { readFile, sanitizePath } from './fsHelper'
-import { dirExists, fileExists } from './fsUtils'
+import { sanitizePath } from './fsHelper'
+import { readFile, dirExists, fileExists } from './fsUtils'
 import { join } from 'path'
 import { Work } from '../types/work'
 import { Config } from '../types/config'
@@ -88,7 +88,6 @@ export default class CLIHelper {
     }
 
     await this.gitAdapter.configureRepository()
-    // TODO get to and from exact sha
   }
 
   protected _filterDirectories() {

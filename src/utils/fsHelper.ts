@@ -1,6 +1,5 @@
 'use strict'
-import { readFile as fsReadFile, outputFile } from 'fs-extra'
-import { UTF8_ENCODING } from '../constant/fsConstants'
+import { outputFile } from 'fs-extra'
 import { buildIgnoreHelper } from './ignoreHelper'
 import { join, normalize, sep } from 'path'
 import { Config } from '../types/config'
@@ -69,13 +68,6 @@ export const readDir = async (
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
   return await gitAdapter.getFilesPath(path)
-}
-
-export const readFile = async (path: string) => {
-  const file = await fsReadFile(path, {
-    encoding: UTF8_ENCODING,
-  })
-  return file
 }
 
 export const writeFile = async (
