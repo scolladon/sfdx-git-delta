@@ -229,27 +229,22 @@ export default class GitAdapter {
     })
   }
 
-  public async getBufferContent(filepath: string): Promise<Buffer> {
+  public async getStringContent(filepath: string): Promise<string> {
     try {
       const { blob } = await this.isoGit.readBlob({
         ...this.gitConfig,
         oid: this.config.to,
         filepath: gitPathSeparatorNormalizer(filepath),
       })
-      const content = await this.getBufferFromBlob(blob)
-      return content
+      const bufferData = await this.getBufferFromBlob(blob)
+      return bufferData.toString(UTF8_ENCODING) ?? ''
     } catch (error) {
       const err = error as Error
       if (err.name === 'NotFoundError') {
-        return Buffer.from('')
+        return ''
       } else {
         throw error
       }
     }
-  }
-
-  public async getStringContent(filepath: string): Promise<string> {
-    const bufferData = await this.getBufferContent(filepath)
-    return bufferData.toString(UTF8_ENCODING)
   }
 }
