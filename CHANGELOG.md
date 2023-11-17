@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.29.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.28.0...v5.29.0) (2023-11-17)
+
+
+### Features
+
+* add `OmniSupervisorConfig` metadata support ([#723](https://github.com/scolladon/sfdx-git-delta/issues/723)) ([9209972](https://github.com/scolladon/sfdx-git-delta/commit/92099726ecc676be3cc79bf43a286aae90e42a4a))
+
 ## [5.28.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.27.0...v5.28.0) (2023-11-07)
 
 
