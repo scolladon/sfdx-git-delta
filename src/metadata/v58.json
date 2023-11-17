@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "omniSupervisorConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "omniSupervisorConfig",
+    "xmlName": "OmniSupervisorConfig"
+  },
+  {
     "directoryName": "uiObjectRelationConfigs",
     "inFolder": false,
     "metaFile": false,
