@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700232103124,
+  "lastUpdate": 1700232105961,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -959,6 +959,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.12,
             "range": "±5.07%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92099726ecc676be3cc79bf43a286aae90e42a4a",
+          "message": "feat: add `OmniSupervisorConfig` metadata support (#723)",
+          "timestamp": "2023-11-17T15:34:54+01:00",
+          "tree_id": "912bad24cd4b74ad5a8f37aa695cf1df2215b45e",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/92099726ecc676be3cc79bf43a286aae90e42a4a"
+        },
+        "date": 1700232102680,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.15,
+            "range": "±0.47%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
