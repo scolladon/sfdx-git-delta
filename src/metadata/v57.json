@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "eventRelays",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "eventRelay",
+    "xmlName": "EventRelayConfig"
+  },
+  {
     "directoryName": "omniSupervisorConfigs",
     "inFolder": false,
     "metaFile": false,
