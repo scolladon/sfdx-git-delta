@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.30.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.29.0...v5.30.0) (2023-11-21)
+
+
+### Features
+
+* add `EventRelayConfig` metadata support ([#726](https://github.com/scolladon/sfdx-git-delta/issues/726)) ([7ea47a8](https://github.com/scolladon/sfdx-git-delta/commit/7ea47a881abdfa0c44c4f0c7eae8465f7b7519da))
+
 ## [5.29.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.28.0...v5.29.0) (2023-11-17)
 
 
