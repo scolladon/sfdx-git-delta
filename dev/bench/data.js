@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700584212324,
+  "lastUpdate": 1700584215369,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1021,6 +1021,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.15,
             "range": "±0.47%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7ea47a881abdfa0c44c4f0c7eae8465f7b7519da",
+          "message": "feat: add `EventRelayConfig` metadata support (#726)",
+          "timestamp": "2023-11-21T17:23:29+01:00",
+          "tree_id": "1daf51f9767fe7cc534a6597c275697d24e25683",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/7ea47a881abdfa0c44c4f0c7eae8465f7b7519da"
+        },
+        "date": 1700584211697,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.18,
+            "range": "±0.43%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
