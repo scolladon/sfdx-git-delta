@@ -237,7 +237,7 @@ export default class GitAdapter {
         filepath: gitPathSeparatorNormalizer(filepath),
       })
       const bufferData = await this.getBufferFromBlob(blob)
-      return bufferData.toString(UTF8_ENCODING) ?? ''
+      return bufferData?.toString(UTF8_ENCODING) ?? ''
     } catch (error) {
       const err = error as Error
       if (err.name === 'NotFoundError') {
