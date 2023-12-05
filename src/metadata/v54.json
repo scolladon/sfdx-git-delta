@@ -1,5 +1,33 @@
 [
   {
+    "directoryName": "aiApplicationConfigs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "aiapplicationconfig",
+    "xmlName": "AIApplicationConfig"
+  },
+  {
+    "directoryName": "aiApplications",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "ai",
+    "xmlName": "AIApplication"
+  },
+  {
+    "directoryName": "mlDataDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "mlDataDefinition",
+    "xmlName": "MLDataDefinition"
+  },
+  {
+    "directoryName": "mlPredictions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "mlPrediction",
+    "xmlName": "MLPredictionDefinition"
+  },
+  {
     "directoryName": "uiObjectRelationConfigs",
     "inFolder": false,
     "metaFile": false,
