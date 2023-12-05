@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1700584215369,
+  "lastUpdate": 1701797362014,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1083,6 +1083,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.18,
             "range": "±0.43%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "gsusgp@hotmail.com",
+            "name": "Jesus Gaviria",
+            "username": "gaviriajesus"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b830a8ff4af4f2f74e772934359508f20c57b0ab",
+          "message": "feat: adding prediction builder ai metadata types (#731)\n\nCo-authored-by: Jesus Gaviria <jesus.gaviria@checkatrade.com>\r\nCo-authored-by: gaviriajesus <gaviriajesus@gmail.com>",
+          "timestamp": "2023-12-05T18:22:54+01:00",
+          "tree_id": "3a60db489e4401e172f396452451fcd6f2e69c56",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/b830a8ff4af4f2f74e772934359508f20c57b0ab"
+        },
+        "date": 1701797361612,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.17,
+            "range": "±1.73%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
