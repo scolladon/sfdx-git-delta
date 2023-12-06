@@ -36,6 +36,7 @@ const handlerMap = {
   labels: InFile,
   listViews: SubCustomObject,
   lwc: LwcHandler,
+  marketingappextensions: InFile,
   matchingRules: InFile,
   moderation: SharedFolder,
   objects: CustomObject,

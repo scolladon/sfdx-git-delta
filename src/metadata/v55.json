@@ -1406,6 +1406,25 @@
   },
   {
     "childXmlNames": [
+      "MarketingAppExtActivity"
+    ],
+    "directoryName": "marketingappextensions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "marketingappextension",
+    "xmlName": "MarketingAppExtension"
+  },
+  {
+    "directoryName": "marketingappextensions.marketingAppExtActivities",
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "MarketingAppExtension",
+    "xmlName": "MarketingAppExtActivity",
+    "xmlTag": "marketingAppExtActivities",
+    "key": "fullName"
+  },
+  {
+    "childXmlNames": [
       "WorkflowFieldUpdate",
       "WorkflowKnowledgePublish",
       "WorkflowTask",
