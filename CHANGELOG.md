@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.31.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.30.0...v5.31.0) (2023-12-07)
+
+
+### Features
+
+* adding prediction builder ai metadata types ([#731](https://github.com/scolladon/sfdx-git-delta/issues/731)) ([b830a8f](https://github.com/scolladon/sfdx-git-delta/commit/b830a8ff4af4f2f74e772934359508f20c57b0ab))
+* support `MarketingAppExtension` metadata type ([#735](https://github.com/scolladon/sfdx-git-delta/issues/735)) ([e3f9f1a](https://github.com/scolladon/sfdx-git-delta/commit/e3f9f1a67ec5b7a693d697f8f5c2797e1cfb4f69))
+
 ## [5.30.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.29.0...v5.30.0) (2023-11-21)
 
 
