@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1701971088112,
+  "lastUpdate": 1701971091871,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1145,6 +1145,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.17,
             "range": "±1.73%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3f9f1a67ec5b7a693d697f8f5c2797e1cfb4f69",
+          "message": "feat: support `MarketingAppExtension` metadata type (#735)",
+          "timestamp": "2023-12-07T18:38:05+01:00",
+          "tree_id": "c02905527f76ffa9e8d5b81b18c2408dfffc1831",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/e3f9f1a67ec5b7a693d697f8f5c2797e1cfb4f69"
+        },
+        "date": 1701971087245,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.17,
+            "range": "±2.98%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
