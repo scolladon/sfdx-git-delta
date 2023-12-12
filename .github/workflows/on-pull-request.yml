@@ -20,12 +20,12 @@ jobs:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -74,16 +74,16 @@ jobs:
     steps:
       # Git Checkout
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # MegaLinter
       - name: MegaLinter
         # You can override MegaLinter flavor used to have faster performances
-        # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter/flavors/javascript@v6
+        # More info at https://megalinter.io/latest/flavors/
+        uses: oxsecurity/megalinter/flavors/javascript@v7
         env:
           # All available variables are described in documentation
-          # https://megalinter.io/configuration/
+          # https://megalinter.io/latest/config-file/
           APPLY_FIXES: all
           VALIDATE_ALL_CODEBASE: true
           # ADD CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
@@ -100,10 +100,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -137,10 +137,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
@@ -170,7 +170,7 @@ jobs:
           sfdx plugins
 
       - name: Checkout e2e test subject
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'e2e/head'
           fetch-depth: 0

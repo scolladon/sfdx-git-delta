@@ -9,7 +9,7 @@
 
 <br />
 <div align="center">  
-  <img src="img/SGD_logo.png" width="128">
+  <img src="img/SGD_logo.png" width="128" alt="SGD logo">
   <h1 align="center">SFDX-Git-Delta </h1>
 
   <p align="center">
