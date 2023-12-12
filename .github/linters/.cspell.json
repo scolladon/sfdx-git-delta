@@ -7,7 +7,7 @@
         "**/yarn.lock",
         "**/.yarnrc.yml",
         "**/src/metadata/**",
-        "**/metadata/*.json"
+        "**/src/service/typeHandlerFactory.ts"
     ],
     "language": "en",
     "noConfigSearch": true,
