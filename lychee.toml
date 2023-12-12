@@ -1,0 +1,2 @@
+exclude_mail = true
+exclude_path = ["CHANGELOG.md"]

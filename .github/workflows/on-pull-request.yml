@@ -79,11 +79,11 @@ jobs:
       # MegaLinter
       - name: MegaLinter
         # You can override MegaLinter flavor used to have faster performances
-        # More info at https://megalinter.io/flavors/
+        # More info at https://megalinter.io/latest/flavors/
         uses: oxsecurity/megalinter/flavors/javascript@v7
         env:
           # All available variables are described in documentation
-          # https://megalinter.io/configuration/
+          # https://megalinter.io/latest/config-file/
           APPLY_FIXES: all
           VALIDATE_ALL_CODEBASE: true
           # ADD CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
