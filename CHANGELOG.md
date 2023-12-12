@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.31.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.31.0...v5.31.1) (2023-12-12)
+
+
+### Bug Fixes
+
+* boolean attribute and comment xml parsing ([#738](https://github.com/scolladon/sfdx-git-delta/issues/738)) ([81e65e5](https://github.com/scolladon/sfdx-git-delta/commit/81e65e51ea93b9f8bbf7a55a6a947bfe7a93c245))
+
 ## [5.31.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.30.0...v5.31.0) (2023-12-07)
 
 
