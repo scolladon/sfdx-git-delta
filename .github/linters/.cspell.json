@@ -6,7 +6,8 @@
         "**/megalinter.yml",
         "**/yarn.lock",
         "**/.yarnrc.yml",
-        "**/src/metadata/**"
+        "**/src/metadata/**",
+        "**/metadata/*.json"
     ],
     "language": "en",
     "noConfigSearch": true,
