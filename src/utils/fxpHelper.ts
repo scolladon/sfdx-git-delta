@@ -6,6 +6,7 @@ import { XML_HEADER_TAG_END } from './metadataConstants'
 import { Config } from '../types/config'
 
 const XML_PARSER_OPTION = {
+  commentPropName: '#comment',
   ignoreAttributes: false,
   ignoreNameSpace: false,
   parseTagValue: false,
@@ -18,6 +19,8 @@ const JSON_PARSER_OPTION = {
   ...XML_PARSER_OPTION,
   format: true,
   indentBy: '    ',
+  suppressBooleanAttributes: false,
+  suppressEmptyNode: false,
 }
 
 export const asArray = (node: string[] | string) => {
@@ -25,8 +28,13 @@ export const asArray = (node: string[] | string) => {
 }
 
 export const xml2Json = (xmlContent: string) => {
-  const xmlParser = new XMLParser(XML_PARSER_OPTION)
-  return xmlParser.parse(xmlContent)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let jsonContent: any = {}
+  if (xmlContent) {
+    const xmlParser = new XMLParser(XML_PARSER_OPTION)
+    jsonContent = xmlParser.parse(xmlContent)
+  }
+  return jsonContent
 }
 
 export const parseXmlFileToJson = async (line: string, config: Config) => {
