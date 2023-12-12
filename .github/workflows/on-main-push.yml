@@ -34,10 +34,10 @@ jobs:
     if: needs.prepare-release.outputs.release_created == 'true'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           registry-url: 'https://registry.npmjs.org'
@@ -61,13 +61,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'e2e/head'
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
@@ -91,10 +91,10 @@ jobs:
     if: needs.prepare-release.outputs.release_created != 'true'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -124,7 +124,7 @@ jobs:
           sfdx plugins
 
       - name: Checkout e2e test subject
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'e2e/head'
           fetch-depth: 0
