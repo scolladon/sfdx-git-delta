@@ -1,4 +1,4 @@
-import git, { TREE } from 'isomorphic-git'
+import git, { TREE, WalkerEntry } from 'isomorphic-git'
 import { simpleGit, SimpleGit } from 'simple-git'
 import { readFile } from 'fs-extra'
 import fs from 'fs'
@@ -29,6 +29,8 @@ const TREE_TYPE = 'tree'
 
 const gitPathSeparatorNormalizer = (path: string) =>
   path.replace(/\\+/g, GIT_PATH_SEP)
+
+const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
 
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
@@ -113,122 +115,6 @@ export default class GitAdapter {
     return sha
   }
 
-  public async getFilesPath(path: string = SOURCE_DEFAULT_VALUE) {
-    return await this.isoGit.walk({
-      fs,
-      dir: this.config.repo,
-      cache: GitAdapter.filesPathCache,
-      trees: [TREE({ ref: this.config.to })],
-      map: async (filepath, [tree]) => {
-        if (
-          filepath === DOT ||
-          (path !== SOURCE_DEFAULT_VALUE && !filepath.startsWith(path))
-        ) {
-          return
-        }
-        const treeType = await tree!.type()
-        if (treeType !== BLOB_TYPE) {
-          return
-        }
-        return gitPathSeparatorNormalizer(filepath)
-      },
-    })
-  }
-
-  public async getFilesFrom(path: string) {
-    const object = await this.isoGit.readObject({
-      fs,
-      dir: this.config.repo,
-      oid: this.config.to,
-      filepath: path,
-    })
-    // Return object exposing async getContent
-    // Iterate over and output file using the getContent API when needed
-    if (object.type === TREE_TYPE) {
-      return await this.isoGit.walk({
-        fs,
-        dir: this.config.repo,
-        trees: [TREE({ ref: this.config.to })],
-        map: async (filepath, [tree]) => {
-          if (filepath === DOT || !filepath.startsWith(path)) {
-            return
-          }
-          const treeType = await tree!.type()
-          if (treeType !== BLOB_TYPE) {
-            return
-          }
-
-          const blob: Uint8Array = (await tree!.content()) as Uint8Array
-          const content = await this.getBufferFromBlob(blob)
-          return {
-            path: gitPathSeparatorNormalizer(filepath),
-            content: content,
-          }
-        },
-      })
-    } else if (object.type === BLOB_TYPE) {
-      const content = await this.getBufferFromBlob(object.object as Uint8Array)
-      return [
-        {
-          path: gitPathSeparatorNormalizer(path),
-          content: content,
-        },
-      ]
-    }
-
-    throw new Error(`Path ${path} does not exist in ${this.config.to}`)
-  }
-
-  public async getDiffLines() {
-    const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
-    return this.isoGit.walk({
-      fs,
-      dir: this.config.repo,
-      trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
-      map: async (path, trees) => {
-        if (path === DOT) {
-          return
-        }
-
-        for (const tree of trees.filter(Boolean)) {
-          const type = await tree!.type()
-          //if (![undefined, BLOB_TYPE].includes(type)) {
-          if (type !== BLOB_TYPE) {
-            return
-          }
-        }
-
-        const [fromOID, toOID] = await Promise.all(
-          trees.map(tree => tree?.oid())
-        )
-        if (fromOID === toOID) {
-          return
-        }
-        let type
-        if (fromOID === undefined) {
-          type = ADDITION
-        } else if (toOID === undefined) {
-          type = DELETION
-        } else {
-          if (this.config.ignoreWhitespace) {
-            const [fromContent, toContent] = await Promise.all(
-              trees.map(async tree => {
-                const content = (await tree!.content()) as Uint8Array
-                return stripWhiteChar(Buffer.from(content).toString())
-              })
-            )
-            if (fromContent === toContent) {
-              return
-            }
-          }
-          type = MODIFICATION
-        }
-
-        return `${type}\t${gitPathSeparatorNormalizer(path)}`
-      },
-    })
-  }
-
   public async getStringContent(filepath: string): Promise<string> {
     try {
       const { blob } = await this.isoGit.readBlob({
@@ -247,4 +133,139 @@ export default class GitAdapter {
       }
     }
   }
+
+  public async getFilesPath(path: string = SOURCE_DEFAULT_VALUE) {
+    const walker = filePathWalker(path)
+    return await this.isoGit.walk({
+      fs,
+      dir: this.config.repo,
+      cache: GitAdapter.filesPathCache,
+      trees: [TREE({ ref: this.config.to })],
+      map: walker,
+    })
+  }
+
+  public async getFilesFrom(path: string) {
+    const object = await this.isoGit.readObject({
+      fs,
+      dir: this.config.repo,
+      oid: this.config.to,
+      filepath: path,
+    })
+    // Return object exposing async getContent
+    // Iterate over and output file using the getContent API when needed
+    const blobFiles: { path: string; content: Uint8Array }[] = []
+    if (object.type === TREE_TYPE) {
+      const walker = contentWalker(path)
+      blobFiles.push(
+        ...(await this.isoGit.walk({
+          fs,
+          dir: this.config.repo,
+          trees: [TREE({ ref: this.config.to })],
+          map: walker,
+        }))
+      )
+    } else if (object.type === BLOB_TYPE) {
+      blobFiles.push({
+        path,
+        content: object.object as Uint8Array,
+      })
+    } else {
+      throw new Error(`Path ${path} does not exist in ${this.config.to}`)
+    }
+    const bufferFiles: { path: string; content: Buffer }[] = []
+    for (const file of blobFiles) {
+      const content = await this.getBufferFromBlob(file.content)
+      bufferFiles.push({
+        path: gitPathSeparatorNormalizer(file.path),
+        content,
+      })
+    }
+    return bufferFiles
+  }
+
+  public async getDiffLines() {
+    const walker = diffLineWalker(this.config.ignoreWhitespace)
+    return this.isoGit.walk({
+      fs,
+      dir: this.config.repo,
+      trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
+      map: walker,
+    })
+  }
 }
+
+export const filePathWalker =
+  (path: string) => async (filepath: string, trees: (WalkerEntry | null)[]) => {
+    const [tree] = trees
+    if (
+      filepath === DOT ||
+      (path !== SOURCE_DEFAULT_VALUE && !filepath.startsWith(path))
+    ) {
+      return
+    }
+    const treeType = await tree!.type()
+    if (treeType !== BLOB_TYPE) {
+      return
+    }
+    return gitPathSeparatorNormalizer(filepath)
+  }
+
+export const diffLineWalker =
+  (ignoreWhitespace: boolean) =>
+  async (path: string, trees: (WalkerEntry | null)[]) => {
+    if (path === DOT) {
+      return
+    }
+
+    for (const tree of trees.filter(Boolean)) {
+      const type = await tree!.type()
+      if (type !== BLOB_TYPE) {
+        return
+      }
+    }
+
+    const [fromOID, toOID] = await Promise.all(trees.map(tree => tree?.oid()))
+    if (fromOID === toOID) {
+      return
+    }
+    let type
+    if (fromOID === undefined) {
+      type = ADDITION
+    } else if (toOID === undefined) {
+      type = DELETION
+    } else {
+      if (ignoreWhitespace) {
+        const [fromContent, toContent] = await Promise.all(
+          trees.map(async tree => {
+            const content = (await tree!.content()) as Uint8Array
+            return stripWhiteChar(Buffer.from(content).toString())
+          })
+        )
+        if (fromContent === toContent) {
+          return
+        }
+      }
+      type = MODIFICATION
+    }
+
+    return `${type}\t${gitPathSeparatorNormalizer(path)}`
+  }
+
+export const contentWalker =
+  (path: string) => async (filepath: string, trees: (WalkerEntry | null)[]) => {
+    const [tree] = trees
+    if (filepath === DOT || !filepath.startsWith(path)) {
+      return
+    }
+    const treeType = await tree!.type()
+    if (treeType !== BLOB_TYPE) {
+      return
+    }
+
+    const blob: Uint8Array = (await tree!.content()) as Uint8Array
+    return {
+      path: gitPathSeparatorNormalizer(filepath),
+      content: blob,
+    }
+  }
