@@ -8,8 +8,8 @@ import {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
-import { writeFile, scanExtension } from '../utils/fsHelper'
 import { isSubDir, readFile } from '../utils/fsUtils'
+import { writeFile, readDir } from '../utils/fsHelper'
 import { pathExists } from 'fs-extra'
 import { parse, join } from 'path'
 import { buildIgnoreHelper } from '../utils/ignoreHelper'
@@ -20,7 +20,7 @@ import {
   convertJsonToXml,
 } from '../utils/fxpHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
-import { treatPathSep } from '../utils/childProcessUtils'
+import { treatPathSep } from '../utils/fsHelper'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
@@ -55,15 +55,13 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translationPaths.clear()
 
-    const translationsIterator = await scanExtension(
-      this.config.source,
-      EXTENSION,
-      this.work.config
+    const allFiles = await readDir(this.config.source, this.work.config)
+    const ignoreHelper = await buildIgnoreHelper(this.config)
+    const translationPaths = allFiles.filter((file: string) =>
+      file.endsWith(EXTENSION)
     )
 
-    const ignoreHelper = await buildIgnoreHelper(this.config)
-
-    for (const translationPath of translationsIterator) {
+    for (const translationPath of translationPaths) {
       if (
         !ignoreHelper.globalIgnore.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)

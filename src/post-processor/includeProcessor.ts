@@ -1,21 +1,21 @@
 'use strict'
 import BaseProcessor from './baseProcessor'
 import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
-import RepoSetup from '../utils/repoSetup'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
-import { treatPathSep } from '../utils/childProcessUtils'
+import { treatPathSep } from '../utils/fsHelper'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { Work } from '../types/work'
+import GitAdapter from '../adapter/GitAdapter'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {
-  protected readonly gitHelper: RepoSetup
+  protected readonly gitAdapter: GitAdapter
   protected from: string
   protected includeHelper!: IgnoreHelper
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
-    this.gitHelper = new RepoSetup(this.config)
+    this.gitAdapter = GitAdapter.getInstance(this.config)
     this.from = this.config.from
   }
 
@@ -32,7 +32,7 @@ export default class IncludeProcessor extends BaseProcessor {
   }
 
   protected async _prepare() {
-    const firstSha = await this.gitHelper.getFirstCommitRef()
+    const firstSha = await this.gitAdapter.getFirstCommitRef()
     this.config.from = firstSha
 
     this.includeHelper = await buildIncludeHelper(this.config)
@@ -46,7 +46,7 @@ export default class IncludeProcessor extends BaseProcessor {
       [ADDITION]: [],
       [DELETION]: [],
     }
-    const lines: string[] = await this.gitHelper.getAllFilesAsLineStream()
+    const lines: string[] = await this.gitAdapter.getFilesPath()
     for (const line of lines) {
       Object.keys(includeHolder).forEach(changeType => {
         const changedLine = `${changeType}${TAB}${treatPathSep(line)}`

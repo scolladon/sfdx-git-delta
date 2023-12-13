@@ -28,18 +28,13 @@ export default class CustomObjectHandler extends StandardHandler {
     const masterDetailsFields = await asyncFilter(
       fields,
       async (fieldPath: string) => {
-        const content = await readPathFromGit(
-          join(fieldsFolder, fieldPath),
-          this.config
-        )
+        const content = await readPathFromGit(fieldPath, this.config)
         return content.includes(MASTER_DETAIL_TAG)
       }
     )
 
     await Promise.all(
-      masterDetailsFields.map((field: string) =>
-        this._copyWithMetaFile(join(fieldsFolder, field))
-      )
+      masterDetailsFields.map((field: string) => this._copyWithMetaFile(field))
     )
   }
 }

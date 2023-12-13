@@ -1,9 +1,9 @@
 'use strict'
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
-import { readPathFromGit } from './fsHelper'
 import { XML_HEADER_TAG_END } from '../constant/metadataConstants'
 import { Config } from '../types/config'
+import GitAdapter from '../adapter/GitAdapter'
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',
@@ -38,7 +38,8 @@ export const xml2Json = (xmlContent: string) => {
 }
 
 export const parseXmlFileToJson = async (line: string, config: Config) => {
-  const xmlContent = await readPathFromGit(line, config)
+  const gitAdapter = GitAdapter.getInstance(config)
+  const xmlContent = await gitAdapter.getStringContent(line)
   return xml2Json(xmlContent)
 }
 
