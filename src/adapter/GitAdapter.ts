@@ -34,7 +34,7 @@ const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
 
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
-  private static filesPathCache = {}
+  private static sharedCache = {}
 
   public static getInstance(config: Config): GitAdapter {
     if (!GitAdapter.instances.has(config)) {
@@ -103,6 +103,7 @@ export default class GitAdapter {
         dir: this.config.repo,
         oid: this.config.to,
         filepath: path,
+        cache: GitAdapter.sharedCache,
       })
       return [TREE_TYPE, BLOB_TYPE].includes(type)
     } catch {
@@ -121,6 +122,7 @@ export default class GitAdapter {
         ...this.gitConfig,
         oid: this.config.to,
         filepath: gitPathSeparatorNormalizer(filepath),
+        cache: GitAdapter.sharedCache,
       })
       const bufferData = await this.getBufferFromBlob(blob)
       return bufferData?.toString(UTF8_ENCODING) ?? ''
@@ -139,7 +141,7 @@ export default class GitAdapter {
     return await this.isoGit.walk({
       fs,
       dir: this.config.repo,
-      cache: GitAdapter.filesPathCache,
+      cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.to })],
       map: walker,
     })
@@ -151,6 +153,7 @@ export default class GitAdapter {
       dir: this.config.repo,
       oid: this.config.to,
       filepath: path,
+      cache: GitAdapter.sharedCache,
     })
     // Return object exposing async getContent
     // Iterate over and output file using the getContent API when needed
@@ -161,6 +164,7 @@ export default class GitAdapter {
         ...(await this.isoGit.walk({
           fs,
           dir: this.config.repo,
+          cache: GitAdapter.sharedCache,
           trees: [TREE({ ref: this.config.to })],
           map: walker,
         }))
@@ -189,6 +193,7 @@ export default class GitAdapter {
     return this.isoGit.walk({
       fs,
       dir: this.config.repo,
+      cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
       map: walker,
     })
