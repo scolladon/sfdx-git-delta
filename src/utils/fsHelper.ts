@@ -25,7 +25,7 @@ export const copyFiles = async (config: Config, src: string) => {
   if (
     copiedFiles.has(src) ||
     writtenFiles.has(src) ||
-    ignoreHelper.globalIgnore?.ignores(src)
+    ignoreHelper.globalIgnore.ignores(src)
   ) {
     return
   }
@@ -126,11 +126,14 @@ export async function* scan(
 export const writeFile = async (
   path: string,
   content: string,
-  { output }: Config
+  config: Config
 ) => {
-  if (writtenFiles.has(path)) return
+  const ignoreHelper = await buildIgnoreHelper(config)
+  if (writtenFiles.has(path) || ignoreHelper.globalIgnore.ignores(path)) {
+    return
+  }
   writtenFiles.add(path)
-  await outputFile(join(output, treatPathSep(path)), content)
+  await outputFile(join(config.output, treatPathSep(path)), content)
 }
 
 export const isSubDir = (parent: string, dir: string) => {
