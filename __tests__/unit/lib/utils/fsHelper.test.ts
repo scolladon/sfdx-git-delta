@@ -54,7 +54,7 @@ beforeEach(() => {
   jest.resetAllMocks()
   work = getWork()
   work.config.from = 'pastsha'
-  work.config.from = 'recentsha'
+  work.config.to = 'recentsha'
 })
 
 describe('gitPathSeparatorNormalizer', () => {

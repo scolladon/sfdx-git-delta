@@ -17,7 +17,7 @@ export class IgnoreHelper {
     protected readonly destructiveIgnore: Ignore
   ) {}
 
-  public keep(line: string) {
+  public keep(line: string): boolean {
     const changeType = line.charAt(0)
 
     let ignInstance!: Ignore
@@ -47,7 +47,7 @@ export const buildIgnoreHelper = async ({
       ? await _buildIgnore(ignoreDestructive)
       : await _buildIgnore(ignore)
 
-    await _addDefaultDestructiveIgnore(destructiveIgnore)
+    destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
 
     ignoreInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
   }
@@ -78,10 +78,6 @@ const _buildIgnore = async (ignorePath: string) => {
     ign.add(content.toString())
   }
   return ign
-}
-
-const _addDefaultDestructiveIgnore = async (destructiveIgnore: Ignore) => {
-  destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
 }
 
 export const resetIgnoreInstance = () => {

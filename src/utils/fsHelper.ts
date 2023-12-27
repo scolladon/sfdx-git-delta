@@ -1,7 +1,6 @@
 'use strict'
-import { readFile as fsReadFile } from 'fs-extra'
 import { isAbsolute, join, relative } from 'path'
-import { outputFile, stat } from 'fs-extra'
+import { readFile as fsReadFile, outputFile, stat } from 'fs-extra'
 import {
   GIT_COMMAND,
   GIT_FOLDER,
@@ -10,6 +9,7 @@ import {
 } from './gitConstants'
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
 import { isLFS, getLFSObjectContentPath } from './gitLfsHelper'
+import { buildIgnoreHelper } from './ignoreHelper'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
@@ -21,7 +21,14 @@ const copiedFiles = new Set()
 const writtenFiles = new Set()
 
 export const copyFiles = async (config: Config, src: string) => {
-  if (copiedFiles.has(src) || writtenFiles.has(src)) return
+  const ignoreHelper = await buildIgnoreHelper(config)
+  if (
+    copiedFiles.has(src) ||
+    writtenFiles.has(src) ||
+    ignoreHelper.globalIgnore?.ignores(src)
+  ) {
+    return
+  }
   copiedFiles.add(src)
 
   try {
