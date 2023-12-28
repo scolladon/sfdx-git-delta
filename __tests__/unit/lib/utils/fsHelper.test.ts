@@ -17,6 +17,10 @@ import {
   writeFile,
 } from '../../../../src/utils/fsHelper'
 import {
+  IgnoreHelper,
+  buildIgnoreHelper,
+} from '../../../../src/utils/ignoreHelper'
+import {
   getSpawnContent,
   treatPathSep,
 } from '../../../../src/utils/childProcessUtils'
@@ -28,6 +32,7 @@ import {
 import { EOL } from 'os'
 import { Work } from '../../../../src/types/work'
 import { Config } from '../../../../src/types/config'
+import { Ignore } from 'ignore'
 
 jest.mock('fs-extra')
 jest.mock('../../../../src/utils/gitLfsHelper')
@@ -42,7 +47,9 @@ jest.mock('../../../../src/utils/childProcessUtils', () => {
     treatPathSep: jest.fn(),
   }
 })
+jest.mock('../../../../src/utils/ignoreHelper')
 
+const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 const mockedGetStreamContent = jest.mocked(getSpawnContent)
 const mockedTreatPathSep = jest.mocked(treatPathSep)
 const mockedStat = jest.mocked(stat)
@@ -135,6 +142,13 @@ describe('readPathFromGit', () => {
 })
 
 describe('copyFile', () => {
+  beforeEach(() => {
+    mockBuildIgnoreHelper.mockResolvedValue({
+      globalIgnore: {
+        ignores: () => false,
+      } as unknown as Ignore,
+    } as unknown as IgnoreHelper)
+  })
   describe('when file is already copied', () => {
     it('should not copy file', async () => {
       await copyFiles(work.config, 'source/file')
@@ -165,25 +179,61 @@ describe('copyFile', () => {
     })
   })
 
-  describe('when source location is empty', () => {
-    it('should copy file', async () => {
+  describe('when content is not a git location', () => {
+    it('should ignore this path', async () => {
       // Arrange
-      mockedTreatPathSep.mockReturnValueOnce('source/copyFile')
-      mockedGetStreamContent.mockResolvedValue(Buffer.from(''))
+      const sourcePath = 'source/warning'
+      mockedGetStreamContent.mockRejectedValue(
+        `fatal: path '${sourcePath}' does not exist in 'HEAD'`
+      )
 
       // Act
-      await copyFiles(work.config, 'source/doNotCopy')
+      await copyFiles(work.config, sourcePath)
 
       // Assert
       expect(getSpawnContent).toBeCalled()
-      expect(outputFile).toBeCalledWith(
-        'output/source/copyFile',
-        Buffer.from('')
-      )
+      expect(outputFile).not.toBeCalled()
     })
   })
 
-  describe('when source location is not empty', () => {
+  describe('when path is ignored', () => {
+    it('should not copy this path', async () => {
+      // Arrange
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: () => true,
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+
+      // Act
+      await copyFiles(work.config, 'source/ignored')
+
+      // Assert
+      expect(getSpawnContent).not.toBeCalled()
+      expect(outputFile).not.toBeCalled()
+    })
+  })
+
+  describe('when content should be copied', () => {
+    describe('when source location is empty', () => {
+      it('should copy file', async () => {
+        // Arrange
+
+        mockedTreatPathSep.mockReturnValueOnce('source/copyFile')
+        mockedGetStreamContent.mockResolvedValue(Buffer.from(''))
+
+        // Act
+        await copyFiles(work.config, 'source/doNotCopy')
+
+        // Assert
+        expect(getSpawnContent).toBeCalled()
+        expect(outputFile).toBeCalledWith(
+          'output/source/copyFile',
+          Buffer.from('')
+        )
+      })
+    })
+
     describe('when content is a folder', () => {
       it('should copy the folder', async () => {
         // Arrange
@@ -206,22 +256,7 @@ describe('copyFile', () => {
         expect(treatPathSep).toBeCalledTimes(1)
       })
     })
-    describe('when content is not a git location', () => {
-      it('should ignore this path', async () => {
-        // Arrange
-        const sourcePath = 'source/warning'
-        mockedGetStreamContent.mockRejectedValue(
-          `fatal: path '${sourcePath}' does not exist in 'HEAD'`
-        )
 
-        // Act
-        await copyFiles(work.config, sourcePath)
-
-        // Assert
-        expect(getSpawnContent).toBeCalled()
-        expect(outputFile).not.toBeCalled()
-      })
-    })
     describe('when content is a file', () => {
       beforeEach(async () => {
         // Arrange
@@ -549,6 +584,11 @@ describe('pathExists', () => {
 describe('writeFile', () => {
   beforeEach(() => {
     mockedTreatPathSep.mockReturnValue('folder/file')
+    mockBuildIgnoreHelper.mockResolvedValue({
+      globalIgnore: {
+        ignores: () => false,
+      } as unknown as Ignore,
+    } as unknown as IgnoreHelper)
   })
 
   it.each(['folder/file', 'folder\\file'])(
@@ -580,6 +620,21 @@ describe('writeFile', () => {
 
     // Assert
     expect(outputFile).toBeCalledTimes(1)
+  })
+
+  it('should not copy ignored path', async () => {
+    // Arrange
+    mockBuildIgnoreHelper.mockResolvedValue({
+      globalIgnore: {
+        ignores: () => true,
+      } as unknown as Ignore,
+    } as unknown as IgnoreHelper)
+
+    // Act
+    await writeFile('', '', {} as Config)
+
+    // Assert
+    expect(outputFile).not.toBeCalled()
   })
 })
 
