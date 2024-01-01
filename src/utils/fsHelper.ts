@@ -21,16 +21,15 @@ const copiedFiles = new Set()
 const writtenFiles = new Set()
 
 export const copyFiles = async (config: Config, src: string) => {
-  const ignoreHelper = await buildIgnoreHelper(config)
-  if (
-    copiedFiles.has(src) ||
-    writtenFiles.has(src) ||
-    ignoreHelper.globalIgnore.ignores(src)
-  ) {
+  if (copiedFiles.has(src) || writtenFiles.has(src)) {
     return
   }
   copiedFiles.add(src)
 
+  const ignoreHelper = await buildIgnoreHelper(config)
+  if (ignoreHelper.globalIgnore.ignores(src)) {
+    return
+  }
   try {
     const bufferData: Buffer = await readPathFromGitAsBuffer(src, config)
     const utf8Data = bufferData?.toString(UTF8_ENCODING) ?? ''
@@ -128,11 +127,15 @@ export const writeFile = async (
   content: string,
   config: Config
 ) => {
-  const ignoreHelper = await buildIgnoreHelper(config)
-  if (writtenFiles.has(path) || ignoreHelper.globalIgnore.ignores(path)) {
+  if (writtenFiles.has(path)) {
     return
   }
   writtenFiles.add(path)
+
+  const ignoreHelper = await buildIgnoreHelper(config)
+  if (ignoreHelper.globalIgnore.ignores(path)) {
+    return
+  }
   await outputFile(join(config.output, treatPathSep(path)), content)
 }
 
