@@ -3,14 +3,10 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { getWork } from '../../../__utils__/globalTestHelper'
 import {
   copyFiles,
-  dirExists,
-  fileExists,
   gitPathSeparatorNormalizer,
   isGit,
-  isSubDir,
   pathExists,
   readDir,
-  readFile,
   readPathFromGit,
   scan,
   scanExtension,
@@ -309,7 +305,7 @@ describe('readDir', () => {
     it('should throw', async () => {
       // Act
       try {
-        await readFile('path')
+        await readDir('path', work.config)
       } catch (err) {
         // Assert
         expect(err).toBeTruthy()
@@ -318,41 +314,7 @@ describe('readDir', () => {
     })
   })
 })
-/*
-describe('readFile', () => {
-  describe('when readfile succeed', () => {
-    beforeEach(() => {
-      // Arrange
-      fs.promises.readFile.mockImplementationOnce(() => Promise.resolve({}))
-    })
-    it('should return the file', async () => {
-      // Act
-      const file = await readFile('path')
 
-      // Assert
-      expect(file).toBeTruthy()
-      expect(fs.promises.readFile).toHaveBeenCalled()
-    })
-  })
-
-  describe('when readfile throw', () => {
-    beforeEach(() => {
-      // Arrange
-      fs.promises.readFile.mockImplementationOnce(() => Promise.reject('Error'))
-    })
-    it('should throw', async () => {
-      // Act
-      try {
-        await readFile('path')
-      } catch (err) {
-        // Assert
-        expect(err).toBeTruthy()
-        expect(fs.promises.readFile).toHaveBeenCalled()
-      }
-    })
-  })
-})
-*/
 describe('scan', () => {
   describe('when getSpawnContent throw', () => {
     beforeEach(() => {
@@ -485,56 +447,6 @@ describe('scanExtension', () => {
   })
 })
 
-describe('isSubDir', () => {
-  describe('when parent contains dir', () => {
-    it('returns true', async () => {
-      // Arrange
-
-      // Act
-      const result = isSubDir('parent', 'parent/dir')
-
-      // Assert
-      expect(result).toBe(true)
-    })
-  })
-
-  describe('when parent does not contains dir', () => {
-    it('returns false', async () => {
-      // Arrange
-
-      // Act
-      const result = isSubDir('parent', 'dir/child')
-
-      // Assert
-      expect(result).toBe(false)
-    })
-  })
-  it.each([
-    ['/foo', '/foo', false],
-    ['/foo', '/bar', false],
-    ['/foo', '/foobar', false],
-    ['/foo', '/foo/bar', true],
-    ['/foo', '/foo/../bar', false],
-    ['/foo', '/foo/./bar', true],
-    ['/bar/../foo', '/foo/bar', true],
-    ['/foo', './bar', false],
-    ['C:\\Foo', 'C:\\Foo\\Bar', false],
-    ['C:\\Foo', 'C:\\Bar', false],
-    ['C:\\Foo', 'D:\\Foo\\Bar', false],
-  ])(
-    `should verify %s expect %s to be a subDir: %s`,
-    (parent, child, expected) => {
-      // Arrange
-
-      // Act
-      const actual = isSubDir(parent, child)
-
-      // Assert
-      expect(actual).toBe(expected)
-    }
-  )
-})
-
 describe('pathExists', () => {
   it('returns true when path is folder', async () => {
     // Arrange
@@ -635,90 +547,6 @@ describe('writeFile', () => {
 
     // Assert
     expect(outputFile).not.toBeCalled()
-  })
-})
-
-describe('dirExists', () => {
-  it('returns true when dir exist', async () => {
-    // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isDirectory: () => true,
-      } as unknown as Stats)) as unknown as typeof stat)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(true)
-  })
-
-  it('returns false when dir does not exist', async () => {
-    // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isDirectory: () => false,
-      } as unknown as Stats)) as unknown as typeof stat)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-
-  it('returns false when an exception occurs', async () => {
-    // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.reject(new Error('test'))) as unknown as typeof stat)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-})
-
-describe('fileExists', () => {
-  it('returns true when file exist', async () => {
-    // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isFile: () => true,
-      } as unknown as Stats)) as unknown as typeof stat)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(true)
-  })
-
-  it('returns false when file does not exist', async () => {
-    // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isFile: () => false,
-      } as unknown as Stats)) as unknown as typeof stat)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-
-  it('returns false when an exception occurs', async () => {
-    // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.reject(new Error('test'))) as unknown as typeof stat)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
   })
 })
 

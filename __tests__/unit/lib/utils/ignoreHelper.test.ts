@@ -7,14 +7,14 @@ import {
   resetIncludeInstance,
   resetIgnoreInstance,
 } from '../../../../src/utils/ignoreHelper'
-import { readFile } from '../../../../src/utils/fsHelper'
+import { readFile } from '../../../../src/utils/fsUtils'
 import {
   ADDITION,
   MODIFICATION,
   DELETION,
 } from '../../../../src/utils/gitConstants'
 import { Config } from '../../../../src/types/config'
-jest.mock('../../../../src/utils/fsHelper')
+jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)
 
 describe('ignoreHelper', () => {
