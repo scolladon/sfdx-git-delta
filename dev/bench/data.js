@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704275145374,
+  "lastUpdate": 1704275147969,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1455,6 +1455,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±1.15%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "30ed6d28e96c1f67ce5ec868391a581534dc5cb6",
+          "message": "fix: circular dependency issues (#749)",
+          "timestamp": "2024-01-03T10:39:55+01:00",
+          "tree_id": "621ea0e577ed327cf7164b5e61cef5a1c9be9018",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/30ed6d28e96c1f67ce5ec868391a581534dc5cb6"
+        },
+        "date": 1704275144994,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±1.52%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
