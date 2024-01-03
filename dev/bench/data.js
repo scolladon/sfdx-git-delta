@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704266716388,
+  "lastUpdate": 1704267903229,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1393,6 +1393,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.45%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1753f97fda048000690ca658d133cc58494fefcb",
+          "message": "fix: add fetch depth tips for git sha pointer error (#748)",
+          "timestamp": "2024-01-03T08:39:18+01:00",
+          "tree_id": "f677c1c2d0ac2192e7b87852b5bcf98c821c55b9",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/1753f97fda048000690ca658d133cc58494fefcb"
+        },
+        "date": 1704267902826,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±1.15%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
