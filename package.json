@@ -60,7 +60,8 @@
     "prebuild": "yarn clean",
     "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky install",
-    "upgrade:dependencies": "shx rm -rf yarn.lock ; shx touch yarn.lock ; yarn-upgrade-all ; yarn-audit-fix"
+    "dependencies:reinstall": "git diff HEAD^ HEAD --exit-code --quiet -- ./yarn.lock || yarn",
+    "dependencies:upgrade": "shx rm -rf yarn.lock ; shx touch yarn.lock ; yarn-upgrade-all ; yarn-audit-fix"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.4.3",
