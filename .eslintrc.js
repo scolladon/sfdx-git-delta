@@ -89,6 +89,7 @@ module.exports = {
     'getter-return': 'error',
     'implicit-arrow-linebreak': 'off',
     'import/no-cycle': 'error',
+    'import/no-unresolved': 'off',
     indent: 'off',
     'indent-legacy': 'off',
     'jsx-quotes': 'off',
