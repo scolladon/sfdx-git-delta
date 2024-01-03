@@ -1,6 +1,6 @@
 const message = {
   errorGitSHAisBlank: `--%s is blank: '%s'`,
-  errorParameterIsNotGitSHA: `--%s is not a valid sha pointer: '%s'`,
+  errorParameterIsNotGitSHA: `--%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)`,
   errorPathIsNotDir: `'%s' folder does not exist`,
   errorPathIsNotFile: `'%s' file does not exist`,
   errorPathIsNotGit: `'%s' is not a git repository`,
