@@ -1,7 +1,6 @@
 'use strict'
-import { readFile as fsReadFile } from 'fs-extra'
 import { isAbsolute, join, relative } from 'path'
-import { outputFile, stat } from 'fs-extra'
+import { readFile as fsReadFile, outputFile, stat } from 'fs-extra'
 import {
   GIT_COMMAND,
   GIT_FOLDER,
@@ -10,6 +9,7 @@ import {
 } from './gitConstants'
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
 import { isLFS, getLFSObjectContentPath } from './gitLfsHelper'
+import { buildIgnoreHelper } from './ignoreHelper'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
@@ -21,9 +21,15 @@ const copiedFiles = new Set()
 const writtenFiles = new Set()
 
 export const copyFiles = async (config: Config, src: string) => {
-  if (copiedFiles.has(src) || writtenFiles.has(src)) return
+  if (copiedFiles.has(src) || writtenFiles.has(src)) {
+    return
+  }
   copiedFiles.add(src)
 
+  const ignoreHelper = await buildIgnoreHelper(config)
+  if (ignoreHelper.globalIgnore.ignores(src)) {
+    return
+  }
   try {
     const bufferData: Buffer = await readPathFromGitAsBuffer(src, config)
     const utf8Data = bufferData?.toString(UTF8_ENCODING) ?? ''
@@ -119,11 +125,18 @@ export async function* scan(
 export const writeFile = async (
   path: string,
   content: string,
-  { output }: Config
+  config: Config
 ) => {
-  if (writtenFiles.has(path)) return
+  if (writtenFiles.has(path)) {
+    return
+  }
   writtenFiles.add(path)
-  await outputFile(join(output, treatPathSep(path)), content)
+
+  const ignoreHelper = await buildIgnoreHelper(config)
+  if (ignoreHelper.globalIgnore.ignores(path)) {
+    return
+  }
+  await outputFile(join(config.output, treatPathSep(path)), content)
 }
 
 export const isSubDir = (parent: string, dir: string) => {

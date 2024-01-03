@@ -64,7 +64,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
 
     for (const translationPath of translationsIterator) {
       if (
-        !ignoreHelper?.globalIgnore?.ignores(translationPath) &&
+        !ignoreHelper.globalIgnore.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
         await this._parseTranslationFile(translationPath)
