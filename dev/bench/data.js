@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1702388015941,
+  "lastUpdate": 1704266713591,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1331,6 +1331,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±1.87%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6f99d3c8c15de8a8844d9dcab964cffab929312",
+          "message": "fix: apply ignore settings when copying file (#745)\n\n\r\nCo-authored-by: Mark Mindenhall <1106269+mmindenhall@users.noreply.github.com>",
+          "timestamp": "2024-01-03T08:19:20+01:00",
+          "tree_id": "5bf17cc95941ad8e7e2d8090c78ab17a4fce525e",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/d6f99d3c8c15de8a8844d9dcab964cffab929312"
+        },
+        "date": 1704266713024,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.45%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
