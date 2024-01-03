@@ -17,6 +17,8 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
     'prettier',
+    'plugin:import/recommended',
+    'plugin:import/typescript',
   ],
   ignorePatterns: [
     'lib/**/*',
@@ -86,6 +88,7 @@ module.exports = {
     'generator-star-spacing': 'off',
     'getter-return': 'error',
     'implicit-arrow-linebreak': 'off',
+    'import/no-cycle': 'error',
     indent: 'off',
     'indent-legacy': 'off',
     'jsx-quotes': 'off',
