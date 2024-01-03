@@ -9,7 +9,8 @@ import {
   isVersionSupported,
 } from '../metadata/metadataManager'
 import { format } from 'util'
-import { readFile, dirExists, fileExists, isGit } from './fsHelper'
+import { isGit } from './fsHelper'
+import { readFile, dirExists, fileExists } from './fsUtils'
 import { join } from 'path'
 import { Work } from '../types/work'
 import { Config } from '../types/config'

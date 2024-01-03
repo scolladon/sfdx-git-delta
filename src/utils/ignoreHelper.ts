@@ -1,5 +1,5 @@
 import ignore, { Ignore } from 'ignore'
-import { readFile } from './fsHelper'
+import { readFile } from './fsUtils'
 import {
   ADDITION,
   DELETION,

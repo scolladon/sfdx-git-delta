@@ -1,7 +1,6 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata } from '../__utils__/globalTestHelper'
-import HandlerFactory from '../../src/service/typeHandlerFactory'
 import { ADDITION, DELETION, MODIFICATION } from '../../src/utils/gitConstants'
 import { readPathFromGit } from '../../src/utils/fsHelper'
 import { MetadataRepository } from '../../src/types/metadata'
@@ -447,7 +446,7 @@ beforeEach(() => {
     diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   }
-  handlerFactory = new HandlerFactory(work, globalMetadata)
+  handlerFactory = new TypeHandlerFactory(work, globalMetadata)
 })
 describe.each(testContext)(
   `integration test %s`,

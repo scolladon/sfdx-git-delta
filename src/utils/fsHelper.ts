@@ -1,6 +1,6 @@
 'use strict'
-import { isAbsolute, join, relative } from 'path'
-import { readFile as fsReadFile, outputFile, stat } from 'fs-extra'
+import { join } from 'path'
+import { readFile as fsReadFile, outputFile } from 'fs-extra'
 import {
   GIT_COMMAND,
   GIT_FOLDER,
@@ -10,6 +10,7 @@ import {
 import { EOLRegex, getSpawnContent, treatPathSep } from './childProcessUtils'
 import { isLFS, getLFSObjectContentPath } from './gitLfsHelper'
 import { buildIgnoreHelper } from './ignoreHelper'
+import { dirExists, fileExists } from './fsUtils'
 import { Config } from '../types/config'
 
 const FOLDER = 'tree'
@@ -99,13 +100,6 @@ export const readDir = async (dir: string, config: Config) => {
   return dirContent
 }
 
-export const readFile = async (path: string) => {
-  const file = await fsReadFile(path, {
-    encoding: UTF8_ENCODING,
-  })
-  return file
-}
-
 export async function* scan(
   dir: string,
   config: Config
@@ -139,11 +133,6 @@ export const writeFile = async (
   await outputFile(join(config.output, treatPathSep(path)), content)
 }
 
-export const isSubDir = (parent: string, dir: string) => {
-  const rel = relative(parent, dir)
-  return !!rel && !rel.startsWith('..') && !isAbsolute(rel)
-}
-
 export const scanExtension = async (
   dir: string,
   ext: string,
@@ -156,24 +145,6 @@ export const scanExtension = async (
     }
   }
   return result
-}
-
-export const dirExists = async (dir: string) => {
-  try {
-    const st = await stat(dir)
-    return st.isDirectory()
-  } catch {
-    return false
-  }
-}
-
-export const fileExists = async (file: string) => {
-  try {
-    const st = await stat(file)
-    return st.isFile()
-  } catch {
-    return false
-  }
 }
 
 export const isGit = async (dir: string) => {
