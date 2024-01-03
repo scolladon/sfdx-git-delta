@@ -1,7 +1,6 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
-import InFile from '../../../../src/service/inFileHandler'
 import { writeFile } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
 import { MetadataRepository } from '../../../../src/types/metadata'
@@ -34,7 +33,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     let sut: InFileHandler
     beforeEach(() => {
       // Arrange
-      sut = new InFile(
+      sut = new InFileHandler(
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         'workflows',
         work,
@@ -70,7 +69,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when metadata in file is not packable', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFile(
+        sut = new InFileHandler(
           'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
           'globalValueSetTranslations',
           work,
@@ -111,7 +110,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when element are added and deleted', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFile(
+        sut = new InFileHandler(
           'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
           'workflows',
           work,
@@ -150,7 +149,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when element are deleted and nothing is added', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFile(
+        sut = new InFileHandler(
           'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
           'workflows',
           work,
@@ -186,7 +185,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when no metadata element are added/deleted and the file does not contains attributes', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFile(
+          sut = new InFileHandler(
             'force-app/main/default/labels/CustomLabel.label-meta.xml',
             'labels',
             work,
@@ -225,7 +224,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when no metadata element are added, some are deleted but the file contains attributes', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFile(
+          sut = new InFileHandler(
             'force-app/main/default/labels/CustomLabel.label-meta.xml',
             'labels',
             work,
@@ -266,7 +265,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when metadata in file is not packable', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFile(
+        sut = new InFileHandler(
           'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
           'globalValueSetTranslations',
           work,
@@ -306,7 +305,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     let sut: InFileHandler
     beforeEach(() => {
       // Arrange
-      sut = new InFile(
+      sut = new InFileHandler(
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         'workflows',
         work,
@@ -336,7 +335,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when metadata in file is prune Only', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFile(
+        sut = new InFileHandler(
           'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
           'globalValueSetTranslations',
           work,

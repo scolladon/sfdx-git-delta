@@ -1,10 +1,9 @@
 'use strict'
 import StandardHandler from './standardHandler'
 import { join, parse, sep } from 'path'
-import { pathExists } from '../utils/fsHelper'
+import { pathExists, DOT } from '../utils/fsHelper'
 import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
 import { cleanUpPackageMember } from '../utils/packageHelper'
-import { DOT } from '../utils/fsHelper'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../types/metadata'
 
