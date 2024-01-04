@@ -50,9 +50,9 @@ export const getDefinition = async (
   await buildAPIMap()
   const version: number = _apiMap.has(apiVersion) ? apiVersion : _latestVersion
   if (!describeMetadata.has(version)) {
-    const apiFile = _apiMap.get(version)
+    const apiFile: string = _apiMap.get(version)!
     const fileContent: string = await readFile(
-      resolve(__dirname, apiFile!),
+      resolve(__dirname, apiFile),
       'utf-8'
     )
     describeMetadata.set(version, JSON.parse(fileContent))
