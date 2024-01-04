@@ -31,13 +31,21 @@ describe('typeUtils', () => {
     })
 
     describe('when passing "normal type" of line', () => {
-      it('can get empty type', () => {
+      it('can get classes type', () => {
         const line = 'force-app/main/default/classes/Added.cls'
 
         const result = sut(line, globalMetadata)
 
         expect(result).toEqual('classes')
       })
+    })
+
+    it('returns empty string by default', () => {
+      const line = 'force-app/main/default/Added.cls'
+
+      const result = sut(line, globalMetadata)
+
+      expect(result).toEqual('')
     })
   })
 })

@@ -27,7 +27,6 @@ export const SUB_OBJECT_TYPES = [
   'validationRules',
   'webLinks',
 ]
-export const TERRITORY_MODEL_TYPE = 'territory2Models'
 export const TRANSLATION_EXTENSION = 'translation'
 export const TRANSLATION_TYPE = 'Translations'
 export const XML_HEADER_TAG_END = '?>'
