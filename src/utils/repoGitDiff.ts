@@ -141,13 +141,8 @@ export default class RepoGitDiff {
     const el = parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
     let comparisonName = el.base
     if (pathType.includes(type)) {
-      comparisonName = line
-        .split(sep)
-        .reduce(
-          (acc: string, value: string) =>
-            acc || this.metadata.has(value) ? acc + value : acc,
-          ''
-        )
+      const type = line.split(sep).find(part => this.metadata.has(part))!
+      comparisonName = line.slice(line.indexOf(type)).replaceAll(sep, '')
     }
     return comparisonName
   }
