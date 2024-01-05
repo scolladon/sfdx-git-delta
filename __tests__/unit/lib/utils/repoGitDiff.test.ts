@@ -7,7 +7,7 @@ import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} from '../../../../src/utils/gitConstants'
+} from '../../../../src/constant/gitConstants'
 import {
   getSpawnContent,
   getSpawnContentByLine,

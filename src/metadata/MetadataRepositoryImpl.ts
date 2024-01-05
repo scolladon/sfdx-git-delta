@@ -9,9 +9,9 @@ import {
   RESTRICTION_RULE_TYPE,
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
-} from '../utils/metadataConstants'
+} from '../constant/metadataConstants'
 import { MetadataRepository } from './MetadataRepository'
-import { DOT } from '../utils/fsUtils'
+import { DOT } from '../constant/fsConstants'
 
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>

@@ -7,7 +7,7 @@ import {
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
-} from '../utils/metadataConstants'
+} from '../constant/metadataConstants'
 import { writeFile, scanExtension } from '../utils/fsHelper'
 import { isSubDir, readFile } from '../utils/fsUtils'
 import { pathExists } from 'fs-extra'

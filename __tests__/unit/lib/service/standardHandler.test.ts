@@ -2,12 +2,12 @@
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import StandardHandler from '../../../../src/service/standardHandler'
-import { METAFILE_SUFFIX } from '../../../../src/utils/metadataConstants'
+import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import {
   ADDITION,
   MODIFICATION,
   DELETION,
-} from '../../../../src/utils/gitConstants'
+} from '../../../../src/constant/gitConstants'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'

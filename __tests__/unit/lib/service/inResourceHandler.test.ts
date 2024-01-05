@@ -4,7 +4,7 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
 import { Work } from '../../../../src/types/work'
 import { copyFiles, pathExists, readDir } from '../../../../src/utils/fsHelper'
-import { METAFILE_SUFFIX } from '../../../../src/utils/metadataConstants'
+import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')

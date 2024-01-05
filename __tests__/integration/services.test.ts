@@ -1,7 +1,11 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata } from '../__utils__/globalTestHelper'
-import { ADDITION, DELETION, MODIFICATION } from '../../src/utils/gitConstants'
+import {
+  ADDITION,
+  DELETION,
+  MODIFICATION,
+} from '../../src/constant/gitConstants'
 import { readPathFromGit } from '../../src/utils/fsHelper'
 import { Work } from '../../src/types/work'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'

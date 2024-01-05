@@ -1,7 +1,8 @@
 'use strict'
 import { Config } from '../types/config'
 import { getSpawnContent, getSpawnContentByLine } from './childProcessUtils'
-import { GIT_COMMAND, UTF8_ENCODING } from './gitConstants'
+import { GIT_COMMAND } from '../constant/gitConstants'
+import { UTF8_ENCODING } from '../constant/fsConstants'
 import { SpawnOptionsWithoutStdio } from 'child_process'
 const commitCheckParams = ['cat-file', '-t']
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']

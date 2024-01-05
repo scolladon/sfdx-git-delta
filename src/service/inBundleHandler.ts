@@ -1,7 +1,7 @@
 'use strict'
 import InResourceHandler from './inResourceHandler'
 import { sep } from 'path'
-import { META_REGEX } from '../utils/metadataConstants'
+import { META_REGEX } from '../constant/metadataConstants'
 import { cleanUpPackageMember } from '../utils/packageHelper'
 
 export default class BundleHandler extends InResourceHandler {

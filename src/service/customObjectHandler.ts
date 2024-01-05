@@ -6,7 +6,7 @@ import {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
-} from '../utils/metadataConstants'
+} from '../constant/metadataConstants'
 import { join, parse } from 'path'
 
 export default class CustomObjectHandler extends StandardHandler {

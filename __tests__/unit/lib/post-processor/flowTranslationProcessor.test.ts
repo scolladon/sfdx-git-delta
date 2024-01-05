@@ -9,7 +9,7 @@ import {
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
-} from '../../../../src/utils/metadataConstants'
+} from '../../../../src/constant/metadataConstants'
 import { writeFile, scanExtension } from '../../../../src/utils/fsHelper'
 import { isSubDir, readFile } from '../../../../src/utils/fsUtils'
 import { Work } from '../../../../src/types/work'

@@ -7,7 +7,7 @@ import {
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   GIT_COMMAND,
-} from './gitConstants'
+} from '../constant/gitConstants'
 import { SpawnOptionsWithoutStdio } from 'child_process'
 import { gitPathSeparatorNormalizer } from './fsHelper'
 import { Config } from '../types/config'

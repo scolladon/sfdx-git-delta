@@ -5,8 +5,8 @@ import {
   DELETION,
   MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
-} from '../utils/gitConstants'
-import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
+} from '../constant/gitConstants'
+import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
 import {
   cleanUpPackageMember,
   fillPackageWithParameter,

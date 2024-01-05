@@ -2,7 +2,7 @@
 import StandardHandler from './standardHandler'
 import { join, parse, sep } from 'path'
 import { pathExists, DOT } from '../utils/fsHelper'
-import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
+import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { cleanUpPackageMember } from '../utils/packageHelper'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'

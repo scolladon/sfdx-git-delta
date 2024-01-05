@@ -8,7 +8,7 @@ import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} from '../../../../src/utils/gitConstants'
+} from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')

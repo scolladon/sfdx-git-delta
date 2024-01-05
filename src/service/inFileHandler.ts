@@ -1,5 +1,5 @@
 'use strict'
-import { LABEL_EXTENSION, LABEL_XML_NAME } from '../utils/metadataConstants'
+import { LABEL_EXTENSION, LABEL_XML_NAME } from '../constant/metadataConstants'
 import StandardHandler from './standardHandler'
 import { basename } from 'path'
 import { writeFile, DOT } from '../utils/fsHelper'

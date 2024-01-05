@@ -1,7 +1,7 @@
 'use strict'
 import { stat, readFile as fsReadFile } from 'fs-extra'
 import { isAbsolute, relative } from 'path'
-import { UTF8_ENCODING } from './gitConstants'
+import { UTF8_ENCODING } from '../constant/fsConstants'
 
 export const isSubDir = (parent: string, dir: string) => {
   const rel = relative(parent, dir)
@@ -32,5 +32,3 @@ export const readFile = async (path: string) => {
   })
   return file
 }
-
-export const DOT = '.'

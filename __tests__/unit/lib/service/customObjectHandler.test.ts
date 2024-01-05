@@ -2,7 +2,7 @@
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import CustomObjectHandler from '../../../../src/service/customObjectHandler'
-import { MASTER_DETAIL_TAG } from '../../../../src/utils/metadataConstants'
+import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import {
   copyFiles,
   pathExists,

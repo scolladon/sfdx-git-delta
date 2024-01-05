@@ -4,7 +4,7 @@ import {
   INFOLDER_SUFFIX,
   META_REGEX,
   METAFILE_SUFFIX,
-} from '../utils/metadataConstants'
+} from '../constant/metadataConstants'
 import { cleanUpPackageMember } from '../utils/packageHelper'
 import { join, parse, sep } from 'path'
 import { readDir } from '../utils/fsHelper'

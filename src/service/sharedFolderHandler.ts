@@ -2,7 +2,7 @@
 import StandardHandler from './standardHandler'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 import { getSharedFolderMetadata } from '../metadata/metadataManager'
-import { METAFILE_SUFFIX } from '../utils/metadataConstants'
+import { METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { parse, join } from 'path'
 import { Manifest, Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
