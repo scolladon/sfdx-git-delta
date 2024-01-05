@@ -4,7 +4,7 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import BotHandler from '../../../../src/service/botHandler'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 

@@ -5,7 +5,7 @@ import { getSharedFolderMetadata } from '../metadata/metadataManager'
 import { METAFILE_SUFFIX } from '../utils/metadataConstants'
 import { parse, join } from 'path'
 import { Manifest, Work } from '../types/work'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 export default class SharedFolderHandler extends StandardHandler {
   protected readonly sharedFolderMetadata: Map<string, string>

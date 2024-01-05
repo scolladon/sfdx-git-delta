@@ -1,9 +1,9 @@
 'use strict'
+import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import {
   getDefinition,
   getLatestSupportedVersion,
 } from '../../src/metadata/metadataManager'
-import { MetadataRepository } from '../../src/types/metadata'
 import { Work } from '../../src/types/work'
 
 require('ts-node/register')

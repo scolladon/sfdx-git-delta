@@ -10,7 +10,7 @@ import {
 } from '../../../../src/utils/gitConstants'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedCopyFiles = jest.mocked(copyFiles)

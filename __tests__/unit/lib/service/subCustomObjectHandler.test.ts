@@ -5,7 +5,7 @@ import SubCustomObjectHandler from '../../../../src/service/subCustomObjectHandl
 import { MASTER_DETAIL_TAG } from '../../../../src/utils/metadataConstants'
 import { readPathFromGit, copyFiles } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 

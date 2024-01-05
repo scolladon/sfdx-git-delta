@@ -7,8 +7,8 @@ import {
   parseXmlFileToJson,
   convertJsonToXml,
 } from '../../../../src/utils/fxpHelper'
-import { MetadataRepository } from '../../../../src/types/metadata'
 import { Work } from '../../../../src/types/work'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fxpHelper', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

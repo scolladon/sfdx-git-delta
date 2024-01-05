@@ -1,7 +1,7 @@
 'use strict'
 
+import { MetadataRepository } from '../metadata/MetadataRepository'
 import { Config } from '../types/config'
-import { MetadataRepository } from '../types/metadata'
 import { Work } from '../types/work'
 
 export default class BaseProcessor {

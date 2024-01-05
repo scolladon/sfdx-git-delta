@@ -6,7 +6,6 @@ import {
   isSubDir,
   readFile,
 } from '../../../../src/utils/fsUtils'
-
 import { Stats, stat, readFile as fsReadFile } from 'fs-extra'
 
 jest.mock('fs-extra')

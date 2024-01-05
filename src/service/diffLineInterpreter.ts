@@ -1,5 +1,5 @@
 'use strict'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 import { Work } from '../types/work'
 import TypeHandlerFactory from './typeHandlerFactory'
 

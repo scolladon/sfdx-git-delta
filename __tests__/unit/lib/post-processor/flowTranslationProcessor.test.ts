@@ -12,8 +12,8 @@ import {
 } from '../../../../src/utils/metadataConstants'
 import { writeFile, scanExtension } from '../../../../src/utils/fsHelper'
 import { isSubDir, readFile } from '../../../../src/utils/fsUtils'
-import { MetadataRepository } from '../../../../src/types/metadata'
 import { Work } from '../../../../src/types/work'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('fs-extra')
 jest.mock('../../../../src/utils/fsHelper')

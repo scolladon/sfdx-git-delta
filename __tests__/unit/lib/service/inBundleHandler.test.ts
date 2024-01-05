@@ -3,7 +3,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 const objectType = 'digitalExperiences'
 const entityPath =

@@ -1,3 +1,4 @@
+'use strict'
 import { stat, readFile as fsReadFile } from 'fs-extra'
 import { isAbsolute, relative } from 'path'
 import { UTF8_ENCODING } from './gitConstants'

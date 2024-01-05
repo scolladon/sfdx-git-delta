@@ -5,7 +5,7 @@ import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { METAFILE_SUFFIX } from '../../../../src/utils/metadataConstants'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 

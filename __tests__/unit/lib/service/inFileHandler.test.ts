@@ -3,8 +3,8 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import { writeFile } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
 import InFileHandler from '../../../../src/service/inFileHandler'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 const mockCompare = jest.fn()
 const mockPrune = jest.fn()

@@ -5,7 +5,7 @@ import InResourceHandler from '../../../../src/service/inResourceHandler'
 import { Work } from '../../../../src/types/work'
 import { copyFiles, pathExists, readDir } from '../../../../src/utils/fsHelper'
 import { METAFILE_SUFFIX } from '../../../../src/utils/metadataConstants'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 

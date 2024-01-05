@@ -3,9 +3,9 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata } from '../__utils__/globalTestHelper'
 import { ADDITION, DELETION, MODIFICATION } from '../../src/utils/gitConstants'
 import { readPathFromGit } from '../../src/utils/fsHelper'
-import { MetadataRepository } from '../../src/types/metadata'
 import { Work } from '../../src/types/work'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
+import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 
 jest.mock('../../src/utils/fsHelper')
 

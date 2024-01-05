@@ -2,8 +2,8 @@
 import { beforeAll, expect, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import BaseProcessor from '../../../../src/post-processor/baseProcessor'
-import { MetadataRepository } from '../../../../src/types/metadata'
 import { Work } from '../../../../src/types/work'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 describe('BaseProcessor', () => {
   let work: Work, metadata: MetadataRepository

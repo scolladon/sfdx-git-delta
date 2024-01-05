@@ -4,7 +4,7 @@ import PackageGenerator from './packageGenerator'
 import FlowTranslationProcessor from './flowTranslationProcessor'
 import IncludeProcessor from './includeProcessor'
 import { Work } from '../types/work'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 const processors: Array<typeof BaseProcessor> = [
   FlowTranslationProcessor,

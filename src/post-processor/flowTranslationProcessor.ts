@@ -22,7 +22,7 @@ import {
 import { fillPackageWithParameter } from '../utils/packageHelper'
 import { treatPathSep } from '../utils/childProcessUtils'
 import { Work } from '../types/work'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 

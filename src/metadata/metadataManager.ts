@@ -4,10 +4,11 @@ import { readFile, readdir } from 'fs-extra'
 import {
   BaseMetadata,
   Metadata,
-  MetadataRepository,
   SharedFileMetadata,
   SharedFolderMetadata,
 } from '../types/metadata'
+import { MetadataRepository } from './MetadataRepository'
+import { MetadataRepositoryImpl } from './MetadataRepositoryImpl'
 
 const _apiMap = new Map<number, string>()
 let _latestVersion: number = -Infinity
@@ -58,13 +59,9 @@ export const getDefinition = async (
     describeMetadata.set(version, JSON.parse(fileContent))
   }
 
-  const metadataRepository: MetadataRepository = new Map<string, Metadata>()
-  describeMetadata
-    .get(version)
-    ?.reduce((metadata: MetadataRepository, describe: Metadata) => {
-      metadata.set(describe.directoryName, describe)
-      return metadata
-    }, metadataRepository)
+  const metadataRepository: MetadataRepository = new MetadataRepositoryImpl(
+    describeMetadata.get(version)!
+  )
   return metadataRepository
 }
 
@@ -76,7 +73,8 @@ export const isPackable = (type: string) =>
 export const getInFileAttributes = (metadata: MetadataRepository) =>
   inFileMetadata.size
     ? inFileMetadata
-    : Array.from(metadata.values())
+    : metadata
+        .values()
         .filter((meta: Metadata) => meta.xmlTag)
         .reduce(
           (acc: Map<string, SharedFileMetadata>, meta: Metadata) =>
@@ -91,7 +89,8 @@ export const getInFileAttributes = (metadata: MetadataRepository) =>
 export const getSharedFolderMetadata = (metadata: MetadataRepository) =>
   sharedFolderMetadata.size
     ? sharedFolderMetadata
-    : Array.from(metadata.values())
+    : metadata
+        .values()
         .filter((meta: Metadata) => meta.content)
         .flatMap((elem: SharedFolderMetadata): BaseMetadata[] => elem.content!)
         .reduce(

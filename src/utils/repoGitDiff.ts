@@ -1,25 +1,17 @@
 'use strict'
 import { getSpawnContentByLine, treatPathSep } from './childProcessUtils'
-import { getType } from './typeUtils'
 import { buildIgnoreHelper } from './ignoreHelper'
 import {
   ADDITION,
   DELETION,
-  GIT_DIFF_TYPE_REGEX,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   GIT_COMMAND,
 } from './gitConstants'
-import {
-  SUB_OBJECT_TYPES,
-  OBJECT_TYPE,
-  OBJECT_TRANSLATION_TYPE,
-} from './metadataConstants'
 import { SpawnOptionsWithoutStdio } from 'child_process'
 import { gitPathSeparatorNormalizer } from './fsHelper'
-import { parse, sep } from 'path'
-import { MetadataRepository } from '../types/metadata'
 import { Config } from '../types/config'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 const DIFF_FILTER = '--diff-filter'
 
@@ -32,8 +24,6 @@ const NUM_STAT_REGEX = /^((-|\d+)\t){2}/
 const lcSensitivity: Intl.CollatorOptions = {
   sensitivity: 'accent',
 }
-
-const pathType = [OBJECT_TYPE, OBJECT_TRANSLATION_TYPE, ...SUB_OBJECT_TYPES]
 
 export default class RepoGitDiff {
   protected readonly spawnConfig: SpawnOptionsWithoutStdio
@@ -130,20 +120,10 @@ export default class RepoGitDiff {
   }
 
   protected _filterInternal(line: string, deletedRenamed: string[]): boolean {
-    return (
-      !deletedRenamed.includes(line) &&
-      line.split(sep).some(part => this.metadata.has(part))
-    )
+    return !deletedRenamed.includes(line) && this.metadata.has(line)
   }
 
   protected _extractComparisonName(line: string) {
-    const type = getType(line, this.metadata)
-    const el = parse(line.replace(GIT_DIFF_TYPE_REGEX, ''))
-    let comparisonName = el.base
-    if (pathType.includes(type)) {
-      const type = line.split(sep).find(part => this.metadata.has(part))!
-      comparisonName = line.slice(line.indexOf(type)).replaceAll(sep, '')
-    }
-    return comparisonName
+    return this.metadata.getFullyQualifiedName(line)
   }
 }

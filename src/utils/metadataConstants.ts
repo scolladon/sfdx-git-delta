@@ -13,6 +13,7 @@ export const OBJECT_TRANSLATION_TYPE = 'objectTranslations'
 export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_SUFFIX}`
 export const OBJECT_TYPE = 'objects'
 export const OBJECT_XML_NAME = 'CustomObject'
+export const RESTRICTIONRULE_TYPE = 'restrictionRules'
 export const SUB_OBJECT_TYPES = [
   'businessProcesses',
   'compactLayouts',
@@ -27,6 +28,7 @@ export const SUB_OBJECT_TYPES = [
   'validationRules',
   'webLinks',
 ]
+export const TERRITORY_MODEL_TYPE = 'territory2Models'
 export const TRANSLATION_EXTENSION = 'translation'
 export const TRANSLATION_TYPE = 'Translations'
 export const XML_HEADER_TAG_END = '?>'

@@ -6,7 +6,7 @@ import DiffLineInterpreter from '../service/diffLineInterpreter'
 import { treatPathSep } from '../utils/childProcessUtils'
 import { ADDITION, DELETION } from '../utils/gitConstants'
 import { Work } from '../types/work'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {

@@ -6,7 +6,7 @@ import RepoGitDiff from './utils/repoGitDiff'
 import { getPostProcessors } from './post-processor/postProcessorManager'
 import { Config } from './types/config'
 import { Work } from './types/work'
-import { MetadataRepository } from './types/metadata'
+import { MetadataRepository } from './metadata/MetadataRepository'
 
 const sgd = async (config: Config): Promise<Work> => {
   const work: Work = {
