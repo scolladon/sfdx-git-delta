@@ -269,14 +269,11 @@ describe('MetadataRepositoryImpl', () => {
     describe('when the metadata also as a parent folder', () => {
       it('returns the parent folder with folder with sub folder with file', () => {
         // Act
-        const result = sut.getFullyQualifiedName(
-          'Z force-app/main/objects/Account/fields/Test__c.field-meta.xml'
-        )
+        const fqn = 'objects/Account/fields/Test__c.field-meta.xml'
+        const result = sut.getFullyQualifiedName(`Z force-app/main/${fqn}`)
 
         // Assert
-        expect(result).toStrictEqual(
-          'objectsAccountfieldsTest__c.field-meta.xml'
-        )
+        expect(result).toStrictEqual(fqn.split('/').join(''))
       })
     })
 

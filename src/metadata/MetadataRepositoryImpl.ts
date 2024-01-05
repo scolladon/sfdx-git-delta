@@ -6,7 +6,7 @@ import {
   METAFILE_SUFFIX,
   OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
-  RESTRICTIONRULE_TYPE,
+  RESTRICTION_RULE_TYPE,
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
 } from '../utils/metadataConstants'
@@ -95,7 +95,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   private static TYPES_WITH_SUB_TYPES = [OBJECT_TYPE, TERRITORY_MODEL_TYPE, '']
-  private static EXTENSION_MATCHING_EXCEPTION = [RESTRICTIONRULE_TYPE]
+  private static EXTENSION_MATCHING_EXCEPTION = [RESTRICTION_RULE_TYPE]
 
   private static COMPOSED_TYPES = [
     OBJECT_TYPE,
