@@ -184,6 +184,12 @@ export default class GitAdapter {
     } else {
       throw new Error(`Path ${path} does not exist in ${this.config.to}`)
     }
+    return await this.getContentFromFiles(blobFiles)
+  }
+
+  protected async getContentFromFiles(
+    blobFiles: { path: string; content: Uint8Array }[]
+  ) {
     const bufferFiles: { path: string; content: Buffer }[] = []
     for (const file of blobFiles) {
       const content = await this.getBufferFromBlob(file.content)
@@ -249,13 +255,7 @@ export const diffLineWalker =
       type = DELETION
     } else {
       if (ignoreWhitespace) {
-        const [fromContent, toContent] = await Promise.all(
-          trees.map(async tree => {
-            const content = (await tree!.content()) as Uint8Array
-            return stripWhiteChar(Buffer.from(content).toString())
-          })
-        )
-        if (fromContent === toContent) {
+        if (await isContentsEqualIgnoringWhiteChars(trees)) {
           return
         }
       }
@@ -264,6 +264,18 @@ export const diffLineWalker =
 
     return `${type}\t${gitPathSeparatorNormalizer(path)}`
   }
+
+const isContentsEqualIgnoringWhiteChars = async (
+  trees: (WalkerEntry | null)[]
+) => {
+  const [fromContent, toContent] = await Promise.all(
+    trees.map(async tree => {
+      const content = (await tree!.content()) as Uint8Array
+      return stripWhiteChar(Buffer.from(content).toString())
+    })
+  )
+  return fromContent === toContent
+}
 
 export const contentWalker =
   (path: string) => async (filepath: string, trees: (WalkerEntry | null)[]) => {
