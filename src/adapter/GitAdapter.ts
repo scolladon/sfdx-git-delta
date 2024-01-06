@@ -1,4 +1,4 @@
-import git, { TREE, WalkerEntry } from 'isomorphic-git'
+import git, { TREE, WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 import { simpleGit, SimpleGit } from 'simple-git'
 import { readFile } from 'fs-extra'
 import fs from 'fs'
@@ -20,17 +20,22 @@ const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
 const TREE_TYPE = 'tree'
 
-// Walk Optimisation:
-// use custom iterate method to throttle and queue recursion using a Pool (using async module https://github.com/caolan/async)
-// use global cache to avoid re-reading the same tree
-// return tree instead of getting blob content
-
-// TODO test with very diff and filelist with very big repository
-
 const gitPathSeparatorNormalizer = (path: string) =>
   path.replace(/\\+/g, GIT_PATH_SEP)
 
 const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
+
+const iterate = async (
+  walk: WalkerIterateCallback,
+  children: IterableIterator<Array<WalkerEntry>>
+) => {
+  const result = []
+  for (const child of children) {
+    const walkedChildResult = await walk(child)
+    result.push(walkedChildResult)
+  }
+  return result
+}
 
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
@@ -144,6 +149,7 @@ export default class GitAdapter {
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.to })],
       map: walker,
+      iterate,
     })
   }
 
@@ -167,6 +173,7 @@ export default class GitAdapter {
           cache: GitAdapter.sharedCache,
           trees: [TREE({ ref: this.config.to })],
           map: walker,
+          iterate,
         }))
       )
     } else if (object.type === BLOB_TYPE) {
@@ -196,6 +203,7 @@ export default class GitAdapter {
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
       map: walker,
+      iterate,
     })
   }
 }
