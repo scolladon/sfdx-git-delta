@@ -5,9 +5,7 @@ import GitAdapter from '../adapter/GitAdapter'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
-const lcSensitivity: Intl.CollatorOptions = {
-  sensitivity: 'accent',
-}
+const pathType = [OBJECT_TYPE, OBJECT_TRANSLATION_TYPE, ...SUB_OBJECT_TYPES]
 
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
@@ -41,16 +39,15 @@ export default class RepoGitDiff {
   protected _getRenamedElements(lines: string[]) {
     const linesPerDiffType: Map<string, string[]> =
       this._spreadLinePerDiffType(lines)
-    const AfileNames: string[] =
+    const AfileNames: Set<string> = new Set(
       linesPerDiffType
         .get(ADDITION)
         ?.map(line => this._extractComparisonName(line)) ?? []
+    )
     const deletedRenamed: string[] =
-      linesPerDiffType.get(DELETION)?.filter((line: string) => {
+      [...(linesPerDiffType.get(DELETION) ?? [])].filter((line: string) => {
         const dEl = this._extractComparisonName(line)
-        return AfileNames.some(
-          aEl => !aEl.localeCompare(dEl, undefined, lcSensitivity)
-        )
+        return AfileNames.has(dEl)
       }) ?? []
 
     return deletedRenamed

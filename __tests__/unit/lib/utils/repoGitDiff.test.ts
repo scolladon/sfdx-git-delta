@@ -302,7 +302,7 @@ describe(`test if repoGitDiff`, () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe('Test.cls')
+        expect(result).toBe('test.cls')
       })
     })
 
@@ -319,7 +319,7 @@ describe(`test if repoGitDiff`, () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe(elPath.replace(/\//g, ''))
+        expect(result).toBe(elPath.replace(/\//g, '').toLocaleLowerCase())
       })
     })
   })
