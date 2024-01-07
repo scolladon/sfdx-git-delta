@@ -2049,6 +2049,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/async@npm:^3.2.24":
+  version: 3.2.24
+  resolution: "@types/async@npm:3.2.24"
+  checksum: e52ee5e9b6e4354aba709551f1777080b16c07d91632ef2d3d6542ea838c84fae5a2811015327dd908ce7dc810daacc564ab99b9a5bc22e4f3f86819461e0970
+  languageName: node
+  linkType: hard
+
 "@types/babel__core@npm:^7.1.14":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -2968,7 +2975,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"async@npm:^3.2.3, async@npm:^3.2.4":
+"async@npm:^3.2.3, async@npm:^3.2.4, async@npm:^3.2.5":
   version: 3.2.5
   resolution: "async@npm:3.2.5"
   checksum: 5ec77f1312301dee02d62140a6b1f7ee0edd2a0f983b6fd2b0849b969f245225b990b47b8243e7b9ad16451a53e7f68e753700385b706198ced888beedba3af4
@@ -9874,11 +9881,13 @@ __metadata:
     "@stryker-mutator/core": ^8.0.0
     "@stryker-mutator/jest-runner": ^8.0.0
     "@swc/core": ^1.3.102
+    "@types/async": ^3.2.24
     "@types/jest": ^29.5.11
     "@types/mocha": ^10.0.6
     "@types/node": ^20.10.6
     "@typescript-eslint/eslint-plugin": ^6.17.0
     "@typescript-eslint/parser": ^6.17.0
+    async: ^3.2.5
     benchmark: ^2.1.4
     chai: ^4.3.10
     depcheck: ^1.4.7
