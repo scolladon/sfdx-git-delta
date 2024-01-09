@@ -4,6 +4,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.32.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.31.1...v5.32.0) (2024-01-09)
+
+
+### Features
+
+* add `RecordAlertCategory` metadata support ([#752](https://github.com/scolladon/sfdx-git-delta/issues/752)) ([3ba47cc](https://github.com/scolladon/sfdx-git-delta/commit/3ba47ccb2c631875a19d48bd78adcf5d501429f2))
+
+
+### Bug Fixes
+
+* add fetch depth tips for git sha pointer error ([#748](https://github.com/scolladon/sfdx-git-delta/issues/748)) ([1753f97](https://github.com/scolladon/sfdx-git-delta/commit/1753f97fda048000690ca658d133cc58494fefcb))
+* apply ignore settings when copying file ([#745](https://github.com/scolladon/sfdx-git-delta/issues/745)) ([d6f99d3](https://github.com/scolladon/sfdx-git-delta/commit/d6f99d3c8c15de8a8844d9dcab964cffab929312))
+* circular dependency issues ([#749](https://github.com/scolladon/sfdx-git-delta/issues/749)) ([30ed6d2](https://github.com/scolladon/sfdx-git-delta/commit/30ed6d28e96c1f67ce5ec868391a581534dc5cb6))
+
 ## [5.31.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.31.0...v5.31.1) (2023-12-12)
 
 
