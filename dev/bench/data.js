@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1704797189045,
+  "lastUpdate": 1704797191886,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1517,6 +1517,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±1.52%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3ba47ccb2c631875a19d48bd78adcf5d501429f2",
+          "message": "feat: add `RecordAlertCategory` metadata support (#752)\n\n* feat: add `RecordAlertCategory` metadata support\r\n\r\n* test: fix nut test expect",
+          "timestamp": "2024-01-09T11:40:23+01:00",
+          "tree_id": "803e5b8a1323d70323de2102706f577af7bbb954",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/3ba47ccb2c631875a19d48bd78adcf5d501429f2"
+        },
+        "date": 1704797188484,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.43%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
