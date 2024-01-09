@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "recordAlertCategories",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "recordAlertCategory",
+    "xmlName": "RecordAlertCategory"
+  },
+  {
     "directoryName": "aiApplicationConfigs",
     "inFolder": false,
     "metaFile": false,
