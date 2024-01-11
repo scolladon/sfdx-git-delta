@@ -113,41 +113,59 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('isGit', () => {
-    it('should return true when .git folder exists', async () => {
+  describe('setGitDir', () => {
+    it('should set gitdir with git repository', async () => {
       // Arrange
-      mockedDirExists.mockImplementationOnce(() => Promise.resolve(true))
-      mockedFileExists.mockImplementationOnce(() => Promise.resolve(false))
+      mockedDirExists.mockImplementation(() => Promise.resolve(true))
+      mockedFileExists.mockImplementation(() => Promise.resolve(false))
+      const gitAdapter = GitAdapter.getInstance({
+        ...config,
+        repo: 'repository',
+      })
 
       // Act
-      const result = await GitAdapter.isGit(config.repo)
+      await gitAdapter.setGitDir()
 
       // Assert
-      expect(result).toBe(true)
+      expect(mockedDirExists).toBeCalledTimes(1)
+      expect(mockedFileExists).not.toBeCalled()
     })
 
-    it('should return true when .git file exists', async () => {
+    it('should set gitdir with submodules', async () => {
       // Arrange
-      mockedDirExists.mockImplementationOnce(() => Promise.resolve(false))
-      mockedFileExists.mockImplementationOnce(() => Promise.resolve(true))
+      mockedDirExists.mockImplementation(() => Promise.resolve(false))
+      mockedFileExists.mockImplementation(() => Promise.resolve(true))
+      readFileMocked.mockResolvedValue(Buffer.from('content') as never)
+      const gitAdapter = GitAdapter.getInstance({
+        ...config,
+        repo: 'submodule',
+      })
 
       // Act
-      const result = await GitAdapter.isGit(config.repo)
+      await gitAdapter.setGitDir()
 
       // Assert
-      expect(result).toBe(true)
+      expect(mockedDirExists).toBeCalledTimes(1)
+      expect(mockedFileExists).toBeCalledTimes(1)
     })
 
-    it('should return false when .git folder and .git file does not exists', async () => {
+    it('should throw when no git material is found', async () => {
       // Arrange
-      mockedDirExists.mockImplementationOnce(() => Promise.resolve(false))
-      mockedFileExists.mockImplementationOnce(() => Promise.resolve(false))
+      expect.assertions(1)
+      mockedDirExists.mockImplementation(() => Promise.resolve(false))
+      mockedFileExists.mockImplementation(() => Promise.resolve(false))
+      const gitAdapter = GitAdapter.getInstance({
+        ...config,
+        repo: 'not git material',
+      })
 
       // Act
-      const result = await GitAdapter.isGit(config.repo)
-
-      // Assert
-      expect(result).toBe(false)
+      try {
+        await gitAdapter.setGitDir()
+      } catch (error) {
+        // Assert
+        expect(error).toBeDefined()
+      }
     })
   })
 

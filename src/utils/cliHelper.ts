@@ -61,7 +61,6 @@ export default class CLIHelper {
     await this._handleDefault()
     const errors: string[] = []
 
-    const isGitPromise = GitAdapter.isGit(this.config.repo)
     const directoriesPromise = this._filterDirectories()
     const filesPromise = this._filterFiles()
 
@@ -75,8 +74,9 @@ export default class CLIHelper {
       errors.push(format(messages.errorPathIsNotFile, file))
     )
 
-    const isGitRepo = await isGitPromise
-    if (!isGitRepo) {
+    try {
+      await this.gitAdapter.setGitDir()
+    } catch {
       errors.push(format(messages.errorPathIsNotGit, this.config.repo))
     }
 

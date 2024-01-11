@@ -11,12 +11,12 @@ import { format } from 'util'
 
 const mockParseRev = jest.fn()
 const mockConfigureRepository = jest.fn()
-const isGitMock = jest.fn()
+const setGitDirMock = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => ({
-  isGit: () => isGitMock(),
   getInstance: () => ({
     parseRev: mockParseRev,
     configureRepository: mockConfigureRepository,
+    setGitDir: setGitDirMock,
   }),
 }))
 
@@ -38,7 +38,7 @@ describe(`test if the application`, () => {
     work.config.apiVersion = 46
     mockedFileExists.mockImplementation(() => Promise.resolve(true))
     mockedDirExists.mockImplementation(() => Promise.resolve(true))
-    isGitMock.mockImplementation(() => Promise.resolve(true))
+    setGitDirMock.mockImplementation(() => Promise.resolve(true))
     mockParseRev.mockImplementation(() => Promise.resolve('ref'))
   })
 
@@ -61,7 +61,7 @@ describe(`test if the application`, () => {
   })
 
   it('throws errors when repo is not a git repository', async () => {
-    isGitMock.mockImplementationOnce(() => Promise.resolve(false))
+    setGitDirMock.mockImplementationOnce(() => Promise.resolve(false))
     const cliHelper = new CLIHelper({
       ...work,
       config: {
@@ -410,7 +410,7 @@ describe(`test if the application`, () => {
 
   it('do not throw errors when repo contains submodule git file', async () => {
     expect.assertions(1)
-    isGitMock.mockImplementationOnce(() => Promise.resolve(true))
+    setGitDirMock.mockImplementationOnce(() => Promise.resolve(true))
     const cliHelper = new CLIHelper({
       ...work,
       config: {
@@ -425,7 +425,7 @@ describe(`test if the application`, () => {
 
   it('do not throw errors when repo submodule git folder', async () => {
     expect.assertions(1)
-    isGitMock.mockImplementationOnce(() => Promise.resolve(true))
+    setGitDirMock.mockImplementationOnce(() => Promise.resolve(true))
     const cliHelper = new CLIHelper({
       ...work,
       config: {

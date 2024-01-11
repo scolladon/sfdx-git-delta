@@ -36,6 +36,11 @@ const iterate = async (
   }
   return result
 }
+type GitBaseConfig = {
+  fs: typeof fs
+  dir: string
+  gitdir?: string
+}
 
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
@@ -50,13 +55,6 @@ export default class GitAdapter {
     return GitAdapter.instances.get(config)!
   }
 
-  public static async isGit(dir: string): Promise<boolean> {
-    const isGitDir = await dirExists(join(dir, GIT_FOLDER))
-    const isGitFile = await fileExists(join(dir, GIT_FOLDER))
-
-    return isGitDir || isGitFile
-  }
-
   private async getBufferFromBlob(blob: Uint8Array): Promise<Buffer> {
     let bufferData: Buffer = Buffer.from(blob)
     if (isLFS(bufferData)) {
@@ -69,7 +67,7 @@ export default class GitAdapter {
 
   protected readonly isoGit = git
   protected readonly simpleGit: SimpleGit
-  protected readonly gitConfig
+  protected readonly gitConfig: GitBaseConfig
   protected readonly config: Config
 
   private constructor(config: Config) {
@@ -90,6 +88,20 @@ export default class GitAdapter {
       ...this.gitConfig,
       ...quotepathOff,
     })
+  }
+
+  public async setGitDir(): Promise<void> {
+    if (this.gitConfig.gitdir) {
+      return
+    }
+    if (await dirExists(join(this.config.repo, GIT_FOLDER))) {
+      this.gitConfig.gitdir = join(this.config.repo, GIT_FOLDER)
+    } else if (await fileExists(join(this.config.repo, GIT_FOLDER))) {
+      const gitFileContent = await readFile(join(this.config.repo, GIT_FOLDER))
+      this.gitConfig.gitdir = gitFileContent.toString().trim().substring(8)
+    } else {
+      throw new Error('Not a git repository')
+    }
   }
 
   public async parseRev(ref: string) {
