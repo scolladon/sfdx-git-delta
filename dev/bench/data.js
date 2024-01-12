@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1705079002081,
+  "lastUpdate": 1705079005042,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1579,6 +1579,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.43%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "22aa87fa1fdafabdf841900aab27855fcd31947b",
+          "message": "feat: add `MessagingChannel` metadata support (#754)",
+          "timestamp": "2024-01-12T17:57:15+01:00",
+          "tree_id": "12a869d9b1376f90b7a295e93b2adcbf0b15fb79",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/22aa87fa1fdafabdf841900aab27855fcd31947b"
+        },
+        "date": 1705079001444,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.76%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
