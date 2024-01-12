@@ -36,9 +36,7 @@ export default class InFolderHandler extends StandardHandler {
     await Promise.all(
       dirContent
         .filter((file: string) => file.includes(parsedLine.name))
-        .map((file: string) =>
-          this._copyWithMetaFile(join(parsedLine.dir, file))
-        )
+        .map((file: string) => this._copyWithMetaFile(file))
     )
   }
 
