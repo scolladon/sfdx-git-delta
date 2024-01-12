@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.33.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.32.0...v5.33.0) (2024-01-12)
+
+
+### Features
+
+* add `MessagingChannel` metadata support ([#754](https://github.com/scolladon/sfdx-git-delta/issues/754)) ([22aa87f](https://github.com/scolladon/sfdx-git-delta/commit/22aa87fa1fdafabdf841900aab27855fcd31947b))
+
 ## [5.32.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.31.1...v5.32.0) (2024-01-09)
 
 
