@@ -176,16 +176,14 @@ export default class GitAdapter {
     // Iterate over and output file using the getContent API when needed
     const blobFiles: { path: string; content: Uint8Array }[] = []
     if (object.type === TREE_TYPE) {
-      const walker = contentWalker(path)
-      blobFiles.push(
-        ...(await this.isoGit.walk({
-          ...this.gitConfig,
-          cache: GitAdapter.sharedCache,
-          trees: [TREE({ ref: this.config.to })],
-          map: walker,
-          iterate,
-        }))
-      )
+      const filesContent = await this.isoGit.walk({
+        ...this.gitConfig,
+        cache: GitAdapter.sharedCache,
+        trees: [TREE({ ref: this.config.to })],
+        map: contentWalker(path),
+        iterate,
+      })
+      blobFiles.push(...filesContent)
     } else if (object.type === BLOB_TYPE) {
       blobFiles.push({
         path,
@@ -226,17 +224,15 @@ export default class GitAdapter {
 export const filePathWalker =
   (path: string) => async (filepath: string, trees: (WalkerEntry | null)[]) => {
     const [tree] = trees
+    let normalizedPath
     if (
-      filepath === DOT ||
-      (path !== SOURCE_DEFAULT_VALUE && !filepath.startsWith(path))
+      filepath !== DOT &&
+      (path === SOURCE_DEFAULT_VALUE || filepath.startsWith(path)) &&
+      (await tree!.type()) === BLOB_TYPE
     ) {
-      return
+      normalizedPath = gitPathSeparatorNormalizer(filepath)
     }
-    const treeType = await tree!.type()
-    if (treeType !== BLOB_TYPE) {
-      return
-    }
-    return gitPathSeparatorNormalizer(filepath)
+    return normalizedPath
   }
 
 export const diffLineWalker =
@@ -246,11 +242,11 @@ export const diffLineWalker =
       return
     }
 
-    for (const tree of trees.filter(Boolean)) {
-      const type = await tree!.type()
-      if (type !== BLOB_TYPE) {
-        return
-      }
+    const types = await Promise.all(
+      trees.filter(Boolean).map(tree => tree!.type())
+    )
+    if (types.some(type => type !== BLOB_TYPE)) {
+      return
     }
 
     const [fromOID, toOID] = await Promise.all(trees.map(tree => tree?.oid()))
@@ -263,10 +259,11 @@ export const diffLineWalker =
     } else if (toOID === undefined) {
       type = DELETION
     } else {
-      if (ignoreWhitespace) {
-        if (await isContentsEqualIgnoringWhiteChars(trees)) {
-          return
-        }
+      if (
+        ignoreWhitespace &&
+        (await isContentsEqualIgnoringWhiteChars(trees))
+      ) {
+        return
       }
       type = MODIFICATION
     }
