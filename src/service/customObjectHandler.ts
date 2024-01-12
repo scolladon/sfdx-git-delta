@@ -27,8 +27,11 @@ export default class CustomObjectHandler extends StandardHandler {
     const fields = await readDir(fieldsFolder, this.config)
     const masterDetailsFields = await asyncFilter(
       fields,
-      async (fieldPath: string) => {
-        const content = await readPathFromGit(fieldPath, this.config)
+      async (path: string) => {
+        const content = await readPathFromGit(
+          { path, oid: this.config.to },
+          this.config
+        )
         return content.includes(MASTER_DETAIL_TAG)
       }
     )

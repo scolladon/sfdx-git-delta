@@ -4,6 +4,7 @@ import { buildIgnoreHelper } from './ignoreHelper'
 import { join, normalize, sep } from 'path'
 import { Config } from '../types/config'
 import GitAdapter from '../adapter/GitAdapter'
+import { FileGitRef } from '../types/git'
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()
@@ -42,11 +43,11 @@ export const copyFiles = async (config: Config, src: string) => {
   }
 }
 
-export const readPathFromGit = async (path: string, config: Config) => {
+export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   let utf8Data = ''
   try {
     const gitAdapter = GitAdapter.getInstance(config)
-    utf8Data = await gitAdapter.getStringContent(path)
+    utf8Data = await gitAdapter.getStringContent(forRef)
   } catch (error) {
     /* empty */
   }

@@ -44,11 +44,12 @@ export default class RepoGitDiff {
         .get(ADDITION)
         ?.map(line => this._extractComparisonName(line)) ?? []
     )
-    const deletedRenamed: string[] =
-      [...(linesPerDiffType.get(DELETION) ?? [])].filter((line: string) => {
-        const dEl = this._extractComparisonName(line)
-        return AfileNames.has(dEl)
-      }) ?? []
+    const deletedRenamed: string[] = [
+      ...(linesPerDiffType.get(DELETION) ?? []),
+    ].filter((line: string) => {
+      const dEl = this._extractComparisonName(line)
+      return AfileNames.has(dEl)
+    })
 
     return deletedRenamed
   }

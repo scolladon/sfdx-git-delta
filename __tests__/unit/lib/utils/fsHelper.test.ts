@@ -60,10 +60,11 @@ describe('readPathFromGit', () => {
 
     it('returns the file content at `config.to` ref', async () => {
       // Act
-      await readPathFromGit(path, work.config)
+      const forRef = { path, oid: work.config.to }
+      await readPathFromGit(forRef, work.config)
 
       // Assert
-      expect(mockGetStringContent).toHaveBeenCalledWith(path)
+      expect(mockGetStringContent).toHaveBeenCalledWith(forRef)
     })
   })
 
@@ -75,7 +76,10 @@ describe('readPathFromGit', () => {
 
     it('returns the file content at `config.to` ref', async () => {
       // Act
-      const content = await readPathFromGit('path/file', work.config)
+      const content = await readPathFromGit(
+        { path: 'path/file', oid: work.config.to },
+        work.config
+      )
 
       // Assert
       expect(content).toBe(value)

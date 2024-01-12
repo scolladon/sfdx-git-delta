@@ -61,7 +61,7 @@ describe(`test if the application`, () => {
   })
 
   it('throws errors when repo is not a git repository', async () => {
-    setGitDirMock.mockImplementationOnce(() => Promise.resolve(false))
+    setGitDirMock.mockImplementationOnce(() => Promise.reject(new Error()))
     const cliHelper = new CLIHelper({
       ...work,
       config: {

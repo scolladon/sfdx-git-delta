@@ -63,7 +63,7 @@ describe('fxpHelper', () => {
       it('returns empty object', async () => {
         // Act
         const jsonResult = await parseXmlFileToJson(
-          'path/to/empty/file',
+          { path: 'path/to/empty/file', oid: config.to },
           config
         )
 
@@ -81,7 +81,7 @@ describe('fxpHelper', () => {
       it('returns json content', async () => {
         // Act
         const jsonContent = await parseXmlFileToJson(
-          'path/to/empty/file',
+          { path: 'path/to/empty/file', oid: config.to },
           config
         )
 
@@ -97,7 +97,7 @@ describe('fxpHelper', () => {
       it('returns empty object', async () => {
         // Act
         const jsonContent = await parseXmlFileToJson(
-          'path/to/empty/file',
+          { path: 'path/to/empty/file', oid: config.to },
           config
         )
 

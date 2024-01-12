@@ -4,6 +4,7 @@ import { XMLBuilder, XMLParser } from 'fast-xml-parser'
 import { XML_HEADER_TAG_END } from '../constant/metadataConstants'
 import { Config } from '../types/config'
 import { readPathFromGit } from './fsHelper'
+import { FileGitRef } from '../types/git'
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',
@@ -37,8 +38,11 @@ export const xml2Json = (xmlContent: string) => {
   return jsonContent
 }
 
-export const parseXmlFileToJson = async (line: string, config: Config) => {
-  const xmlContent = await readPathFromGit(line, config)
+export const parseXmlFileToJson = async (
+  forRef: FileGitRef,
+  config: Config
+) => {
+  const xmlContent = await readPathFromGit(forRef, config) // Change API here
   return xml2Json(xmlContent)
 }
 

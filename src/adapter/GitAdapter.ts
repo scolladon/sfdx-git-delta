@@ -15,6 +15,7 @@ import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
 import { DOT, dirExists, fileExists } from '../utils/fsUtils'
 import { join } from 'path'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
+import { FileGitRef } from '../types/git'
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
@@ -25,7 +26,7 @@ const gitPathSeparatorNormalizer = (path: string) =>
 
 const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
 
-const iterate = async (
+export const iterate = async (
   walk: WalkerIterateCallback,
   children: IterableIterator<Array<WalkerEntry>>
 ) => {
@@ -36,6 +37,7 @@ const iterate = async (
   }
   return result
 }
+
 type GitBaseConfig = {
   fs: typeof fs
   dir: string
@@ -68,10 +70,11 @@ export default class GitAdapter {
   protected readonly isoGit = git
   protected readonly simpleGit: SimpleGit
   protected readonly gitConfig: GitBaseConfig
-  protected readonly config: Config
 
-  private constructor(config: Config) {
-    this.config = config
+  private constructor(
+    // eslint-disable-next-line no-unused-vars
+    protected readonly config: Config
+  ) {
     this.simpleGit = simpleGit(config.repo)
     this.gitConfig = {
       fs: fs,
@@ -106,8 +109,7 @@ export default class GitAdapter {
 
   public async parseRev(ref: string) {
     const parsedRev = await this.isoGit.resolveRef({
-      fs,
-      dir: this.config.repo,
+      ...this.gitConfig,
       ref,
     })
     return parsedRev
@@ -116,8 +118,7 @@ export default class GitAdapter {
   public async pathExists(path: string) {
     try {
       const { type } = await this.isoGit.readObject({
-        fs,
-        dir: this.config.repo,
+        ...this.gitConfig,
         oid: this.config.to,
         filepath: path,
         cache: GitAdapter.sharedCache,
@@ -133,12 +134,12 @@ export default class GitAdapter {
     return sha
   }
 
-  public async getStringContent(filepath: string): Promise<string> {
+  public async getStringContent(forRef: FileGitRef): Promise<string> {
     try {
       const { blob } = await this.isoGit.readBlob({
         ...this.gitConfig,
-        oid: this.config.to,
-        filepath: gitPathSeparatorNormalizer(filepath),
+        oid: forRef.oid,
+        filepath: gitPathSeparatorNormalizer(forRef.path),
         cache: GitAdapter.sharedCache,
       })
       const bufferData = await this.getBufferFromBlob(blob)
@@ -156,8 +157,7 @@ export default class GitAdapter {
   public async getFilesPath(path: string = SOURCE_DEFAULT_VALUE) {
     const walker = filePathWalker(path)
     return await this.isoGit.walk({
-      fs,
-      dir: this.config.repo,
+      ...this.gitConfig,
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.to })],
       map: walker,
@@ -167,8 +167,7 @@ export default class GitAdapter {
 
   public async getFilesFrom(path: string) {
     const object = await this.isoGit.readObject({
-      fs,
-      dir: this.config.repo,
+      ...this.gitConfig,
       oid: this.config.to,
       filepath: path,
       cache: GitAdapter.sharedCache,
@@ -180,8 +179,7 @@ export default class GitAdapter {
       const walker = contentWalker(path)
       blobFiles.push(
         ...(await this.isoGit.walk({
-          fs,
-          dir: this.config.repo,
+          ...this.gitConfig,
           cache: GitAdapter.sharedCache,
           trees: [TREE({ ref: this.config.to })],
           map: walker,
@@ -216,8 +214,7 @@ export default class GitAdapter {
   public async getDiffLines() {
     const walker = diffLineWalker(this.config.ignoreWhitespace)
     return this.isoGit.walk({
-      fs,
-      dir: this.config.repo,
+      ...this.gitConfig,
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
       map: walker,

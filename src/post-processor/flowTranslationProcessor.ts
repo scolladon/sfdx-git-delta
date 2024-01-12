@@ -111,7 +111,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
 
   protected async _parseTranslationFile(translationPath: string) {
     const translationJSON = await parseXmlFileToJson(
-      translationPath,
+      { path: translationPath, oid: this.config.to },
       this.config
     )
     const flowDefinitions = asArray(

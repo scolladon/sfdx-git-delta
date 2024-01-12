@@ -6,13 +6,14 @@ import GitAdapter, {
   contentWalker,
   diffLineWalker,
   filePathWalker,
+  iterate,
 } from '../../../../src/adapter/GitAdapter'
 import {
   getLFSObjectContentPath,
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
 import { readFile } from 'fs-extra'
-import { WalkerEntry } from 'isomorphic-git'
+import { WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 
 const mockedDirExists = jest.fn()
 const mockedFileExists = jest.fn()
@@ -167,6 +168,24 @@ describe('GitAdapter', () => {
         expect(error).toBeDefined()
       }
     })
+
+    it('should set gitdir once', async () => {
+      // Arrange
+      mockedDirExists.mockImplementation(() => Promise.resolve(true))
+      mockedFileExists.mockImplementation(() => Promise.resolve(false))
+      const gitAdapter = GitAdapter.getInstance({
+        ...config,
+        repo: 'repository',
+      })
+      await gitAdapter.setGitDir()
+
+      // Act
+      await gitAdapter.setGitDir()
+
+      // Assert
+      expect(mockedDirExists).toBeCalledTimes(1)
+      expect(mockedFileExists).not.toBeCalled()
+    })
   })
 
   describe('configureRepository', () => {
@@ -306,7 +325,10 @@ describe('GitAdapter', () => {
           getLFSObjectContentPathMocked.mockReturnValueOnce('lfs/path')
           readFileMocked.mockResolvedValue(null as never)
           // Act
-          const result = await gitAdapter.getStringContent('')
+          const result = await gitAdapter.getStringContent({
+            path: '',
+            oid: config.to,
+          })
 
           // Assert
           expect(result).toBe('')
@@ -329,7 +351,10 @@ describe('GitAdapter', () => {
           )
           isLFSmocked.mockReturnValueOnce(false)
           // Act
-          const result = await gitAdapter.getStringContent('')
+          const result = await gitAdapter.getStringContent({
+            path: '',
+            oid: config.to,
+          })
 
           // Assert
           expect(result).toBe(expected)
@@ -354,7 +379,10 @@ describe('GitAdapter', () => {
             return Promise.reject(error)
           })
           // Act
-          const result = await gitAdapter.getStringContent('')
+          const result = await gitAdapter.getStringContent({
+            path: '',
+            oid: config.to,
+          })
 
           // Assert
           expect(result).toBe('')
@@ -377,7 +405,10 @@ describe('GitAdapter', () => {
           )
           // Act
           try {
-            await gitAdapter.getStringContent('')
+            await gitAdapter.getStringContent({
+              path: '',
+              oid: config.to,
+            })
           } catch {
             // Assert
             expect(mockedReadBlob).toBeCalledWith(
@@ -813,6 +844,43 @@ describe('GitAdapter', () => {
           content,
         })
       })
+    })
+  })
+
+  describe('iterate', () => {
+    it('call walk on every children', async () => {
+      // Arrange
+      const children = [
+        Array.from(
+          { length: 2 },
+          (_, index) => ({ type: 'blob', oid: index }) as unknown as WalkerEntry
+        ),
+      ]
+      const walkMock = jest.fn<WalkerIterateCallback>()
+
+      // Act
+      const iterable: IterableIterator<Array<WalkerEntry>> =
+        children[Symbol.iterator]()
+      const result = await iterate(walkMock, iterable)
+
+      // Assert
+      expect(result.length).toBe(children.length)
+      expect(walkMock).toBeCalledTimes(children.length)
+    })
+
+    it('do not walk whithout children', async () => {
+      // Arrange
+      const children = [] as Array<WalkerEntry[]>
+      const walkMock = jest.fn<WalkerIterateCallback>()
+
+      // Act
+      const iterable: IterableIterator<Array<WalkerEntry>> =
+        children[Symbol.iterator]()
+      const result = await iterate(walkMock, iterable)
+
+      // Assert
+      expect(result.length).toBe(0)
+      expect(walkMock).not.toBeCalled()
     })
   })
 })
