@@ -28,7 +28,6 @@ export const copyFiles = async (config: Config, src: string) => {
     return
   }
   try {
-    //
     const gitAdapter = GitAdapter.getInstance(config)
     const files = await gitAdapter.getFilesFrom(treatPathSep(src))
     for (const file of files) {

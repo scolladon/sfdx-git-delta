@@ -125,7 +125,7 @@ const getElementProcessor =
     return metadataMember
   }
 
-// Partial JSON generation functional are
+// Partial JSON generation functional area
 // Side effect on jsonContent
 const generatePartialJSON =
   (attributes: Map<string, SharedFileMetadata>) =>

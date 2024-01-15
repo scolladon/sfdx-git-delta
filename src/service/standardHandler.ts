@@ -42,7 +42,6 @@ export default class StandardHandler {
   ) {
     this.changeType = line.charAt(0) as string
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
-    // internal getters
     this.diffs = work.diffs
     this.config = work.config
     this.warnings = work.warnings

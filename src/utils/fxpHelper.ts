@@ -42,7 +42,7 @@ export const parseXmlFileToJson = async (
   forRef: FileGitRef,
   config: Config
 ) => {
-  const xmlContent = await readPathFromGit(forRef, config) // Change API here
+  const xmlContent = await readPathFromGit(forRef, config)
   return xml2Json(xmlContent)
 }
 
