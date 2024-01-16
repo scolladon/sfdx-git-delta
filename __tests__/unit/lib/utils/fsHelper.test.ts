@@ -6,6 +6,7 @@ import {
   pathExists,
   readDir,
   readPathFromGit,
+  sanitizePath,
   treatPathSep,
   writeFile,
 } from '../../../../src/utils/fsHelper'
@@ -338,6 +339,13 @@ describe('copyFile', () => {
   })
 
   describe('writeFile', () => {
+    beforeEach(() => {
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: () => false,
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+    })
     it.each(['folder/file', 'folder\\file'])(
       'write the content to the file system',
       async path => {
@@ -368,6 +376,21 @@ describe('copyFile', () => {
       // Assert
       expect(outputFile).toBeCalledTimes(1)
     })
+
+    it('should not copy ignored path', async () => {
+      // Arrange
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: () => true,
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+
+      // Act
+      await writeFile('', '', {} as Config)
+
+      // Assert
+      expect(outputFile).not.toBeCalled()
+    })
   })
 })
 
@@ -392,5 +415,40 @@ describe('treatPathSep', () => {
 
     // Assert
     expect(result).toBe(`test${sep}test${sep}test${sep}test`)
+  })
+})
+
+describe('sanitizePath', () => {
+  it(`returns path with '${sep}' separator`, () => {
+    // Arrange
+    const input = 'test\\test/test'
+
+    // Act
+    const result = sanitizePath(input)
+
+    // Assert
+    expect(result).toBe(`test${sep}test${sep}test`)
+  })
+
+  it(`normalize path`, () => {
+    // Arrange
+    const input = 'test/test\\../test'
+
+    // Act
+    const result = sanitizePath(input)
+
+    // Assert
+    expect(result).toBe(`test${sep}test`)
+  })
+
+  it('return empty string when data is empty string', () => {
+    // Arrange
+    const input = ''
+
+    // Act
+    const result = sanitizePath(input)
+
+    // Assert
+    expect(result).toBe('')
   })
 })

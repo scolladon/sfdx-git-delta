@@ -12,7 +12,8 @@ import {
   MODIFICATION,
 } from '../constant/gitConstants'
 import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
-import { DOT, dirExists, fileExists } from '../utils/fsUtils'
+import { dirExists, fileExists } from '../utils/fsUtils'
+import { DOT } from '../constant/fsConstants'
 import { join } from 'path'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 import { FileGitRef } from '../types/git'

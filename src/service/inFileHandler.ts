@@ -3,7 +3,7 @@ import { LABEL_EXTENSION, LABEL_XML_NAME } from '../constant/metadataConstants'
 import StandardHandler from './standardHandler'
 import { basename } from 'path'
 import { writeFile } from '../utils/fsHelper'
-import { DOT } from '../utils/fsUtils'
+import { DOT } from '../constant/fsConstants'
 import { getInFileAttributes, isPackable } from '../metadata/metadataManager'
 import MetadataDiff from '../utils/metadataDiff'
 import {

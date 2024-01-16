@@ -4,7 +4,7 @@ import { join, parse, sep } from 'path'
 import { pathExists } from '../utils/fsHelper'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { cleanUpPackageMember } from '../utils/packageHelper'
-import { DOT } from '../utils/fsUtils'
+import { DOT } from '../constant/fsConstants'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 

@@ -11,7 +11,6 @@ import {
 import { isSubDir, readFile } from '../../../../src/utils/fsUtils'
 import {
   writeFile,
-  readFile,
   readDir,
   treatPathSep,
 } from '../../../../src/utils/fsHelper'

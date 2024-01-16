@@ -5,8 +5,6 @@ import GitAdapter from '../adapter/GitAdapter'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
-const pathType = [OBJECT_TYPE, OBJECT_TRANSLATION_TYPE, ...SUB_OBJECT_TYPES]
-
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
 
@@ -69,6 +67,6 @@ export default class RepoGitDiff {
   }
 
   protected _extractComparisonName(line: string) {
-    return this.metadata.getFullyQualifiedName(line)
+    return this.metadata.getFullyQualifiedName(line).toLocaleLowerCase()
   }
 }

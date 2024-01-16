@@ -12,7 +12,7 @@ import {
   fillPackageWithParameter,
 } from '../utils/packageHelper'
 import { copyFiles } from '../utils/fsHelper'
-import { DOT } from '../utils/fsUtils'
+import { DOT } from '../constant/fsConstants'
 import { Manifest, Manifests, Work } from '../types/work'
 import { Metadata } from '../types/metadata'
 import { Config } from '../types/config'
