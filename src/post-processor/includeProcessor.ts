@@ -46,7 +46,9 @@ export default class IncludeProcessor extends BaseProcessor {
       [ADDITION]: [],
       [DELETION]: [],
     }
-    const lines: string[] = await this.gitAdapter.getFilesPath()
+    const lines: string[] = await this.gitAdapter.getFilesPath(
+      this.config.source
+    )
     for (const line of lines) {
       Object.keys(includeHolder).forEach(changeType => {
         const changedLine = `${changeType}${TAB}${treatPathSep(line)}`

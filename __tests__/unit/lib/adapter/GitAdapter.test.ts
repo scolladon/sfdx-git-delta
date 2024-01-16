@@ -430,7 +430,7 @@ describe('GitAdapter', () => {
       const gitAdapter = GitAdapter.getInstance(config)
 
       // Act
-      await gitAdapter.getFilesPath()
+      await gitAdapter.getFilesPath(config.source)
 
       // Assert
       expect(mockedWalk).toBeCalled()
@@ -587,11 +587,29 @@ describe('GitAdapter', () => {
           // Arrange
 
           // Act
-          const result = await diffLineWalker(false)('.', [null])
+          const result = await diffLineWalker(config)('.', [null])
 
           // Assert
           expect(result).toBe(undefined)
         })
+      })
+
+      describe(`when filepath does not start with "config.source"`, () => {
+        it.each(['not-force-app', 'force-app-extended'])(
+          'returns undefined',
+          async root => {
+            // Arrange
+
+            // Act
+            const result = await diffLineWalker({
+              ...config,
+              source: 'force-app',
+            })(`${root}/test.file`, [null])
+
+            // Assert
+            expect(result).toBe(undefined)
+          }
+        )
       })
 
       describe('when first version of the file is not a blob', () => {
@@ -602,7 +620,7 @@ describe('GitAdapter', () => {
           } as unknown as WalkerEntry
 
           // Act
-          const result = await diffLineWalker(false)('file/path', [entry])
+          const result = await diffLineWalker(config)('file/path', [entry])
 
           // Assert
           expect(result).toBe(undefined)
@@ -620,7 +638,7 @@ describe('GitAdapter', () => {
           } as unknown as WalkerEntry
 
           // Act
-          const result = await diffLineWalker(false)('file/path', [
+          const result = await diffLineWalker(config)('file/path', [
             firstEntry,
             secondEntry,
           ])
@@ -643,7 +661,7 @@ describe('GitAdapter', () => {
           } as unknown as WalkerEntry
 
           // Act
-          const result = await diffLineWalker(false)('file/path', [
+          const result = await diffLineWalker(config)('file/path', [
             firstEntry,
             secondEntry,
           ])
@@ -655,6 +673,28 @@ describe('GitAdapter', () => {
     })
 
     describe('when filepath should be treated', () => {
+      describe(`when filepath starts with "config.source"`, () => {
+        it('returns the normalized path', async () => {
+          // Arrange
+          const firstEntry = {
+            type: jest.fn(() => Promise.resolve('blob')),
+            oid: jest.fn(() => undefined),
+          } as unknown as WalkerEntry
+          const secondEntry = {
+            type: jest.fn(() => Promise.resolve('blob')),
+            oid: jest.fn(() => 10),
+          } as unknown as WalkerEntry
+
+          // Act
+          const result = await diffLineWalker({
+            ...config,
+            source: 'force-app',
+          })('force-app/test.file', [firstEntry, secondEntry])
+
+          // Assert
+          expect(result).toBe('A\tforce-app/test.file')
+        })
+      })
       describe('when file is added', () => {
         it('returns the addition type and normalized path', async () => {
           // Arrange
@@ -668,7 +708,7 @@ describe('GitAdapter', () => {
           } as unknown as WalkerEntry
 
           // Act
-          const result = await diffLineWalker(false)('file\\path', [
+          const result = await diffLineWalker(config)('file/path', [
             firstEntry,
             secondEntry,
           ])
@@ -690,7 +730,7 @@ describe('GitAdapter', () => {
           } as unknown as WalkerEntry
 
           // Act
-          const result = await diffLineWalker(false)('file\\path', [
+          const result = await diffLineWalker(config)('file/path', [
             firstEntry,
             secondEntry,
           ])
@@ -712,7 +752,7 @@ describe('GitAdapter', () => {
           } as unknown as WalkerEntry
 
           // Act
-          const result = await diffLineWalker(false)('file\\path', [
+          const result = await diffLineWalker(config)('file/path', [
             firstEntry,
             secondEntry,
           ])
@@ -741,10 +781,10 @@ describe('GitAdapter', () => {
               } as unknown as WalkerEntry
 
               // Act
-              const result = await diffLineWalker(true)('file\\path', [
-                firstEntry,
-                secondEntry,
-              ])
+              const result = await diffLineWalker({
+                ...config,
+                ignoreWhitespace: true,
+              })('file/path', [firstEntry, secondEntry])
 
               // Assert
               expect(result).toBe(undefined)
@@ -771,10 +811,10 @@ describe('GitAdapter', () => {
               } as unknown as WalkerEntry
 
               // Act
-              const result = await diffLineWalker(true)('file\\path', [
-                firstEntry,
-                secondEntry,
-              ])
+              const result = await diffLineWalker({
+                ...config,
+                ignoreWhitespace: true,
+              })('file/path', [firstEntry, secondEntry])
 
               // Assert
               expect(result).toBe('M\tfile/path')

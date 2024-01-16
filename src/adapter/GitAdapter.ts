@@ -14,7 +14,7 @@ import {
 import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
 import { dirExists, fileExists } from '../utils/fsUtils'
 import { DOT } from '../constant/fsConstants'
-import { join } from 'path'
+import { join, sep } from 'path'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 import { FileGitRef } from '../types/git'
 
@@ -155,7 +155,7 @@ export default class GitAdapter {
     }
   }
 
-  public async getFilesPath(path: string = SOURCE_DEFAULT_VALUE) {
+  public async getFilesPath(path: string) {
     const walker = filePathWalker(path)
     return await this.isoGit.walk({
       ...this.gitConfig,
@@ -211,7 +211,7 @@ export default class GitAdapter {
   }
 
   public async getDiffLines() {
-    const walker = diffLineWalker(this.config.ignoreWhitespace)
+    const walker = diffLineWalker(this.config)
     return this.isoGit.walk({
       ...this.gitConfig,
       cache: GitAdapter.sharedCache,
@@ -236,10 +236,10 @@ export const filePathWalker =
     return normalizedPath
   }
 
-export const diffLineWalker =
-  (ignoreWhitespace: boolean) =>
-  async (path: string, trees: (WalkerEntry | null)[]) => {
-    if (path === DOT) {
+export const diffLineWalker = (config: Config) => {
+  const doesNotStartsWithSource = pathDoesNotStartsWith(config.source)
+  return async (path: string, trees: (WalkerEntry | null)[]) => {
+    if (path === DOT || doesNotStartsWithSource(path)) {
       return
     }
 
@@ -261,7 +261,7 @@ export const diffLineWalker =
       type = DELETION
     } else {
       if (
-        ignoreWhitespace &&
+        config.ignoreWhitespace &&
         (await isContentsEqualIgnoringWhiteChars(trees))
       ) {
         return
@@ -271,6 +271,15 @@ export const diffLineWalker =
 
     return `${type}\t${gitPathSeparatorNormalizer(path)}`
   }
+}
+
+const pathDoesNotStartsWith = (root: string) => {
+  const gitFormattedRoot = (
+    root.split(sep).join(GIT_PATH_SEP) + GIT_PATH_SEP
+  ).replace(/\/{2,}/g, '')
+  return (path: string) =>
+    root !== SOURCE_DEFAULT_VALUE && !path.startsWith(gitFormattedRoot)
+}
 
 const isContentsEqualIgnoringWhiteChars = async (
   trees: (WalkerEntry | null)[]
