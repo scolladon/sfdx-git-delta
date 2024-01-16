@@ -98,6 +98,20 @@
     "xmlName": "LoyaltyProgramSetup"
   },
   {
+    "directoryName": "documentCategory",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "documentCategory",
+    "xmlName": "DocumentCategory"
+  },
+  {
+    "directoryName": "documentCategoryDocumentTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "documentCategoryDocumentType",
+    "xmlName": "DocumentCategoryDocumentType"
+  },
+  {
     "directoryName": "AssessmentQuestions",
     "inFolder": false,
     "metaFile": false,
