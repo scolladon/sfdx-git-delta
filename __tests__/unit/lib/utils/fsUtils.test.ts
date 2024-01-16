@@ -5,8 +5,11 @@ import {
   fileExists,
   isSubDir,
   readFile,
+  sanitizePath,
+  treatPathSep,
 } from '../../../../src/utils/fsUtils'
 import { Stats, stat, readFile as fsReadFile } from 'fs-extra'
+import { sep } from 'path'
 
 jest.mock('fs-extra')
 
@@ -184,5 +187,64 @@ describe('readFile', () => {
         expect(mockedReadFile).toHaveBeenCalled()
       }
     })
+  })
+})
+
+describe('treatPathSep', () => {
+  it(`replace / by ${sep}`, () => {
+    // Arrange
+    const input = 'test///test//test/test'
+
+    // Act
+    const result = treatPathSep(input)
+
+    // Assert
+    expect(result).toBe(`test${sep}test${sep}test${sep}test`)
+  })
+
+  it(`replace \\ by ${sep}`, () => {
+    // Arrange
+    const input = 'test\\\\\\test\\\\test\\test'
+
+    // Act
+    const result = treatPathSep(input)
+
+    // Assert
+    expect(result).toBe(`test${sep}test${sep}test${sep}test`)
+  })
+})
+
+describe('sanitizePath', () => {
+  it(`returns path with '${sep}' separator`, () => {
+    // Arrange
+    const input = 'test\\test/test'
+
+    // Act
+    const result = sanitizePath(input)
+
+    // Assert
+    expect(result).toBe(`test${sep}test${sep}test`)
+  })
+
+  it(`normalize path`, () => {
+    // Arrange
+    const input = 'test/test\\../test'
+
+    // Act
+    const result = sanitizePath(input)
+
+    // Assert
+    expect(result).toBe(`test${sep}test`)
+  })
+
+  it('return empty string when data is empty string', () => {
+    // Arrange
+    const input = ''
+
+    // Act
+    const result = sanitizePath(input)
+
+    // Assert
+    expect(result).toBe('')
   })
 })

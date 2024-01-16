@@ -8,8 +8,8 @@ import {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
-import { writeFile, readDir, treatPathSep } from '../utils/fsHelper'
-import { isSubDir, readFile } from '../utils/fsUtils'
+import { writeFile, readDir } from '../utils/fsHelper'
+import { isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
 import { pathExists } from 'fs-extra'
 import { parse, join } from 'path'
 import { buildIgnoreHelper } from '../utils/ignoreHelper'

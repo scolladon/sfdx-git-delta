@@ -5,8 +5,12 @@ import CLIHelper from '../../../../src/utils/cliHelper'
 import { getLatestSupportedVersion } from '../../../../src/metadata/metadataManager'
 import messages from '../../../../src/locales/en'
 import { Work } from '../../../../src/types/work'
-import { sanitizePath } from '../../../../src/utils/fsHelper'
-import { readFile, dirExists, fileExists } from '../../../../src/utils/fsUtils'
+import {
+  readFile,
+  dirExists,
+  fileExists,
+  sanitizePath,
+} from '../../../../src/utils/fsUtils'
 import { format } from 'util'
 
 const mockParseRev = jest.fn()
@@ -20,7 +24,6 @@ jest.mock('../../../../src/adapter/GitAdapter', () => ({
   }),
 }))
 
-jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)
 const mockedSanitizePath = jest.mocked(sanitizePath)

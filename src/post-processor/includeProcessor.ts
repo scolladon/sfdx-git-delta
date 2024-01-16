@@ -2,7 +2,7 @@
 import BaseProcessor from './baseProcessor'
 import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
-import { treatPathSep } from '../utils/fsHelper'
+import { treatPathSep } from '../utils/fsUtils'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { Work } from '../types/work'
 import GitAdapter from '../adapter/GitAdapter'

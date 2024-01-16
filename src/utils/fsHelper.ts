@@ -1,21 +1,14 @@
 'use strict'
 import { outputFile } from 'fs-extra'
 import { buildIgnoreHelper } from './ignoreHelper'
-import { join, normalize, sep } from 'path'
+import { join } from 'path'
 import { Config } from '../types/config'
 import GitAdapter from '../adapter/GitAdapter'
 import { FileGitRef } from '../types/git'
+import { treatPathSep } from './fsUtils'
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()
-
-export const treatPathSep = (data: string) => data?.replace(/[/\\]+/g, sep)
-export const sanitizePath = (data: string) => {
-  if (data) {
-    return normalize(treatPathSep(data))
-  }
-  return data
-}
 
 export const copyFiles = async (config: Config, src: string) => {
   if (copiedFiles.has(src) || writtenFiles.has(src)) {

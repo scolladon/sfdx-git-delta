@@ -8,12 +8,8 @@ import {
   FLOW_XML_NAME,
   TRANSLATION_TYPE,
 } from '../../../../src/constant/metadataConstants'
-import { isSubDir, readFile } from '../../../../src/utils/fsUtils'
-import {
-  writeFile,
-  readDir,
-  treatPathSep,
-} from '../../../../src/utils/fsHelper'
+import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
+import { writeFile, readDir } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
