@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1705079005042,
+  "lastUpdate": 1705404721867,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1641,6 +1641,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.76%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2c7e84839f7ab922840b5552e92f5b74beba66db",
+          "message": "feat: add remaining discovery framework metadata type support (#757)",
+          "timestamp": "2024-01-16T12:25:51+01:00",
+          "tree_id": "89a5adb2b3aeb538e3b414ff26395f15959da44a",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2c7e84839f7ab922840b5552e92f5b74beba66db"
+        },
+        "date": 1705404721460,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.3,
+            "range": "±0.74%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
