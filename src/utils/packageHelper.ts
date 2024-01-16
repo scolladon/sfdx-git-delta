@@ -1,6 +1,6 @@
 'use strict'
 import { create } from 'xmlbuilder2'
-import { OBJECT_XML_NAME } from '../utils/metadataConstants'
+import { OBJECT_XML_NAME } from '../constant/metadataConstants'
 import { Config } from '../types/config'
 import { Manifest } from '../types/work'
 

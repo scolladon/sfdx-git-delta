@@ -9,8 +9,8 @@ We encourage the developer community to contribute to this repository. This guid
 
 ## Requirements
 
-- [Node](https://nodejs.org/) >= 14
-- [yarn](https://yarnpkg.com/) >= 1.22.5
+- [Node](https://nodejs.org/) >= 18
+- [yarn](https://yarnpkg.com/) >= 3.6.0
 
 ## Installation
 

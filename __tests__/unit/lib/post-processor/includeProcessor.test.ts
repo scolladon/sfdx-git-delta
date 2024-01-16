@@ -7,7 +7,7 @@ import {
   buildIncludeHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 const mockProcess = jest.fn()
 jest.mock('../../../../src/service/diffLineInterpreter', () => {

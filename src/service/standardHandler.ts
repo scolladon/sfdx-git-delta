@@ -5,16 +5,17 @@ import {
   DELETION,
   MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
-} from '../utils/gitConstants'
-import { META_REGEX, METAFILE_SUFFIX } from '../utils/metadataConstants'
+} from '../constant/gitConstants'
+import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
 import {
   cleanUpPackageMember,
   fillPackageWithParameter,
 } from '../utils/packageHelper'
 import { copyFiles, DOT } from '../utils/fsHelper'
 import { Manifest, Manifests, Work } from '../types/work'
-import { Metadata, MetadataRepository } from '../types/metadata'
+import { Metadata } from '../types/metadata'
 import { Config } from '../types/config'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

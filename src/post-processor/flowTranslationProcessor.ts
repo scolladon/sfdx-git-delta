@@ -7,7 +7,7 @@ import {
   METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
-} from '../utils/metadataConstants'
+} from '../constant/metadataConstants'
 import { writeFile, scanExtension } from '../utils/fsHelper'
 import { isSubDir, readFile } from '../utils/fsUtils'
 import { pathExists } from 'fs-extra'
@@ -22,7 +22,7 @@ import {
 import { fillPackageWithParameter } from '../utils/packageHelper'
 import { treatPathSep } from '../utils/childProcessUtils'
 import { Work } from '../types/work'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 

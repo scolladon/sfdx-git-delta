@@ -2,9 +2,10 @@
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
 import { writeFile, copyFiles } from '../../../../src/utils/fsHelper'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+
 const mockCompare = jest.fn()
 const mockprune = jest.fn()
 jest.mock('../../../../src/utils/metadataDiff', () => {

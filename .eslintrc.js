@@ -14,6 +14,7 @@ Happy linting! 💖
 module.exports = {
   extends: [
     'eslint:recommended',
+    'plugin:@typescript-eslint/eslint-recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
     'prettier',
@@ -162,7 +163,7 @@ module.exports = {
     'no-unsafe-finally': 'error',
     'no-unsafe-negation': 'error',
     'no-unused-labels': 'error',
-    'no-unused-vars': 'error',
+    'no-unused-vars': 'off',
     'no-useless-catch': 'error',
     'no-useless-escape': 'error',
     'no-whitespace-before-property': 'off',

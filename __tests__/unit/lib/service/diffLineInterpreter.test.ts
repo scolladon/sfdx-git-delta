@@ -3,7 +3,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 const mockHandle = jest.fn()
 jest.mock('../../../../src/service/typeHandlerFactory', () => {

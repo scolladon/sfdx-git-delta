@@ -5,7 +5,7 @@ import {
   DELETION,
   MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
-} from './gitConstants'
+} from '../constant/gitConstants'
 
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 

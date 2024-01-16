@@ -12,7 +12,7 @@ import {
   ADDITION,
   MODIFICATION,
   DELETION,
-} from '../../../../src/utils/gitConstants'
+} from '../../../../src/constant/gitConstants'
 import { Config } from '../../../../src/types/config'
 jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)

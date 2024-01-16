@@ -3,7 +3,7 @@ import StandardHandler from './standardHandler'
 import {
   MASTER_DETAIL_TAG,
   OBJECT_META_XML_SUFFIX,
-} from '../utils/metadataConstants'
+} from '../constant/metadataConstants'
 import { readPathFromGit } from '../utils/fsHelper'
 import { join, sep } from 'path'
 

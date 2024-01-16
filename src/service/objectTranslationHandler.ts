@@ -2,7 +2,7 @@
 import ResourceHandler from './inResourceHandler'
 import StandardHandler from './standardHandler'
 import { getInFileAttributes } from '../metadata/metadataManager'
-import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../utils/metadataConstants'
+import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'
 import { writeFile } from '../utils/fsHelper'
 import { parse, sep } from 'path'
 import MetadataDiff from '../utils/metadataDiff'

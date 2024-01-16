@@ -3,7 +3,7 @@ import asyncFilter from './asyncFilter'
 import messages from '../locales/en'
 import RepoSetup from './repoSetup'
 import { sanitizePath } from './childProcessUtils'
-import { POINTER_REF_TYPES } from './gitConstants'
+import { POINTER_REF_TYPES } from '../constant/gitConstants'
 import {
   getLatestSupportedVersion,
   isVersionSupported,

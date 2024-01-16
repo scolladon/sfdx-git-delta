@@ -7,7 +7,8 @@ import {
   getSharedFolderMetadata,
   isVersionSupported,
 } from '../../../../src/metadata/metadataManager'
-import { Metadata, MetadataRepository } from '../../../../src/types/metadata'
+import { Metadata } from '../../../../src/types/metadata'
+import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 
 describe(`test if metadata`, () => {
   it('provide latest when apiVersion does not exist', async () => {
@@ -71,41 +72,30 @@ describe(`test if metadata`, () => {
 
   it('getInFileAttributes', async () => {
     // Arrange
-    const metadata = new Map([
-      [
-        'waveTemplates',
-        {
-          directoryName: 'waveTemplates',
-          inFolder: true,
-          metaFile: false,
-          xmlName: 'WaveTemplateBundle',
-        },
-      ],
-      [
-        'alerts',
-        {
-          directoryName: 'workflows.alerts',
-          inFolder: false,
-          metaFile: false,
-          parentXmlName: 'Workflow',
-          xmlName: 'WorkflowAlert',
-          xmlTag: 'alerts',
-          key: 'fullName',
-        },
-      ],
-      [
-        'excluded',
-        {
-          directoryName: 'excluded',
-          inFolder: false,
-          metaFile: false,
-          parentXmlName: 'Banished',
-          xmlName: 'Excluded',
-          xmlTag: 'excluded',
-          key: 'other',
-          excluded: true,
-        },
-      ],
+    const metadata = new MetadataRepositoryImpl([
+      {
+        directoryName: 'waveTemplates',
+        inFolder: true,
+        metaFile: false,
+        xmlName: 'WaveTemplateBundle',
+      },
+      {
+        directoryName: 'workflows.alerts',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'WorkflowAlert',
+        xmlTag: 'alerts',
+        key: 'fullName',
+      },
+      {
+        directoryName: 'excluded',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'Excluded',
+        xmlTag: 'excluded',
+        key: 'other',
+        excluded: true,
+      },
     ])
 
     // Act
@@ -135,34 +125,28 @@ describe(`test if metadata`, () => {
 
   it('getSharedFolderMetadata', async () => {
     // Arrange
-    const metadata: MetadataRepository = new Map([
-      [
-        'waveTemplates',
-        {
-          directoryName: 'waveTemplates',
-          inFolder: true,
-          metaFile: false,
-          xmlName: 'WaveTemplateBundle',
-        } as Metadata,
-      ],
-      [
-        'discovery',
-        {
-          directoryName: 'discovery',
-          inFolder: false,
-          metaFile: true,
-          content: [
-            {
-              suffix: 'model',
-              xmlName: 'DiscoveryAIModel',
-            },
-            {
-              suffix: 'goal',
-              xmlName: 'DiscoveryGoal',
-            },
-          ],
-        } as Metadata,
-      ],
+    const metadata = new MetadataRepositoryImpl([
+      {
+        directoryName: 'waveTemplates',
+        inFolder: true,
+        metaFile: false,
+        xmlName: 'WaveTemplateBundle',
+      } as Metadata,
+      {
+        directoryName: 'discovery',
+        inFolder: false,
+        metaFile: true,
+        content: [
+          {
+            suffix: 'model',
+            xmlName: 'DiscoveryAIModel',
+          },
+          {
+            suffix: 'goal',
+            xmlName: 'DiscoveryGoal',
+          },
+        ],
+      } as Metadata,
     ])
 
     // Act

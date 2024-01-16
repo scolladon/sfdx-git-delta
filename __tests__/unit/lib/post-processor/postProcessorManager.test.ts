@@ -1,11 +1,12 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
-import { getPostProcessors } from '../../../../src/post-processor/postProcessorManager'
-import PostProcessorManager from '../../../../src/post-processor/postProcessorManager'
+import PostProcessorManager, {
+  getPostProcessors,
+} from '../../../../src/post-processor/postProcessorManager'
 import BaseProcessor from '../../../../src/post-processor/baseProcessor'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 const processSpy = jest.fn()
 

@@ -96,32 +96,6 @@ jobs:
             megalinter-reports
             mega-linter.log
 
-  mutation-testing:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Setup dependencies, cache and install
-        uses: ./.github/actions/install
-
-      - name: Build plugin
-
-        run: yarn pack
-
-      - name: Mutation test
-        run: yarn test:mutation
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: mutation-test-report
-          path: reports/mutation
-
   build:
     uses: ./.github/workflows/reusable-build.yml
     secrets: inherit

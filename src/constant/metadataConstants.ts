@@ -13,6 +13,7 @@ export const OBJECT_TRANSLATION_TYPE = 'objectTranslations'
 export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_SUFFIX}`
 export const OBJECT_TYPE = 'objects'
 export const OBJECT_XML_NAME = 'CustomObject'
+export const RESTRICTION_RULE_TYPE = 'restrictionRules'
 export const SUB_OBJECT_TYPES = [
   'businessProcesses',
   'compactLayouts',

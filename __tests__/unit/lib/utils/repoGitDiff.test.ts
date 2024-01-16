@@ -7,13 +7,13 @@ import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} from '../../../../src/utils/gitConstants'
+} from '../../../../src/constant/gitConstants'
 import {
   getSpawnContent,
   getSpawnContentByLine,
 } from '../../../../src/utils/childProcessUtils'
 import { Config } from '../../../../src/types/config'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/childProcessUtils', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -368,7 +368,7 @@ describe(`test if repoGitDiff`, () => {
 
     describe.each([
       'objects/Account/fields/custom__c.field',
-      'objects/Account/custom__c.object',
+      'objects/custom__c/custom__c.object',
       'objectTranslations/Account/custom__c.objectTranslation',
     ])('when called with path type', elPath => {
       it('returns the file name with the parent path', () => {

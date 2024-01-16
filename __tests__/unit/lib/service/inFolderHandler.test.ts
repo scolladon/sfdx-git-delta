@@ -3,9 +3,9 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import InFolder from '../../../../src/service/inFolderHandler'
 import { copyFiles, readDir } from '../../../../src/utils/fsHelper'
-import { METAFILE_SUFFIX } from '../../../../src/utils/metadataConstants'
+import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDir = jest.mocked(readDir)

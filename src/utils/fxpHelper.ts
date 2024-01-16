@@ -2,7 +2,7 @@
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
 import { readPathFromGit } from './fsHelper'
-import { XML_HEADER_TAG_END } from './metadataConstants'
+import { XML_HEADER_TAG_END } from '../constant/metadataConstants'
 import { Config } from '../types/config'
 
 const XML_PARSER_OPTION = {

@@ -1,3 +1,5 @@
+'use strict'
+
 export type BaseMetadata = {
   suffix?: string
   xmlName: string
@@ -22,5 +24,3 @@ export type Metadata = BaseMetadata &
     metaFile: boolean
     childXmlNames?: string[]
   }
-
-export type MetadataRepository = Map<string, Metadata>

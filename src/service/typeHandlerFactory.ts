@@ -11,9 +11,8 @@ import SubCustomObject from './subCustomObjectHandler'
 import ObjectTranslation from './objectTranslationHandler'
 import SharedFolder from './sharedFolderHandler'
 
-import { getType } from '../utils/typeUtils'
 import { Work } from '../types/work'
-import { MetadataRepository } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 const handlerMap = {
   assignmentRules: InFile,
@@ -68,7 +67,8 @@ export default class TypeHandlerFactory {
   ) {}
 
   public getTypeHandler(line: string) {
-    const type = getType(line, this.metadata) as keyof typeof handlerMap
+    const type = this.metadata.get(line)
+      ?.directoryName as keyof typeof handlerMap
 
     return type in handlerMap
       ? new handlerMap[type](line, type, this.work, this.metadata)

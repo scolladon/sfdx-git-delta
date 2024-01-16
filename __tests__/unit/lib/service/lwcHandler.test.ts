@@ -4,12 +4,12 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 import LwcHandler from '../../../../src/service/lwcHandler'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/types/metadata'
 import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} from '../../../../src/utils/gitConstants'
+} from '../../../../src/constant/gitConstants'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
 jest.mock('../../../../src/utils/fsHelper')
 

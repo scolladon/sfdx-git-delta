@@ -14,5 +14,4 @@ export const IGNORE_WHITESPACE_PARAMS = [
   '--ignore-cr-at-eol',
   '--word-diff-regex=|[^[:space:]]',
 ]
-export const UTF8_ENCODING = 'utf8'
 export const GIT_COMMAND = 'git'

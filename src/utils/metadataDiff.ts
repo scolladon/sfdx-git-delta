@@ -11,7 +11,8 @@ import { isEqual } from 'lodash'
 import { fillPackageWithParameter } from './packageHelper'
 import { Manifest } from '../types/work'
 import { Config } from '../types/config'
-import { MetadataRepository, SharedFileMetadata } from '../types/metadata'
+import { SharedFileMetadata } from '../types/metadata'
+import { MetadataRepository } from '../metadata/MetadataRepository'
 
 type ManifestTypeMember = {
   type: string
