@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1705404724624,
+  "lastUpdate": 1705406544588,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1703,6 +1703,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.3,
             "range": "±0.74%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f4d7c67be9d0fdc8d992cd11696be9f529eb2b6a",
+          "message": "feat: add `Spring'24` release preview support (#758)\n\nfeat: add v60 release preview support",
+          "timestamp": "2024-01-16T12:56:35+01:00",
+          "tree_id": "dcdf29e99403ae918cfbb837621dc788827d8cdd",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/f4d7c67be9d0fdc8d992cd11696be9f529eb2b6a"
+        },
+        "date": 1705406543950,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.3,
+            "range": "±2.86%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
