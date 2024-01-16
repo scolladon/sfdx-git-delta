@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.34.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.33.0...v5.34.0) (2024-01-16)
+
+
+### Features
+
+* add `Spring'24` release preview support ([#758](https://github.com/scolladon/sfdx-git-delta/issues/758)) ([f4d7c67](https://github.com/scolladon/sfdx-git-delta/commit/f4d7c67be9d0fdc8d992cd11696be9f529eb2b6a))
+* add remaining discovery framework metadata type support ([#757](https://github.com/scolladon/sfdx-git-delta/issues/757)) ([2c7e848](https://github.com/scolladon/sfdx-git-delta/commit/2c7e84839f7ab922840b5552e92f5b74beba66db))
+
 ## [5.33.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.32.0...v5.33.0) (2024-01-12)
 
 
