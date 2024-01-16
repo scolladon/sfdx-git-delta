@@ -908,7 +908,7 @@ describe('GitAdapter', () => {
       expect(walkMock).toBeCalledTimes(children.length)
     })
 
-    it('do not walk whithout children', async () => {
+    it('do not walk without children', async () => {
       // Arrange
       const children = [] as Array<WalkerEntry[]>
       const walkMock = jest.fn<WalkerIterateCallback>()
