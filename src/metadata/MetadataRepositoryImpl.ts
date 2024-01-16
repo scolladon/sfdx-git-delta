@@ -3,6 +3,7 @@
 import { parse, sep } from 'path'
 import { Metadata } from '../types/metadata'
 import {
+  CUSTOM_APPLICATION_TYPE,
   METAFILE_SUFFIX,
   OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
@@ -95,7 +96,10 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   private static TYPES_WITH_SUB_TYPES = [OBJECT_TYPE, TERRITORY_MODEL_TYPE, '']
-  private static EXTENSION_MATCHING_EXCEPTION = [RESTRICTION_RULE_TYPE]
+  private static EXTENSION_MATCHING_EXCEPTION = [
+    CUSTOM_APPLICATION_TYPE,
+    RESTRICTION_RULE_TYPE,
+  ]
 
   private static COMPOSED_TYPES = [
     OBJECT_TYPE,
