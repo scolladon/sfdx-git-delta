@@ -572,7 +572,7 @@ describe('GitAdapter', () => {
         } as unknown as WalkerEntry
 
         // Act
-        const result = await filePathWalker('dir')('dir\\file', [entry])
+        const result = await filePathWalker('dir')('dir/file', [entry])
 
         // Assert
         expect(result).toBe('dir/file')

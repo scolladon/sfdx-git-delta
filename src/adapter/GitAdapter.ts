@@ -222,19 +222,21 @@ export default class GitAdapter {
   }
 }
 
-export const filePathWalker =
-  (path: string) => async (filepath: string, trees: (WalkerEntry | null)[]) => {
+export const filePathWalker = (path: string) => {
+  const doesNotStartsWithPath = pathDoesNotStartsWith(path)
+  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
     const [tree] = trees
     let normalizedPath
     if (
       filepath !== DOT &&
-      (path === SOURCE_DEFAULT_VALUE || filepath.startsWith(path)) &&
+      !doesNotStartsWithPath(filepath) &&
       (await tree!.type()) === BLOB_TYPE
     ) {
       normalizedPath = gitPathSeparatorNormalizer(filepath)
     }
     return normalizedPath
   }
+}
 
 export const diffLineWalker = (config: Config) => {
   const doesNotStartsWithSource = pathDoesNotStartsWith(config.source)
@@ -274,9 +276,7 @@ export const diffLineWalker = (config: Config) => {
 }
 
 const pathDoesNotStartsWith = (root: string) => {
-  const gitFormattedRoot = (
-    root.split(sep).join(GIT_PATH_SEP) + GIT_PATH_SEP
-  ).replace(/\/{2,}/g, '')
+  const gitFormattedRoot = root.split(sep).join(GIT_PATH_SEP) + GIT_PATH_SEP
   return (path: string) =>
     root !== SOURCE_DEFAULT_VALUE && !path.startsWith(gitFormattedRoot)
 }
