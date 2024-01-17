@@ -293,10 +293,11 @@ const isContentsEqualIgnoringWhiteChars = async (
   return fromContent === toContent
 }
 
-export const contentWalker =
-  (path: string) => async (filepath: string, trees: (WalkerEntry | null)[]) => {
+export const contentWalker = (path: string) => {
+  const doesNotStartsWithPath = pathDoesNotStartsWith(path)
+  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
     const [tree] = trees
-    if (filepath === DOT || !filepath.startsWith(path)) {
+    if (filepath === DOT || doesNotStartsWithPath(filepath)) {
       return
     }
     const treeType = await tree!.type()
@@ -310,3 +311,4 @@ export const contentWalker =
       content: blob,
     }
   }
+}

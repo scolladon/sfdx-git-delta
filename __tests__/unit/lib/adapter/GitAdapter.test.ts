@@ -876,7 +876,7 @@ describe('GitAdapter', () => {
         } as unknown as WalkerEntry
 
         // Act
-        const result = await contentWalker('dir')('dir\\file', [entry])
+        const result = await contentWalker('dir')('dir/file', [entry])
 
         // Assert
         expect(result).toStrictEqual({
