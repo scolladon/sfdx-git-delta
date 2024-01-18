@@ -159,6 +159,7 @@ export default class GitAdapter {
     const walker = filePathWalker(path)
     return await this.isoGit.walk({
       ...this.gitConfig,
+      dir: path,
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.to })],
       map: walker,
