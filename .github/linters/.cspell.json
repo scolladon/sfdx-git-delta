@@ -120,6 +120,7 @@
         "quotepath",
         "recentsha",
         "repogitdiff",
+        "revparse",
         "rulesets",
         "samlssoconfig",
         "samlssoconfigs",

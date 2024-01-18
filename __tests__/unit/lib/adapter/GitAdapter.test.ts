@@ -208,7 +208,7 @@ describe('GitAdapter', () => {
   describe('parseRev', () => {
     it('should call resolveRef', async () => {
       // Arrange
-      const expected = 'shaoid'
+      const expected = 'sha'
       const gitAdapter = GitAdapter.getInstance(config)
       mockedRevParse.mockImplementation(() => Promise.resolve(expected))
 
