@@ -109,10 +109,7 @@ export default class GitAdapter {
   }
 
   public async parseRev(ref: string) {
-    const parsedRev = await this.isoGit.resolveRef({
-      ...this.gitConfig,
-      ref,
-    })
+    const parsedRev = await this.simpleGit.revparse([ref])
     return parsedRev
   }
 

@@ -19,7 +19,7 @@ const mockedDirExists = jest.fn()
 const mockedFileExists = jest.fn()
 const mockedRaw = jest.fn()
 const mockedSetConfig = jest.fn()
-const mockedResolvedRef = jest.fn()
+const mockedRevParse = jest.fn()
 const mockedReadObject = jest.fn()
 const mockedReadBlob = jest.fn()
 const mockedWalk = jest.fn()
@@ -28,6 +28,7 @@ jest.mock('simple-git', () => {
   return {
     simpleGit: jest.fn(() => ({
       raw: mockedRaw,
+      revparse: mockedRevParse,
     })),
   }
 })
@@ -35,10 +36,6 @@ jest.mock('isomorphic-git', () => ({
   setConfig: function () {
     // eslint-disable-next-line prefer-rest-params
     return mockedSetConfig(...arguments)
-  },
-  resolveRef: function () {
-    // eslint-disable-next-line prefer-rest-params
-    return mockedResolvedRef(...arguments)
   },
   readObject: function () {
     // eslint-disable-next-line prefer-rest-params
@@ -211,21 +208,17 @@ describe('GitAdapter', () => {
   describe('parseRev', () => {
     it('should call resolveRef', async () => {
       // Arrange
+      const expected = 'shaoid'
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedResolvedRef.mockImplementation(() => Promise.resolve('success'))
+      mockedRevParse.mockImplementation(() => Promise.resolve(expected))
 
       // Act
       const result = await gitAdapter.parseRev('ref')
 
       // Assert
-      expect(result).toStrictEqual('success')
-      expect(mockedResolvedRef).toBeCalledTimes(1)
-      expect(mockedResolvedRef).toBeCalledWith(
-        expect.objectContaining({
-          dir: config.repo,
-          ref: 'ref',
-        })
-      )
+      expect(result).toStrictEqual(expected)
+      expect(mockedRevParse).toBeCalledTimes(1)
+      expect(mockedRevParse).toBeCalledWith(expect.arrayContaining(['ref']))
     })
   })
 
