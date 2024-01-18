@@ -22,9 +22,11 @@ export default class InFolderHandler extends StandardHandler {
   protected async _copyFolderMetaFile() {
     const [, folderPath, folderName] = this._parseLine()!
 
-    const folderFileName = `${folderName}.${
-      this.metadataDef.suffix!.toLowerCase() + METAFILE_SUFFIX
-    }`
+    const suffix = folderName.endsWith(INFOLDER_SUFFIX)
+      ? ''
+      : `.${this.metadataDef.suffix!.toLowerCase()}`
+
+    const folderFileName = `${folderName}${suffix}${METAFILE_SUFFIX}`
 
     await this._copyWithMetaFile(join(folderPath, folderFileName))
   }

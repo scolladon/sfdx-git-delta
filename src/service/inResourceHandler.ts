@@ -65,7 +65,9 @@ export default class ResourceHandler extends StandardHandler {
       }
       resourcePath.push(pathElement)
     }
-    const lastPathElement = resourcePath[resourcePath.length - 1].split(DOT)
+    const lastPathElement = resourcePath[resourcePath.length - 1]
+      .replace(METAFILE_SUFFIX, '')
+      .split(DOT)
     if (lastPathElement.length > 1) {
       lastPathElement.pop()
     }
