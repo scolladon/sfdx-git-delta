@@ -21,7 +21,7 @@ export class IgnoreHelper {
     const changeType = line.charAt(0)
 
     let ignInstance!: Ignore
-    if (DELETION == changeType) {
+    if (DELETION === changeType) {
       ignInstance = this.destructiveIgnore
     } else if ([ADDITION, MODIFICATION].includes(changeType)) {
       ignInstance = this.globalIgnore
