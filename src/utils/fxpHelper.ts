@@ -1,7 +1,6 @@
 'use strict'
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
-import { XML_HEADER_TAG_END } from '../constant/metadataConstants'
 import { Config } from '../types/config'
 import { readPathFromGit } from './fsHelper'
 import { FileGitRef } from '../types/git'
@@ -49,9 +48,7 @@ export const parseXmlFileToJson = async (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const convertJsonToXml = (jsonContent: any) => {
   const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-  return xmlBuilder
-    .build(jsonContent)
-    .replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}`)
+  return xmlBuilder.build(jsonContent)
 }
 
 export const ATTRIBUTE_PREFIX = '@_'
