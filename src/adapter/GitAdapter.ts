@@ -38,6 +38,8 @@ export const iterate = async (
 type GitBaseConfig = {
   fs: typeof fs
   dir: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cache: any
   gitdir?: string
 }
 
@@ -76,6 +78,7 @@ export default class GitAdapter {
     this.gitConfig = {
       fs: fs,
       dir: config.repo,
+      cache: GitAdapter.sharedCache,
     }
   }
 
@@ -115,7 +118,6 @@ export default class GitAdapter {
         ...this.gitConfig,
         oid: this.config.to,
         filepath: treatPathSep(path),
-        cache: GitAdapter.sharedCache,
       })
       return [TREE_TYPE, BLOB_TYPE].includes(type)
     } catch {
@@ -134,7 +136,6 @@ export default class GitAdapter {
         ...this.gitConfig,
         oid: forRef.oid,
         filepath: treatPathSep(forRef.path),
-        cache: GitAdapter.sharedCache,
       })
       const bufferData = await this.getBufferFromBlob(blob)
       return bufferData?.toString(UTF8_ENCODING) ?? ''
@@ -153,7 +154,6 @@ export default class GitAdapter {
     return await this.isoGit.walk({
       ...this.gitConfig,
       dir: treatPathSep(path),
-      cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.to })],
       map: walker,
       iterate,
@@ -161,11 +161,11 @@ export default class GitAdapter {
   }
 
   public async getFilesFrom(path: string) {
+    const treatedPath = treatPathSep(path)
     const object = await this.isoGit.readObject({
       ...this.gitConfig,
       oid: this.config.to,
-      filepath: treatPathSep(path),
-      cache: GitAdapter.sharedCache,
+      filepath: treatedPath,
     })
     // Return object exposing async getContent
     // Iterate over and output file using the getContent API when needed
@@ -173,10 +173,9 @@ export default class GitAdapter {
     if (object.type === TREE_TYPE) {
       const filesContent = await this.isoGit.walk({
         ...this.gitConfig,
-        dir: path,
-        cache: GitAdapter.sharedCache,
+        dir: treatedPath,
         trees: [TREE({ ref: this.config.to })],
-        map: contentWalker(path),
+        map: contentWalker(treatedPath),
         iterate,
       })
       blobFiles.push(...filesContent)
@@ -210,7 +209,6 @@ export default class GitAdapter {
     return this.isoGit.walk({
       ...this.gitConfig,
       dir: join(this.config.repo, this.config.source),
-      cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
       map: walker,
       iterate,
