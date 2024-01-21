@@ -43,7 +43,7 @@ export const buildIgnoreHelper = async ({
 }) => {
   if (!ignoreInstance) {
     const globalIgnore = await _buildIgnore(ignore)
-    const destructiveIgnore = await _buildIgnore(ignoreDestructive ?? ignore)
+    const destructiveIgnore = await _buildIgnore(ignoreDestructive || ignore)
 
     destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
 
