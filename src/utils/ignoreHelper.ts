@@ -7,6 +7,8 @@ import {
   GIT_DIFF_TYPE_REGEX,
 } from '../constant/gitConstants'
 
+// QUESTION: Why we should ignore recordTypes for destructive changes manifest ?
+// Because the operation is note enabled on the metadata API https://ideas.salesforce.com/s/idea/a0B8W00000GdeGKUAZ/allow-deletion-of-record-type-using-metadata-api
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {
