@@ -23,7 +23,7 @@ import { fillPackageWithParameter } from '../utils/packageHelper'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
-const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
+const EXTENSION = `.${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 
 const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
@@ -37,11 +37,11 @@ const getDefaultTranslation = () => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
-  protected readonly translationPaths: Map<string, any>
+  protected readonly translations: Map<string, any>
 
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
-    this.translationPaths = new Map()
+    this.translations = new Map()
   }
 
   public override async process() {
@@ -52,7 +52,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   async _buildFlowDefinitionsMap() {
-    this.translationPaths.clear()
+    this.translations.clear()
 
     const allFiles = await readDir(this.config.source, this.work.config)
     const ignoreHelper = await buildIgnoreHelper(this.config)
@@ -71,7 +71,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected async _handleFlowTranslation() {
-    for (const translationPath of this.translationPaths.keys()) {
+    for (const translationPath of this.translations.keys()) {
       fillPackageWithParameter({
         store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
@@ -82,7 +82,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
           await this._getTranslationAsJSON(translationPath)
         this._scrapTranslationFile(
           jsonTranslation,
-          this.translationPaths.get(translationPath)
+          this.translations.get(translationPath)
         )
         const scrappedTranslation = convertJsonToXml(jsonTranslation)
         await writeFile(translationPath, scrappedTranslation, this.config)
@@ -134,10 +134,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }) {
     const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
     if (packagedElements?.has(flowDefinition?.fullName)) {
-      if (!this.translationPaths.has(translationPath)) {
-        this.translationPaths.set(translationPath, [])
+      if (!this.translations.has(translationPath)) {
+        this.translations.set(translationPath, [])
       }
-      this.translationPaths.get(translationPath).push(flowDefinition)
+      this.translations.get(translationPath).push(flowDefinition)
     }
   }
 
