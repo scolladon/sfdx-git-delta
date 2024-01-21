@@ -3,7 +3,6 @@ import { sep } from 'path'
 import { GIT_FOLDER } from '../constant/gitConstants'
 import { UTF8_ENCODING } from '../constant/fsConstants'
 
-export const EOLRegex: RegExp = /\r?\n/g
 const LFS_HEADER = Buffer.from('version https://git-lfs')
 
 export const isLFS = (content: Buffer): boolean =>
@@ -11,7 +10,7 @@ export const isLFS = (content: Buffer): boolean =>
 
 export const getLFSObjectContentPath = (bufferContent: Buffer): string => {
   const content = bufferContent.toString(UTF8_ENCODING)
-  const oid = content.split(EOLRegex)[1].split(':')[1]
+  const oid = content.split(/\n/)[1].split(':')[1]
   return [
     GIT_FOLDER,
     'lfs',

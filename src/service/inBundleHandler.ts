@@ -1,8 +1,7 @@
 'use strict'
 import InResourceHandler from './inResourceHandler'
-import { sep } from 'path'
 import { META_REGEX } from '../constant/metadataConstants'
-import { cleanUpPackageMember } from '../utils/packageHelper'
+import { PATH_SEP } from '../constant/fsConstants'
 
 export default class BundleHandler extends InResourceHandler {
   protected override _getElementName() {
@@ -10,11 +9,9 @@ export default class BundleHandler extends InResourceHandler {
       .slice(this.splittedLine.indexOf(this.type) + 1)
       .slice(0, 2)
 
-    const packageMember: string = bundlePath
-      .join(sep)
+    return bundlePath
+      .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(this.suffixRegex, '')
-
-    return cleanUpPackageMember(packageMember)
   }
 }

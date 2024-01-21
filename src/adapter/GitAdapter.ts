@@ -6,24 +6,20 @@ import { Config } from '../types/config'
 import {
   UTF8_ENCODING,
   GIT_FOLDER,
-  GIT_PATH_SEP,
   ADDITION,
   DELETION,
   MODIFICATION,
 } from '../constant/gitConstants'
 import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
-import { dirExists, fileExists } from '../utils/fsUtils'
-import { DOT } from '../constant/fsConstants'
-import { join, sep } from 'path'
+import { dirExists, fileExists, treatPathSep } from '../utils/fsUtils'
+import { DOT, PATH_SEP } from '../constant/fsConstants'
+import { join } from 'path'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 import { FileGitRef } from '../types/git'
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
 const TREE_TYPE = 'tree'
-
-const gitPathSeparatorNormalizer = (path: string) =>
-  path.replace(/\\+/g, GIT_PATH_SEP)
 
 const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
 
@@ -118,7 +114,7 @@ export default class GitAdapter {
       const { type } = await this.isoGit.readObject({
         ...this.gitConfig,
         oid: this.config.to,
-        filepath: path,
+        filepath: treatPathSep(path),
         cache: GitAdapter.sharedCache,
       })
       return [TREE_TYPE, BLOB_TYPE].includes(type)
@@ -137,7 +133,7 @@ export default class GitAdapter {
       const { blob } = await this.isoGit.readBlob({
         ...this.gitConfig,
         oid: forRef.oid,
-        filepath: gitPathSeparatorNormalizer(forRef.path),
+        filepath: treatPathSep(forRef.path),
         cache: GitAdapter.sharedCache,
       })
       const bufferData = await this.getBufferFromBlob(blob)
@@ -156,7 +152,7 @@ export default class GitAdapter {
     const walker = filePathWalker(path)
     return await this.isoGit.walk({
       ...this.gitConfig,
-      dir: path,
+      dir: treatPathSep(path),
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.to })],
       map: walker,
@@ -168,7 +164,7 @@ export default class GitAdapter {
     const object = await this.isoGit.readObject({
       ...this.gitConfig,
       oid: this.config.to,
-      filepath: path,
+      filepath: treatPathSep(path),
       cache: GitAdapter.sharedCache,
     })
     // Return object exposing async getContent
@@ -177,6 +173,7 @@ export default class GitAdapter {
     if (object.type === TREE_TYPE) {
       const filesContent = await this.isoGit.walk({
         ...this.gitConfig,
+        dir: path,
         cache: GitAdapter.sharedCache,
         trees: [TREE({ ref: this.config.to })],
         map: contentWalker(path),
@@ -201,7 +198,7 @@ export default class GitAdapter {
     for (const file of blobFiles) {
       const content = await this.getBufferFromBlob(file.content)
       bufferFiles.push({
-        path: gitPathSeparatorNormalizer(file.path),
+        path: treatPathSep(file.path),
         content,
       })
     }
@@ -212,6 +209,7 @@ export default class GitAdapter {
     const walker = diffLineWalker(this.config)
     return this.isoGit.walk({
       ...this.gitConfig,
+      dir: join(this.config.repo, this.config.source),
       cache: GitAdapter.sharedCache,
       trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
       map: walker,
@@ -230,7 +228,7 @@ export const filePathWalker = (path: string) => {
       !doesNotStartsWithPath(filepath) &&
       (await tree!.type()) === BLOB_TYPE
     ) {
-      normalizedPath = gitPathSeparatorNormalizer(filepath)
+      normalizedPath = treatPathSep(filepath)
     }
     return normalizedPath
   }
@@ -238,6 +236,7 @@ export const filePathWalker = (path: string) => {
 
 export const diffLineWalker = (config: Config) => {
   const doesNotStartsWithSource = pathDoesNotStartsWith(config.source)
+
   return async (path: string, trees: (WalkerEntry | null)[]) => {
     if (path === DOT || doesNotStartsWithSource(path)) {
       return
@@ -269,14 +268,17 @@ export const diffLineWalker = (config: Config) => {
       type = MODIFICATION
     }
 
-    return `${type}\t${gitPathSeparatorNormalizer(path)}`
+    const result = `${type}\t${treatPathSep(path)}`
+    return result
   }
 }
 
 const pathDoesNotStartsWith = (root: string) => {
-  const gitFormattedRoot = root.split(sep).join(GIT_PATH_SEP) + GIT_PATH_SEP
+  const gitFormattedRoot = treatPathSep(root) + PATH_SEP
+
   return (path: string) =>
-    root !== SOURCE_DEFAULT_VALUE && !path.startsWith(gitFormattedRoot)
+    gitFormattedRoot !== SOURCE_DEFAULT_VALUE &&
+    !path.startsWith(gitFormattedRoot)
 }
 
 const isContentsEqualIgnoringWhiteChars = async (
@@ -305,7 +307,7 @@ export const contentWalker = (path: string) => {
 
     const blob: Uint8Array = (await tree!.content()) as Uint8Array
     return {
-      path: gitPathSeparatorNormalizer(filepath),
+      path: treatPathSep(filepath),
       content: blob,
     }
   }

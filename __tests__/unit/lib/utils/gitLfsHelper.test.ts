@@ -1,7 +1,6 @@
 'use strict'
 import { expect, describe, it } from '@jest/globals'
 import {
-  EOLRegex,
   isLFS,
   getLFSObjectContentPath,
 } from '../../../../src/utils/gitLfsHelper'
@@ -61,51 +60,5 @@ describe('getLFSObjectContentPath', () => {
       // Assert
       expect(e).toBeDefined()
     }
-  })
-})
-
-describe('EOLRegex', () => {
-  it('matches CR LF', () => {
-    // Arrange
-    const input = 'test\r\ntest'
-
-    // Act
-    const matches = EOLRegex.test(input)
-
-    // Assert
-    expect(matches).toBe(true)
-  })
-
-  it('matches LF', () => {
-    // Arrange
-    const input = 'testtest\n'
-
-    // Act
-    const matches = EOLRegex.test(input)
-
-    // Assert
-    expect(matches).toBe(true)
-  })
-
-  it('does not matches CR only', () => {
-    // Arrange
-    const input = 'test\rtest'
-
-    // Act
-    const matches = EOLRegex.test(input)
-
-    // Assert
-    expect(matches).toBe(false)
-  })
-
-  it('does not matches any string ', () => {
-    // Arrange
-    const input = 'test,test'
-
-    // Act
-    const matches = EOLRegex.test(input)
-
-    // Assert
-    expect(matches).toBe(false)
   })
 })

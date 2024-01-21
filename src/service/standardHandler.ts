@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse, sep, ParsedPath } from 'path'
+import { join, parse, ParsedPath } from 'path'
 import {
   ADDITION,
   DELETION,
@@ -7,12 +7,9 @@ import {
   GIT_DIFF_TYPE_REGEX,
 } from '../constant/gitConstants'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
-import {
-  cleanUpPackageMember,
-  fillPackageWithParameter,
-} from '../utils/packageHelper'
+import { DOT, PATH_SEP } from '../constant/fsConstants'
+import { fillPackageWithParameter } from '../utils/packageHelper'
 import { copyFiles } from '../utils/fsHelper'
-import { DOT } from '../constant/fsConstants'
 import { Manifest, Manifests, Work } from '../types/work'
 import { Metadata } from '../types/metadata'
 import { Config } from '../types/config'
@@ -45,7 +42,7 @@ export default class StandardHandler {
     this.diffs = work.diffs
     this.config = work.config
     this.warnings = work.warnings
-    this.splittedLine = this.line.split(sep)
+    this.splittedLine = this.line.split(PATH_SEP)
 
     if (this.metadata.get(this.type)?.metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
@@ -59,7 +56,7 @@ export default class StandardHandler {
       .split(DOT)
       .pop() as string
 
-    this.parentFolder = this.parsedLine.dir.split(sep).slice(-1)[0]
+    this.parentFolder = this.parsedLine.dir.split(PATH_SEP).slice(-1)[0]
     this.metadataDef = this.metadata.get(this.type) as Metadata
   }
 
@@ -107,7 +104,7 @@ export default class StandardHandler {
         .slice(
           this.splittedLine.findIndex(x => x.includes(METAFILE_SUFFIX)) - 1
         )
-        .join(sep)
+        .join(PATH_SEP)
 
         .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
@@ -116,7 +113,7 @@ export default class StandardHandler {
 
   protected _getElementName() {
     const parsedPath = this._getParsedPath()
-    return cleanUpPackageMember(parsedPath.base)
+    return parsedPath.base
   }
 
   protected _fillPackage(store: Manifest) {

@@ -6,10 +6,7 @@ import { writeFile } from '../utils/fsHelper'
 import { DOT } from '../constant/fsConstants'
 import { getInFileAttributes, isPackable } from '../metadata/metadataManager'
 import MetadataDiff from '../utils/metadataDiff'
-import {
-  cleanUpPackageMember,
-  fillPackageWithParameter,
-} from '../utils/packageHelper'
+import { fillPackageWithParameter } from '../utils/packageHelper'
 import { Manifest, Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
@@ -78,9 +75,10 @@ export default class InFileHandler extends StandardHandler {
     member: string
   ) {
     if (isPackable(subType)) {
-      const cleanedMember = cleanUpPackageMember(
-        `${getNamePrefix({ subType, line: this.line })}${member}`
-      )
+      const cleanedMember = `${getNamePrefix({
+        subType,
+        line: this.line,
+      })}${member}`
 
       fillPackageWithParameter({
         store,

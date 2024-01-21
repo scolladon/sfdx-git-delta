@@ -5,7 +5,8 @@ import {
   OBJECT_META_XML_SUFFIX,
 } from '../constant/metadataConstants'
 import { readPathFromGit } from '../utils/fsHelper'
-import { join, sep } from 'path'
+import { join } from 'path'
+import { PATH_SEP } from '../constant/fsConstants'
 
 export default class SubCustomObjectHandler extends StandardHandler {
   public override async handleAddition() {
@@ -21,7 +22,7 @@ export default class SubCustomObjectHandler extends StandardHandler {
 
     const customObjectDirPath = this.splittedLine
       .slice(0, this.splittedLine.indexOf(this.type))
-      .join(sep)
+      .join(PATH_SEP)
     const customObjectName =
       this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
 

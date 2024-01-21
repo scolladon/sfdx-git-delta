@@ -1,8 +1,8 @@
 'use strict'
 import ShareFolderHandler from './sharedFolderHandler'
 import { fillPackageWithParameter } from '../utils/packageHelper'
-import { parse, sep } from 'path'
-import { DOT } from '../constant/fsConstants'
+import { parse } from 'path'
+import { DOT, PATH_SEP } from '../constant/fsConstants'
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
@@ -11,7 +11,7 @@ export default class BotHandler extends ShareFolderHandler {
   protected override _getElementName() {
     const parsedPath = this._getParsedPath()
     const elementName = new Set([
-      parsedPath.dir.split(sep).pop(),
+      parsedPath.dir.split(PATH_SEP).pop(),
       parsedPath.name,
     ])
     return [...elementName].join(DOT)
@@ -22,7 +22,7 @@ export default class BotHandler extends ShareFolderHandler {
   }
 
   protected async _addParentBot() {
-    const botName = this.parentFolder.split(sep).pop() as string
+    const botName = this.parentFolder.split(PATH_SEP).pop() as string
     fillPackageWithParameter({
       store: this.diffs.package,
       type: BOT_TYPE,
@@ -31,7 +31,9 @@ export default class BotHandler extends ShareFolderHandler {
 
     if (!this.config.generateDelta) return
 
-    const botPath = `${parse(this.line).dir}${sep}${botName}.${BOT_EXTENSION}`
+    const botPath = `${
+      parse(this.line).dir
+    }${PATH_SEP}${botName}.${BOT_EXTENSION}`
 
     await this._copyWithMetaFile(botPath)
   }

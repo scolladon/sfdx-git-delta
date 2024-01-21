@@ -1,6 +1,6 @@
 'use strict'
 
-import { parse, sep } from 'path'
+import { parse } from 'path'
 import { Metadata } from '../types/metadata'
 import {
   CUSTOM_APPLICATION_TYPE,
@@ -12,7 +12,7 @@ import {
   TERRITORY_MODEL_TYPE,
 } from '../constant/metadataConstants'
 import { MetadataRepository } from './MetadataRepository'
-import { DOT } from '../constant/fsConstants'
+import { DOT, PATH_SEP } from '../constant/fsConstants'
 
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
@@ -37,7 +37,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   public get(path: string): Metadata | undefined {
-    const parts = path.split(sep)
+    const parts = path.split(PATH_SEP)
     const metadata = this.searchByExtension(parts)
     return metadata ?? this.searchByDirectory(parts)
   }
@@ -82,11 +82,11 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       MetadataRepositoryImpl.COMPOSED_TYPES.includes(type.directoryName)
     ) {
       const parentType = path
-        .split(sep)
+        .split(PATH_SEP)
         .find(part => this.metadataPerDir.get(part))!
       fullyQualifiedName = path
         .slice(path.indexOf(parentType))
-        .replaceAll(sep, '')
+        .replaceAll(PATH_SEP, '')
     }
     return fullyQualifiedName
   }

@@ -5,9 +5,9 @@ import {
   META_REGEX,
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants'
-import { cleanUpPackageMember } from '../utils/packageHelper'
-import { join, parse, sep } from 'path'
+import { join, parse } from 'path'
 import { readDir } from '../utils/fsHelper'
+import { PATH_SEP } from '../constant/fsConstants'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
@@ -43,14 +43,12 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
-    const packageMember = this.splittedLine
+    return this.splittedLine
       .slice(this.splittedLine.indexOf(this.type) + 1)
-      .join(sep)
+      .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
-
-    return cleanUpPackageMember(packageMember)
   }
 
   protected override _isProcessable() {
