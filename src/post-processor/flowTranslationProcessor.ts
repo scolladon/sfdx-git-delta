@@ -8,8 +8,8 @@ import {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
-import { writeFile, scanExtension } from '../utils/fsHelper'
-import { isSubDir, readFile } from '../utils/fsUtils'
+import { writeFile, readDir } from '../utils/fsHelper'
+import { isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
 import { pathExists } from 'fs-extra'
 import { parse, join } from 'path'
 import { buildIgnoreHelper } from '../utils/ignoreHelper'
@@ -20,11 +20,10 @@ import {
   convertJsonToXml,
 } from '../utils/fxpHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
-import { treatPathSep } from '../utils/childProcessUtils'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
-const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
+const EXTENSION = `.${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 
 const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
@@ -38,11 +37,11 @@ const getDefaultTranslation = () => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
-  protected readonly translationPaths: Map<string, any>
+  protected readonly translations: Map<string, any>
 
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
-    this.translationPaths = new Map()
+    this.translations = new Map()
   }
 
   public override async process() {
@@ -53,17 +52,15 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   async _buildFlowDefinitionsMap() {
-    this.translationPaths.clear()
+    this.translations.clear()
 
-    const translationsIterator = await scanExtension(
-      this.config.source,
-      EXTENSION,
-      this.work.config
+    const allFiles = await readDir(this.config.source, this.work.config)
+    const ignoreHelper = await buildIgnoreHelper(this.config)
+    const translationPaths = allFiles.filter((file: string) =>
+      file.endsWith(EXTENSION)
     )
 
-    const ignoreHelper = await buildIgnoreHelper(this.config)
-
-    for (const translationPath of translationsIterator) {
+    for (const translationPath of translationPaths) {
       if (
         !ignoreHelper.globalIgnore.ignores(translationPath) &&
         !isSubDir(this.config.output, translationPath)
@@ -74,7 +71,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected async _handleFlowTranslation() {
-    for (const translationPath of this.translationPaths.keys()) {
+    for (const translationPath of this.translations.keys()) {
       fillPackageWithParameter({
         store: this.work.diffs.package,
         type: TRANSLATION_TYPE,
@@ -85,7 +82,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
           await this._getTranslationAsJSON(translationPath)
         this._scrapTranslationFile(
           jsonTranslation,
-          this.translationPaths.get(translationPath)
+          this.translations.get(translationPath)
         )
         const scrappedTranslation = convertJsonToXml(jsonTranslation)
         await writeFile(translationPath, scrappedTranslation, this.config)
@@ -114,7 +111,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
 
   protected async _parseTranslationFile(translationPath: string) {
     const translationJSON = await parseXmlFileToJson(
-      translationPath,
+      { path: translationPath, oid: this.config.to },
       this.config
     )
     const flowDefinitions = asArray(
@@ -137,10 +134,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }) {
     const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
     if (packagedElements?.has(flowDefinition?.fullName)) {
-      if (!this.translationPaths.has(translationPath)) {
-        this.translationPaths.set(translationPath, [])
+      if (!this.translations.has(translationPath)) {
+        this.translations.set(translationPath, [])
       }
-      this.translationPaths.get(translationPath).push(flowDefinition)
+      this.translations.get(translationPath).push(flowDefinition)
     }
   }
 

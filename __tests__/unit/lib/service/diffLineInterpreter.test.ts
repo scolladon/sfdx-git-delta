@@ -9,9 +9,9 @@ const mockHandle = jest.fn()
 jest.mock('../../../../src/service/typeHandlerFactory', () => {
   return jest.fn().mockImplementation(() => {
     return {
-      getTypeHandler: jest.fn().mockImplementation(() => {
-        return { handle: mockHandle }
-      }),
+      getTypeHandler: jest
+        .fn()
+        .mockImplementation(() => ({ handle: mockHandle })),
     }
   })
 })
@@ -35,25 +35,25 @@ describe('DiffLineInterpreter', () => {
   })
 
   describe('when called with lines', () => {
-    it('process each lines', () => {
+    it('process each lines', async () => {
       // Arrange
       const lines = ['test']
 
       // Act
-      sut.process(lines)
+      await sut.process(lines)
 
       // Assert
-      expect(mockHandle).toBeCalledTimes(1)
+      expect(mockHandle).toBeCalledTimes(lines.length)
     })
   })
 
   describe('when called without lines', () => {
-    it('it does not process anything', () => {
+    it('it does not process anything', async () => {
       // Arrange
       const lines: string[] = []
 
       // Act
-      sut.process(lines)
+      await sut.process(lines)
 
       // Assert
       expect(mockHandle).not.toBeCalled()

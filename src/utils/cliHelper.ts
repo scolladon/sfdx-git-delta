@@ -1,16 +1,13 @@
 'use strict'
 import asyncFilter from './asyncFilter'
 import messages from '../locales/en'
-import RepoSetup from './repoSetup'
-import { sanitizePath } from './childProcessUtils'
-import { POINTER_REF_TYPES } from '../constant/gitConstants'
+import GitAdapter from '../adapter/GitAdapter'
 import {
   getLatestSupportedVersion,
   isVersionSupported,
 } from '../metadata/metadataManager'
 import { format } from 'util'
-import { isGit } from './fsHelper'
-import { readFile, dirExists, fileExists } from './fsUtils'
+import { readFile, dirExists, fileExists, sanitizePath } from './fsUtils'
 import { join } from 'path'
 import { Work } from '../types/work'
 import { Config } from '../types/config'
@@ -23,11 +20,11 @@ const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 export default class CLIHelper {
   protected readonly config: Config
-  protected readonly repoSetup: RepoSetup
+  protected readonly gitAdapter: GitAdapter
 
   constructor(protected readonly work: Work) {
     this.config = work.config
-    this.repoSetup = new RepoSetup(work.config)
+    this.gitAdapter = GitAdapter.getInstance(work.config)
   }
 
   protected async _validateGitSha() {
@@ -44,8 +41,10 @@ export default class CLIHelper {
         return true
       }).map(async (shaParameter: keyof Config) => {
         const shaValue: string = this.config[shaParameter] as string
-        const refType = await this.repoSetup.getCommitRefType(shaValue)
-        if (!POINTER_REF_TYPES.includes(refType?.replace(/\s/g, ''))) {
+        try {
+          const ref: string = await this.gitAdapter.parseRev(shaValue)
+          ;(this.config[shaParameter] as string) = ref
+        } catch (error) {
           errors.push(
             format(messages.errorParameterIsNotGitSHA, shaParameter, shaValue)
           )
@@ -61,7 +60,6 @@ export default class CLIHelper {
     await this._handleDefault()
     const errors: string[] = []
 
-    const isGitPromise = isGit(this.config.repo)
     const directoriesPromise = this._filterDirectories()
     const filesPromise = this._filterFiles()
 
@@ -75,8 +73,9 @@ export default class CLIHelper {
       errors.push(format(messages.errorPathIsNotFile, file))
     )
 
-    const isGitRepo = await isGitPromise
-    if (!isGitRepo) {
+    try {
+      await this.gitAdapter.setGitDir()
+    } catch {
       errors.push(format(messages.errorPathIsNotGit, this.config.repo))
     }
 
@@ -87,7 +86,7 @@ export default class CLIHelper {
       throw new Error(errors.join(', '))
     }
 
-    await this.repoSetup.repoConfiguration()
+    await this.gitAdapter.configureRepository()
   }
 
   protected _filterDirectories() {
@@ -174,8 +173,3 @@ export default class CLIHelper {
     )
   }
 }
-
-export const TO_DEFAULT_VALUE = 'HEAD'
-export const OUTPUT_DEFAULT_VALUE = './output'
-export const SOURCE_DEFAULT_VALUE = './'
-export const REPO_DEFAULT_VALUE = './'

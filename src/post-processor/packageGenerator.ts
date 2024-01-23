@@ -53,12 +53,12 @@ export default class PackageGenerator extends BaseProcessor {
           folder: DESTRUCTIVE_CHANGES_FILE_NAME,
           manifest: new Map(),
         },
-      ].map(async op =>
-        outputFile(
+      ].map(op => {
+        return outputFile(
           join(this.config.output, op.folder, op.filename),
           pc.buildPackage(op.manifest) as string
         )
-      )
+      })
     )
   }
 }

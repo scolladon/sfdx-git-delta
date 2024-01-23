@@ -4,8 +4,9 @@ import StandardHandler from './standardHandler'
 import { getInFileAttributes } from '../metadata/metadataManager'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'
 import { writeFile } from '../utils/fsHelper'
-import { parse, sep } from 'path'
+import { parse } from 'path'
 import MetadataDiff from '../utils/metadataDiff'
+import { PATH_SEP } from '../constant/fsConstants'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
   public override async handleAddition() {
@@ -31,7 +32,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
   protected _getObjectTranslationPath() {
     // Return Object Translation Path for both objectTranslation and fieldTranslation
     // QUESTION: Why fieldTranslation element are not deployable when objectTranslation element is not in the deployed sources (even if objectTranslation file is empty) ?
-    return `${parse(this.line).dir}${sep}${
+    return `${parse(this.line).dir}${PATH_SEP}${
       this.splittedLine[this.splittedLine.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
   }

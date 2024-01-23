@@ -1,34 +1,29 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
 import { getGlobalMetadata } from '../../../__utils__/globalTestHelper'
-import { resetIgnoreInstance } from '../../../../src/utils/ignoreHelper'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
 import {
   ADDITION,
   DELETION,
   MODIFICATION,
 } from '../../../../src/constant/gitConstants'
-import {
-  getSpawnContent,
-  getSpawnContentByLine,
-} from '../../../../src/utils/childProcessUtils'
 import { Config } from '../../../../src/types/config'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
-jest.mock('../../../../src/utils/childProcessUtils', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actualModule: any = jest.requireActual(
-    '../../../../src/utils/childProcessUtils'
-  )
-  return {
-    ...actualModule,
-    getSpawnContent: jest.fn(),
-    getSpawnContentByLine: jest.fn(),
-  }
-})
+const mockGetDiffLines = jest.fn()
+jest.mock('../../../../src/adapter/GitAdapter', () => ({
+  getInstance: jest.fn(() => ({
+    getDiffLines: mockGetDiffLines,
+  })),
+}))
 
-const mockedGetSpawnContent = jest.mocked(getSpawnContent)
-const mockedGetSpawnContentByLine = jest.mocked(getSpawnContentByLine)
+const mockKeep = jest.fn()
+jest.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: jest.fn(() => ({
+    keep: mockKeep,
+  })),
+}))
+mockKeep.mockReturnValue(true)
 
 const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
 
@@ -43,7 +38,6 @@ describe(`test if repoGitDiff`, () => {
   })
 
   beforeEach(() => {
-    resetIgnoreInstance()
     config = {
       to: '',
       from: '',
@@ -61,7 +55,7 @@ describe(`test if repoGitDiff`, () => {
   })
   it('can parse git correctly', async () => {
     const output: string[] = []
-    mockedGetSpawnContentByLine.mockResolvedValue([])
+    mockGetDiffLines.mockImplementation(() => Promise.resolve([]))
     config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreWhitespace = true
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
@@ -71,7 +65,7 @@ describe(`test if repoGitDiff`, () => {
 
   it('can parse git permissively', async () => {
     const output: string[] = []
-    mockedGetSpawnContentByLine.mockResolvedValue([])
+    mockGetDiffLines.mockImplementation(() => Promise.resolve([]))
     config.ignore = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -82,11 +76,9 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = [
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce(
-      output.map(x => `1${TAB}1${TAB}${x}`)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${DELETION}${TAB}${x}`))
     )
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
     config.ignore = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -97,11 +89,9 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = [
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce(
-      output.map(x => `1${TAB}1${TAB}${x}`)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${DELETION}${TAB}${x}`))
     )
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
     expect(work).toStrictEqual(output.map(x => `${DELETION}${TAB}${x}`))
@@ -111,11 +101,9 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = [
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce(
-      output.map(x => `1${TAB}1${TAB}${x}`)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
     expect(work).toStrictEqual(output.map(x => `${ADDITION}${TAB}${x}`))
@@ -125,11 +113,9 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = [
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce(
-      output.map(x => `1${TAB}1${TAB}${x}`)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
     expect(work).toStrictEqual(output.map(x => `${ADDITION}${TAB}${x}`))
@@ -139,10 +125,8 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = [
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce(
-      output.map(x => `1${TAB}1${TAB}${x}`)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `M${TAB}${x}`))
     )
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -153,10 +137,8 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = [
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce(
-      output.map(x => `1${TAB}1${TAB}${x}`)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `M${TAB}${x}`))
     )
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -164,12 +146,11 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('can filter ignored files', async () => {
-    const output = 'force-app/main/default/pages/test.page-meta.xml'
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    const output = ['force-app/main/default/pages/test.page-meta.xml']
+    mockKeep.mockReturnValueOnce(false)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
+    )
     config.ignore = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -179,12 +160,11 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('can filter ignored destructive files', async () => {
-    const output = 'force-app/main/default/pages/test.page-meta.xml'
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContent.mockResolvedValueOnce(
-      Buffer.from(`1${TAB}1${TAB}${output}`)
+    const output = ['force-app/main/default/pages/test.page-meta.xml']
+    mockKeep.mockReturnValueOnce(false)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -194,13 +174,10 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('can filter ignored and ignored destructive files', async () => {
-    const output = 'force-app/main/default/lwc/jsconfig.json'
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContent.mockResolvedValueOnce(
-      Buffer.from(`1${TAB}1${TAB}${output}`)
-    )
-    mockedGetSpawnContent.mockResolvedValueOnce(
-      Buffer.from(`1${TAB}1${TAB}${output}`)
+    const output = ['force-app/main/default/lwc/jsconfig.json']
+    mockKeep.mockReturnValueOnce(false)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
     config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
@@ -212,12 +189,11 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('can filter deletion if only ignored is specified files', async () => {
-    const output = 'force-app/main/default/pages/test.page-meta.xml'
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    const output = ['force-app/main/default/pages/test.page-meta.xml']
+    mockKeep.mockReturnValueOnce(false)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
+    )
     config.ignore = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -227,12 +203,10 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('cannot filter non deletion if only ignored destructive is specified files', async () => {
-    const output = 'force-app/main/default/pages/test.page-meta.xml'
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    const output = ['force-app/main/default/pages/test.page-meta.xml']
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
+    )
 
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
@@ -242,12 +216,11 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('can filter sub folders', async () => {
-    const output = 'force-app/main/default/pages/test.page-meta.xml'
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    const output = ['force-app/main/default/pages/test.page-meta.xml']
+    mockKeep.mockReturnValueOnce(false)
+    mockGetDiffLines.mockImplementation(() =>
+      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
+    )
     config.ignore = FORCEIGNORE_MOCK_PATH
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
@@ -258,85 +231,52 @@ describe(`test if repoGitDiff`, () => {
 
   it('can filter moved files', async () => {
     const output: string[] = [
-      'force-app/main/default/classes/Account.cls',
-      'force-app/account/domain/classes/Account.cls',
+      `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
+      `${ADDITION}${TAB}force-app/account/domain/classes/Account.cls`,
     ]
-
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[1]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[0]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
-    const expected: string[] = [`${ADDITION}${TAB}${output[1]}`]
+    const expected: string[] = [`${output[1]}`]
     expect(work).toStrictEqual(expected)
   })
 
   it('can filter case changed files', async () => {
     const output: string[] = [
-      'force-app/main/default/objects/Account/fields/TEST__c.field-meta.xml',
-      'force-app/main/default/objects/Account/fields/Test__c.field-meta.xml',
+      `${DELETION}${TAB}force-app/main/default/objects/Account/fields/TEST__c.field-meta.xml`,
+      `${ADDITION}${TAB}force-app/main/default/objects/Account/fields/Test__c.field-meta.xml`,
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[1]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[0]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
-    const expected: string[] = [`${ADDITION}${TAB}${output[1]}`]
+    const expected: string[] = [`${output[1]}`]
     expect(work).toStrictEqual(expected)
   })
 
   it('cannot filter renamed files', async () => {
     const output: string[] = [
-      'force-app/main/default/classes/Account.cls',
-      'force-app/main/default/classes/RenamedAccount.cls',
+      `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
+      `${ADDITION}${TAB}force-app/main/default/classes/RenamedAccount.cls`,
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[1]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[0]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
-    const expected: string[] = [
-      `${ADDITION}${TAB}${output[1]}`,
-      `${DELETION}${TAB}${output[0]}`,
-    ]
-    expect(work).toStrictEqual(expected)
+    expect(work).toStrictEqual(output)
   })
 
   it('cannot filter same name file with different metadata', async () => {
     const output: string[] = [
-      'force-app/main/default/objects/Account/fields/CustomField__c.field-meta.xml',
-      'force-app/main/default/objects/Opportunity/fields/CustomField__c.field-meta.xml',
+      `${DELETION}${TAB}force-app/main/default/objects/Account/fields/CustomField__c.field-meta.xml`,
+      `${ADDITION}${TAB}force-app/main/default/objects/Opportunity/fields/CustomField__c.field-meta.xml`,
     ]
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[1]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([
-      `1${TAB}1${TAB}${output[0]}`,
-    ])
-    mockedGetSpawnContentByLine.mockResolvedValueOnce([])
+    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
     const repoGitDiff = new RepoGitDiff(config, globalMetadata)
     const work = await repoGitDiff.getLines()
-    const expected: string[] = [
-      `${ADDITION}${TAB}${output[1]}`,
-      `${DELETION}${TAB}${output[0]}`,
-    ]
-    expect(work).toStrictEqual(expected)
+    expect(work).toStrictEqual(output)
   })
 
   it('can reject in case of error', async () => {
-    mockedGetSpawnContent.mockRejectedValue(new Error('test'))
+    mockGetDiffLines.mockImplementation(() => Promise.reject(new Error('test')))
     try {
       const repoGitDiff = new RepoGitDiff(
         config,
@@ -362,7 +302,7 @@ describe(`test if repoGitDiff`, () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe('Test.cls')
+        expect(result).toBe('test.cls')
       })
     })
 
@@ -379,7 +319,7 @@ describe(`test if repoGitDiff`, () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe(elPath.replace(/\//g, ''))
+        expect(result).toBe(elPath.replace(/\//g, '').toLocaleLowerCase())
       })
     })
   })

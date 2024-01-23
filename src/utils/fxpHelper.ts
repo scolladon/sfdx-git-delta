@@ -1,9 +1,9 @@
 'use strict'
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
-import { readPathFromGit } from './fsHelper'
-import { XML_HEADER_TAG_END } from '../constant/metadataConstants'
 import { Config } from '../types/config'
+import { readPathFromGit } from './fsHelper'
+import { FileGitRef } from '../types/git'
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',
@@ -37,17 +37,18 @@ export const xml2Json = (xmlContent: string) => {
   return jsonContent
 }
 
-export const parseXmlFileToJson = async (line: string, config: Config) => {
-  const xmlContent = await readPathFromGit(line, config)
+export const parseXmlFileToJson = async (
+  forRef: FileGitRef,
+  config: Config
+) => {
+  const xmlContent = await readPathFromGit(forRef, config)
   return xml2Json(xmlContent)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const convertJsonToXml = (jsonContent: any) => {
   const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-  return xmlBuilder
-    .build(jsonContent)
-    .replace(XML_HEADER_TAG_END, `${XML_HEADER_TAG_END}`)
+  return xmlBuilder.build(jsonContent)
 }
 
 export const ATTRIBUTE_PREFIX = '@_'

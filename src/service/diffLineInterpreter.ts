@@ -2,6 +2,11 @@
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import { Work } from '../types/work'
 import TypeHandlerFactory from './typeHandlerFactory'
+import { availableParallelism } from 'os'
+import { queue } from 'async'
+import StandardHandler from './standardHandler'
+
+const MAX_PARALLELISM = Math.min(availableParallelism(), 6)
 
 export default class DiffLineInterpreter {
   constructor(
@@ -13,8 +18,18 @@ export default class DiffLineInterpreter {
 
   public async process(lines: string[]) {
     const typeHandlerFactory = new TypeHandlerFactory(this.work, this.metadata)
+    const processor = queue(
+      async (handler: StandardHandler) => await handler.handle(),
+      MAX_PARALLELISM
+    )
+
     for (const line of lines) {
-      await typeHandlerFactory.getTypeHandler(line).handle()
+      const handler: StandardHandler = typeHandlerFactory.getTypeHandler(line)
+      processor.push(handler)
+    }
+
+    if (processor.length() > 0) {
+      await processor.drain()
     }
   }
 }

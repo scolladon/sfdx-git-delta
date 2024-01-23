@@ -1,7 +1,16 @@
 'use strict'
 import { stat, readFile as fsReadFile } from 'fs-extra'
-import { isAbsolute, relative } from 'path'
-import { UTF8_ENCODING } from '../constant/fsConstants'
+import { isAbsolute, normalize, relative } from 'path'
+import {
+  PATH_SEPARATOR_REGEX,
+  UTF8_ENCODING,
+  PATH_SEP,
+} from '../constant/fsConstants'
+
+export const treatPathSep = (data: string) =>
+  data.split(PATH_SEPARATOR_REGEX).filter(Boolean).join(PATH_SEP)
+export const sanitizePath = (data: string) =>
+  data ? normalize(treatPathSep(data)) : data
 
 export const isSubDir = (parent: string, dir: string) => {
   const rel = relative(parent, dir)

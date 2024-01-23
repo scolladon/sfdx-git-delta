@@ -6,7 +6,7 @@ import {
   REPO_DEFAULT_VALUE,
   SOURCE_DEFAULT_VALUE,
   OUTPUT_DEFAULT_VALUE,
-} from '../../../utils/cliHelper'
+} from '../../../utils/cliConstants'
 import { Config } from '../../../types/config'
 import { Output } from '../../../types/output'
 

@@ -1,9 +1,9 @@
 'use strict'
 import StandardHandler from './standardHandler'
-import { join, parse, sep } from 'path'
-import { pathExists, DOT } from '../utils/fsHelper'
+import { join, parse } from 'path'
+import { pathExists } from '../utils/fsHelper'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
-import { cleanUpPackageMember } from '../utils/packageHelper'
+import { DOT, PATH_SEP } from '../constant/fsConstants'
 import { Work } from '../types/work'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 
@@ -41,7 +41,7 @@ export default class ResourceHandler extends StandardHandler {
 
   protected override _getElementName() {
     const parsedPath = this._getParsedPath()
-    return cleanUpPackageMember(parsedPath.name)
+    return parsedPath.name
   }
 
   protected override _getParsedPath() {
@@ -64,13 +64,15 @@ export default class ResourceHandler extends StandardHandler {
       }
       resourcePath.push(pathElement)
     }
-    const lastPathElement = resourcePath[resourcePath.length - 1].split(DOT)
+    const lastPathElement = resourcePath[resourcePath.length - 1]
+      .replace(METAFILE_SUFFIX, '')
+      .split(DOT)
     if (lastPathElement.length > 1) {
       lastPathElement.pop()
     }
 
     resourcePath[resourcePath.length - 1] = lastPathElement.join(DOT)
-    return `${resourcePath.join(sep)}`
+    return `${resourcePath.join(PATH_SEP)}`
   }
 
   protected override _getMetaTypeFilePath() {

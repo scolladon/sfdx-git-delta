@@ -6,12 +6,10 @@ import FlowTranslationProcessor from '../../../../src/post-processor/flowTransla
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
 import {
   FLOW_XML_NAME,
-  METAFILE_SUFFIX,
-  TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../../../../src/constant/metadataConstants'
-import { writeFile, scanExtension } from '../../../../src/utils/fsHelper'
-import { isSubDir, readFile } from '../../../../src/utils/fsUtils'
+import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
+import { writeFile, readDir } from '../../../../src/utils/fsHelper'
 import { Work } from '../../../../src/types/work'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 
@@ -19,11 +17,13 @@ jest.mock('fs-extra')
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsUtils')
 
-const mockedScanExtension = jest.mocked(scanExtension)
+const mockedReadDir = jest.mocked(readDir)
 const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
 const mockedIsSubDir = jest.mocked(isSubDir)
 const mockedPathExists = jest.mocked(pathExists)
 const mockedReadFile = jest.mocked(readFile)
+const mockTreatPathSep = jest.mocked(treatPathSep)
+mockTreatPathSep.mockImplementation(data => data)
 
 const mockIgnores = jest.fn()
 jest.mock('../../../../src/utils/ignoreHelper', () => ({
@@ -48,7 +48,6 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
 const FR = 'fr'
 const EN = 'en'
 const flowFullName = 'test-flow'
-const EXTENSION = `${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 
 describe('FlowTranslationProcessor', () => {
   let work: Work
@@ -64,7 +63,7 @@ describe('FlowTranslationProcessor', () => {
       mockIgnores.mockReset()
       work = getWork()
       sut = new FlowTranslationProcessor(work, metadata)
-      mockedScanExtension.mockResolvedValue([`${FR}.translation-meta.xml`])
+      mockedReadDir.mockResolvedValue([`${FR}.translation-meta.xml`])
     })
 
     describe('when no flow have been modified', () => {
@@ -73,7 +72,7 @@ describe('FlowTranslationProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedScanExtension).not.toHaveBeenCalled()
+        expect(mockedReadDir).not.toHaveBeenCalled()
         expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
       })
     })
@@ -90,17 +89,16 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is no translation file', () => {
         beforeEach(() => {
           // Arrange
-          mockedScanExtension.mockResolvedValue([])
+          mockedReadDir.mockResolvedValue([])
         })
         it('should not add translation file', async () => {
           // Act
           await sut.process()
 
           // Assert
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
@@ -120,10 +118,9 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
@@ -144,10 +141,9 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
@@ -172,10 +168,9 @@ describe('FlowTranslationProcessor', () => {
           await sut.process()
 
           // Assert
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalled()
@@ -215,10 +210,9 @@ describe('FlowTranslationProcessor', () => {
           await sut.process()
 
           // Assert
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalled()
@@ -234,7 +228,7 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is multiple translation file with multiple flow def', () => {
         beforeEach(() => {
           // Arrange
-          mockedScanExtension.mockResolvedValue([
+          mockedReadDir.mockResolvedValue([
             `${FR}.translation-meta.xml`,
             `${EN}.translation-meta.xml`,
           ])
@@ -253,10 +247,9 @@ describe('FlowTranslationProcessor', () => {
 
             // Assert
             expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-            expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-            expect(mockedScanExtension).toHaveBeenCalledWith(
+            expect(mockedReadDir).toHaveBeenCalledTimes(1)
+            expect(mockedReadDir).toHaveBeenCalledWith(
               work.config.source,
-              EXTENSION,
               work.config
             )
             expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
@@ -290,10 +283,9 @@ describe('FlowTranslationProcessor', () => {
 
                 // Assert
                 expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-                expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-                expect(mockedScanExtension).toHaveBeenCalledWith(
+                expect(mockedReadDir).toHaveBeenCalledTimes(1)
+                expect(mockedReadDir).toHaveBeenCalledWith(
                   work.config.source,
-                  EXTENSION,
                   work.config
                 )
                 expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
@@ -317,10 +309,9 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
@@ -343,10 +334,9 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
@@ -368,10 +358,9 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-          expect(mockedScanExtension).toHaveBeenCalledTimes(1)
-          expect(mockedScanExtension).toHaveBeenCalledWith(
+          expect(mockedReadDir).toHaveBeenCalledTimes(1)
+          expect(mockedReadDir).toHaveBeenCalledWith(
             work.config.source,
-            EXTENSION,
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
