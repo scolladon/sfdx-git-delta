@@ -220,15 +220,16 @@ export const filePathWalker = (path: string) => {
   const doesNotStartsWithPath = pathDoesNotStartsWith(path)
   return async (filepath: string, trees: (WalkerEntry | null)[]) => {
     const [tree] = trees
-    let normalizedPath
-    if (
-      filepath !== DOT &&
-      !doesNotStartsWithPath(filepath) &&
-      (await tree!.type()) === BLOB_TYPE
-    ) {
-      normalizedPath = treatPathSep(filepath)
+
+    if (filepath === DOT || doesNotStartsWithPath(filepath)) {
+      return
     }
-    return normalizedPath
+
+    const treeType = await tree!.type()
+    if (treeType !== BLOB_TYPE) {
+      return
+    }
+    return treatPathSep(filepath)
   }
 }
 
