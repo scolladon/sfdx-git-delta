@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.35.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.34.0...v5.35.0) (2024-01-23)
+
+
+### Features
+
+* migrate to `isomorphic-git` instead of `spawn` ([#740](https://github.com/scolladon/sfdx-git-delta/issues/740)) ([2f3e188](https://github.com/scolladon/sfdx-git-delta/commit/2f3e18893563ee39b51189f0d3eed152be98eec9))
+* resolve metadata type using file extension ([#750](https://github.com/scolladon/sfdx-git-delta/issues/750)) ([eb66cfc](https://github.com/scolladon/sfdx-git-delta/commit/eb66cfc8fc2438c656727d345932b07ab0b3000e))
+
 ## [5.34.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.33.0...v5.34.0) (2024-01-16)
 
 
