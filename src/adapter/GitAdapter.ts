@@ -217,34 +217,36 @@ export default class GitAdapter {
 }
 
 export const filePathWalker = (path: string) => {
-  const doesNotStartsWithPath = pathDoesNotStartsWith(path)
+  const shouldSkip = evaluateShouldSkip(path)
   return async (filepath: string, trees: (WalkerEntry | null)[]) => {
-    const [tree] = trees
-
-    if (filepath === DOT || doesNotStartsWithPath(filepath)) {
-      return
-    }
-
-    const treeType = await tree!.type()
-    if (treeType !== BLOB_TYPE) {
+    if (await shouldSkip(filepath, trees)) {
       return
     }
     return treatPathSep(filepath)
   }
 }
 
-export const diffLineWalker = (config: Config) => {
-  const doesNotStartsWithSource = pathDoesNotStartsWith(config.source)
-
-  return async (path: string, trees: (WalkerEntry | null)[]) => {
-    if (path === DOT || doesNotStartsWithSource(path)) {
+export const contentWalker = (path: string) => {
+  const shouldSkip = evaluateShouldSkip(path)
+  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
+    if (await shouldSkip(filepath, trees)) {
       return
     }
 
-    const types = await Promise.all(
-      trees.filter(Boolean).map(tree => tree!.type())
-    )
-    if (types.some(type => type !== BLOB_TYPE)) {
+    const [tree] = trees
+    const blob: Uint8Array = (await tree!.content()) as Uint8Array
+    return {
+      path: treatPathSep(filepath),
+      content: blob,
+    }
+  }
+}
+
+export const diffLineWalker = (config: Config) => {
+  const shouldSkip = evaluateShouldSkip(config.source)
+
+  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
+    if (await shouldSkip(filepath, trees)) {
       return
     }
 
@@ -267,17 +269,9 @@ export const diffLineWalker = (config: Config) => {
       type = MODIFICATION
     }
 
-    const result = `${type}\t${treatPathSep(path)}`
+    const result = `${type}\t${treatPathSep(filepath)}`
     return result
   }
-}
-
-const pathDoesNotStartsWith = (root: string) => {
-  const gitFormattedRoot = treatPathSep(root) + PATH_SEP
-
-  return (path: string) =>
-    gitFormattedRoot !== SOURCE_DEFAULT_VALUE &&
-    !path.startsWith(gitFormattedRoot)
 }
 
 const isContentsEqualIgnoringWhiteChars = async (
@@ -292,22 +286,25 @@ const isContentsEqualIgnoringWhiteChars = async (
   return fromContent === toContent
 }
 
-export const contentWalker = (path: string) => {
-  const doesNotStartsWithPath = pathDoesNotStartsWith(path)
-  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
-    const [tree] = trees
-    if (filepath === DOT || doesNotStartsWithPath(filepath)) {
-      return
-    }
-    const treeType = await tree!.type()
-    if (treeType !== BLOB_TYPE) {
-      return
+const pathDoesNotStartsWith = (root: string) => {
+  const gitFormattedRoot = treatPathSep(root) + PATH_SEP
+
+  return (path: string) =>
+    gitFormattedRoot !== SOURCE_DEFAULT_VALUE &&
+    !path.startsWith(gitFormattedRoot)
+}
+
+const evaluateShouldSkip = (base: string) => {
+  const checkPath = pathDoesNotStartsWith(base)
+  return async (path: string, trees: (WalkerEntry | null)[]) => {
+    if (path === DOT || checkPath(path)) {
+      return true
     }
 
-    const blob: Uint8Array = (await tree!.content()) as Uint8Array
-    return {
-      path: treatPathSep(filepath),
-      content: blob,
-    }
+    const types = await Promise.all(
+      trees.filter(Boolean).map(tree => tree!.type())
+    )
+
+    return types.some(type => type !== BLOB_TYPE)
   }
 }
