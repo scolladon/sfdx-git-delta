@@ -6,7 +6,12 @@ import { availableParallelism } from 'os'
 import { queue } from 'async'
 import StandardHandler from './standardHandler'
 
-const MAX_PARALLELISM = Math.min(availableParallelism(), 6)
+// This is because of this issue: https://github.com/scolladon/sfdx-git-delta/issues/762#issuecomment-1907609957
+const AVAILABLE_PARALLELISM = availableParallelism
+  ? availableParallelism()
+  : Infinity
+
+const MAX_PARALLELISM = Math.min(AVAILABLE_PARALLELISM, 6)
 
 export default class DiffLineInterpreter {
   constructor(
