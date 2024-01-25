@@ -102,7 +102,7 @@ jobs:
         run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
         shell: bash
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.yarn-cache }}
           key: ${{ runner.os }}-16-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -130,9 +130,7 @@ jobs:
           path: ./e2e
 
       - name: Run benchmark
-        run: |
-          git checkout -f main
-          yarn test:perf
+        run: yarn test:perf
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1

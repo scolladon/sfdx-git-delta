@@ -41,7 +41,7 @@ jobs:
       - name: Functional test
         run: yarn test:nut
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: coverage-test-report
           path: reports/coverage
