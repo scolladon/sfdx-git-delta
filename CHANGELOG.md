@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.35.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.35.0...v5.35.1) (2024-01-25)
+
+
+### Bug Fixes
+
+* os api availability issue ([#764](https://github.com/scolladon/sfdx-git-delta/issues/764)) ([e6d6e34](https://github.com/scolladon/sfdx-git-delta/commit/e6d6e346a4d794e8b22a7d04224cb9858af5ec23))
+* use constant for path separator ([#766](https://github.com/scolladon/sfdx-git-delta/issues/766)) ([e8cd848](https://github.com/scolladon/sfdx-git-delta/commit/e8cd84880a0c87fab0a9c63ab49793338771c39e))
+
 ## [5.35.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.34.0...v5.35.0) (2024-01-23)
 
 
