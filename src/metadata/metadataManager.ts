@@ -1,12 +1,15 @@
 'use strict'
 import { resolve } from 'path'
+
 import { readFile, readdir } from 'fs-extra'
+
 import {
   BaseMetadata,
   Metadata,
   SharedFileMetadata,
   SharedFolderMetadata,
 } from '../types/metadata'
+
 import { MetadataRepository } from './MetadataRepository'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl'
 

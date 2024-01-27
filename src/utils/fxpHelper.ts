@@ -1,9 +1,11 @@
 'use strict'
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
+
 import { Config } from '../types/config'
-import { readPathFromGit } from './fsHelper'
 import { FileGitRef } from '../types/git'
+
+import { readPathFromGit } from './fsHelper'
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',

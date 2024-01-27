@@ -1,12 +1,13 @@
 'use strict'
-import BaseProcessor from './baseProcessor'
-import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
-import DiffLineInterpreter from '../service/diffLineInterpreter'
-import { treatPathSep } from '../utils/fsUtils'
-import { ADDITION, DELETION } from '../constant/gitConstants'
-import { Work } from '../types/work'
 import GitAdapter from '../adapter/GitAdapter'
+import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
+import DiffLineInterpreter from '../service/diffLineInterpreter'
+import { Work } from '../types/work'
+import { treatPathSep } from '../utils/fsUtils'
+import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
+
+import BaseProcessor from './baseProcessor'
 const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {

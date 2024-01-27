@@ -1,12 +1,14 @@
 'use strict'
+import { parse } from 'path'
+
+import { PATH_SEP } from '../constant/fsConstants'
+import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'
+import { getInFileAttributes } from '../metadata/metadataManager'
+import { writeFile } from '../utils/fsHelper'
+import MetadataDiff from '../utils/metadataDiff'
+
 import ResourceHandler from './inResourceHandler'
 import StandardHandler from './standardHandler'
-import { getInFileAttributes } from '../metadata/metadataManager'
-import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'
-import { writeFile } from '../utils/fsHelper'
-import { parse } from 'path'
-import MetadataDiff from '../utils/metadataDiff'
-import { PATH_SEP } from '../constant/fsConstants'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
   public override async handleAddition() {

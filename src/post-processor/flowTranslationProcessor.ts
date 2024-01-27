@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict'
-import BaseProcessor from './baseProcessor'
+import { parse, join } from 'path'
+
+import { pathExists } from 'fs-extra'
+
 import {
   FLOW_XML_NAME,
   META_REGEX,
@@ -8,20 +11,20 @@ import {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
+import { MetadataRepository } from '../metadata/MetadataRepository'
+import { Work } from '../types/work'
 import { writeFile, readDir } from '../utils/fsHelper'
 import { isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
-import { pathExists } from 'fs-extra'
-import { parse, join } from 'path'
-import { buildIgnoreHelper } from '../utils/ignoreHelper'
 import {
   asArray,
   parseXmlFileToJson,
   xml2Json,
   convertJsonToXml,
 } from '../utils/fxpHelper'
+import { buildIgnoreHelper } from '../utils/ignoreHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
-import { Work } from '../types/work'
-import { MetadataRepository } from '../metadata/MetadataRepository'
+
+import BaseProcessor from './baseProcessor'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
 

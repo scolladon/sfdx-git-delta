@@ -1,10 +1,11 @@
 'use strict'
+import { MetadataRepository } from '../metadata/MetadataRepository'
+import { Work } from '../types/work'
+
 import BaseProcessor from './baseProcessor'
-import PackageGenerator from './packageGenerator'
 import FlowTranslationProcessor from './flowTranslationProcessor'
 import IncludeProcessor from './includeProcessor'
-import { Work } from '../types/work'
-import { MetadataRepository } from '../metadata/MetadataRepository'
+import PackageGenerator from './packageGenerator'
 
 const processors: Array<typeof BaseProcessor> = [
   FlowTranslationProcessor,

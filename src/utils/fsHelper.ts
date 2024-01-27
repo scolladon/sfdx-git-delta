@@ -1,11 +1,14 @@
 'use strict'
-import { outputFile } from 'fs-extra'
-import { buildIgnoreHelper } from './ignoreHelper'
 import { join } from 'path'
-import { Config } from '../types/config'
+
+import { outputFile } from 'fs-extra'
+
 import GitAdapter from '../adapter/GitAdapter'
+import { Config } from '../types/config'
 import { FileGitRef } from '../types/git'
+
 import { treatPathSep } from './fsUtils'
+import { buildIgnoreHelper } from './ignoreHelper'
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()
