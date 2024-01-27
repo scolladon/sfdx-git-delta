@@ -1,13 +1,14 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
+
+import { Config } from '../../../../src/types/config'
+import { readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
   asArray,
   parseXmlFileToJson,
   convertJsonToXml,
   xml2Json,
 } from '../../../../src/utils/fxpHelper'
-import { readPathFromGit } from '../../../../src/utils/fsHelper'
-import { Config } from '../../../../src/types/config'
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 

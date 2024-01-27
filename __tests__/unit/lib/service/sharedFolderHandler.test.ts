@@ -1,11 +1,12 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
-import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
-import { copyFiles } from '../../../../src/utils/fsHelper'
+
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
-import { Work } from '../../../../src/types/work'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
+import { Work } from '../../../../src/types/work'
+import { copyFiles } from '../../../../src/utils/fsHelper'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 

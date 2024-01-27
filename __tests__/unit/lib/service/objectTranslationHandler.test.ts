@@ -1,10 +1,11 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
-import { Work } from '../../../../src/types/work'
-import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
-import { writeFile, copyFiles } from '../../../../src/utils/fsHelper'
+
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
+import { Work } from '../../../../src/types/work'
+import { writeFile, copyFiles } from '../../../../src/utils/fsHelper'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 const mockCompare = jest.fn()
 const mockprune = jest.fn()

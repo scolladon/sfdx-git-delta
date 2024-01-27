@@ -1,8 +1,9 @@
 'use strict'
-import { expect } from '@salesforce/command/lib/test'
-import { execCmd } from '@salesforce/cli-plugins-testkit'
-import readline from 'readline'
 import fs from 'fs'
+import readline from 'readline'
+
+import { execCmd } from '@salesforce/cli-plugins-testkit'
+import { expect } from '@salesforce/command/lib/test'
 
 describe('sgd:source:delta NUTS', () => {
   it('run help', () => {
