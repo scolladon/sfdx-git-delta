@@ -1,7 +1,8 @@
 'use strict'
 import { expect, describe, it } from '@jest/globals'
-import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
+
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import { Metadata } from '../../../../src/types/metadata'
 
 describe('MetadataRepositoryImpl', () => {

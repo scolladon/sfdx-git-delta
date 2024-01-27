@@ -1,7 +1,8 @@
 ;`use strict`
+import { expect, jest, describe, it } from '@jest/globals'
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const sgd = require('../../src/main')
-import { expect, jest, describe, it } from '@jest/globals'
 
 const mockValidateConfig = jest.fn()
 jest.mock('../../src/utils/cliHelper', () => {

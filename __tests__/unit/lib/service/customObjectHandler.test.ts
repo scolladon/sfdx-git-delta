@@ -1,16 +1,17 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
-import CustomObjectHandler from '../../../../src/service/customObjectHandler'
+
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import CustomObjectHandler from '../../../../src/service/customObjectHandler'
+import { Work } from '../../../../src/types/work'
 import {
   copyFiles,
   pathExists,
   readDir,
   readPathFromGit,
 } from '../../../../src/utils/fsHelper'
-import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 

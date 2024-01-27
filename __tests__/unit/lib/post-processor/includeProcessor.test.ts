@@ -1,13 +1,14 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
+import { Work } from '../../../../src/types/work'
 import {
   IgnoreHelper,
   buildIncludeHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 const mockProcess = jest.fn()
 jest.mock('../../../../src/service/diffLineInterpreter', () => {

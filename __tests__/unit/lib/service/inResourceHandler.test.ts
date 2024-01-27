@@ -1,11 +1,12 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+
+import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
 import { Work } from '../../../../src/types/work'
 import { copyFiles, pathExists, readDir } from '../../../../src/utils/fsHelper'
-import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
-import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 

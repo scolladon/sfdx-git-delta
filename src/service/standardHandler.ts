@@ -1,5 +1,7 @@
 'use strict'
 import { join, parse, ParsedPath } from 'path'
+
+import { DOT, PATH_SEP } from '../constant/fsConstants'
 import {
   ADDITION,
   DELETION,
@@ -7,13 +9,12 @@ import {
   GIT_DIFF_TYPE_REGEX,
 } from '../constant/gitConstants'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
-import { DOT, PATH_SEP } from '../constant/fsConstants'
-import { fillPackageWithParameter } from '../utils/packageHelper'
-import { copyFiles } from '../utils/fsHelper'
-import { Manifest, Manifests, Work } from '../types/work'
-import { Metadata } from '../types/metadata'
-import { Config } from '../types/config'
 import { MetadataRepository } from '../metadata/MetadataRepository'
+import { Config } from '../types/config'
+import { Metadata } from '../types/metadata'
+import { Manifest, Manifests, Work } from '../types/work'
+import { copyFiles } from '../utils/fsHelper'
+import { fillPackageWithParameter } from '../utils/packageHelper'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

@@ -1,7 +1,8 @@
 'use strict'
 
 import { parse } from 'path'
-import { Metadata } from '../types/metadata'
+
+import { DOT, PATH_SEP } from '../constant/fsConstants'
 import {
   CUSTOM_APPLICATION_TYPE,
   METAFILE_SUFFIX,
@@ -11,8 +12,9 @@ import {
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
 } from '../constant/metadataConstants'
+import { Metadata } from '../types/metadata'
+
 import { MetadataRepository } from './MetadataRepository'
-import { DOT, PATH_SEP } from '../constant/fsConstants'
 
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>

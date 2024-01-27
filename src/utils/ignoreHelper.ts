@@ -1,11 +1,13 @@
 import ignore, { Ignore } from 'ignore'
-import { readFile } from './fsUtils'
+
 import {
   ADDITION,
   DELETION,
   MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
 } from '../constant/gitConstants'
+
+import { readFile } from './fsUtils'
 
 // QUESTION: Why we should ignore recordTypes for destructive changes manifest ?
 // Because the operation is note enabled on the metadata API https://ideas.salesforce.com/s/idea/a0B8W00000GdeGKUAZ/allow-deletion-of-record-type-using-metadata-api

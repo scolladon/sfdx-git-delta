@@ -1,13 +1,15 @@
 'use strict'
-import StandardHandler from './standardHandler'
+import { join, parse } from 'path'
+
+import { PATH_SEP } from '../constant/fsConstants'
 import {
   INFOLDER_SUFFIX,
   META_REGEX,
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants'
-import { join, parse } from 'path'
 import { readDir } from '../utils/fsHelper'
-import { PATH_SEP } from '../constant/fsConstants'
+
+import StandardHandler from './standardHandler'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)

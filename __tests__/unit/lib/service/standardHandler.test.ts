@@ -1,16 +1,17 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
-import StandardHandler from '../../../../src/service/standardHandler'
-import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
+
 import {
   ADDITION,
   MODIFICATION,
   DELETION,
 } from '../../../../src/constant/gitConstants'
-import { copyFiles } from '../../../../src/utils/fsHelper'
-import { Work } from '../../../../src/types/work'
+import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import StandardHandler from '../../../../src/service/standardHandler'
+import { Work } from '../../../../src/types/work'
+import { copyFiles } from '../../../../src/utils/fsHelper'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedCopyFiles = jest.mocked(copyFiles)

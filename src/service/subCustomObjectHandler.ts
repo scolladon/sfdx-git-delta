@@ -1,12 +1,14 @@
 'use strict'
-import StandardHandler from './standardHandler'
+import { join } from 'path'
+
+import { PATH_SEP } from '../constant/fsConstants'
 import {
   MASTER_DETAIL_TAG,
   OBJECT_META_XML_SUFFIX,
 } from '../constant/metadataConstants'
 import { readPathFromGit } from '../utils/fsHelper'
-import { join } from 'path'
-import { PATH_SEP } from '../constant/fsConstants'
+
+import StandardHandler from './standardHandler'
 
 export default class SubCustomObjectHandler extends StandardHandler {
   public override async handleAddition() {

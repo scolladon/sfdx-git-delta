@@ -1,9 +1,10 @@
 'use strict'
-import { buildIgnoreHelper } from './ignoreHelper'
-import { Config } from '../types/config'
 import GitAdapter from '../adapter/GitAdapter'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
+import { Config } from '../types/config'
+
+import { buildIgnoreHelper } from './ignoreHelper'
 
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter

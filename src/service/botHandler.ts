@@ -1,8 +1,10 @@
 'use strict'
-import ShareFolderHandler from './sharedFolderHandler'
-import { fillPackageWithParameter } from '../utils/packageHelper'
 import { parse } from 'path'
+
 import { DOT, PATH_SEP } from '../constant/fsConstants'
+import { fillPackageWithParameter } from '../utils/packageHelper'
+
+import ShareFolderHandler from './sharedFolderHandler'
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'

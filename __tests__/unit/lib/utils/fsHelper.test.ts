@@ -1,6 +1,10 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
-import { getWork } from '../../../__utils__/globalTestHelper'
+import { outputFile } from 'fs-extra'
+import { Ignore } from 'ignore'
+
+import { Config } from '../../../../src/types/config'
+import { Work } from '../../../../src/types/work'
 import {
   copyFiles,
   pathExists,
@@ -12,10 +16,7 @@ import {
   IgnoreHelper,
   buildIgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { outputFile } from 'fs-extra'
-import { Work } from '../../../../src/types/work'
-import { Config } from '../../../../src/types/config'
-import { Ignore } from 'ignore'
+import { getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('fs-extra')
 

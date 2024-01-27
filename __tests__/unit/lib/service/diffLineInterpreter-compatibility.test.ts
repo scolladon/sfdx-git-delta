@@ -1,10 +1,11 @@
 'use strict'
 
 import { expect, jest, describe, it } from '@jest/globals'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+
+import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import { Work } from '../../../../src/types/work'
-import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('os', () => ({
   availableParallelism: null,

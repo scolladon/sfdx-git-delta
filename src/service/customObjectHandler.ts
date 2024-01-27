@@ -1,13 +1,15 @@
 'use strict'
-import StandardHandler from './standardHandler'
-import asyncFilter from '../utils/asyncFilter'
-import { pathExists, readDir, readPathFromGit } from '../utils/fsHelper'
+import { join, parse } from 'path'
+
 import {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
 } from '../constant/metadataConstants'
-import { join, parse } from 'path'
+import asyncFilter from '../utils/asyncFilter'
+import { pathExists, readDir, readPathFromGit } from '../utils/fsHelper'
+
+import StandardHandler from './standardHandler'
 
 export default class CustomObjectHandler extends StandardHandler {
   public override async handleAddition() {

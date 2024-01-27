@@ -1,10 +1,12 @@
 'use strict'
 
-import BaseProcessor from './baseProcessor'
-import PackageBuilder from '../utils/packageHelper'
+import { join } from 'path'
 
 import { outputFile } from 'fs-extra'
-import { join } from 'path'
+
+import PackageBuilder from '../utils/packageHelper'
+
+import BaseProcessor from './baseProcessor'
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
