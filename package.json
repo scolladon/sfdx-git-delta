@@ -84,7 +84,7 @@
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
     "benchmark": "^2.1.4",
-    "chai": "^4.3.10",
+    "chai": "^5.0.3",
     "depcheck": "^1.4.7",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
