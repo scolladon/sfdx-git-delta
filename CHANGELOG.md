@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.36.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.35.1...v5.36.0) (2024-01-30)
+
+
+### Features
+
+* support `WebStoreTemplate` metadata ([#775](https://github.com/scolladon/sfdx-git-delta/issues/775)) ([8a38ddf](https://github.com/scolladon/sfdx-git-delta/commit/8a38ddf4ef5f1e4ae7f43606d95ab9b6f5e25d85))
+
 ## [5.35.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.35.0...v5.35.1) (2024-01-25)
 
 
