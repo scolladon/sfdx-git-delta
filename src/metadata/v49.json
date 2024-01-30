@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "webstoretemplate",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "webstoretemplate",
+    "xmlName": "WebStoreTemplate"
+  },
+  {
     "directoryName": "actionPlanTemplates",
     "inFolder": false,
     "metaFile": false,

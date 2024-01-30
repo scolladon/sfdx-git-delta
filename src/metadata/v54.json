@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "webstoretemplate",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "webstoretemplate",
+    "xmlName": "WebStoreTemplate"
+  },
+  {
     "directoryName": "recordAlertCategories",
     "inFolder": false,
     "metaFile": false,
