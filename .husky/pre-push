@@ -1,11 +1,8 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-yarn lint
 yarn pack
-yarn test:unit:coverage
-yarn test:nut
-yarn analysis src
+yarn test
 npm outdated || true
 yarn npm audit || true
 yarn lint:dependencies || true
