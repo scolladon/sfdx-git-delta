@@ -18,12 +18,13 @@ jobs:
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
-      - name: Build plugin
+      - uses: google/wireit@setup-github-actions-caching/v1
 
+      - name: Build plugin
         run: yarn pack
 
       - name: Unit test
-        run: yarn test:unit:coverage --runInBand
+        run: yarn test:unit -- --runInBand
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
