@@ -181,7 +181,7 @@
     "@stryker-mutator/jest-runner": "^8.2.2",
     "@swc/core": "^1.3.107",
     "@types/async": "^3.2.24",
-    "@types/jest": "^29.5.11",
+    "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.15",
     "@typescript-eslint/eslint-plugin": "^6.20.0",
