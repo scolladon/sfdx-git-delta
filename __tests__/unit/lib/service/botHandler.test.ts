@@ -3,7 +3,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import BotHandler from '../../../../src/service/botHandler'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 

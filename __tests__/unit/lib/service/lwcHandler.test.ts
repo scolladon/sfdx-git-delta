@@ -8,7 +8,7 @@ import {
 } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import LwcHandler from '../../../../src/service/lwcHandler'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 

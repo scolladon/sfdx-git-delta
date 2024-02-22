@@ -4,7 +4,7 @@ import { parse, join } from 'path'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import { getSharedFolderMetadata } from '../metadata/metadataManager'
-import { Manifest, Work } from '../types/work'
+import type { Manifest, Work } from '../types/work'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 
 import StandardHandler from './standardHandler'

@@ -12,7 +12,7 @@ import {
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Work } from '../types/work'
+import type { Work } from '../types/work'
 import { writeFile, readDir } from '../utils/fsHelper'
 import { isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
 import {

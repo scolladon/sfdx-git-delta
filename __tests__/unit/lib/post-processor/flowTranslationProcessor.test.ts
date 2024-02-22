@@ -8,7 +8,7 @@ import {
 } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { writeFile, readDir } from '../../../../src/utils/fsHelper'
 import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'

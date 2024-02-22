@@ -1,6 +1,6 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Work } from '../types/work'
+import type { Work } from '../types/work'
 
 import Bot from './botHandler'
 import CustomObject from './customObjectHandler'

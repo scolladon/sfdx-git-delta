@@ -2,8 +2,8 @@
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
 
-import { Config } from '../types/config'
-import { FileGitRef } from '../types/git'
+import type { Config } from '../types/config'
+import type { FileGitRef } from '../types/git'
 
 import { readPathFromGit } from './fsHelper'
 

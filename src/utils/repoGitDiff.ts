@@ -2,7 +2,7 @@
 import GitAdapter from '../adapter/GitAdapter'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Config } from '../types/config'
+import type { Config } from '../types/config'
 
 import { buildIgnoreHelper } from './ignoreHelper'
 

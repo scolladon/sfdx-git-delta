@@ -9,7 +9,7 @@ import {
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import StandardHandler from '../../../../src/service/standardHandler'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 

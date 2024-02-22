@@ -8,8 +8,8 @@ import {
   getLatestSupportedVersion,
   isVersionSupported,
 } from '../metadata/metadataManager'
-import { Config } from '../types/config'
-import { Work } from '../types/work'
+import type { Config } from '../types/config'
+import type { Work } from '../types/work'
 
 import asyncFilter from './asyncFilter'
 import { readFile, dirExists, fileExists, sanitizePath } from './fsUtils'

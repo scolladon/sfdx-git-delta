@@ -1,7 +1,7 @@
 'use strict'
 import { expect, jest, describe, it } from '@jest/globals'
 
-import { Config } from '../../../../src/types/config'
+import type { Config } from '../../../../src/types/config'
 import { readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
   asArray,

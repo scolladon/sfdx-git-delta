@@ -3,7 +3,7 @@ import { expect, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
-import { Metadata } from '../../../../src/types/metadata'
+import type { Metadata } from '../../../../src/types/metadata'
 
 describe('MetadataRepositoryImpl', () => {
   let sut: MetadataRepository
