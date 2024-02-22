@@ -4,7 +4,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import CustomObjectHandler from '../../../../src/service/customObjectHandler'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import {
   copyFiles,
   pathExists,

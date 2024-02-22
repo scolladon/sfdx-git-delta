@@ -9,7 +9,7 @@ import {
   getSharedFolderMetadata,
   isVersionSupported,
 } from '../../../../src/metadata/metadataManager'
-import { Metadata } from '../../../../src/types/metadata'
+import type { Metadata } from '../../../../src/types/metadata'
 
 describe(`test if metadata`, () => {
   it('provide latest when apiVersion does not exist', async () => {

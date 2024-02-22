@@ -10,9 +10,9 @@ import {
 } from '../constant/gitConstants'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Config } from '../types/config'
-import { Metadata } from '../types/metadata'
-import { Manifest, Manifests, Work } from '../types/work'
+import type { Config } from '../types/config'
+import type { Metadata } from '../types/metadata'
+import type { Manifest, Manifests, Work } from '../types/work'
 import { copyFiles } from '../utils/fsHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 

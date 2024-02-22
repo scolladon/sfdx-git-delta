@@ -4,7 +4,7 @@ import { availableParallelism } from 'os'
 import { queue } from 'async'
 
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Work } from '../types/work'
+import type { Work } from '../types/work'
 
 import StandardHandler from './standardHandler'
 import TypeHandlerFactory from './typeHandlerFactory'

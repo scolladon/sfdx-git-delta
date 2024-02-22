@@ -8,7 +8,7 @@ import {
 } from '../../src/constant/gitConstants'
 import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
-import { Work } from '../../src/types/work'
+import type { Work } from '../../src/types/work'
 import { readPathFromGit } from '../../src/utils/fsHelper'
 import { getGlobalMetadata } from '../__utils__/globalTestHelper'
 

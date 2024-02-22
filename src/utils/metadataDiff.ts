@@ -4,9 +4,9 @@
 import { isEqual } from 'lodash'
 
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Config } from '../types/config'
-import { SharedFileMetadata } from '../types/metadata'
-import { Manifest } from '../types/work'
+import type { Config } from '../types/config'
+import type { SharedFileMetadata } from '../types/metadata'
+import type { Manifest } from '../types/work'
 
 import {
   asArray,

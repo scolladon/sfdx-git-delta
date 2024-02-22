@@ -12,7 +12,7 @@ import {
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
 } from '../constant/metadataConstants'
-import { Metadata } from '../types/metadata'
+import type { Metadata } from '../types/metadata'
 
 import { MetadataRepository } from './MetadataRepository'
 

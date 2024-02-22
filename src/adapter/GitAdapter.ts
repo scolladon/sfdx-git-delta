@@ -13,8 +13,8 @@ import {
   DELETION,
   MODIFICATION,
 } from '../constant/gitConstants'
-import { Config } from '../types/config'
-import { FileGitRef } from '../types/git'
+import type { Config } from '../types/config'
+import type { FileGitRef } from '../types/git'
 import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
 import { dirExists, fileExists, treatPathSep } from '../utils/fsUtils'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
