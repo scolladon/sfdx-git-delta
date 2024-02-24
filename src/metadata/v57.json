@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "useraccesspolicies",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "useraccesspolicy",
+    "xmlName": "UserAccessPolicy"
+  },
+  {
     "directoryName": "webstoretemplate",
     "inFolder": false,
     "metaFile": false,
