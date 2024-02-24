@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.37.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.36.0...v5.37.0) (2024-02-24)
+
+
+### Features
+
+* support UserAccessPolicy metadata for v57+ ([#793](https://github.com/scolladon/sfdx-git-delta/issues/793)) ([4c46c9e](https://github.com/scolladon/sfdx-git-delta/commit/4c46c9e477a51c06eefcddbf48c796f9cef67101))
+
 ## [5.36.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.35.1...v5.36.0) (2024-01-30)
 
 
