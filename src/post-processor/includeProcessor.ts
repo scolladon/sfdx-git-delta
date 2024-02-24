@@ -3,7 +3,7 @@ import GitAdapter from '../adapter/GitAdapter'
 import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
-import { Work } from '../types/work'
+import type { Work } from '../types/work'
 import { treatPathSep } from '../utils/fsUtils'
 import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
 

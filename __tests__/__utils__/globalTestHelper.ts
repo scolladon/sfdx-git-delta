@@ -4,7 +4,7 @@ import {
   getDefinition,
   getLatestSupportedVersion,
 } from '../../src/metadata/metadataManager'
-import { Work } from '../../src/types/work'
+import type { Work } from '../../src/types/work'
 
 require('ts-node/register')
 

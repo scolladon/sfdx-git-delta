@@ -6,7 +6,7 @@ import {
   MODIFICATION,
   DELETION,
 } from '../../../../src/constant/gitConstants'
-import { Config } from '../../../../src/types/config'
+import type { Config } from '../../../../src/types/config'
 import { readFile } from '../../../../src/utils/fsUtils'
 import {
   IgnoreHelper,

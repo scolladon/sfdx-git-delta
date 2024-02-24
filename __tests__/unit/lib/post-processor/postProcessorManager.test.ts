@@ -6,7 +6,7 @@ import BaseProcessor from '../../../../src/post-processor/baseProcessor'
 import PostProcessorManager, {
   getPostProcessors,
 } from '../../../../src/post-processor/postProcessorManager'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 const processSpy = jest.fn()

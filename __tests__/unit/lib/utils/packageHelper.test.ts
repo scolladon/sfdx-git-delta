@@ -1,8 +1,8 @@
 'use strict'
 import { expect, describe, it } from '@jest/globals'
 
-import { Config } from '../../../../src/types/config'
-import { Manifest } from '../../../../src/types/work'
+import type { Config } from '../../../../src/types/config'
+import type { Manifest } from '../../../../src/types/work'
 import PackageBuilder, {
   fillPackageWithParameter,
 } from '../../../../src/utils/packageHelper'

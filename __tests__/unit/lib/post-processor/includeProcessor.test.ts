@@ -3,7 +3,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import {
   IgnoreHelper,
   buildIncludeHelper,

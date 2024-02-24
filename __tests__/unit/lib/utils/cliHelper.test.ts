@@ -5,7 +5,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 
 import messages from '../../../../src/locales/en'
 import { getLatestSupportedVersion } from '../../../../src/metadata/metadataManager'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import CLIHelper from '../../../../src/utils/cliHelper'
 import {
   readFile,

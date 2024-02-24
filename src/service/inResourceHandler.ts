@@ -4,7 +4,7 @@ import { join, parse } from 'path'
 import { DOT, PATH_SEP } from '../constant/fsConstants'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Work } from '../types/work'
+import type { Work } from '../types/work'
 import { pathExists } from '../utils/fsHelper'
 
 import StandardHandler from './standardHandler'

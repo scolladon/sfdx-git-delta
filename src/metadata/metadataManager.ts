@@ -3,7 +3,7 @@ import { resolve } from 'path'
 
 import { readFile, readdir } from 'fs-extra'
 
-import {
+import type {
   BaseMetadata,
   Metadata,
   SharedFileMetadata,

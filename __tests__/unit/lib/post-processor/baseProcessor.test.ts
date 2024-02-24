@@ -3,7 +3,7 @@ import { beforeAll, expect, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import BaseProcessor from '../../../../src/post-processor/baseProcessor'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 describe('BaseProcessor', () => {

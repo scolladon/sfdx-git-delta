@@ -7,7 +7,7 @@ import {
   MODIFICATION,
 } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import { Config } from '../../../../src/types/config'
+import type { Config } from '../../../../src/types/config'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
 import { getGlobalMetadata } from '../../../__utils__/globalTestHelper'
 

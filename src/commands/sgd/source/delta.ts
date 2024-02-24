@@ -2,8 +2,8 @@ import { flags, SfdxCommand } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
 
 import sgd from '../../../main'
-import { Config } from '../../../types/config'
-import { Output } from '../../../types/output'
+import type { Config } from '../../../types/config'
+import type { Output } from '../../../types/output'
 import {
   TO_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,

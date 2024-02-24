@@ -4,7 +4,7 @@ import fse from 'fs-extra'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('fs-extra')

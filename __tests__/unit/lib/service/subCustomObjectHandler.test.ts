@@ -4,7 +4,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import SubCustomObjectHandler from '../../../../src/service/subCustomObjectHandler'
-import { Work } from '../../../../src/types/work'
+import type { Work } from '../../../../src/types/work'
 import { readPathFromGit, copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 

@@ -2,8 +2,8 @@
 import { create } from 'xmlbuilder2'
 
 import { OBJECT_XML_NAME } from '../constant/metadataConstants'
-import { Config } from '../types/config'
-import { Manifest } from '../types/work'
+import type { Config } from '../types/config'
+import type { Manifest } from '../types/work'
 
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
