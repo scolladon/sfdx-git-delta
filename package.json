@@ -184,7 +184,7 @@
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.20",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.0.2",
     "benchmark": "^2.1.4",
     "chai": "^4.3.10",
