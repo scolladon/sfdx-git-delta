@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.38.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.37.0...v5.38.0) (2024-03-09)
+
+
+### Features
+
+* support `DataWaveResource` metadata ([#801](https://github.com/scolladon/sfdx-git-delta/issues/801)) ([ece38af](https://github.com/scolladon/sfdx-git-delta/commit/ece38af2655c672f05b691da950312e25f84958d))
+
 ## [5.37.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.36.0...v5.37.0) (2024-02-24)
 
 
