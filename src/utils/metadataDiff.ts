@@ -46,7 +46,7 @@ const selectKey =
 
 // Metadata JSON structure functional area
 const getRootMetadata = (fileContent: any): any =>
-  Object.values(fileContent)?.[1] ?? {}
+  Object.values(fileContent)?.[1] ?? Object.values(fileContent)?.[0] ?? {}
 
 const getSubTypeTags =
   (attributes: Map<string, SharedFileMetadata>) => (fileContent: any) =>
