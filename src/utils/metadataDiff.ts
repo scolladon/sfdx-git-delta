@@ -144,7 +144,7 @@ const generatePartialJSON =
         storeHasMemberForType(key(elem))
       )
       return acc
-    }, jsonContent)
+    }, structuredClone(jsonContent))
   }
 
 export default class MetadataDiff {
