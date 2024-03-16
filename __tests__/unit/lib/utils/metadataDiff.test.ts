@@ -123,7 +123,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
     )
   })
 
-  describe('compare', () => {
+  describe(`compare with ${JSON.stringify(header)} header`, () => {
     it('does not detect null file content', async () => {
       // Arrange
       mockedParseXmlFileToJson.mockResolvedValueOnce('')
@@ -220,7 +220,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
       expect(added.get('WorkflowAlert')).toEqual(new Set(['TestEmailAlert']))
     })
   })
-  describe('prune', () => {
+  describe(`prune with ${JSON.stringify(header)} header`, () => {
     it('given one element added, the generated file contains only this element', async () => {
       // Arrange
       mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...alert })
