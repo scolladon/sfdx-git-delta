@@ -54,3 +54,5 @@ export const convertJsonToXml = (jsonContent: any) => {
 }
 
 export const ATTRIBUTE_PREFIX = '@_'
+
+export const XML_HEADER_ATTRIBUTE_KEY = '?xml'
