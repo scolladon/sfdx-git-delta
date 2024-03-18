@@ -5,7 +5,7 @@ import { readFile } from 'fs-extra'
 import git, { TREE, WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 import { simpleGit, SimpleGit } from 'simple-git'
 
-import { DOT, PATH_SEP } from '../constant/fsConstants'
+import { DOT } from '../constant/fsConstants'
 import {
   UTF8_ENCODING,
   GIT_FOLDER,
@@ -289,7 +289,7 @@ const isContentsEqualIgnoringWhiteChars = async (
 }
 
 const pathDoesNotStartsWith = (root: string) => {
-  const gitFormattedRoot = treatPathSep(root) + PATH_SEP
+  const gitFormattedRoot = treatPathSep(root)
 
   return (path: string) =>
     gitFormattedRoot !== SOURCE_DEFAULT_VALUE &&
