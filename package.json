@@ -171,7 +171,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.3",
-    "@commitlint/config-conventional": "^19.0.3",
+    "@commitlint/config-conventional": "^19.1.0",
     "@jest/globals": "^29.7.0",
     "@oclif/dev-cli": "^1.26.10",
     "@salesforce/cli-plugins-testkit": "^5.1.10",
