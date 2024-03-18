@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.38.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.1...v5.38.2) (2024-03-18)
+
+
+### Bug Fixes
+
+* absolute path handling ([#815](https://github.com/scolladon/sfdx-git-delta/issues/815)) ([a926a88](https://github.com/scolladon/sfdx-git-delta/commit/a926a881818f01d85f21246bac4e5f9b7b5062a2))
+
 ## [5.38.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.0...v5.38.1) (2024-03-18)
 
 
