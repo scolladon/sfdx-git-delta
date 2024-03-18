@@ -13,7 +13,7 @@ import {
   parseXmlFileToJson,
   convertJsonToXml,
   ATTRIBUTE_PREFIX,
-  XML_HEADER_ATTRIBUT_KEY,
+  XML_HEADER_ATTRIBUTE_KEY,
 } from './fxpHelper'
 import { fillPackageWithParameter } from './packageHelper'
 
@@ -49,7 +49,7 @@ const selectKey =
 const getRootMetadata = (fileContent: any): any =>
   fileContent[
     Object.keys(fileContent).find(
-      attribut => attribut !== XML_HEADER_ATTRIBUT_KEY
+      attribute => attribute !== XML_HEADER_ATTRIBUTE_KEY
     ) as string
   ] ?? {}
 
