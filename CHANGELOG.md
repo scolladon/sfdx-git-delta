@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.38.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.0...v5.38.1) (2024-03-18)
+
+
+### Bug Fixes
+
+* add `@salesforce/core` implicit dependency ([#812](https://github.com/scolladon/sfdx-git-delta/issues/812)) ([fc3e5c9](https://github.com/scolladon/sfdx-git-delta/commit/fc3e5c9d12c23b235778b2031c84076141e04883))
+* xml header consideration for inFile metadata type handler ([#811](https://github.com/scolladon/sfdx-git-delta/issues/811)) ([71b1217](https://github.com/scolladon/sfdx-git-delta/commit/71b1217dba9d18f71640bf0650a5f4dc4e39ffbe))
+
 ## [5.38.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.37.0...v5.38.0) (2024-03-09)
 
 
