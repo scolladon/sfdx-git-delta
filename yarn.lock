@@ -1669,6 +1669,32 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@salesforce/core@npm:^6.7.1":
+  version: 6.7.1
+  resolution: "@salesforce/core@npm:6.7.1"
+  dependencies:
+    "@salesforce/kit": ^3.0.15
+    "@salesforce/schemas": ^1.6.1
+    "@salesforce/ts-types": ^2.0.9
+    "@types/semver": ^7.5.8
+    ajv: ^8.12.0
+    change-case: ^4.1.2
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsforce: ^2.0.0-beta.29
+    jsonwebtoken: 9.0.2
+    jszip: 3.10.1
+    pino: ^8.19.0
+    pino-abstract-transport: ^1.1.0
+    pino-pretty: ^10.3.1
+    proper-lockfile: ^4.1.2
+    semver: ^7.6.0
+    ts-retry-promise: ^0.7.1
+  checksum: a8457f937d788f7fa3d8ac27f6c1cd7b3941fd9c63fdab67ed4f9a517be2084fe016f4fdb18f0e9ea0ec6f6fdd5396c9bd6f7dadd51b139ec216fbfd281d1a3a
+  languageName: node
+  linkType: hard
+
 "@salesforce/dev-config@npm:^4.1.0":
   version: 4.1.0
   resolution: "@salesforce/dev-config@npm:4.1.0"
@@ -9840,6 +9866,7 @@ __metadata:
     "@oclif/dev-cli": ^1.26.10
     "@salesforce/cli-plugins-testkit": ^5.1.11
     "@salesforce/command": ^5.3.9
+    "@salesforce/core": ^6.7.1
     "@salesforce/dev-config": ^4.1.0
     "@salesforce/ts-sinon": ^1.4.19
     "@stryker-mutator/core": ^8.2.6
