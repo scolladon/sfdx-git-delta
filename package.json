@@ -170,7 +170,7 @@
     }
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.0.3",
+    "@commitlint/cli": "^19.2.0",
     "@commitlint/config-conventional": "^19.0.3",
     "@jest/globals": "^29.7.0",
     "@oclif/dev-cli": "^1.26.10",
