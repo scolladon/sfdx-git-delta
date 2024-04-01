@@ -2279,7 +2279,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^20.11.28":
+"@types/node@npm:*":
   version: 20.11.28
   resolution: "@types/node@npm:20.11.28"
   dependencies:
@@ -2292,6 +2292,15 @@ __metadata:
   version: 12.20.55
   resolution: "@types/node@npm:12.20.55"
   checksum: e4f86785f4092706e0d3b0edff8dca5a13b45627e4b36700acd8dfe6ad53db71928c8dee914d4276c7fd3b6ccd829aa919811c9eb708a2c8e4c6eb3701178c37
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.12.2":
+  version: 20.12.2
+  resolution: "@types/node@npm:20.12.2"
+  dependencies:
+    undici-types: ~5.26.4
+  checksum: 3242ab04fe69ae32a2da29a7a2fce41fccb370bc1189de43d2dfbb491bd3253d3ee2070cbb5613061148e4862fdaa9cf62722c43128ce5c7d33fe83750956613
   languageName: node
   linkType: hard
 
@@ -9861,7 +9870,7 @@ __metadata:
     "@types/async": ^3.2.24
     "@types/jest": ^29.5.12
     "@types/mocha": ^10.0.6
-    "@types/node": ^20.11.28
+    "@types/node": ^20.12.2
     "@typescript-eslint/eslint-plugin": ^7.2.0
     "@typescript-eslint/parser": ^7.2.0
     async: ^3.2.5
