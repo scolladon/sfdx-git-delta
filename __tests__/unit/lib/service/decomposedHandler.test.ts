@@ -3,7 +3,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import SubCustomObjectHandler from '../../../../src/service/subCustomObjectHandler'
+import DecomposedHandler from '../../../../src/service/decomposedHandler'
 import type { Work } from '../../../../src/types/work'
 import { readPathFromGit, copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
@@ -22,7 +22,7 @@ beforeEach(() => {
   work = getWork()
 })
 
-describe('SubCustomObjectHandler', () => {
+describe('DecomposedHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     // eslint-disable-next-line no-undef
@@ -33,12 +33,7 @@ describe('SubCustomObjectHandler', () => {
     it('should not handle master detail exception', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new SubCustomObjectHandler(
-        line,
-        objectType,
-        work,
-        globalMetadata
-      )
+      const sut = new DecomposedHandler(line, objectType, work, globalMetadata)
 
       // Act
       await sut.handleAddition()
@@ -52,7 +47,7 @@ describe('SubCustomObjectHandler', () => {
       it('should not handle master detail exception', async () => {
         // Arrange
         mockedReadPathFromGit.mockResolvedValueOnce('')
-        const sut = new SubCustomObjectHandler(
+        const sut = new DecomposedHandler(
           line,
           objectType,
           work,
@@ -71,7 +66,7 @@ describe('SubCustomObjectHandler', () => {
       it('should copy the parent object', async () => {
         // Arrange
         mockedReadPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
-        const sut = new SubCustomObjectHandler(
+        const sut = new DecomposedHandler(
           line,
           objectType,
           work,

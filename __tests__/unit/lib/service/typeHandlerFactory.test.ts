@@ -2,11 +2,11 @@
 import { expect, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import DecomposedHandler from '../../../../src/service/decomposedHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
-import SubCustomObject from '../../../../src/service/subCustomObjectHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
@@ -22,7 +22,7 @@ describe('the type handler factory', () => {
   })
   describe.each([
     [
-      SubCustomObject,
+      DecomposedHandler,
       [
         'businessProcesses',
         'compactLayouts',
@@ -49,23 +49,23 @@ describe('the type handler factory', () => {
     })
   })
 
-  it('can handle SubCustomObject', () => {
+  it('can handle DecomposedHandler', () => {
     expect(
       typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/objects/Account/fields/Test__c`
       )
-    ).toBeInstanceOf(SubCustomObject)
+    ).toBeInstanceOf(DecomposedHandler)
   })
 
-  it('can handle sub folder with SubCustomObject', () => {
+  it('can handle sub folder with DecomposedHandler', () => {
     expect(
       typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/objects/folder/Account/fields/Test__c.field-meta.xml`
       )
-    ).toBeInstanceOf(SubCustomObject)
+    ).toBeInstanceOf(DecomposedHandler)
   })
 
-  it('can handle sub folder with non SubCustomObject', () => {
+  it('can handle sub folder with non DecomposedHandler', () => {
     expect(
       typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/documents/classes/TestDocument`

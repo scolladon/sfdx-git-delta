@@ -4,6 +4,7 @@ import type { Work } from '../types/work'
 
 import Bot from './botHandler'
 import CustomObject from './customObjectHandler'
+import Decomposed from './decomposedHandler'
 import InBundleHandler from './inBundleHandler'
 import InFile from './inFileHandler'
 import InFolder from './inFolderHandler'
@@ -12,15 +13,14 @@ import LwcHandler from './lwcHandler'
 import ObjectTranslation from './objectTranslationHandler'
 import SharedFolder from './sharedFolderHandler'
 import Standard from './standardHandler'
-import SubCustomObject from './subCustomObjectHandler'
 
 const handlerMap = {
   assignmentRules: InFile,
   autoResponseRules: InFile,
   aura: LwcHandler,
   bots: Bot,
-  businessProcesses: SubCustomObject,
-  compactLayouts: SubCustomObject,
+  businessProcesses: Decomposed,
+  compactLayouts: Decomposed,
   dashboards: InFolder,
   digitalExperiences: InBundleHandler,
   discovery: SharedFolder,
@@ -28,12 +28,12 @@ const handlerMap = {
   email: InFolder,
   escalationRules: InFile,
   experiences: InResource,
-  fieldSets: SubCustomObject,
-  fields: SubCustomObject,
+  fieldSets: Decomposed,
+  fields: Decomposed,
   globalValueSetTranslations: InFile,
-  indexes: SubCustomObject,
+  indexes: Decomposed,
   labels: InFile,
-  listViews: SubCustomObject,
+  listViews: Decomposed,
   lwc: LwcHandler,
   marketingappextensions: InFile,
   matchingRules: InFile,
@@ -41,20 +41,20 @@ const handlerMap = {
   objects: CustomObject,
   objectTranslations: ObjectTranslation,
   profiles: InFile,
-  recordTypes: SubCustomObject,
+  recordTypes: Decomposed,
   reports: InFolder,
-  rules: SubCustomObject,
-  sharingReasons: SubCustomObject,
+  rules: Decomposed,
+  sharingReasons: Decomposed,
   sharingRules: InFile,
   standardValueSetTranslations: InFile,
   staticresources: InResource,
-  territories: SubCustomObject,
+  territories: Decomposed,
   territory2Models: CustomObject,
   translations: InFile,
-  validationRules: SubCustomObject,
+  validationRules: Decomposed,
   wave: SharedFolder,
   waveTemplates: InResource,
-  webLinks: SubCustomObject,
+  webLinks: Decomposed,
   workflows: InFile,
 }
 

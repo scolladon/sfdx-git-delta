@@ -10,7 +10,7 @@ import { readPathFromGit } from '../utils/fsHelper'
 
 import StandardHandler from './standardHandler'
 
-export default class SubCustomObjectHandler extends StandardHandler {
+export default class DecomposedHandler extends StandardHandler {
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
