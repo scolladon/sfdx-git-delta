@@ -106,7 +106,6 @@ export default class StandardHandler {
           this.splittedLine.findIndex(x => x.includes(METAFILE_SUFFIX)) - 1
         )
         .join(PATH_SEP)
-
         .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
