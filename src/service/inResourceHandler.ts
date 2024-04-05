@@ -37,7 +37,7 @@ export default class ResourceHandler extends StandardHandler {
     if (exists) {
       await this.handleModification()
     } else {
-      super.handleDeletion()
+      await super.handleDeletion()
     }
   }
 
