@@ -1,7 +1,7 @@
 'use strict'
 import { join, parse } from 'path'
 
-import { PATH_SEP } from '../constant/fsConstants'
+import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants'
 import {
   INFOLDER_SUFFIX,
   META_REGEX,
@@ -12,7 +12,6 @@ import { readDir } from '../utils/fsHelper'
 import StandardHandler from './standardHandler'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
-const EXTENSION_SUFFIX_REGEX = new RegExp(/\.[^/.]+$/)
 export default class InFolderHandler extends StandardHandler {
   override async handleAddition() {
     await super.handleAddition()
