@@ -2,7 +2,8 @@
 import { expect, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import DecomposedHandler from '../../../../src/service/decomposedHandler'
+import Decomposed from '../../../../src/service/decomposedHandler'
+import HangingDecomposed from '../../../../src/service/hangingDecomposedHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
@@ -21,8 +22,9 @@ describe('the type handler factory', () => {
     typeHandlerFactory = new TypeHandlerFactory(work, globalMetadata)
   })
   describe.each([
+    [HangingDecomposed, ['permissionsets']],
     [
-      DecomposedHandler,
+      Decomposed,
       [
         'businessProcesses',
         'compactLayouts',
@@ -49,23 +51,51 @@ describe('the type handler factory', () => {
     })
   })
 
-  it('can handle DecomposedHandler', () => {
+  it('can handle hanging decomposed', () => {
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/permissionsets/admin/applicationVisibilities/admin.applicationVisibility`
+      )
+    ).toBeInstanceOf(HangingDecomposed)
+
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/permissionsets/folder/admin/applicationVisibilities/admin.applicationVisibility`
+      )
+    ).toBeInstanceOf(HangingDecomposed)
+  })
+
+  it('can handle hanging decomposed not decomposed (old format)', () => {
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/permissionsets/admin.permissionset`
+      )
+    ).toBeInstanceOf(HangingDecomposed)
+
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/permissionsets/folder/admin.permissionset`
+      )
+    ).toBeInstanceOf(HangingDecomposed)
+  })
+
+  it('can handle Decomposed', () => {
     expect(
       typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/objects/Account/fields/Test__c`
       )
-    ).toBeInstanceOf(DecomposedHandler)
+    ).toBeInstanceOf(Decomposed)
   })
 
-  it('can handle sub folder with DecomposedHandler', () => {
+  it('can handle sub folder with Decomposed', () => {
     expect(
       typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/objects/folder/Account/fields/Test__c.field-meta.xml`
       )
-    ).toBeInstanceOf(DecomposedHandler)
+    ).toBeInstanceOf(Decomposed)
   })
 
-  it('can handle sub folder with non DecomposedHandler', () => {
+  it('can handle sub folder with non Decomposed', () => {
     expect(
       typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/documents/classes/TestDocument`

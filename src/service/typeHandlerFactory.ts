@@ -5,11 +5,12 @@ import type { Work } from '../types/work'
 import Bot from './botHandler'
 import CustomObject from './customObjectHandler'
 import Decomposed from './decomposedHandler'
-import InBundleHandler from './inBundleHandler'
+import HangingDecomposed from './hangingDecomposedHandler'
+import InBundle from './inBundleHandler'
 import InFile from './inFileHandler'
 import InFolder from './inFolderHandler'
 import InResource from './inResourceHandler'
-import LwcHandler from './lwcHandler'
+import Lwc from './lwcHandler'
 import ObjectTranslation from './objectTranslationHandler'
 import SharedFolder from './sharedFolderHandler'
 import Standard from './standardHandler'
@@ -17,12 +18,12 @@ import Standard from './standardHandler'
 const handlerMap = {
   assignmentRules: InFile,
   autoResponseRules: InFile,
-  aura: LwcHandler,
+  aura: Lwc,
   bots: Bot,
   businessProcesses: Decomposed,
   compactLayouts: Decomposed,
   dashboards: InFolder,
-  digitalExperiences: InBundleHandler,
+  digitalExperiences: InBundle,
   discovery: SharedFolder,
   documents: InFolder,
   email: InFolder,
@@ -34,12 +35,13 @@ const handlerMap = {
   indexes: Decomposed,
   labels: InFile,
   listViews: Decomposed,
-  lwc: LwcHandler,
+  lwc: Lwc,
   marketingappextensions: InFile,
   matchingRules: InFile,
   moderation: SharedFolder,
   objects: CustomObject,
   objectTranslations: ObjectTranslation,
+  permissionsets: HangingDecomposed,
   profiles: InFile,
   recordTypes: Decomposed,
   reports: InFolder,
