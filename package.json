@@ -161,7 +161,7 @@
       "command": "jest --coverage",
       "files": [
         "src/**/*.ts",
-        "test/**/*.ts",
+        "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json"
       ],
