@@ -1,5 +1,6 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository'
+import { Metadata } from '../types/metadata'
 import type { Work } from '../types/work'
 
 import Bot from './botHandler'
@@ -16,48 +17,59 @@ import SharedFolder from './sharedFolderHandler'
 import Standard from './standardHandler'
 
 const handlerMap = {
-  assignmentRules: InFile,
-  autoResponseRules: InFile,
-  aura: Lwc,
-  bots: Bot,
-  businessProcesses: Decomposed,
-  compactLayouts: Decomposed,
-  dashboards: InFolder,
-  digitalExperiences: InBundle,
-  discovery: SharedFolder,
-  documents: InFolder,
-  email: InFolder,
-  escalationRules: InFile,
-  experiences: InResource,
-  fieldSets: Decomposed,
-  fields: Decomposed,
-  globalValueSetTranslations: InFile,
-  indexes: Decomposed,
-  labels: InFile,
-  listViews: Decomposed,
-  lwc: Lwc,
-  marketingappextensions: InFile,
-  matchingRules: InFile,
-  moderation: SharedFolder,
-  objects: CustomObject,
-  objectTranslations: ObjectTranslation,
-  permissionsets: HangingDecomposed,
-  profiles: InFile,
-  recordTypes: Decomposed,
-  reports: InFolder,
-  rules: Decomposed,
-  sharingReasons: Decomposed,
-  sharingRules: InFile,
-  standardValueSetTranslations: InFile,
-  staticresources: InResource,
-  territories: Decomposed,
-  territory2Models: CustomObject,
-  translations: InFile,
-  validationRules: Decomposed,
-  wave: SharedFolder,
-  waveTemplates: InResource,
-  webLinks: Decomposed,
-  workflows: InFile,
+  AssignmentRules: InFile,
+  AuraDefinitionBundle: Lwc,
+  AutoResponseRules: InFile,
+  BusinessProcess: Decomposed,
+  CompactLayout: Decomposed,
+  CustomField: Decomposed,
+  CustomFieldTranslation: ObjectTranslation,
+  CustomLabel: InFile,
+  CustomObject: CustomObject,
+  CustomObjectTranslation: ObjectTranslation,
+  Dashboard: InFolder,
+  DigitalExperienceBundle: InBundle,
+  Document: InFolder,
+  EmailTemplate: InFolder,
+  EscalationRules: InFile,
+  ExperienceBundle: InResource,
+  FieldSet: Decomposed,
+  GlobalValueSetTranslation: InFile,
+  Index: Decomposed,
+  LightningComponentBundle: Lwc,
+  ListView: Decomposed,
+  MarketingAppExtension: InFile,
+  MatchingRules: InFile,
+  PermissionSet: HangingDecomposed,
+  Profile: InFile,
+  RecordType: Decomposed,
+  Report: InFolder,
+  SharingCriteriaRule: Decomposed,
+  SharingGuestRule: Decomposed,
+  SharingOwnerRule: Decomposed,
+  SharingReason: Decomposed,
+  SharingRules: InFile,
+  StandardValueSetTranslation: InFile,
+  StaticResource: InResource,
+  Territory2: Decomposed,
+  Territory2Model: CustomObject,
+  Territory2Rule: Decomposed,
+  Translations: InFile,
+  ValidationRule: Decomposed,
+  VirtualBot: Bot,
+  VirtualDiscovery: SharedFolder,
+  VirtualModeration: SharedFolder,
+  VirtualWave: SharedFolder,
+  WaveTemplateBundle: InResource,
+  WebLink: Decomposed,
+  Workflow: InFile,
+  WorkflowAlert: Decomposed,
+  WorkflowFieldUpdate: Decomposed,
+  WorkflowKnowledgePublish: Decomposed,
+  WorkflowOutboundMessage: Decomposed,
+  WorkflowRule: Decomposed,
+  WorkflowSend: Decomposed,
+  WorkflowTask: Decomposed,
 }
 
 export default class TypeHandlerFactory {
@@ -69,11 +81,10 @@ export default class TypeHandlerFactory {
   ) {}
 
   public getTypeHandler(line: string) {
-    const type = this.metadata.get(line)
-      ?.directoryName as keyof typeof handlerMap
-
-    return type in handlerMap
-      ? new handlerMap[type](line, type, this.work, this.metadata)
+    const type: Metadata = this.metadata.get(line)!
+    const xmlName = type.xmlName as keyof typeof handlerMap
+    return xmlName in handlerMap
+      ? new handlerMap[xmlName](line, type, this.work, this.metadata)
       : new Standard(line, type, this.work, this.metadata)
   }
 }

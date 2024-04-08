@@ -10,7 +10,21 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const objectType = 'discovery'
+const objectType = {
+  directoryName: 'discovery',
+  inFolder: false,
+  metaFile: true,
+  content: [
+    {
+      suffix: 'model',
+      xmlName: 'DiscoveryAIModel',
+    },
+    {
+      suffix: 'goal',
+      xmlName: 'DiscoveryGoal',
+    },
+  ],
+}
 const entityName = 'DiscoveryAIModelTest'
 const entityExtension = 'model'
 const basePath = `force-app/main/default/`

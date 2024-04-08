@@ -38,4 +38,8 @@ export default class HangingDecomposedHandler extends StandardHandler {
     }
     return elementPath.join(PATH_SEP)
   }
+
+  protected override _isProcessable() {
+    return true
+  }
 }

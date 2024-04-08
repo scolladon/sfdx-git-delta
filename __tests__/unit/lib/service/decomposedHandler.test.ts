@@ -12,7 +12,13 @@ jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 
-const objectType = 'fields'
+const objectType = {
+  directoryName: 'fields',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'field',
+  xmlName: 'CustomField',
+}
 const line =
   'A       force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
 

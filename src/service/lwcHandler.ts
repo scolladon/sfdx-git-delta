@@ -9,6 +9,6 @@ export default class LwcHandler extends InResourceHandler {
   protected override _isProcessable() {
     const parentFolder = parse(this.line).dir.split(PATH_SEP).pop()
 
-    return parentFolder !== this.type
+    return parentFolder !== this.metadataDef.directoryName
   }
 }

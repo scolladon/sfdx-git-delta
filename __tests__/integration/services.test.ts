@@ -17,6 +17,21 @@ jest.mock('../../src/utils/fsHelper')
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 const testContext = [
   [
+    'force-app/main/default/permissionsets/Admin/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
+    new Set(['Admin']),
+    'PermissionSet',
+  ],
+  [
+    'force-app/main/default/sharingRules/Account/sharingCriteriaRules/TestSharingCriteria.sharingCriteriaRule-meta.xml',
+    new Set(['Account.TestSharingCriteria']),
+    'SharingCriteriaRule',
+  ],
+  [
+    'force-app/main/default/workflows/Account/alerts/TestWFAlert.alert-meta.xml',
+    new Set(['Account.TestWFAlert']),
+    'WorkflowAlert',
+  ],
+  [
     'force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
     new Set(['TestBot']),
     'Bot',

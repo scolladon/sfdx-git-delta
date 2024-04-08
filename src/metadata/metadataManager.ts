@@ -98,6 +98,6 @@ export const getSharedFolderMetadata = (metadata: MetadataRepository) =>
         .flatMap((elem: SharedFolderMetadata): BaseMetadata[] => elem.content!)
         .reduce(
           (acc: Map<string, string>, val: BaseMetadata) =>
-            acc.set(val!.suffix!, val!.xmlName),
+            acc.set(val!.suffix!, val!.xmlName!),
           sharedFolderMetadata
         )

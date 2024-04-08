@@ -29,7 +29,13 @@ const testCases = [
     'CustomerSupport',
   ],
 ]
-const type = 'PermissionSet'
+const type = {
+  directoryName: 'permissionsets',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'permissionset',
+  xmlName: 'PermissionSet',
+}
 let work: Work
 beforeEach(() => {
   jest.clearAllMocks()
@@ -50,7 +56,7 @@ describe('HangingDecomposedHandler', () => {
           // Arrange
           const sut = new HangingDecomposedHandler(
             line,
-            'permissionsets',
+            type,
             work,
             globalMetadata
           )
@@ -59,7 +65,7 @@ describe('HangingDecomposedHandler', () => {
           await sut.handleAddition()
 
           // Assert
-          expect(work.diffs.package.get(type)).toContain(expected)
+          expect(work.diffs.package.get(type.xmlName)).toContain(expected)
         }
       )
     })
@@ -71,7 +77,7 @@ describe('HangingDecomposedHandler', () => {
           // Arrange
           const sut = new HangingDecomposedHandler(
             line,
-            'permissionsets',
+            type,
             work,
             globalMetadata
           )
@@ -80,7 +86,7 @@ describe('HangingDecomposedHandler', () => {
           await sut.handleModification()
 
           // Assert
-          expect(work.diffs.package.get(type)).toContain(expected)
+          expect(work.diffs.package.get(type.xmlName)).toContain(expected)
         }
       )
     })
@@ -96,7 +102,7 @@ describe('HangingDecomposedHandler', () => {
             // Arrange
             const sut = new HangingDecomposedHandler(
               line,
-              'permissionsets',
+              type,
               work,
               globalMetadata
             )
@@ -105,7 +111,9 @@ describe('HangingDecomposedHandler', () => {
             await sut.handleDeletion()
 
             // Assert
-            expect(work.diffs.destructiveChanges.get(type)).toContain(expected)
+            expect(work.diffs.destructiveChanges.get(type.xmlName)).toContain(
+              expected
+            )
             expect(pathExists).toHaveBeenCalledWith(
               expect.stringContaining(expected),
               work.config
@@ -124,7 +132,7 @@ describe('HangingDecomposedHandler', () => {
             // Arrange
             const sut = new HangingDecomposedHandler(
               line,
-              'permissionsets',
+              type,
               work,
               globalMetadata
             )
@@ -133,7 +141,7 @@ describe('HangingDecomposedHandler', () => {
             await sut.handleDeletion()
 
             // Assert
-            expect(work.diffs.package.get(type)).toContain(expected)
+            expect(work.diffs.package.get(type.xmlName)).toContain(expected)
             expect(pathExists).toHaveBeenCalledWith(
               expect.stringContaining(expected),
               work.config

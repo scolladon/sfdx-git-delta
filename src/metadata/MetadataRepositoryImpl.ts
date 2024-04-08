@@ -6,15 +6,20 @@ import { DOT, PATH_SEP } from '../constant/fsConstants'
 import {
   CUSTOM_APPLICATION_TYPE,
   EMAILSERVICESFUNCTION_SUFFIX,
-  EXPERIENCEBUNDLE_FOLDER,
+  EXPERIENCEBUNDLE_TYPE,
+  EMAILSERVICESFUNCTION_TYPE,
   METAFILE_SUFFIX,
+  MODERATION_RULE_TYPE,
   OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
   RESTRICTION_RULE_TYPE,
-  SITEDOTCOM_FOLDER,
-  SITE_FOLDER,
+  SITEDOTCOM_TYPE,
+  SITE_TYPE,
+  SHARING_RULE_TYPE,
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
+  WORKFLOW_RULE_TYPE,
+  WORKFLOW_TYPE,
 } from '../constant/metadataConstants'
 import type { Metadata } from '../types/metadata'
 
@@ -58,7 +63,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     if (
       !!metadata &&
       MetadataRepositoryImpl.EXTENSION_MATCHING_EXCEPTION.includes(
-        metadata?.directoryName
+        metadata.xmlName!
       )
     ) {
       return
@@ -72,9 +77,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       metadata = this.metadataPerDir.get(part) ?? metadata
       return (
         !!metadata &&
-        !MetadataRepositoryImpl.TYPES_WITH_SUB_TYPES.includes(
-          metadata.directoryName
-        )
+        !MetadataRepositoryImpl.TYPES_WITH_SUB_TYPES.includes(metadata.xmlName!)
       )
     })
     return metadata
@@ -83,10 +86,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   public getFullyQualifiedName(path: string): string {
     const type = this.get(path)
     let fullyQualifiedName = parse(path).base
-    if (
-      type &&
-      MetadataRepositoryImpl.COMPOSED_TYPES.includes(type.directoryName)
-    ) {
+    if (type && MetadataRepositoryImpl.COMPOSED_TYPES.includes(type.xmlName!)) {
       const parentType = path
         .split(PATH_SEP)
         .find(part => this.metadataPerDir.get(part))!
@@ -101,19 +101,30 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     return this.metadatas
   }
 
-  private static TYPES_WITH_SUB_TYPES = [OBJECT_TYPE, TERRITORY_MODEL_TYPE, '']
+  private static TYPES_WITH_SUB_TYPES = [
+    OBJECT_TYPE,
+    TERRITORY_MODEL_TYPE,
+    WORKFLOW_TYPE,
+    SHARING_RULE_TYPE,
+    '',
+  ]
   private static EXTENSION_MATCHING_EXCEPTION = [
     CUSTOM_APPLICATION_TYPE,
+    EMAILSERVICESFUNCTION_TYPE,
+    MODERATION_RULE_TYPE,
     RESTRICTION_RULE_TYPE,
     EMAILSERVICESFUNCTION_SUFFIX,
-    SITE_FOLDER,
-    SITEDOTCOM_FOLDER,
-    EXPERIENCEBUNDLE_FOLDER,
+    SITE_TYPE,
+    SITEDOTCOM_TYPE,
+    EXPERIENCEBUNDLE_TYPE,
+    WORKFLOW_RULE_TYPE,
   ]
 
   private static COMPOSED_TYPES = [
     OBJECT_TYPE,
     OBJECT_TRANSLATION_TYPE,
+    WORKFLOW_TYPE,
+    SHARING_RULE_TYPE,
     ...SUB_OBJECT_TYPES,
   ]
 }

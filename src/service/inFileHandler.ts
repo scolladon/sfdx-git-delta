@@ -2,9 +2,14 @@
 import { basename } from 'path'
 
 import { DOT } from '../constant/fsConstants'
-import { LABEL_EXTENSION, LABEL_XML_NAME } from '../constant/metadataConstants'
+import {
+  LABEL_FOLDER,
+  LABEL_DECOMPOSED_SUFFIX,
+  LABEL_XML_NAME,
+} from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import { getInFileAttributes, isPackable } from '../metadata/metadataManager'
+import { Metadata } from '../types/metadata'
 import type { Manifest, Work } from '../types/work'
 import { writeFile } from '../utils/fsHelper'
 import MetadataDiff from '../utils/metadataDiff'
@@ -20,17 +25,19 @@ export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
   constructor(
     line: string,
-    type: string,
+    metadataDef: Metadata,
     work: Work,
     metadata: MetadataRepository
   ) {
-    super(line, type, work, metadata)
+    super(line, metadataDef, work, metadata)
     const inFileMetadata = getInFileAttributes(metadata)
     this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
+    this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
   public override async handleAddition() {
     await super.handleAddition()
+    if (this.ext === LABEL_DECOMPOSED_SUFFIX) return
     await this._compareRevision()
 
     if (!this.config.generateDelta) return
@@ -38,7 +45,7 @@ export default class InFileHandler extends StandardHandler {
   }
 
   public override async handleDeletion() {
-    if (this.metadataDef.pruneOnly) {
+    if (this.metadataDef.pruneOnly || this.ext === LABEL_DECOMPOSED_SUFFIX) {
       await super.handleDeletion()
     } else {
       await this._compareRevision()
@@ -97,7 +104,10 @@ export default class InFileHandler extends StandardHandler {
   override _fillPackage(store: Manifest) {
     // Call from super.handleAddition to add the Root Type
     // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
-    if (this.type !== LABEL_EXTENSION) {
+    if (
+      this.metadataDef.directoryName !== LABEL_FOLDER ||
+      this.ext === LABEL_DECOMPOSED_SUFFIX
+    ) {
       super._fillPackage(store)
     }
   }

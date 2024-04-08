@@ -17,7 +17,14 @@ jest.mock('../../../../src/utils/metadataDiff', () => {
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const objectType = 'objectTranslations'
+const objectType = {
+  directoryName: 'objectTranslations',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'objectTranslation',
+  xmlName: 'CustomObjectTranslation',
+  pruneOnly: true,
+}
 const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'

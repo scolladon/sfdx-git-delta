@@ -45,7 +45,7 @@ export default class InFolderHandler extends StandardHandler {
 
   protected override _getElementName() {
     return this.splittedLine
-      .slice(this.splittedLine.indexOf(this.type) + 1)
+      .slice(this.splittedLine.indexOf(this.metadataDef.directoryName) + 1)
       .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(INFOLDER_SUFFIX_REGEX, '')

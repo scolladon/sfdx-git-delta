@@ -23,10 +23,12 @@ export default class DecomposedHandler extends StandardHandler {
     if (!data.includes(MASTER_DETAIL_TAG)) return
 
     const customObjectDirPath = this.splittedLine
-      .slice(0, this.splittedLine.indexOf(this.type))
+      .slice(0, this.splittedLine.indexOf(this.metadataDef.directoryName))
       .join(PATH_SEP)
     const customObjectName =
-      this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
+      this.splittedLine[
+        this.splittedLine.indexOf(this.metadataDef.directoryName) - 1
+      ]
 
     const customObjectPath = join(
       customObjectDirPath,
@@ -37,7 +39,10 @@ export default class DecomposedHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
-    const prefix = this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
+    const prefix =
+      this.splittedLine[
+        this.splittedLine.indexOf(this.metadataDef.directoryName) - 1
+      ]
     const elementName = super._getElementName()
     return `${prefix}.${elementName}`
   }
