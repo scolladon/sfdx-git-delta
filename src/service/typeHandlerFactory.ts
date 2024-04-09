@@ -6,7 +6,6 @@ import type { Work } from '../types/work'
 import Bot from './botHandler'
 import CustomObject from './customObjectHandler'
 import Decomposed from './decomposedHandler'
-import HangingDecomposed from './hangingDecomposedHandler'
 import InBundle from './inBundleHandler'
 import InFile from './inFileHandler'
 import InFolder from './inFolderHandler'
@@ -40,7 +39,7 @@ const handlerMap = {
   ListView: Decomposed,
   MarketingAppExtension: InFile,
   MatchingRules: InFile,
-  PermissionSet: HangingDecomposed,
+  PermissionSet: InResource,
   Profile: InFile,
   RecordType: Decomposed,
   Report: InFolder,

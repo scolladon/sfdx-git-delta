@@ -123,10 +123,7 @@ export default class StandardHandler {
   protected async _copyWithMetaFile(src: string) {
     if (this._delegateFileCopy()) {
       await this._copy(src)
-      if (
-        this.metadataDef.metaFile === true &&
-        !`${src}`.endsWith(METAFILE_SUFFIX)
-      ) {
+      if (this._shouldCopyMetaFile(src)) {
         await this._copy(this._getMetaTypeFilePath(src))
       }
     }
@@ -143,6 +140,12 @@ export default class StandardHandler {
     return join(
       parsedPath.dir,
       `${parsedPath.name}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
+    )
+  }
+
+  protected _shouldCopyMetaFile(path: string): boolean {
+    return (
+      this.metadataDef.metaFile === true && !`${path}`.endsWith(METAFILE_SUFFIX)
     )
   }
 

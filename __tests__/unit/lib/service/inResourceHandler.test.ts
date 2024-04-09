@@ -27,6 +27,13 @@ const experienceBundleType = {
   suffix: 'site',
   xmlName: 'ExperienceBundle',
 }
+const permissionSetType = {
+  directoryName: 'permissionsets',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'permissionset',
+  xmlName: 'PermissionSet',
+}
 const element = 'myResources'
 const basePath = 'force-app/main/default/staticresources'
 const entityPath = `${basePath}/${element}.js`
@@ -93,6 +100,12 @@ describe('InResourceHandler', () => {
             'my_experience_bundle',
             3,
           ],
+          [
+            'CustomerSupport/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
+            permissionSetType,
+            'CustomerSupport',
+            3,
+          ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file %s',
           async (path, type, entity, expectedCopyCount) => {
@@ -141,7 +154,7 @@ describe('InResourceHandler', () => {
           expect(work.diffs.package.get(type.xmlName)).toEqual(
             new Set([entity])
           )
-          expect(copyFiles).toBeCalledTimes(2)
+          expect(copyFiles).toBeCalledTimes(3)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
             `${base}${type.directoryName}/${path}`

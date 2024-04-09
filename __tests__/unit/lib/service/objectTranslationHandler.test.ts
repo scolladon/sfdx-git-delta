@@ -99,7 +99,7 @@ describe('ObjectTranslation', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(copyFiles).toBeCalledTimes(1)
+        expect(copyFiles).toBeCalledTimes(2)
         expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           expect.stringContaining('BillingFloor__c.fieldTranslation')

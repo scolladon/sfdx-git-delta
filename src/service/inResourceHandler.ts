@@ -83,4 +83,8 @@ export default class ResourceHandler extends StandardHandler {
   protected override _getMetaTypeFilePath() {
     return `${this.metadataName}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
   }
+
+  protected override _shouldCopyMetaFile(): boolean {
+    return true
+  }
 }

@@ -3,7 +3,6 @@ import { expect, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import Decomposed from '../../../../src/service/decomposedHandler'
-import HangingDecomposed from '../../../../src/service/hangingDecomposedHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
@@ -22,7 +21,6 @@ describe('the type handler factory', () => {
     typeHandlerFactory = new TypeHandlerFactory(work, globalMetadata)
   })
   describe.each([
-    [HangingDecomposed, ['permissionsets']],
     [
       Decomposed,
       [
@@ -38,7 +36,7 @@ describe('the type handler factory', () => {
       ],
     ],
     [InFolder, ['dashboards', 'documents', 'reports']],
-    [InResource, ['staticresources', 'aura', 'lwc']],
+    [InResource, ['staticresources', 'aura', 'lwc', 'permissionsets']],
     [Standard, ['classes']],
     [SharedFolder, ['moderation', 'wave', 'discovery']],
   ])('give %p handler', (handler, types) => {
@@ -49,34 +47,6 @@ describe('the type handler factory', () => {
         )
       ).toBeInstanceOf(handler)
     })
-  })
-
-  it('can handle hanging decomposed', () => {
-    expect(
-      typeHandlerFactory.getTypeHandler(
-        `Z       force-app/main/default/permissionsets/admin/applicationVisibilities/admin.applicationVisibility`
-      )
-    ).toBeInstanceOf(HangingDecomposed)
-
-    expect(
-      typeHandlerFactory.getTypeHandler(
-        `Z       force-app/main/default/permissionsets/folder/admin/applicationVisibilities/admin.applicationVisibility`
-      )
-    ).toBeInstanceOf(HangingDecomposed)
-  })
-
-  it('can handle hanging decomposed not decomposed (old format)', () => {
-    expect(
-      typeHandlerFactory.getTypeHandler(
-        `Z       force-app/main/default/permissionsets/admin.permissionset`
-      )
-    ).toBeInstanceOf(HangingDecomposed)
-
-    expect(
-      typeHandlerFactory.getTypeHandler(
-        `Z       force-app/main/default/permissionsets/folder/admin.permissionset`
-      )
-    ).toBeInstanceOf(HangingDecomposed)
   })
 
   it('can handle Decomposed', () => {
