@@ -99,8 +99,8 @@
     "lint": {
       "command": "eslint src __tests__ --cache --cache-location .eslintcache",
       "files": [
-        "src/**/*.ts",
-        "test/**/*.ts",
+        "src/**",
+        "__tests__/**/*.ts",
         "messages/**",
         "**/.eslint*",
         "**/tsconfig.json"
