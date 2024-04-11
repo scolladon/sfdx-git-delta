@@ -34,7 +34,6 @@ describe(`test if repoGitDiff`, () => {
   let globalMetadata: MetadataRepository
   let config: Config
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 

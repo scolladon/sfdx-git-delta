@@ -15,7 +15,6 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     const globalMetadata: MetadataRepository = await getGlobalMetadata()
     const work: Work = getWork()
     work.config.apiVersion = 46

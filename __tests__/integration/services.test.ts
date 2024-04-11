@@ -441,7 +441,6 @@ const testContext = [
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
-  // eslint-disable-next-line no-undef
   globalMetadata = await getGlobalMetadata()
 })
 let work: Work

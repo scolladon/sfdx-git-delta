@@ -33,7 +33,6 @@ beforeEach(() => {
 describe('lwcHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
   describe('when the line should not be processed', () => {

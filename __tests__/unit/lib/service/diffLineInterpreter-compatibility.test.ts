@@ -32,7 +32,6 @@ describe('DiffLineInterpreter', () => {
   let sut: DiffLineInterpreter
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 

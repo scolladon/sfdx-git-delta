@@ -26,7 +26,6 @@ beforeEach(() => {
 describe('InBundleHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 
