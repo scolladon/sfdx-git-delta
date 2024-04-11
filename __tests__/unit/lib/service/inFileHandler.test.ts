@@ -40,17 +40,6 @@ const globalValueSetTranslationsType = {
   xmlName: 'GlobalValueSetTranslation',
   pruneOnly: true,
 }
-const labelType = {
-  directoryName: 'labels',
-  inFolder: false,
-  metaFile: false,
-  parentXmlName: 'CustomLabels',
-  xmlName: 'CustomLabel',
-  childXmlNames: ['CustomLabel'],
-  suffix: 'labels',
-  xmlTag: 'labels',
-  key: 'fullName',
-}
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
@@ -206,8 +195,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         await sut.handleModification()
 
         // Assert
-        expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
-        expect(work.diffs.package.get('WorkflowAlert')).toBeUndefined()
+        expect(work.diffs.package.size).toBe(0)
         expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
           new Set(['Account.deleted'])
         )
@@ -225,8 +213,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         beforeEach(() => {
           // Arrange
           sut = new InFileHandler(
-            'force-app/main/default/labels/CustomLabel.labels-meta.xml',
-            labelType,
+            'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+            workflowType,
             work,
             globalMetadata
           )
@@ -264,15 +252,15 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         beforeEach(() => {
           // Arrange
           sut = new InFileHandler(
-            'force-app/main/default/labels/CustomLabel.labels-meta.xml',
-            labelType,
+            'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+            workflowType,
             work,
             globalMetadata
           )
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: new Map(),
-              deleted: new Map([['CustomLabel', new Set(['Deleted'])]]),
+              deleted: new Map([['Workflow', new Set(['Deleted'])]]),
             })
           )
           mockPrune.mockReturnValue({
@@ -287,8 +275,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
           // Assert
           expect(work.diffs.package.size).toEqual(0)
           expect(work.diffs.destructiveChanges.size).toEqual(1)
-          expect(work.diffs.destructiveChanges.get('CustomLabel')).toEqual(
-            new Set(['Deleted'])
+          expect(work.diffs.destructiveChanges.get('Workflow')).toEqual(
+            new Set(['Account.Deleted'])
           )
           if (generateDelta) {
             expect(mockPrune).toHaveBeenCalled()
@@ -397,48 +385,6 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         expect(mockPrune).not.toHaveBeenCalled()
         expect(writeFile).not.toHaveBeenCalled()
       })
-    })
-  })
-})
-
-describe('Decomposed CustomLabel spec', () => {
-  const line = 'force-app/main/default/labels/Test.label-meta.xml'
-  describe('when file is added', () => {
-    let sut: InFileHandler
-    beforeEach(() => {
-      // Arrange
-      sut = new InFileHandler(line, labelType, work, globalMetadata)
-    })
-    it('should add the element in the package', async () => {
-      // Arrange
-
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(work.diffs.package.get('CustomLabel')).toEqual(new Set(['Test']))
-      expect(mockCompare).not.toBeCalled()
-    })
-  })
-  describe('when file is deleted', () => {
-    let sut: InFileHandler
-    beforeEach(() => {
-      // Arrange
-      sut = new InFileHandler(line, labelType, work, globalMetadata)
-    })
-    it('should add the element in the destructiveChanges', async () => {
-      // Arrange
-
-      // Act
-      await sut.handleDeletion()
-
-      // Assert
-      expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get('CustomLabel')).toEqual(
-        new Set(['Test'])
-      )
-      expect(mockCompare).not.toBeCalled()
     })
   })
 })

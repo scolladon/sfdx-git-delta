@@ -4,6 +4,8 @@ import { Metadata } from '../types/metadata'
 import type { Work } from '../types/work'
 
 import Bot from './botHandler'
+import CustomFieldHandler from './customFieldHandler'
+import CustomLabel from './customLabelHandler'
 import CustomObject from './customObjectHandler'
 import Decomposed from './decomposedHandler'
 import InBundle from './inBundleHandler'
@@ -21,9 +23,9 @@ const handlerMap = {
   AutoResponseRules: InFile,
   BusinessProcess: Decomposed,
   CompactLayout: Decomposed,
-  CustomField: Decomposed,
+  CustomField: CustomFieldHandler,
   CustomFieldTranslation: ObjectTranslation,
-  CustomLabel: InFile,
+  CustomLabel: CustomLabel,
   CustomObject: CustomObject,
   CustomObjectTranslation: ObjectTranslation,
   Dashboard: InFolder,
