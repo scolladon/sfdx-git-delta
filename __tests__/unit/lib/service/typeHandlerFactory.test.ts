@@ -2,6 +2,7 @@
 import { expect, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import CustomField from '../../../../src/service/customFieldHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
@@ -21,6 +22,7 @@ describe('the type handler factory', () => {
     typeHandlerFactory = new TypeHandlerFactory(work, globalMetadata)
   })
   describe.each([
+    [CustomField, ['fields']],
     [
       Decomposed,
       [
