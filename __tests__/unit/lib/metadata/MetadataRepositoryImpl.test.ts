@@ -97,6 +97,13 @@ describe('MetadataRepositoryImpl', () => {
         suffix: 'resource',
         xmlName: 'StaticResource',
       },
+      {
+        directoryName: 'emailservices',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'xml',
+        xmlName: 'EmailServicesFunction',
+      },
     ])
   })
   describe('has', () => {
@@ -198,6 +205,16 @@ describe('MetadataRepositoryImpl', () => {
           expect.objectContaining({ directoryName: 'moderation' })
         )
       })
+
+      it('matches `xml` files inside `emailservices` folder', () => {
+        // Act
+        const result = sut.get('force-app/emailservices/testService.xml')
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'emailservices' })
+        )
+      })
     })
 
     describe('when matching on extension', () => {
@@ -267,6 +284,14 @@ describe('MetadataRepositoryImpl', () => {
     })
 
     describe('when it should not match on extension', () => {
+      it('does not match `xml` files outside `emailservices` folder', () => {
+        // Act
+        const result = sut.get('manifest/specificTestClasses.xml')
+
+        // Assert
+        expect(result).toBeUndefined()
+      })
+
       it('matches on folder', () => {
         // Act
         const result = sut.get(
