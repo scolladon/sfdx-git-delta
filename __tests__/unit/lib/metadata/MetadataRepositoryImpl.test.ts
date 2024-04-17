@@ -104,6 +104,27 @@ describe('MetadataRepositoryImpl', () => {
         suffix: 'xml',
         xmlName: 'EmailServicesFunction',
       },
+      {
+        directoryName: 'sites',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'site',
+        xmlName: 'CustomSite',
+      },
+      {
+        directoryName: 'siteDotComSites',
+        inFolder: false,
+        metaFile: true,
+        suffix: 'site',
+        xmlName: 'SiteDotCom',
+      },
+      {
+        directoryName: 'experiences',
+        inFolder: false,
+        metaFile: true,
+        suffix: 'site',
+        xmlName: 'ExperienceBundle',
+      },
     ])
   })
   describe('has', () => {
@@ -206,14 +227,47 @@ describe('MetadataRepositoryImpl', () => {
         )
       })
 
-      it('matches `xml` files inside `emailservices` folder', () => {
-        // Act
-        const result = sut.get('force-app/emailservices/testService.xml')
+      describe('special cases where it should only match on folder', () => {
+        it('matches `xml` files inside `emailservices` folder', () => {
+          // Act
+          const result = sut.get('force-app/emailservices/testService.xml')
 
-        // Assert
-        expect(result).toStrictEqual(
-          expect.objectContaining({ directoryName: 'emailservices' })
-        )
+          // Assert
+          expect(result).toStrictEqual(
+            expect.objectContaining({ directoryName: 'emailservices' })
+          )
+        })
+        it('should match `Site`', () => {
+          // Act
+          const result = sut.get('Z force-app/main/default/sites/aSite.site')
+
+          // Assert
+          expect(result).toStrictEqual(
+            expect.objectContaining({ directoryName: 'sites' })
+          )
+        })
+        it('should match `SiteDotCom`', () => {
+          // Act
+          const result = sut.get(
+            'Z force-app/main/default/siteDotComSites/aSitedotcom.site'
+          )
+
+          // Assert
+          expect(result).toStrictEqual(
+            expect.objectContaining({ directoryName: 'siteDotComSites' })
+          )
+        })
+        it('should match `ExperienceBundle`', () => {
+          // Act
+          const result = sut.get(
+            'Z force-app/main/default/experiences/aCommunity.site'
+          )
+
+          // Assert
+          expect(result).toStrictEqual(
+            expect.objectContaining({ directoryName: 'experiences' })
+          )
+        })
       })
     })
 
