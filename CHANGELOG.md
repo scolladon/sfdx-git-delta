@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.38.3](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.2...v5.38.3) (2024-04-17)
+
+
+### Bug Fixes
+
+* type detection of `EmailServicesFunction` metadata type ([#831](https://github.com/scolladon/sfdx-git-delta/issues/831)) ([8ac5518](https://github.com/scolladon/sfdx-git-delta/commit/8ac5518a802781d24f6d89482050a7e4ad223b19))
+
 ## [5.38.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.1...v5.38.2) (2024-03-18)
 
 
