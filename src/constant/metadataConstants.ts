@@ -2,6 +2,7 @@
 
 export const CUSTOM_APPLICATION_TYPE = 'applications'
 export const EMAILSERVICESFUNCTION_SUFFIX = 'emailservices'
+export const EXPERIENCEBUNDLE_FOLDER = 'experiences'
 export const FIELD_DIRECTORY_NAME = 'fields'
 export const FLOW_XML_NAME = 'Flow'
 export const INFOLDER_SUFFIX = `Folder`
@@ -16,6 +17,8 @@ export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_S
 export const OBJECT_TYPE = 'objects'
 export const OBJECT_XML_NAME = 'CustomObject'
 export const RESTRICTION_RULE_TYPE = 'restrictionRules'
+export const SITE_FOLDER = 'sites'
+export const SITEDOTCOM_FOLDER = 'siteDotComSites'
 export const SUB_OBJECT_TYPES = [
   'businessProcesses',
   'compactLayouts',
