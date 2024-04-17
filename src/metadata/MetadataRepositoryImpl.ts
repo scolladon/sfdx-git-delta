@@ -42,17 +42,20 @@ export class MetadataRepositoryImpl implements MetadataRepository {
         this.metadataPerExt.set(metadata.suffix, metadata)
       }
     }
+    this.addSharedFolderSuffix(metadata)
+  }
+
+  protected addSharedFolderSuffix(metadata: Metadata) {
     if (metadata.content) {
+      const metadataWithoutContent = {
+        ...metadata,
+        content: undefined,
+      }
       for (const sharedFolderMetadataDef of metadata.content) {
-        if (sharedFolderMetadataDef.suffix) {
-          if (this.metadataPerExt.has(sharedFolderMetadataDef.suffix)) {
-            MetadataRepositoryImpl.UNSAFE_EXTENSION.add(
-              sharedFolderMetadataDef.suffix
-            )
-          } else {
-            this.metadataPerExt.set(sharedFolderMetadataDef.suffix, metadata)
-          }
-        }
+        this.addSuffix({
+          ...metadataWithoutContent,
+          suffix: sharedFolderMetadataDef.suffix,
+        } as unknown as Metadata)
       }
     }
   }
