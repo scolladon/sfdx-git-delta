@@ -38,7 +38,9 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       if (metadata.suffix) {
         this.metadataPerExt.set(metadata.suffix, metadata)
       }
-      this.metadataPerDir.set(metadata.directoryName, metadata)
+      if (metadata.directoryName) {
+        this.metadataPerDir.set(metadata.directoryName, metadata)
+      }
     })
   }
 
@@ -65,23 +67,25 @@ export class MetadataRepositoryImpl implements MetadataRepository {
 
   protected searchByDirectory(parts: string[]): Metadata | undefined {
     let metadata: Metadata | undefined
-    parts.find(part => {
+    for (const part of parts) {
       metadata = this.metadataPerDir.get(part) ?? metadata
-      return (
-        !!metadata &&
+      if (
+        metadata &&
         !MetadataRepositoryImpl.TYPES_WITH_SUB_TYPES.has(metadata.xmlName!)
-      )
-    })
+      ) {
+        break
+      }
+    }
     return metadata
   }
 
   public getFullyQualifiedName(path: string): string {
-    const type = this.get(path)
     let fullyQualifiedName = parse(path).base
+    const type = this.get(path)
     if (type && MetadataRepositoryImpl.COMPOSED_TYPES.has(type.xmlName!)) {
       const parentType = path
         .split(PATH_SEP)
-        .find(part => this.metadataPerDir.get(part))!
+        .find(part => this.metadataPerDir.has(part))!
       fullyQualifiedName = path
         .slice(path.indexOf(parentType))
         .replace(new RegExp(PATH_SEP, 'g'), '')
