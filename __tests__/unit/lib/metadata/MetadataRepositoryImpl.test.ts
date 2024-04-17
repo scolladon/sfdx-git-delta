@@ -30,6 +30,13 @@ describe('MetadataRepositoryImpl', () => {
         xmlName: 'Document',
       },
       {
+        directoryName: 'restrictionRules',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'rule',
+        xmlName: 'RestrictionRule',
+      },
+      {
         directoryName: 'moderation',
         inFolder: false,
         metaFile: false,
@@ -69,13 +76,6 @@ describe('MetadataRepositoryImpl', () => {
         metaFile: false,
         suffix: 'object',
         xmlName: 'CustomObject',
-      },
-      {
-        directoryName: 'restrictionRules',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'rule',
-        xmlName: 'RestrictionRule',
       },
       {
         directoryName: 'classes',

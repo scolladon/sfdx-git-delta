@@ -6,18 +6,12 @@ import { DOT, PATH_SEP } from '../constant/fsConstants'
 import {
   CUSTOM_APPLICATION_SUFFIX,
   EMAILSERVICESFUNCTION_SUFFIX,
-  EXPERIENCEBUNDLE_SUFFIX,
   METAFILE_SUFFIX,
-  MODERATION_RULE_SUFFIX,
   OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
-  RESTRICTION_RULE_SUFFIX,
   SHARING_RULE_TYPE,
-  SITE_SUFFIX,
-  SITEDOTCOM_SUFFIX,
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
-  WORKFLOW_RULE_SUFFIX,
   WORKFLOW_TYPE,
 } from '../constant/metadataConstants'
 import type { Metadata } from '../types/metadata'
@@ -35,13 +29,38 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     this.metadataPerDir = new Map<string, Metadata>()
 
     this.metadatas.forEach(metadata => {
-      if (metadata.suffix) {
+      this.addSuffix(metadata)
+      this.addFolder(metadata)
+    })
+  }
+
+  protected addSuffix(metadata: Metadata) {
+    if (metadata.suffix) {
+      if (this.metadataPerExt.has(metadata.suffix)) {
+        MetadataRepositoryImpl.UNSAFE_EXTENSION.add(metadata.suffix)
+      } else {
         this.metadataPerExt.set(metadata.suffix, metadata)
       }
-      if (metadata.directoryName) {
-        this.metadataPerDir.set(metadata.directoryName, metadata)
+    }
+    if (metadata.content) {
+      for (const sharedFolderMetadataDef of metadata.content) {
+        if (sharedFolderMetadataDef.suffix) {
+          if (this.metadataPerExt.has(sharedFolderMetadataDef.suffix)) {
+            MetadataRepositoryImpl.UNSAFE_EXTENSION.add(
+              sharedFolderMetadataDef.suffix
+            )
+          } else {
+            this.metadataPerExt.set(sharedFolderMetadataDef.suffix, metadata)
+          }
+        }
       }
-    })
+    }
+  }
+
+  protected addFolder(metadata: Metadata) {
+    if (metadata.directoryName) {
+      this.metadataPerDir.set(metadata.directoryName, metadata)
+    }
   }
 
   public has(path: string): boolean {
@@ -108,12 +127,6 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   private static UNSAFE_EXTENSION = new Set([
     CUSTOM_APPLICATION_SUFFIX,
     EMAILSERVICESFUNCTION_SUFFIX,
-    EXPERIENCEBUNDLE_SUFFIX,
-    MODERATION_RULE_SUFFIX,
-    RESTRICTION_RULE_SUFFIX,
-    SITE_SUFFIX,
-    SITEDOTCOM_SUFFIX,
-    WORKFLOW_RULE_SUFFIX,
   ])
 
   private static COMPOSED_TYPES = new Set([
