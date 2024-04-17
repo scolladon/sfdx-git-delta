@@ -1,6 +1,7 @@
 'use strict'
 
 export const CUSTOM_APPLICATION_TYPE = 'applications'
+export const EMAILSERVICESFUNCTION_SUFFIX = 'emailservices'
 export const FIELD_DIRECTORY_NAME = 'fields'
 export const FLOW_XML_NAME = 'Flow'
 export const INFOLDER_SUFFIX = `Folder`

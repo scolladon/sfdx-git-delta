@@ -5,6 +5,7 @@ import { parse } from 'path'
 import { DOT, PATH_SEP } from '../constant/fsConstants'
 import {
   CUSTOM_APPLICATION_TYPE,
+  EMAILSERVICESFUNCTION_SUFFIX,
   METAFILE_SUFFIX,
   OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
@@ -101,6 +102,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   private static EXTENSION_MATCHING_EXCEPTION = [
     CUSTOM_APPLICATION_TYPE,
     RESTRICTION_RULE_TYPE,
+    EMAILSERVICESFUNCTION_SUFFIX,
   ]
 
   private static COMPOSED_TYPES = [
