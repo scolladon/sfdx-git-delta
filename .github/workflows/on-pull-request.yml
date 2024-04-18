@@ -103,6 +103,8 @@ jobs:
   publish-beta:
     needs: [build]
     runs-on: ubuntu-latest
+    outputs:
+      betaChannel: ${{ steps.define_beta_channel.outputs.BETA_CHANNEL }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -120,8 +122,7 @@ jobs:
         id: pr-number
 
       - name: Set beta channel value
-        run: |
-          echo "BETA_CHANNEL=beta-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
+        run: echo "BETA_CHANNEL=beta-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
 
       - name: Setup github user
         run: |
@@ -148,58 +149,13 @@ jobs:
           comment_tag: beta-publish
           mode: recreate
 
+      - name: Set beta channel value
+        id: define_beta_channel
+        run: echo "BETA_CHANNEL=${{ env.BETA_CHANNEL }}" >> "$GITHUB_OUTPUT"
+
   e2e-check:
-    needs: [build]
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [18, 20]
-        cli: [sfdx-cli, '@salesforce/cli']
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.yarn-cache }}
-          key: ${{ runner.os }}-${{ matrix.node }}-yarn-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Install dependencies
-        run: yarn install --immutable --check-cache
-
-      - name: Build plugin
-        run: yarn pack
-
-      - name: Install cli
-        run: npm install -g ${{matrix.cli}}
-
-      - name: Install plugin
-        run: |
-          yarn set version classic
-          sfdx plugins:link .
-          sfdx plugins
-
-      - name: Checkout e2e test subject
-        uses: actions/checkout@v4
-        with:
-          ref: 'e2e/head'
-          fetch-depth: 0
-          path: ./e2e
-
-      - name: E2E Tests
-        working-directory: ./e2e
-        run: |
-          yarn
-          yarn test:e2e
+    uses: ./.github/workflows/run-e2e-tests.yml
+    needs: [publish-beta]
+    with:
+      channel: ${{ needs.publish-beta.outputs.betaChannel }}
+    secrets: inherit
