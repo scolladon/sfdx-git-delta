@@ -238,12 +238,6 @@ When the character you should take for the short parameter is already taken then
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
-1. uninstall the previous version you may have `sfdx plugins:uninstall sfdx-git-delta`
-2. clone the repository
-3. change directory for the repository folder
-4. checkout the branch to test
-5. install the dependencies `yarn install`
-6. run `yarn pack` to build the plugin
-7. run `yarn set version classic` to use yarn version sfdx uses
-8. run `sfdx plugins:link` to link the plugin with sfdx command
-9. test the plugin!
+1. locate the comment with the beta version published in the pull request
+2. install the beta version `sfdx plugins:install sfdx-git-delta@<beta-channel>`
+3. test the plugin!

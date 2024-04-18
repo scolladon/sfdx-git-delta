@@ -100,6 +100,54 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     secrets: inherit
 
+  publish-beta:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - uses: jwalton/gh-find-current-pr@master
+        id: pr-number
+
+      - name: Set beta channel value
+        run: |
+          echo "BETA_CHANNEL=beta-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
+
+      - name: Setup github user
+        run: |
+          git config --global user.email "${{ env.BETA_CHANNEL }}@github.com"
+          git config --global user.name "${{ env.BETA_CHANNEL }}"
+
+      - name: NPM Publish beta channel
+        run: |
+          CURRENT_VERSION=$(jq -r '.version' package.json)
+          BETA_TAG="${{ env.BETA_CHANNEL }}-${{ github.run_id }}-${{github.run_attempt}}"
+          npm version "${CURRENT_VERSION}-${BETA_TAG}"
+          yarn npm publish --access public --tag "${{ env.BETA_CHANNEL }}"
+        env:
+          YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Comment PR beta channel
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Published under `${{ env.BETA_CHANNEL }}` npm channel.
+            ```sh
+            $ sfdx plugins:install sfdx-git-delta@${{ env.BETA_CHANNEL }}
+            ```
+          comment_tag: beta-publish
+          mode: recreate
+
   e2e-check:
     needs: [build]
     strategy:

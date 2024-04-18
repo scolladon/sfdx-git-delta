@@ -15,7 +15,7 @@ jobs:
     secrets: inherit
 
   prepare-release:
-    needs: build
+    needs: [build]
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -28,7 +28,7 @@ jobs:
           release-type: node
 
   release:
-    needs: prepare-release
+    needs: [prepare-release]
     runs-on: ubuntu-latest
     if: needs.prepare-release.outputs.release_created == 'true'
     steps:
@@ -85,7 +85,7 @@ jobs:
           yarn test:e2e
 
   perf:
-    needs: prepare-release
+    needs: [prepare-release]
     runs-on: ubuntu-latest
     if: needs.prepare-release.outputs.release_created != 'true'
     steps:
