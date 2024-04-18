@@ -5,6 +5,6 @@ const config = {
   coverageAnalysis: 'perTest',
   ignoreStatic: true,
   ignorePatterns: ['lib/', 'reports/', 'bin/', 'e2e'],
-  mutate: ['src/**/*.js'],
+  mutate: ['src/**/*.ts'],
 }
 export default config
