@@ -50,39 +50,11 @@ jobs:
           YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
   test-release:
+    uses: ./.github/workflows/run-e2e-tests.yml
     needs: [prepare-release, release]
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [18, 20]
-        cli: [sfdx-cli, '@salesforce/cli']
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          ref: 'e2e/head'
-          fetch-depth: 0
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Install cli
-        run: npm install -g ${{matrix.cli}}
-
-      - name: Install new plugin version
-        run: echo y | sfdx plugins:install sfdx-git-delta@${{ needs.prepare-release.outputs.version }}
-
-      - name: Test new plugin version
-        run: sfdx sgd:source:delta --help
-
-      - name: E2E Tests
-        run: |
-          yarn
-          yarn test:e2e
+    with:
+      channel: ${{ needs.prepare-release.outputs.version }}
+    secrets: inherit
 
   perf:
     needs: [prepare-release]
