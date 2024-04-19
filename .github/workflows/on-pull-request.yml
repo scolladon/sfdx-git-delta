@@ -103,6 +103,7 @@ jobs:
   publish-beta:
     needs: [build]
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged != 'true' && github.actor != 'dependabot[bot]'
     outputs:
       betaChannel: ${{ steps.define_beta_channel.outputs.BETA_CHANNEL }}
     steps:
@@ -132,7 +133,7 @@ jobs:
       - name: NPM Publish beta channel
         run: |
           CURRENT_VERSION=$(jq -r '.version' package.json)
-          BETA_TAG="${{ env.BETA_CHANNEL }}-${{ github.run_id }}-${{github.run_attempt}}"
+          BETA_TAG="${{ env.BETA_CHANNEL }}.${{ github.run_id }}-${{github.run_attempt}}"
           npm version "${CURRENT_VERSION}-${BETA_TAG}"
           yarn npm publish --access public --tag "${{ env.BETA_CHANNEL }}"
         env:
