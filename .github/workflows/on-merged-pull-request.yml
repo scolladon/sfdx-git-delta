@@ -1,0 +1,41 @@
+---
+name: Dev version cleaner
+
+on:
+  pull_request_target:
+    types:
+      - closed
+
+jobs:
+  clean-npm-dev-version:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: jwalton/gh-find-current-pr@master
+        id: pr-number
+
+      - name: Set dev channel value
+        run: |
+          echo "CURRENT_VERSION=$(jq -r '.version' package.json)" >> "$GITHUB_ENV"
+          echo "DEV_CHANNEL=dev-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
+
+      - name: Remove dist-tag
+        run: npm dist-tag rm sfdx-git-delta ${{ env.DEV_CHANNEL }}
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Deprecate related dev versions
+        run: |
+          DEV_VERSIONS=$(npm view sfdx-git-delta versions --json | jq -r '.[]' | grep -E "${{env.CURRENT_VERSION}}-${{ env.DEV_CHANNEL }}")
+          [ -n "$DEV_VERSIONS" ] && for DEV_VERSION in ${DEV_VERSIONS}; do npm deprecate "sfdx-git-delta@${DEV_VERSION}" "Deprecated dev version"; done
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

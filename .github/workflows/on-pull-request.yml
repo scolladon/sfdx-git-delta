@@ -100,11 +100,12 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     secrets: inherit
 
-  publish-beta:
+  publish-dev:
     needs: [build]
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged != 'true' && github.actor != 'dependabot[bot]'
     outputs:
-      betaChannel: ${{ steps.define_beta_channel.outputs.BETA_CHANNEL }}
+      devChannel: ${{ steps.define_dev_channel.outputs.DEV_CHANNEL }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -121,41 +122,41 @@ jobs:
       - uses: jwalton/gh-find-current-pr@master
         id: pr-number
 
-      - name: Set beta channel value
-        run: echo "BETA_CHANNEL=beta-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
+      - name: Set dev channel value
+        run: echo "DEV_CHANNEL=dev-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
 
       - name: Setup github user
         run: |
-          git config --global user.email "${{ env.BETA_CHANNEL }}@github.com"
-          git config --global user.name "${{ env.BETA_CHANNEL }}"
+          git config --global user.email "${{ env.DEV_CHANNEL }}@github.com"
+          git config --global user.name "${{ env.DEV_CHANNEL }}"
 
-      - name: NPM Publish beta channel
+      - name: NPM Publish dev channel
         run: |
           CURRENT_VERSION=$(jq -r '.version' package.json)
-          BETA_TAG="${{ env.BETA_CHANNEL }}-${{ github.run_id }}-${{github.run_attempt}}"
-          npm version "${CURRENT_VERSION}-${BETA_TAG}"
-          yarn npm publish --access public --tag "${{ env.BETA_CHANNEL }}"
+          DEV_TAG="${{ env.DEV_CHANNEL }}.${{ github.run_id }}-${{github.run_attempt}}"
+          npm version "${CURRENT_VERSION}-${DEV_TAG}"
+          yarn npm publish --access public --tag "${{ env.DEV_CHANNEL }}"
         env:
           YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
-      - name: Comment PR beta channel
+      - name: Comment PR dev channel
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            Published under `${{ env.BETA_CHANNEL }}` npm channel.
+            Published under `${{ env.DEV_CHANNEL }}` npm channel.
             ```sh
-            $ sfdx plugins:install sfdx-git-delta@${{ env.BETA_CHANNEL }}
+            $ sfdx plugins:install sfdx-git-delta@${{ env.DEV_CHANNEL }}
             ```
-          comment_tag: beta-publish
+          comment_tag: dev-publish
           mode: recreate
 
-      - name: Set beta channel value
-        id: define_beta_channel
-        run: echo "BETA_CHANNEL=${{ env.BETA_CHANNEL }}" >> "$GITHUB_OUTPUT"
+      - name: Set dev channel value
+        id: define_dev_channel
+        run: echo "DEV_CHANNEL=${{ env.DEV_CHANNEL }}" >> "$GITHUB_OUTPUT"
 
   e2e-check:
     uses: ./.github/workflows/run-e2e-tests.yml
-    needs: [publish-beta]
+    needs: [publish-dev]
     with:
-      channel: ${{ needs.publish-beta.outputs.betaChannel }}
+      channel: ${{ needs.publish-dev.outputs.devChannel }}
     secrets: inherit

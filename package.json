@@ -44,7 +44,7 @@
   "scripts": {
     "build": "wireit",
     "clean": "wireit",
-    "dependencies:reinstall": "git diff HEAD^ HEAD --exit-code --quiet -- ./yarn.lock || yarn",
+    "dependencies:reinstall": "yarn install",
     "dependencies:upgrade": "shx rm -rf yarn.lock ; shx touch yarn.lock ; yarn-upgrade-all ; yarn-audit-fix",
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint": "wireit",
