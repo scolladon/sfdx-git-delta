@@ -5354,9 +5354,9 @@ __metadata:
   linkType: hard
 
 "fast-redact@npm:^3.1.1":
-  version: 3.4.0
-  resolution: "fast-redact@npm:3.4.0"
-  checksum: 67840a9369badd13524c1f61aff6aa4301e3c6df0b270148b21231a71e5ec76fe636e0664e1293891916ac3183e532916e935f3cedf907723b88c8cc6c824995
+  version: 3.5.0
+  resolution: "fast-redact@npm:3.5.0"
+  checksum: ef03f0d1849da074a520a531ad299bf346417b790a643931ab4e01cb72275c8d55b60dc8512fb1f1818647b696790edefaa96704228db9f012da935faa1940af
   languageName: node
   linkType: hard
 
