@@ -34,6 +34,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Deprecate related dev versions
-        run: npm deprecate sfdx-git-delta@${{env.CURRENT_VERSION}}-${{ env.DEV_CHANNEL }}.x "Deprecated dev version"
+        run: |
+          DEV_VERSIONS=$(npm view sfdx-git-delta versions --json | jq -r '.[]' | grep -E "${{env.CURRENT_VERSION}}-${{ env.DEV_CHANNEL }}")
+          [ -n "$DEV_VERSIONS" ] && for DEV_VERSION in ${DEV_VERSIONS}; do npm deprecate "sfdx-git-delta@${DEV_VERSION}" "Deprecated dev version"; done
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
