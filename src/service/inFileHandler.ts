@@ -2,9 +2,9 @@
 import { basename } from 'path'
 
 import { DOT } from '../constant/fsConstants'
-import { LABEL_EXTENSION, LABEL_XML_NAME } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import { getInFileAttributes, isPackable } from '../metadata/metadataManager'
+import { Metadata } from '../types/metadata'
 import type { Manifest, Work } from '../types/work'
 import { writeFile } from '../utils/fsHelper'
 import MetadataDiff from '../utils/metadataDiff'
@@ -13,35 +13,33 @@ import { fillPackageWithParameter } from '../utils/packageHelper'
 import StandardHandler from './standardHandler'
 
 const getRootType = (line: string) => basename(line).split(DOT)[0]
-const getNamePrefix = ({ subType, line }: { subType: string; line: string }) =>
-  subType !== LABEL_XML_NAME ? `${getRootType(line)}.` : ''
 
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
   constructor(
     line: string,
-    type: string,
+    metadataDef: Metadata,
     work: Work,
     metadata: MetadataRepository
   ) {
-    super(line, type, work, metadata)
+    super(line, metadataDef, work, metadata)
     const inFileMetadata = getInFileAttributes(metadata)
     this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
+    this.suffixRegex = new RegExp(`\\.${this.ext}$`)
   }
 
   public override async handleAddition() {
-    await super.handleAddition()
-    await this._compareRevision()
+    await this._compareRevisionAndStoreComparison()
 
     if (!this.config.generateDelta) return
     await this._writeScopedContent()
   }
 
   public override async handleDeletion() {
-    if (this.metadataDef.pruneOnly) {
+    if (this._shouldTreatDeletionAsDeletion()) {
       await super.handleDeletion()
     } else {
-      await this._compareRevision()
+      await this._compareRevisionAndStoreComparison()
     }
   }
 
@@ -49,10 +47,15 @@ export default class InFileHandler extends StandardHandler {
     await this.handleAddition()
   }
 
-  protected async _compareRevision() {
+  protected async _compareRevisionAndStoreComparison() {
     const { added, deleted } = await this.metadataDiff.compare(this.line)
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
+    if (this._shouldTreatContainerType(added.size)) {
+      // Call from super.handleAddition to add the Root Type
+      // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
+      await super.handleAddition()
+    }
   }
 
   protected async _writeScopedContent() {
@@ -77,10 +80,7 @@ export default class InFileHandler extends StandardHandler {
     member: string
   ) {
     if (isPackable(subType)) {
-      const cleanedMember = `${getNamePrefix({
-        subType,
-        line: this.line,
-      })}${member}`
+      const cleanedMember = `${this._getQualifiedName()}${member}`
 
       fillPackageWithParameter({
         store,
@@ -90,15 +90,19 @@ export default class InFileHandler extends StandardHandler {
     }
   }
 
-  override _delegateFileCopy() {
+  protected _getQualifiedName() {
+    return `${getRootType(this.line)}${DOT}`
+  }
+
+  protected override _delegateFileCopy() {
     return false
   }
 
-  override _fillPackage(store: Manifest) {
-    // Call from super.handleAddition to add the Root Type
-    // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
-    if (this.type !== LABEL_EXTENSION) {
-      super._fillPackage(store)
-    }
+  protected _shouldTreatDeletionAsDeletion() {
+    return this.metadataDef.pruneOnly
+  }
+
+  protected _shouldTreatContainerType(modificationLength: number) {
+    return modificationLength > 0
   }
 }

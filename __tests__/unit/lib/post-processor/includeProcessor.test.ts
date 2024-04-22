@@ -40,7 +40,6 @@ describe('IncludeProcessor', () => {
   let metadata: MetadataRepository
 
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     metadata = await getGlobalMetadata()
   })
 

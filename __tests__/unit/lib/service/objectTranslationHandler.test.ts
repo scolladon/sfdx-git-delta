@@ -17,7 +17,14 @@ jest.mock('../../../../src/utils/metadataDiff', () => {
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const objectType = 'objectTranslations'
+const objectType = {
+  directoryName: 'objectTranslations',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'objectTranslation',
+  xmlName: 'CustomObjectTranslation',
+  pruneOnly: true,
+}
 const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
@@ -34,7 +41,6 @@ beforeEach(() => {
 describe('ObjectTranslation', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 
@@ -92,7 +98,7 @@ describe('ObjectTranslation', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(copyFiles).toBeCalledTimes(1)
+        expect(copyFiles).toBeCalledTimes(2)
         expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           expect.stringContaining('BillingFloor__c.fieldTranslation')

@@ -8,9 +8,9 @@ import {
 } from '../constant/metadataConstants'
 import { readPathFromGit } from '../utils/fsHelper'
 
-import StandardHandler from './standardHandler'
+import DecomposedHandler from './decomposedHandler'
 
-export default class SubCustomObjectHandler extends StandardHandler {
+export default class CustomFieldHandler extends DecomposedHandler {
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
@@ -23,10 +23,12 @@ export default class SubCustomObjectHandler extends StandardHandler {
     if (!data.includes(MASTER_DETAIL_TAG)) return
 
     const customObjectDirPath = this.splittedLine
-      .slice(0, this.splittedLine.indexOf(this.type))
+      .slice(0, this.splittedLine.indexOf(this.metadataDef.directoryName))
       .join(PATH_SEP)
     const customObjectName =
-      this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
+      this.splittedLine[
+        this.splittedLine.indexOf(this.metadataDef.directoryName) - 1
+      ]
 
     const customObjectPath = join(
       customObjectDirPath,
@@ -34,11 +36,5 @@ export default class SubCustomObjectHandler extends StandardHandler {
     )
 
     await this._copyWithMetaFile(customObjectPath)
-  }
-
-  protected override _getElementName() {
-    const prefix = this.splittedLine[this.splittedLine.indexOf(this.type) - 1]
-    const elementName = super._getElementName()
-    return `${prefix}.${elementName}`
   }
 }

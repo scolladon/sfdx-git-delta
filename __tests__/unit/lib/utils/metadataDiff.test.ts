@@ -108,7 +108,6 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
   let globalMetadata: MetadataRepository
   let work: Work
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
   beforeEach(() => {

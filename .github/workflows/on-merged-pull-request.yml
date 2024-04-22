@@ -22,6 +22,8 @@ jobs:
 
       - uses: jwalton/gh-find-current-pr@master
         id: pr-number
+        with:
+          state: closed
 
       - name: Set dev channel value
         run: |

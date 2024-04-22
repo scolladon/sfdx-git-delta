@@ -28,6 +28,7 @@ module.exports = {
     'output',
     'reports',
     'e2e',
+    '.github',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {

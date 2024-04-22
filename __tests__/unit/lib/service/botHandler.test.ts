@@ -3,13 +3,28 @@ import { expect, jest, describe, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import BotHandler from '../../../../src/service/botHandler'
+import { Metadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const objectType = 'bots'
+const objectType: Metadata = {
+  directoryName: 'bots',
+  inFolder: false,
+  metaFile: true,
+  content: [
+    {
+      suffix: 'bot',
+      xmlName: 'Bot',
+    },
+    {
+      suffix: 'botVersion',
+      xmlName: 'BotVersion',
+    },
+  ],
+}
 const line =
   'A       force-app/main/default/bots/TestBot/v1.botVersion-meta.xml'
 
@@ -22,7 +37,6 @@ beforeEach(() => {
 describe('BotHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 

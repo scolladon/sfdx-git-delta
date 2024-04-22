@@ -13,7 +13,27 @@ jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDir = jest.mocked(readDir)
 const mockedPathExists = jest.mocked(pathExists)
 
-const objectType = 'staticresources'
+const staticResourceType = {
+  directoryName: 'staticresources',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'resource',
+  xmlName: 'StaticResource',
+}
+const experienceBundleType = {
+  directoryName: 'experiences',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'site',
+  xmlName: 'ExperienceBundle',
+}
+const permissionSetType = {
+  directoryName: 'permissionsets',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'permissionset',
+  xmlName: 'PermissionSet',
+}
 const element = 'myResources'
 const basePath = 'force-app/main/default/staticresources'
 const entityPath = `${basePath}/${element}.js`
@@ -29,7 +49,6 @@ beforeEach(() => {
 describe('InResourceHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 
@@ -42,7 +61,7 @@ describe('InResourceHandler', () => {
         // Arrange
         const sut = new InResourceHandler(
           line,
-          objectType,
+          staticResourceType,
           work,
           globalMetadata
         )
@@ -72,75 +91,72 @@ describe('InResourceHandler', () => {
           ])
         })
         it.each([
+          ['imageFile.png', staticResourceType, 'imageFile', 2],
+          ['imageFolder/logo.png', staticResourceType, 'imageFolder', 3],
           [
-            'imageFile.png',
-            'staticresources',
-            'StaticResource',
-            'imageFile',
-            2,
-          ],
-          [
-            'imageFolder/logo.png',
-            'staticresources',
-            'StaticResource',
-            'imageFolder',
+            'my_experience_bundle/config/myexperiencebundle.json',
+            experienceBundleType,
+            'my_experience_bundle',
             3,
           ],
           [
-            'my_experience_bundle/config/myexperiencebundle.json',
-            'experiences',
-            'ExperienceBundle',
-            'my_experience_bundle',
+            'CustomerSupport/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
+            permissionSetType,
+            'CustomerSupport',
             3,
           ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file %s',
-          async (path, type, xmlName, entity, expectedCopyCount) => {
+          async (path, type, entity, expectedCopyCount) => {
             // Arrange
             const base = 'force-app/main/default/'
-            const line = `A       ${base}${type}/${path}`
+            const line = `A       ${base}${type.directoryName}/${path}`
             const sut = new InResourceHandler(line, type, work, globalMetadata)
 
             // Act
             await sut.handle()
 
             // Assert
-            expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
+            expect(Array.from(work.diffs.package.get(type.xmlName)!)).toEqual([
               entity,
             ])
             expect(copyFiles).toBeCalledTimes(expectedCopyCount)
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
-              `${base}${type}/${path}`
+              `${base}${type.directoryName}/${path}`
             )
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
-              `${base}${type}/${entity}.${
-                globalMetadata.get(type)!.suffix
-              }${METAFILE_SUFFIX}`
+              `${base}${type.directoryName}/${entity}.${type.suffix}${METAFILE_SUFFIX}`
             )
           }
         )
 
         it('should copy the matching lwc', async () => {
           // Arrange
-          const type = 'lwc'
-          const xmlName = 'LightningComponentBundle'
+          const type = {
+            directoryName: 'lwc',
+            inFolder: false,
+            metaFile: false,
+            xmlName: 'LightningComponentBundle',
+          }
           const entity = 'lwcc'
           const path = 'lwcc/lwcc.js'
           const base = 'force-app/main/default/'
-          const line = `A       ${base}${type}/${path}`
+          const line = `A       ${base}${type.directoryName}/${path}`
           const sut = new InResourceHandler(line, type, work, globalMetadata)
 
           // Act
           await sut.handle()
 
           // Assert
-          expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([entity])
-          expect(copyFiles).toBeCalledTimes(2)
+          expect(work.diffs.package.get(type.xmlName)).toEqual(
+            new Set([entity])
+          )
+          expect(copyFiles).toBeCalledTimes(3)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
-            `${base}${type}/${path}`
+            `${base}${type.directoryName}/${path}`
           )
         })
       })
@@ -150,7 +166,7 @@ describe('InResourceHandler', () => {
           // Arrange
           const sut = new InResourceHandler(
             line,
-            objectType,
+            staticResourceType,
             work,
             globalMetadata
           )
@@ -186,7 +202,7 @@ describe('InResourceHandler', () => {
         // Arrange
         const sut = new InResourceHandler(
           `D       ${entityPath}`,
-          objectType,
+          staticResourceType,
           work,
           globalMetadata
         )
@@ -210,7 +226,7 @@ describe('InResourceHandler', () => {
         // Arrange
         const sut = new InResourceHandler(
           `D       ${entityPath}`,
-          objectType,
+          staticResourceType,
           work,
           globalMetadata
         )

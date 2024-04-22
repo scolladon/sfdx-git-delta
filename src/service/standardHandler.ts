@@ -26,14 +26,13 @@ export default class StandardHandler {
   protected readonly splittedLine: string[]
   protected suffixRegex: RegExp
   protected readonly ext: string
-  protected readonly metadataDef: Metadata
   protected readonly parsedLine: ParsedPath
   protected readonly parentFolder: string
 
   constructor(
     protected readonly line: string,
     // eslint-disable-next-line no-unused-vars
-    protected readonly type: string,
+    protected readonly metadataDef: Metadata,
     protected readonly work: Work,
     // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
@@ -45,20 +44,17 @@ export default class StandardHandler {
     this.warnings = work.warnings
     this.splittedLine = this.line.split(PATH_SEP)
 
-    if (this.metadata.get(this.type)?.metaFile === true) {
+    if (this.metadataDef.metaFile === true) {
       this.line = this.line.replace(METAFILE_SUFFIX, '')
     }
 
-    this.suffixRegex = new RegExp(`\\.${this.metadata.get(this.type)?.suffix}$`)
-
+    this.suffixRegex = new RegExp(`\\.${this.metadataDef.suffix}$`)
     this.parsedLine = parse(this.line)
     this.ext = this.parsedLine.base
       .replace(METAFILE_SUFFIX, '')
       .split(DOT)
       .pop() as string
-
     this.parentFolder = this.parsedLine.dir.split(PATH_SEP).slice(-1)[0]
-    this.metadataDef = this.metadata.get(this.type) as Metadata
   }
 
   public async handle() {
@@ -106,7 +102,6 @@ export default class StandardHandler {
           this.splittedLine.findIndex(x => x.includes(METAFILE_SUFFIX)) - 1
         )
         .join(PATH_SEP)
-
         .replace(META_REGEX, '')
         .replace(this.suffixRegex, '')
     )
@@ -120,7 +115,7 @@ export default class StandardHandler {
   protected _fillPackage(store: Manifest) {
     fillPackageWithParameter({
       store,
-      type: this.metadata.get(this.type)!.xmlName,
+      type: this.metadataDef.xmlName!,
       member: this._getElementName(),
     })
   }
@@ -128,10 +123,7 @@ export default class StandardHandler {
   protected async _copyWithMetaFile(src: string) {
     if (this._delegateFileCopy()) {
       await this._copy(src)
-      if (
-        this.metadataDef.metaFile === true &&
-        !`${src}`.endsWith(METAFILE_SUFFIX)
-      ) {
+      if (this._shouldCopyMetaFile(src)) {
         await this._copy(this._getMetaTypeFilePath(src))
       }
     }
@@ -148,6 +140,12 @@ export default class StandardHandler {
     return join(
       parsedPath.dir,
       `${parsedPath.name}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
+    )
+  }
+
+  protected _shouldCopyMetaFile(path: string): boolean {
+    return (
+      this.metadataDef.metaFile === true && !`${path}`.endsWith(METAFILE_SUFFIX)
     )
   }
 
@@ -171,6 +169,6 @@ export default class StandardHandler {
   }
 
   protected _parentFolderIsNotTheType() {
-    return this.parentFolder !== this.type
+    return this.parentFolder !== this.metadataDef.directoryName
   }
 }

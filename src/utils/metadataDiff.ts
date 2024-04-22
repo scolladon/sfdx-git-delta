@@ -37,7 +37,7 @@ const hasMember =
   (subType: string) =>
   (member: string) =>
     attributes.has(subType) &&
-    store.get(attributes.get(subType)!.xmlName)?.has(member)
+    store.get(attributes.get(subType)!.xmlName!)?.has(member)
 
 const selectKey =
   (attributes: Map<string, SharedFileMetadata>) =>

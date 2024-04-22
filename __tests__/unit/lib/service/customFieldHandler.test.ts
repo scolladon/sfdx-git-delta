@@ -3,7 +3,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import SubCustomObjectHandler from '../../../../src/service/subCustomObjectHandler'
+import CustomFieldHandler from '../../../../src/service/customFieldHandler'
 import type { Work } from '../../../../src/types/work'
 import { readPathFromGit, copyFiles } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
@@ -12,7 +12,13 @@ jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 
-const objectType = 'fields'
+const objectType = {
+  directoryName: 'fields',
+  inFolder: false,
+  metaFile: false,
+  suffix: 'field',
+  xmlName: 'CustomField',
+}
 const line =
   'A       force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
 
@@ -22,10 +28,9 @@ beforeEach(() => {
   work = getWork()
 })
 
-describe('SubCustomObjectHandler', () => {
+describe('CustomFieldHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    // eslint-disable-next-line no-undef
     globalMetadata = await getGlobalMetadata()
   })
 
@@ -33,12 +38,7 @@ describe('SubCustomObjectHandler', () => {
     it('should not handle master detail exception', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new SubCustomObjectHandler(
-        line,
-        objectType,
-        work,
-        globalMetadata
-      )
+      const sut = new CustomFieldHandler(line, objectType, work, globalMetadata)
 
       // Act
       await sut.handleAddition()
@@ -52,7 +52,7 @@ describe('SubCustomObjectHandler', () => {
       it('should not handle master detail exception', async () => {
         // Arrange
         mockedReadPathFromGit.mockResolvedValueOnce('')
-        const sut = new SubCustomObjectHandler(
+        const sut = new CustomFieldHandler(
           line,
           objectType,
           work,
@@ -71,7 +71,7 @@ describe('SubCustomObjectHandler', () => {
       it('should copy the parent object', async () => {
         // Arrange
         mockedReadPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
-        const sut = new SubCustomObjectHandler(
+        const sut = new CustomFieldHandler(
           line,
           objectType,
           work,

@@ -2,7 +2,7 @@
 
 export type BaseMetadata = {
   suffix?: string
-  xmlName: string
+  xmlName?: string
 }
 
 export type SharedFolderMetadata = BaseMetadata & {

@@ -1,7 +1,7 @@
 'use strict'
 import { create } from 'xmlbuilder2'
 
-import { OBJECT_XML_NAME } from '../constant/metadataConstants'
+import { OBJECT_TYPE } from '../constant/metadataConstants'
 import type { Config } from '../types/config'
 import type { Manifest } from '../types/work'
 
@@ -34,7 +34,7 @@ export default class PackageBuilder {
 
   _sortTypesWithMetadata = (x: string, y: string) => {
     // QUESTION: Why Object needs to be ordered first in package.xml so it can be deployed ?
-    if (x === OBJECT_XML_NAME) return -1 // @deprecated To remove when the order will not impact the result of the deployment
+    if (x === OBJECT_TYPE) return -1 // @deprecated To remove when the order will not impact the result of the deployment
     return new Intl.Collator(frLocale).compare(x, y)
   }
 }
