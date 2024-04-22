@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.39.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.4...v5.39.0) (2024-04-22)
+
+
+### Features
+
+* handle decomposed type ([#825](https://github.com/scolladon/sfdx-git-delta/issues/825)) ([ec9ea59](https://github.com/scolladon/sfdx-git-delta/commit/ec9ea59d06f89057ffd1f30f1c00f03737afbdb2))
+
 ## [5.38.4](https://github.com/scolladon/sfdx-git-delta/compare/v5.38.3...v5.38.4) (2024-04-17)
 
 
