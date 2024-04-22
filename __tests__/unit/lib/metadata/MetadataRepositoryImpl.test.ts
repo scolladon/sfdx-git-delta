@@ -23,6 +23,13 @@ describe('MetadataRepositoryImpl', () => {
         xmlName: 'CustomApplication',
       },
       {
+        directoryName: 'customMetadata',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'md',
+        xmlName: 'CustomMetadata',
+      },
+      {
         directoryName: 'documents',
         inFolder: true,
         metaFile: true,
@@ -228,6 +235,17 @@ describe('MetadataRepositoryImpl', () => {
       })
 
       describe('special cases where it should only match on folder', () => {
+        it('matches `md` files inside `customMetadata` folder', () => {
+          // Act
+          const result = sut.get(
+            'force-app/customMetadata/testCustomMetadata.md'
+          )
+
+          // Assert
+          expect(result).toStrictEqual(
+            expect.objectContaining({ directoryName: 'customMetadata' })
+          )
+        })
         it('matches `xml` files inside `emailservices` folder', () => {
           // Act
           const result = sut.get('force-app/emailservices/testService.xml')
@@ -346,7 +364,7 @@ describe('MetadataRepositoryImpl', () => {
         expect(result).toBeUndefined()
       })
 
-      it('matches on folder', () => {
+      it('does not match `app` files outside `applications` folder', () => {
         // Act
         const result = sut.get(
           'Z force-app/main/folder/aura/TestApp/TestApp.app'
@@ -356,6 +374,14 @@ describe('MetadataRepositoryImpl', () => {
         expect(result).toStrictEqual(
           expect.objectContaining({ directoryName: 'aura' })
         )
+      })
+
+      it('does not match `md` files outside `customMetadata` folder', () => {
+        // Act
+        const result = sut.get('README.md')
+
+        // Assert
+        expect(result).toBeUndefined()
       })
     })
   })
