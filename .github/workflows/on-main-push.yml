@@ -69,24 +69,16 @@ jobs:
         with:
           node-version: 18
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
-        shell: bash
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
 
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.yarn-cache }}
-          key: ${{ runner.os }}-16-yarn-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Install dependencies
-        run: yarn install --immutable --check-cache
+      - uses: google/wireit@setup-github-actions-caching/v1
 
       - name: Build plugin
         run: yarn pack
 
-      - name: Install sfdx-cli
-        run: npm install -g sfdx-cli
+      - name: Install salesforce CLI
+        run: npm install -g @salesforce/cli
 
       - name: Install plugin
         run: |
@@ -102,7 +94,9 @@ jobs:
           path: ./e2e
 
       - name: Run benchmark
-        run: yarn test:perf
+        run: |
+          yarn test:perf
+          git reset --hard
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1

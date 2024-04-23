@@ -53,7 +53,7 @@
     "test:build": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
     "test:mutation": "wireit",
     "test:nut": "wireit",
-    "test:perf": "node __tests__/perf/bench.mjs > perf-result.txt && shx cat perf-result.txt",
+    "test:perf": "wireit",
     "test:unit": "wireit",
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
@@ -125,6 +125,21 @@
       "dependencies": [
         "test:unit",
         "test:nut"
+      ]
+    },
+    "test:perf": {
+      "command": "node __tests__/perf/bench.mjs > perf-result.txt && shx cat perf-result.txt",
+      "files": [
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "messages/**",
+        "**/tsconfig.json"
+      ],
+      "output": [
+        "perf-result.txt"
+      ],
+      "dependencies": [
+        "build"
       ]
     },
     "test:mutation": {
