@@ -10,54 +10,7 @@ on:
       - "img/**"
 
 jobs:
-  build:
-    uses: ./.github/workflows/reusable-build.yml
-    secrets: inherit
-
-  prepare-release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      version: ${{ steps.release.outputs.version }}
-    steps:
-      - uses: google-github-actions/release-please-action@v4
-        id: release
-        with:
-          token: ${{ secrets.RELEASE_PAT }}
-          release-type: node
-
-  release:
-    needs: [prepare-release]
-    runs-on: ubuntu-latest
-    if: needs.prepare-release.outputs.release_created == 'true'
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup dependencies, cache and install
-        uses: ./.github/actions/install
-
-      - name: Publish to npm
-        run: yarn npm publish --access public --tag latest-rc
-        env:
-          YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-
-  test-release:
-    uses: ./.github/workflows/run-e2e-tests.yml
-    needs: [prepare-release, release]
-    with:
-      channel: ${{ needs.prepare-release.outputs.version }}
-    secrets: inherit
-
   perf:
-    needs: [prepare-release]
     runs-on: ubuntu-latest
     if: needs.prepare-release.outputs.release_created != 'true'
     steps:
@@ -69,24 +22,16 @@ jobs:
         with:
           node-version: 18
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "yarn-cache=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
-        shell: bash
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
 
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.yarn-cache }}
-          key: ${{ runner.os }}-16-yarn-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Install dependencies
-        run: yarn install --immutable --check-cache
+      - uses: google/wireit@setup-github-actions-caching/v1
 
       - name: Build plugin
         run: yarn pack
 
-      - name: Install sfdx-cli
-        run: npm install -g sfdx-cli
+      - name: Install salesforce CLI
+        run: npm install -g @salesforce/cli
 
       - name: Install plugin
         run: |
@@ -102,7 +47,9 @@ jobs:
           path: ./e2e
 
       - name: Run benchmark
-        run: yarn test:perf
+        run: |
+          yarn test:perf
+          git reset --hard
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
