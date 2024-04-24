@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      prs_created: ${{ steps.release.outputs.prs_created }}
       version: ${{ steps.release.outputs.version }}
     steps:
       - uses: google-github-actions/release-please-action@v4
@@ -30,7 +31,7 @@ jobs:
   release:
     needs: [prepare-release]
     runs-on: ubuntu-latest
-    if: needs.prepare-release.outputs.release_created == 'true'
+    if: ${{ needs.prepare-release.outputs.release_created == 'true' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -59,7 +60,7 @@ jobs:
   perf:
     needs: [prepare-release]
     runs-on: ubuntu-latest
-    if: needs.prepare-release.outputs.release_created != 'true' && needs.prepare-release.outputs.prs_created == 'true'
+    if: ${{ needs.prepare-release.outputs.release_created != 'true' && needs.prepare-release.outputs.prs_created == 'true' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
