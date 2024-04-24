@@ -103,7 +103,7 @@ jobs:
   publish-dev:
     needs: [build]
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged != 'true' && github.actor != 'dependabot[bot]'
+    if: ${{ github.event.pull_request.merged != 'true' && github.actor != 'dependabot[bot]' }}
     outputs:
       devChannel: ${{ steps.define_dev_channel.outputs.DEV_CHANNEL }}
     steps:
