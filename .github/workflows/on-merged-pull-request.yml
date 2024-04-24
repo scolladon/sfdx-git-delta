@@ -41,3 +41,10 @@ jobs:
           [ -n "$DEV_VERSIONS" ] && for DEV_VERSION in ${DEV_VERSIONS}; do npm deprecate "sfdx-git-delta@${DEV_VERSION}" "Deprecated dev version"; done
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Delete package dev channel PR comment 
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: 
+          comment_tag: dev-publish
+          mode: delete
