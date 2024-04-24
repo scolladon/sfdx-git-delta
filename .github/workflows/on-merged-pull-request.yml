@@ -3,6 +3,11 @@ name: Package dev version cleaner
 
 on:
   pull_request_target:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "img/**"
     types:
       - closed
 
