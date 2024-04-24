@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1713954901205,
+  "lastUpdate": 1713955033111,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1945,6 +1945,37 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/scolladon/sfdx-git-delta/commit/8fa3936e7e0477731786c933cbbc7e87d2551ba4"
         },
         "date": 1713954900153,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.46,
+            "range": "±2.62%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sébastien Colladon",
+            "username": "scolladon"
+          },
+          "distinct": true,
+          "id": "8d5c927a795646ab9644d8d99f2eac48b0221b5b",
+          "message": "build: delete PR dev package message after merge (#847)",
+          "timestamp": "2024-04-24T12:32:35+02:00",
+          "tree_id": "1c7f256cd67b0041607a2de9b715205310ea87b8",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/8d5c927a795646ab9644d8d99f2eac48b0221b5b"
+        },
+        "date": 1713955029306,
         "tool": "benchmarkjs",
         "benches": [
           {
