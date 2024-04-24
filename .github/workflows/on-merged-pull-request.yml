@@ -45,6 +45,10 @@ jobs:
       - name: Delete package dev channel PR comment
         uses: thollander/actions-comment-pull-request@v2
         with:
-          message: ""
+          message: |
+            Published under `${{ env.DEV_CHANNEL }}` npm channel.
+            ```sh
+            $ sfdx plugins:install sfdx-git-delta@${{ env.DEV_CHANNEL }}
+            ```
           comment_tag: dev-publish
           mode: delete
