@@ -1232,8 +1232,8 @@ __metadata:
   linkType: hard
 
 "@jsforce/jsforce-node@npm:^3.1.0":
-  version: 3.1.0
-  resolution: "@jsforce/jsforce-node@npm:3.1.0"
+  version: 3.2.0
+  resolution: "@jsforce/jsforce-node@npm:3.2.0"
   dependencies:
     "@sindresorhus/is": ^4
     "@types/node": ^18.15.3
@@ -1249,7 +1249,7 @@ __metadata:
     node-fetch: ^2.6.1
     strip-ansi: ^6.0.0
     xml2js: ^0.6.2
-  checksum: 524ad59b7dd6eec90fc010a21944dfb67afe8894b0c609b964e6ad1cd236044e73c89d3fb09a962d4e8c326f88dd94e4445784110f299f3fb5bc5c9617a28bcf
+  checksum: 14344b6dfa6304b26fbc0fde9b4341a02d4038669d55bf2bf8a172150795906a25efe32e974839f7ef70c17106fd39f4d4b7a8b5bf602ce47043c3d7ef8ed8a1
   languageName: node
   linkType: hard
 
@@ -2038,90 +2038,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-arm64@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-darwin-arm64@npm:1.4.17"
+"@swc/core-darwin-arm64@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-darwin-arm64@npm:1.5.0"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@swc/core-darwin-x64@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-darwin-x64@npm:1.4.17"
+"@swc/core-darwin-x64@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-darwin-x64@npm:1.5.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm-gnueabihf@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.4.17"
+"@swc/core-linux-arm-gnueabihf@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.5.0"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-gnu@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-linux-arm64-gnu@npm:1.4.17"
+"@swc/core-linux-arm64-gnu@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.5.0"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@swc/core-linux-arm64-musl@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-linux-arm64-musl@npm:1.4.17"
+"@swc/core-linux-arm64-musl@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-linux-arm64-musl@npm:1.5.0"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-gnu@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-linux-x64-gnu@npm:1.4.17"
+"@swc/core-linux-x64-gnu@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-linux-x64-gnu@npm:1.5.0"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@swc/core-linux-x64-musl@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-linux-x64-musl@npm:1.4.17"
+"@swc/core-linux-x64-musl@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-linux-x64-musl@npm:1.5.0"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@swc/core-win32-arm64-msvc@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-win32-arm64-msvc@npm:1.4.17"
+"@swc/core-win32-arm64-msvc@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.5.0"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@swc/core-win32-ia32-msvc@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-win32-ia32-msvc@npm:1.4.17"
+"@swc/core-win32-ia32-msvc@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.5.0"
   conditions: os=win32 & cpu=ia32
   languageName: node
   linkType: hard
 
-"@swc/core-win32-x64-msvc@npm:1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core-win32-x64-msvc@npm:1.4.17"
+"@swc/core-win32-x64-msvc@npm:1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core-win32-x64-msvc@npm:1.5.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@swc/core@npm:^1.4.17":
-  version: 1.4.17
-  resolution: "@swc/core@npm:1.4.17"
+"@swc/core@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "@swc/core@npm:1.5.0"
   dependencies:
-    "@swc/core-darwin-arm64": 1.4.17
-    "@swc/core-darwin-x64": 1.4.17
-    "@swc/core-linux-arm-gnueabihf": 1.4.17
-    "@swc/core-linux-arm64-gnu": 1.4.17
-    "@swc/core-linux-arm64-musl": 1.4.17
-    "@swc/core-linux-x64-gnu": 1.4.17
-    "@swc/core-linux-x64-musl": 1.4.17
-    "@swc/core-win32-arm64-msvc": 1.4.17
-    "@swc/core-win32-ia32-msvc": 1.4.17
-    "@swc/core-win32-x64-msvc": 1.4.17
+    "@swc/core-darwin-arm64": 1.5.0
+    "@swc/core-darwin-x64": 1.5.0
+    "@swc/core-linux-arm-gnueabihf": 1.5.0
+    "@swc/core-linux-arm64-gnu": 1.5.0
+    "@swc/core-linux-arm64-musl": 1.5.0
+    "@swc/core-linux-x64-gnu": 1.5.0
+    "@swc/core-linux-x64-musl": 1.5.0
+    "@swc/core-win32-arm64-msvc": 1.5.0
+    "@swc/core-win32-ia32-msvc": 1.5.0
+    "@swc/core-win32-x64-msvc": 1.5.0
     "@swc/counter": ^0.1.2
     "@swc/types": ^0.1.5
   peerDependencies:
@@ -2150,7 +2150,7 @@ __metadata:
   peerDependenciesMeta:
     "@swc/helpers":
       optional: true
-  checksum: 65fce1ebee900e4e6bdbc6f6eda22ffdda71e9b34895a7d3a185578d9aab0accc3202f367d480aaa35e99137a762121b913bbdb62113ac823d0c7acab00808d0
+  checksum: 1abab0b57755020b60ebf2557629c23c65c3546e4cd80f9d02fbdf208d4169c9300a0229c088081b43a01e630c9d86d02f8c240c9fc2842eaed2a517770fcd1d
   languageName: node
   linkType: hard
 
@@ -4523,9 +4523,9 @@ __metadata:
   linkType: hard
 
 "electron-to-chromium@npm:^1.4.668":
-  version: 1.4.746
-  resolution: "electron-to-chromium@npm:1.4.746"
-  checksum: 1fa8fad55ddf94ac8d7aa53b451ced4eec08cee0b765fe37fd70d2c560e4c4eff8bbd0ccf64bc6aa069484243c14ddda512974f770206a0b5e858b66cdd16768
+  version: 1.4.747
+  resolution: "electron-to-chromium@npm:1.4.747"
+  checksum: 6d302c2fbe71390ca666544017de5f8614ba8632ee02fd612d423439e813d72df09cbd8f614122a2ee07c8ffc2b3788882a5c5bb99363f162b9257f34c0eb31f
   languageName: node
   linkType: hard
 
@@ -9878,7 +9878,7 @@ __metadata:
     "@salesforce/ts-sinon": ^1.4.19
     "@stryker-mutator/core": ^8.2.6
     "@stryker-mutator/jest-runner": ^8.2.6
-    "@swc/core": ^1.4.17
+    "@swc/core": ^1.5.0
     "@types/async": ^3.2.24
     "@types/jest": ^29.5.12
     "@types/mocha": ^10.0.6
@@ -11729,8 +11729,8 @@ __metadata:
   linkType: hard
 
 "zod@npm:^3.22.4":
-  version: 3.23.3
-  resolution: "zod@npm:3.23.3"
-  checksum: c5be5a79ec31c712db47ec8343140e626dcd647e91a896ae98a1ab29d0f17b09f4b2d6adb9db2c0f82aacacedc73e89f0c14453c7da02d70ea79a4298c1bbaa4
+  version: 3.23.4
+  resolution: "zod@npm:3.23.4"
+  checksum: 58f6e298c51d9ae01a1b1a1692ac7f00774b466d9a287a1ff8d61ff1fbe0ae9b0f050ae1cf1a8f71e4c6ccd0333a3cc340f339360fab5f5046cc954d10525a54
   languageName: node
   linkType: hard

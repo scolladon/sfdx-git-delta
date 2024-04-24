@@ -198,7 +198,7 @@
     "@salesforce/ts-sinon": "^1.4.19",
     "@stryker-mutator/core": "^8.2.6",
     "@stryker-mutator/jest-runner": "^8.2.6",
-    "@swc/core": "^1.4.17",
+    "@swc/core": "^1.5.0",
     "@types/async": "^3.2.24",
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.6",
