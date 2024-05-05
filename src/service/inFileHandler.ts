@@ -49,7 +49,7 @@ export default class InFileHandler extends StandardHandler {
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
     const { xmlContent, isEmpty } = this.metadataDiff.prune()
-    if (this._shouldTreatContainerType(added, isEmpty)) {
+    if (this._shouldTreatContainerType(isEmpty)) {
       // Call from super.handleAddition to add the Root Type
       // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
       await super.handleAddition()
@@ -95,17 +95,7 @@ export default class InFileHandler extends StandardHandler {
     return this.metadataDef.pruneOnly
   }
 
-  protected _shouldTreatContainerType(added: Manifest, fileIsEmpty: boolean) {
-    if (!fileIsEmpty) {
-      return true
-    }
-
-    for (const [type] of added) {
-      if (isPackable(type)) {
-        return true
-      }
-    }
-
-    return false
+  protected _shouldTreatContainerType(fileIsEmpty: boolean) {
+    return !fileIsEmpty
   }
 }
