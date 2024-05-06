@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.39.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.39.1...v5.39.2) (2024-05-06)
+
+
+### Bug Fixes
+
+* metadata type detection for subtype not packageable contained inside file ([#858](https://github.com/scolladon/sfdx-git-delta/issues/858)) ([a55a528](https://github.com/scolladon/sfdx-git-delta/commit/a55a528239631fd840ffeb57feedb7f01bdf64c6))
+
 ## [5.39.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.39.0...v5.39.1) (2024-04-22)
 
 
