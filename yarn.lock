@@ -1231,7 +1231,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jsforce/jsforce-node@npm:^3.1.0":
+"@jsforce/jsforce-node@npm:^3.1.0, @jsforce/jsforce-node@npm:^3.2.0":
   version: 3.2.0
   resolution: "@jsforce/jsforce-node@npm:3.2.0"
   dependencies:
@@ -1685,11 +1685,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/cli-plugins-testkit@npm:^5.2.3":
-  version: 5.2.3
-  resolution: "@salesforce/cli-plugins-testkit@npm:5.2.3"
+"@salesforce/cli-plugins-testkit@npm:^5.3.2":
+  version: 5.3.2
+  resolution: "@salesforce/cli-plugins-testkit@npm:5.3.2"
   dependencies:
-    "@salesforce/core": ^7.3.0
+    "@salesforce/core": ^7.3.3
     "@salesforce/kit": ^3.1.1
     "@salesforce/ts-types": ^2.0.9
     "@types/shelljs": ^0.8.15
@@ -1699,7 +1699,7 @@ __metadata:
     sinon: ^17.0.1
     strip-ansi: 6.0.1
     ts-retry-promise: ^0.8.0
-  checksum: 12bf29878df6bff46a91404a87f22040d3bca22b797b9cf86f942ace27a1a2c4f78a9dc89221e2bf12b6ce88a7348232262f88909142c7528b0e9913b159618c
+  checksum: 54485388d56265f04c89c87819afaf1ef38982f200ccf8067403d372e23706334d499eff65794a06ad25b3128f6e5ff6e440f50ecdf4adb0edf7f9e606f16280
   languageName: node
   linkType: hard
 
@@ -1740,7 +1740,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/core@npm:^7.3.0, @salesforce/core@npm:^7.3.1":
+"@salesforce/core@npm:^7.3.1":
   version: 7.3.1
   resolution: "@salesforce/core@npm:7.3.1"
   dependencies:
@@ -1762,6 +1762,31 @@ __metadata:
     semver: ^7.6.0
     ts-retry-promise: ^0.7.1
   checksum: 2dd8bb9b18c3d8100c9e66457853146ce49720176eef0b8add8757e4b6b60459ccae837975362f23396248a3081ddfbf452c670f9135354531d1dbe02b60262b
+  languageName: node
+  linkType: hard
+
+"@salesforce/core@npm:^7.3.3":
+  version: 7.3.4
+  resolution: "@salesforce/core@npm:7.3.4"
+  dependencies:
+    "@jsforce/jsforce-node": ^3.2.0
+    "@salesforce/kit": ^3.1.1
+    "@salesforce/schemas": ^1.7.0
+    "@salesforce/ts-types": ^2.0.9
+    ajv: ^8.13.0
+    change-case: ^4.1.2
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsonwebtoken: 9.0.2
+    jszip: 3.10.1
+    pino: ^8.21.0
+    pino-abstract-transport: ^1.1.0
+    pino-pretty: ^10.3.1
+    proper-lockfile: ^4.1.2
+    semver: ^7.6.0
+    ts-retry-promise: ^0.7.1
+  checksum: cab33008e78dcfebe451af5a5a11fe1b2ce01e893262e458618ce100f834f08ba5dcf1b73ed8c106898cf26acd0f0de7d884acce7d6f0975a06af37c5b6d5e73
   languageName: node
   linkType: hard
 
@@ -2715,6 +2740,18 @@ __metadata:
     require-from-string: ^2.0.2
     uri-js: ^4.2.2
   checksum: 4dc13714e316e67537c8b31bc063f99a1d9d9a497eb4bbd55191ac0dcd5e4985bbb71570352ad6f1e76684fb6d790928f96ba3b2d4fd6e10024be9612fe3f001
+  languageName: node
+  linkType: hard
+
+"ajv@npm:^8.13.0":
+  version: 8.13.0
+  resolution: "ajv@npm:8.13.0"
+  dependencies:
+    fast-deep-equal: ^3.1.3
+    json-schema-traverse: ^1.0.0
+    require-from-string: ^2.0.2
+    uri-js: ^4.4.1
+  checksum: 6de82d0b2073e645ca3300561356ddda0234f39b35d2125a8700b650509b296f41c00ab69f53178bbe25ad688bd6ac3747ab44101f2f4bd245952e8fd6ccc3c1
   languageName: node
   linkType: hard
 
@@ -9041,7 +9078,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino-abstract-transport@npm:^1.0.0, pino-abstract-transport@npm:^1.1.0":
+"pino-abstract-transport@npm:^1.0.0, pino-abstract-transport@npm:^1.1.0, pino-abstract-transport@npm:^1.2.0":
   version: 1.2.0
   resolution: "pino-abstract-transport@npm:1.2.0"
   dependencies:
@@ -9100,6 +9137,27 @@ __metadata:
   bin:
     pino: bin.js
   checksum: 51206e0547b5507e2284795241c7855e5200a9df4d60ab610bbb736af3c51303f1b5a89a1cbcf273432614849cff3562c30871b706ed67b11e15e30b885006bb
+  languageName: node
+  linkType: hard
+
+"pino@npm:^8.21.0":
+  version: 8.21.0
+  resolution: "pino@npm:8.21.0"
+  dependencies:
+    atomic-sleep: ^1.0.0
+    fast-redact: ^3.1.1
+    on-exit-leak-free: ^2.1.0
+    pino-abstract-transport: ^1.2.0
+    pino-std-serializers: ^6.0.0
+    process-warning: ^3.0.0
+    quick-format-unescaped: ^4.0.3
+    real-require: ^0.2.0
+    safe-stable-stringify: ^2.3.1
+    sonic-boom: ^3.7.0
+    thread-stream: ^2.6.0
+  bin:
+    pino: bin.js
+  checksum: d895c37cfcb7ade33ad7ac4ca54c0497ab719ec726e42b7c7b9697e07572a09a7c7de18d751440769c3ea5ecbac2075fdac720cf182720a4764defe3de8a1411
   languageName: node
   linkType: hard
 
@@ -9871,7 +9929,7 @@ __metadata:
     "@commitlint/config-conventional": ^19.2.2
     "@jest/globals": ^29.7.0
     "@oclif/dev-cli": ^1.26.10
-    "@salesforce/cli-plugins-testkit": ^5.2.3
+    "@salesforce/cli-plugins-testkit": ^5.3.2
     "@salesforce/command": ^5.3.9
     "@salesforce/core": ^7.3.1
     "@salesforce/dev-config": ^4.1.0
@@ -10661,6 +10719,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"thread-stream@npm:^2.6.0":
+  version: 2.7.0
+  resolution: "thread-stream@npm:2.7.0"
+  dependencies:
+    real-require: ^0.2.0
+  checksum: 75ab019cda628344c7779e5f5a88f7759764efd29d320327ad2e6c2622778b5f1c43a3966d76a9ee5744086d61c680b413548f5521030f9e9055487684436165
+  languageName: node
+  linkType: hard
+
 "through@npm:>=2.2.7 <3, through@npm:^2.3.6":
   version: 2.3.8
   resolution: "through@npm:2.3.8"
@@ -11154,7 +11221,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uri-js@npm:^4.2.2":
+"uri-js@npm:^4.2.2, uri-js@npm:^4.4.1":
   version: 4.4.1
   resolution: "uri-js@npm:4.4.1"
   dependencies:
