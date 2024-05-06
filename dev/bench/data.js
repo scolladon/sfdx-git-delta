@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1713955033111,
+  "lastUpdate": 1714985125429,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -1982,6 +1982,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.46,
             "range": "±2.62%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a55a528239631fd840ffeb57feedb7f01bdf64c6",
+          "message": "fix: metadata type detection for subtype not packageable contained inside file (#858)",
+          "timestamp": "2024-05-06T10:38:52+02:00",
+          "tree_id": "0315ca6c5b5291cf6342b9460c3f2e7f8b59c6e9",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/a55a528239631fd840ffeb57feedb7f01bdf64c6"
+        },
+        "date": 1714985124510,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.44,
+            "range": "±12.27%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
