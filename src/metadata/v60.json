@@ -1,5 +1,12 @@
 [
   {
+  "directoryName": "genAiPromptTemplates",
+  "inFolder": false,
+  "metaFile": false,
+  "suffix": "genAiPromptTemplate",
+  "xmlName": "GenAiPromptTemplate"
+  },
+  {
     "directoryName": "dw",
     "inFolder": false,
     "metaFile": false,
