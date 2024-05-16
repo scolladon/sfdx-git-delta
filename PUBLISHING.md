@@ -4,7 +4,7 @@ Here are the steps to publish a version
 
 ## Release
 
-This repository uses [release-please](https://github.com/google-github-actions/release-please-action) workflow.
+This repository uses [release-please](https://github.com/googleapis/release-please-action) workflow.
 
 Merge the release pull request to create a new version, it will take care of:
 - defining next version number
