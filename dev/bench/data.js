@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1714985125429,
+  "lastUpdate": 1715849665277,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2013,6 +2013,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.44,
             "range": "±12.27%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "744abeaf9d0f608e3b4ea72560520d4e7fd3f11e",
+          "message": "feat: support new `GenAI` metadata kind (#865)",
+          "timestamp": "2024-05-16T10:48:34+02:00",
+          "tree_id": "f6f51afb9d924391a6c4990a3249e28f1b7cb146",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/744abeaf9d0f608e3b4ea72560520d4e7fd3f11e"
+        },
+        "date": 1715849664921,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.46,
+            "range": "±4.37%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
