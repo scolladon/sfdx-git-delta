@@ -1733,7 +1733,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/core@npm:^7.3.5, @salesforce/core@npm:^7.3.6":
+"@salesforce/core@npm:^7.3.5":
   version: 7.3.6
   resolution: "@salesforce/core@npm:7.3.6"
   dependencies:
@@ -1755,6 +1755,31 @@ __metadata:
     semver: ^7.6.2
     ts-retry-promise: ^0.7.1
   checksum: 41a796455031fedc6351ca78c7b1105d5a89926006f2202ae3f2bb66d66b2997066309a4a3236f61e19243c9d971fae89913cd1967f1bc430ec7d0f1752ffc84
+  languageName: node
+  linkType: hard
+
+"@salesforce/core@npm:^7.3.9":
+  version: 7.3.9
+  resolution: "@salesforce/core@npm:7.3.9"
+  dependencies:
+    "@jsforce/jsforce-node": ^3.2.0
+    "@salesforce/kit": ^3.1.1
+    "@salesforce/schemas": ^1.9.0
+    "@salesforce/ts-types": ^2.0.9
+    ajv: ^8.13.0
+    change-case: ^4.1.2
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsonwebtoken: 9.0.2
+    jszip: 3.10.1
+    pino: ^8.21.0
+    pino-abstract-transport: ^1.1.0
+    pino-pretty: ^10.3.1
+    proper-lockfile: ^4.1.2
+    semver: ^7.6.2
+    ts-retry-promise: ^0.7.1
+  checksum: 8e3a464bcd5e014760d5f1f7ec26e2749caf4109e3da7579568b7cd36bb8f61f6af6cf89a4f22dcb0574957b9878c089819b5ad1fab271e28fd2c52d131061a3
   languageName: node
   linkType: hard
 
@@ -1790,6 +1815,13 @@ __metadata:
   version: 1.8.1
   resolution: "@salesforce/schemas@npm:1.8.1"
   checksum: 7616b8e0d0d61b6f74becc9598f03bd7f6f72df2b2cb91daf029eb07dbd6e3d8df1cbebcb6b20e15f3d9324f98221a9c3bdce9bd3cb6bd2da642f3268cadd5a4
+  languageName: node
+  linkType: hard
+
+"@salesforce/schemas@npm:^1.9.0":
+  version: 1.9.0
+  resolution: "@salesforce/schemas@npm:1.9.0"
+  checksum: 2b181158f61ba908efa05077d7b88518a3a74ef0405fbee9d4856391dbe2f9457ca21027126eab082c0a0dd380d94cc5cba33ce8b4a4b38262168aafe968ba44
   languageName: node
   linkType: hard
 
@@ -9893,7 +9925,7 @@ __metadata:
     "@oclif/dev-cli": ^1.26.10
     "@salesforce/cli-plugins-testkit": ^5.3.4
     "@salesforce/command": ^5.3.9
-    "@salesforce/core": ^7.3.6
+    "@salesforce/core": ^7.3.9
     "@salesforce/dev-config": ^4.1.0
     "@salesforce/ts-sinon": ^1.4.19
     "@stryker-mutator/core": ^8.2.6
