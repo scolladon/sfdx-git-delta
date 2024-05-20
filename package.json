@@ -26,7 +26,7 @@
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
     "@salesforce/command": "^5.3.9",
-    "@salesforce/core": "^7.3.6",
+    "@salesforce/core": "^7.3.9",
     "async": "^3.2.5",
     "fast-xml-parser": "^4.3.6",
     "fs-extra": "^11.2.0",
