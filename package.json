@@ -59,7 +59,7 @@
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "postpack": "shx rm -f oclif.manifest.json && prettier --write README.md",
     "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "wireit": {
     "build": {
