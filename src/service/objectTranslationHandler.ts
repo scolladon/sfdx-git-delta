@@ -3,7 +3,6 @@ import { parse } from 'path'
 
 import { PATH_SEP } from '../constant/fsConstants'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'
-import { getInFileAttributes } from '../metadata/metadataManager'
 import { writeFile } from '../utils/fsHelper'
 import MetadataDiff from '../utils/metadataDiff'
 
@@ -20,12 +19,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
   }
 
   protected async _copyObjectTranslation(path: string) {
-    const inFileMetadata = getInFileAttributes(this.metadata)
-    const metadataDiff = new MetadataDiff(
-      this.config,
-      this.metadata,
-      inFileMetadata
-    )
+    const metadataDiff = new MetadataDiff(this.config, this.metadata)
     await metadataDiff.compare(path)
     const { xmlContent } = metadataDiff.prune()
     await writeFile(path, xmlContent, this.config)

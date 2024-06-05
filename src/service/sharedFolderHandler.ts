@@ -3,7 +3,6 @@ import { parse, join } from 'path'
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { getSharedFolderMetadata } from '../metadata/metadataManager'
 import { Metadata } from '../types/metadata'
 import type { Manifest, Work } from '../types/work'
 import { fillPackageWithParameter } from '../utils/packageHelper'
@@ -20,7 +19,7 @@ export default class SharedFolderHandler extends StandardHandler {
     metadata: MetadataRepository
   ) {
     super(line, metadataDef, work, metadata)
-    this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
+    this.sharedFolderMetadata = this.metadata.getSharedFolderMetadata()
   }
 
   protected override _fillPackage(store: Manifest) {

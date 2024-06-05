@@ -12,6 +12,7 @@ import type { Work } from '../../../../src/types/work'
 import { writeFile, readDir } from '../../../../src/utils/fsHelper'
 import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
+import { IgnoreHelper } from '../../../../src/utils/ignoreHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('fs-extra')
@@ -26,14 +27,11 @@ const mockedReadFile = jest.mocked(readFile)
 const mockTreatPathSep = jest.mocked(treatPathSep)
 mockTreatPathSep.mockImplementation(data => data)
 
-const mockIgnores = jest.fn()
-jest.mock('../../../../src/utils/ignoreHelper', () => ({
-  buildIgnoreHelper: jest.fn(() => ({
-    globalIgnore: {
-      ignores: mockIgnores,
-    },
-  })),
-}))
+const mockKeep = jest.fn()
+jest.spyOn(IgnoreHelper, 'getIgnoreInstance').mockResolvedValue({
+  keep: mockKeep,
+} as never)
+
 jest.mock('../../../../src/utils/fxpHelper', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const originalModule: any = jest.requireActual(
@@ -61,7 +59,7 @@ describe('FlowTranslationProcessor', () => {
   describe('process', () => {
     let sut: FlowTranslationProcessor
     beforeEach(() => {
-      mockIgnores.mockReset()
+      //mockKeep.mockReset()
       work = getWork()
       sut = new FlowTranslationProcessor(work, metadata)
       mockedReadDir.mockResolvedValue([`${FR}.translation-meta.xml`])
@@ -102,7 +100,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(mockedParseXmlFileToJson).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         })
@@ -112,6 +110,7 @@ describe('FlowTranslationProcessor', () => {
         beforeEach(() => {
           // Arrange
           mockedParseXmlFileToJson.mockResolvedValueOnce({})
+          mockKeep.mockReturnValue(true)
         })
         it('should not add translation file', async () => {
           // Act
@@ -124,7 +123,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(mockedParseXmlFileToJson).toHaveBeenCalledTimes(1)
           expect(writeFile).not.toHaveBeenCalled()
         })
       })
@@ -147,7 +146,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(mockedParseXmlFileToJson).toHaveBeenCalledTimes(1)
           expect(writeFile).toHaveBeenCalled()
         })
       })
@@ -174,7 +173,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalled()
+          expect(mockedParseXmlFileToJson).toHaveBeenCalled()
           expect(writeFile).toHaveBeenCalledTimes(1)
           expect(writeFile).toHaveBeenCalledWith(
             'fr.translation-meta.xml',
@@ -216,7 +215,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalled()
+          expect(mockedParseXmlFileToJson).toHaveBeenCalled()
           expect(writeFile).toHaveBeenCalledTimes(1)
           expect(writeFile).toHaveBeenCalledWith(
             'fr.translation-meta.xml',
@@ -253,7 +252,7 @@ describe('FlowTranslationProcessor', () => {
               work.config.source,
               work.config
             )
-            expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+            expect(mockedParseXmlFileToJson).toHaveBeenCalledTimes(2)
             expect(writeFile).not.toHaveBeenCalled()
           })
         })
@@ -289,7 +288,7 @@ describe('FlowTranslationProcessor', () => {
                   work.config.source,
                   work.config
                 )
-                expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+                expect(mockedParseXmlFileToJson).toHaveBeenCalledTimes(2)
                 if (generateDelta) expect(writeFile).toHaveBeenCalledTimes(2)
                 else expect(writeFile).not.toHaveBeenCalled()
               })
@@ -302,7 +301,7 @@ describe('FlowTranslationProcessor', () => {
         beforeEach(() => {
           // Arrange
           work.config.ignore = '.forceignore'
-          mockIgnores.mockReturnValue(true)
+          mockKeep.mockReturnValue(false)
         })
         it('should not add translation file', async () => {
           // Act
@@ -315,7 +314,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(mockedParseXmlFileToJson).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
         })
       })
@@ -327,7 +326,7 @@ describe('FlowTranslationProcessor', () => {
             [FLOW_XML_NAME, new Set([flowFullName])],
           ])
           work.config.ignore = '.forceignore'
-          mockIgnores.mockReturnValue(false)
+          mockKeep.mockReturnValue(true)
         })
         it('should add translation file', async () => {
           // Act
@@ -340,7 +339,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(mockedParseXmlFileToJson).toHaveBeenCalledTimes(1)
           expect(writeFile).toHaveBeenCalledTimes(1)
         })
       })
@@ -351,7 +350,7 @@ describe('FlowTranslationProcessor', () => {
           const out = 'out'
           work.config.output = out
           mockedParseXmlFileToJson.mockResolvedValueOnce({})
-          mockedIsSubDir.mockImplementation(() => true)
+          mockedIsSubDir.mockReturnValue(true)
         })
         it('should not add translation file', async () => {
           // Act
@@ -364,7 +363,7 @@ describe('FlowTranslationProcessor', () => {
             work.config.source,
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(mockedParseXmlFileToJson).not.toHaveBeenCalled()
           expect(writeFile).not.toHaveBeenCalled()
         })
       })

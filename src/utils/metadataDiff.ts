@@ -155,14 +155,15 @@ const generatePartialJSON =
 export default class MetadataDiff {
   protected toContent: any
   protected add!: Manifest
+  protected readonly attributes: Map<string, SharedFileMetadata>
   constructor(
     // eslint-disable-next-line no-unused-vars
     protected readonly config: Config,
     // eslint-disable-next-line no-unused-vars
-    protected readonly metadata: MetadataRepository,
-    // eslint-disable-next-line no-unused-vars
-    protected readonly attributes: Map<string, SharedFileMetadata>
-  ) {}
+    protected readonly metadata: MetadataRepository
+  ) {
+    this.attributes = this.metadata.getInFileAttributes()
+  }
 
   public async compare(path: string) {
     this.toContent = await parseXmlFileToJson(

@@ -4,10 +4,7 @@ import { expect, jest, describe, it } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import type { Work } from '../../../../src/types/work'
-import {
-  IgnoreHelper,
-  buildIncludeHelper,
-} from '../../../../src/utils/ignoreHelper'
+import { IgnoreHelper } from '../../../../src/utils/ignoreHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 const mockProcess = jest.fn()
@@ -27,13 +24,10 @@ jest.mock('../../../../src/adapter/GitAdapter', () => ({
   })),
 }))
 
-jest.mock('../../../../src/utils/ignoreHelper')
-const mockedBuildIncludeHelper = jest.mocked(buildIncludeHelper)
-
 const mockKeep = jest.fn()
-mockedBuildIncludeHelper.mockResolvedValue({
+jest.spyOn(IgnoreHelper, 'getIncludeInstance').mockResolvedValue({
   keep: mockKeep,
-} as unknown as IgnoreHelper)
+} as never)
 
 describe('IncludeProcessor', () => {
   let work: Work
@@ -57,7 +51,7 @@ describe('IncludeProcessor', () => {
       await sut.process()
 
       // Assert
-      expect(mockedBuildIncludeHelper).not.toBeCalled()
+      expect(mockProcess).not.toBeCalled()
     })
   })
 
@@ -79,7 +73,6 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
         expect(mockProcess).not.toBeCalled()
       })
     })
@@ -97,7 +90,6 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
         expect(mockProcess).toBeCalled()
       })
     })
@@ -120,7 +112,6 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
         expect(mockProcess).not.toBeCalled()
       })
     })
@@ -138,7 +129,6 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
         expect(mockProcess).toBeCalled()
       })
     })

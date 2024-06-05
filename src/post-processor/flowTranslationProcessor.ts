@@ -21,7 +21,7 @@ import {
   xml2Json,
   convertJsonToXml,
 } from '../utils/fxpHelper'
-import { buildIgnoreHelper } from '../utils/ignoreHelper'
+import { IgnoreHelper } from '../utils/ignoreHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 
 import BaseProcessor from './baseProcessor'
@@ -58,14 +58,14 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     this.translations.clear()
 
     const allFiles = await readDir(this.config.source, this.work.config)
-    const ignoreHelper = await buildIgnoreHelper(this.config)
+    const ignoreHelper = await IgnoreHelper.getIgnoreInstance(this.config)
     const translationPaths = allFiles.filter((file: string) =>
       file.endsWith(EXTENSION)
     )
 
     for (const translationPath of translationPaths) {
       if (
-        !ignoreHelper.globalIgnore.ignores(translationPath) &&
+        ignoreHelper.keep(translationPath) &&
         !isSubDir(this.config.output, translationPath)
       ) {
         await this._parseTranslationFile(translationPath)

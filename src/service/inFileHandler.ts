@@ -3,7 +3,6 @@ import { basename } from 'path'
 
 import { DOT } from '../constant/fsConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
-import { getInFileAttributes, isPackable } from '../metadata/metadataManager'
 import { Metadata } from '../types/metadata'
 import type { Manifest, Work } from '../types/work'
 import { writeFile } from '../utils/fsHelper'
@@ -23,8 +22,7 @@ export default class InFileHandler extends StandardHandler {
     metadata: MetadataRepository
   ) {
     super(line, metadataDef, work, metadata)
-    const inFileMetadata = getInFileAttributes(metadata)
-    this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
+    this.metadataDiff = new MetadataDiff(this.config, this.metadata)
   }
 
   public override async handleAddition() {
@@ -71,7 +69,7 @@ export default class InFileHandler extends StandardHandler {
     subType: string,
     member: string
   ) {
-    if (isPackable(subType)) {
+    if (this.metadata.isPackable(subType)) {
       const cleanedMember = `${this._getQualifiedName()}${member}`
 
       fillPackageWithParameter({

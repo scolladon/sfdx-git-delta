@@ -4,7 +4,7 @@ import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Config } from '../types/config'
 
-import { buildIgnoreHelper } from './ignoreHelper'
+import { IgnoreHelper } from './ignoreHelper'
 
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
@@ -27,7 +27,7 @@ export default class RepoGitDiff {
   protected async _treatResult(lines: string[]): Promise<string[]> {
     const renamedElements = this._getRenamedElements(lines)
 
-    const ignoreHelper = await buildIgnoreHelper(this.config)
+    const ignoreHelper = await IgnoreHelper.getIgnoreInstance(this.config)
 
     return lines
       .filter(Boolean)

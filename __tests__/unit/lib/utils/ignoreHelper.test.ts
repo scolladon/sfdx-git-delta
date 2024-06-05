@@ -8,13 +8,7 @@ import {
 } from '../../../../src/constant/gitConstants'
 import type { Config } from '../../../../src/types/config'
 import { readFile } from '../../../../src/utils/fsUtils'
-import {
-  IgnoreHelper,
-  buildIgnoreHelper,
-  buildIncludeHelper,
-  resetIncludeInstance,
-  resetIgnoreInstance,
-} from '../../../../src/utils/ignoreHelper'
+import { IgnoreHelper } from '../../../../src/utils/ignoreHelper'
 jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)
 
@@ -36,20 +30,18 @@ describe('ignoreHelper', () => {
   }
   afterEach(() => {
     jest.resetAllMocks()
+    IgnoreHelper.resetForTest()
   })
-  describe('buildIgnoreHelper', () => {
+  describe('getIgnoreInstance', () => {
     describe('when config does not have ignore neither destructive ignore', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
-        sut = await buildIgnoreHelper(config)
-      })
-      afterAll(() => {
-        resetIgnoreInstance()
+        sut = await IgnoreHelper.getIgnoreInstance(config)
       })
 
       it('global helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('destructive helper should be defined', () => {
@@ -71,20 +63,16 @@ describe('ignoreHelper', () => {
       })
     })
     describe('when config does not have ignore and have destructive ignore', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
         mockedReadFile.mockResolvedValue('*ignoreFile*')
         config.ignoreDestructive = 'path'
-        sut = await buildIgnoreHelper(config)
-      })
-
-      afterAll(() => {
-        resetIgnoreInstance()
+        sut = await IgnoreHelper.getIgnoreInstance(config)
       })
 
       it('global helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('destructive helper should be defined', () => {
@@ -143,20 +131,16 @@ describe('ignoreHelper', () => {
       })
     })
     describe('when config has ignore and does not have destructive ignore', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
         mockedReadFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
         config.ignore = 'path'
-        sut = await buildIgnoreHelper(config)
+        sut = await IgnoreHelper.getIgnoreInstance(config)
       })
 
-      afterAll(() => {
-        resetIgnoreInstance()
-      })
-
-      it('helper should have globalInstance', () => {
+      it('helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('helper should have destructiveInstance (with default ignore)', () => {
@@ -224,21 +208,17 @@ describe('ignoreHelper', () => {
       )
     })
     describe('when config has ignore and destructive ignore', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
         mockedReadFile.mockResolvedValueOnce('*ignoreFile*')
         mockedReadFile.mockResolvedValueOnce('*ignoreFile*')
         const config = { ignore: 'path', ignoreDestructive: 'otherPath' }
-        sut = await buildIgnoreHelper(config)
+        sut = await IgnoreHelper.getIgnoreInstance(config)
       })
 
-      afterAll(() => {
-        resetIgnoreInstance()
-      })
-
-      it('helper should have globalInstance', () => {
+      it('helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('helper should have destructiveInstance', () => {
@@ -307,30 +287,27 @@ describe('ignoreHelper', () => {
     })
   })
 
-  describe('buildIncludeHelper', () => {
+  describe('getIncludeInstance', () => {
     it('build once', async () => {
       // Arrange
-      sut = await buildIncludeHelper(config)
+      sut = await IgnoreHelper.getIncludeInstance(config)
 
       // Act
-      const result = await buildIncludeHelper(config)
+      const result = await IgnoreHelper.getIncludeInstance(config)
 
       // Assert
       expect(result).toBe(sut)
     })
 
     describe('when config does not have include neither destructive include', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
-        sut = await buildIncludeHelper(config)
-      })
-      afterAll(() => {
-        resetIncludeInstance()
+        sut = await IgnoreHelper.getIncludeInstance(config)
       })
 
-      it('global helper should be defined', () => {
+      it('helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('destructive helper should be defined', () => {
@@ -352,20 +329,16 @@ describe('ignoreHelper', () => {
       })
     })
     describe('when config does not have include and have destructive include', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
         mockedReadFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
         config.includeDestructive = 'path'
-        sut = await buildIncludeHelper(config)
+        sut = await IgnoreHelper.getIncludeInstance(config)
       })
 
-      afterAll(() => {
-        resetIncludeInstance()
-      })
-
-      it('global helper should be defined', () => {
+      it('helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('destructive helper should be defined', () => {
@@ -411,21 +384,17 @@ describe('ignoreHelper', () => {
       })
     })
     describe('when config has include and does not have destructive include', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
         mockedReadFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
         config.include = 'path'
         config.includeDestructive = ''
-        sut = await buildIncludeHelper(config)
+        sut = await IgnoreHelper.getIncludeInstance(config)
       })
 
-      afterAll(() => {
-        resetIncludeInstance()
-      })
-
-      it('helper should have globalInstance', () => {
+      it('helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('helper should have destructiveInstance', () => {
@@ -480,22 +449,18 @@ describe('ignoreHelper', () => {
       })
     })
     describe('when config has include and destructive include', () => {
-      beforeAll(async () => {
+      beforeEach(async () => {
         // Arrange
         mockedReadFile.mockResolvedValueOnce('*ignoreFile*')
         mockedReadFile.mockResolvedValueOnce('*ignoreFile*')
         config.include = 'path'
         config.includeDestructive = 'path'
-        sut = await buildIncludeHelper(config)
+        sut = await IgnoreHelper.getIncludeInstance(config)
       })
 
-      afterAll(() => {
-        resetIncludeInstance()
-      })
-
-      it('helper should have globalInstance', () => {
+      it('helper should be defined', () => {
         // Assert
-        expect(sut.globalIgnore).toBeDefined()
+        expect(sut).toBeDefined()
       })
 
       it('helper should have destructiveInstance', () => {

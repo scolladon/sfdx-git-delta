@@ -5,7 +5,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
 import type { Work } from '../types/work'
 import { treatPathSep } from '../utils/fsUtils'
-import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
+import { IgnoreHelper } from '../utils/ignoreHelper'
 
 import BaseProcessor from './baseProcessor'
 const TAB = '\t'
@@ -36,7 +36,7 @@ export default class IncludeProcessor extends BaseProcessor {
     const firstSha = await this.gitAdapter.getFirstCommitRef()
     this.config.from = firstSha
 
-    this.includeHelper = await buildIncludeHelper(this.config)
+    this.includeHelper = await IgnoreHelper.getIncludeInstance(this.config)
   }
 
   protected async _process() {

@@ -8,7 +8,7 @@ import type { Config } from '../types/config'
 import type { FileGitRef } from '../types/git'
 
 import { treatPathSep } from './fsUtils'
-import { buildIgnoreHelper } from './ignoreHelper'
+import { IgnoreHelper } from './ignoreHelper'
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()
@@ -19,8 +19,8 @@ export const copyFiles = async (config: Config, src: string) => {
   }
   copiedFiles.add(src)
 
-  const ignoreHelper = await buildIgnoreHelper(config)
-  if (ignoreHelper.globalIgnore.ignores(src)) {
+  const ignoreHelper = await IgnoreHelper.getIgnoreInstance(config)
+  if (!ignoreHelper.keep(src)) {
     return
   }
   try {
@@ -76,8 +76,8 @@ export const writeFile = async (
   }
   writtenFiles.add(path)
 
-  const ignoreHelper = await buildIgnoreHelper(config)
-  if (ignoreHelper.globalIgnore.ignores(path)) {
+  const ignoreHelper = await IgnoreHelper.getIgnoreInstance(config)
+  if (!ignoreHelper.keep(path)) {
     return
   }
   await outputFile(join(config.output, treatPathSep(path)), content)
