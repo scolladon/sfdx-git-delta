@@ -15,14 +15,36 @@ import {
   TERRITORY_MODEL_TYPE,
   WORKFLOW_TYPE,
 } from '../constant/metadataConstants'
-import type { Metadata } from '../types/metadata'
+import type {
+  BaseMetadata,
+  Metadata,
+  SharedFileMetadata,
+  SharedFolderMetadata,
+} from '../types/metadata'
 
 import { MetadataRepository } from './MetadataRepository'
 
 export class MetadataRepositoryImpl implements MetadataRepository {
+  private static instance: MetadataRepository | null
+
+  public static getInstance(metadatas: Metadata[]): MetadataRepository {
+    if (!MetadataRepositoryImpl.instance) {
+      MetadataRepositoryImpl.instance = new MetadataRepositoryImpl(metadatas)
+    }
+
+    return MetadataRepositoryImpl.instance
+  }
+
+  public static resetForTest() {
+    MetadataRepositoryImpl.instance = null
+  }
+
+  protected static inFileMetadata = new Map<string, SharedFileMetadata>()
+  protected static sharedFolderMetadata = new Map<string, string>()
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
-  constructor(
+
+  private constructor(
     // eslint-disable-next-line no-unused-vars
     protected readonly metadatas: Metadata[]
   ) {
@@ -65,6 +87,45 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     if (metadata.directoryName) {
       this.metadataPerDir.set(metadata.directoryName, metadata)
     }
+  }
+
+  isPackable(type: string): boolean {
+    return (
+      Array.from(this.getInFileAttributes().values()).find(
+        (inFileDef: SharedFileMetadata) => inFileDef.xmlName === type
+      )?.excluded !== true
+    )
+  }
+
+  getInFileAttributes(): Map<string, SharedFileMetadata> {
+    return MetadataRepositoryImpl.inFileMetadata.size
+      ? MetadataRepositoryImpl.inFileMetadata
+      : this.metadatas
+          .filter((meta: Metadata) => meta.xmlTag)
+          .reduce(
+            (acc: Map<string, SharedFileMetadata>, meta: Metadata) =>
+              acc.set(meta.xmlTag!, {
+                xmlName: meta.xmlName,
+                key: meta.key,
+                excluded: !!meta.excluded,
+              } as SharedFileMetadata),
+            MetadataRepositoryImpl.inFileMetadata
+          )
+  }
+
+  getSharedFolderMetadata(): Map<string, string> {
+    return MetadataRepositoryImpl.sharedFolderMetadata.size
+      ? MetadataRepositoryImpl.sharedFolderMetadata
+      : this.metadatas
+          .filter((meta: Metadata) => meta.content)
+          .flatMap(
+            (elem: SharedFolderMetadata): BaseMetadata[] => elem.content!
+          )
+          .reduce(
+            (acc: Map<string, string>, val: BaseMetadata) =>
+              acc.set(val!.suffix!, val!.xmlName!),
+            MetadataRepositoryImpl.sharedFolderMetadata
+          )
   }
 
   public has(path: string): boolean {

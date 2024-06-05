@@ -1,15 +1,11 @@
 'use strict'
 import { expect, describe, it } from '@jest/globals'
 
-import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import {
   getDefinition,
-  getInFileAttributes,
   getLatestSupportedVersion,
-  getSharedFolderMetadata,
   isVersionSupported,
 } from '../../../../src/metadata/metadataManager'
-import type { Metadata } from '../../../../src/types/metadata'
 
 describe(`test if metadata`, () => {
   it('provide latest when apiVersion does not exist', async () => {
@@ -69,103 +65,5 @@ describe(`test if metadata`, () => {
       const result = await isVersionSupported(data[0] as number)
       expect(result).toEqual(data[1])
     }
-  })
-
-  it('getInFileAttributes', async () => {
-    // Arrange
-    const metadata = new MetadataRepositoryImpl([
-      {
-        directoryName: 'waveTemplates',
-        inFolder: true,
-        metaFile: false,
-        xmlName: 'WaveTemplateBundle',
-      },
-      {
-        directoryName: 'workflows.alerts',
-        inFolder: false,
-        metaFile: false,
-        xmlName: 'WorkflowAlert',
-        xmlTag: 'alerts',
-        key: 'fullName',
-      },
-      {
-        directoryName: 'excluded',
-        inFolder: false,
-        metaFile: false,
-        xmlName: 'Excluded',
-        xmlTag: 'excluded',
-        key: 'other',
-        excluded: true,
-      },
-    ])
-
-    // Act
-    const inFileAttributes = getInFileAttributes(metadata)
-
-    // Assert
-    expect(inFileAttributes.has('waveTemplates')).toBe(false)
-    expect(inFileAttributes.has('excluded')).toBe(true)
-    expect(inFileAttributes.has('alerts')).toBe(true)
-    expect(inFileAttributes.get('alerts')).toEqual({
-      xmlName: 'WorkflowAlert',
-      key: 'fullName',
-      excluded: false,
-    })
-    expect(inFileAttributes.get('excluded')).toEqual({
-      xmlName: 'Excluded',
-      key: 'other',
-      excluded: true,
-    })
-
-    // Act
-    const otherInFileAttributes = getInFileAttributes(metadata)
-
-    // Assert
-    expect(otherInFileAttributes).toBe(inFileAttributes)
-  })
-
-  it('getSharedFolderMetadata', async () => {
-    // Arrange
-    const metadata = new MetadataRepositoryImpl([
-      {
-        directoryName: 'waveTemplates',
-        inFolder: true,
-        metaFile: false,
-        xmlName: 'WaveTemplateBundle',
-      } as Metadata,
-      {
-        directoryName: 'discovery',
-        inFolder: false,
-        metaFile: true,
-        content: [
-          {
-            suffix: 'model',
-            xmlName: 'DiscoveryAIModel',
-          },
-          {
-            suffix: 'goal',
-            xmlName: 'DiscoveryGoal',
-          },
-        ],
-      } as Metadata,
-    ])
-
-    // Act
-    const sharedFolderMetadata: Map<string, string> = getSharedFolderMetadata(
-      metadata
-    ) as Map<string, string>
-
-    // Assert
-    expect(sharedFolderMetadata.has('discovery')).toBe(false)
-    expect(sharedFolderMetadata.has('goal')).toBe(true)
-    expect(sharedFolderMetadata.has('model')).toBe(true)
-    expect(sharedFolderMetadata.get('goal')).toEqual('DiscoveryGoal')
-    expect(sharedFolderMetadata.get('model')).toEqual('DiscoveryAIModel')
-
-    // Act
-    const otherSharedFolderMetadata = getSharedFolderMetadata(metadata)
-
-    // Assert
-    expect(otherSharedFolderMetadata).toBe(sharedFolderMetadata)
   })
 })
