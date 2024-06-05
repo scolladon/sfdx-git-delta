@@ -1,11 +1,6 @@
 import ignore, { Ignore } from 'ignore'
 
-import {
-  ADDITION,
-  DELETION,
-  GIT_DIFF_TYPE_REGEX,
-  MODIFICATION,
-} from '../constant/gitConstants'
+import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants'
 
 import { readFile } from './fsUtils'
 
@@ -14,61 +9,69 @@ import { readFile } from './fsUtils'
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {
-  constructor(
-    public readonly globalIgnore: Ignore,
+  private static ignoreInstance: IgnoreHelper | null
+  private static includeInstance: IgnoreHelper | null
+
+  public static async getIgnoreInstance({
+    ignore,
+    ignoreDestructive,
+  }: {
+    ignore: string
+    ignoreDestructive: string
+  }) {
+    if (!IgnoreHelper.ignoreInstance) {
+      const globalIgnore = await _buildIgnore(ignore)
+      const destructiveIgnore = await _buildIgnore(ignoreDestructive || ignore)
+
+      destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
+
+      IgnoreHelper.ignoreInstance = new IgnoreHelper(
+        globalIgnore,
+        destructiveIgnore
+      )
+    }
+    return IgnoreHelper.ignoreInstance
+  }
+
+  public static async getIncludeInstance({
+    include,
+    includeDestructive,
+  }: {
+    include: string
+    includeDestructive: string
+  }) {
+    if (!IgnoreHelper.includeInstance) {
+      const globalInclude = await _buildIgnore(include)
+      const destructiveInclude = await _buildIgnore(includeDestructive)
+
+      IgnoreHelper.includeInstance = new IgnoreHelper(
+        globalInclude,
+        destructiveInclude
+      )
+    }
+    return IgnoreHelper.includeInstance
+  }
+
+  private constructor(
+    protected readonly globalIgnore: Ignore,
     protected readonly destructiveIgnore: Ignore
   ) {}
 
   public keep(line: string): boolean {
     const changeType = line.charAt(0)
 
-    let ignInstance!: Ignore
-    if (DELETION === changeType) {
-      ignInstance = this.destructiveIgnore
-    } else if ([ADDITION, MODIFICATION].includes(changeType)) {
-      ignInstance = this.globalIgnore
-    }
+    const ignInstance: Ignore =
+      DELETION === changeType ? this.destructiveIgnore : this.globalIgnore
 
     const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
 
     return !ignInstance?.ignores(filePath)
   }
-}
 
-let ignoreInstance: IgnoreHelper | null
-export const buildIgnoreHelper = async ({
-  ignore,
-  ignoreDestructive,
-}: {
-  ignore: string
-  ignoreDestructive: string
-}) => {
-  if (!ignoreInstance) {
-    const globalIgnore = await _buildIgnore(ignore)
-    const destructiveIgnore = await _buildIgnore(ignoreDestructive || ignore)
-
-    destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
-
-    ignoreInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
+  public static resetForTest() {
+    IgnoreHelper.includeInstance = null
+    IgnoreHelper.ignoreInstance = null
   }
-  return ignoreInstance
-}
-
-let includeInstance: IgnoreHelper | null
-export const buildIncludeHelper = async ({
-  include,
-  includeDestructive,
-}: {
-  include: string
-  includeDestructive: string
-}) => {
-  if (!includeInstance) {
-    const globalIgnore = await _buildIgnore(include)
-    const destructiveIgnore = await _buildIgnore(includeDestructive)
-
-    includeInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
-  }
-  return includeInstance
 }
 
 const _buildIgnore = async (ignorePath: string) => {
@@ -78,12 +81,4 @@ const _buildIgnore = async (ignorePath: string) => {
     ign.add(content.toString())
   }
   return ign
-}
-
-export const resetIgnoreInstance = () => {
-  ignoreInstance = null
-}
-
-export const resetIncludeInstance = () => {
-  includeInstance = null
 }

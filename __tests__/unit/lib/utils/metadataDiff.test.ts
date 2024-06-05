@@ -22,10 +22,6 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
 })
 const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
 
-const workFlowAttributes = new Map([
-  ['alerts', { xmlName: 'WorkflowAlert', key: 'fullName' }],
-])
-
 const xmlHeader = { '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' } }
 
 const alert = {
@@ -113,11 +109,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
     work = getWork()
     work.config.from = 'from'
     work.config.to = 'to'
-    metadataDiff = new MetadataDiff(
-      work.config,
-      globalMetadata,
-      workFlowAttributes
-    )
+    metadataDiff = new MetadataDiff(work.config, globalMetadata)
   })
 
   describe(`compare with ${JSON.stringify(header)} header`, () => {

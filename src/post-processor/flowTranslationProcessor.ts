@@ -19,7 +19,7 @@ import {
   parseXmlFileToJson,
   xml2Json,
 } from '../utils/fxpHelper'
-import { IgnoreHelper, buildIgnoreHelper } from '../utils/ignoreHelper'
+import { IgnoreHelper } from '../utils/ignoreHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 
 import BaseProcessor from './baseProcessor'
@@ -72,14 +72,14 @@ export default class FlowTranslationProcessor extends BaseProcessor {
 
   protected async _canParse(translationPath: string) {
     if (!this.ignoreHelper) {
-      this.ignoreHelper = await buildIgnoreHelper(this.config)
+      this.ignoreHelper = await IgnoreHelper.getIgnoreInstance(this.config)
       this.isOutputEqualsToRepo = isSamePath(
         this.config.output,
         this.config.repo
       )
     }
     return (
-      !this.ignoreHelper.globalIgnore.ignores(translationPath) &&
+      !this.ignoreHelper!.keep(translationPath) &&
       (this.isOutputEqualsToRepo ||
         !isSubDir(this.config.output, translationPath))
     )

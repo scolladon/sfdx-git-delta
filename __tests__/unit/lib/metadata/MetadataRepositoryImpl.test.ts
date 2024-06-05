@@ -8,7 +8,7 @@ import type { Metadata } from '../../../../src/types/metadata'
 describe('MetadataRepositoryImpl', () => {
   let sut: MetadataRepository
   beforeEach(() => {
-    sut = new MetadataRepositoryImpl([
+    sut = MetadataRepositoryImpl.getInstance([
       {
         directoryName: 'aura',
         inFolder: false,
@@ -133,6 +133,9 @@ describe('MetadataRepositoryImpl', () => {
         xmlName: 'ExperienceBundle',
       },
     ])
+  })
+  afterEach(() => {
+    MetadataRepositoryImpl.resetForTest()
   })
   describe('has', () => {
     describe('when matching on folder', () => {
@@ -424,6 +427,9 @@ describe('MetadataRepositoryImpl', () => {
   })
 
   describe('values', () => {
+    beforeEach(() => {
+      MetadataRepositoryImpl.resetForTest()
+    })
     it('returns the array of Metadata', () => {
       // Arrange
       const metadata = [
@@ -440,13 +446,120 @@ describe('MetadataRepositoryImpl', () => {
           xmlName: 'B',
         },
       ]
-      sut = new MetadataRepositoryImpl(metadata)
+      sut = MetadataRepositoryImpl.getInstance(metadata)
 
       // Act
       const result = sut.values()
 
       // Assert
       expect(result).toBe(metadata)
+    })
+  })
+
+  describe('getInFileAttributes', () => {
+    beforeEach(() => {
+      MetadataRepositoryImpl.resetForTest()
+    })
+    it('returns only inFiles attributes', async () => {
+      // Arrange
+      const sut = MetadataRepositoryImpl.getInstance([
+        {
+          directoryName: 'waveTemplates',
+          inFolder: true,
+          metaFile: false,
+          xmlName: 'WaveTemplateBundle',
+        },
+        {
+          directoryName: 'workflows.alerts',
+          inFolder: false,
+          metaFile: false,
+          xmlName: 'WorkflowAlert',
+          xmlTag: 'alerts',
+          key: 'fullName',
+        },
+        {
+          directoryName: 'excluded',
+          inFolder: false,
+          metaFile: false,
+          xmlName: 'Excluded',
+          xmlTag: 'excluded',
+          key: 'other',
+          excluded: true,
+        },
+      ])
+
+      // Act
+      const inFileAttributes = sut.getInFileAttributes()
+
+      // Assert
+      expect(inFileAttributes.has('waveTemplates')).toBe(false)
+      expect(inFileAttributes.has('excluded')).toBe(true)
+      expect(inFileAttributes.has('alerts')).toBe(true)
+      expect(inFileAttributes.get('alerts')).toEqual({
+        xmlName: 'WorkflowAlert',
+        key: 'fullName',
+        excluded: false,
+      })
+      expect(inFileAttributes.get('excluded')).toEqual({
+        xmlName: 'Excluded',
+        key: 'other',
+        excluded: true,
+      })
+
+      // Act
+      const otherInFileAttributes = sut.getInFileAttributes()
+
+      // Assert
+      expect(otherInFileAttributes).toBe(inFileAttributes)
+    })
+  })
+
+  describe('getSharedFolderMetadata', () => {
+    beforeEach(() => {
+      MetadataRepositoryImpl.resetForTest()
+    })
+    it('returns shared folder metadata', async () => {
+      // Arrange
+      const sut = MetadataRepositoryImpl.getInstance([
+        {
+          directoryName: 'waveTemplates',
+          inFolder: true,
+          metaFile: false,
+          xmlName: 'WaveTemplateBundle',
+        } as Metadata,
+        {
+          directoryName: 'discovery',
+          inFolder: false,
+          metaFile: true,
+          content: [
+            {
+              suffix: 'model',
+              xmlName: 'DiscoveryAIModel',
+            },
+            {
+              suffix: 'goal',
+              xmlName: 'DiscoveryGoal',
+            },
+          ],
+        } as Metadata,
+      ])
+
+      // Act
+      const sharedFolderMetadata: Map<string, string> =
+        sut.getSharedFolderMetadata()
+
+      // Assert
+      expect(sharedFolderMetadata.has('discovery')).toBe(false)
+      expect(sharedFolderMetadata.has('goal')).toBe(true)
+      expect(sharedFolderMetadata.has('model')).toBe(true)
+      expect(sharedFolderMetadata.get('goal')).toEqual('DiscoveryGoal')
+      expect(sharedFolderMetadata.get('model')).toEqual('DiscoveryAIModel')
+
+      // Act
+      const otherSharedFolderMetadata = sut.getSharedFolderMetadata()
+
+      // Assert
+      expect(otherSharedFolderMetadata).toBe(sharedFolderMetadata)
     })
   })
 })

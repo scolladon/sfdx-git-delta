@@ -168,11 +168,13 @@ export default class MetadataDiff {
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   protected toContent: any
   protected add!: Manifest
+  protected readonly attributes: Map<string, SharedFileMetadata>
   constructor(
     protected readonly config: Config,
-    protected readonly metadata: MetadataRepository,
-    protected readonly attributes: Map<string, SharedFileMetadata>
-  ) {}
+    protected readonly metadata: MetadataRepository
+  ) {
+    this.attributes = this.metadata.getInFileAttributes()
+  }
 
   public async compare(path: string) {
     this.toContent = await parseXmlFileToJson(

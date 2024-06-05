@@ -13,6 +13,7 @@ import type { Work } from '../../../../src/types/work'
 import { readDir, writeFile } from '../../../../src/utils/fsHelper'
 import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
+import { IgnoreHelper } from '../../../../src/utils/ignoreHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('fs-extra')
@@ -27,14 +28,11 @@ const mockedReadFile = jest.mocked(readFile)
 const mockTreatPathSep = jest.mocked(treatPathSep)
 mockTreatPathSep.mockImplementation(data => data)
 
-const mockIgnores = jest.fn()
-jest.mock('../../../../src/utils/ignoreHelper', () => ({
-  buildIgnoreHelper: jest.fn(() => ({
-    globalIgnore: {
-      ignores: mockIgnores,
-    },
-  })),
-}))
+const mockKeep = jest.fn()
+jest.spyOn(IgnoreHelper, 'getIgnoreInstance').mockResolvedValue({
+  keep: mockKeep,
+} as never)
+
 jest.mock('../../../../src/utils/fxpHelper', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const originalModule: any = jest.requireActual(
@@ -71,7 +69,7 @@ describe('FlowTranslationProcessor', () => {
     (translationPath, outputPath) => {
       let sut: FlowTranslationProcessor
       beforeEach(() => {
-        mockIgnores.mockReturnValue(false)
+        mockKeep.mockReturnValue(false)
         mockedIsSubDir.mockImplementation(() => false)
         work = getWork()
         work.config.repo = './'
@@ -317,7 +315,7 @@ describe('FlowTranslationProcessor', () => {
           beforeEach(() => {
             // Arrange
             work.config.ignore = '.forceignore'
-            mockIgnores.mockReturnValue(true)
+            mockKeep.mockReturnValue(true)
           })
           it('should not add translation file', async () => {
             // Act
@@ -342,7 +340,7 @@ describe('FlowTranslationProcessor', () => {
               [FLOW_XML_NAME, new Set([flowFullName])],
             ])
             work.config.ignore = '.forceignore'
-            mockIgnores.mockReturnValue(false)
+            mockKeep.mockReturnValue(false)
           })
           it('should add translation file', async () => {
             // Act

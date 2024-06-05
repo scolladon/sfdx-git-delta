@@ -8,6 +8,7 @@ import {
 } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import type { Config } from '../../../../src/types/config'
+import { IgnoreHelper } from '../../../../src/utils/ignoreHelper'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
 import { getGlobalMetadata } from '../../../__utils__/globalTestHelper'
 
@@ -19,11 +20,9 @@ jest.mock('../../../../src/adapter/GitAdapter', () => ({
 }))
 
 const mockKeep = jest.fn()
-jest.mock('../../../../src/utils/ignoreHelper', () => ({
-  buildIgnoreHelper: jest.fn(() => ({
-    keep: mockKeep,
-  })),
-}))
+jest.spyOn(IgnoreHelper, 'getIgnoreInstance').mockResolvedValue({
+  keep: mockKeep,
+} as never)
 mockKeep.mockReturnValue(true)
 
 const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
