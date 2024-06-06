@@ -16,7 +16,7 @@ import {
 import type { Config } from '../types/config'
 import type { FileGitRef } from '../types/git'
 import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
-import { dirExists, fileExists, treatPathSep } from '../utils/fsUtils'
+import { dirExists, fileExists, isSubDir, treatPathSep } from '../utils/fsUtils'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
@@ -293,7 +293,7 @@ const pathDoesNotStartsWith = (root: string) => {
 
   return (path: string) =>
     gitFormattedRoot !== SOURCE_DEFAULT_VALUE &&
-    !path.startsWith(gitFormattedRoot)
+    !isSubDir(gitFormattedRoot, path)
 }
 
 const evaluateShouldSkip = (base: string) => {
