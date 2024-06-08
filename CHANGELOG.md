@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.40.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.40.0...v5.40.1) (2024-06-08)
+
+
+### Bug Fixes
+
+* sub directory detection when walking vcs content ([#880](https://github.com/scolladon/sfdx-git-delta/issues/880)) ([788478d](https://github.com/scolladon/sfdx-git-delta/commit/788478d1caf0cb68c58f7693238a0ef962a17058))
+
 ## [5.40.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.39.2...v5.40.0) (2024-05-16)
 
 
