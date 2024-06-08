@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715851198281,
+  "lastUpdate": 1717872568806,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2075,6 +2075,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.46,
             "range": "±2.97%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "788478d1caf0cb68c58f7693238a0ef962a17058",
+          "message": "fix: sub directory detection when walking vcs content (#880)\n\n* fix: subDir detection when walking the repo content\r\n\r\n* build: upgrade dependencies",
+          "timestamp": "2024-06-08T20:43:43+02:00",
+          "tree_id": "fb633ca9c24f29f71db3bcb3b1d41f4ceb8dee4c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/788478d1caf0cb68c58f7693238a0ef962a17058"
+        },
+        "date": 1717872568245,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.45,
+            "range": "±0.45%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
