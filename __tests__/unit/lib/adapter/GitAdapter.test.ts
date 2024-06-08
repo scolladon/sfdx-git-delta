@@ -667,6 +667,29 @@ describe('GitAdapter', () => {
     })
 
     describe('when filepath should be treated', () => {
+      describe(`when "config.source" is '.'`, () => {
+        it('returns the normalized path', async () => {
+          // Arrange
+          const firstEntry = {
+            type: jest.fn(() => Promise.resolve('blob')),
+            oid: jest.fn(() => undefined),
+          } as unknown as WalkerEntry
+          const secondEntry = {
+            type: jest.fn(() => Promise.resolve('blob')),
+            oid: jest.fn(() => 10),
+          } as unknown as WalkerEntry
+
+          // Act
+          const result = await diffLineWalker({
+            ...config,
+            source: '.',
+          })('force-app/test.file', [firstEntry, secondEntry])
+
+          // Assert
+          expect(result).toBe('A\tforce-app/test.file')
+        })
+      })
+
       describe(`when filepath starts with "config.source"`, () => {
         it('returns the normalized path', async () => {
           // Arrange
