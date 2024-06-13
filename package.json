@@ -28,6 +28,7 @@
     "@ls-lint/ls-lint": "^2.2.3",
     "@salesforce/command": "^5.3.9",
     "@salesforce/core": "^7.4.0",
+    "@salesforce/source-deploy-retrieve": "^11.0.0",
     "async": "^3.2.5",
     "fast-xml-parser": "^4.4.0",
     "fs-extra": "^11.2.0",
