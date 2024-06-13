@@ -20,7 +20,6 @@ export default class SharedFolderHandler extends StandardHandler {
     metadata: MetadataRepository
   ) {
     super(line, metadataDef, work, metadata)
-    this.suffixRegex = new RegExp(`\\.${this.ext}$`)
     this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
   }
 

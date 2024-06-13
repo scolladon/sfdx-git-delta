@@ -2,7 +2,7 @@
 import { join, parse } from 'path'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants'
-import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
+import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import { Metadata } from '../types/metadata'
 import type { Work } from '../types/work'
@@ -48,13 +48,13 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected override _getParsedPath() {
-    return parse(
-      this.splittedLine[
-        this.splittedLine.indexOf(this.metadataDef.directoryName) + 1
-      ]
-        .replace(META_REGEX, '')
-        .replace(this.suffixRegex, '')
-    )
+    const base =
+      !this.metadataDef.excluded && this.ext === this.metadataDef.suffix
+        ? this.splittedLine.at(-1)!
+        : this.splittedLine[
+            this.splittedLine.indexOf(this.metadataDef.directoryName) + 1
+          ]
+    return parse(base.replace(META_REGEX, ''))
   }
 
   protected override _isProcessable() {

@@ -103,13 +103,12 @@ export default class StandardHandler {
         )
         .join(PATH_SEP)
         .replace(META_REGEX, '')
-        .replace(this.suffixRegex, '')
     )
   }
 
   protected _getElementName() {
     const parsedPath = this._getParsedPath()
-    return parsedPath.base
+    return parsedPath.name
   }
 
   protected _fillPackage(store: Manifest) {

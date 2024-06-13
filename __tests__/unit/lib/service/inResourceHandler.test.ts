@@ -188,6 +188,34 @@ describe('InResourceHandler', () => {
         })
       })
     })
+
+    describe('when outside its folder', () => {
+      it('should match via the extension', async () => {
+        // Arrange
+        const metadataElement = `MarketingUser`
+        const path = `force-app/main/default/wrongFolder/${metadataElement}.permissionset-meta.xml`
+        const line = `A  ${path}`
+
+        const sut = new InResourceHandler(
+          line,
+          permissionSetType,
+          work,
+          globalMetadata
+        )
+        mockedReadDir.mockResolvedValueOnce([])
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(
+          Array.from(work.diffs.package.get(permissionSetType.xmlName)!)
+        ).toEqual([metadataElement])
+        expect(copyFiles).toBeCalledTimes(3)
+        expect(copyFiles).toHaveBeenCalledWith(work.config, path)
+        expect(copyFiles).toHaveBeenCalledWith(work.config, path)
+      })
+    })
   })
 
   describe('When entity is deleted', () => {
