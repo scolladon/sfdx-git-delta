@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.40.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.40.1...v5.40.2) (2024-06-13)
+
+
+### Bug Fixes
+
+* allow to detect resource metadata kind by extension ([#882](https://github.com/scolladon/sfdx-git-delta/issues/882)) ([61524c6](https://github.com/scolladon/sfdx-git-delta/commit/61524c61f0a5311625edef91817bdce92945a256))
+
 ## [5.40.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.40.0...v5.40.1) (2024-06-08)
 
 
