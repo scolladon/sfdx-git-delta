@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1717872568806,
+  "lastUpdate": 1718278574017,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2106,6 +2106,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.45,
             "range": "±0.45%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "61524c61f0a5311625edef91817bdce92945a256",
+          "message": "fix: allow to detect resource metadata kind by extension (#882)",
+          "timestamp": "2024-06-13T13:30:38+02:00",
+          "tree_id": "502a5321845f1d778c2d16f857663d4e8b103454",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/61524c61f0a5311625edef91817bdce92945a256"
+        },
+        "date": 1718278573074,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.44,
+            "range": "±1.05%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
