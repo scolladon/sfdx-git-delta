@@ -2,7 +2,7 @@
   "name": "sfdx-git-delta",
   "version": "5.40.2",
   "description": "Generate the sfdx content in source format and destructive change from two git commits",
-  "keyword": [
+  "keywords": [
     "salesforce",
     "package",
     "git",
