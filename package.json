@@ -25,6 +25,7 @@
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
+    "@ls-lint/ls-lint": "^2.2.3",
     "@salesforce/command": "^5.3.9",
     "@salesforce/core": "^7.4.0",
     "async": "^3.2.5",
@@ -44,13 +45,15 @@
   "scripts": {
     "build": "wireit",
     "clean": "wireit",
+    "clean:yarn": "wireit",
     "dependencies:reinstall": "yarn install",
     "dependencies:upgrade": "shx rm -rf yarn.lock ; shx touch yarn.lock ; yarn-upgrade-all ; yarn-audit-fix",
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint": "wireit",
     "lint:dependencies": "wireit",
+    "lint:fs": "wireit",
     "test": "wireit",
-    "test:build": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
+    "test:build": "wireit",
     "test:mutation": "wireit",
     "test:nut": "wireit",
     "test:perf": "wireit",
@@ -59,7 +62,7 @@
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "postpack": "shx rm -f oclif.manifest.json && prettier --write README.md",
     "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "wireit": {
     "build": {
@@ -81,6 +84,13 @@
         "stdout*.txt",
         ".stryker-tmp/*",
         "perf-result.txt"
+      ]
+    },
+    "clean:yarn": {
+      "command": "shx rm -rf .yarn/cache node_modules",
+      "files": [
+        ".yarn/cache/*",
+        "node_modules/*"
       ]
     },
     "compile": {
@@ -106,7 +116,10 @@
         "**/.eslint*",
         "**/tsconfig.json"
       ],
-      "output": []
+      "output": [],
+      "dependencies": [
+        "lint:fs"
+      ]
     },
     "lint:dependencies": {
       "command": "knip",
@@ -122,10 +135,27 @@
         "lint"
       ]
     },
+    "lint:fs": {
+      "command": "ls-lint",
+      "files": [
+        "src/**",
+        "__tests__/**/*.ts",
+        "messages/**",
+        "**/.ls-lint.yml"
+      ],
+      "output": []
+    },
     "test": {
       "dependencies": [
         "test:unit",
         "test:nut"
+      ]
+    },
+    "test:build": {
+      "command": "yarn && yarn pack && yarn test",
+      "dependencies": [
+        "clean",
+        "clean:yarn"
       ]
     },
     "test:perf": {

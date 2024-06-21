@@ -1274,6 +1274,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ls-lint/ls-lint@npm:^2.2.3":
+  version: 2.2.3
+  resolution: "@ls-lint/ls-lint@npm:2.2.3"
+  bin:
+    ls-lint: bin/cli.js
+  checksum: 8cddee09e78a9bf4499ffac7eaaaaab6dc7d1f7cce1279f75cccb80b21c11f904343e233cbe14b4401132ffee1db08c124d44d5cb6999d01f28ca6e36a8b24e3
+  conditions: (os=darwin | os=linux | os=win32) & (cpu=x64 | cpu=arm64 | cpu=s390x)
+  languageName: node
+  linkType: hard
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -9909,6 +9919,7 @@ __metadata:
     "@commitlint/cli": ^19.3.0
     "@commitlint/config-conventional": ^19.2.2
     "@jest/globals": ^29.7.0
+    "@ls-lint/ls-lint": ^2.2.3
     "@oclif/dev-cli": ^1.26.10
     "@salesforce/cli-plugins-testkit": ^5.3.11
     "@salesforce/command": ^5.3.9
