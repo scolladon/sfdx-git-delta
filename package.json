@@ -45,6 +45,7 @@
   "scripts": {
     "build": "wireit",
     "clean": "wireit",
+    "clean:yarn": "wireit",
     "dependencies:reinstall": "yarn install",
     "dependencies:upgrade": "shx rm -rf yarn.lock ; shx touch yarn.lock ; yarn-upgrade-all ; yarn-audit-fix",
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
@@ -52,7 +53,7 @@
     "lint:dependencies": "wireit",
     "lint:fs": "wireit",
     "test": "wireit",
-    "test:build": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
+    "test:build": "wireit",
     "test:mutation": "wireit",
     "test:nut": "wireit",
     "test:perf": "wireit",
@@ -83,6 +84,13 @@
         "stdout*.txt",
         ".stryker-tmp/*",
         "perf-result.txt"
+      ]
+    },
+    "clean:yarn": {
+      "command": "shx rm -rf .yarn/cache node_modules",
+      "files": [
+        ".yarn/cache/*",
+        "node_modules/*"
       ]
     },
     "compile": {
@@ -141,6 +149,13 @@
       "dependencies": [
         "test:unit",
         "test:nut"
+      ]
+    },
+    "test:build": {
+      "command": "yarn && yarn pack && yarn test",
+      "dependencies": [
+        "clean",
+        "clean:yarn"
       ]
     },
     "test:perf": {
