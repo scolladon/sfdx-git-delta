@@ -25,6 +25,7 @@
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
+    "@ls-lint/ls-lint": "^2.2.3",
     "@salesforce/command": "^5.3.9",
     "@salesforce/core": "^7.4.0",
     "async": "^3.2.5",
@@ -49,6 +50,7 @@
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint": "wireit",
     "lint:dependencies": "wireit",
+    "lint:fs": "wireit",
     "test": "wireit",
     "test:build": "yarn clean ; shx rm -rf .yarn/cache node_modules ; yarn && yarn pack && yarn test",
     "test:mutation": "wireit",
@@ -106,7 +108,10 @@
         "**/.eslint*",
         "**/tsconfig.json"
       ],
-      "output": []
+      "output": [],
+      "dependencies": [
+        "lint:fs"
+      ]
     },
     "lint:dependencies": {
       "command": "knip",
@@ -121,6 +126,16 @@
       "dependencies": [
         "lint"
       ]
+    },
+    "lint:fs": {
+      "command": "ls-lint",
+      "files": [
+        "src/**",
+        "__tests__/**/*.ts",
+        "messages/**",
+        "**/.ls-lint.yml"
+      ],
+      "output": []
     },
     "test": {
       "dependencies": [

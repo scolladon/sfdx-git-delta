@@ -1,0 +1,15 @@
+ls:
+  .md: lowercase | SCREAMING_SNAKE_CASE
+  .ts: camelCase | PascalCase
+  .test.ts: camelCase | PascalCase
+  .nut.ts: camelCase | PascalCase
+  .config.ts: camelCase | PascalCase
+  src:
+    .dir: kebab-case
+
+ignore: 
+  - .git 
+  - node_modules
+  - e2e
+  - lib
+  - .wireit
