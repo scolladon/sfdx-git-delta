@@ -4,12 +4,18 @@ ls:
   .test.ts: camelCase | PascalCase
   .nut.ts: camelCase | PascalCase
   .config.ts: camelCase | PascalCase
-  src:
-    .dir: kebab-case
+  .dir: kebab-case | regex:__[a-z]+__
 
 ignore: 
   - .git 
-  - node_modules
+  - .github
+  - .husky
+  - .nyc_output
+  - .vscode
+  - .wireit
+  - .yarn
   - e2e
   - lib
-  - .wireit
+  - megalinter-reports
+  - node_modules
+  - reports
