@@ -3,11 +3,13 @@ import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Work } from '../types/work'
 
 import BaseProcessor from './baseProcessor'
+import DeactivateFlowProcessor from './deactivateFlowProcessor'
 import FlowTranslationProcessor from './flowTranslationProcessor'
 import IncludeProcessor from './includeProcessor'
 import PackageGenerator from './packageGenerator'
 
 const processors: Array<typeof BaseProcessor> = [
+  DeactivateFlowProcessor,
   FlowTranslationProcessor,
   IncludeProcessor,
 ]

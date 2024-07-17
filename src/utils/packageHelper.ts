@@ -53,3 +53,18 @@ export const fillPackageWithParameter = ({
   }
   store.get(type)?.add(member)
 }
+
+export const removeComponentFromPackage = ({
+  store,
+  type,
+  member,
+}: {
+  store: Manifest
+  type: string
+  member: string
+}) => {
+  if (!store.has(type)) {
+    store.set(type, new Set())
+  }
+  store.get(type)?.delete(member)
+}
