@@ -49,6 +49,7 @@
   - [Generate a comma-separated list of the added and modified Apex classes](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
+  - [Handle flow deletion](#handle-flow-deletion)
 - [Changelog](#changelog)
 - [Built With](#built-with)
 - [Versioning](#versioning)
@@ -528,6 +529,17 @@ console.log(JSON.stringify(work))
  * }
  */
 ```
+
+### Handle flow deletion
+
+Deleting a flow cannot be done by adding the flow in the `destructiveChanges.xml` and deploy.
+A [known issue](https://issues.salesforce.com/issue/a028c00000gAwixAAC/deletion-of-flow-metadata-through-destructive-changes-not-supported) exist to cover this feature.
+
+We know 2 ways to delete flow (documented [here](https://github.com/scolladon/sfdx-git-delta/issues/588#issuecomment-1534318729))
+- with `FlowDefinition` metadata, but is obsolete since v44 (and yet still working)
+- with flow status and purge of deactivated versions
+
+Please choose yours (and maybe you know another one) but do not assume deleting the flow definition from the repo, commit this change and run sgd will allow you to delete this flow.
 
 ## Changelog
 
