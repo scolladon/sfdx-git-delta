@@ -5,7 +5,7 @@ const message = {
   errorPathIsNotFile: `'%s' file does not exist`,
   errorPathIsNotGit: `'%s' is not a git repository`,
   warningApiVersionNotSupported: `API version not found or not supported, using '%s' instead`,
-  warningFlowDeleted: `Attempt to delete the flow '%s' via destructiveChanges.xml (cf https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)`,
+  warningFlowDeleted: `Attempt to delete the flow '%s' via destructiveChanges.xml (see https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)`,
 }
 
 export default message
