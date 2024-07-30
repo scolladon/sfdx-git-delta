@@ -3,33 +3,19 @@ import { join, parse } from 'path'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants'
 import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants'
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import { Metadata } from '../types/metadata'
-import type { Work } from '../types/work'
-import { pathExists } from '../utils/fsHelper'
+import { pathExists, readDir } from '../utils/fsHelper'
 
 import StandardHandler from './standardHandler'
 
 export default class ResourceHandler extends StandardHandler {
-  protected readonly metadataName: string
-
-  constructor(
-    line: string,
-    metadataDef: Metadata,
-    work: Work,
-    metadata: MetadataRepository
-  ) {
-    super(line, metadataDef, work, metadata)
-    this.metadataName = this._getMetadataName()
-  }
+  protected metadataName: string | undefined
 
   public override async handleAddition() {
+    this.metadataName = this._getMetadataName()
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
-    if (this.line !== this.metadataName && this._parentFolderIsNotTheType()) {
-      await this._copy(this.metadataName)
-    }
+    await this._copyResourceFiles()
   }
 
   public override async handleDeletion() {
@@ -39,6 +25,23 @@ export default class ResourceHandler extends StandardHandler {
       await this.handleModification()
     } else {
       await super.handleDeletion()
+    }
+  }
+
+  protected async _copyResourceFiles() {
+    const staticResourcePath = this.metadataName!.substring(
+      0,
+      this.metadataName!.lastIndexOf(PATH_SEP)
+    )
+    const allStaticResources = await readDir(
+      staticResourcePath,
+      this.work.config
+    )
+    const resourceFiles = allStaticResources.filter((file: string) =>
+      file.startsWith(this.metadataName!)
+    )
+    for (const resourceFile of resourceFiles) {
+      await this._copy(resourceFile)
     }
   }
 
