@@ -80,30 +80,20 @@ describe('InResourceHandler', () => {
         work.config.generateDelta = true
       })
       describe('when matching resource exist', () => {
-        beforeEach(() => {
-          mockedReadDir.mockResolvedValue([
-            'other.resource-meta.xml',
-            'other/',
-            'image.resource-meta.xml',
-            'my_experience_bundle.site-meta.xml',
-            'my_experience_bundle/',
-            'other_experience_bundle.resource-meta.xml',
-          ])
-        })
         it.each([
           ['imageFile.png', staticResourceType, 'imageFile', 2],
-          ['imageFolder/logo.png', staticResourceType, 'imageFolder', 3],
+          ['imageFolder/logo.png', staticResourceType, 'imageFolder', 2],
           [
             'my_experience_bundle/config/myexperiencebundle.json',
             experienceBundleType,
             'my_experience_bundle',
-            3,
+            5,
           ],
           [
             'CustomerSupport/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
             permissionSetType,
             'CustomerSupport',
-            3,
+            2,
           ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file %s',
@@ -111,6 +101,15 @@ describe('InResourceHandler', () => {
             // Arrange
             const base = 'force-app/main/default/'
             const line = `A       ${base}${type.directoryName}/${path}`
+            mockedReadDir.mockResolvedValue([
+              `${base}${type.directoryName}/other.resource-meta.xml`,
+              `${base}${type.directoryName}/other/`,
+              `${base}${type.directoryName}/image.resource-meta.xml`,
+              `${base}${type.directoryName}/my_experience_bundle.site-meta.xml`,
+              `${base}${type.directoryName}/my_experience_bundle/`,
+              `${base}${type.directoryName}/my_experience_bundle/config/myexperiencebundle.json`,
+              `${base}${type.directoryName}/other_experience_bundle.resource-meta.xml`,
+            ])
             const sut = new InResourceHandler(line, type, work, globalMetadata)
 
             // Act
@@ -153,7 +152,7 @@ describe('InResourceHandler', () => {
           expect(work.diffs.package.get(type.xmlName)).toEqual(
             new Set([entity])
           )
-          expect(copyFiles).toBeCalledTimes(3)
+          expect(copyFiles).toBeCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
             `${base}${type.directoryName}/${path}`
@@ -211,8 +210,7 @@ describe('InResourceHandler', () => {
         expect(
           Array.from(work.diffs.package.get(permissionSetType.xmlName)!)
         ).toEqual([metadataElement])
-        expect(copyFiles).toBeCalledTimes(3)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, path)
+        expect(copyFiles).toBeCalledTimes(2)
         expect(copyFiles).toHaveBeenCalledWith(work.config, path)
       })
     })
