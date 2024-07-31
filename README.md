@@ -539,7 +539,7 @@ Please do not assume committing a flow metadata deletion to the repo, and then r
 We suggest to deal with flow deletion in one go by following those steps (it requires the `FlowDefinition` metadata which is not available in API `v44+`)
 1. Set the `FlowDefinition` `activeVersionNumber` to `0`
 2. List the `FlowDefinition` in a `package.xml`
-3. List all the existing version of the `Flow` in a `destructiveChanges.xml` (can be fetch via SOQL using this query : `SELECT FlowDefinitionView.ApiName, VersionNumber, Status FROM FlowVersionView WHERE FlowDefinitionView.ApiName='<FLOW_API_NAME>'`)
+3. List all the existing version of the `Flow` in a `destructiveChangesPost.xml` (can be fetch via SOQL using this query : `SELECT FlowDefinitionView.ApiName, VersionNumber, Status FROM FlowVersionView WHERE FlowDefinitionView.ApiName='<FLOW_API_NAME>'`)
 4. Deploy this `FlowDefinition` with a `package.xml` and post delete all the `Flow` versions with a post `destructiveChangesPost.xml` 
 
 Example to delete the Flow `Set_Account_Description` :
