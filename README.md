@@ -49,6 +49,7 @@
   - [Generate a comma-separated list of the added and modified Apex classes](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
+  - [Handle flow deletion](#handle-flow-deletion)
 - [Changelog](#changelog)
 - [Built With](#built-with)
 - [Versioning](#versioning)
@@ -527,6 +528,64 @@ console.log(JSON.stringify(work))
  *   warnings: []
  * }
  */
+```
+
+### Handle flow deletion
+
+Deleting a flow cannot be done by adding the flow in the `destructiveChanges.xml` and deploy.
+A [known issue](https://issues.salesforce.com/issue/a028c00000gAwixAAC/deletion-of-flow-metadata-through-destructive-changes-not-supported) exist to cover this feature.
+Please do not assume committing a flow metadata deletion to the repo, and then run sgd will allow you to delete a flow.
+
+We suggest to deal with flow deletion in one go by following those steps (it requires the `FlowDefinition` metadata which is not available in API `v44+`)
+1. Set the `FlowDefinition` `activeVersionNumber` to `0`
+2. List the `FlowDefinition` in a `package.xml`
+3. List all the existing version of the `Flow` in a `destructiveChangesPost.xml` (can be fetch via SOQL using this query : `SELECT FlowDefinitionView.ApiName, VersionNumber, Status FROM FlowVersionView WHERE FlowDefinitionView.ApiName='<FLOW_API_NAME>'`)
+4. Deploy this `FlowDefinition` with a `package.xml` and post delete all the `Flow` versions with a post `destructiveChangesPost.xml` 
+
+Example to delete the Flow `Set_Account_Description` :
+1. Set the `FlowDefinition` `activeVersionNumber` to `0`
+```xml
+<!--Set_Account_Description.flowDefinition-meta.xml-->
+<?xml version="1.0" encoding="UTF-8"?>
+<FlowDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionNumber>0</activeVersionNumber>
+</FlowDefinition>
+```
+
+2. List the `FlowDefinition` in a `package.xml`
+
+```xml
+<!--package.xml-->
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Set_Account_Description</members>
+        <name>FlowDefinition</name>
+    </types>
+    <version>61.0</version>
+</Package>
+```
+
+3. List all the existing version of the `Flow` in a `destructiveChangesPost.xml`
+
+```xml
+<!--destructiveChangesPost.xml-->
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Set_Account_Description-1</members>
+        <members>Set_Account_Description-2</members>
+        <members>Set_Account_Description-...</members>
+        <members>Set_Account_Description-n</members>
+        <name>Flow</name>
+    </types>
+</Package>
+```
+
+4. Deploy this `package.xml`, `destructiveChangesPost.xml` and `FlowDefinition`
+```sh
+# add `--ignore-warnings` parameter if you listed a deleted Flow version in the destructiveChangesPost.xml
+sf project deploy start -x package.xml --post-destructive-changes destructiveChangesPost.xml
 ```
 
 ## Changelog

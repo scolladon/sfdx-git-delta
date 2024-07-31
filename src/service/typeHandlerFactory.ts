@@ -8,6 +8,7 @@ import CustomFieldHandler from './customFieldHandler'
 import CustomLabel from './customLabelHandler'
 import CustomObject from './customObjectHandler'
 import Decomposed from './decomposedHandler'
+import FlowHandler from './flowHandler'
 import InBundle from './inBundleHandler'
 import InFile from './inFileHandler'
 import InFolder from './inFolderHandler'
@@ -35,6 +36,7 @@ const handlerMap = {
   EscalationRules: InFile,
   ExperienceBundle: InResource,
   FieldSet: Decomposed,
+  Flow: FlowHandler,
   GlobalValueSetTranslation: InFile,
   Index: Decomposed,
   LightningComponentBundle: Lwc,

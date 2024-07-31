@@ -4,6 +4,7 @@ import { expect, describe, it } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import CustomField from '../../../../src/service/customFieldHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
+import FlowHandler from '../../../../src/service/flowHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
@@ -72,6 +73,14 @@ describe('the type handler factory', () => {
         `Z       force-app/main/default/documents/classes/TestDocument`
       )
     ).toBeInstanceOf(InFolder)
+  })
+
+  it('can handle Flow', () => {
+    expect(
+      typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/flows/MyFlow.flow-meta.xml`
+      )
+    ).toBeInstanceOf(FlowHandler)
   })
 
   it.each([
