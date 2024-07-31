@@ -582,7 +582,7 @@ Example to delete the Flow `Set_Account_Description` :
 </Package>
 ```
 
-4. Deploy this `package.xml`, `destructiveChanges.xml` and `FlowDefinition`
+4. Deploy this `package.xml`, `destructiveChangesPost.xml` and `FlowDefinition`
 ```sh
 # add `--ignore-warnings` parameter if you listed a deleted Flow version in the destructiveChangesPost.xml
 sf project deploy start -x package.xml --post-destructive-changes destructiveChangesPost.xml
