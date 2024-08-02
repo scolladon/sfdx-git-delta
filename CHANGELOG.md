@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.41.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.40.2...v5.41.0) (2024-08-02)
+
+
+### Features
+
+* warn when a flow is deleted ([#894](https://github.com/scolladon/sfdx-git-delta/issues/894)) ([0f186ce](https://github.com/scolladon/sfdx-git-delta/commit/0f186ce130e51e1c3197a0c9158d2b80dcff9f24))
+
+
+### Bug Fixes
+
+* issue copying resource, meta and folder for resource type ([#896](https://github.com/scolladon/sfdx-git-delta/issues/896)) ([10fd87a](https://github.com/scolladon/sfdx-git-delta/commit/10fd87a02eb3caf4b377abfcdefd7625f808dd61))
+
 ## [5.40.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.40.1...v5.40.2) (2024-06-13)
 
 
