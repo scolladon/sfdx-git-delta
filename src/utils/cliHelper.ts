@@ -46,7 +46,7 @@ export default class CLIHelper {
         try {
           const ref: string = await this.gitAdapter.parseRev(shaValue)
           ;(this.config[shaParameter] as string) = ref
-        } catch (error) {
+        } catch {
           errors.push(
             format(messages.errorParameterIsNotGitSHA, shaParameter, shaValue)
           )

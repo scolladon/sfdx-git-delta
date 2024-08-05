@@ -43,7 +43,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   try {
     const gitAdapter = GitAdapter.getInstance(config)
     utf8Data = await gitAdapter.getStringContent(forRef)
-  } catch (error) {
+  } catch {
     /* empty */
   }
   return utf8Data
