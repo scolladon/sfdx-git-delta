@@ -6,8 +6,6 @@ import {
 } from '../../src/metadata/metadataManager'
 import type { Work } from '../../src/types/work'
 
-require('ts-node/register')
-
 export const getGlobalMetadata = async (): Promise<MetadataRepository> => {
   const apiVersion: number = await getLatestSupportedVersion()
   const metadata: MetadataRepository = await getDefinition(apiVersion)
