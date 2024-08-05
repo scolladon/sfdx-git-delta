@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.42.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.41.0...v5.42.0) (2024-08-05)
+
+
+### Features
+
+* add ConversationMessageDefinition metadata support ([#899](https://github.com/scolladon/sfdx-git-delta/issues/899)) ([50188cf](https://github.com/scolladon/sfdx-git-delta/commit/50188cfca81f808491ba56b0e4940d3285d266e9))
+
 ## [5.41.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.40.2...v5.41.0) (2024-08-02)
 
 
