@@ -1,5 +1,12 @@
 [
   {
+  "directoryName": "conversationMessageDefinitions",
+  "inFolder": false,
+  "metaFile": false,
+  "suffix": "conversationMessageDefinition",
+  "xmlName": "ConversationMessageDefinition"
+  },
+  {
     "directoryName": "dw",
     "inFolder": false,
     "metaFile": false,
