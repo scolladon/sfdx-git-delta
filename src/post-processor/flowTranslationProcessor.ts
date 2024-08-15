@@ -7,7 +7,6 @@ import { pathExists } from 'fs-extra'
 import {
   FLOW_XML_NAME,
   META_REGEX,
-  METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants'
@@ -26,7 +25,7 @@ import { fillPackageWithParameter } from '../utils/packageHelper'
 
 import BaseProcessor from './baseProcessor'
 
-const EXTENSION = `.${TRANSLATION_EXTENSION}${METAFILE_SUFFIX}`
+const EXTENSION = `.${TRANSLATION_EXTENSION}`
 
 const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
@@ -60,7 +59,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     const allFiles = await readDir(this.config.source, this.work.config)
     const ignoreHelper = await buildIgnoreHelper(this.config)
     const translationPaths = allFiles.filter((file: string) =>
-      file.endsWith(EXTENSION)
+      file.replace(META_REGEX, '').endsWith(EXTENSION)
     )
 
     for (const translationPath of translationPaths) {
