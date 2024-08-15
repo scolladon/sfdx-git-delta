@@ -48,7 +48,6 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
 })
 
 const FR = 'fr'
-const EN = 'en'
 const flowFullName = 'test-flow'
 
 describe('FlowTranslationProcessor', () => {
@@ -59,12 +58,13 @@ describe('FlowTranslationProcessor', () => {
     metadata = await getGlobalMetadata()
   })
 
-  describe.each([`${FR}.translation${METAFILE_SUFFIX}`])(
+  describe.each([`${FR}.translation${METAFILE_SUFFIX}`, `${FR}.translation`])(
     'process %s',
     translationPath => {
       let sut: FlowTranslationProcessor
       beforeEach(() => {
-        mockIgnores.mockReset()
+        mockIgnores.mockReturnValue(false)
+        mockedIsSubDir.mockImplementation(() => false)
         work = getWork()
         sut = new FlowTranslationProcessor(work, metadata)
         mockedReadDir.mockResolvedValue([translationPath])
@@ -116,7 +116,7 @@ describe('FlowTranslationProcessor', () => {
         describe('when there is a translation file without flow def', () => {
           beforeEach(() => {
             // Arrange
-            mockedParseXmlFileToJson.mockResolvedValueOnce({})
+            mockedParseXmlFileToJson.mockResolvedValue({})
           })
           it('should not add translation file', async () => {
             // Act
@@ -146,7 +146,6 @@ describe('FlowTranslationProcessor', () => {
             await sut.process()
 
             // Assert
-            expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
             expect(mockedReadDir).toHaveBeenCalledTimes(1)
             expect(mockedReadDir).toHaveBeenCalledWith(
               work.config.source,
@@ -154,6 +153,7 @@ describe('FlowTranslationProcessor', () => {
             )
             expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
             expect(writeFile).toHaveBeenCalled()
+            expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
           })
         })
 
@@ -235,8 +235,8 @@ describe('FlowTranslationProcessor', () => {
           beforeEach(() => {
             // Arrange
             mockedReadDir.mockResolvedValue([
-              `${FR}.translation-meta.xml`,
-              `${EN}.translation-meta.xml`,
+              translationPath,
+              `fr_${translationPath}`,
             ])
           })
           describe('when there is no flow matching the translation', () => {
@@ -355,7 +355,7 @@ describe('FlowTranslationProcessor', () => {
             // Arrange
             const out = 'out'
             work.config.output = out
-            mockedParseXmlFileToJson.mockResolvedValueOnce({})
+            mockedParseXmlFileToJson.mockResolvedValue({})
             mockedIsSubDir.mockImplementation(() => true)
           })
           it('should not add translation file', async () => {
