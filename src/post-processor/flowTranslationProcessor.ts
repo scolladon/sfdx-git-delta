@@ -13,14 +13,14 @@ import {
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Work } from '../types/work'
 import { writeFile, readDir } from '../utils/fsHelper'
-import { isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
+import { isSamePath, isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
 import {
   asArray,
   parseXmlFileToJson,
   xml2Json,
   convertJsonToXml,
 } from '../utils/fxpHelper'
-import { buildIgnoreHelper } from '../utils/ignoreHelper'
+import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 
 import BaseProcessor from './baseProcessor'
@@ -40,6 +40,8 @@ const getDefaultTranslation = () => ({
 
 export default class FlowTranslationProcessor extends BaseProcessor {
   protected readonly translations: Map<string, any>
+  protected ignoreHelper: IgnoreHelper | undefined
+  protected isOutputEqualsToRepo: boolean | undefined
 
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
@@ -57,19 +59,30 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     this.translations.clear()
 
     const allFiles = await readDir(this.config.source, this.work.config)
-    const ignoreHelper = await buildIgnoreHelper(this.config)
     const translationPaths = allFiles.filter((file: string) =>
       file.replace(META_REGEX, '').endsWith(EXTENSION)
     )
 
     for (const translationPath of translationPaths) {
-      if (
-        !ignoreHelper.globalIgnore.ignores(translationPath) &&
-        !isSubDir(this.config.output, translationPath)
-      ) {
+      if (await this._canParse(translationPath)) {
         await this._parseTranslationFile(translationPath)
       }
     }
+  }
+
+  protected async _canParse(translationPath: string) {
+    if (!this.ignoreHelper) {
+      this.ignoreHelper = await buildIgnoreHelper(this.config)
+      this.isOutputEqualsToRepo = isSamePath(
+        this.config.output,
+        this.config.repo
+      )
+    }
+    return (
+      !this.ignoreHelper.globalIgnore.ignores(translationPath) &&
+      (this.isOutputEqualsToRepo ||
+        !isSubDir(this.config.output, translationPath))
+    )
   }
 
   protected async _handleFlowTranslation() {
