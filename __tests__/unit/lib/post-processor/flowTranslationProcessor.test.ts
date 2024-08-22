@@ -50,6 +50,9 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
 const FR = 'fr'
 const flowFullName = 'test-flow'
 
+const cardinalProduct = (a: string[], b: string[]): string[][] =>
+  a.reduce((acc, x) => [...acc, ...b.map(y => [x, y])], [] as string[][])
+
 describe('FlowTranslationProcessor', () => {
   let work: Work
   let metadata: MetadataRepository
@@ -58,14 +61,21 @@ describe('FlowTranslationProcessor', () => {
     metadata = await getGlobalMetadata()
   })
 
-  describe.each([`${FR}.translation${METAFILE_SUFFIX}`, `${FR}.translation`])(
-    'process %s',
-    translationPath => {
+  describe.each(
+    cardinalProduct(
+      [`${FR}.translation${METAFILE_SUFFIX}`, `${FR}.translation`],
+      ['.', 'output']
+    )
+  )(
+    'process "%s" translation, with "%s" output',
+    (translationPath, outputPath) => {
       let sut: FlowTranslationProcessor
       beforeEach(() => {
         mockIgnores.mockReturnValue(false)
         mockedIsSubDir.mockImplementation(() => false)
         work = getWork()
+        work.config.repo = './'
+        work.config.output = outputPath
         sut = new FlowTranslationProcessor(work, metadata)
         mockedReadDir.mockResolvedValue([translationPath])
       })
