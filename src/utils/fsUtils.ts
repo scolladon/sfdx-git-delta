@@ -20,6 +20,9 @@ export const isSubDir = (parent: string, dir: string) => {
   return !!rel && !rel.startsWith('..') && !isAbsolute(rel)
 }
 
+export const isSamePath = (pathA: string, pathB: string) =>
+  !relative(pathA, pathB)
+
 export const dirExists = async (dir: string) => {
   try {
     const st = await stat(dir)
