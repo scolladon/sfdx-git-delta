@@ -6,11 +6,13 @@ const config = async (): Promise<KnipConfig> => {
     project: ['src/**/*.ts'],
     ignoreDependencies: [
       '@salesforce/ts-sinon',
+      '@swc/core',
       '@types/jest',
       '@types/mocha',
       'chai',
       'mocha',
       'sinon',
+      'ts-node',
     ],
     ignoreBinaries: ['test:e2e'],
   }
