@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.42.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.42.0...v5.42.1) (2024-08-26)
+
+
+### Bug Fixes
+
+* suffix based translation file detection and output subDir ([#901](https://github.com/scolladon/sfdx-git-delta/issues/901)) ([4723352](https://github.com/scolladon/sfdx-git-delta/commit/4723352894e481fb09310464bd73022a7d9793f9))
+
 ## [5.42.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.41.0...v5.42.0) (2024-08-05)
 
 
