@@ -20,6 +20,9 @@ jobs:
 
       - uses: google/wireit@setup-github-actions-caching/v2
 
+      - name: Lint plugin
+        run: yarn lint
+
       - name: Build plugin
         run: yarn pack
 

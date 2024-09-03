@@ -65,10 +65,18 @@
   },
   "wireit": {
     "build": {
-      "dependencies": [
-        "compile",
-        "lint"
-      ]
+      "command": "tsc -p . --incremental",
+      "files": [
+        "src/**/*.ts",
+        "src/**/*.json",
+        "**/tsconfig.json",
+        "messages/**"
+      ],
+      "output": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
+      "clean": "if-file-deleted"
     },
     "clean": {
       "command": "shx rm -rf lib 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
@@ -91,20 +99,6 @@
         ".yarn/cache/*",
         "node_modules/*"
       ]
-    },
-    "compile": {
-      "command": "tsc -p . --incremental",
-      "files": [
-        "src/**/*.ts",
-        "src/**/*.json",
-        "**/tsconfig.json",
-        "messages/**"
-      ],
-      "output": [
-        "lib/**",
-        "*.tsbuildinfo"
-      ],
-      "clean": "if-file-deleted"
     },
     "lint": {
       "command": "biome check --error-on-warnings src __tests__",
@@ -169,6 +163,7 @@
         "perf-result.txt"
       ],
       "dependencies": [
+        "lint",
         "build"
       ]
     },
@@ -199,6 +194,7 @@
         ".nyc_output/**"
       ],
       "dependencies": [
+        "lint",
         "build"
       ]
     },
