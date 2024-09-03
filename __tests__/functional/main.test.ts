@@ -1,12 +1,12 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
 
 const mockValidateConfig = jest.fn()
 jest.mock('../../src/utils/cliHelper', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual('../../src/utils/cliHelper')
   return jest.fn().mockImplementation(() => {
     return {
@@ -18,7 +18,7 @@ jest.mock('../../src/utils/cliHelper', () => {
 
 const mockGetLines = jest.fn()
 jest.mock('../../src/utils/repoGitDiff', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual('../../src/utils/repoGitDiff')
   return jest.fn().mockImplementation(() => {
     return {
@@ -30,7 +30,7 @@ jest.mock('../../src/utils/repoGitDiff', () => {
 
 const mockProcess = jest.fn()
 jest.mock('../../src/service/diffLineInterpreter', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual(
     '../../src/service/diffLineInterpreter'
   )

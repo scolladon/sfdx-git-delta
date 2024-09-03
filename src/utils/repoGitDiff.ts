@@ -10,9 +10,7 @@ export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
 
   constructor(
-    // eslint-disable-next-line no-unused-vars
     protected readonly config: Config,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
   ) {
     this.gitAdapter = GitAdapter.getInstance(this.config)

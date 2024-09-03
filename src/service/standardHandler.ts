@@ -1,14 +1,14 @@
 'use strict'
-import { join, parse, ParsedPath } from 'path'
+import { ParsedPath, join, parse } from 'path'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants'
 import {
   ADDITION,
   DELETION,
-  MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
+  MODIFICATION,
 } from '../constant/gitConstants'
-import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants'
+import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Config } from '../types/config'
 import type { Metadata } from '../types/metadata'
@@ -31,10 +31,8 @@ export default class StandardHandler {
 
   constructor(
     protected readonly line: string,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadataDef: Metadata,
     protected readonly work: Work,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
   ) {
     this.changeType = line.charAt(0) as string

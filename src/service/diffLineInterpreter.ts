@@ -11,9 +11,7 @@ import TypeHandlerFactory from './typeHandlerFactory'
 
 export default class DiffLineInterpreter {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     protected readonly work: Work,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
   ) {}
 

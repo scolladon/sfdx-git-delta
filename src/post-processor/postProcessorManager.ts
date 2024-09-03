@@ -18,7 +18,6 @@ processors.push(PackageGenerator)
 export default class PostProcessorManager {
   protected readonly postProcessors: BaseProcessor[]
 
-  // eslint-disable-next-line no-unused-vars
   constructor(protected readonly work: Work) {
     this.postProcessors = []
   }

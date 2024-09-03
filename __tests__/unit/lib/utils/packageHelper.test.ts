@@ -1,5 +1,5 @@
 'use strict'
-import { expect, describe, it } from '@jest/globals'
+import { describe, expect, it } from '@jest/globals'
 
 import type { Config } from '../../../../src/types/config'
 import type { Manifest } from '../../../../src/types/work'

@@ -30,7 +30,7 @@ export const asArray = (node: string[] | string) => {
 }
 
 export const xml2Json = (xmlContent: string) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   let jsonContent: any = {}
   if (xmlContent) {
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
@@ -47,7 +47,7 @@ export const parseXmlFileToJson = async (
   return xml2Json(xmlContent)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: Any is expected here
 export const convertJsonToXml = (jsonContent: any) => {
   const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
   return xmlBuilder.build(jsonContent)

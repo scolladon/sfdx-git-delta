@@ -9,7 +9,6 @@ export default class BaseProcessor {
 
   constructor(
     protected readonly work: Work,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
   ) {
     this.config = work.config

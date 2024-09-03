@@ -9,7 +9,6 @@ const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
 
 export default class PackageBuilder {
-  // eslint-disable-next-line no-unused-vars
   constructor(protected readonly config: Config) {}
 
   public buildPackage(strucDiffPerType: Manifest) {

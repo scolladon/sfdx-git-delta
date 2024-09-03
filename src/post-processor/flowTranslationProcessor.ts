@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict'
-import { parse, join } from 'path'
+import { join, parse } from 'path'
 
 import { pathExists } from 'fs-extra'
 
@@ -12,15 +11,15 @@ import {
 } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Work } from '../types/work'
-import { writeFile, readDir } from '../utils/fsHelper'
+import { readDir, writeFile } from '../utils/fsHelper'
 import { isSamePath, isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
 import {
   asArray,
+  convertJsonToXml,
   parseXmlFileToJson,
   xml2Json,
-  convertJsonToXml,
 } from '../utils/fxpHelper'
-import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper'
+import { IgnoreHelper, buildIgnoreHelper } from '../utils/ignoreHelper'
 import { fillPackageWithParameter } from '../utils/packageHelper'
 
 import BaseProcessor from './baseProcessor'
@@ -39,6 +38,7 @@ const getDefaultTranslation = () => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   protected readonly translations: Map<string, any>
   protected ignoreHelper: IgnoreHelper | undefined
   protected isOutputEqualsToRepo: boolean | undefined
@@ -106,16 +106,20 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected _scrapTranslationFile(
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     jsonTranslation: any,
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     actualFlowDefinition: any
   ) {
     const flowDefinitions = asArray(
       jsonTranslation.Translations?.flowDefinitions
     )
     const fullNames = new Set(
+      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
       flowDefinitions.map((flowDef: any) => flowDef?.fullName)
     )
     const strippedActualFlowDefinition = actualFlowDefinition.filter(
+      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
       (flowDef: any) => !fullNames.has(flowDef?.fullName)
     )
 
@@ -145,6 +149,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     flowDefinition,
   }: {
     translationPath: string
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     flowDefinition: any
   }) {
     const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)

@@ -12,7 +12,7 @@ import type { Config } from '../types/config'
 import type { Work } from '../types/work'
 
 import asyncFilter from './asyncFilter'
-import { readFile, dirExists, fileExists, sanitizePath } from './fsUtils'
+import { dirExists, fileExists, readFile, sanitizePath } from './fsUtils'
 
 const isBlank = (str: string) => !str || /^\s*$/.test(str)
 

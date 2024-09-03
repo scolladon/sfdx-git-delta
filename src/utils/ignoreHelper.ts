@@ -3,8 +3,8 @@ import ignore, { Ignore } from 'ignore'
 import {
   ADDITION,
   DELETION,
-  MODIFICATION,
   GIT_DIFF_TYPE_REGEX,
+  MODIFICATION,
 } from '../constant/gitConstants'
 
 import { readFile } from './fsUtils'
@@ -15,9 +15,7 @@ const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     public readonly globalIgnore: Ignore,
-    // eslint-disable-next-line no-unused-vars
     protected readonly destructiveIgnore: Ignore
   ) {}
 

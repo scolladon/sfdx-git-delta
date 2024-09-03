@@ -1,12 +1,12 @@
 'use strict'
 import { isAbsolute, normalize, relative } from 'path'
 
-import { stat, readFile as fsReadFile } from 'fs-extra'
+import { readFile as fsReadFile, stat } from 'fs-extra'
 
 import {
+  PATH_SEP,
   PATH_SEPARATOR_REGEX,
   UTF8_ENCODING,
-  PATH_SEP,
 } from '../constant/fsConstants'
 
 export const treatPathSep = (data: string) =>

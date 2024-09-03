@@ -1,11 +1,11 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import CustomFieldHandler from '../../../../src/service/customFieldHandler'
 import type { Work } from '../../../../src/types/work'
-import { readPathFromGit, copyFiles } from '../../../../src/utils/fsHelper'
+import { copyFiles, readPathFromGit } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')

@@ -77,9 +77,7 @@ const handlerMap = {
 
 export default class TypeHandlerFactory {
   constructor(
-    // eslint-disable-next-line no-unused-vars
     protected readonly work: Work,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository
   ) {}
 
