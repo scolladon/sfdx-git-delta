@@ -73,7 +73,7 @@ jobs:
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
-      - uses: google/wireit@setup-github-actions-caching/v1
+      - uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Build plugin
         run: yarn pack
