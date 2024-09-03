@@ -22,10 +22,7 @@ import { MetadataRepository } from './MetadataRepository'
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
-  constructor(
-    // eslint-disable-next-line no-unused-vars
-    protected readonly metadatas: Metadata[]
-  ) {
+  constructor(protected readonly metadatas: Metadata[]) {
     this.metadataPerExt = new Map<string, Metadata>()
     this.metadataPerDir = new Map<string, Metadata>()
 

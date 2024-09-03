@@ -1,14 +1,14 @@
-import { flags, SfdxCommand } from '@salesforce/command'
+import { SfdxCommand, flags } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
 
 import sgd from '../../../main'
 import type { Config } from '../../../types/config'
 import type { Output } from '../../../types/output'
 import {
-  TO_DEFAULT_VALUE,
+  OUTPUT_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,
   SOURCE_DEFAULT_VALUE,
-  OUTPUT_DEFAULT_VALUE,
+  TO_DEFAULT_VALUE,
 } from '../../../utils/cliConstants'
 
 // Initialize Messages with the current plugin directory

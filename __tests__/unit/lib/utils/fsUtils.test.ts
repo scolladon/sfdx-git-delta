@@ -1,6 +1,6 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
-import { Stats, stat, readFile as fsReadFile } from 'fs-extra'
+import { describe, expect, it, jest } from '@jest/globals'
+import { Stats, readFile as fsReadFile, stat } from 'fs-extra'
 
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
 import {

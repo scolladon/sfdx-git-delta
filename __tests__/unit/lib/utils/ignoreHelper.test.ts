@@ -1,10 +1,10 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 
 import {
   ADDITION,
-  MODIFICATION,
   DELETION,
+  MODIFICATION,
 } from '../../../../src/constant/gitConstants'
 import type { Config } from '../../../../src/types/config'
 import { readFile } from '../../../../src/utils/fsUtils'
@@ -12,8 +12,8 @@ import {
   IgnoreHelper,
   buildIgnoreHelper,
   buildIncludeHelper,
-  resetIncludeInstance,
   resetIgnoreInstance,
+  resetIncludeInstance,
 } from '../../../../src/utils/ignoreHelper'
 jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)

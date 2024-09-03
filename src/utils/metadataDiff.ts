@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict'
 
 import { isEqual } from 'lodash'
@@ -9,11 +8,11 @@ import type { SharedFileMetadata } from '../types/metadata'
 import type { Manifest } from '../types/work'
 
 import {
-  asArray,
-  parseXmlFileToJson,
-  convertJsonToXml,
   ATTRIBUTE_PREFIX,
   XML_HEADER_ATTRIBUTE_KEY,
+  asArray,
+  convertJsonToXml,
+  parseXmlFileToJson,
 } from './fxpHelper'
 import { fillPackageWithParameter } from './packageHelper'
 
@@ -42,10 +41,12 @@ const hasMember =
 const selectKey =
   (attributes: Map<string, SharedFileMetadata>) =>
   (type: string) =>
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   (elem: any) =>
     elem?.[attributes.get(type)!.key!]
 
 // Metadata JSON structure functional area
+// biome-ignore lint/suspicious/noExplicitAny: Any is expected here
 const getRootMetadata = (fileContent: any): any =>
   fileContent[
     Object.keys(fileContent).find(
@@ -54,14 +55,19 @@ const getRootMetadata = (fileContent: any): any =>
   ] ?? {}
 
 const getSubTypeTags =
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   (attributes: Map<string, SharedFileMetadata>) => (fileContent: any) =>
     Object.keys(getRootMetadata(fileContent)).filter(tag => attributes.has(tag))
 
 const extractMetadataForSubtype =
-  (fileContent: any) =>
+  (
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
+    fileContent: any
+  ) =>
   (subType: string): string[] =>
     asArray(getRootMetadata(fileContent)?.[subType])
 
+// biome-ignore lint/suspicious/noExplicitAny: Any is expected here
 const isEmpty = (fileContent: any) =>
   Object.entries(getRootMetadata(fileContent))
     .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
@@ -71,9 +77,11 @@ const isEmpty = (fileContent: any) =>
 const compareContent =
   (attributes: Map<string, SharedFileMetadata>) =>
   (
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     contentAtRef: any,
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     otherContent: any,
-    // eslint-disable-next-line no-unused-vars
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     predicat: (arg0: any, arg1: string, arg2: string) => boolean
   ): Manifest => {
     const v: ManifestTypeMember[] = getSubTypeTags(attributes)(
@@ -93,9 +101,11 @@ const compareContent =
 
 const processMetadataForSubType =
   (
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     baseContent: any,
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     otherContent: any,
-    // eslint-disable-next-line no-unused-vars
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     predicat: (arg0: any, arg1: string, arg2: string) => boolean,
     attributes: Map<string, SharedFileMetadata>
   ) =>
@@ -116,11 +126,12 @@ const processMetadataForSubType =
 const getElementProcessor =
   (
     type: string,
-    // eslint-disable-next-line no-unused-vars
+    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     predicat: (arg0: any, arg1: string, arg2: string) => boolean,
     otherMeta: string[],
     attributes: Map<string, SharedFileMetadata>
   ) =>
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   (elem: any) => {
     let metadataMember
     if (predicat(otherMeta, type, elem)) {
@@ -136,6 +147,7 @@ const getElementProcessor =
 // Side effect on jsonContent
 const generatePartialJSON =
   (attributes: Map<string, SharedFileMetadata>) =>
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   (jsonContent: any) =>
   (store: Manifest) => {
     const extract = extractMetadataForSubtype(jsonContent)
@@ -153,14 +165,12 @@ const generatePartialJSON =
   }
 
 export default class MetadataDiff {
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   protected toContent: any
   protected add!: Manifest
   constructor(
-    // eslint-disable-next-line no-unused-vars
     protected readonly config: Config,
-    // eslint-disable-next-line no-unused-vars
     protected readonly metadata: MetadataRepository,
-    // eslint-disable-next-line no-unused-vars
     protected readonly attributes: Map<string, SharedFileMetadata>
   ) {}
 
@@ -180,6 +190,7 @@ export default class MetadataDiff {
     this.add = diff(
       this.toContent,
       fromContent,
+      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
       (meta: any[], type: string, elem: string) => {
         const key = selectKey(this.attributes)(type)
         const match = meta.find((el: string) => key(el) === key(elem))
@@ -192,6 +203,7 @@ export default class MetadataDiff {
     const del = diff(
       fromContent,
       this.toContent,
+      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
       (meta: any[], type: string, elem: string) => {
         const key = selectKey(this.attributes)(type)
         return !meta.some((el: string) => key(el) === key(elem))

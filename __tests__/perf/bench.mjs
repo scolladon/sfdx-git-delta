@@ -13,7 +13,6 @@ suite
     )
   })
   .on('cycle', event => {
-    // eslint-disable-next-line no-console
-    console.log(String(event.target))
+    console.info(String(event.target))
   })
   .run()

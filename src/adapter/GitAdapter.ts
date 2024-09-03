@@ -3,15 +3,15 @@ import { join } from 'path'
 
 import { readFile } from 'fs-extra'
 import git, { TREE, WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
-import { simpleGit, SimpleGit } from 'simple-git'
+import { SimpleGit, simpleGit } from 'simple-git'
 
 import { DOT } from '../constant/fsConstants'
 import {
-  UTF8_ENCODING,
-  GIT_FOLDER,
   ADDITION,
   DELETION,
+  GIT_FOLDER,
   MODIFICATION,
+  UTF8_ENCODING,
 } from '../constant/gitConstants'
 import type { Config } from '../types/config'
 import type { FileGitRef } from '../types/git'
@@ -40,7 +40,7 @@ export const iterate = async (
 type GitBaseConfig = {
   fs: typeof fs
   dir: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   cache: any
   gitdir?: string
 }
@@ -72,10 +72,7 @@ export default class GitAdapter {
   protected readonly simpleGit: SimpleGit
   protected readonly gitConfig: GitBaseConfig
 
-  private constructor(
-    // eslint-disable-next-line no-unused-vars
-    protected readonly config: Config
-  ) {
+  private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit(config.repo)
     this.gitConfig = {
       fs: fs,

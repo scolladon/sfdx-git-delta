@@ -1,18 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import type { Work } from '../../../../src/types/work'
 import {
-  parseXmlFileToJson,
   convertJsonToXml,
+  parseXmlFileToJson,
 } from '../../../../src/utils/fxpHelper'
 import MetadataDiff from '../../../../src/utils/metadataDiff'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fxpHelper', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual(
     '../../../../src/utils/fxpHelper'
   )

@@ -1,10 +1,10 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 
 import {
   ADDITION,
-  MODIFICATION,
   DELETION,
+  MODIFICATION,
 } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'

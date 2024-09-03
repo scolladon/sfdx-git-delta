@@ -4,8 +4,8 @@ import { join, parse } from 'path'
 import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants'
 import {
   INFOLDER_SUFFIX,
-  META_REGEX,
   METAFILE_SUFFIX,
+  META_REGEX,
 } from '../constant/metadataConstants'
 import { readDir } from '../utils/fsHelper'
 

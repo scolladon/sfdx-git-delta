@@ -1,16 +1,16 @@
 'use strict'
 import { format } from 'util'
 
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 
 import messages from '../../../../src/locales/en'
 import { getLatestSupportedVersion } from '../../../../src/metadata/metadataManager'
 import type { Work } from '../../../../src/types/work'
 import CLIHelper from '../../../../src/utils/cliHelper'
 import {
-  readFile,
   dirExists,
   fileExists,
+  readFile,
   sanitizePath,
 } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/globalTestHelper'

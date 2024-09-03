@@ -1,5 +1,5 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 import { pathExists } from 'fs-extra'
 
 import {
@@ -10,7 +10,7 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import type { Work } from '../../../../src/types/work'
-import { writeFile, readDir } from '../../../../src/utils/fsHelper'
+import { readDir, writeFile } from '../../../../src/utils/fsHelper'
 import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
@@ -36,7 +36,7 @@ jest.mock('../../../../src/utils/ignoreHelper', () => ({
   })),
 }))
 jest.mock('../../../../src/utils/fxpHelper', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const originalModule: any = jest.requireActual(
     '../../../../src/utils/fxpHelper'
   )

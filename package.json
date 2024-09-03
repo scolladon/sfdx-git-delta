@@ -26,14 +26,14 @@
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
   "dependencies": {
     "@salesforce/command": "^5.3.9",
-    "@salesforce/core": "^8.4.0",
+    "@salesforce/core": "^8.5.3",
     "async": "^3.2.6",
-    "fast-xml-parser": "^4.4.1",
+    "fast-xml-parser": "^4.5.0",
     "fs-extra": "^11.2.0",
     "ignore": "^5.3.2",
     "isomorphic-git": "^1.27.1",
     "lodash": "^4.17.21",
-    "simple-git": "^3.25.0",
+    "simple-git": "^3.26.0",
     "xmlbuilder2": "^3.1.1"
   },
   "license": "MIT",
@@ -59,16 +59,24 @@
     "test:unit": "wireit",
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
-    "postpack": "shx rm -f oclif.manifest.json && prettier --write README.md",
+    "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky"
   },
   "wireit": {
     "build": {
-      "dependencies": [
-        "compile",
-        "lint"
-      ]
+      "command": "tsc -p . --incremental",
+      "files": [
+        "src/**/*.ts",
+        "src/**/*.json",
+        "**/tsconfig.json",
+        "messages/**"
+      ],
+      "output": [
+        "lib/**",
+        "*.tsbuildinfo"
+      ],
+      "clean": "if-file-deleted"
     },
     "clean": {
       "command": "shx rm -rf lib 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
@@ -92,27 +100,13 @@
         "node_modules/*"
       ]
     },
-    "compile": {
-      "command": "tsc -p . --incremental",
-      "files": [
-        "src/**/*.ts",
-        "src/**/*.json",
-        "**/tsconfig.json",
-        "messages/**"
-      ],
-      "output": [
-        "lib/**",
-        "*.tsbuildinfo"
-      ],
-      "clean": "if-file-deleted"
-    },
     "lint": {
-      "command": "eslint src __tests__ --cache --cache-location .eslintcache",
+      "command": "biome check --error-on-warnings src __tests__",
       "files": [
         "src/**",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/.eslint*",
+        "**/biome.json",
         "**/tsconfig.json"
       ],
       "output": [],
@@ -169,6 +163,7 @@
         "perf-result.txt"
       ],
       "dependencies": [
+        "lint",
         "build"
       ]
     },
@@ -199,6 +194,7 @@
         ".nyc_output/**"
       ],
       "dependencies": [
+        "lint",
         "build"
       ]
     },
@@ -219,43 +215,37 @@
     }
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.4.0",
-    "@commitlint/config-conventional": "^19.2.2",
+    "@biomejs/biome": "^1.8.3",
+    "@commitlint/cli": "^19.4.1",
+    "@commitlint/config-conventional": "^19.4.1",
     "@jest/globals": "^29.7.0",
     "@ls-lint/ls-lint": "^2.2.3",
     "@oclif/dev-cli": "^1.26.10",
-    "@salesforce/cli-plugins-testkit": "^5.3.26",
+    "@salesforce/cli-plugins-testkit": "^5.3.28",
     "@salesforce/dev-config": "^4.1.0",
-    "@salesforce/ts-sinon": "^1.4.24",
+    "@salesforce/ts-sinon": "^1.4.26",
     "@stryker-mutator/core": "^8.5.0",
     "@stryker-mutator/jest-runner": "^8.5.0",
-    "@swc/core": "^1.7.14",
+    "@swc/core": "^1.7.23",
     "@types/async": "^3.2.24",
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.7",
-    "@types/node": "^22.5.0",
-    "@typescript-eslint/eslint-plugin": "^8.2.0",
-    "@typescript-eslint/parser": "^8.2.0",
+    "@types/node": "^22.5.2",
     "benchmark": "^2.1.4",
     "chai": "^4.3.10",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-prettier": "^5.2.1",
     "husky": "^9.1.5",
     "jest": "^29.7.0",
-    "knip": "^5.27.3",
-    "lint-staged": "^15.2.9",
+    "knip": "^5.29.1",
+    "lint-staged": "^15.2.10",
     "mocha": "^10.7.3",
     "nyc": "^17.0.0",
-    "prettier": "^3.3.3",
     "shx": "^0.3.4",
     "sinon": "^18.0.0",
-    "ts-jest": "^29.2.4",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "tslib": "^2.6.3",
+    "tslib": "^2.7.0",
     "typescript": "^5.5.4",
-    "wireit": "^0.14.7",
+    "wireit": "^0.14.8",
     "yarn-audit-fix": "^10.0.9",
     "yarn-upgrade-all": "^0.7.4"
   },

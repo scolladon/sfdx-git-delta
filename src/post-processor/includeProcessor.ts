@@ -5,7 +5,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
 import type { Work } from '../types/work'
 import { treatPathSep } from '../utils/fsUtils'
-import { buildIncludeHelper, IgnoreHelper } from '../utils/ignoreHelper'
+import { IgnoreHelper, buildIncludeHelper } from '../utils/ignoreHelper'
 
 import BaseProcessor from './baseProcessor'
 const TAB = '\t'

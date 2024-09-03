@@ -1,5 +1,5 @@
 'use strict'
-import { expect, jest, describe, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 import { readFile } from 'fs-extra'
 import { WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 
@@ -35,25 +35,20 @@ jest.mock('simple-git', () => {
 })
 jest.mock('isomorphic-git', () => ({
   setConfig: function () {
-    // eslint-disable-next-line prefer-rest-params
     return mockedSetConfig(...arguments)
   },
   readObject: function () {
-    // eslint-disable-next-line prefer-rest-params
     return mockedReadObject(...arguments)
   },
   readBlob: function () {
-    // eslint-disable-next-line prefer-rest-params
     return mockedReadBlob(...arguments)
   },
   walk: function () {
-    // eslint-disable-next-line prefer-rest-params
     return mockedWalk(...arguments)
   },
   TREE: jest.fn(),
 }))
 jest.mock('../../../../src/utils/fsUtils', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actualModule: any = jest.requireActual('../../../../src/utils/fsUtils')
 
   return {

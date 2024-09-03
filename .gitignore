@@ -17,4 +17,3 @@ perf-result.txt
 
 megalinter-reports/
 .wireit
-.eslintcache
