@@ -59,7 +59,7 @@
     "test:unit": "wireit",
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
-    "postpack": "shx rm -f oclif.manifest.json && prettier --write README.md",
+    "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
     "prepare": "husky"
   },
@@ -107,12 +107,12 @@
       "clean": "if-file-deleted"
     },
     "lint": {
-      "command": "eslint src __tests__ --cache --cache-location .eslintcache",
+      "command": "biome check --error-on-warnings src __tests__",
       "files": [
         "src/**",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/.eslint*",
+        "**/biome.json",
         "**/tsconfig.json"
       ],
       "output": [],
@@ -219,6 +219,7 @@
     }
   },
   "devDependencies": {
+    "@biomejs/biome": "1.8.3",
     "@commitlint/cli": "^19.4.0",
     "@commitlint/config-conventional": "^19.2.2",
     "@jest/globals": "^29.7.0",
@@ -234,21 +235,14 @@
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.7",
     "@types/node": "^22.5.0",
-    "@typescript-eslint/eslint-plugin": "^8.2.0",
-    "@typescript-eslint/parser": "^8.2.0",
     "benchmark": "^2.1.4",
     "chai": "^4.3.10",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-prettier": "^5.2.1",
     "husky": "^9.1.5",
     "jest": "^29.7.0",
     "knip": "^5.27.3",
     "lint-staged": "^15.2.9",
     "mocha": "^10.7.3",
     "nyc": "^17.0.0",
-    "prettier": "^3.3.3",
     "shx": "^0.3.4",
     "sinon": "^18.0.0",
     "ts-jest": "^29.2.4",

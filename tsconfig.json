@@ -1,17 +1,15 @@
 {
   "extends": "./node_modules/@salesforce/dev-config/tsconfig",
   "compilerOptions": {
-    "declaration": true,
-    "outDir": "./lib",
-    "importHelpers": true,
     "allowJs": false,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "allowUnusedLabels": false,
     "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "alwaysStrict": true,
+    "declaration": true,
+    "esModuleInterop": true,
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
     "noImplicitAny": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
@@ -19,12 +17,14 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "outDir": "./lib",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "useUnknownInCatchVariables": true,
-    "skipLibCheck": true
+    "useUnknownInCatchVariables": true
   },
   "include": [
     "./src/**/*",

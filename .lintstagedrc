@@ -1,5 +1,3 @@
 {
-  "*.ts": ["eslint", "eslint --fix", "prettier --write"],
-  "*.js": ["eslint", "eslint --fix", "prettier --write"],
-  "*.md": ["prettier --write"]
+  "*{.ts, .js}": ["biome check --error-on-warnings --write"]
 }
