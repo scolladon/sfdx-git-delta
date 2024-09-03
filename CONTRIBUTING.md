@@ -93,12 +93,11 @@ Configure your editor to use our lint and code style rules.
 
 ### Code formatting
 
-[Prettier](https://prettier.io/) is a code formatter used to ensure consistent formatting across your code base. To use Prettier with Visual Studio Code, install [this extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) from the Visual Studio Code Marketplace.
-This repository provide [.prettierignore](.prettierignore) and [.prettierrc](.prettierrc.json) files to control the behaviour of the Prettier formatter.
+[Biome](https://biomejs.dev/) Format, lint, and more in a fraction of a second.
 
 ### Code linting
 
-[ESLint](https://eslint.org/) is a popular JavaScript linting tool used to identify stylistic errors and erroneous constructs.
+[Biome](https://biomejs.dev/) Format, lint, and more in a fraction of a second.
 
 ### Commit linting
 
@@ -186,7 +185,7 @@ yarn lint
 
 The above command may display lint issues not related to your changes.
 The recommended way to avoid lint issues is to [configure your
-editor](http://eslint.org/docs/user-guide/integrations) to warn you in real time as you edit the file.
+editor](https://biomejs.dev/guides/integrate-in-vcs/) to warn you in real time as you edit the file.
 
 Fixing all existing lint issues is a tedious task so please pitch in by fixing
 the ones related to the files you make changes to!
