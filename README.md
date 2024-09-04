@@ -329,7 +329,7 @@ sf project deploy start -x package/package.xml --post-destructive-changes destru
 
 And voilà! 🥳
 
-However, keep in mind that the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--pre-destructive-changes=`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it doesn't get stuck by a failed destructive change.
+However, keep in mind that the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--pre-destructive-changes`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it doesn't get stuck by a failed destructive change.
 
 If needed, you can also split the added/modified metadata deployment from the deleted/renamed metadata deployment, as in the below examples:
 
