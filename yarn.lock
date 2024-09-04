@@ -2028,7 +2028,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@salesforce/core@npm:^8.5.1, @salesforce/core@npm:^8.5.3":
+"@salesforce/core@npm:^8.5.1":
   version: 8.5.3
   resolution: "@salesforce/core@npm:8.5.3"
   dependencies:
@@ -2051,6 +2051,32 @@ __metadata:
     semver: ^7.6.3
     ts-retry-promise: ^0.8.1
   checksum: 1973134933948cfdf6009f4cf172276cf4d5f61daac08b865d7ac5a8ef3b14e07b7e01dbe29088eded792c408d3640c25cc7ad1432441b33c41645318b90a881
+  languageName: node
+  linkType: hard
+
+"@salesforce/core@npm:^8.5.4":
+  version: 8.5.4
+  resolution: "@salesforce/core@npm:8.5.4"
+  dependencies:
+    "@jsforce/jsforce-node": ^3.4.1
+    "@salesforce/kit": ^3.2.2
+    "@salesforce/schemas": ^1.9.0
+    "@salesforce/ts-types": ^2.0.10
+    ajv: ^8.17.1
+    change-case: ^4.1.2
+    fast-levenshtein: ^3.0.0
+    faye: ^1.4.0
+    form-data: ^4.0.0
+    js2xmlparser: ^4.0.1
+    jsonwebtoken: 9.0.2
+    jszip: 3.10.1
+    pino: ^9.3.2
+    pino-abstract-transport: ^1.2.0
+    pino-pretty: ^11.2.2
+    proper-lockfile: ^4.1.2
+    semver: ^7.6.3
+    ts-retry-promise: ^0.8.1
+  checksum: 68a3552f0ae73a1ea07ca56a3308c21094e645e5cbf8991bdca4b6faeb19f05ad1fd8eb06a7bf51fe6bdcf156829836c21bbb079d0894ca9ae3ee610471d1358
   languageName: node
   linkType: hard
 
@@ -2724,12 +2750,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^22.5.2":
-  version: 22.5.2
-  resolution: "@types/node@npm:22.5.2"
+"@types/node@npm:^22.5.3":
+  version: 22.5.3
+  resolution: "@types/node@npm:22.5.3"
   dependencies:
     undici-types: ~6.19.2
-  checksum: 5e47839dd1919b39927a5552137ded5d3f18d9ff7729083ba851d640a6a0997ee747b9e2cf4c8a1f8418ad92ef7f0ada4fdc2d005dad2efb39fa80a5c7f6d23d
+  checksum: 50a5075e4e8bc874a9fe962447341b6b49bd79cf2801fadd3e31d2bda60decba8d907e3150887afc9f883d819cc42c7e862fffc934049d37cb5589e0a2afbcc1
   languageName: node
   linkType: hard
 
@@ -6917,9 +6943,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"knip@npm:^5.29.1":
-  version: 5.29.1
-  resolution: "knip@npm:5.29.1"
+"knip@npm:^5.29.2":
+  version: 5.29.2
+  resolution: "knip@npm:5.29.2"
   dependencies:
     "@nodelib/fs.walk": 1.2.8
     "@snyk/github-codeowners": 1.1.0
@@ -6943,7 +6969,7 @@ __metadata:
   bin:
     knip: bin/knip.js
     knip-bun: bin/knip-bun.js
-  checksum: 4028f4baba77c0a6cfe9ca814aa66e751b824d063e8f3f3039bd47543b29337ca55d1e6a3bcbd2bcdc9364284b9e26ca778141a7b5a6d93f010c33fa3dcfb297
+  checksum: c1c9abf9f6438c17f854c52adc7f294d07991632a7a45675c0213815546556b74fc7ac9cd3b7fd3eca2bd6c816fa973e212a4b38c0dc87e0826ea63635d5e2b6
   languageName: node
   linkType: hard
 
@@ -9161,7 +9187,7 @@ __metadata:
     "@oclif/dev-cli": ^1.26.10
     "@salesforce/cli-plugins-testkit": ^5.3.28
     "@salesforce/command": ^5.3.9
-    "@salesforce/core": ^8.5.3
+    "@salesforce/core": ^8.5.4
     "@salesforce/dev-config": ^4.1.0
     "@salesforce/ts-sinon": ^1.4.26
     "@stryker-mutator/core": ^8.5.0
@@ -9170,7 +9196,7 @@ __metadata:
     "@types/async": ^3.2.24
     "@types/jest": ^29.5.12
     "@types/mocha": ^10.0.7
-    "@types/node": ^22.5.2
+    "@types/node": ^22.5.3
     async: ^3.2.6
     benchmark: ^2.1.4
     chai: ^4.3.10
@@ -9180,7 +9206,7 @@ __metadata:
     ignore: ^5.3.2
     isomorphic-git: ^1.27.1
     jest: ^29.7.0
-    knip: ^5.29.1
+    knip: ^5.29.2
     lint-staged: ^15.2.10
     lodash: ^4.17.21
     mocha: ^10.7.3
@@ -9192,7 +9218,7 @@ __metadata:
     ts-node: ^10.9.2
     tslib: ^2.7.0
     typescript: ^5.5.4
-    wireit: ^0.14.8
+    wireit: ^0.14.9
     xmlbuilder2: ^3.1.1
     yarn-audit-fix: ^10.0.9
     yarn-upgrade-all: ^0.7.4
@@ -10469,9 +10495,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wireit@npm:^0.14.8":
-  version: 0.14.8
-  resolution: "wireit@npm:0.14.8"
+"wireit@npm:^0.14.9":
+  version: 0.14.9
+  resolution: "wireit@npm:0.14.9"
   dependencies:
     brace-expansion: ^4.0.0
     chokidar: ^3.5.3
@@ -10480,7 +10506,7 @@ __metadata:
     proper-lockfile: ^4.1.2
   bin:
     wireit: bin/wireit.js
-  checksum: 028fc0d9151cb7d2ebd2da8b981aa21091913655602f2e3e92ca5add811cb5881276f6d9d27db408af6b52357924f8682c1b058968ec4989c20bd25a746d44ac
+  checksum: 2e2d539bc37e0d68bde5a1fef0d9bdd393e88f525e514fa50885d96eb455dd58f8cf5d5ae8a9bc7f6ee4aba4e6006f0f1e10406a3e25171e16a8d6904e35617d
   languageName: node
   linkType: hard
 
