@@ -33,7 +33,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [How to use it?](#how-to-use-it)
-- [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+- [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sf-sgd-source-delta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
   - [Windows users](#windows-users)
   - [CI/CD specificity](#cicd-specificity)
   - [Git LFS support](#git-lfs-support)
@@ -61,15 +61,15 @@
 ## TL;DR
 
 ```sh
-sfdx plugins:install sfdx-git-delta
+sf plugins install sfdx-git-delta
 ```
 
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output "."
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output "."
 ```
 
 ```sh
-sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
+sf project deploy start -x package/package.xml --post-destructive-changes destructiveChanges/destructiveChanges.xml
 ```
 
 ## What is SFDX-Git-Delta?
@@ -112,16 +112,16 @@ It's also important to implement a way to switch back to full deployment in case
 The plugin requires git command line on the running environment.
 
 **Node v16.20.0 or above is required**.
-To check if Salesforce CLI runs under a supported node version for SGD, run `sfdx --version`. You should see a node version above v.16.20.0 to use SGD.
+To check if Salesforce CLI runs under a supported node version for SGD, run `sf --version`. You should see a node version above v.16.20.0 to use SGD.
 
-If you encounter this issue whereas the node version is OK on the running environment, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install sfdx-cli --global`).
+If you encounter this issue whereas the node version is OK on the running environment, try to [install the Salesforce CLI via npm](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm) (`npm install @salesforce/cli --global`).
 
 ### Installation
 
-SGD is a Salesforce CLI plugin (`sfdx sgd:source:delta`). Run the following command to install it:
+SGD is a Salesforce CLI plugin (`sf sgd source delta`). Run the following command to install it:
 
 ```sh
-sfdx plugins:install sfdx-git-delta
+sf plugins install sfdx-git-delta
 ```
 
 Because this plugin is not signed, you will get a warning saying that "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed with the installation.
@@ -133,15 +133,15 @@ If you run your CI/CD jobs inside a Docker image, you can add the plugin to your
 ## How to use it?
 
 <!-- commands -->
-* [`sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-## `sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Generate the sfdx content in source format and destructive change from two git commits
 
 ```
 USAGE
-  $ sfdx sgd:source:delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
+  $ sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
    [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
@@ -200,14 +200,12 @@ If you run SGD on a Windows system, use double quotes [to prevent the terminal t
 You should also avoid using the "^" character ([shorthand for parent commit in git](https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt-emltrevgtltngtemegemHEADv1510em)) because it is the [escape character in Windows](https://ss64.com/nt/syntax-esc.html#:~:text=include%20the%20delimiters.-,Escape%20Character,-%5E%20%20Escape%20character.).
 So instead of:
 ```sh
-sfdx sgd:source:delta --from "HEAD^" # wrong git shortcut with windows because it uses "^" syntax
+sf sgd source delta --from "HEAD^" # wrong git shortcut with windows because it uses "^" syntax
 ````
 You should write:
 ```sh
-sfdx sgd:source:delta --from "HEAD~1" # right git shortcut with windows because it does not use "^", it uses "~n" syntax
+sf sgd source delta --from "HEAD~1" # right git shortcut with windows because it does not use "^", it uses "~n" syntax
 ```
-
-
 
 ### CI/CD specificity
 
@@ -223,7 +221,7 @@ This applies to both `--from` and `--to` parameters as they both accept git poin
 Example comparing `HEAD` with a `development` branch when the CI clone the repository with `origin` set as reference to the remote:
 
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "origin/development" --output .
+sf sgd source delta --to "HEAD" --from "origin/development" --output .
 ```
 
 Use global variable when you need to easily switch sgd version (`vX.X.X` format) or channel (`stable`, `latest`, `latest-rc`) in your pipeline, without having to commit a new version of your pipeline.
@@ -232,7 +230,7 @@ Example with [github action](https://docs.github.com/en/actions/learn-github-act
 
 ```yaml
 - name: Install SGD
-  run: echo y | sfdx plugins:install "sfdx-git-delta@${{ vars.SGD_VERSION }}"
+  run: echo y | sf plugins install "sfdx-git-delta@${{ vars.SGD_VERSION }}"
 ```
 
 ### Git LFS support
@@ -256,21 +254,21 @@ Here are examples of how to compare the content of different branches:
   For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
 
 ```sh
-sfdx sgd:source:delta --to fbc3ade6 --from 61f235b1 --output .
+sf sgd source delta --to fbc3ade6 --from 61f235b1 --output .
 ```
 
 - **Comparing branches (all changes)**
   Comparing all changes between the `develop` branch and the `main` branch:
 
 ```sh
-sfdx sgd:source:delta --to develop --from main --output .
+sf sgd source delta --to develop --from main --output .
 ```
 
 - **Comparing branches (from a common ancestor)**
   To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
 
 ```sh
-sfdx sgd:source:delta --to develop --from $(git merge-base develop main) --output .
+sf sgd source delta --to develop --from $(git merge-base develop main) --output .
 ```
 
 ## Walkthrough
@@ -300,14 +298,14 @@ So let’s do it!
 From the project repo folder, the CI pipeline will run the following command:
 
 ```sh
-sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output .
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output .
 ```
 
 which means:
 
 > Analyze the difference between HEAD (latest commit) and HEAD~1 (previous commit), and output the result in the current folder.
 
-The `sfdx sgd:source:delta` command produces 2 useful artifacts:
+The `sf sgd source delta` command produces 2 useful artifacts:
 
 **1) A `package.xml` file, inside a `package` folder.** This `package.xml` file contains just the added/changed metadata to deploy to the target org.
 
@@ -326,12 +324,12 @@ Note: it is also possible to generate a **source** folder containing added/chang
 The simplest option to deploy the incremental changes is to use `force:source:deploy` command with `-x` parameter:
 
 ```sh
-sfdx force:source:deploy -x package/package.xml --postdestructivechanges destructiveChanges/destructiveChanges.xml
+sf project deploy start -x package/package.xml --post-destructive-changes destructiveChanges/destructiveChanges.xml
 ```
 
 And voilà! 🥳
 
-However, keep in mind that the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--predestructivechanges`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it doesn't get stuck by a failed destructive change.
+However, keep in mind that the above command will fail if the destructive change was supposed to be executed before the deployment (i.e. as `--pre-destructive-changes`), or if a warning occurs during deployment. Make sure to protect your CI/CD pipeline from those scenarios, so that it doesn't get stuck by a failed destructive change.
 
 If needed, you can also split the added/modified metadata deployment from the deleted/renamed metadata deployment, as in the below examples:
 
@@ -342,7 +340,7 @@ echo "--- package.xml generated with added and modified metadata ---"
 cat package/package.xml
 echo
 echo "---- Deploying added and modified metadata ----"
-sfdx force:source:deploy -x package/package.xml
+sf project deploy start -x package/package.xml
 ```
 
 Use the `destructiveChanges` folder to deploy only the destructive changes:
@@ -352,7 +350,7 @@ echo "--- destructiveChanges.xml generated with deleted metadata ---"
 cat destructiveChanges/destructiveChanges.xml
 echo
 echo "--- Deleting removed metadata ---"
-sfdx force:mdapi:deploy -d destructiveChanges --ignorewarnings
+sf project deploy start --pre-destructive-changes destructiveChanges/destructiveChanges.xml --manifest destructiveChanges/package.xml --ignore-warnings
 ```
 
 ## Advanced use-cases
@@ -369,7 +367,7 @@ Let's use this option with our previous example:
 
 ```sh
 mkdir changed-sources
-sfdx sgd:source:delta --to "HEAD" --from "HEAD~1" --output changed-sources/ --generate-delta
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output changed-sources/ --generate-delta
 ```
 
 It generates the `package` and `destructiveChanges` folders, and copies added/changed files in the output folder.
@@ -385,13 +383,13 @@ _Content of the output folder when using the --generate-delta option, with the s
 > # move HEAD to the wanted past commit
 > $ git checkout <not-HEAD-commit-sha>
 > # You can omit --to, it will take "HEAD" as default value
-> $ sfdx sgd:source:delta --from "HEAD~1" --output changed-sources/ --generate-delta
+> $ sf sgd source delta --from "HEAD~1" --output changed-sources/ --generate-delta
 > ```
 
 Then it is possible to deploy the `change-sources` folder using `force:source:deploy` command with `-p` parameter:
 
 ```sh
-sfdx force:source:deploy -p change-sources
+sf project deploy start -p change-sources
 ```
 
 ### Exclude some metadata only from destructiveChanges.xml
@@ -413,7 +411,7 @@ The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.x
 # destructiveignore
 *Custom\_\_c.object-meta.xml
 
-$ sfdx sgd:source:delta --from commit --ignore-destructive destructiveignore
+$ sf sgd source delta --from commit --ignore-destructive destructiveignore
 
 ```
 
@@ -441,7 +439,7 @@ Consider the following:
 # .destructiveinclude
 *generated/foo
 
-$ sfdx sgd:source:delta --from commit --include-destructive .destructiveinclude
+$ sf sgd source delta --from commit --include-destructive .destructiveinclude
 ```
 
 The path matchers in includes file must follow [`gitignore`](https://git-scm.com/docs/gitignore#:~:text=The%20slash%20/%20is%20used%20as%20the%20directory%20separator.) spec and accept only unix path separator `/` (even for windows system).
@@ -468,7 +466,7 @@ $ tree
 ├── ...
 
 # scope the delta generation only to the unpackaged folder
-$ sfdx sgd:source:delta --from commit --source force-app/unpackaged
+$ sf sgd source delta --from commit --source force-app/unpackaged
 ```
 
 > The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
@@ -476,7 +474,7 @@ $ sfdx sgd:source:delta --from commit --source force-app/unpackaged
 
 ### Generate a comma-separated list of the added and modified Apex classes
 
-Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sfdx force:source:deploy --testlevel RunSpecifiedTests` command, for example.
+Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sf project deploy start --testlevel RunSpecifiedTests` command, for example.
 To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
 
 `xq . < package/package.xml | jq '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(",")'`
@@ -491,7 +489,7 @@ To avoid starting a failing deployment, test files content before execution:
 # run deploy command only if the generated package contains metadata
 if grep -q '<types>' ./package/package.xml ; then
   echo "---- Deploying added and modified metadata ----"
-  sfdx force:source:deploy -x package/package.xml
+  sf project deploy start -x package/package.xml
 else
   echo "---- No changes to deploy ----"
 fi
