@@ -33,7 +33,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [How to use it?](#how-to-use-it)
-- [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+- [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sf-sgd-source-delta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
   - [Windows users](#windows-users)
   - [CI/CD specificity](#cicd-specificity)
   - [Git LFS support](#git-lfs-support)
@@ -343,15 +343,14 @@ echo "---- Deploying added and modified metadata ----"
 sf project deploy start -x package/package.xml
 ```
 
-Automatically create an empty `package.xml` file (required by the deploy command) and use the `destructiveChanges.xml` file to deploy only the destructive changes:
+Use the `destructiveChanges` folder to deploy only the destructive changes:
 
 ```sh
 echo "--- destructiveChanges.xml generated with deleted metadata ---"
 cat destructiveChanges/destructiveChanges.xml
 echo
 echo "--- Deleting removed metadata ---"
-echo "<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata"><version>61.0</version></Package>" > emptyPackage.xml
-sf project deploy start --pre-destructive-changes destructiveChanges/destructiveChanges.xml --manifest emptyPackage.xml --ignore-warnings
+sf project deploy start --pre-destructive-changes destructiveChanges/destructiveChanges.xml --manifest destructiveChanges/package.xml --ignore-warnings
 ```
 
 ## Advanced use-cases
