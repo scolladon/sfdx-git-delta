@@ -1,105 +1,113 @@
-import { SfdxCommand, flags } from '@salesforce/command'
 import { Messages } from '@salesforce/core'
+import { Flags, SfCommand } from '@salesforce/sf-plugins-core'
 
-import sgd from '../../../main'
-import type { Config } from '../../../types/config'
-import type { Output } from '../../../types/output'
+import sgd from '../../../main.js'
+import type { Config } from '../../../types/config.js'
+import type { SgdResult } from '../../../types/sgdResult.js'
 import {
   OUTPUT_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,
   SOURCE_DEFAULT_VALUE,
   TO_DEFAULT_VALUE,
-} from '../../../utils/cliConstants'
+} from '../../../utils/cliConstants.js'
 
-// Initialize Messages with the current plugin directory
-Messages.importMessagesDirectory(__dirname)
+Messages.importMessagesDirectoryFromMetaUrl(import.meta.url)
 const COMMAND_NAME = 'delta'
 
-// Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
-// or any library that is using the messages framework can also be loaded this way.
 const messages = Messages.loadMessages('sfdx-git-delta', COMMAND_NAME)
 
-export default class SourceDeltaGenerate extends SfdxCommand {
-  public static override description = messages.getMessage('command', [])
+export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
+  public static override readonly summary = messages.getMessage('summary')
+  public static override readonly description =
+    messages.getMessage('description')
+  public static override readonly examples = messages.getMessages('examples')
 
-  protected static override flagsConfig = {
-    to: flags.string({
+  public static override readonly flags = {
+    to: Flags.string({
       char: 't',
-      description: messages.getMessage('toFlag'),
+      summary: messages.getMessage('flags.to.summary'),
       default: TO_DEFAULT_VALUE,
     }),
-    from: flags.string({
+    from: Flags.string({
       char: 'f',
-      description: messages.getMessage('fromFlag'),
+      summary: messages.getMessage('flags.from.summary'),
       required: true,
     }),
-    repo: flags.filepath({
+    repo: Flags.directory({
       char: 'r',
-      description: messages.getMessage('repoFlag'),
+      summary: messages.getMessage('flags.repo.summary'),
       default: REPO_DEFAULT_VALUE,
+      exists: true,
     }),
-    ignore: flags.filepath({
+    ignore: Flags.file({
       char: 'i',
-      description: messages.getMessage('ignoreFlag'),
+      summary: messages.getMessage('flags.ignore.summary'),
+      exists: true,
     }),
-    'ignore-destructive': flags.filepath({
+    'ignore-destructive': Flags.file({
       char: 'D',
-      description: messages.getMessage('ignoreDestructiveFlag'),
+      summary: messages.getMessage('flags.ignore-destructive.summary'),
+      exists: true,
     }),
-    source: flags.filepath({
+    source: Flags.directory({
       char: 's',
-      description: messages.getMessage('sourceFlag'),
+      summary: messages.getMessage('flags.source.summary'),
       default: SOURCE_DEFAULT_VALUE,
+      exists: true,
     }),
-    'ignore-whitespace': flags.boolean({
+    'ignore-whitespace': Flags.boolean({
       char: 'W',
-      description: messages.getMessage('ignoreWhitespaceFlag'),
+      summary: messages.getMessage('flags.ignore-whitespace.summary'),
     }),
-    output: flags.filepath({
+    output: Flags.directory({
       char: 'o',
-      description: messages.getMessage('outputFlag'),
+      summary: messages.getMessage('flags.output.summary'),
       default: OUTPUT_DEFAULT_VALUE,
     }),
-    'api-version': flags.number({
+    'api-version': Flags.integer({
       char: 'a',
-      description: messages.getMessage('apiVersionFlag'),
+      summary: messages.getMessage('flags.api-version.summary'),
     }),
-    'generate-delta': flags.boolean({
+    'generate-delta': Flags.boolean({
       char: 'd',
-      description: messages.getMessage('deltaFlag'),
+      summary: messages.getMessage('flags.generate-delta.summary'),
     }),
-    include: flags.filepath({
+    include: Flags.file({
       char: 'n',
-      description: messages.getMessage('includeFlag'),
+      summary: messages.getMessage('flags.include.summary'),
+      exists: true,
     }),
-    'include-destructive': flags.filepath({
+    'include-destructive': Flags.file({
       char: 'N',
-      description: messages.getMessage('includeDestructiveFlag'),
+      summary: messages.getMessage('flags.include-destructive.summary'),
+      exists: true,
     }),
   }
 
-  public async run(): Promise<Output> {
-    const output: Output = {
+  public async run(): Promise<SgdResult> {
+    const { flags } = await this.parse(SourceDeltaGenerate)
+    const output: SgdResult = {
       error: null,
-      output: this.flags['output'],
+      output: flags['output'],
       success: true,
       warnings: [],
     }
+    const config: Config = {
+      to: flags['to'],
+      from: flags['from'],
+      output: flags['output'],
+      source: flags['source'],
+      ignore: flags['ignore'],
+      ignoreDestructive: flags['ignore-destructive'],
+      apiVersion: flags['api-version'],
+      repo: flags['repo'],
+      ignoreWhitespace: flags['ignore-whitespace'],
+      generateDelta: flags['generate-delta'],
+      include: flags['include'],
+      includeDestructive: flags['include-destructive'],
+    }
     try {
-      const jobResult = await sgd({
-        to: this.flags['to'],
-        from: this.flags['from'],
-        output: this.flags['output'],
-        source: this.flags['source'],
-        ignore: this.flags['ignore'],
-        ignoreDestructive: this.flags['ignore-destructive'],
-        apiVersion: this.flags['api-version'],
-        repo: this.flags['repo'],
-        ignoreWhitespace: this.flags['ignore-whitespace'],
-        generateDelta: this.flags['generate-delta'],
-        include: this.flags['include'],
-        includeDestructive: this.flags['include-destructive'],
-      } as Config)
+      const jobResult = await sgd(config)
       if (jobResult.warnings?.length > 0) {
         output.warnings = jobResult.warnings.map(
           (warning: Error) => warning.message
@@ -112,10 +120,6 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       output.success = false
       process.exitCode = 1
     }
-    output.warnings.push(
-      '[INFORMATION] sfdx-git-delta v6 is coming soon! Read more and plan your migration: https://github.com/scolladon/sfdx-git-delta/issues/936'
-    )
-    this.ux.log(JSON.stringify(output, null, 2))
     return output
   }
 }
