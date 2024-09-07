@@ -5,19 +5,24 @@ import { readFile } from 'fs-extra'
 import git, { TREE, WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 import { SimpleGit, simpleGit } from 'simple-git'
 
-import { DOT } from '../constant/fsConstants'
+import { DOT } from '../constant/fsConstants.js'
 import {
   ADDITION,
   DELETION,
   GIT_FOLDER,
   MODIFICATION,
   UTF8_ENCODING,
-} from '../constant/gitConstants'
-import type { Config } from '../types/config'
-import type { FileGitRef } from '../types/git'
-import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
-import { dirExists, fileExists, isSubDir, treatPathSep } from '../utils/fsUtils'
-import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
+} from '../constant/gitConstants.js'
+import type { Config } from '../types/config.js'
+import type { FileGitRef } from '../types/git.js'
+import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants.js'
+import {
+  dirExists,
+  fileExists,
+  isSubDir,
+  treatPathSep,
+} from '../utils/fsUtils.js'
+import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'

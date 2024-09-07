@@ -1,14 +1,14 @@
 'use strict'
 import { join } from 'path'
 
-import { PATH_SEP } from '../constant/fsConstants'
+import { PATH_SEP } from '../constant/fsConstants.js'
 import {
   MASTER_DETAIL_TAG,
   OBJECT_META_XML_SUFFIX,
-} from '../constant/metadataConstants'
-import { readPathFromGit } from '../utils/fsHelper'
+} from '../constant/metadataConstants.js'
+import { readPathFromGit } from '../utils/fsHelper.js'
 
-import DecomposedHandler from './decomposedHandler'
+import DecomposedHandler from './decomposedHandler.js'
 
 export default class CustomFieldHandler extends DecomposedHandler {
   public override async handleAddition() {

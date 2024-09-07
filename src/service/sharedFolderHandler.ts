@@ -1,14 +1,14 @@
 'use strict'
 import { join, parse } from 'path'
 
-import { METAFILE_SUFFIX } from '../constant/metadataConstants'
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import { getSharedFolderMetadata } from '../metadata/metadataManager'
-import { Metadata } from '../types/metadata'
-import type { Manifest, Work } from '../types/work'
-import { fillPackageWithParameter } from '../utils/packageHelper'
+import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import { getSharedFolderMetadata } from '../metadata/metadataManager.js'
+import { Metadata } from '../types/metadata.js'
+import type { Manifest, Work } from '../types/work.js'
+import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 export default class SharedFolderHandler extends StandardHandler {
   protected readonly sharedFolderMetadata: Map<string, string>

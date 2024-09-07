@@ -8,21 +8,26 @@ import {
   META_REGEX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
-} from '../constant/metadataConstants'
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import type { Work } from '../types/work'
-import { readDir, writeFile } from '../utils/fsHelper'
-import { isSamePath, isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
+} from '../constant/metadataConstants.js'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Work } from '../types/work.js'
+import { readDir, writeFile } from '../utils/fsHelper.js'
+import {
+  isSamePath,
+  isSubDir,
+  readFile,
+  treatPathSep,
+} from '../utils/fsUtils.js'
 import {
   asArray,
   convertJsonToXml,
   parseXmlFileToJson,
   xml2Json,
-} from '../utils/fxpHelper'
-import { IgnoreHelper, buildIgnoreHelper } from '../utils/ignoreHelper'
-import { fillPackageWithParameter } from '../utils/packageHelper'
+} from '../utils/fxpHelper.js'
+import { IgnoreHelper, buildIgnoreHelper } from '../utils/ignoreHelper.js'
+import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
-import BaseProcessor from './baseProcessor'
+import BaseProcessor from './baseProcessor.js'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
 

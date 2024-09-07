@@ -3,11 +3,11 @@ import { availableParallelism } from 'os'
 
 import { queue } from 'async'
 
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import type { Work } from '../types/work'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Work } from '../types/work.js'
 
-import StandardHandler from './standardHandler'
-import TypeHandlerFactory from './typeHandlerFactory'
+import StandardHandler from './standardHandler.js'
+import TypeHandlerFactory from './typeHandlerFactory.js'
 
 export default class DiffLineInterpreter {
   constructor(

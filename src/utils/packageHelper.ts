@@ -1,9 +1,9 @@
 'use strict'
 import { create } from 'xmlbuilder2'
 
-import { OBJECT_TYPE } from '../constant/metadataConstants'
-import type { Config } from '../types/config'
-import type { Manifest } from '../types/work'
+import { OBJECT_TYPE } from '../constant/metadataConstants.js'
+import type { Config } from '../types/config.js'
+import type { Manifest } from '../types/work.js'
 
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'

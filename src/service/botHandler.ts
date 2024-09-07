@@ -1,10 +1,10 @@
 'use strict'
 import { parse } from 'path'
 
-import { DOT, PATH_SEP } from '../constant/fsConstants'
-import { fillPackageWithParameter } from '../utils/packageHelper'
+import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
-import ShareFolderHandler from './sharedFolderHandler'
+import ShareFolderHandler from './sharedFolderHandler.js'
 
 const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'

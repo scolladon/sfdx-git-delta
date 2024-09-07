@@ -1,9 +1,9 @@
 'use strict'
 import { format } from 'util'
 
-import messages from '../locales/en'
+import messages from '../locales/en.js'
 
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 export default class FlowHandler extends StandardHandler {
   public override async handleDeletion() {

@@ -4,9 +4,9 @@ import { join } from 'path'
 
 import { outputFile } from 'fs-extra'
 
-import PackageBuilder from '../utils/packageHelper'
+import PackageBuilder from '../utils/packageHelper.js'
 
-import BaseProcessor from './baseProcessor'
+import BaseProcessor from './baseProcessor.js'
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'

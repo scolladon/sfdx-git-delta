@@ -2,10 +2,10 @@
 
 import { isEqual } from 'lodash'
 
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import type { Config } from '../types/config'
-import type { SharedFileMetadata } from '../types/metadata'
-import type { Manifest } from '../types/work'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Config } from '../types/config.js'
+import type { SharedFileMetadata } from '../types/metadata.js'
+import type { Manifest } from '../types/work.js'
 
 import {
   ATTRIBUTE_PREFIX,
@@ -13,8 +13,8 @@ import {
   asArray,
   convertJsonToXml,
   parseXmlFileToJson,
-} from './fxpHelper'
-import { fillPackageWithParameter } from './packageHelper'
+} from './fxpHelper.js'
+import { fillPackageWithParameter } from './packageHelper.js'
 
 type ManifestTypeMember = {
   type: string

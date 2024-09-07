@@ -7,12 +7,12 @@ import {
   PATH_SEP,
   PATH_SEPARATOR_REGEX,
   UTF8_ENCODING,
-} from '../constant/fsConstants'
+} from '../constant/fsConstants.js'
 
 export const treatPathSep = (data: string) =>
   data.replace(PATH_SEPARATOR_REGEX, PATH_SEP)
 
-export const sanitizePath = (data: string) =>
+export const sanitizePath = (data: string | undefined) =>
   data ? normalize(treatPathSep(data)) : data
 
 export const isSubDir = (parent: string, dir: string) => {

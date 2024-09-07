@@ -2,17 +2,17 @@
 import { join } from 'path'
 import { format } from 'util'
 
-import GitAdapter from '../adapter/GitAdapter'
-import messages from '../locales/en'
+import GitAdapter from '../adapter/GitAdapter.js'
+import messages from '../locales/en.js'
 import {
   getLatestSupportedVersion,
   isVersionSupported,
-} from '../metadata/metadataManager'
-import type { Config } from '../types/config'
-import type { Work } from '../types/work'
+} from '../metadata/metadataManager.js'
+import type { Config } from '../types/config.js'
+import type { Work } from '../types/work.js'
 
-import asyncFilter from './asyncFilter'
-import { dirExists, fileExists, readFile, sanitizePath } from './fsUtils'
+import asyncFilter from './asyncFilter.js'
+import { dirExists, fileExists, readFile, sanitizePath } from './fsUtils.js'
 
 const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
@@ -106,10 +106,10 @@ export default class CLIHelper {
   protected _filterFiles() {
     return asyncFilter(
       [
-        this.config.ignore,
-        this.config.ignoreDestructive,
-        this.config.include,
-        this.config.includeDestructive,
+        this.config.ignore!,
+        this.config.ignoreDestructive!,
+        this.config.include!,
+        this.config.includeDestructive!,
       ].filter(Boolean),
       async (file: string) => {
         const exist = await fileExists(file)
@@ -164,9 +164,9 @@ export default class CLIHelper {
   }
 
   protected _sanitizeConfig() {
-    this.config.repo = sanitizePath(this.config.repo)
-    this.config.source = sanitizePath(this.config.source)
-    this.config.output = sanitizePath(this.config.output)
+    this.config.repo = sanitizePath(this.config.repo)!
+    this.config.source = sanitizePath(this.config.source)!
+    this.config.output = sanitizePath(this.config.output)!
     this.config.ignore = sanitizePath(this.config.ignore)
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)
     this.config.include = sanitizePath(this.config.include)
