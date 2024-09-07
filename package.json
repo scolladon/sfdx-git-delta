@@ -24,6 +24,7 @@
     "url": "git+https://github.com/scolladon/sfdx-git-delta.git"
   },
   "author": "Sebastien Colladon <colladonsebastien@gmail.com>",
+  "packageManager": "yarn@4.4.1",
   "dependencies": {
     "@salesforce/command": "^5.3.9",
     "@salesforce/core": "^8.5.4",
@@ -258,6 +259,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "packageManager": "yarn@3.6.0"
+  }
 }
