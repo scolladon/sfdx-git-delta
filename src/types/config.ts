@@ -3,12 +3,12 @@ export type Config = {
   from: string
   output: string
   source: string
-  ignore: string
-  ignoreDestructive: string
-  apiVersion: number
+  ignore?: string | undefined
+  ignoreDestructive?: string | undefined
+  apiVersion?: number | undefined
   repo: string
   ignoreWhitespace: boolean
   generateDelta: boolean
-  include: string
-  includeDestructive: string
+  include?: string | undefined
+  includeDestructive?: string | undefined
 }
