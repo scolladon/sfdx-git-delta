@@ -12,6 +12,18 @@ import {
 import type { Metadata } from '../../../../src/types/metadata'
 
 describe(`test if metadata`, () => {
+  it('provide latest when apiVersion is undefined', async () => {
+    let undefinedVariable
+    const metadata = await getDefinition(undefinedVariable)
+    const latestVersionSupported = await getLatestSupportedVersion()
+    const latestMetadataDef = await getDefinition(latestVersionSupported)
+
+    expect(metadata).toBeDefined()
+    expect(metadata).toEqual(latestMetadataDef)
+    expect(latestMetadataDef.get('classes')).toBeDefined()
+    expect(latestMetadataDef.get('do not exist')).toBeUndefined()
+  })
+
   it('provide latest when apiVersion does not exist', async () => {
     const metadata = await getDefinition(0)
     const latestVersionSupported = await getLatestSupportedVersion()

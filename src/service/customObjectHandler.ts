@@ -5,11 +5,11 @@ import {
   FIELD_DIRECTORY_NAME,
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
-} from '../constant/metadataConstants'
-import asyncFilter from '../utils/asyncFilter'
-import { pathExists, readDir, readPathFromGit } from '../utils/fsHelper'
+} from '../constant/metadataConstants.js'
+import asyncFilter from '../utils/asyncFilter.js'
+import { pathExists, readDir, readPathFromGit } from '../utils/fsHelper.js'
 
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 export default class CustomObjectHandler extends StandardHandler {
   public override async handleAddition() {
