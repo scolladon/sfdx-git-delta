@@ -1,8 +1,8 @@
 'use strict'
-import { LABEL_DECOMPOSED_SUFFIX } from '../constant/metadataConstants'
+import { LABEL_DECOMPOSED_SUFFIX } from '../constant/metadataConstants.js'
 
-import InFileHandler from './inFileHandler'
-import StandardHandler from './standardHandler'
+import InFileHandler from './inFileHandler.js'
+import StandardHandler from './standardHandler.js'
 
 export default class CustomLabelHandler extends InFileHandler {
   public override async handleAddition() {
