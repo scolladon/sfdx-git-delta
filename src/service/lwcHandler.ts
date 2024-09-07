@@ -1,9 +1,9 @@
 'use strict'
 import { parse } from 'path'
 
-import { PATH_SEP } from '../constant/fsConstants'
+import { PATH_SEP } from '../constant/fsConstants.js'
 
-import InResourceHandler from './inResourceHandler'
+import InResourceHandler from './inResourceHandler.js'
 
 export default class LwcHandler extends InResourceHandler {
   protected override _isProcessable() {
