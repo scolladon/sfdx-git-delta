@@ -1,5 +1,5 @@
 {
-  "extends": "./node_modules/@salesforce/dev-config/tsconfig",
+  "extends": "@salesforce/dev-config/tsconfig-strict-esm",
   "compilerOptions": {
     "allowJs": false,
     "allowUnreachableCode": false,
