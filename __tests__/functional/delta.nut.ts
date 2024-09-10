@@ -1,5 +1,5 @@
 'use strict'
-import fs from 'fs'
+import fs from 'node:fs'
 import readline from 'readline'
 
 import { execCmd } from '@salesforce/cli-plugins-testkit'
