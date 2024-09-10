@@ -1,5 +1,5 @@
 'use strict'
-import { basename } from 'path'
+import { basename } from 'node:path'
 
 import { DOT } from '../constant/fsConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'

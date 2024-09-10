@@ -1,5 +1,5 @@
 'use strict'
-import { format } from 'util'
+import { format } from 'node:util'
 
 import messages from '../locales/en.js'
 

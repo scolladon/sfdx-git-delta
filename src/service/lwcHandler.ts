@@ -1,5 +1,5 @@
 'use strict'
-import { parse } from 'path'
+import { parse } from 'node:path'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 

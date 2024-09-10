@@ -1,5 +1,5 @@
 'use strict'
-import { join } from 'path'
+import { join } from 'node:path'
 import { format } from 'util'
 
 import GitAdapter from '../adapter/GitAdapter.js'

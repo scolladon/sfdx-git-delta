@@ -1,6 +1,6 @@
 'use strict'
 
-import { join } from 'path'
+import { join } from 'node:path'
 
 import { outputFile } from 'fs-extra'
 

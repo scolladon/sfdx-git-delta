@@ -1,6 +1,6 @@
 'use strict'
 
-import { parse } from 'path'
+import { parse } from 'node:path'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {

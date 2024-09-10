@@ -1,5 +1,5 @@
 'use strict'
-import { join } from 'path'
+import { join } from 'node:path'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 import {
