@@ -1,5 +1,5 @@
 'use strict'
-import { availableParallelism } from 'os'
+import { availableParallelism } from 'node:os'
 
 import { queue } from 'async'
 

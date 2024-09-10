@@ -1,5 +1,5 @@
 'use strict'
-import { format } from 'util'
+import { format } from 'node:util'
 
 import { describe, expect, it, jest } from '@jest/globals'
 

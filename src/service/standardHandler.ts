@@ -1,5 +1,5 @@
 'use strict'
-import { ParsedPath, join, parse } from 'path'
+import { ParsedPath, join, parse } from 'node:path'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {
