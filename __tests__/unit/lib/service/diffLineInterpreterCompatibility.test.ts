@@ -7,7 +7,7 @@ import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
-jest.mock('os', () => ({
+jest.mock('node:os', () => ({
   availableParallelism: null,
 }))
 
