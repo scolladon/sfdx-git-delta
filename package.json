@@ -114,7 +114,7 @@
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "postpack": "shx rm -f oclif.manifest.json",
-    "prepack": "yarn build && oclif-dev manifest && oclif-dev readme",
+    "prepack": "yarn build && oclif manifest && oclif readme",
     "prepare": "husky"
   },
   "wireit": {
