@@ -137,61 +137,46 @@ If you run your CI/CD jobs inside a Docker image, you can add the plugin to your
 ## How to use it?
 
 <!-- commands -->
-* [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sf sgd:source:delta`](#sf-sgdsourcedelta)
 
-## `sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sf sgd:source:delta`
 
-Generate the sfdx content in source format and destructive change from two git commits
+Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
-   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ sf sgd:source:delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-r <value>] [-i <value>] [-D <value>]
+    [-s <value>] [-W] [-o <value>] [-a <value>] [-d] [-n <value>] [-N <value>]
 
-OPTIONS
-  -D, --ignore-destructive=ignore-destructive                                       file listing paths to explicitly
-                                                                                    ignore for any destructive actions
+FLAGS
+  -D, --ignore-destructive=<value>   file listing paths to explicitly ignore for any destructive actions
+  -N, --include-destructive=<value>  file listing paths to explicitly include for any destructive actions
+  -W, --ignore-whitespace            ignore git diff whitespace (space, tab, eol) changes
+  -a, --api-version=<value>          salesforce metadata API version, default to sfdx-project.json "sourceApiVersion"
+                                     attribute or latest version
+  -d, --generate-delta               generate delta files in [--output] folder
+  -f, --from=<value>                 (required) commit sha from where the diff is done
+  -i, --ignore=<value>               file listing paths to explicitly ignore for any diff actions
+  -n, --include=<value>              file listing paths to explicitly include for any diff actions
+  -o, --output=<value>               [default: ./output] source package specific output
+  -r, --repo=<value>                 [default: ./] git repository location
+  -s, --source=<value>               [default: ./] source folder focus location related to --repo
+  -t, --to=<value>                   [default: HEAD] commit sha to where the diff is done
 
-  -N, --include-destructive=include-destructive                                     file listing paths to explicitly
-                                                                                    include for any destructive actions
+GLOBAL FLAGS
+  --flags-dir=<value>  Import flag values from a directory.
+  --json               Format output as json.
 
-  -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
-                                                                                    tab, eol) changes
+DESCRIPTION
+  Generate incremental package manifest and source content
 
-  -a, --api-version=api-version                                                     salesforce metadata API version,
-                                                                                    default to sfdx-project.json
-                                                                                    "sourceApiVersion" attribute or
-                                                                                    latest version
+  Use two git commit reference to generate the package corresponding to what has changed in between
 
-  -d, --generate-delta                                                              generate delta files in [--output]
-                                                                                    folder
-
-  -f, --from=from                                                                   (required) commit sha from where the
-                                                                                    diff is done
-
-  -i, --ignore=ignore                                                               file listing paths to explicitly
-                                                                                    ignore for any diff actions
-
-  -n, --include=include                                                             file listing paths to explicitly
-                                                                                    include for any diff actions
-
-  -o, --output=output                                                               [default: ./output] source package
-                                                                                    specific output
-
-  -r, --repo=repo                                                                   [default: ./] git repository
-                                                                                    location
-
-  -s, --source=source                                                               [default: ./] source folder focus
-                                                                                    location related to --repo
-
-  -t, --to=to                                                                       [default: HEAD] commit sha to where
-                                                                                    the diff is done
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+EXAMPLES
+  - Build incremental manifest from the previous commit
+  $ sf sgd:source:delta --from "origin/development" --output incremental
+  - Build incremental manifest and source from the development branch
+  $ sf sgd:source:delta --from "origin/development" --generate-delta --output incremental
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
