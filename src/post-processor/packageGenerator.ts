@@ -2,11 +2,13 @@
 
 import { join } from 'node:path'
 
-import { outputFile } from 'fs-extra'
+import fse from 'fs-extra'
 
 import PackageBuilder from '../utils/packageHelper.js'
 
 import BaseProcessor from './baseProcessor.js'
+
+const { outputFile } = fse
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'

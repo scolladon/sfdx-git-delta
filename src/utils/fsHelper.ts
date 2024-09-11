@@ -1,7 +1,7 @@
 'use strict'
 import { join } from 'node:path'
 
-import { outputFile } from 'fs-extra'
+import fse from 'fs-extra'
 
 import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
@@ -9,6 +9,8 @@ import type { FileGitRef } from '../types/git.js'
 
 import { treatPathSep } from './fsUtils.js'
 import { buildIgnoreHelper } from './ignoreHelper.js'
+
+const { outputFile } = fse
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()

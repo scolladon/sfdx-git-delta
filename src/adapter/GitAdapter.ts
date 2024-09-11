@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { join } from 'node:path'
 
-import { readFile } from 'fs-extra'
+import fse from 'fs-extra'
 import git, { TREE, WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 import { SimpleGit, simpleGit } from 'simple-git'
 
@@ -23,6 +23,8 @@ import {
   treatPathSep,
 } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
+
+const { readFile } = fse
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
