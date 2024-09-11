@@ -1,7 +1,7 @@
 'use strict'
 import { resolve } from 'node:path'
 
-import { readFile, readdir } from 'fs-extra'
+import fse from 'fs-extra'
 
 import type {
   BaseMetadata,
@@ -13,6 +13,8 @@ import type {
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
 
+const { readFile, readdir } = fse
+
 const _apiMap = new Map<number, string>()
 let _latestVersion: number = -Infinity
 const describeMetadata = new Map<number, Metadata[]>()
@@ -21,7 +23,7 @@ const sharedFolderMetadata = new Map<string, string>()
 
 const buildAPIMap = async () => {
   if (_apiMap.size === 0) {
-    const dir = await readdir(__dirname)
+    const dir = await readdir(import.meta.dirname)
     dir
       .filter(file => /^[a-z]+\d+\.json$/.test(file))
       .forEach((file: string) => {
@@ -57,7 +59,7 @@ export const getDefinition = async (
   if (!describeMetadata.has(version)) {
     const apiFile: string = _apiMap.get(version)!
     const fileContent: string = await readFile(
-      resolve(__dirname, apiFile),
+      resolve(import.meta.dirname, apiFile),
       'utf-8'
     )
     describeMetadata.set(version, JSON.parse(fileContent))
