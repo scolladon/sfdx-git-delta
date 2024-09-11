@@ -2,17 +2,22 @@ import type { KnipConfig } from 'knip'
 
 const config = async (): Promise<KnipConfig> => {
   return {
-    entry: ['src/commands/sgd/source/delta.ts', 'src/main.ts'],
-    project: ['src/**/*.ts'],
+    entry: [
+      'src/commands/sgd/source/delta.ts',
+      'src/main.ts',
+      'bin/dev.js',
+      'bin/run.js',
+    ],
+    project: ['src/**/*.ts', 'bin/*.js'],
     ignoreDependencies: [
       '@salesforce/ts-sinon',
-      '@swc/core',
+      '@types/chai',
       '@types/jest',
       '@types/mocha',
       'chai',
       'mocha',
       'sinon',
-      'ts-node',
+      'ts-jest-mock-import-meta',
     ],
     ignoreBinaries: ['test:e2e'],
   }
