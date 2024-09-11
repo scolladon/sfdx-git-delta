@@ -1,6 +1,6 @@
 'use strict'
 
-import { isEqual } from 'lodash'
+import lodash from 'lodash'
 
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
@@ -15,6 +15,8 @@ import {
   parseXmlFileToJson,
 } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
+
+const { isEqual } = lodash
 
 type ManifestTypeMember = {
   type: string
