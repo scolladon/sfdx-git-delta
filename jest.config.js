@@ -76,7 +76,19 @@ export default {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    '\\.[jt]sx?$': ['ts-jest'],
+    '\\.[jt]sx?$': ['ts-jest',{
+        diagnostics: {
+          ignoreCodes: [1343]
+        },
+        astTransformers: {
+          before: [
+            {
+              path: 'ts-jest-mock-import-meta',
+              options: { metaObjectReplacement: { url: 'https://www.url.com', dirname: 'src/metadata/' } }
+            }
+          ]
+        }
+      }],
   },
   extensionsToTreatAsEsm: ['.ts'],
   // A map from regular expressions to module names that allow to stub out resources with a single module
