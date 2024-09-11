@@ -10693,6 +10693,7 @@ __metadata:
     simple-git: "npm:^3.26.0"
     sinon: "npm:^18.0.0"
     ts-jest: "npm:^29.2.5"
+    ts-jest-mock-import-meta: "npm:^1.2.0"
     ts-node: "npm:^10.9.2"
     tslib: "npm:^2.7.0"
     typescript: "npm:^5.6.2"
@@ -11539,6 +11540,15 @@ __metadata:
   bin:
     tree-kill: cli.js
   checksum: 10/49117f5f410d19c84b0464d29afb9642c863bc5ba40fcb9a245d474c6d5cc64d1b177a6e6713129eb346b40aebb9d4631d967517f9fbe8251c35b21b13cd96c7
+  languageName: node
+  linkType: hard
+
+"ts-jest-mock-import-meta@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "ts-jest-mock-import-meta@npm:1.2.0"
+  peerDependencies:
+    ts-jest: ">=20.0.0"
+  checksum: 10/52d24459eddd3f70e0dde29519b9129cbc65fdfcf8a74d2fef9dee6943e06d0e7594a9cbfb1a05832d6159bbdcf5366dd1a4d221a4e8df082a2a89b244b0c886
   languageName: node
   linkType: hard
 
