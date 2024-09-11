@@ -19,6 +19,7 @@
     "noUnusedParameters": true,
     "outDir": "./lib",
     "resolveJsonModule": true,
+    "rootDir": "src",
     "skipLibCheck": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
