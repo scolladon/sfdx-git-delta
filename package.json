@@ -88,6 +88,7 @@
     "shx": "^0.3.4",
     "sinon": "^18.0.0",
     "ts-jest": "^29.2.5",
+    "ts-jest-mock-import-meta": "^1.2.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.7.0",
     "typescript": "^5.6.2",
