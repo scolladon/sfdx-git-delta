@@ -2188,6 +2188,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@oclif/plugin-command-snapshot@npm:^5.2.15":
+  version: 5.2.15
+  resolution: "@oclif/plugin-command-snapshot@npm:5.2.15"
+  dependencies:
+    "@oclif/core": "npm:^4"
+    ansis: "npm:^3.3.2"
+    globby: "npm:^14.0.2"
+    just-diff: "npm:^5.2.0"
+    lodash.difference: "npm:^4.5.0"
+    lodash.get: "npm:^4.4.2"
+    lodash.sortby: "npm:^4.7.0"
+    semver: "npm:^7.6.3"
+    ts-json-schema-generator: "npm:^1.5.1"
+  checksum: 10/5bdd60b2349956c7baf5ed0850384775fdb2b1cda8d49936ae380bd2592f9babe81e8addec9c18b729b63ecfad95f693e6742b3fc01f5b6d742415c8fac8be91
+  languageName: node
+  linkType: hard
+
 "@oclif/plugin-help@npm:^6.2.10, @oclif/plugin-help@npm:^6.2.11":
   version: 6.2.11
   resolution: "@oclif/plugin-help@npm:6.2.11"
@@ -2424,6 +2441,13 @@ __metadata:
   version: 5.6.0
   resolution: "@sindresorhus/is@npm:5.6.0"
   checksum: 10/b077c325acec98e30f7d86df158aaba2e7af2acb9bb6a00fda4b91578539fbff4ecebe9b934e24fec0e6950de3089d89d79ec02d9062476b20ce185be0e01bd6
+  languageName: node
+  linkType: hard
+
+"@sindresorhus/merge-streams@npm:^2.1.0":
+  version: 2.3.0
+  resolution: "@sindresorhus/merge-streams@npm:2.3.0"
+  checksum: 10/798bcb53cd1ace9df84fcdd1ba86afdc9e0cd84f5758d26ae9b1eefd8e8887e5fc30051132b9e74daf01bb41fa5a2faf1369361f83d76a3b3d7ee938058fd71c
   languageName: node
   linkType: hard
 
@@ -3535,6 +3559,13 @@ __metadata:
     expect: "npm:^29.0.0"
     pretty-format: "npm:^29.0.0"
   checksum: 10/312e8dcf92cdd5a5847d6426f0940829bca6fe6b5a917248f3d7f7ef5d85c9ce78ef05e47d2bbabc40d41a930e0e36db2d443d2610a9e3db9062da2d5c904211
+  languageName: node
+  linkType: hard
+
+"@types/json-schema@npm:^7.0.15":
+  version: 7.0.15
+  resolution: "@types/json-schema@npm:7.0.15"
+  checksum: 10/1a3c3e06236e4c4aab89499c428d585527ce50c24fe8259e8b3926d3df4cfbbbcf306cfc73ddfb66cbafc973116efd15967020b0f738f63e09e64c7d260519e7
   languageName: node
   linkType: hard
 
@@ -5957,7 +5988,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^8.1.0":
+"glob@npm:^8.0.3, glob@npm:^8.1.0":
   version: 8.1.0
   resolution: "glob@npm:8.1.0"
   dependencies:
@@ -6010,6 +6041,20 @@ __metadata:
     merge2: "npm:^1.4.1"
     slash: "npm:^4.0.0"
   checksum: 10/4494a9d2162a7e4d327988b26be66d8eab87d7f59a83219e74b065e2c3ced23698f68fb10482bf9337133819281803fb886d6ae06afbb2affa743623eb0b1949
+  languageName: node
+  linkType: hard
+
+"globby@npm:^14.0.2":
+  version: 14.0.2
+  resolution: "globby@npm:14.0.2"
+  dependencies:
+    "@sindresorhus/merge-streams": "npm:^2.1.0"
+    fast-glob: "npm:^3.3.2"
+    ignore: "npm:^5.2.4"
+    path-type: "npm:^5.0.0"
+    slash: "npm:^5.1.0"
+    unicorn-magic: "npm:^0.1.0"
+  checksum: 10/67660da70fc1223f7170c1a62ba6c373385e9e39765d952b6518606dec15ed8c7958e9dae6ba5752a31dbc1e9126f146938b830ad680fe794141734ffc3fbb75
   languageName: node
   linkType: hard
 
@@ -7364,6 +7409,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"just-diff@npm:^5.2.0":
+  version: 5.2.0
+  resolution: "just-diff@npm:5.2.0"
+  checksum: 10/b0d9e306e5bed9f61bdcd528e40608d664eb77abd4c82f90359fe6c35dbebaca29eb3b64f182a1163641eaea3a6dcea2d9ce4dbe257486c6999da0d1172e4aa9
+  languageName: node
+  linkType: hard
+
 "just-extend@npm:^4.0.2":
   version: 4.2.1
   resolution: "just-extend@npm:4.2.1"
@@ -7550,6 +7602,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.difference@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "lodash.difference@npm:4.5.0"
+  checksum: 10/b22adb1be9c60e5997b8b483f8bab19878cb40eda65437907958e5d27990214716e1b00ebe312a97f47e63d8b891e4ae30947d08e1f0861ccdb9462f56ab9d77
+  languageName: node
+  linkType: hard
+
 "lodash.flattendeep@npm:^4.4.0":
   version: 4.4.0
   resolution: "lodash.flattendeep@npm:4.4.0"
@@ -7652,6 +7711,13 @@ __metadata:
   version: 4.1.1
   resolution: "lodash.snakecase@npm:4.1.1"
   checksum: 10/82ed40935d840477ef8fee64f9f263f75989c6cde36b84aae817246d95826228e1b5a7f6093c51de324084f86433634c7af244cb89496633cacfe443071450d0
+  languageName: node
+  linkType: hard
+
+"lodash.sortby@npm:^4.7.0":
+  version: 4.7.0
+  resolution: "lodash.sortby@npm:4.7.0"
+  checksum: 10/38df19ae28608af2c50ac342fc1f414508309d53e1d58ed9adfb2c3cd17c3af290058c0a0478028d932c5404df3d53349d19fa364ef6bed6145a6bc21320399e
   languageName: node
   linkType: hard
 
@@ -8725,6 +8791,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"path-type@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "path-type@npm:5.0.0"
+  checksum: 10/15ec24050e8932c2c98d085b72cfa0d6b4eeb4cbde151a0a05726d8afae85784fc5544f733d8dfc68536587d5143d29c0bd793623fad03d7e61cc00067291cd5
+  languageName: node
+  linkType: hard
+
 "pathval@npm:^2.0.0":
   version: 2.0.0
   resolution: "pathval@npm:2.0.0"
@@ -9282,7 +9355,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"safe-stable-stringify@npm:^2.3.1":
+"safe-stable-stringify@npm:^2.3.1, safe-stable-stringify@npm:^2.4.3":
   version: 2.5.0
   resolution: "safe-stable-stringify@npm:2.5.0"
   checksum: 10/2697fa186c17c38c3ca5309637b4ac6de2f1c3d282da27cd5e1e3c88eca0fb1f9aea568a6aabdf284111592c8782b94ee07176f17126031be72ab1313ed46c5c
@@ -9400,6 +9473,7 @@ __metadata:
     "@jest/globals": "npm:^29.7.0"
     "@ls-lint/ls-lint": "npm:^2.2.3"
     "@oclif/core": "npm:^4.0.21"
+    "@oclif/plugin-command-snapshot": "npm:^5.2.15"
     "@oclif/plugin-help": "npm:^6.2.11"
     "@salesforce/cli-plugins-testkit": "npm:^5.3.30"
     "@salesforce/core": "npm:^8.5.5"
@@ -9629,6 +9703,13 @@ __metadata:
   version: 4.0.0
   resolution: "slash@npm:4.0.0"
   checksum: 10/da8e4af73712253acd21b7853b7e0dbba776b786e82b010a5bfc8b5051a1db38ed8aba8e1e8f400dd2c9f373be91eb1c42b66e91abb407ff42b10feece5e1d2d
+  languageName: node
+  linkType: hard
+
+"slash@npm:^5.1.0":
+  version: 5.1.0
+  resolution: "slash@npm:5.1.0"
+  checksum: 10/2c41ec6fb1414cd9bba0fa6b1dd00e8be739e3fe85d079c69d4b09ca5f2f86eafd18d9ce611c0c0f686428638a36c272a6ac14799146a8295f259c10cc45cde4
   languageName: node
   linkType: hard
 
@@ -10258,6 +10339,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ts-json-schema-generator@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "ts-json-schema-generator@npm:1.5.1"
+  dependencies:
+    "@types/json-schema": "npm:^7.0.15"
+    commander: "npm:^12.0.0"
+    glob: "npm:^8.0.3"
+    json5: "npm:^2.2.3"
+    normalize-path: "npm:^3.0.0"
+    safe-stable-stringify: "npm:^2.4.3"
+    typescript: "npm:~5.4.2"
+  bin:
+    ts-json-schema-generator: bin/ts-json-schema-generator
+  checksum: 10/3bc184ddafd34b0073f7a89c1600981c947f2930cf7a58a45e0921f584a20c06032625afe7b096f6199d168b0e6c5ec09ffa2d4237c9428c90c6ccf0f5aef071
+  languageName: node
+  linkType: hard
+
 "ts-node@npm:^10.9.2":
   version: 10.9.2
   resolution: "ts-node@npm:10.9.2"
@@ -10407,6 +10505,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:~5.4.2":
+  version: 5.4.5
+  resolution: "typescript@npm:5.4.5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10/d04a9e27e6d83861f2126665aa8d84847e8ebabcea9125b9ebc30370b98cb38b5dff2508d74e2326a744938191a83a69aa9fddab41f193ffa43eabfdf3f190a5
+  languageName: node
+  linkType: hard
+
 "typescript@patch:typescript@npm%3A^5.6.2#optional!builtin<compat/typescript>":
   version: 5.6.2
   resolution: "typescript@patch:typescript@npm%3A5.6.2#optional!builtin<compat/typescript>::version=5.6.2&hash=8c6c40"
@@ -10414,6 +10522,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10/8bfc7ca0d9feca4c3fcbd6c70741abfcd714197d6448e68225ae71e462447d904d3bfba49759a8fbe4956d87f054e2d346833c8349c222daa594a2626d4e1be8
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A~5.4.2#optional!builtin<compat/typescript>":
+  version: 5.4.5
+  resolution: "typescript@patch:typescript@npm%3A5.4.5#optional!builtin<compat/typescript>::version=5.4.5&hash=5adc0c"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10/760f7d92fb383dbf7dee2443bf902f4365db2117f96f875cf809167f6103d55064de973db9f78fe8f31ec08fff52b2c969aee0d310939c0a3798ec75d0bca2e1
   languageName: node
   linkType: hard
 
