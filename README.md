@@ -137,15 +137,15 @@ If you run your CI/CD jobs inside a Docker image, you can add the plugin to your
 ## How to use it?
 
 <!-- commands -->
-* [`sf sgd:source:delta`](#sf-sgdsourcedelta)
+* [`sf sgd source delta`](#sf-sgd-source-delta)
 
-## `sf sgd:source:delta`
+## `sf sgd source delta`
 
 Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd:source:delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-r <value>] [-i <value>] [-D <value>]
+  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-r <value>] [-i <value>] [-D <value>]
     [-s <value>] [-W] [-o <value>] [-a <value>] [-d] [-n <value>] [-N <value>]
 
 FLAGS
@@ -174,12 +174,12 @@ DESCRIPTION
 
 EXAMPLES
   - Build incremental manifest from the previous commit
-  $ sf sgd:source:delta --from "origin/development" --output incremental
+  $ sf sgd source delta --from "origin/development" --output incremental
   - Build incremental manifest and source from the development branch
-  $ sf sgd:source:delta --from "origin/development" --generate-delta --output incremental
+  $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.43.0/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
