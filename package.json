@@ -36,6 +36,7 @@
   },
   "oclif": {
     "commands": "./lib/commands",
+    "topicSeparator": " ",
     "bin": "sf",
     "devPlugins": [
       "@oclif/plugin-help"
