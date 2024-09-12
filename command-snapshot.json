@@ -1,0 +1,38 @@
+[
+    {
+        "alias": [],
+        "command": "sgd:source:delta",
+        "flagAliases": [],
+        "flagChars": [
+            "D",
+            "N",
+            "W",
+            "a",
+            "d",
+            "f",
+            "i",
+            "n",
+            "o",
+            "r",
+            "s",
+            "t"
+        ],
+        "flags": [
+            "api-version",
+            "flags-dir",
+            "from",
+            "generate-delta",
+            "ignore",
+            "ignore-destructive",
+            "ignore-whitespace",
+            "include",
+            "include-destructive",
+            "json",
+            "output",
+            "repo",
+            "source",
+            "to"
+        ],
+        "plugin": "sfdx-git-delta"
+    }
+]
