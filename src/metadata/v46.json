@@ -1,5 +1,26 @@
 [
   {
+    "directoryName": "featureParameters",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "featureParameterInteger",
+    "xmlName": "FeatureParameterInteger"
+  },
+  {
+    "directoryName": "featureParameters",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "featureParameterBoolean",
+    "xmlName": "FeatureParameterBoolean"
+  },
+  {
+    "directoryName": "featureParameters",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "featureParameterDate",
+    "xmlName": "FeatureParameterDate"
+  },
+  {
     "directoryName": "recommendationStrategies",
     "inFolder": false,
     "metaFile": false,
