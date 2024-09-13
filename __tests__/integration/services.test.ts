@@ -437,6 +437,21 @@ const testContext = [
     new Set(['WaveXmdTest']),
     'WaveXmd',
   ],
+  [
+    'force-app/main/default/featureParameters/FeatureParameterIntegerTest.featureParameterInteger',
+    new Set(['FeatureParameterIntegerTest']),
+    'FeatureParameterInteger',
+  ],
+  [
+    'force-app/main/default/featureParameters/FeatureParameterBooleanTest.featureParameterBoolean',
+    new Set(['FeatureParameterBooleanTest']),
+    'FeatureParameterBoolean',
+  ],
+  [
+    'force-app/main/default/featureParameters/FeatureParameterDateTest.featureParameterDate',
+    new Set(['FeatureParameterDateTest']),
+    'FeatureParameterDate',
+  ],
 ]
 
 let globalMetadata: MetadataRepository
