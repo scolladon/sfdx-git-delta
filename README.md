@@ -36,7 +36,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [How to use it?](#how-to-use-it)
-- [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sf-sgd-source-delta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+- [`sf sgd source delta`](#sf-sgd-source-delta)
   - [Windows users](#windows-users)
   - [CI/CD specificity](#cicd-specificity)
   - [Git LFS support](#git-lfs-support)
@@ -179,7 +179,7 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.43.0/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
