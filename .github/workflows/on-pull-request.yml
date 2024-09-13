@@ -133,11 +133,11 @@ jobs:
       - name: NPM Publish dev channel
         run: |
           CURRENT_VERSION=$(jq -r '.version' package.json)
-          DEV_TAG="${{ env.DEV_CHANNEL }}.${{ github.run_id }}-${{github.run_attempt}}"
+          DEV_TAG="${{ env.DEV_CHANNEL }}.${{ github.run_id }}-${{ github.run_attempt }}"
           npm version "${CURRENT_VERSION}-${DEV_TAG}"
           yarn npm publish --access public --tag "${{ env.DEV_CHANNEL }}"
         env:
-          YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Comment PR dev channel
         uses: thollander/actions-comment-pull-request@v2
