@@ -50,6 +50,7 @@
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
   - [Handle flow deletion](#handle-flow-deletion)
+- [Complementary Plugins](#complementary-plugins)
 - [Changelog](#changelog)
 - [Built With](#built-with)
 - [Versioning](#versioning)
@@ -585,6 +586,13 @@ Example to delete the Flow `Set_Account_Description` :
 # add `--ignore-warnings` parameter if you listed a deleted Flow version in the destructiveChangesPost.xml
 sf project deploy start -x package.xml --post-destructive-changes destructiveChangesPost.xml
 ```
+
+## Complementary Plugins
+
+These plugins have been designed to work with SGD:
+
+- [apex-test-list](https://github.com/renatoliveira/apex-test-list) - Developer: [renatoliveira](https://github.com/renatoliveira) - This plugin determines the specified Apex tests by reading test annotations made anywhere inside your Apex classes. You can have this plugin scan the package.xml created by SGD to determine the required Apex tests to run during deployment.
+- [apex-tests-git-delta](https://github.com/mcarvin8/apex-tests-git-delta) - Developer: [mcarvin8](https://github.com/mcarvin8) - This plugin determines the specified Apex tests by reading the commit messages in the commit range. You can use the same `--from` and `--to` commit hashes when using SGD and apex-tests-git-delta to determine the required Apex tests to run during deployment.
 
 ## Changelog
 
