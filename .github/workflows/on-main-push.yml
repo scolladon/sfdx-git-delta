@@ -48,7 +48,7 @@ jobs:
       - name: Publish to npm
         run: yarn npm publish --access public --tag latest-rc
         env:
-          YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   test-release:
     uses: ./.github/workflows/run-e2e-tests.yml

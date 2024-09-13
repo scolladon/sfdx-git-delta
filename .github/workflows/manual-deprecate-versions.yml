@@ -29,4 +29,4 @@ jobs:
       - name: Change version
         run: npm deprecate sfdx-git-delta@$"${{ github.event.inputs.version-expression }}" "${{ github.event.inputs.rationale }}"
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
