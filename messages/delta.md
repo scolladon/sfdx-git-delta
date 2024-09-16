@@ -63,3 +63,19 @@ file listing paths to explicitly include for any diff actions
 # flags.include-destructive.summary
 
 file listing paths to explicitly include for any destructive actions
+
+# error.ParameterIsNotGitSHA
+
+--%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
+
+# error.PathIsNotGit
+
+'%s' is not a git repository
+
+# warning.ApiVersionNotSupported
+
+API version not found or not supported, using '%s' instead
+
+# warning.FlowDeleted
+
+Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expected (see https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)
