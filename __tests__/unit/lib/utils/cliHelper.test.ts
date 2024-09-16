@@ -78,106 +78,6 @@ describe(`test if the application`, () => {
     await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
-  it('throws errors when output parameter does not exist', async () => {
-    mockedDirExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when repo parameter does not exist', async () => {
-    mockedDirExists.mockResolvedValueOnce(true)
-    mockedDirExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when source parameter does not exist', async () => {
-    mockedDirExists.mockResolvedValueOnce(true)
-    mockedDirExists.mockResolvedValueOnce(true)
-    mockedDirExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when ignore parameter does not exist', async () => {
-    mockedFileExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when ignoreDestructive parameter does not exist', async () => {
-    mockedFileExists.mockResolvedValueOnce(true)
-    mockedFileExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when include parameter does not exist', async () => {
-    mockedFileExists.mockResolvedValueOnce(true)
-    mockedFileExists.mockResolvedValueOnce(true)
-    mockedFileExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when includeDestructive parameter does not exist', async () => {
-    mockedFileExists.mockResolvedValueOnce(true)
-    mockedFileExists.mockResolvedValueOnce(true)
-    mockedFileExists.mockResolvedValueOnce(true)
-    mockedFileExists.mockResolvedValueOnce(false)
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
   it('throws errors when to parameter is not filled', async () => {
     const cliHelper = new CLIHelper({
       ...work,
@@ -190,86 +90,12 @@ describe(`test if the application`, () => {
     await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
-  it('throws errors when output folder does not exist', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-        output: 'not/exist/folder',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when output is not a folder', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-        output: 'file',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
   it('throws errors when repo is not git repository', async () => {
     const cliHelper = new CLIHelper({
       ...work,
       config: {
         ...work.config,
         repo: 'not/git/folder',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when file is not found for --ignore', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        ignore: 'not-a-file',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when file is not found for --ignore-destructive', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        ignoreDestructive: 'not-a-file',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when file is not found for --include', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        include: 'not-a-file',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
-  it('throws errors when file is not found for --include-destructive', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        includeDestructive: 'not-a-file',
       },
     })
     expect.assertions(1)

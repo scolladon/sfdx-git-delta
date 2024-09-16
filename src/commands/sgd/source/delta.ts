@@ -23,21 +23,18 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
   public static override readonly examples = messages.getMessages('examples')
 
   public static override readonly flags = {
-    to: Flags.string({
-      char: 't',
-      summary: messages.getMessage('flags.to.summary'),
-      default: TO_DEFAULT_VALUE,
+    'api-version': Flags.integer({
+      char: 'a',
+      summary: messages.getMessage('flags.api-version.summary'),
     }),
     from: Flags.string({
       char: 'f',
       summary: messages.getMessage('flags.from.summary'),
       required: true,
     }),
-    repo: Flags.directory({
-      char: 'r',
-      summary: messages.getMessage('flags.repo.summary'),
-      default: REPO_DEFAULT_VALUE,
-      exists: true,
+    'generate-delta': Flags.boolean({
+      char: 'd',
+      summary: messages.getMessage('flags.generate-delta.summary'),
     }),
     ignore: Flags.file({
       char: 'i',
@@ -49,28 +46,9 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       summary: messages.getMessage('flags.ignore-destructive.summary'),
       exists: true,
     }),
-    source: Flags.directory({
-      char: 's',
-      summary: messages.getMessage('flags.source.summary'),
-      default: SOURCE_DEFAULT_VALUE,
-      exists: true,
-    }),
     'ignore-whitespace': Flags.boolean({
       char: 'W',
       summary: messages.getMessage('flags.ignore-whitespace.summary'),
-    }),
-    output: Flags.directory({
-      char: 'o',
-      summary: messages.getMessage('flags.output.summary'),
-      default: OUTPUT_DEFAULT_VALUE,
-    }),
-    'api-version': Flags.integer({
-      char: 'a',
-      summary: messages.getMessage('flags.api-version.summary'),
-    }),
-    'generate-delta': Flags.boolean({
-      char: 'd',
-      summary: messages.getMessage('flags.generate-delta.summary'),
     }),
     include: Flags.file({
       char: 'n',
@@ -81,6 +59,29 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       char: 'N',
       summary: messages.getMessage('flags.include-destructive.summary'),
       exists: true,
+    }),
+    output: Flags.directory({
+      char: 'o',
+      summary: messages.getMessage('flags.output.summary'),
+      default: OUTPUT_DEFAULT_VALUE,
+      exists: true,
+    }),
+    repo: Flags.directory({
+      char: 'r',
+      summary: messages.getMessage('flags.repo.summary'),
+      default: REPO_DEFAULT_VALUE,
+      exists: true,
+    }),
+    source: Flags.directory({
+      char: 's',
+      summary: messages.getMessage('flags.source.summary'),
+      default: SOURCE_DEFAULT_VALUE,
+      exists: true,
+    }),
+    to: Flags.string({
+      char: 't',
+      summary: messages.getMessage('flags.to.summary'),
+      default: TO_DEFAULT_VALUE,
     }),
   }
 
@@ -93,18 +94,18 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       warnings: [],
     }
     const config: Config = {
-      to: flags['to'],
+      apiVersion: flags['api-version'],
       from: flags['from'],
-      output: flags['output'],
-      source: flags['source'],
+      generateDelta: flags['generate-delta'],
       ignore: flags['ignore'],
       ignoreDestructive: flags['ignore-destructive'],
-      apiVersion: flags['api-version'],
-      repo: flags['repo'],
       ignoreWhitespace: flags['ignore-whitespace'],
-      generateDelta: flags['generate-delta'],
       include: flags['include'],
       includeDestructive: flags['include-destructive'],
+      output: flags['output'],
+      repo: flags['repo'],
+      source: flags['source'],
+      to: flags['to'],
     }
     try {
       const jobResult = await sgd(config)
