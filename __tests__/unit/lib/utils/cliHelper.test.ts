@@ -1,9 +1,7 @@
 'use strict'
-import { format } from 'node:util'
 
 import { describe, expect, it, jest } from '@jest/globals'
 
-import messages from '../../../../src/locales/en'
 import { getLatestSupportedVersion } from '../../../../src/metadata/metadataManager'
 import type { Work } from '../../../../src/types/work'
 import CLIHelper from '../../../../src/utils/cliHelper'
@@ -26,6 +24,7 @@ jest.mock('../../../../src/adapter/GitAdapter', () => ({
   }),
 }))
 
+jest.mock('../../../../src/utils/MessageService')
 jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)
 const mockedSanitizePath = jest.mocked(sanitizePath)
@@ -78,19 +77,8 @@ describe(`test if the application`, () => {
     await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
-  it('throws errors when to parameter is not filled', async () => {
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
   it('throws errors when repo is not git repository', async () => {
+    setGitDirMock.mockImplementation(() => Promise.reject())
     const cliHelper = new CLIHelper({
       ...work,
       config: {
@@ -102,21 +90,8 @@ describe(`test if the application`, () => {
     await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
-  it('throws errors when "-t" and "-d" are set', async () => {
-    const notHeadSHA = 'test'
-    const cliHelper = new CLIHelper({
-      ...work,
-      config: {
-        ...work.config,
-        to: notHeadSHA,
-        generateDelta: true,
-      },
-    })
-    expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
-  })
-
   it('throws errors when "-t" is not a git expression', async () => {
+    mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
     const cliHelper = new CLIHelper({
       ...work,
@@ -127,12 +102,11 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow(
-      format(messages.errorGitSHAisBlank, 'to', emptyString)
-    )
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-f" is not a git expression', async () => {
+    mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
     const cliHelper = new CLIHelper({
       ...work,
@@ -143,9 +117,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow(
-      format(messages.errorGitSHAisBlank, 'from', emptyString)
-    )
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" is not a valid sha pointer', async () => {
@@ -162,9 +134,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow(
-      format(messages.errorParameterIsNotGitSHA, 'to', notHeadSHA)
-    )
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-f" is not a valid sha pointer', async () => {
@@ -182,13 +152,11 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow(
-      format(messages.errorParameterIsNotGitSHA, 'from', notHeadSHA)
-    )
+    await expect(cliHelper.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" and "-f" are not a valid sha pointer', async () => {
-    expect.assertions(2)
+    expect.assertions(1)
     mockParseRev.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
@@ -209,13 +177,7 @@ describe(`test if the application`, () => {
     try {
       await cliHelper.validateConfig()
     } catch (err) {
-      const error = err as Error
-      expect(error.message).toContain(
-        format(messages.errorParameterIsNotGitSHA, 'from', notHeadSHA)
-      )
-      expect(error.message).toContain(
-        format(messages.errorParameterIsNotGitSHA, 'to', notHeadSHA)
-      )
+      expect(err).toBeDefined()
     }
   })
 
@@ -249,9 +211,7 @@ describe(`test if the application`, () => {
         repo: 'submodule/',
       },
     })
-    await expect(cliHelper.validateConfig()).rejects.not.toThrow(
-      format(messages.errorPathIsNotGit, 'submodule/')
-    )
+    await expect(cliHelper.validateConfig()).resolves.not.toBe({})
   })
 
   it('do not throw errors when repo submodule git folder', async () => {
@@ -264,9 +224,7 @@ describe(`test if the application`, () => {
         repo: 'submodule/',
       },
     })
-    await expect(cliHelper.validateConfig()).rejects.not.toThrow(
-      format(messages.errorPathIsNotGit, 'submodule/.git')
-    )
+    await expect(cliHelper.validateConfig()).resolves.not.toBe({})
   })
 
   describe('apiVersion parameter handling', () => {

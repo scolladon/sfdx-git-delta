@@ -1,19 +1,16 @@
 'use strict'
 import { join } from 'node:path'
-import { format } from 'util'
 
 import GitAdapter from '../adapter/GitAdapter.js'
-import messages from '../locales/en.js'
 import {
   getLatestSupportedVersion,
   isVersionSupported,
 } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
+import { MessageService } from './MessageService.js'
 
 import { fileExists, readFile, sanitizePath } from './fsUtils.js'
-
-const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
 const GIT_SHA_PARAMETERS: (keyof Config)[] = ['to', 'from']
 const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
@@ -22,32 +19,29 @@ const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 export default class CLIHelper {
   protected readonly config: Config
   protected readonly gitAdapter: GitAdapter
+  protected readonly message: MessageService
 
   constructor(protected readonly work: Work) {
     this.config = work.config
     this.gitAdapter = GitAdapter.getInstance(work.config)
+    this.message = new MessageService()
   }
 
   protected async _validateGitSha() {
     const errors: string[] = []
+
     await Promise.all(
-      GIT_SHA_PARAMETERS.filter((shaParameter: keyof Config) => {
-        const shaValue: string = this.config[shaParameter] as string
-        if (isBlank(shaValue)) {
-          errors.push(
-            format(messages.errorGitSHAisBlank, shaParameter, shaValue)
-          )
-          return false
-        }
-        return true
-      }).map(async (shaParameter: keyof Config) => {
+      GIT_SHA_PARAMETERS.map(async (shaParameter: keyof Config) => {
         const shaValue: string = this.config[shaParameter] as string
         try {
           const ref: string = await this.gitAdapter.parseRev(shaValue)
           ;(this.config[shaParameter] as string) = ref
         } catch {
           errors.push(
-            format(messages.errorParameterIsNotGitSHA, shaParameter, shaValue)
+            this.message.getMessage('error.ParameterIsNotGitSHA', [
+              shaParameter,
+              shaValue,
+            ])
           )
         }
       })
@@ -64,7 +58,9 @@ export default class CLIHelper {
     try {
       await this.gitAdapter.setGitDir()
     } catch {
-      errors.push(format(messages.errorPathIsNotGit, this.config.repo))
+      errors.push(
+        this.message.getMessage('error.PathIsNotGit', [this.config.repo])
+      )
     }
 
     const gitErrors = await this._validateGitSha()
@@ -111,10 +107,9 @@ export default class CLIHelper {
       ) {
         this.work.warnings.push(
           new Error(
-            format(
-              messages.warningApiVersionNotSupported,
-              latestAPIVersionSupported
-            )
+            this.message.getMessage('warning.ApiVersionNotSupported', [
+              `${latestAPIVersionSupported}`,
+            ])
           )
         )
       }

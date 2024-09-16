@@ -1,9 +1,9 @@
-import { Messages } from '@salesforce/core'
 import { Flags, SfCommand } from '@salesforce/sf-plugins-core'
 
 import sgd from '../../../main.js'
 import type { Config } from '../../../types/config.js'
 import type { SgdResult } from '../../../types/sgdResult.js'
+import { MessageService } from '../../../utils/MessageService.js'
 import {
   OUTPUT_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,
@@ -11,10 +11,7 @@ import {
   TO_DEFAULT_VALUE,
 } from '../../../utils/cliConstants.js'
 
-Messages.importMessagesDirectoryFromMetaUrl(import.meta.url)
-const COMMAND_NAME = 'delta'
-
-const messages = Messages.loadMessages('sfdx-git-delta', COMMAND_NAME)
+const messages = new MessageService()
 
 export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
   public static override readonly summary = messages.getMessage('summary')
