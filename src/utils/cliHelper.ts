@@ -11,8 +11,7 @@ import {
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
 
-import asyncFilter from './asyncFilter.js'
-import { dirExists, fileExists, readFile, sanitizePath } from './fsUtils.js'
+import { fileExists, readFile, sanitizePath } from './fsUtils.js'
 
 const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
@@ -62,19 +61,6 @@ export default class CLIHelper {
     await this._handleDefault()
     const errors: string[] = []
 
-    const directoriesPromise = this._filterDirectories()
-    const filesPromise = this._filterFiles()
-
-    const directories = await directoriesPromise
-    directories.forEach((dir: string) =>
-      errors.push(format(messages.errorPathIsNotDir, dir))
-    )
-
-    const files = await filesPromise
-    files.forEach((file: string) =>
-      errors.push(format(messages.errorPathIsNotFile, file))
-    )
-
     try {
       await this.gitAdapter.setGitDir()
     } catch {
@@ -89,33 +75,6 @@ export default class CLIHelper {
     }
 
     await this.gitAdapter.configureRepository()
-  }
-
-  protected _filterDirectories() {
-    return asyncFilter(
-      [this.config.output, join(this.config.repo, this.config.source)].filter(
-        Boolean
-      ),
-      async (dir: string) => {
-        const exist = await dirExists(dir)
-        return !exist
-      }
-    )
-  }
-
-  protected _filterFiles() {
-    return asyncFilter(
-      [
-        this.config.ignore!,
-        this.config.ignoreDestructive!,
-        this.config.include!,
-        this.config.includeDestructive!,
-      ].filter(Boolean),
-      async (file: string) => {
-        const exist = await fileExists(file)
-        return !exist
-      }
-    )
   }
 
   protected async _handleDefault() {
