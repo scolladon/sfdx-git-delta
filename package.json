@@ -19,8 +19,9 @@
   "files": [
     "/lib",
     "/messages",
-    "/oclif.manifest.json",
-    "/oclif.lock"
+    "/npm-shrinkwrap.json",
+    "/oclif.lock",
+    "/oclif.manifest.json"
   ],
   "exports": "./lib/main.js",
   "type": "module",
@@ -116,6 +117,7 @@
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "yarn build && oclif manifest && oclif readme",
     "prepare": "husky",
+    "prepublishOnly": "npm shrinkwrap",
     "test:build": "wireit",
     "test:mutation": "wireit",
     "test:nut": "wireit",
