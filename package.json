@@ -129,10 +129,10 @@
     "build": {
       "command": "tsc -p . --incremental",
       "files": [
-        "src/**/*.ts",
-        "src/**/*.json",
         "**/tsconfig.json",
-        "messages/**"
+        "messages/**",
+        "src/**/*.json",
+        "src/**/*.ts"
       ],
       "output": [
         "lib/**",
