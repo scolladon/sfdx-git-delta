@@ -79,3 +79,11 @@ API version not found or not supported, using '%s' instead
 # warning.FlowDeleted
 
 Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expected (see https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)
+
+# info.CommandIsRunning
+
+Generating incremental package
+
+# info.CommandHasRun
+
+Done

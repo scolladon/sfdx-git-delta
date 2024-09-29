@@ -104,6 +104,11 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       source: flags['source'],
       to: flags['to'],
     }
+    this.spinner.start(
+      messages.getMessage('info.CommandIsRunning'),
+      undefined,
+      { stdout: true }
+    )
     try {
       const jobResult = await sgd(config)
       if (jobResult.warnings?.length > 0) {
@@ -118,6 +123,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       output.success = false
       process.exitCode = 1
     }
+    this.spinner.stop(messages.getMessage('info.CommandHasRun'))
     return output
   }
 }
