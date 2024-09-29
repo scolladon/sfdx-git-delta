@@ -28,7 +28,10 @@
     "useUnknownInCatchVariables": true
   },
   "include": [
-    "./src/**/*",
-    "./src/**/*.json"
-  ]
+    "./src/**/*.json",
+    "./src/**/*"
+  ],
+  "paths": {
+    "ignore": ["src/types/ignore.d.ts"]
+  }
 }
