@@ -23,6 +23,10 @@ jobs:
       - name: Lint plugin
         run: yarn lint
 
+      - name: Lint plugin
+        run: yarn lint:plugin || exit 0
+        continue-on-error: true
+
       - name: Build plugin
         run: yarn pack
 

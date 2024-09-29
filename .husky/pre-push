@@ -1,6 +1,7 @@
 #!/bin/sh
 
 yarn lint
+yarn lint:plugin
 yarn pack
 yarn test
 npm outdated || true

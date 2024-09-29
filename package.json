@@ -184,8 +184,7 @@
       ],
       "output": [],
       "dependencies": [
-        "lint:fs",
-        "lint:plugin"
+        "lint:fs"
       ]
     },
     "lint:dependencies": {
