@@ -14,8 +14,11 @@ export default class CustomFieldHandler extends DecomposedHandler {
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
+    await this._copyParentObject()
+  }
 
-    // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
+  // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
+  protected async _copyParentObject() {
     const data = await readPathFromGit(
       { path: this.line, oid: this.config.to },
       this.config
