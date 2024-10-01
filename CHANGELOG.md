@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.46.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.45.0...v5.46.0) (2024-10-01)
+
+
+### Features
+
+* add BriefCaseDefinition metadata support ([#926](https://github.com/scolladon/sfdx-git-delta/issues/926)) ([32ab3a3](https://github.com/scolladon/sfdx-git-delta/commit/32ab3a37459e767ee2b62905ed25bde278d7fc78))
+
 ## [5.45.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.44.0...v5.45.0) (2024-09-20)
 
 
