@@ -1,15 +1,13 @@
 'use strict'
 import { isAbsolute, normalize, relative } from 'node:path'
 
-import fse from 'fs-extra'
+import { readFile as fsReadFile, stat } from 'node:fs/promises'
 
 import {
   PATH_SEP,
   PATH_SEPARATOR_REGEX,
   UTF8_ENCODING,
 } from '../constant/fsConstants.js'
-
-const { readFile: fsReadFile, stat } = fse
 
 export const treatPathSep = (data: string) =>
   data.replace(PATH_SEPARATOR_REGEX, PATH_SEP)
