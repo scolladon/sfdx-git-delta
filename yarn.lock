@@ -3580,7 +3580,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash-es@npm:^4.17.12":
+"@types/lodash-es@npm:^4, @types/lodash-es@npm:^4.17.12":
   version: 4.17.12
   resolution: "@types/lodash-es@npm:4.17.12"
   dependencies:
@@ -9501,7 +9501,9 @@ __metadata:
     "@swc/core": "npm:1.7.26"
     "@types/async": "npm:^3.2.24"
     "@types/chai": "npm:^5.0.0"
+    "@types/fs-extra": "npm:^11.0.4"
     "@types/jest": "npm:^29.5.13"
+    "@types/lodash-es": "npm:^4"
     "@types/mocha": "npm:^10.0.8"
     "@types/node": "npm:^22.7.4"
     async: "npm:^3.2.6"
@@ -9515,7 +9517,7 @@ __metadata:
     jest: "npm:^29.7.0"
     knip: "npm:^5.30.6"
     lint-staged: "npm:^15.2.10"
-    lodash: "npm:^4.17.21"
+    lodash-es: "npm:^4.17.21"
     mocha: "npm:^10.7.3"
     nyc: "npm:^17.1.0"
     oclif: "npm:^4.14.36"
