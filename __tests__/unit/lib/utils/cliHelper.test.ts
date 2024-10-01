@@ -16,13 +16,18 @@ import { getWork } from '../../../__utils__/globalTestHelper'
 const mockParseRev = jest.fn()
 const mockConfigureRepository = jest.fn()
 const setGitDirMock = jest.fn()
-jest.mock('../../../../src/adapter/GitAdapter', () => ({
-  getInstance: () => ({
-    parseRev: mockParseRev,
-    configureRepository: mockConfigureRepository,
-    setGitDir: setGitDirMock,
-  }),
-}))
+
+jest.mock('../../../../src/adapter/GitAdapter', () => {
+  return {
+    default: {
+      getInstance: () => ({
+        parseRev: mockParseRev,
+        configureRepository: mockConfigureRepository,
+        setGitDir: setGitDirMock,
+      }),
+    },
+  }
+})
 
 jest.mock('../../../../src/utils/MessageService')
 jest.mock('../../../../src/utils/fsUtils')

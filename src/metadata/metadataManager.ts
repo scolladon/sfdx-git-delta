@@ -1,7 +1,7 @@
 'use strict'
 import { resolve } from 'node:path'
 
-import fse from 'fs-extra'
+import { readFile, readdir } from 'node:fs/promises'
 
 import type {
   BaseMetadata,
@@ -13,8 +13,6 @@ import type {
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
 
-const { readFile, readdir } = fse
-
 const _apiMap = new Map<number, string>()
 let _latestVersion: number = -Infinity
 const describeMetadata = new Map<number, Metadata[]>()
@@ -25,7 +23,7 @@ const buildAPIMap = async () => {
   if (_apiMap.size === 0) {
     const dir = await readdir(import.meta.dirname)
     dir
-      .filter(file => /^[a-z]+\d+\.json$/.test(file))
+      .filter((file: string) => /^[a-z]+\d+\.json$/.test(file))
       .forEach((file: string) => {
         const version: number = parseInt(file.match(/\d+/)?.[0] as string)
         _apiMap.set(version, file)

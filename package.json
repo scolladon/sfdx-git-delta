@@ -58,7 +58,7 @@
     "fs-extra": "^11.2.0",
     "ignore": "^6.0.2",
     "isomorphic-git": "^1.27.1",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "simple-git": "^3.27.0",
     "xmlbuilder2": "^3.1.1"
   },
@@ -78,7 +78,9 @@
     "@swc/core": "1.7.26",
     "@types/async": "^3.2.24",
     "@types/chai": "^5.0.0",
+    "@types/fs-extra": "^11.0.4",
     "@types/jest": "^29.5.13",
+    "@types/lodash-es": "^4",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.7.4",
     "benchmark": "^2.1.4",

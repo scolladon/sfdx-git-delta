@@ -1,6 +1,6 @@
 'use strict'
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it, jest } from '@jest/globals'
-import { readFile } from 'fs-extra'
 import { WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 
 import GitAdapter, {
@@ -59,7 +59,7 @@ jest.mock('../../../../src/utils/fsUtils', () => {
 })
 
 jest.mock('../../../../src/utils/gitLfsHelper')
-jest.mock('fs-extra')
+jest.mock('node:fs/promises')
 
 const isLFSmocked = jest.mocked(isLFS)
 const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)
