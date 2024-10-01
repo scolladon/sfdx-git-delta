@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "briefcaseDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "briefcaseDefinition",
+    "xmlName": "BriefcaseDefinition"
+  },
+  {
     "directoryName": "featureParameters",
     "inFolder": false,
     "metaFile": false,
