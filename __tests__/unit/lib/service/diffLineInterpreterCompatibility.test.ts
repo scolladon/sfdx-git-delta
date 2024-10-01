@@ -13,13 +13,15 @@ jest.mock('node:os', () => ({
 
 const mockHandle = jest.fn()
 jest.mock('../../../../src/service/typeHandlerFactory', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      getTypeHandler: jest
-        .fn()
-        .mockImplementation(() => ({ handle: mockHandle })),
-    }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        getTypeHandler: jest
+          .fn()
+          .mockImplementation(() => ({ handle: mockHandle })),
+      }
+    }),
+  }
 })
 
 let work: Work

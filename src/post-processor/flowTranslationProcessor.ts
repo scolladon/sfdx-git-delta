@@ -1,7 +1,7 @@
 'use strict'
 import { join, parse } from 'node:path'
 
-import fse from 'fs-extra'
+import { pathExists } from 'fs-extra'
 import {
   FLOW_XML_NAME,
   META_REGEX,
@@ -29,8 +29,6 @@ import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import BaseProcessor from './baseProcessor.js'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
-
-const { pathExists } = fse
 
 const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
