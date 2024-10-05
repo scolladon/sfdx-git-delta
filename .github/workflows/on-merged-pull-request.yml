@@ -38,14 +38,14 @@ jobs:
       - name: Remove dist-tag
         run: npm dist-tag rm sfdx-git-delta ${{ env.DEV_CHANNEL }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Deprecate related dev versions
         run: |
-          DEV_VERSIONS=$(npm view sfdx-git-delta versions --json | jq -r '.[]' | grep -E "${{ env.CURRENT_VERSION}}-${{ }}")
+          DEV_VERSIONS=$(npm view sfdx-git-delta versions --json | jq -r '.[]' | grep -E "${{ env.CURRENT_VERSION}}-${{ env.DEV_CHANNEL }}")
           [ -n "$DEV_VERSIONS" ] && for DEV_VERSION in ${DEV_VERSIONS}; do npm deprecate "sfdx-git-delta@${DEV_VERSION}" "Deprecated dev version"; done
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Delete package dev channel PR comment
         uses: thollander/actions-comment-pull-request@v2
