@@ -53,7 +53,7 @@ jobs:
           message: |
             Published under `${{ env.DEV_CHANNEL }}` npm channel.
             ```sh
-            $ sfdx plugins:install sfdx-git-delta@${{ env.DEV_CHANNEL }}
+            $ sf plugins install sfdx-git-delta@${{ env.DEV_CHANNEL }}
             ```
           comment_tag: dev-publish
           mode: delete
