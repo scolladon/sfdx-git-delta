@@ -77,7 +77,7 @@ Then execute:
 # remove expected content
 yarn clean
 # run the test
-sfdx sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+sf sgd source delta --from "e2e/base" --to "e2e/head" --output "expected" --generate-delta
 # check expected is back to normal
 yarn test:e2e
 ```
@@ -238,5 +238,5 @@ When the character you should take for the short parameter is already taken then
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
 1. locate the comment with the beta version published in the pull request
-2. install the beta version `sfdx plugins:install sfdx-git-delta@<beta-channel>`
+2. install the beta version `sf plugins install sfdx-git-delta@<beta-channel>`
 3. test the plugin!
