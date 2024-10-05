@@ -30,5 +30,8 @@
   "include": [
     "./src/**/*.json",
     "./src/**/*"
-  ]
+  ],
+  "paths": {
+      "ignore": ["src/types/ignore.d.ts"]
+    }
 }
