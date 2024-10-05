@@ -84,8 +84,8 @@ jobs:
       - name: Install plugin
         run: |
           yarn set version classic
-          sfdx plugins:link .
-          sfdx plugins
+          sf plugins link .
+          sf plugins
 
       - name: Checkout e2e test subject
         uses: actions/checkout@v4
