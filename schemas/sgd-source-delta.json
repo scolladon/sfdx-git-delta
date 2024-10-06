@@ -6,29 +6,14 @@
       "type": "object",
       "properties": {
         "error": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "output": {
           "type": "string"
         },
-        "success": {
-          "type": "boolean"
-        },
-        "warnings": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "output-dir": {
+          "type": "string"
         }
       },
       "required": [
-        "error",
-        "output",
-        "success",
-        "warnings"
+        "output-dir"
       ],
       "additionalProperties": false
     }
