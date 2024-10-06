@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+    '''\.yarn/releases/yarn-.*\.cjs''',
+]
