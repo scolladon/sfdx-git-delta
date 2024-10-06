@@ -31,8 +31,7 @@ describe('sgd source delta NUTS', () => {
     )
     expect(packageLineCount).to.equal(232)
     expect(destructiveChangesLineCount).to.equal(137)
-    expect(result).to.include('"error": null')
-    expect(result).to.include('"success": true')
+    expect(result).to.include('"status": 0')
   })
 })
 

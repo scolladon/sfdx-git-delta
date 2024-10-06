@@ -145,23 +145,32 @@ Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-a <value>] [-d] [-i <value>] [-D <value>] [-W] [-n
-    <value>] [-N <value>] [-o <value>] [-r <value>] [-s <value>] [-t <value>]
+  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-a <value>] [-d] [--ignore <value>] [-i <value>]
+    [--ignore-destructive <value>] [-D <value>] [-W] [--include <value>] [-n <value>] [--include-destructive <value>]
+    [-N <value>] [--output <value>] [-o <value>] [--repo <value>] [-r <value>] [--source <value>] [-s <value>] [-t
+    <value>]
 
 FLAGS
-  -D, --ignore-destructive=<value>   file listing paths to explicitly ignore for any destructive actions
-  -N, --include-destructive=<value>  file listing paths to explicitly include for any destructive actions
-  -W, --ignore-whitespace            ignore git diff whitespace (space, tab, eol) changes
-  -a, --api-version=<value>          salesforce metadata API version, default to sfdx-project.json "sourceApiVersion"
-                                     attribute or latest version
-  -d, --generate-delta               generate delta files in [--output] folder
-  -f, --from=<value>                 (required) commit sha from where the diff is done
-  -i, --ignore=<value>               file listing paths to explicitly ignore for any diff actions
-  -n, --include=<value>              file listing paths to explicitly include for any diff actions
-  -o, --output=<value>               [default: ./output] source package specific output
-  -r, --repo=<value>                 [default: ./] git repository location
-  -s, --source=<value>               [default: ./] source folder focus location related to --repo
-  -t, --to=<value>                   [default: HEAD] commit sha to where the diff is done
+  -D, --ignore-destructive-file=<value>   file listing paths to explicitly ignore for any destructive actions
+  -N, --include-destructive-file=<value>  file listing paths to explicitly include for any destructive actions
+  -W, --ignore-whitespace                 ignore git diff whitespace (space, tab, eol) changes
+  -a, --api-version=<value>               salesforce metadata API version, default to sfdx-project.json
+                                          "sourceApiVersion" attribute or latest version
+  -d, --generate-delta                    generate delta files in [--output] folder
+  -f, --from=<value>                      (required) commit sha from where the diff is done
+  -i, --ignore-file=<value>               file listing paths to explicitly ignore for any diff actions
+  -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
+  -o, --output-dir=<value>                [default: ./output] source package specific output
+  -r, --repo-dir=<value>                  [default: ./] git repository location
+  -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo
+  -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
+      --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
+      --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
+      --include=<value>                   /!\ deprecated, use '--include-file' instead.
+      --include-destructive=<value>       /!\ deprecated, use '--include-destructive-file' instead.
+      --output=<value>                    /!\ deprecated, use '--output-dir' instead.
+      --repo=<value>                      /!\ deprecated, use '--repo-dir' instead.
+      --source=<value>                    /!\ deprecated, use '--source-dir' instead.
 
 GLOBAL FLAGS
   --flags-dir=<value>  Import flag values from a directory.

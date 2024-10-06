@@ -206,7 +206,7 @@
       ]
     },
     "lint:deprecation-policy": {
-      "command": "./bin/dev.js snapshot:compare",
+      "command": "./bin/dev.js snapshot compare",
       "files": [
         "lib/commands/**/*.ts"
       ],
@@ -216,7 +216,7 @@
       ]
     },
     "lint:json-schema": {
-      "command": "./bin/dev.js schema:compare",
+      "command": "./bin/dev.js schema compare",
       "files": [
         "lib/commands/**/*.ts",
         "schemas"

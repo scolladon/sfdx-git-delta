@@ -11,6 +11,8 @@ import {
   TO_DEFAULT_VALUE,
 } from '../../../utils/cliConstants.js'
 
+import { camelCase } from 'lodash-es'
+
 const messages = new MessageService()
 
 export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
@@ -34,11 +36,21 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       summary: messages.getMessage('flags.generate-delta.summary'),
     }),
     ignore: Flags.file({
+      summary: messages.getMessage('flags.deprecated', ['ignore-file']),
+      exists: true,
+    }),
+    'ignore-file': Flags.file({
       char: 'i',
       summary: messages.getMessage('flags.ignore.summary'),
       exists: true,
     }),
     'ignore-destructive': Flags.file({
+      summary: messages.getMessage('flags.deprecated', [
+        'ignore-destructive-file',
+      ]),
+      exists: true,
+    }),
+    'ignore-destructive-file': Flags.file({
       char: 'D',
       summary: messages.getMessage('flags.ignore-destructive.summary'),
       exists: true,
@@ -48,28 +60,50 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       summary: messages.getMessage('flags.ignore-whitespace.summary'),
     }),
     include: Flags.file({
+      summary: messages.getMessage('flags.deprecated', ['include-file']),
+      exists: true,
+    }),
+    'include-file': Flags.file({
       char: 'n',
       summary: messages.getMessage('flags.include.summary'),
       exists: true,
     }),
     'include-destructive': Flags.file({
+      summary: messages.getMessage('flags.deprecated', [
+        'include-destructive-file',
+      ]),
+      exists: true,
+    }),
+    'include-destructive-file': Flags.file({
       char: 'N',
       summary: messages.getMessage('flags.include-destructive.summary'),
       exists: true,
     }),
     output: Flags.directory({
+      summary: messages.getMessage('flags.deprecated', ['output-dir']),
+      exists: true,
+    }),
+    'output-dir': Flags.directory({
       char: 'o',
       summary: messages.getMessage('flags.output.summary'),
       default: OUTPUT_DEFAULT_VALUE,
       exists: true,
     }),
     repo: Flags.directory({
+      summary: messages.getMessage('flags.deprecated', ['repo-dir']),
+      exists: true,
+    }),
+    'repo-dir': Flags.directory({
       char: 'r',
       summary: messages.getMessage('flags.repo.summary'),
       default: REPO_DEFAULT_VALUE,
       exists: true,
     }),
     source: Flags.directory({
+      summary: messages.getMessage('flags.deprecated', ['source-dir']),
+      exists: true,
+    }),
+    'source-dir': Flags.directory({
       char: 's',
       summary: messages.getMessage('flags.source.summary'),
       default: SOURCE_DEFAULT_VALUE,
@@ -84,46 +118,66 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
 
   public async run(): Promise<SgdResult> {
     const { flags } = await this.parse(SourceDeltaGenerate)
-    const output: SgdResult = {
-      error: null,
-      output: flags['output'],
-      success: true,
-      warnings: [],
-    }
+
     const config: Config = {
       apiVersion: flags['api-version'],
       from: flags['from'],
       generateDelta: flags['generate-delta'],
-      ignore: flags['ignore'],
-      ignoreDestructive: flags['ignore-destructive'],
+      ignore: flags['ignore-file'],
+      ignoreDestructive: flags['ignore-destructive-file'],
       ignoreWhitespace: flags['ignore-whitespace'],
-      include: flags['include'],
-      includeDestructive: flags['include-destructive'],
-      output: flags['output'],
-      repo: flags['repo'],
-      source: flags['source'],
+      include: flags['include-file'],
+      includeDestructive: flags['include-destructive-file'],
+      output: flags['output-dir'],
+      repo: flags['repo-dir'],
+      source: flags['source-dir'],
       to: flags['to'],
     }
+
+    this.recoverOldParametersUsage(config, flags)
+
     this.spinner.start(
       messages.getMessage('info.CommandIsRunning'),
       undefined,
       { stdout: true }
     )
+    const output: SgdResult = {
+      'output-dir': config.output,
+    }
     try {
       const jobResult = await sgd(config)
-      if (jobResult.warnings?.length > 0) {
-        output.warnings = jobResult.warnings.map(
-          (warning: Error) => warning.message
-        )
-      }
+      jobResult.warnings?.forEach(this.warn)
     } catch (err) {
       if (err instanceof Error) {
         output.error = err.message
       }
-      output.success = false
       process.exitCode = 1
     }
     this.spinner.stop(messages.getMessage('info.CommandHasRun'))
     return output
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  private recoverOldParametersUsage(config: Config, flags: any) {
+    for (const [oldParameter, newParameter] of Object.entries({
+      ignore: 'ignore-file',
+      'ignore-destructive': 'ignore-destructive-file',
+      include: 'include-file',
+      'include-destructive': 'include-destructive-file',
+      output: 'output-dir',
+      repo: 'repo-dir',
+      source: 'source-dir',
+    })) {
+      if (oldParameter in flags) {
+        this.warn(
+          messages.getMessage('warning.oldParameters', [
+            oldParameter,
+            newParameter,
+          ])
+        )
+        const configAttribut = camelCase(oldParameter) as never
+        config[configAttribut] = flags[oldParameter as never] as never
+      }
+    }
   }
 }
