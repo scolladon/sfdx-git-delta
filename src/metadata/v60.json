@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "genAiFunctions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "genAiFunction",
+    "xmlName": "GenAiFunction"
+  },
+  {
+    "directoryName": "genAiPlanners",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "genAiPlanner",
+    "xmlName": "GenAiPlanner"
+  },
+  {
     "directoryName": "briefcaseDefinitions",
     "inFolder": false,
     "metaFile": false,
