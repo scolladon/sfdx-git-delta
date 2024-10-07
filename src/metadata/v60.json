@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "genAiPlugins",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "genAiPlugin",
+    "xmlName": "GenAiPlugin"
+  },
+  {
     "directoryName": "genAiFunctions",
     "inFolder": false,
     "metaFile": false,
