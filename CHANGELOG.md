@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.47.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.46.0...v5.47.0) (2024-10-08)
+
+
+### Features
+
+* add new GenAI metadata definition ([#930](https://github.com/scolladon/sfdx-git-delta/issues/930)) ([8e0e4bd](https://github.com/scolladon/sfdx-git-delta/commit/8e0e4bd732050715c4ed69611148e13ac8a7d6d1))
+
 ## [5.46.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.45.0...v5.46.0) (2024-10-01)
 
 
