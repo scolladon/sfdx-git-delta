@@ -37,6 +37,7 @@ const handlerMap = {
   ExperienceBundle: InResource,
   FieldSet: Decomposed,
   Flow: FlowHandler,
+  GenAiFunction: Lwc,
   GlobalValueSetTranslation: InFile,
   Index: Decomposed,
   LightningComponentBundle: Lwc,
