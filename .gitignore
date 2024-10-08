@@ -3,7 +3,6 @@
 *-debug.log
 *-error.log
 /.nyc_output
-/.yarn/cache
 /e2e
 /lib
 /node_modules
