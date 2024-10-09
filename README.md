@@ -33,7 +33,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [How to use it?](#how-to-use-it)
-- [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sf-sgd-source-delta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+- [`sf sgd source delta`](#sf-sgd-source-delta)
   - [Windows users](#windows-users)
   - [CI/CD specificity](#cicd-specificity)
   - [Git LFS support](#git-lfs-support)
@@ -129,69 +129,63 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdicherf/sfdx-cli-gitlab)). If you use GitHub Actions, you can find some examples of using SGD [here](https://github.com/mehdicherf/sfdx-GitHub-actions/tree/main/.github/workflows).
 
-⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
+⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using node package manager. The legacy `sgd` command is now deprecated and decommissioned.
 
 ## How to use it?
 
 <!-- commands -->
-* [`sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-sgdsourcedelta--f-string--t-string--r-filepath--i-filepath--d-filepath--s-filepath--w--o-filepath--a-number--d--n-filepath--n-filepath---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sf sgd source delta`](#sf-sgd-source-delta)
 
-## `sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W] [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sf sgd source delta`
 
-Generate the sfdx content in source format and destructive change from two git commits
+Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <string> [-t <string>] [-r <filepath>] [-i <filepath>] [-D <filepath>] [-s <filepath>] [-W]
-   [-o <filepath>] [-a <number>] [-d] [-n <filepath>] [-N <filepath>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-a <value>] [-d] [--ignore <value>] [-i <value>]
+    [--ignore-destructive <value>] [-D <value>] [-W] [--include <value>] [-n <value>] [--include-destructive <value>]
+    [-N <value>] [--output <value>] [-o <value>] [--repo <value>] [-r <value>] [--source <value>] [-s <value>] [-t
+    <value>]
 
-OPTIONS
-  -D, --ignore-destructive=ignore-destructive                                       file listing paths to explicitly
-                                                                                    ignore for any destructive actions
+FLAGS
+  -D, --ignore-destructive-file=<value>   file listing paths to explicitly ignore for any destructive actions
+  -N, --include-destructive-file=<value>  file listing paths to explicitly include for any destructive actions
+  -W, --ignore-whitespace                 ignore git diff whitespace (space, tab, eol) changes
+  -a, --api-version=<value>               salesforce metadata API version, default to sfdx-project.json
+                                          "sourceApiVersion" attribute or latest version
+  -d, --generate-delta                    generate delta files in [--output] folder
+  -f, --from=<value>                      (required) commit sha from where the diff is done
+  -i, --ignore-file=<value>               file listing paths to explicitly ignore for any diff actions
+  -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
+  -o, --output-dir=<value>                [default: ./output] source package specific output
+  -r, --repo-dir=<value>                  [default: ./] git repository location
+  -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo
+  -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
+      --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
+      --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
+      --include=<value>                   /!\ deprecated, use '--include-file' instead.
+      --include-destructive=<value>       /!\ deprecated, use '--include-destructive-file' instead.
+      --output=<value>                    /!\ deprecated, use '--output-dir' instead.
+      --repo=<value>                      /!\ deprecated, use '--repo-dir' instead.
+      --source=<value>                    /!\ deprecated, use '--source-dir' instead.
 
-  -N, --include-destructive=include-destructive                                     file listing paths to explicitly
-                                                                                    include for any destructive actions
+GLOBAL FLAGS
+  --flags-dir=<value>  Import flag values from a directory.
+  --json               Format output as json.
 
-  -W, --ignore-whitespace                                                           ignore git diff whitespace (space,
-                                                                                    tab, eol) changes
+DESCRIPTION
+  Generate incremental package manifest and source content
 
-  -a, --api-version=api-version                                                     salesforce metadata API version,
-                                                                                    default to sfdx-project.json
-                                                                                    "sourceApiVersion" attribute or
-                                                                                    latest version
+  Use two git commit reference to generate the package corresponding to what has changed in between
 
-  -d, --generate-delta                                                              generate delta files in [--output]
-                                                                                    folder
-
-  -f, --from=from                                                                   (required) commit sha from where the
-                                                                                    diff is done
-
-  -i, --ignore=ignore                                                               file listing paths to explicitly
-                                                                                    ignore for any diff actions
-
-  -n, --include=include                                                             file listing paths to explicitly
-                                                                                    include for any diff actions
-
-  -o, --output=output                                                               [default: ./output] source package
-                                                                                    specific output
-
-  -r, --repo=repo                                                                   [default: ./] git repository
-                                                                                    location
-
-  -s, --source=source                                                               [default: ./] source folder focus
-                                                                                    location related to --repo
-
-  -t, --to=to                                                                       [default: HEAD] commit sha to where
-                                                                                    the diff is done
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+EXAMPLES
+  - Build incremental manifest from the previous commit
+  $ sf sgd source delta --from "origin/development" --output incremental
+  - Build incremental manifest and source from the development branch
+  $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.47.0/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
@@ -501,7 +495,7 @@ fi
 If you want to embed sgd in your node application, install it as a dependency for your application
 
 ```sh
-yarn add sfdx-git-delta
+npm install sfdx-git-delta
 ```
 
 Then use the JavaScript module

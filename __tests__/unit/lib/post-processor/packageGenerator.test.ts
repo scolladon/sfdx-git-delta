@@ -1,6 +1,6 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
-import fse from 'fs-extra'
+import { outputFile } from 'fs-extra'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
@@ -11,9 +11,11 @@ jest.mock('fs-extra')
 
 const mockBuildPackage = jest.fn()
 jest.mock('../../../../src/utils/packageHelper', () => {
-  return jest.fn().mockImplementation(() => {
-    return { buildPackage: mockBuildPackage }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return { buildPackage: mockBuildPackage }
+    }),
+  }
 })
 
 describe('PackageGenerator', () => {
@@ -100,7 +102,7 @@ describe('PackageGenerator', () => {
       await sut['_buildPackages']()
 
       // Assert
-      expect(fse.outputFile).toHaveBeenCalledTimes(3)
+      expect(outputFile).toHaveBeenCalledTimes(3)
     })
 
     it('calls `PackageBuilder.buildPackage` for %s', async () => {
@@ -152,7 +154,7 @@ describe('PackageGenerator', () => {
         })
         it('calls `fse.outputFile` for %s', () => {
           // Assert
-          expect(fse.outputFile).toHaveBeenCalledTimes(3)
+          expect(outputFile).toHaveBeenCalledTimes(3)
         })
 
         it('calls `PackageBuilder.buildPackage` for %s', () => {
