@@ -1,0 +1,3 @@
+{
+  "pattern": "^(main){1}$|^(feat|fix|hotfix|release|build|chore|docs)/.+$"
+}
