@@ -12,6 +12,7 @@ ignore:
   - .github
   - .husky
   - .nyc_output
+  - .stryker-tmp
   - .vscode
   - .wireit
   - e2e
