@@ -96,6 +96,30 @@ jobs:
             megalinter-reports
             mega-linter.log
 
+  incremental-mutation-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Incremental Mutation testing
+        run: npm run test:mutation:incremental
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mutation-testing-reports
+          path: reports/mutation
+
   build:
     uses: ./.github/workflows/reusable-build.yml
     secrets: inherit
