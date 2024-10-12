@@ -122,6 +122,7 @@
     "prepublishOnly": "npm shrinkwrap",
     "test:build": "wireit",
     "test:mutation": "wireit",
+    "test:mutation:incremental": "wireit",
     "test:nut": "wireit",
     "test:perf": "wireit",
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
@@ -270,6 +271,21 @@
     },
     "test:mutation": {
       "command": "stryker run",
+      "files": [
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "messages/**",
+        "**/tsconfig.json"
+      ],
+      "output": [
+        ".stryker-tmp/**"
+      ],
+      "dependencies": [
+        "lint"
+      ]
+    },
+    "test:mutation:incremental": {
+      "command": "stryker run --mutate $(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -)",
       "files": [
         "src/**/*.ts",
         "test/**/*.ts",
