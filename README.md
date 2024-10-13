@@ -23,7 +23,7 @@
 </div>
 
 > [!WARNING]
-> **Potentially breaking changes in v6**: Check out the [v6 announcement](https://github.com/scolladon/sfdx-git-delta/issues/936) to see how you could be impacted by some changes in the new major `v6` version of the plugin, and how to prepare to migrate to this version.
+> Check out the [v6 migration guide](docs/migrating-to-v6.0.0.md) to see how you could be impacted by some changes in the new major `v6` version of the plugin (npm `latest` and `latest-rc` channels) and how to migrate
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -188,7 +188,7 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.47.0/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
@@ -505,9 +505,7 @@ Then use the JavaScript module
 
 ```js
 // sample/app.js
-const sgd = require('sfdx-git-delta')
-// or
-// import sgd from 'sfdx-git-delta'
+import sgd from 'sfdx-git-delta'
 
 const work = await sgd({
   to: '', // commit sha to where the diff is done. [default : "HEAD"]
