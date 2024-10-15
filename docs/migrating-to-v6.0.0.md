@@ -1,17 +1,16 @@
 # Migrating to `v6.0.0`
 
-Version `V6.0.0` migrate the plugin to sf plugin v2.
-It comes with a lot of maintained feature opening the plugin to easier maintainability and better security.
-And also with a few new behavior and breaking changes.
+Version `v6.0.0` migrates the plugin to sf plugin v2.
+While it improves maintainability and security, it also introduces some new behaviors and potentially breaking changes.
 
-## New behavior
+## New behaviors
 
 * [Deprecated parameters](deprecated-parameters)
 * [Error handling for file and dir parameters](param-error)
 
 ## Breaking changes
 
-* [Node js below 20 are no longer supported](drop-old-node)
+* [Node.js versions below 20 are no longer supported](drop-old-node)
 * [sfdx/cli no longer supported](drop-old-cli)
 * [Plugin default output](default-output)
 * [JSON output structure](json-output)
@@ -21,7 +20,7 @@ And also with a few new behavior and breaking changes.
 
 ### <a name="deprecated-parameters"></a> Deprecated parameters
 
-The following "long" parameters have been deprecated and are replaced by new parameters to follow [design guidelines](https://github.com/salesforcecli/cli/wiki/Design-Guidelines-Flags):
+The following "long" parameters have been deprecated and are replaced by new parameters to follow [sf design guidelines](https://github.com/salesforcecli/cli/wiki/Design-Guidelines-Flags):
 - `--ignore` is deprecated and replaced by `--ignore-file` (short `-i` is mapped with this parameter)
 - `--ignore-destructive` is deprecated and replaced by `--ignore-destructive-file` (short `-D` is mapped with this parameter)
 - `--include` is deprecated and replaced by `--include-file` (short `-n` is mapped with this parameter)
@@ -30,12 +29,12 @@ The following "long" parameters have been deprecated and are replaced by new par
 - `--repo` is deprecated and replaced by `--repo-dir` (short `-r` is mapped with this parameter)
 - `--source` is deprecated and replaced by `--source-dir` (short `-s` is mapped with this parameter)
 
-It is still possible to use them but they will soon be obsolet and will no longer be usable.
+For now the old "long" parameters are still usable, but they will stop working in the near future. Please migrate to the new parameters.
 
 ### <a name="param-error"></a> Error handling for file and dir parameters
 
-Error handling for [file](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#file) and [directory](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#directory) type parameters are now handled by the cli flags itself.
-The following parameters are concerned by this change : 
+Error handling for [file](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#file) and [directory](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#directory) type parameters are now handled by the sf cli flags itself.
+The following parameters are impacted by this change: 
 - `--ignore-file`
 - `--ignore-destructive-file`
 - `--include-file`
@@ -44,30 +43,32 @@ The following parameters are concerned by this change :
 - `--repo-dir`
 - `--source-dir`
 
-Errors are now returned by the cli itself, it changes the (standard output)[default-output] and the (json output)[json-output].
+Errors are now returned by the sf cli itself, which changes the (standard output)[default-output] and the (json output)[json-output].
 
-### <a name="drop-old-node"></a> Node js below 20 are no longer supported
+### <a name="drop-old-node"></a> Node.js version below 20 are no longer supported
 
-The plugin no longer support node version below 20.
-There are no checks in the CI to test if the plugin works outside node 20 and node 22.
-This is to be compliant with the [salesforce/cli guidelines](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm:~:text=long%2Dterm%20support%20(-,Active%20LTS,-)%20version%20of%20Node) with node js version.
+The plugin no longer support Node.js versions below 20.
+The CI pipeline does not include tests for Node.js versions outside of 20 and 22.
+This change aligns with the [ Salesforce CLI guidelines for supported Node.js versions](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm:~:text=long%2Dterm%20support%20(-,Active%20LTS,-)%20version%20of%20Node).
+If you use a Node.js version below 20, please upgrade before using SGD.
 
 ### <a name="drop-old-cli"></a> sfdx/cli no longer supported
 
 Migrating to [sf plugin v2 architecture](https://github.com/salesforcecli/cli/wiki/Quick-Introduction-to-Developing-sf-Plugins?ref=pablogonzalez.io) does not allow sfdx-git-delta to still be compatible with the [deprecated `sfdx/cli`](https://github.com/salesforcecli/sfdx-cli/).
-sfdx-git-delta `v6+` is only compatible with [`@salesforce/cli`](https://github.com/salesforcecli/cli).
+SFDX-Git-Delta `v6+` is compatible only with [`@salesforce/cli`](https://github.com/salesforcecli/cli).
+If you are using sfdx, please [migrate to sf (v2)](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_move_to_sf_v2.htm) before using SGD.
 
 ### <a name="default-output"></a> Plugin default output
 
-Default output no longer display JSON information.
-It uses the new sf cli UX tools and display a sfdx cli spinner to provide information about what the plugin is doing.
-It also display warning and errors directly in the standard output.
+Default output no longer displays JSON information.
+It uses the new sf cli UX tools and displays a sfdx cli spinner to provide information about what the plugin is doing.
+It also displays warning and errors directly in the standard output.
 
-If you were using the json output of the plugin, you need to pass the (`--json` parameter)[json-output].
+To use the JSON output, you must now pass the (`--json` parameter)[json-output].
 
 ### <a name="json-output"></a> JSON output structure
 
-JSON output has changed to remove duplicated information from the cli JSON output and reuse built in sf cli capacity
+JSON output has changed to remove duplicated information from the cli JSON output and reuse built in sf cli capabilities.
 Previous json output was encapsulated and had duplicated information as follow:
 ```json
 // Previous JSON output
@@ -85,7 +86,7 @@ Previous json output was encapsulated and had duplicated information as follow:
 }
 ```
 
-Here is the new version of the JSON structure :
+Here is the new version of the JSON structure:
 ```json
 // New JSON output
 {
@@ -98,7 +99,7 @@ Here is the new version of the JSON structure :
 }
 ```
 
-When there are error at the cli itself (file or directory parameter does not exist), the result looks like:
+When there are errors at the sf cli level (file or directory parameter does not exist), the result looks like:
 ```json
 // SF CLI error JSON output
 {
@@ -117,9 +118,9 @@ When there are error at the cli itself (file or directory parameter does not exi
 
 ### <a name="export-module"></a> Export esm instead of commonjs
 
-The plugin ship js as a module using `export default`.
-It compile using `"esModuleInterop"=false` tsconfig.
-Here is how to import it now :
+The plugin ships js as a module using `export default`.
+It compiles using `"esModuleInterop"=false` tsconfig.
+Here is how to import it now:
 
 ```js
 import sgd from 'sfdx-git-delta'
