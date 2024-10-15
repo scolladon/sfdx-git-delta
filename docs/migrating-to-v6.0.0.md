@@ -49,12 +49,12 @@ Errors are now returned by the sf cli itself, which changes the (standard output
 
 The plugin no longer support Node.js versions below 20.
 The CI pipeline does not include tests for Node.js versions outside of 20 and 22.
-This change aligns with the [ Salesforce CLI guidelines for supported Node.js versions](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm:~:text=long%2Dterm%20support%20(-,Active%20LTS,-)%20version%20of%20Node).
+This change aligns with the [Salesforce CLI guidelines for supported Node.js versions](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm:~:text=long%2Dterm%20support%20(-,Active%20LTS,-)%20version%20of%20Node).
 If you use a Node.js version below 20, please upgrade before using SGD.
 
 ### <a name="drop-old-cli"></a> sfdx/cli no longer supported
 
-Migrating to [sf plugin v2 architecture](https://github.com/salesforcecli/cli/wiki/Quick-Introduction-to-Developing-sf-Plugins?ref=pablogonzalez.io) does not allow sfdx-git-delta to still be compatible with the [deprecated `sfdx/cli`](https://github.com/salesforcecli/sfdx-cli/).
+Migrating to [sf plugin v2 architecture](https://github.com/salesforcecli/cli/wiki/Quick-Introduction-to-Developing-sf-Plugins) does not allow sfdx-git-delta to still be compatible with the [deprecated `sfdx/cli`](https://github.com/salesforcecli/sfdx-cli/).
 SFDX-Git-Delta `v6+` is compatible only with [`@salesforce/cli`](https://github.com/salesforcecli/cli).
 If you are using sfdx, please [migrate to sf (v2)](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_move_to_sf_v2.htm) before using SGD.
 
