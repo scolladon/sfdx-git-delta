@@ -23,7 +23,7 @@
 </div>
 
 > [!WARNING]
-> Check out the [v6 migration guide](docs/migrating-to-v6.0.0.md) to see how you could be impacted by some changes in the new major `v6` version of the plugin (npm `latest` and `latest-rc` channels) and how to migrate
+> **Potentially breaking changes in v6**: Check out the [v6 migration guide](docs/migrating-to-v6.0.0.md) to see how you could be impacted by some changes in the new major `v6` version of the plugin (npm `latest` and `latest-rc` channels), and how to migrate to this version.
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -100,7 +100,7 @@ If you are a Technical Architect or Developer, then it’s a very useful tool fo
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
-Pro tip: Make sure your pipeline works **before** implementing incremental deployments. Otherwise it will just make it harder to debug your pipeline.
+Pro tip: Make sure your pipeline works **before** implementing incremental deployments. Otherwise, it will just make it harder to debug your pipeline.
 It's also important to implement a way to switch back to full deployment in case the incremental deployment does not behave as expected.
 
 **DISCLAIMER:**
@@ -128,11 +128,9 @@ SGD is a Salesforce CLI plugin (`sf sgd source delta`). Run the following comman
 sf plugins install sfdx-git-delta
 ```
 
-Because this plugin is not signed, you will get a warning saying that "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed with the installation.
+Because this plugin is not signed, you will get a warning saying: "This plugin is not digitally signed and its authenticity cannot be verified". This is expected, and you will have to answer `y` (yes) to proceed.
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdicherf/sfdx-cli-gitlab)). If you use GitHub Actions, you can find some examples of using SGD [here](https://github.com/mehdicherf/sfdx-GitHub-actions/tree/main/.github/workflows).
-
-⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using node package manager. The legacy `sgd` command is now deprecated and decommissioned.
 
 ## How to use it?
 
@@ -207,8 +205,8 @@ sf sgd source delta --from "HEAD~1" # right git shortcut with windows because it
 
 ### CI/CD specificity
 
-In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetch only the last commit of the branch currently evaluated.
-You need to fetch all the needed commits, as the plugin needs to have the branch to compare from as well,
+In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetches only the last commit of the branch currently evaluated.
+You need to fetch all the needed commits as the plugin needs access to the branch being compared.
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
 If you use `-n` (`--include`) with metadata contained inside files you will need to have the full repo locally for the command to fully work.
 
@@ -216,13 +214,13 @@ In CI/CD pipelines, branches are not checked out locally when the repository is 
 If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
 This applies to both `--from` and `--to` parameters as they both accept git pointers.
 
-Example comparing `HEAD` with a `development` branch when the CI clone the repository with `origin` set as reference to the remote:
+Example comparing `HEAD` with a `development` branch when the CI clones the repository with `origin` set as reference to the remote:
 
 ```sh
 sf sgd source delta --to "HEAD" --from "origin/development" --output .
 ```
 
-Use global variable when you need to easily switch sgd version (`vX.X.X` format) or channel (`stable`, `latest`, `latest-rc`) in your pipeline, without having to commit a new version of your pipeline.
+Use a global variable when you need to easily switch sgd version (`vX.X.X` format) or channel (`stable`, `latest`, `latest-rc`) in your pipeline, without having to commit a new version of your pipeline.
 
 Example with [github action](https://docs.github.com/en/actions/learn-github-actions/variables#using-the-vars-context-to-access-configuration-variable-values), [create a variable](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository) SGD_VERSION and use it in the plugin installation phase
 
@@ -234,9 +232,9 @@ Example with [github action](https://docs.github.com/en/actions/learn-github-act
 ### Git LFS support
 
 The plugin is compatible with git LFS.
-It will be able to read content from LFS locally.
+It can read content from LFS locally.
 It is the user responsibility to ensure LFS content is present when the plugin is executed.
-/!\ The plugin **will not fetch** content from the LFS server /!\
+⚠️ The plugin **will not fetch** content from the LFS server ⚠️
 
 ### Use cases
 
@@ -271,9 +269,9 @@ sf sgd source delta --to develop --from $(git merge-base develop main) --output 
 
 ## Walkthrough
 
-Let’s take a look at the following scenario:
+Consider the following scenario:
 
-> **_The CI pipelines deploys the sources to Production anytime there is a new commit in the main branch._**
+> **_The CI pipeline deploys the sources to Production anytime there is a new commit in the main branch._**
 
 In our example, the latest commit to main is composed of:
 
