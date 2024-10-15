@@ -49,7 +49,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "^4.0.28",
+    "@oclif/core": "^4.0.29",
     "@salesforce/core": "^8.6.2",
     "@salesforce/sf-plugins-core": "^11.3.12",
     "async": "^3.2.6",
@@ -68,7 +68,7 @@
     "@jest/globals": "^29.7.0",
     "@ls-lint/ls-lint": "^2.2.3",
     "@oclif/plugin-command-snapshot": "^5.2.18",
-    "@oclif/plugin-help": "^6.2.14",
+    "@oclif/plugin-help": "^6.2.15",
     "@salesforce/cli-plugins-testkit": "^5.3.34",
     "@salesforce/dev-config": "^4.3.1",
     "@salesforce/ts-sinon": "^1.4.27",
@@ -92,7 +92,7 @@
     "lodash": "^4.17.21",
     "mocha": "^10.7.3",
     "nyc": "^17.1.0",
-    "oclif": "^4.15.6",
+    "oclif": "^4.15.8",
     "shx": "^0.3.4",
     "sinon": "^19.0.2",
     "ts-jest": "^29.2.5",
