@@ -17,7 +17,7 @@ jobs:
             Shipped in [release `{release_tag}`]({release_link}).
             You can install the new version using the version number or the `latest-rc` channel
             ```sh
-            $ sfdx plugins:install sfdx-git-delta@latest-rc
-            $ sfdx plugins:install sfdx-git-delta@{release_tag}
+            $ sf plugins install sfdx-git-delta@latest-rc
+            $ sf plugins install sfdx-git-delta@{release_tag}
             ```
             Happy incremental deployment!

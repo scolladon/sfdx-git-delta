@@ -1,8 +1,8 @@
 #!/bin/sh
 
-yarn lint
-yarn pack
-yarn test
+npm run lint
+npm pack
+npm run test
 npm outdated || true
-yarn npm audit || true
-yarn lint:dependencies || true
+npm audit || true
+npm run lint:dependencies || true

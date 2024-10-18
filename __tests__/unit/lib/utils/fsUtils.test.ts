@@ -1,6 +1,6 @@
 'use strict'
+import { readFile as fsReadFile, stat } from 'node:fs/promises'
 import { describe, expect, it, jest } from '@jest/globals'
-import { Stats, readFile as fsReadFile, stat } from 'fs-extra'
 
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
 import {
@@ -13,7 +13,7 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 
-jest.mock('fs-extra')
+jest.mock('node:fs/promises')
 
 const mockedStat = jest.mocked(stat)
 const mockedReadFile = jest.mocked(fsReadFile)
@@ -78,7 +78,7 @@ describe('dirExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isDirectory: () => true,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await dirExists('test')
@@ -92,7 +92,7 @@ describe('dirExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isDirectory: () => false,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await dirExists('test')
@@ -120,7 +120,7 @@ describe('fileExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isFile: () => true,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await fileExists('test')
@@ -134,7 +134,7 @@ describe('fileExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isFile: () => false,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await fileExists('test')

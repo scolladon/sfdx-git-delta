@@ -1,23 +1,30 @@
-import fs from 'fs'
-import { join } from 'path'
+import * as fs from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
-import { readFile } from 'fs-extra'
-import git, { TREE, WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
+import * as git from 'isomorphic-git'
 import { SimpleGit, simpleGit } from 'simple-git'
 
-import { DOT } from '../constant/fsConstants'
+import { DOT } from '../constant/fsConstants.js'
 import {
   ADDITION,
   DELETION,
   GIT_FOLDER,
   MODIFICATION,
   UTF8_ENCODING,
-} from '../constant/gitConstants'
-import type { Config } from '../types/config'
-import type { FileGitRef } from '../types/git'
-import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants'
-import { dirExists, fileExists, isSubDir, treatPathSep } from '../utils/fsUtils'
-import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
+} from '../constant/gitConstants.js'
+import type { Config } from '../types/config.js'
+import type { FileGitRef } from '../types/git.js'
+import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants.js'
+import {
+  dirExists,
+  fileExists,
+  isSubDir,
+  treatPathSep,
+} from '../utils/fsUtils.js'
+import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
+
+const { TREE } = git
 
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
@@ -26,8 +33,8 @@ const TREE_TYPE = 'tree'
 const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
 
 export const iterate = async (
-  walk: WalkerIterateCallback,
-  children: IterableIterator<Array<WalkerEntry>>
+  walk: git.WalkerIterateCallback,
+  children: IterableIterator<Array<git.WalkerEntry>>
 ) => {
   const result = []
   for (const child of children) {
@@ -96,10 +103,11 @@ export default class GitAdapter {
     if (this.gitConfig.gitdir) {
       return
     }
-    if (await dirExists(join(this.config.repo, GIT_FOLDER))) {
-      this.gitConfig.gitdir = join(this.config.repo, GIT_FOLDER)
-    } else if (await fileExists(join(this.config.repo, GIT_FOLDER))) {
-      const gitFileContent = await readFile(join(this.config.repo, GIT_FOLDER))
+    const gitInfoLocation = join(this.config.repo, GIT_FOLDER)
+    if (await dirExists(gitInfoLocation)) {
+      this.gitConfig.gitdir = gitInfoLocation
+    } else if (await fileExists(gitInfoLocation)) {
+      const gitFileContent = await readFile(gitInfoLocation)
       this.gitConfig.gitdir = gitFileContent.toString().trim().substring(8)
     } else {
       throw new Error('Not a git repository')
@@ -217,7 +225,7 @@ export default class GitAdapter {
 
 export const filePathWalker = (path: string) => {
   const shouldSkip = evaluateShouldSkip(path)
-  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
+  return async (filepath: string, trees: (git.WalkerEntry | null)[]) => {
     if (await shouldSkip(filepath, trees)) {
       return
     }
@@ -227,7 +235,7 @@ export const filePathWalker = (path: string) => {
 
 export const contentWalker = (path: string) => {
   const shouldSkip = evaluateShouldSkip(path)
-  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
+  return async (filepath: string, trees: (git.WalkerEntry | null)[]) => {
     if (await shouldSkip(filepath, trees)) {
       return
     }
@@ -244,7 +252,7 @@ export const contentWalker = (path: string) => {
 export const diffLineWalker = (config: Config) => {
   const shouldSkip = evaluateShouldSkip(config.source)
 
-  return async (filepath: string, trees: (WalkerEntry | null)[]) => {
+  return async (filepath: string, trees: (git.WalkerEntry | null)[]) => {
     if (await shouldSkip(filepath, trees)) {
       return
     }
@@ -274,7 +282,7 @@ export const diffLineWalker = (config: Config) => {
 }
 
 const isContentsEqualIgnoringWhiteChars = async (
-  trees: (WalkerEntry | null)[]
+  trees: (git.WalkerEntry | null)[]
 ) => {
   const [fromContent, toContent] = await Promise.all(
     trees.map(async tree => {
@@ -295,7 +303,7 @@ const pathDoesNotStartsWith = (root: string) => {
 
 const evaluateShouldSkip = (base: string) => {
   const checkPath = pathDoesNotStartsWith(base)
-  return async (path: string, trees: (WalkerEntry | null)[]) => {
+  return async (path: string, trees: (git.WalkerEntry | null)[]) => {
     if (path === DOT || checkPath(path)) {
       return true
     }
@@ -304,6 +312,6 @@ const evaluateShouldSkip = (base: string) => {
       trees.filter(Boolean).map(tree => tree!.type())
     )
 
-    return types.some(type => type !== BLOB_TYPE)
+    return types.some((type: string) => type !== BLOB_TYPE)
   }
 }
