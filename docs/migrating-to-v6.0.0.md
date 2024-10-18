@@ -5,15 +5,15 @@ While it improves maintainability and security, it also introduces some new beha
 
 ## New behaviors
 
-* [Deprecated parameters](deprecated-parameters)
-* [Error handling for file and dir parameters](param-error)
+* [Deprecated parameters](#deprecated-parameters)
+* [Error handling for file and dir parameters](#param-error)
 
 ## Breaking changes
 
-* [sfdx/cli no longer supported](drop-old-cli)
-* [Plugin default output](default-output)
-* [JSON output structure](json-output)
-* [Export esm instead of commonjs](export-module)
+* [sfdx/cli no longer supported](#drop-old-cli)
+* [Plugin default output](#default-output)
+* [JSON output structure](#json-output)
+* [Export esm instead of commonjs](#export-module)
 
 ## Details
 
@@ -42,7 +42,7 @@ The following parameters are impacted by this change:
 - `--repo-dir`
 - `--source-dir`
 
-Errors are now returned by the sf cli itself, which changes the (standard output)[default-output] and the (json output)[json-output].
+Errors are now returned by the sf cli itself, which changes the [standard output](#default-output) and the [json output](#json-output).
 
 ### <a name="drop-old-cli"></a> sfdx/cli no longer supported
 
@@ -56,7 +56,7 @@ Default output no longer displays JSON information.
 It uses the new sf cli UX tools and displays a sfdx cli spinner to provide information about what the plugin is doing.
 It also displays warning and errors directly in the standard output.
 
-To use the JSON output, you must now pass the (`--json` parameter)[json-output].
+To use the JSON output, you must now pass the [`--json` parameter](#json-output).
 
 ### <a name="json-output"></a> JSON output structure
 
