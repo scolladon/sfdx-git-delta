@@ -14,7 +14,7 @@
     "sf-plugin"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=18.6.0"
   },
   "files": [
     "/lib",

@@ -10,7 +10,6 @@ While it improves maintainability and security, it also introduces some new beha
 
 ## Breaking changes
 
-* [Node.js versions below 20 are no longer supported](drop-old-node)
 * [sfdx/cli no longer supported](drop-old-cli)
 * [Plugin default output](default-output)
 * [JSON output structure](json-output)
@@ -44,13 +43,6 @@ The following parameters are impacted by this change:
 - `--source-dir`
 
 Errors are now returned by the sf cli itself, which changes the (standard output)[default-output] and the (json output)[json-output].
-
-### <a name="drop-old-node"></a> Node.js version below 20 are no longer supported
-
-The plugin no longer support Node.js versions below 20.
-The CI pipeline does not include tests for Node.js versions outside of 20 and 22.
-This change aligns with the [Salesforce CLI guidelines for supported Node.js versions](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_install_cli.htm#sfdx_setup_install_cli_npm:~:text=long%2Dterm%20support%20(-,Active%20LTS,-)%20version%20of%20Node).
-If you use a Node.js version below 20, please upgrade before using SGD.
 
 ### <a name="drop-old-cli"></a> sfdx/cli no longer supported
 
