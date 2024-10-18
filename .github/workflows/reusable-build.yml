@@ -21,17 +21,17 @@ jobs:
       - uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Lint plugin
-        run: yarn lint
+        run: npm run lint
 
       - name: Lint plugin
-        run: yarn lint:plugin || exit 0
+        run: npm run lint:plugin || exit 0
         continue-on-error: true
 
       - name: Build plugin
-        run: yarn pack
+        run: npm pack
 
       - name: Unit test
-        run: yarn test:unit -- --runInBand
+        run: npm run test:unit -- --runInBand
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -47,7 +47,7 @@ jobs:
           path: ./e2e
 
       - name: Functional test
-        run: yarn test:nut
+        run: npm run test:nut
 
       - uses: actions/upload-artifact@v4
         with:

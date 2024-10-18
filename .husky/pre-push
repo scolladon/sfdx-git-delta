@@ -1,9 +1,9 @@
 #!/bin/sh
 
-yarn lint
-yarn lint:plugin
-yarn pack
-yarn test
+npm run lint
+npm run lint:plugin
+npm pack
+npm run test
 npm outdated || true
-yarn npm audit || true
-yarn lint:dependencies || true
+npm audit || true
+npm run lint:dependencies || true

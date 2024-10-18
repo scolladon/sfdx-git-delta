@@ -9,8 +9,8 @@ We encourage the developer community to contribute to this repository. This guid
 
 ## Requirements
 
-- [Node](https://nodejs.org/) >= 18
-- [yarn](https://yarnpkg.com/) >= 3.6.0
+- [Node](https://nodejs.org/) >= 20
+- [npm](https://www.npmjs.com/) >= 10.9.0
 
 ## Installation
 
@@ -25,13 +25,13 @@ git clone git@github.com:scolladon/sfdx-git-delta.git
 This will install all the tools needed to contribute
 
 ```bash
-yarn
+npm install
 ```
 
 ### 3) Build application
 
 ```bash
-yarn pack
+npm pack
 ```
 
 Rebuild every time you made a change in the source and you need to test locally
@@ -44,13 +44,13 @@ When developing, use [jest](https://jestjs.io/en/) unit testing to provide test 
 
 ```bash
 # just run test
-yarn test:unit
+npm run test:unit
 ```
 
 To execute a particular test, use the following command:
 
 ```bash
-yarn test:unit -- <path_to_test>
+npm run test:unit -- <path_to_test>
 
 ```
 
@@ -60,7 +60,7 @@ When developing, use mocha testing to provide NUT functional test. To run the mo
 
 ```bash
 # run test
-yarn test:nut
+npm run test:nut
 ```
 
 ### E2E Testing sgd
@@ -75,11 +75,11 @@ Then execute:
 
 ```bash
 # remove expected content
-yarn clean
+npm run clean
 # run the test
 sf sgd source delta --from "e2e/base" --to "e2e/head" --output "expected" --generate-delta
 # check expected is back to normal
-yarn test:e2e
+npm run test:e2e
 ```
 
 Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
@@ -108,7 +108,7 @@ Pre-commit git hook using husky and pull request check both the commit conventio
 You can use an interactive command line to help you create supported commit message
 
 ```bash
-yarn commit
+npm run commit
 ```
 ### PR linting
 
@@ -180,7 +180,7 @@ _note: If no conflicts arise, these commands will apply your changes on top of t
 #### Lint your changes
 
 ```bash
-yarn lint
+npm run lint
 ```
 
 The above command may display lint issues not related to your changes.
@@ -230,7 +230,7 @@ The repo contains a script to increment the Salesforce API version supported by 
 To upgrade the API version, run the following command:
 
 ```bash
-yarn && yarn increment:apiversion
+npm run increment:apiversion
 ```
 
 ## CLI parameters convention

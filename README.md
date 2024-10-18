@@ -132,7 +132,7 @@ Because this plugin is not signed, you will get a warning saying that "This plug
 
 If you run your CI/CD jobs inside a Docker image, you can add the plugin to your image (such as in [this example](https://github.com/mehdicherf/sfdx-cli-gitlab)). If you use GitHub Actions, you can find some examples of using SGD [here](https://github.com/mehdicherf/sfdx-GitHub-actions/tree/main/.github/workflows).
 
-⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using yarn or npm. The legacy `sgd` command is now deprecated and decommissioned.
+⚠️ The Salesforce CLI plugin is now the only supported way to install SGD. There used to be another way to install it using node package manager. The legacy `sgd` command is now deprecated and decommissioned.
 
 ## How to use it?
 
@@ -188,7 +188,7 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.47.0/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
@@ -498,7 +498,7 @@ fi
 If you want to embed sgd in your node application, install it as a dependency for your application
 
 ```sh
-yarn add sfdx-git-delta
+npm install sfdx-git-delta
 ```
 
 Then use the JavaScript module

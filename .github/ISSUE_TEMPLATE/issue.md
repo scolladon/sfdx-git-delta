@@ -59,12 +59,12 @@ Issue verification check:
 ---
 
 <!--
-$ uname -v; yarn -v ; node -v ; git --version ; sf --version ; sf plugins
+$ uname -v; npm -v ; node -v ; git --version ; sf --version ; sf plugins
 -->
 
 **Operating System:** …
 
-**yarn version:** …
+**npm version:** …
 
 **node version:** …
 

@@ -2,12 +2,10 @@
     "ignorePaths": [
 	    "**/CHANGELOG.md",
         "**/.git/**",
-        "**/.yarnrc.yml",
         "**/megalinter.yml",
         "**/node_modules/**",
         "**/src/metadata/**",
-        "**/src/service/typeHandlerFactory.ts",
-        "**/yarn.lock"
+        "**/src/service/typeHandlerFactory.ts"
     ],
     "language": "en",
     "noConfigSearch": true,
@@ -167,7 +165,6 @@
         "weblinks",
         "wireit",
         "wlens",
-        "xmlbuilder",
-        "yarnrc"
+        "xmlbuilder"
     ]
 }
