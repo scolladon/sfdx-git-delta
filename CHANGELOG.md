@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.48.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.47.0...v5.48.0) (2024-10-18)
+
+
+### Features
+
+* support apexEmailNotification metadata ([#934](https://github.com/scolladon/sfdx-git-delta/issues/934)) ([0bdb80d](https://github.com/scolladon/sfdx-git-delta/commit/0bdb80d932a3ffa0c7b568ebb36ee42b33649e88))
+
 ## [5.47.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.46.0...v5.47.0) (2024-10-08)
 
 
