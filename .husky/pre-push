@@ -1,7 +1,6 @@
 #!/bin/sh
 
 npm run lint
-npm run lint:plugin
 npm pack
 npm run test
 npm outdated || true
