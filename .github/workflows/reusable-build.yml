@@ -23,10 +23,6 @@ jobs:
       - name: Lint plugin
         run: npm run lint
 
-      - name: Lint plugin
-        run: npm run lint:plugin || exit 0
-        continue-on-error: true
-
       - name: Build plugin
         run: npm pack
 

@@ -41,7 +41,6 @@
     "flexibleTaxonomy": true,
     "bin": "sf",
     "devPlugins": [
-      "@oclif/plugin-command-snapshot",
       "@oclif/plugin-help"
     ]
   },
@@ -67,7 +66,6 @@
     "@commitlint/config-conventional": "^19.5.0",
     "@jest/globals": "^29.7.0",
     "@ls-lint/ls-lint": "^2.2.3",
-    "@oclif/plugin-command-snapshot": "^5.2.18",
     "@oclif/plugin-help": "^6.2.15",
     "@salesforce/cli-plugins-testkit": "^5.3.34",
     "@salesforce/dev-config": "^4.3.1",
@@ -111,10 +109,7 @@
     "dependencies:upgrade": "npx npm-check-updates -u ; npm install ; npm audit fix",
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint:dependencies": "wireit",
-    "lint:deprecation-policy": "wireit",
     "lint:fs": "wireit",
-    "lint:json-schema": "wireit",
-    "lint:plugin": "wireit",
     "lint": "wireit",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "npm run build && oclif manifest && oclif readme",
@@ -203,27 +198,6 @@
         "lint"
       ]
     },
-    "lint:deprecation-policy": {
-      "command": "./bin/dev.js snapshot compare",
-      "files": [
-        "lib/commands/**/*.ts"
-      ],
-      "output": [],
-      "dependencies": [
-        "build"
-      ]
-    },
-    "lint:json-schema": {
-      "command": "./bin/dev.js schema compare",
-      "files": [
-        "lib/commands/**/*.ts",
-        "schemas"
-      ],
-      "output": [],
-      "dependencies": [
-        "build"
-      ]
-    },
     "lint:fs": {
       "command": "ls-lint",
       "files": [
@@ -233,12 +207,6 @@
         "**/.ls-lint.yml"
       ],
       "output": []
-    },
-    "lint:plugin": {
-      "dependencies": [
-        "lint:deprecation-policy",
-        "lint:json-schema"
-      ]
     },
     "test": {
       "dependencies": [
