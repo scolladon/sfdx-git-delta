@@ -15,7 +15,7 @@ describe(`test if metadata`, () => {
   it('provide latest when apiVersion is undefined', async () => {
     let undefinedVariable
     const metadata = await getDefinition(undefinedVariable)
-    const latestVersionSupported = await getLatestSupportedVersion()
+    const latestVersionSupported = getLatestSupportedVersion()
     const latestMetadataDef = await getDefinition(latestVersionSupported)
 
     expect(metadata).toBeDefined()
@@ -26,7 +26,7 @@ describe(`test if metadata`, () => {
 
   it('provide latest when apiVersion does not exist', async () => {
     const metadata = await getDefinition(0)
-    const latestVersionSupported = await getLatestSupportedVersion()
+    const latestVersionSupported = getLatestSupportedVersion()
     const latestMetadataDef = await getDefinition(latestVersionSupported)
 
     expect(metadata).toBeDefined()
@@ -47,27 +47,27 @@ describe(`test if metadata`, () => {
     expect(metadata.get('do not exist')).toBeFalsy()
   })
 
-  it('getLatestSupportedVersion', async () => {
-    const latestVersion = await getLatestSupportedVersion()
+  it('getLatestSupportedVersion', () => {
+    const latestVersion = getLatestSupportedVersion()
     expect(latestVersion).toBeDefined()
     expect(latestVersion).toEqual(expect.any(Number))
   })
 
-  it('latest supported version is the second last version', async () => {
+  it('latest supported version is the second last version', () => {
     // Arrange
     let i = 45
 
     // Act(s)
-    while (await isVersionSupported(++i));
+    while (isVersionSupported(++i));
     // Here latest version should not be supported because it is equal to last version + 1
 
     // Assert
-    const defaultLatestSupportedVersion = await getLatestSupportedVersion()
+    const defaultLatestSupportedVersion = getLatestSupportedVersion()
     // defaultLatestSupportedVersion should be equal to i + 1 (latest) + 1 (iteration)
     expect(i).toBe(defaultLatestSupportedVersion + 2)
   })
 
-  it('isVersionSupported', async () => {
+  it('isVersionSupported', () => {
     // Arrange
     const dataSet = [
       [40, false],
@@ -78,7 +78,7 @@ describe(`test if metadata`, () => {
 
     // Act & Assert
     for (const data of dataSet) {
-      const result = await isVersionSupported(data[0] as number)
+      const result = isVersionSupported(data[0] as number)
       expect(result).toEqual(data[1])
     }
   })

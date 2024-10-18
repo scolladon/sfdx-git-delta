@@ -8,7 +8,7 @@ export default {
     '**/*.{nut,test}.ts',
     '.github/**/*.yml',
   ],
-  project: ['**/*.{ts,js,json,yml}'],
+  project: ['**/*.{ts,js,json,yml}', '!src/metadata/v*.ts'],
   ignoreDependencies: [
     '@salesforce/ts-sinon',
     '@types/mocha',

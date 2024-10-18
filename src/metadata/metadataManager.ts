@@ -1,8 +1,4 @@
 'use strict'
-import { resolve } from 'node:path'
-
-import { readFile, readdir } from 'node:fs/promises'
-
 import type {
   BaseMetadata,
   Metadata,
@@ -13,58 +9,34 @@ import type {
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
 
-const _apiMap = new Map<number, string>()
-let _latestVersion: number = -Infinity
-const describeMetadata = new Map<number, Metadata[]>()
 const inFileMetadata = new Map<string, SharedFileMetadata>()
 const sharedFolderMetadata = new Map<string, string>()
 
-const buildAPIMap = async () => {
-  if (_apiMap.size === 0) {
-    const dir = await readdir(import.meta.dirname)
-    dir
-      .filter((file: string) => /^[a-z]+\d+\.json$/.test(file))
-      .forEach((file: string) => {
-        const version: number = parseInt(file.match(/\d+/)?.[0] as string)
-        _apiMap.set(version, file)
-      })
-    setLatestSupportedVersion()
-  }
+const earliestVersion: number = 46
+const latestVersion: number = 62
+
+export const getLatestSupportedVersion = () => {
+  return latestVersion - 1
 }
 
-const setLatestSupportedVersion = () => {
-  const versions: number[] = Array.from(_apiMap.keys())
-  versions.sort((a, b) => a - b)
-  _latestVersion = versions[versions.length - 2]
-}
-
-export const getLatestSupportedVersion = async () => {
-  await buildAPIMap()
-  return _latestVersion
-}
-
-export const isVersionSupported = async (version: number | undefined) => {
-  await buildAPIMap()
-  return version && _apiMap.has(version)
+export const isVersionSupported = (version: number | undefined) => {
+  return (
+    Number.isInteger(version) &&
+    version! >= earliestVersion &&
+    version! <= latestVersion
+  )
 }
 
 export const getDefinition = async (
   apiVersion: number | undefined
 ): Promise<MetadataRepository> => {
-  await buildAPIMap()
-  const version: number =
-    apiVersion && _apiMap.has(apiVersion) ? apiVersion! : _latestVersion
-  if (!describeMetadata.has(version)) {
-    const apiFile: string = _apiMap.get(version)!
-    const fileContent: string = await readFile(
-      resolve(import.meta.dirname, apiFile),
-      'utf-8'
-    )
-    describeMetadata.set(version, JSON.parse(fileContent))
-  }
+  const version = isVersionSupported(apiVersion)
+    ? apiVersion
+    : getLatestSupportedVersion()
+  const { default: metadataVersion } = await import(`./v${version}.js`)
 
   const metadataRepository: MetadataRepository = new MetadataRepositoryImpl(
-    describeMetadata.get(version)!
+    metadataVersion
   )
   return metadataRepository
 }

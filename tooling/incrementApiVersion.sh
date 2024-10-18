@@ -1,7 +1,8 @@
 #!/bin/bash
 
-filename=$(find src/metadata -type f -name "v*.json" | sort | tail -1)
+filename=$(find src/metadata -type f -name "v*.ts" | sort | tail -1)
 version=$(echo "$filename" | tr -d -c 0-9)
 ((version++))
-targetname="src/metadata/v${version}.json"
+\sed -i "" "s/const latestVersion: number = $((version-1))/const latestVersion: number = $version/g" src/metadata/metadataManager.ts
+targetname="src/metadata/v${version}.ts"
 \cp "$filename" "$targetname"
