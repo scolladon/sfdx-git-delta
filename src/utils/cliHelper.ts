@@ -79,9 +79,7 @@ export default class CLIHelper {
   }
 
   protected async _getApiVersion() {
-    const isInputVersionSupported = await isVersionSupported(
-      this.config.apiVersion
-    )
+    const isInputVersionSupported = isVersionSupported(this.config.apiVersion)
     if (!isInputVersionSupported) {
       const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
       const exists = await fileExists(sfdxProjectPath)
@@ -94,13 +92,11 @@ export default class CLIHelper {
     }
   }
 
-  protected async _apiVersionDefault() {
-    const isInputVersionSupported = await isVersionSupported(
-      this.config.apiVersion
-    )
+  protected _apiVersionDefault() {
+    const isInputVersionSupported = isVersionSupported(this.config.apiVersion)
 
     if (!isInputVersionSupported) {
-      const latestAPIVersionSupported = await getLatestSupportedVersion()
+      const latestAPIVersionSupported = getLatestSupportedVersion()
       if (
         this.config.apiVersion !== undefined &&
         this.config.apiVersion !== null
