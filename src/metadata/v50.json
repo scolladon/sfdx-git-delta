@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "apexEmailNotifications",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "notifications",
+    "xmlName": "ApexEmailNotifications"
+  },
+  {
     "directoryName": "briefcaseDefinitions",
     "inFolder": false,
     "metaFile": false,
