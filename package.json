@@ -125,6 +125,10 @@
     "test:unit": "wireit",
     "test": "wireit"
   },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/scolladon"
+  },
   "wireit": {
     "build": {
       "command": "tsc -p . --incremental",
