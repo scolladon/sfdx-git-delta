@@ -39,5 +39,5 @@ jobs:
 
       - name: E2E Tests
         run: |
-          yarn
-          yarn test:e2e
+          npm install
+          npm run test:e2e

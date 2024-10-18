@@ -15,7 +15,6 @@ ignore:
   - .stryker-tmp
   - .vscode
   - .wireit
-  - .yarn
   - e2e
   - lib
   - megalinter-reports
