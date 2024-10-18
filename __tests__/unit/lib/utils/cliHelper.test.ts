@@ -234,8 +234,8 @@ describe(`test if the application`, () => {
 
   describe('apiVersion parameter handling', () => {
     let latestAPIVersionSupported: number
-    beforeAll(async () => {
-      latestAPIVersionSupported = await getLatestSupportedVersion()
+    beforeAll(() => {
+      latestAPIVersionSupported = getLatestSupportedVersion()
     })
     beforeEach(jest.resetAllMocks)
     describe('when apiVersion parameter is set with supported value', () => {
