@@ -42,7 +42,7 @@ sf plugins install sfdx-git-delta
 sf plugins install sfdx-git-delta@stable
 ```
 
-### legacy version installation
+### Legacy version installation
 
 In case you need more time, old plugin version will still be installable via either the version number directly or via legacy channels:
 - channel `legacy-latest` will match with the **latest v5** version.

@@ -187,7 +187,7 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
 ```
 
-_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/v5.48.0/src/commands/sgd/source/delta.ts)_
+_See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
 <!-- commandsstop -->
 
 ### Windows users
