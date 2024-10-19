@@ -112,6 +112,9 @@ export default class SourceDeltaGenerate extends SfdxCommand {
       output.success = false
       process.exitCode = 1
     }
+    output.warnings.push(
+      '[INFORMATION] sfdx-git-delta v6 is coming soon! Read more and plan your migration: https://github.com/scolladon/sfdx-git-delta/issues/936'
+    )
     this.ux.log(JSON.stringify(output, null, 2))
     return output
   }
