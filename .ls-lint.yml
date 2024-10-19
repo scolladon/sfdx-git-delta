@@ -11,6 +11,7 @@ ignore:
   - .github
   - .husky
   - .nyc_output
+  - .stryker-tmp
   - .vscode
   - .wireit
   - .yarn
