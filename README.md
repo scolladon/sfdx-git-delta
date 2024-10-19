@@ -22,6 +22,9 @@
   </p>
 </div>
 
+> [!WARNING]
+> **Potentially breaking changes in v6**: Check out the [v6 announcement](https://github.com/scolladon/sfdx-git-delta/issues/936) to see how you could be impacted by some changes in the new major `v6` version of the plugin, and how to prepare to migrate to this version.
+
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
