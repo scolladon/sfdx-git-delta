@@ -2,6 +2,7 @@
 
 Version `v6.0.0` migrates the plugin to sf plugin v2.
 While it improves maintainability and security, it also introduces some new behaviors and potentially breaking changes.
+Versions `v5.x` and below **will not be maintained** anymore (_no bug fixes, no new metadata support, no new API version, no new features_). 
 
 ## New behaviors
 
@@ -14,6 +15,52 @@ While it improves maintainability and security, it also introduces some new beha
 * [Plugin default output](#default-output)
 * [JSON output structure](#json-output)
 * [Export esm instead of commonjs](#export-module)
+
+## Installation Details
+
+`sfdx-git-delta` `+v6.x` will follow the actual channel release pattern : 
+- channel `latest-rc` contains the **latest fixes and feature** validated by our test battery as a release candidate.
+- channel `latest` contains a **customer validated** by real customers.
+- channel `stable` contains the **last version without bugs** for +50k(ish) downloads.
+
+> [!NOTE]
+> If you were installing the plugin this way **and** you are not impacted by the `v6` changes, then it will be totally transparent for you.
+
+```sh
+# install latest-rc
+
+sf plugins install sfdx-git-delta@latest-rc
+
+# install latest
+
+sf plugins install sfdx-git-delta@latest
+# or
+sf plugins install sfdx-git-delta
+
+# install stable
+
+sf plugins install sfdx-git-delta@stable
+```
+
+### legacy version installation
+
+In case you need more time, old plugin version will still be installable via either the version number directly or via legacy channels:
+- channel `legacy-latest` will match with the **latest v5** version.
+- channel `legacy-stable` will match with the **latest stable v5** version (`v5.34.0`).
+
+```sh
+# install a specific version (5.46.0 for example)
+
+sf plugins install sfdx-git-delta@v5.46.0
+
+# install legacy-latest
+
+sf plugins install sfdx-git-delta@legacy-latest
+
+# install legacy-stable
+
+sf plugins install sfdx-git-delta@legacy-stable
+```
 
 ## Details
 
