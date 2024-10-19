@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.49.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.48.0...v5.49.0) (2024-10-19)
+
+
+### Features
+
+* communicate new v6 plugin version ([#937](https://github.com/scolladon/sfdx-git-delta/issues/937)) ([6ac8bb7](https://github.com/scolladon/sfdx-git-delta/commit/6ac8bb7d72b5818f019aa41992a15a576d9630d5))
+
 ## [5.48.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.47.0...v5.48.0) (2024-10-18)
 
 
