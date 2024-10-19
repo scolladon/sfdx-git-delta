@@ -1,30 +1,30 @@
 # Migrating to `v6.0.0`
 
-Version `v6.0.0` migrates the plugin to sf plugin v2.
-While it improves maintainability and security, it also introduces some new behaviors and potentially breaking changes.
-Versions `v5.x` and below **will not be maintained** anymore (_no bug fixes, no new metadata support, no new API version, no new features_). 
+Version `v6.0.0` brings the plugin into the **sf plugin v2 architecture**, which offers significant improvements in performance, maintainability, and security. While the upgrade comes with benefits, it also introduces some new behaviors and potential breaking changes. Versions `v5.x` and below will no longer be maintained (_no bug fixes, no new metadata support, no API version updates, and no new features_).
 
-## New behaviors
+## New Behaviors
 
-* [Deprecated parameters](#deprecated-parameters)
-* [Error handling for file and dir parameters](#param-error)
+- [Deprecated parameters](#deprecated-parameters)
+- [Improved error handling for file and dir parameters](#param-error)
 
-## Breaking changes
+## Breaking Changes
 
-* [sfdx/cli no longer supported](#drop-old-cli)
-* [Plugin default output](#default-output)
-* [JSON output structure](#json-output)
-* [Export esm instead of commonjs](#export-module)
+- [sfdx/cli no longer supported](#drop-old-cli)
+- [Plugin output format changes](#default-output)
+- [Streamlined JSON output](#json-output)
+- [Switch to ES modules (no more CommonJS)](#export-module)
 
 ## Installation Details
 
-`sfdx-git-delta` `+v6.x` will follow the actual channel release pattern : 
-- channel `latest-rc` contains the **latest fixes and feature** validated by our test battery as a release candidate.
-- channel `latest` contains a **customer validated** by real customers.
-- channel `stable` contains the **last version without bugs** for +50k(ish) downloads.
+`sfdx-git-delta` `v6.x` follows a new release channel structure:
+
+- **`latest-rc`**: Contains the **latest fixes and features** that have passed automated testing, but still await customer validation.
+- **`latest`**: This channel has **been validated by real-world usage** and is stable for most users.
+- **`stable`**: Represents the **last fully stable release**, typically for versions with 50k+ downloads.
 
 > [!NOTE]
-> If you were installing the plugin this way **and** you are not impacted by the `v6` changes, then it will be totally transparent for you.
+> If you’ve been installing the plugin using these channels and are not impacted by `v6` breaking changes, this transition should be seamless.
+
 
 ```sh
 # install latest-rc
@@ -44,9 +44,10 @@ sf plugins install sfdx-git-delta@stable
 
 ### Legacy version installation
 
-In case you need more time, old plugin version will still be installable via either the version number directly or via legacy channels:
-- channel `legacy-latest` will match with the **latest v5** version.
-- channel `legacy-stable` will match with the **latest stable v5** version (`v5.34.0`).
+If you need more time to adapt to version `v6.x`, the previous `v5.x` version is still available through specific channels:
+
+- `legacy-latest`: Installs the most recent `v5` release.
+- `legacy-stable`: Installs the most stable `v5` version (currently `v5.34.0`).
 
 ```sh
 # install a specific version (5.46.0 for example)
@@ -64,23 +65,24 @@ sf plugins install sfdx-git-delta@legacy-stable
 
 ## Details
 
-### <a name="deprecated-parameters"></a> Deprecated parameters
+### <a name="deprecated-parameters"></a> Deprecated Parameters
 
-The following "long" parameters have been deprecated and are replaced by new parameters to follow [sf design guidelines](https://github.com/salesforcecli/cli/wiki/Design-Guidelines-Flags):
-- `--ignore` is deprecated and replaced by `--ignore-file` (short `-i` is mapped with this parameter)
-- `--ignore-destructive` is deprecated and replaced by `--ignore-destructive-file` (short `-D` is mapped with this parameter)
-- `--include` is deprecated and replaced by `--include-file` (short `-n` is mapped with this parameter)
-- `--include-destructive` is deprecated and replaced by `--include-destructive-file` (short `-N` is mapped with this parameter)
-- `--output` is deprecated and replaced by `--output-dir` (short `-o` is mapped with this parameter)
-- `--repo` is deprecated and replaced by `--repo-dir` (short `-r` is mapped with this parameter)
-- `--source` is deprecated and replaced by `--source-dir` (short `-s` is mapped with this parameter)
+Several "long" parameters have been deprecated and replaced by new ones to comply with [sf design guidelines](https://github.com/salesforcecli/cli/wiki/Design-Guidelines-Flags):
 
-For now the old "long" parameters are still usable, but they will stop working in the near future. Please migrate to the new parameters.
+- `--ignore` → `--ignore-file` (short `-i`)
+- `--ignore-destructive` → `--ignore-destructive-file` (short `-D`)
+- `--include` → `--include-file` (short `-n`)
+- `--include-destructive` → `--include-destructive-file` (short `-N`)
+- `--output` → `--output-dir` (short `-o`)
+- `--repo` → `--repo-dir` (short `-r`)
+- `--source` → `--source-dir` (short `-s`)
 
-### <a name="param-error"></a> Error handling for file and dir parameters
+For now, the old parameters are still functional, but they will stop working in a future release. It is recommended to migrate to the new parameters as soon as possible.
 
-Error handling for [file](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#file) and [directory](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#directory) type parameters are now handled by the sf cli flags itself.
-The following parameters are impacted by this change: 
+### <a name="param-error"></a> Error Handling for File and Directory Parameters
+
+Error handling for [file](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#file) and [directory](https://github.com/salesforcecli/cli/wiki/Code-Your-Plugin#directory) type parameters is now managed by the Salesforce CLI itself. The following parameters are affected by this change:
+
 - `--ignore-file`
 - `--ignore-destructive-file`
 - `--include-file`
@@ -89,47 +91,44 @@ The following parameters are impacted by this change:
 - `--repo-dir`
 - `--source-dir`
 
-Errors are now returned by the sf cli itself, which changes the [standard output](#default-output) and the [json output](#json-output).
+Errors are now surfaced by the Salesforce CLI, which impacts both the [standard output](#default-output) and [JSON output](#json-output).
 
-### <a name="drop-old-cli"></a> sfdx/cli no longer supported
+### <a name="drop-old-cli"></a> sfdx/cli No Longer Supported
 
-Migrating to [sf plugin v2 architecture](https://github.com/salesforcecli/cli/wiki/Quick-Introduction-to-Developing-sf-Plugins) does not allow sfdx-git-delta to still be compatible with the [deprecated `sfdx/cli`](https://github.com/salesforcecli/sfdx-cli/).
-SFDX-Git-Delta `v6+` is compatible only with [`@salesforce/cli`](https://github.com/salesforcecli/cli).
-If you are using sfdx, please [migrate to sf (v2)](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_move_to_sf_v2.htm) before using SGD.
+With the migration to the [sf plugin v2 architecture](https://github.com/salesforcecli/cli/wiki/Quick-Introduction-to-Developing-sf-Plugins), **sfdx-git-delta v6+** is no longer compatible with the [deprecated `sfdx/cli`](https://github.com/salesforcecli/sfdx-cli/). It now requires [`@salesforce/cli`](https://github.com/salesforcecli/cli).
 
-### <a name="default-output"></a> Plugin default output
+If you are still using `sfdx/cli`, please [migrate to sf (v2)](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_move_to_sf_v2.htm) before upgrading to version 6.
 
-Default output no longer displays JSON information.
-It uses the new sf cli UX tools and displays a sfdx cli spinner to provide information about what the plugin is doing.
-It also displays warning and errors directly in the standard output.
+### <a name="default-output"></a> Plugin Default Output
 
-To use the JSON output, you must now pass the [`--json` parameter](#json-output).
+The default output format no longer displays JSON by default. Instead, it takes advantage of the new Salesforce CLI UX tools, such as spinners, to provide real-time feedback on plugin operations. Warnings and errors are also presented directly in the standard output.
 
-### <a name="json-output"></a> JSON output structure
+To continue using JSON output, you must now pass the [`--json` flag](#json-output).
 
-JSON output has changed to remove duplicated information from the cli JSON output and reuse built in sf cli capabilities.
-Previous json output was encapsulated and had duplicated information as follow:
+### <a name="json-output"></a> JSON Output Structure
+
+The JSON output has been simplified by removing duplicated information and aligning it with the Salesforce CLI's built-in capabilities. Previously, the JSON output was encapsulated and included redundant information, such as:
+
+**Old JSON Structure**
+
 ```json
-// Previous JSON output
 {
-  "status": 0, // duplicated with success
+  "status": 0,
   "result": { 
-    "success": <boolean>,
-    "output-dir": "<same as input parameter or default value>",
+    "success": true,
+    "output-dir": "<same as input parameter>",
     "error": "<encountered errors>",
-    "warnings": ["<encountered warnings - duplicated with internal warnings>"]
+    "warnings": ["<warnings>"]
   },
   "warnings": [
-    "<was not used>"
   ]
 }
 ```
 
-Here is the new version of the JSON structure:
+**New JSON Structure**
 ```json
-// New JSON output
 {
-  "status": 0, // 1 in case of failure
+  "status": 0,
   "result": {
     "output-dir": "<same as input parameter or default value>",
     "error": "<plugin encountered error>"
@@ -138,28 +137,26 @@ Here is the new version of the JSON structure:
 }
 ```
 
-When there are errors at the sf cli level (file or directory parameter does not exist), the result looks like:
+When errors arise due to file/directory issues or other sf CLI-level problems, the output will look like this:
 ```json
-// SF CLI error JSON output
 {
   "name": "Error",
-  "message": "<sf cli encountered error>", // error message
+  "message": "<sf cli encountered error>",
   "exitCode": 1,
   "context": "SourceDeltaGenerate",
   "stack": "<stack>",
   "cause": "<cause>",
   "warnings": [],
   "code": "1",
-  "status": 1, // != 0 => error
+  "status": 1,
   "commandName": "SourceDeltaGenerate"
 }
 ```
 
 ### <a name="export-module"></a> Export esm instead of commonjs
 
-The plugin ships js as a module using `export default`.
-It compiles using `"esModuleInterop"=false` tsconfig.
-Here is how to import it now:
+The plugin now exports using ES modules (with no more CommonJS support and no `esmInteroperability`).
+Here’s is how to import the plugin:
 
 ```js
 import sgd from 'sfdx-git-delta'
