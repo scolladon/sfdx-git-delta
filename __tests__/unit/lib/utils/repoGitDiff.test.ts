@@ -13,9 +13,11 @@ import { getGlobalMetadata } from '../../../__utils__/globalTestHelper'
 
 const mockGetDiffLines = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => ({
-  getInstance: jest.fn(() => ({
-    getDiffLines: mockGetDiffLines,
-  })),
+  default: {
+    getInstance: jest.fn(() => ({
+      getDiffLines: mockGetDiffLines,
+    })),
+  },
 }))
 
 const mockKeep = jest.fn()
