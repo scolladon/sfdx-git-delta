@@ -70,7 +70,7 @@ sf plugins install sfdx-git-delta
 ```
 
 ```sh
-sf sgd source delta --to "HEAD" --from "HEAD~1" --output "."
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output-dir "."
 ```
 
 ```sh
@@ -144,9 +144,9 @@ Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-a <value>] [-d] [--ignore <value>] [-i <value>]
-    [--ignore-destructive <value>] [-D <value>] [-W] [--include <value>] [-n <value>] [--include-destructive <value>]
-    [-N <value>] [--output <value>] [-o <value>] [--repo <value>] [-r <value>] [--source <value>] [-s <value>] [-t
+  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-a <value>] [-d] [--ignore-file <value>] [-i <value>]
+    [--ignore-destructive-file <value>] [-D <value>] [-W] [--include-file <value>] [-n <value>] [--include-destructive-file <value>]
+    [-N <value>] [--output-dir <value>] [-o <value>] [--repo-dir <value>] [-r <value>] [--source-dir <value>] [-s <value>] [-t
     <value>]
 
 FLAGS
@@ -155,13 +155,13 @@ FLAGS
   -W, --ignore-whitespace                 ignore git diff whitespace (space, tab, eol) changes
   -a, --api-version=<value>               salesforce metadata API version, default to sfdx-project.json
                                           "sourceApiVersion" attribute or latest version
-  -d, --generate-delta                    generate delta files in [--output] folder
+  -d, --generate-delta                    generate delta files in [--output-dir] folder
   -f, --from=<value>                      (required) commit sha from where the diff is done
   -i, --ignore-file=<value>               file listing paths to explicitly ignore for any diff actions
   -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
   -o, --output-dir=<value>                [default: ./output] source package specific output
   -r, --repo-dir=<value>                  [default: ./] git repository location
-  -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo
+  -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo-dir
   -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
       --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
       --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
@@ -182,9 +182,9 @@ DESCRIPTION
 
 EXAMPLES
   - Build incremental manifest from the previous commit
-  $ sf sgd source delta --from "origin/development" --output incremental
+  $ sf sgd source delta --from "origin/development" --output-dir incremental
   - Build incremental manifest and source from the development branch
-  $ sf sgd source delta --from "origin/development" --generate-delta --output incremental
+  $ sf sgd source delta --from "origin/development" --generate-delta --output-dir incremental
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
@@ -209,7 +209,7 @@ sf sgd source delta --from "HEAD~1" # right git shortcut with windows because it
 In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetches only the last commit of the branch currently evaluated.
 You need to fetch all the needed commits as the plugin needs access to the branch being compared.
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
-If you use `-n` (`--include`) with metadata contained inside files you will need to have the full repo locally for the command to fully work.
+If you use `-n` (`--include-file`) with metadata contained inside files you will need to have the full repo locally for the command to fully work.
 
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
 If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
@@ -218,7 +218,7 @@ This applies to both `--from` and `--to` parameters as they both accept git poin
 Example comparing `HEAD` with a `development` branch when the CI clones the repository with `origin` set as reference to the remote:
 
 ```sh
-sf sgd source delta --to "HEAD" --from "origin/development" --output .
+sf sgd source delta --to "HEAD" --from "origin/development" --output-dir .
 ```
 
 Use a global variable when you need to easily switch sgd version (`vX.X.X` format) or channel (`stable`, `latest`, `latest-rc`) in your pipeline, without having to commit a new version of your pipeline.
@@ -251,21 +251,21 @@ Here are examples of how to compare the content of different branches:
   For example, if you have commit `fbc3ade6` in branch `develop` and commit `61f235b1` in branch `main`:
 
 ```sh
-sf sgd source delta --to fbc3ade6 --from 61f235b1 --output .
+sf sgd source delta --to fbc3ade6 --from 61f235b1 --output-dir .
 ```
 
 - **Comparing branches (all changes)**
   Comparing all changes between the `develop` branch and the `main` branch:
 
 ```sh
-sf sgd source delta --to develop --from main --output .
+sf sgd source delta --to develop --from main --output-dir .
 ```
 
 - **Comparing branches (from a common ancestor)**
   To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
 
 ```sh
-sf sgd source delta --to develop --from $(git merge-base develop main) --output .
+sf sgd source delta --to develop --from $(git merge-base develop main) --output-dir .
 ```
 
 ## Walkthrough
@@ -295,7 +295,7 @@ So let’s do it!
 From the project repo folder, the CI pipeline will run the following command:
 
 ```sh
-sf sgd source delta --to "HEAD" --from "HEAD~1" --output .
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output-dir .
 ```
 
 which means:
@@ -364,7 +364,7 @@ Let's use this option with our previous example:
 
 ```sh
 mkdir changed-sources
-sf sgd source delta --to "HEAD" --from "HEAD~1" --output changed-sources/ --generate-delta
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output-dir changed-sources/ --generate-delta
 ```
 
 It generates the `package` and `destructiveChanges` folders, and copies added/changed files in the output folder.
@@ -380,7 +380,7 @@ _Content of the output folder when using the --generate-delta option, with the s
 > # move HEAD to the wanted past commit
 > $ git checkout <not-HEAD-commit-sha>
 > # You can omit --to, it will take "HEAD" as default value
-> $ sf sgd source delta --from "HEAD~1" --output changed-sources/ --generate-delta
+> $ sf sgd source delta --from "HEAD~1" --output-dir changed-sources/ --generate-delta
 > ```
 
 Then it is possible to deploy the `change-sources` folder using `force:source:deploy` command with `-p` parameter:
@@ -391,38 +391,38 @@ sf project deploy start -p change-sources
 
 ### Exclude some metadata only from destructiveChanges.xml
 
-The `--ignore [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
-element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
+The `--ignore-file [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
+element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore-file [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
 
-Sometimes you may need to have two different ignore policies. One for the `package.xml` and another one for `destructiveChanges.xml` files. This is where the `--ignore-destructive [-D]` option comes handy!
-Use the `--ignore-destructive` parameter to specify a dedicated ignore file to handle deletions. It will apply to metadata listed in the `destructiveChanges.xml`. In other words, this will override the `--ignore [-i]` parameter for deleted items.
+Sometimes you may need to have two different ignore policies. One for the `package.xml` and another one for `destructiveChanges.xml` files. This is where the `--ignore-destructive-file [-D]` option comes handy!
+Use the `--ignore-destructive-file` parameter to specify a dedicated ignore file to handle deletions. It will apply to metadata listed in the `destructiveChanges.xml`. In other words, this will override the `--ignore-file [-i]` parameter for deleted items.
 
 Consider the following:
 
 - a repository containing many sub-folders (force-app/main, force-app/sample, etc)
 - a commit deleting the Custom\_\_c object from one folder and modifying the Custom\_\_c object from another folder. This is a Modification and a Deletion events.
 
-The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.xml` and fail the deployment. This is a situation where your may want to use the `--ignore-destructive [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
+The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.xml` and fail the deployment. This is a situation where your may want to use the `--ignore-destructive-file [-D]` parameter! Add the Custom\_\_c object pattern in an ignore file and pass it in the CLI parameter:
 
 ```sh
 # destructiveignore
 *Custom\_\_c.object-meta.xml
 
-$ sf sgd source delta --from commit --ignore-destructive destructiveignore
+$ sf sgd source delta --from commit --ignore-destructive-file destructiveignore
 
 ```
 
-Note: when only using the `--ignore [-i]` parameter (and not `--ignore-destructive [-D]`) the plugin will apply it to added/changed/deleted elements.
+Note: when only using the `--ignore-file [-i]` parameter (and not `--ignore-destructive-file [-D]`) the plugin will apply it to added/changed/deleted elements.
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff
 
-The `--include [-n]` parameter allows you to specify a file based on [gitignore glob matching](https://git-scm.com/docs/gitignore) to include specific files. Regardless whether they appears in the diff or not.
-Like the `--ignore` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
-SGD will include every metadata from the repo at the `to` parameter state, matching the pattern from the include file specified in the `--include [-n]`.
+The `--include-file [-n]` parameter allows you to specify a file based on [gitignore glob matching](https://git-scm.com/docs/gitignore) to include specific files. Regardless whether they appears in the diff or not.
+Like the `--ignore-file` flag, this file defines a list of glob file matchers to always include `git` aware files in the `package.xml` package.
+SGD will include every metadata from the repo at the `to` parameter state, matching the pattern from the include file specified in the `--include-file [-n]`.
 
-As with `--ignore`, you may need different policies for the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive [-N]` option comes handy!
+As with `--ignore-file`, you may need different policies for the `package.xml` and `destructiveChanges.xml` files. This is where the `--include-destructive-file [-N]` option comes handy!
 
-Use the `--include-destructive` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output.
+Use the `--include-destructive-file` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output.
 
 /!\ In order to work properly with metadata contained inside files (Labels, Workflow, MatchingRules, etc) the local repo must have the full historic.
 
@@ -430,20 +430,20 @@ Consider the following:
 
 - a repository containing many sub-folders (force-app/main,force-app/sample, etc)
 - a CI/CD platform generating a `force-app/generated/foo` file the `source:deploy` command should not include.
-  You can create a file with a line matching this new file and specify this file using the `--include-destructive [-N]` parameter.
+  You can create a file with a line matching this new file and specify this file using the `--include-destructive-file [-N]` parameter.
 
 ```sh
 # .destructiveinclude
 *generated/foo
 
-$ sf sgd source delta --from commit --include-destructive .destructiveinclude
+$ sf sgd source delta --from commit --include-destructive-file .destructiveinclude
 ```
 
 The path matchers in includes file must follow [`gitignore`](https://git-scm.com/docs/gitignore#:~:text=The%20slash%20/%20is%20used%20as%20the%20directory%20separator.) spec and accept only unix path separator `/` (even for windows system).
 
 ### Scoping delta generation to a specific folder
 
-The `--source [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
+The `--source-dir [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
 It means the delta generation will only focus on the dedicated folder.
 
 For example, consider a repository containing many sub-folders (force-app/package, force-app/unpackaged, etc).
@@ -463,11 +463,11 @@ $ tree
 ├── ...
 
 # scope the delta generation only to the unpackaged folder
-$ sf sgd source delta --from commit --source force-app/unpackaged
+$ sf sgd source delta --from commit --source-dir force-app/unpackaged
 ```
 
-> The ignored patterns specified using `--ignore [-i]` and `--ignore-destructive [-D]` still apply.
-> The `--source` path must be relative to the `--repo` path
+> The ignored patterns specified using `--ignore-file [-i]` and `--ignore-destructive-file [-D]` still apply.
+> The `--source-dir` path must be relative to the `--repo-dir` path
 
 ### Generate a comma-separated list of the added and modified Apex classes
 
