@@ -22,75 +22,24 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
   public static override readonly examples = messages.getMessages('examples')
 
   public static override readonly flags = {
-    'api-version': Flags.integer({
-      char: 'a',
-      summary: messages.getMessage('flags.api-version.summary'),
-    }),
     from: Flags.string({
       char: 'f',
       summary: messages.getMessage('flags.from.summary'),
       required: true,
     }),
+    to: Flags.string({
+      char: 't',
+      summary: messages.getMessage('flags.to.summary'),
+      default: TO_DEFAULT_VALUE,
+    }),
     'generate-delta': Flags.boolean({
       char: 'd',
       summary: messages.getMessage('flags.generate-delta.summary'),
-    }),
-    ignore: Flags.file({
-      summary: messages.getMessage('flags.deprecated', ['ignore-file']),
-      exists: true,
-    }),
-    'ignore-file': Flags.file({
-      char: 'i',
-      summary: messages.getMessage('flags.ignore.summary'),
-      exists: true,
-    }),
-    'ignore-destructive': Flags.file({
-      summary: messages.getMessage('flags.deprecated', [
-        'ignore-destructive-file',
-      ]),
-      exists: true,
-    }),
-    'ignore-destructive-file': Flags.file({
-      char: 'D',
-      summary: messages.getMessage('flags.ignore-destructive.summary'),
-      exists: true,
-    }),
-    'ignore-whitespace': Flags.boolean({
-      char: 'W',
-      summary: messages.getMessage('flags.ignore-whitespace.summary'),
-    }),
-    include: Flags.file({
-      summary: messages.getMessage('flags.deprecated', ['include-file']),
-      exists: true,
-    }),
-    'include-file': Flags.file({
-      char: 'n',
-      summary: messages.getMessage('flags.include.summary'),
-      exists: true,
-    }),
-    'include-destructive': Flags.file({
-      summary: messages.getMessage('flags.deprecated', [
-        'include-destructive-file',
-      ]),
-      exists: true,
-    }),
-    'include-destructive-file': Flags.file({
-      char: 'N',
-      summary: messages.getMessage('flags.include-destructive.summary'),
-      exists: true,
-    }),
-    output: Flags.directory({
-      summary: messages.getMessage('flags.deprecated', ['output-dir']),
-      exists: true,
     }),
     'output-dir': Flags.directory({
       char: 'o',
       summary: messages.getMessage('flags.output.summary'),
       default: OUTPUT_DEFAULT_VALUE,
-      exists: true,
-    }),
-    repo: Flags.directory({
-      summary: messages.getMessage('flags.deprecated', ['repo-dir']),
       exists: true,
     }),
     'repo-dir': Flags.directory({
@@ -99,20 +48,72 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       default: REPO_DEFAULT_VALUE,
       exists: true,
     }),
-    source: Flags.directory({
-      summary: messages.getMessage('flags.deprecated', ['source-dir']),
-      exists: true,
-    }),
     'source-dir': Flags.directory({
       char: 's',
       summary: messages.getMessage('flags.source.summary'),
       default: SOURCE_DEFAULT_VALUE,
       exists: true,
     }),
-    to: Flags.string({
-      char: 't',
-      summary: messages.getMessage('flags.to.summary'),
-      default: TO_DEFAULT_VALUE,
+    'ignore-file': Flags.file({
+      char: 'i',
+      summary: messages.getMessage('flags.ignore.summary'),
+      exists: true,
+    }),
+    'ignore-destructive-file': Flags.file({
+      char: 'D',
+      summary: messages.getMessage('flags.ignore-destructive.summary'),
+      exists: true,
+    }),
+    'include-file': Flags.file({
+      char: 'n',
+      summary: messages.getMessage('flags.include.summary'),
+      exists: true,
+    }),
+    'include-destructive-file': Flags.file({
+      char: 'N',
+      summary: messages.getMessage('flags.include-destructive.summary'),
+      exists: true,
+    }),
+    'ignore-whitespace': Flags.boolean({
+      char: 'W',
+      summary: messages.getMessage('flags.ignore-whitespace.summary'),
+    }),
+    'api-version': Flags.integer({
+      char: 'a',
+      summary: messages.getMessage('flags.api-version.summary'),
+    }),
+    // Deprecated flags start
+    ignore: Flags.file({
+      summary: messages.getMessage('flags.deprecated', ['ignore-file']),
+      exists: true,
+    }),
+    'ignore-destructive': Flags.file({
+      summary: messages.getMessage('flags.deprecated', [
+        'ignore-destructive-file',
+      ]),
+      exists: true,
+    }),
+    include: Flags.file({
+      summary: messages.getMessage('flags.deprecated', ['include-file']),
+      exists: true,
+    }),
+    'include-destructive': Flags.file({
+      summary: messages.getMessage('flags.deprecated', [
+        'include-destructive-file',
+      ]),
+      exists: true,
+    }),
+    output: Flags.directory({
+      summary: messages.getMessage('flags.deprecated', ['output-dir']),
+      exists: true,
+    }),
+    repo: Flags.directory({
+      summary: messages.getMessage('flags.deprecated', ['repo-dir']),
+      exists: true,
+    }),
+    source: Flags.directory({
+      summary: messages.getMessage('flags.deprecated', ['source-dir']),
+      exists: true,
     }),
   }
 

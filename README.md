@@ -144,10 +144,8 @@ Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-a <value>] [-d] [--ignore-file <value>] [-i <value>]
-    [--ignore-destructive-file <value>] [-D <value>] [-W] [--include-file <value>] [-n <value>] [--include-destructive-file <value>]
-    [-N <value>] [--output-dir <value>] [-o <value>] [--repo-dir <value>] [-r <value>] [--source-dir <value>] [-s <value>] [-t
-    <value>]
+  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
+    <value>] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-W] [-a <value>]
 
 FLAGS
   -D, --ignore-destructive-file=<value>   file listing paths to explicitly ignore for any destructive actions

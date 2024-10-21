@@ -10,11 +10,11 @@ Use two git commit reference to generate the package corresponding to what has c
 
 - Build incremental manifest from the previous commit
 
-<%= config.bin %> <%= command.id %> --from "origin/development" --output incremental
+<%= config.bin %> <%= command.id %> --from "origin/development" --output-dir incremental
 
 - Build incremental manifest and source from the development branch
 
-<%= config.bin %> <%= command.id %> --from "origin/development" --generate-delta --output incremental
+<%= config.bin %> <%= command.id %> --from "origin/development" --generate-delta --output-dir incremental
 
 # flags.to.summary
 
@@ -34,7 +34,7 @@ source package specific output
 
 # flags.source.summary
 
-source folder focus location related to --repo
+source folder focus location related to --repo-dir
 
 # flags.ignore.summary
 
@@ -50,7 +50,7 @@ salesforce metadata API version, default to sfdx-project.json "sourceApiVersion"
 
 # flags.generate-delta.summary
 
-generate delta files in [--output] folder
+generate delta files in [--output-dir] folder
 
 # flags.ignore-whitespace.summary
 
