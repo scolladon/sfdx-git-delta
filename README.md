@@ -1,13 +1,12 @@
 <!-- markdownlint-disable MD040 MD041 -->
 ![Actions Status](https://github.com/scolladon/sfdx-git-delta/workflows/Main/badge.svg)
+[![Performance Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://scolladon.github.io/sfdx-git-delta/dev/bench/)
 [![npm](https://badgen.net/npm/v/sfdx-git-delta)](https://badgen.net/npm/v/sfdx-git-delta)
 [![Maintainability](https://api.codeclimate.com/v1/badges/95619399c7bb2cf60da4/maintainability)](https://codeclimate.com/github/scolladon/sfdx-git-delta/maintainability)
 [![Code Coverage](https://codecov.io/gh/scolladon/sfdx-git-delta/branch/main/graph/badge.svg?token=92T8XKKBHN)](https://codecov.io/gh/scolladon/sfdx-git-delta)
 [![Known Vulnerabilities](https://snyk.io//test/github/scolladon/sfdx-git-delta/badge.svg?targetFile=package.json)](https://snyk.io//test/github/scolladon/sfdx-git-delta?targetFile=package.json)
 [![downloads](https://badgen.net/npm/dw/sfdx-git-delta)](https://badgen.net/npm/dw/sfdx-git-delta)
 ![GitHub Sponsors](https://img.shields.io/github/sponsors/scolladon)
-[![Performance Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://scolladon.github.io/sfdx-git-delta/dev/bench/)
-[![Join the chat at https://gitter.im/sfdx-git-delta/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sfdx-git-delta/community)
 
 <br />
 <div align="center">  
