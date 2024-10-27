@@ -95,3 +95,9 @@ Generating incremental package
 # info.CommandHasRun
 
 Done
+
+# info.EncourageSponsorship
+
+💡 Enjoying sfdx-git-delta?
+Your contribution helps us provide fast support 🚀 and high quality features 🔥
+Become a sponsor: https://github.com/sponsors/scolladon 💙
