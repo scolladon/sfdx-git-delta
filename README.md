@@ -57,6 +57,7 @@
 - [Complementary Plugins](#complementary-plugins)
 - [Changelog](#changelog)
 - [Built With](#built-with)
+- [Used by](#used-by)
 - [Versioning](#versioning)
 - [Authors](#authors)
 - [Contributing](#contributing)
@@ -600,6 +601,10 @@ These plugins have been designed to work with SGD:
 - [MegaLinter](https://megalinter.io) - Open-Source tool for CI/CD workflows that analyzes the consistency of your code, IAC, configuration, and scripts
 - [simple-git](https://github.com/steveukx/git-js) - A light weight interface for running git commands in any node.js application.
 - [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
+
+## Used by 
+
+-[sfdx-hardis](https://sfdx-hardis.cloudity.com/) Toolbox for Salesforce DX, by Cloudity & friends, natively compliant with most platforms and tools.
 
 ## Versioning
 
