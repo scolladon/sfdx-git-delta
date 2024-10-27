@@ -16,9 +16,11 @@
   <p align="center">
     SFDX plugin to generate Incremental Salesforce deployments manifests and artifacts
     <br />
-    <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=bug&template=issue.md">Report Bug</a>
+    <button href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=bug&template=issue.md">Report Bug</button>
     ·
-    <a href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=enhancement&template=enhancement.md">Request Feature</a>
+    <button href="https://github.com/scolladon/sfdx-git-delta/issues/new?assignees=scolladon&labels=enhancement&template=enhancement.md">Request Feature</button>
+    ·
+    <button href="https://github.com/sponsors/scolladon">Become a Sponsor</button>
   </p>
 </div>
 
