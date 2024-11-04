@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.49.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.1...v5.49.2) (2024-11-04)
+
+
+### Bug Fixes
+
+* workflow `KnowledgePublish` decomposed sub type suffix ([#944](https://github.com/scolladon/sfdx-git-delta/issues/944)) ([ce80054](https://github.com/scolladon/sfdx-git-delta/commit/ce80054fd4aa47a8ca24bce5fde5deb542c96179))
+
 ## [5.49.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.0...v5.49.1) (2024-11-04)
 
 
