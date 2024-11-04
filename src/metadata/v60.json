@@ -1683,7 +1683,7 @@
     "directoryName": "workflowRules",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "workflowRules",
+    "suffix": "workflowRule",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowRule",
     "xmlTag": "rules",
