@@ -169,7 +169,7 @@
       ]
     },
     "clean:package-manager": {
-      "command": "shx rm -rf node_modules",
+      "command": "shx rm -rf node_modules tsconfig.tsbuildinfo .wireit",
       "files": [
         "node_modules/*"
       ]
