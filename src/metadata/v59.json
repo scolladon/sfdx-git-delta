@@ -1656,7 +1656,7 @@
     "key": "fullName"
   },
   {
-    "directoryName": "workflowKnowledgePublishes",
+    "directoryName": "workflowKnowledgePublishs",
     "inFolder": false,
     "metaFile": false,
     "suffix": "workflowKnowledgePublishe",
