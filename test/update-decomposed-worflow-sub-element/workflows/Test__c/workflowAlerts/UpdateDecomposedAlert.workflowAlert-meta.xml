@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert>
+    <fullName>UpdateDecomposedAlert</fullName>
+    <description>UpdateDecomposedAlert</description>
+    <protected>false</protected>
+    <recipients>
+        <field>ContactEmail</field>
+        <type>email</type>
+    </recipients>
+    <recipients>
+        <field>SuppliedEmail</field>
+        <type>email</type>
+    </recipients>
+    <senderAddress>e2e@sgd.dev</senderAddress>
+    <senderType>OrgWideEmailAddress</senderType>
+    <template>email/template</template>
+</alert>
