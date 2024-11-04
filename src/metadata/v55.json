@@ -1563,7 +1563,7 @@
     "directoryName": "workflowKnowledgePublishs",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "workflowKnowledgePublishe",
+    "suffix": "workflowKnowledgePublish",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowKnowledgePublish",
     "xmlTag": "knowledgePublishes",
