@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<permissionSetFieldPermission>
+    <editable>true</editable>
+    <field>PSet__c.Create__c</field>
+    <readable>true</readable>
+</permissionSetFieldPermission>
