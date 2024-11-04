@@ -219,7 +219,7 @@
       ]
     },
     "test:build": {
-      "command": "npm run && npm run pack && npm run test",
+      "command": "npm install && npm pack && npm run test",
       "dependencies": [
         "clean",
         "clean:package-manager"
