@@ -1656,6 +1656,16 @@
     "key": "fullName"
   },
   {
+    "directoryName": "workflowSends",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "workflowSend",
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowSend",
+    "xmlTag": "send",
+    "key": "fullName"
+  },
+  {
     "directoryName": "workflowKnowledgePublishs",
     "inFolder": false,
     "metaFile": false,
