@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MatchingRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <matchingRules>
+        <fullName>DeleteMatchingRule</fullName>
+        <label>DeleteMatchingRule</label>
+        <description>DeleteMatchingRule</description>
+        <matchingRuleItems>
+            <blankValueBehavior>NullNotAllowed</blankValueBehavior>
+            <fieldName>BillingCity</fieldName>
+            <matchingMethod>City</matchingMethod>
+        </matchingRuleItems>
+        <ruleStatus>Inactive</ruleStatus>
+    </matchingRules>
+</MatchingRule>
