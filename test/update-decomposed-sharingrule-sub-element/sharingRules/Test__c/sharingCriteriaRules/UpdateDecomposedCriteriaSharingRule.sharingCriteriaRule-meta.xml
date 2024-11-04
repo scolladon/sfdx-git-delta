@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sharingCriteriaRule>
+    <fullName>UpdateDecomposedCriteriaSharingRule</fullName>
+    <sharedTo>
+        <group>GOD</group>
+    </sharedTo>
+    <criteriaItems>
+        <field>FirstName</field>
+        <operation>equals</operation>
+        <value>GOD</value>
+    </criteriaItems>
+    <name>UpdateDecomposedCriteriaSharingRule</name>
+    <userAccessLevel>Read</userAccessLevel>
+</sharingCriteriaRule>
