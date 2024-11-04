@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EscalationRules xmlns="http://soap.sforce.com/2006/04/metadata">
+    <escalationRule>
+        <fullName>UpdateEscalationRule</fullName>
+        <active>false</active>
+        <ruleEntry>
+            <businessHours>test</businessHours>
+            <businessHoursSource>Static</businessHoursSource>
+            <criteriaItems>
+                <field>Case.Description</field>
+                <operation>contains</operation>
+                <value>test</value>
+            </criteriaItems>
+            <escalationAction>
+                <assignedTo>e2e@sgd.dev</assignedTo>
+                <assignedToTemplate>emailtemplatename</assignedToTemplate>
+                <assignedToType>User</assignedToType>
+                <minutesToEscalation>1440</minutesToEscalation>
+                <notifyCaseOwner>false</notifyCaseOwner>
+            </escalationAction>
+            <escalationStartTime>CaseLastModified</escalationStartTime>
+        </ruleEntry>
+    </escalationRule>
+</EscalationRules>
