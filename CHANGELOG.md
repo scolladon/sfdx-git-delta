@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.49.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.0...v5.49.1) (2024-11-04)
+
+
+### Bug Fixes
+
+* decomposed workflow sub types definition ([#942](https://github.com/scolladon/sfdx-git-delta/issues/942)) ([5e3ded6](https://github.com/scolladon/sfdx-git-delta/commit/5e3ded6195f84dc3ad23c214051bcd41354b08c7))
+
 ## [5.49.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.48.0...v5.49.0) (2024-10-19)
 
 
