@@ -27,7 +27,7 @@ const testContext = [
     'SharingCriteriaRule',
   ],
   [
-    'force-app/main/default/workflows/Account/alerts/TestWFAlert.alert-meta.xml',
+    'force-app/main/default/workflows/Account/workflowAlerts/TestWFAlert.workflowAlert-meta.xml',
     new Set(['Account.TestWFAlert']),
     'WorkflowAlert',
   ],

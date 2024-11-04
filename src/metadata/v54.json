@@ -1401,20 +1401,20 @@
     "xmlName": "Workflow"
   },
   {
-    "directoryName": "alerts",
+    "directoryName": "workflowAlerts",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "alert",
+    "suffix": "workflowAlert",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowAlert",
     "xmlTag": "alerts",
     "key": "fullName"
   },
   {
-    "directoryName": "fieldUpdates",
+    "directoryName": "workflowFieldUpdates",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "fieldUpdate",
+    "suffix": "workflowFieldUpdate",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowFieldUpdate",
     "xmlTag": "fieldUpdates",
@@ -1432,40 +1432,50 @@
     "key": "fullName"
   },
   {
-    "directoryName": "outboundMessages",
+    "directoryName": "workflowOutboundMessages",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "outboundMessage",
+    "suffix": "workflowOutboundMessage",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowOutboundMessage",
     "xmlTag": "outboundMessages",
     "key": "fullName"
   },
   {
-    "directoryName": "rules",
+    "directoryName": "workflowRules",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "rule",
+    "suffix": "workflowRule",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowRule",
     "xmlTag": "rules",
     "key": "fullName"
   },
   {
-    "directoryName": "knowledgePublishes",
+    "directoryName": "workflowSends",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "knowledgePublishe",
+    "suffix": "workflowSend",
+    "parentXmlName": "Workflow",
+    "xmlName": "WorkflowSend",
+    "xmlTag": "send",
+    "key": "fullName"
+  },
+  {
+    "directoryName": "workflowKnowledgePublishs",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "workflowKnowledgePublishe",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowKnowledgePublish",
     "xmlTag": "knowledgePublishes",
     "key": "fullName"
   },
   {
-    "directoryName": "tasks",
+    "directoryName": "workflowTasks",
     "inFolder": false,
     "metaFile": false,
-    "suffix": "task",
+    "suffix": "workflowTask",
     "parentXmlName": "Workflow",
     "xmlName": "WorkflowTask",
     "xmlTag": "tasks",
