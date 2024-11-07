@@ -4,11 +4,11 @@ import { ADDITION, DELETION } from '../constant/gitConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
 import type { Work } from '../types/work'
+import { TAB } from '../utils/cliConstants'
 import { treatPathSep } from '../utils/fsUtils'
 import { IgnoreHelper, buildIncludeHelper } from '../utils/ignoreHelper'
 
 import BaseProcessor from './baseProcessor'
-const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitAdapter: GitAdapter
