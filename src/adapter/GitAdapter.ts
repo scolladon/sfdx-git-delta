@@ -67,20 +67,32 @@ export default class GitAdapter {
     return await this.simpleGit.raw(firstCommitParams)
   }
 
-  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
-    const content = await this.getStringContent(forRef)
-    return Buffer.from(content)
-  }
-
-  public async getStringContent(forRef: FileGitRef): Promise<string> {
-    let content = await this.simpleGit.catFile([BLOB_TYPE, revPath(forRef)])
+  protected async getRefContent(forRef: FileGitRef): Promise<Buffer | string> {
+    const content = await this.simpleGit.catFile([BLOB_TYPE, revPath(forRef)])
 
     if (isLFS(content)) {
       const lsfPath = getLFSObjectContentPath(content)
-      const bufferData = await readFile(join(this.config.repo, lsfPath))
-      content = bufferData?.toString(UTF8_ENCODING) ?? ''
+      const bufferContent = await readFile(join(this.config.repo, lsfPath))
+      return bufferContent
     }
+    return content
+  }
 
+  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
+    const content = await this.getRefContent(forRef)
+
+    if (!Buffer.isBuffer(content)) {
+      return Buffer.from(content, UTF8_ENCODING)
+    }
+    return content as Buffer
+  }
+
+  public async getStringContent(forRef: FileGitRef): Promise<string> {
+    const content = await this.getRefContent(forRef)
+
+    if (Buffer.isBuffer(content)) {
+      return content.toString(UTF8_ENCODING)
+    }
     return content
   }
 
