@@ -31,7 +31,6 @@
     "fast-xml-parser": "^4.5.0",
     "fs-extra": "^11.2.0",
     "ignore": "^5.3.2",
-    "isomorphic-git": "^1.27.1",
     "lodash": "^4.17.21",
     "simple-git": "^3.26.0",
     "xmlbuilder2": "^3.1.1"
