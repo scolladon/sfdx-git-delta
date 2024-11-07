@@ -7,7 +7,6 @@ import GitAdapter from '../adapter/GitAdapter'
 import type { Config } from '../types/config'
 import type { FileGitRef } from '../types/git'
 
-import { treatPathSep } from './fsUtils'
 import { buildIgnoreHelper } from './ignoreHelper'
 
 const copiedFiles = new Set()
@@ -25,12 +24,12 @@ export const copyFiles = async (config: Config, src: string) => {
   }
   try {
     const gitAdapter = GitAdapter.getInstance(config)
-    const files = await gitAdapter.getFilesFrom(treatPathSep(src))
+    const files = await gitAdapter.getFilesFrom(src)
     for (const file of files) {
       // Use Buffer to output the file content
       // Let fs implementation detect the encoding ("utf8" or "binary")
       const dst = join(config.output, file.path)
-      await outputFile(treatPathSep(dst), file.content)
+      await outputFile(dst, file.content)
       copiedFiles.add(dst)
     }
   } catch {
@@ -80,5 +79,5 @@ export const writeFile = async (
   if (ignoreHelper.globalIgnore.ignores(path)) {
     return
   }
-  await outputFile(join(config.output, treatPathSep(path)), content)
+  await outputFile(join(config.output, path), content)
 }

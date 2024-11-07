@@ -344,21 +344,19 @@ describe('copyFile', () => {
         } as unknown as Ignore,
       } as unknown as IgnoreHelper)
     })
-    it.each(['folder/file', 'folder\\file'])(
-      'write the content to the file system',
-      async path => {
-        // Arrange
-        const config: Config = work.config
-        config.output = 'root'
-        const content = 'content'
+    it('write the content to the file system', async () => {
+      // Arrange
+      const path = 'folder/file'
+      const config: Config = work.config
+      config.output = 'root'
+      const content = 'content'
 
-        // Act
-        await writeFile(path, content, config)
+      // Act
+      await writeFile(path, content, config)
 
-        // Assert
-        expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
-      }
-    )
+      // Assert
+      expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
+    })
 
     it('call only once for the same path', async () => {
       // Arrange

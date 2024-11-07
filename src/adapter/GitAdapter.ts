@@ -22,8 +22,7 @@ const TREE_TYPE = 'tree'
 const NUM_STAT_REGEX = /^((\d+|\-)\t){2}/
 const EOL = new RegExp(/\r?\n/)
 
-const revPath = (pathDef: FileGitRef) =>
-  `${pathDef.oid}:${treatPathSep(pathDef.path)}`
+const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
 
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
@@ -89,7 +88,7 @@ export default class GitAdapter {
         '--name-only',
         '-r',
         this.config.to,
-        treatPathSep(path),
+        path,
       ])
     )
       .split(EOL)

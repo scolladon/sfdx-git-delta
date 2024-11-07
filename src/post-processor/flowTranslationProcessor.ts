@@ -12,7 +12,7 @@ import {
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Work } from '../types/work'
 import { readDir, writeFile } from '../utils/fsHelper'
-import { isSamePath, isSubDir, readFile, treatPathSep } from '../utils/fsUtils'
+import { isSamePath, isSubDir, readFile } from '../utils/fsUtils'
 import {
   asArray,
   convertJsonToXml,
@@ -164,7 +164,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   protected async _getTranslationAsJSON(translationPath: string) {
     const translationPathInOutputFolder = join(
       this.config.output,
-      treatPathSep(translationPath)
+      translationPath
     )
     const translationExist = await pathExists(translationPathInOutputFolder)
 

@@ -5,7 +5,6 @@ import { MetadataRepository } from '../metadata/MetadataRepository'
 import DiffLineInterpreter from '../service/diffLineInterpreter'
 import type { Work } from '../types/work'
 import { TAB } from '../utils/cliConstants'
-import { treatPathSep } from '../utils/fsUtils'
 import { IgnoreHelper, buildIncludeHelper } from '../utils/ignoreHelper'
 
 import BaseProcessor from './baseProcessor'
@@ -52,7 +51,7 @@ export default class IncludeProcessor extends BaseProcessor {
     )
     for (const line of lines) {
       Object.keys(includeHolder).forEach(changeType => {
-        const changedLine = `${changeType}${TAB}${treatPathSep(line)}`
+        const changedLine = `${changeType}${TAB}${line}`
         if (!this.includeHelper.keep(changedLine)) {
           includeHolder[changeType as keyof typeof includeHolder].push(
             changedLine
