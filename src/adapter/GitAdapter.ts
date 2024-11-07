@@ -19,7 +19,7 @@ import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
 const TREE_TYPE = 'tree'
-const NUM_STAT_REGEX = /^\d+\t\d+\t/
+const NUM_STAT_REGEX = /^((\d+|\-)\t){2}/
 const EOL = '\n'
 
 const revPath = (pathDef: FileGitRef) =>
@@ -67,33 +67,19 @@ export default class GitAdapter {
     return await this.simpleGit.raw(firstCommitParams)
   }
 
-  protected async getRefContent(forRef: FileGitRef): Promise<Buffer | string> {
-    const content = await this.simpleGit.catFile([BLOB_TYPE, revPath(forRef)])
+  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
+    let content: Buffer = await this.simpleGit.showBuffer(revPath(forRef))
 
     if (isLFS(content)) {
       const lsfPath = getLFSObjectContentPath(content)
-      const bufferContent = await readFile(join(this.config.repo, lsfPath))
-      return bufferContent
+      content = await readFile(join(this.config.repo, lsfPath))
     }
     return content
-  }
-
-  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
-    const content = await this.getRefContent(forRef)
-
-    if (!Buffer.isBuffer(content)) {
-      return Buffer.from(content, UTF8_ENCODING)
-    }
-    return content as Buffer
   }
 
   public async getStringContent(forRef: FileGitRef): Promise<string> {
-    const content = await this.getRefContent(forRef)
-
-    if (Buffer.isBuffer(content)) {
-      return content.toString(UTF8_ENCODING)
-    }
-    return content
+    const content = await this.getBufferContent(forRef)
+    return content.toString(UTF8_ENCODING)
   }
 
   public async getFilesPath(path: string): Promise<string[]> {

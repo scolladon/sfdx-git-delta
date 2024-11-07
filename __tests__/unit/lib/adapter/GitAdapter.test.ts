@@ -15,6 +15,7 @@ const mockedRaw = jest.fn()
 const mockedAddConfig = jest.fn()
 const mockedRevParse = jest.fn()
 const mockedCatFile = jest.fn()
+const mockedShowBuffer = jest.fn()
 
 jest.mock('simple-git', () => {
   return {
@@ -23,6 +24,7 @@ jest.mock('simple-git', () => {
       revparse: mockedRevParse,
       addConfig: mockedAddConfig,
       catFile: mockedCatFile,
+      showBuffer: mockedShowBuffer,
     })),
   }
 })
@@ -178,7 +180,9 @@ describe('GitAdapter', () => {
         it('returns content from LFS', async () => {
           // Arrange
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedCatFile.mockImplementation(() => Promise.resolve('lfs content'))
+          mockedShowBuffer.mockImplementation(() =>
+            Promise.resolve('lfs content')
+          )
           isLFSmocked.mockReturnValueOnce(true)
           getLFSObjectContentPathMocked.mockReturnValueOnce('lfs/path')
           readFileMocked.mockResolvedValue(Buffer.from('') as never)
@@ -190,7 +194,7 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe('')
-          expect(mockedCatFile).toBeCalledWith(['blob', `${config.to}:`])
+          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
         })
       })
       describe('when string does not reference a LFS file', () => {
@@ -198,7 +202,7 @@ describe('GitAdapter', () => {
           // Arrange
           const expected = 'test'
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedCatFile.mockImplementation(() => Promise.resolve(expected))
+          mockedShowBuffer.mockImplementation(() => Promise.resolve(expected))
           isLFSmocked.mockReturnValueOnce(false)
           // Act
           const result = await gitAdapter.getStringContent({
@@ -208,7 +212,7 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe(expected)
-          expect(mockedCatFile).toBeCalledWith(['blob', `${config.to}:`])
+          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
         })
       })
     })
@@ -217,7 +221,7 @@ describe('GitAdapter', () => {
         // Arrange
         expect.assertions(1)
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedCatFile.mockImplementation(() =>
+        mockedShowBuffer.mockImplementation(() =>
           Promise.reject(new Error('test'))
         )
         // Act
@@ -228,7 +232,7 @@ describe('GitAdapter', () => {
           })
         } catch {
           // Assert
-          expect(mockedCatFile).toBeCalledWith(['blob', `${config.to}:`])
+          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
         }
       })
     })
@@ -261,7 +265,7 @@ describe('GitAdapter', () => {
       mockedRaw.mockImplementation(() =>
         Promise.resolve(['file', 'anotherFile'].join('\n'))
       )
-      mockedCatFile.mockResolvedValue(content as never)
+      mockedShowBuffer.mockResolvedValue(Buffer.from(content) as never)
 
       // Act
       const result = await gitAdapter.getFilesFrom('directory/path')
