@@ -101,7 +101,7 @@ export default class GitAdapter {
     const bufferFiles: { path: string; content: Buffer }[] = []
     for (const filePath of filesPath) {
       const fileContent = await this.getBufferContent({
-        path,
+        path: filePath,
         oid: this.config.to,
       })
       bufferFiles.push({
@@ -117,12 +117,12 @@ export default class GitAdapter {
     for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
       const linesOfType = await this.getDiffForType(changeType)
       lines.push(
-        ...linesOfType.map(statLine =>
-          treatPathSep(statLine).replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
+        ...linesOfType.map(line =>
+          line.replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
         )
       )
     }
-    return lines
+    return lines.map(treatPathSep)
   }
 
   protected async getDiffForType(changeType: string): Promise<string[]> {
