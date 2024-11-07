@@ -20,7 +20,7 @@ const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
 const TREE_TYPE = 'tree'
 const NUM_STAT_REGEX = /^((\d+|\-)\t){2}/
-const EOL = '\n'
+const EOL = new RegExp(/\r?\n/)
 
 const revPath = (pathDef: FileGitRef) =>
   `${pathDef.oid}:${treatPathSep(pathDef.path)}`
@@ -94,6 +94,7 @@ export default class GitAdapter {
     )
       .split(EOL)
       .filter(line => line)
+      .map(line => treatPathSep(line))
   }
 
   public async getFilesFrom(path: string) {
