@@ -13,5 +13,4 @@ export const IGNORE_WHITESPACE_PARAMS = [
 ]
 export const MODIFICATION = 'M'
 export const NUM_STAT_CHANGE_INFORMATION = /^((\d+|\-)\t){2}/
-export const UTF8_ENCODING = 'utf8'
 export const TREE_TYPE = 'tree'
