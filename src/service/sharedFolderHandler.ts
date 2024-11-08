@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'path'
+import { join, parse } from 'path/posix'
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'

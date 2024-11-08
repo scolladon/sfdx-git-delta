@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'path'
+import { join, parse } from 'path/posix'
 
 import { pathExists } from 'fs-extra'
 

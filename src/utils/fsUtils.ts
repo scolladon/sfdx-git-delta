@@ -1,5 +1,5 @@
 'use strict'
-import { isAbsolute, normalize, relative } from 'path'
+import { isAbsolute, normalize, relative } from 'path/posix'
 
 import { readFile as fsReadFile, pathExists, stat } from 'fs-extra'
 

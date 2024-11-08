@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'path'
+import { join, parse } from 'path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants'
 import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants'

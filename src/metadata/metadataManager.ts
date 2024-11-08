@@ -1,5 +1,5 @@
 'use strict'
-import { resolve } from 'path'
+import { resolve } from 'path/posix'
 
 import { readFile, readdir } from 'fs-extra'
 

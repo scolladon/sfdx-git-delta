@@ -1,5 +1,5 @@
 'use strict'
-import { parse } from 'path'
+import { parse } from 'path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants'
 import { fillPackageWithParameter } from '../utils/packageHelper'

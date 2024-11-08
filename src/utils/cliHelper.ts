@@ -1,6 +1,6 @@
 'use strict'
-import { join } from 'path'
 import { format } from 'util'
+import { join } from 'path/posix'
 
 import GitAdapter from '../adapter/GitAdapter'
 import messages from '../locales/en'

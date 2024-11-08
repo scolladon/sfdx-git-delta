@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join } from 'path/posix'
 
 import { readFile } from 'fs-extra'
 import { SimpleGit, simpleGit } from 'simple-git'
