@@ -6,9 +6,12 @@ import { SimpleGit, simpleGit } from 'simple-git'
 import { UTF8_ENCODING } from '../constant/fsConstants'
 import {
   ADDITION,
+  BLOB_TYPE,
   DELETION,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
+  NUM_STAT_CHANGE_INFORMATION,
+  TREE_TYPE,
 } from '../constant/gitConstants'
 import type { Config } from '../types/config'
 import type { FileGitRef } from '../types/git'
@@ -16,10 +19,6 @@ import { TAB } from '../utils/cliConstants'
 import { treatPathSep } from '../utils/fsUtils'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 
-const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
-const BLOB_TYPE = 'blob'
-const TREE_TYPE = 'tree'
-const NUM_STAT_CHANGE_INFORMATION = /^((\d+|\-)\t){2}/
 const EOL = new RegExp(/\r?\n/)
 
 const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
@@ -63,7 +62,7 @@ export default class GitAdapter {
   }
 
   public async getFirstCommitRef() {
-    return await this.simpleGit.raw(firstCommitParams)
+    return await this.simpleGit.raw(['rev-list', '--max-parents=0', 'HEAD'])
   }
 
   protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
