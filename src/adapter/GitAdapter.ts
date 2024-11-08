@@ -104,7 +104,7 @@ export default class GitAdapter {
         oid: this.config.to,
       })
       bufferFiles.push({
-        path: treatPathSep(filePath),
+        path: filePath,
         content: fileContent,
       })
     }
