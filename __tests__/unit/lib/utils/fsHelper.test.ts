@@ -323,17 +323,6 @@ describe('copyFile', () => {
       // Assert
       expect(result).toBe(false)
     })
-    it('returns false when sub service throws', async () => {
-      expect.assertions(1)
-      // Arrange
-      mockPathExists.mockImplementation(() => Promise.reject(new Error('test')))
-
-      // Act
-      const exist = await pathExists('path', work.config)
-
-      // Assert
-      expect(exist).toBe(false)
-    })
   })
 
   describe('writeFile', () => {

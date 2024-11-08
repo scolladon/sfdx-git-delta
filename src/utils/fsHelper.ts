@@ -50,11 +50,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
 
 export const pathExists = async (path: string, config: Config) => {
   const gitAdapter = GitAdapter.getInstance(config)
-  try {
-    return await gitAdapter.pathExists(path)
-  } catch {
-    return false
-  }
+  return await gitAdapter.pathExists(path)
 }
 
 export const readDir = async (
