@@ -269,7 +269,10 @@ describe('GitAdapter', () => {
       mockedShowBuffer.mockResolvedValue(Buffer.from(content) as never)
 
       // Act
-      const result = await gitAdapter.getFilesFrom('directory/path')
+      const result: any = []
+      for await (const file of gitAdapter.getFilesFrom('directory/path')) {
+        result.push(file)
+      }
 
       // Assert
 
@@ -291,7 +294,10 @@ describe('GitAdapter', () => {
         mockedCatFile.mockResolvedValue(Buffer.from(content) as never)
 
         // Act
-        const result = await gitAdapter.getFilesFrom('directory/path')
+        const result: any = []
+        for await (const file of gitAdapter.getFilesFrom('directory/path')) {
+          result.push(file)
+        }
 
         // Assert
 
@@ -311,7 +317,11 @@ describe('GitAdapter', () => {
 
         // Act
 
-        const result = await gitAdapter.getFilesFrom('wrong/path')
+        const result: any = []
+        for await (const file of gitAdapter.getFilesFrom('directory/path')) {
+          result.push(file)
+        }
+
         expect(result).toEqual([])
       })
     })

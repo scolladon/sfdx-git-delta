@@ -37,8 +37,8 @@ export default class CustomObjectHandler extends StandardHandler {
         return content.includes(MASTER_DETAIL_TAG)
       }
     )
-    await Promise.all(
-      masterDetailsFields.map((field: string) => this._copyWithMetaFile(field))
-    )
+    for (const masterDetailField of masterDetailsFields) {
+      await this._copyWithMetaFile(masterDetailField)
+    }
   }
 }

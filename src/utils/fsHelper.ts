@@ -24,8 +24,7 @@ export const copyFiles = async (config: Config, src: string) => {
   }
   try {
     const gitAdapter = GitAdapter.getInstance(config)
-    const files = await gitAdapter.getFilesFrom(src)
-    for (const file of files) {
+    for await (const file of gitAdapter.getFilesFrom(src)) {
       // Use Buffer to output the file content
       // Let fs implementation detect the encoding ("utf8" or "binary")
       const dst = join(config.output, file.path)

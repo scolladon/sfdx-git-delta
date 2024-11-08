@@ -96,20 +96,18 @@ export default class GitAdapter {
       .map(line => treatPathSep(line))
   }
 
-  public async getFilesFrom(path: string) {
+  public async *getFilesFrom(path: string) {
     const filesPath = await this.getFilesPath(path)
-    const bufferFiles: { path: string; content: Buffer }[] = []
     for (const filePath of filesPath) {
       const fileContent = await this.getBufferContent({
         path: filePath,
         oid: this.config.to,
       })
-      bufferFiles.push({
+      yield {
         path: filePath,
         content: fileContent,
-      })
+      }
     }
-    return bufferFiles
   }
 
   public async getDiffLines(): Promise<string[]> {
