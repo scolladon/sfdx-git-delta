@@ -19,7 +19,7 @@ import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
 const BLOB_TYPE = 'blob'
 const TREE_TYPE = 'tree'
-const NUM_STAT_REGEX = /^((\d+|\-)\t){2}/
+const NUM_STAT_CHANGE_INFORMATION = /^((\d+|\-)\t){2}/
 const EOL = new RegExp(/\r?\n/)
 
 const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
@@ -118,7 +118,7 @@ export default class GitAdapter {
       const linesOfType = await this.getDiffForType(changeType)
       lines.push(
         ...linesOfType.map(line =>
-          line.replace(NUM_STAT_REGEX, `${changeType}${TAB}`)
+          line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}${TAB}`)
         )
       )
     }
