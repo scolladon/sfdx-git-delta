@@ -87,7 +87,8 @@ describe('GitAdapter', () => {
       await gitAdapter.configureRepository()
 
       // Assert
-      expect(mockedAddConfig).toBeCalledTimes(1)
+      expect(mockedAddConfig).toBeCalledTimes(2)
+      expect(mockedAddConfig).toBeCalledWith('core.longpaths', 'true')
       expect(mockedAddConfig).toBeCalledWith('core.quotepath', 'off')
     })
   })

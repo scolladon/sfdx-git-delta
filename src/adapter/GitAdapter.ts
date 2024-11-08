@@ -42,6 +42,7 @@ export default class GitAdapter {
   }
 
   public async configureRepository() {
+    await this.simpleGit.addConfig('core.longpaths', 'true')
     await this.simpleGit.addConfig('core.quotepath', 'off')
   }
 
