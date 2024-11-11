@@ -3,7 +3,7 @@ import { join } from 'path/posix'
 import { readFile } from 'fs-extra'
 import { SimpleGit, simpleGit } from 'simple-git'
 
-import { UTF8_ENCODING } from '../constant/fsConstants'
+import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants'
 import {
   ADDITION,
   BLOB_TYPE,
@@ -22,7 +22,6 @@ import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
 const EOL = new RegExp(/\r?\n/)
 
 const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
-
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
 
@@ -36,9 +35,13 @@ export default class GitAdapter {
   }
 
   protected readonly simpleGit: SimpleGit
+  protected readonly getFilesPathCache: Map<string, Set<string>>
+  protected readonly pathExistsCache: Map<string, boolean>
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
+    this.getFilesPathCache = new Map<string, Set<string>>()
+    this.pathExistsCache = new Map<string, boolean>()
   }
 
   public async configureRepository() {
@@ -50,16 +53,27 @@ export default class GitAdapter {
     return await this.simpleGit.revparse([ref])
   }
 
-  public async pathExists(path: string) {
+  protected async pathExistsImpl(path: string) {
+    let doesPathExists = false
     try {
       const type = await this.simpleGit.catFile([
         '-t',
         revPath({ path, oid: this.config.to }),
       ])
-      return [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
+      doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
     } catch {
-      return false
+      doesPathExists = false
     }
+    return doesPathExists
+  }
+
+  public async pathExists(path: string) {
+    if (this.pathExistsCache.has(path)) {
+      return this.pathExistsCache.get(path)
+    }
+    const doesPathExists = await this.pathExistsImpl(path)
+    this.pathExistsCache.set(path, doesPathExists)
+    return doesPathExists
   }
 
   public async getFirstCommitRef() {
@@ -81,7 +95,7 @@ export default class GitAdapter {
     return content.toString(UTF8_ENCODING)
   }
 
-  public async getFilesPath(path: string): Promise<string[]> {
+  protected async getFilesPathImpl(path: string): Promise<string[]> {
     return (
       await this.simpleGit.raw([
         'ls-tree',
@@ -94,6 +108,38 @@ export default class GitAdapter {
       .split(EOL)
       .filter(line => line)
       .map(line => treatPathSep(line))
+  }
+
+  public async getFilesPath(path: string): Promise<string[]> {
+    if (this.getFilesPathCache.has(path)) {
+      return Array.from(this.getFilesPathCache.get(path)!)
+    }
+
+    const filesPath = await this.getFilesPathImpl(path)
+    const pathSegmentsLength = path.split(PATH_SEP).length
+
+    // Start iterating over each filePath
+    for (const filePath of filesPath) {
+      const relevantSegments = filePath
+        .split(PATH_SEP)
+        .slice(pathSegmentsLength)
+
+      // Only cache the sub-paths for relevant files starting from the given path
+      const subPathSegments = [path]
+      for (const segment of relevantSegments) {
+        subPathSegments.push(segment)
+        const currentPath = subPathSegments.join(PATH_SEP)
+        if (!this.getFilesPathCache.has(currentPath)) {
+          this.getFilesPathCache.set(currentPath, new Set())
+        }
+        this.getFilesPathCache.get(currentPath)!.add(filePath)
+      }
+    }
+
+    // Store the full set of file paths for the given path in cache
+    this.getFilesPathCache.set(path, new Set(filesPath))
+
+    return filesPath
   }
 
   public async *getFilesFrom(path: string) {

@@ -322,7 +322,7 @@ describe('pathExists', () => {
     mockPathExists.mockImplementation(() => Promise.resolve(false))
 
     // Act
-    const result = await pathExists('path', work.config)
+    const result = await pathExists('not/existing/path', work.config)
 
     // Assert
     expect(result).toBe(false)
