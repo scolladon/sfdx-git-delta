@@ -44,23 +44,18 @@ sf plugins install sfdx-git-delta@stable
 
 ### Legacy version installation
 
-If you need more time to adapt to version `v6.x`, the previous `v5.x` version is still available through specific channels:
+If you need more time to adapt to version `v6.x`, the previous `v5.x` version is still available via the `legacy` channel and via `v5.x` version alias:
 
-- `legacy-latest`: Installs the most recent `v5` release.
-- `legacy-stable`: Installs the most stable `v5` version (currently `v5.34.0`).
+- `legacy`: Installs the most stable `v5` version.
 
 ```sh
 # install a specific version (5.46.0 for example)
 
 sf plugins install sfdx-git-delta@v5.46.0
 
-# install legacy-latest
+# install legacy
 
-sf plugins install sfdx-git-delta@legacy-latest
-
-# install legacy-stable
-
-sf plugins install sfdx-git-delta@legacy-stable
+sf plugins install sfdx-git-delta@legacy
 ```
 
 ## Details
