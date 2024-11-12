@@ -1,5 +1,5 @@
 'use strict'
-import { join } from 'node:path'
+import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
 import {
@@ -10,7 +10,8 @@ import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
 import { MessageService } from './MessageService.js'
 
-import { fileExists, readFile, sanitizePath } from './fsUtils.js'
+import { GIT_FOLDER } from '../constant/gitConstants.js'
+import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
 
 const GIT_SHA_PARAMETERS: (keyof Config)[] = ['to', 'from']
 const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
@@ -55,9 +56,8 @@ export default class CLIHelper {
     await this._handleDefault()
     const errors: string[] = []
 
-    try {
-      await this.gitAdapter.setGitDir()
-    } catch {
+    const repoExists = await pathExists(join(this.config.repo, GIT_FOLDER))
+    if (!repoExists) {
       errors.push(
         this.message.getMessage('error.PathIsNotGit', [this.config.repo])
       )

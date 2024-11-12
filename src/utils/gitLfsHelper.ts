@@ -1,5 +1,5 @@
 'use strict'
-import { sep } from 'node:path'
+import { sep } from 'node:path/posix'
 
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'

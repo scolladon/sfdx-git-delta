@@ -4,11 +4,10 @@ import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { Work } from '../types/work.js'
-import { treatPathSep } from '../utils/fsUtils.js'
+import { TAB } from '../utils/cliConstants.js'
 import { IgnoreHelper, buildIncludeHelper } from '../utils/ignoreHelper.js'
 
 import BaseProcessor from './baseProcessor.js'
-const TAB = '\t'
 
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitAdapter: GitAdapter
@@ -52,7 +51,7 @@ export default class IncludeProcessor extends BaseProcessor {
     )
     for (const line of lines) {
       Object.keys(includeHolder).forEach(changeType => {
-        const changedLine = `${changeType}${TAB}${treatPathSep(line)}`
+        const changedLine = `${changeType}${TAB}${line}`
         if (!this.includeHelper.keep(changedLine)) {
           includeHolder[changeType as keyof typeof includeHolder].push(
             changedLine

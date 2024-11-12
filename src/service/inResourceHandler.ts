@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'node:path'
+import { join, parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants.js'

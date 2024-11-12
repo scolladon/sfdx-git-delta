@@ -1,5 +1,5 @@
 'use strict'
-import { join } from 'node:path'
+import { join } from 'node:path/posix'
 
 import { outputFile } from 'fs-extra'
 
@@ -7,7 +7,6 @@ import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
-import { treatPathSep } from './fsUtils.js'
 import { buildIgnoreHelper } from './ignoreHelper.js'
 
 const copiedFiles = new Set()
@@ -25,12 +24,11 @@ export const copyFiles = async (config: Config, src: string) => {
   }
   try {
     const gitAdapter = GitAdapter.getInstance(config)
-    const files = await gitAdapter.getFilesFrom(treatPathSep(src))
-    for (const file of files) {
+    for await (const file of gitAdapter.getFilesFrom(src)) {
       // Use Buffer to output the file content
       // Let fs implementation detect the encoding ("utf8" or "binary")
       const dst = join(config.output, file.path)
-      await outputFile(treatPathSep(dst), file.content)
+      await outputFile(dst, file.content)
       copiedFiles.add(dst)
     }
   } catch {
@@ -51,11 +49,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
 
 export const pathExists = async (path: string, config: Config) => {
   const gitAdapter = GitAdapter.getInstance(config)
-  try {
-    return await gitAdapter.pathExists(path)
-  } catch {
-    return false
-  }
+  return await gitAdapter.pathExists(path)
 }
 
 export const readDir = async (
@@ -80,5 +74,5 @@ export const writeFile = async (
   if (ignoreHelper.globalIgnore.ignores(path)) {
     return
   }
-  await outputFile(join(config.output, treatPathSep(path)), content)
+  await outputFile(join(config.output, path), content)
 }

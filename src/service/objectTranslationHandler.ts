@@ -1,5 +1,5 @@
 'use strict'
-import { parse } from 'node:path'
+import { parse } from 'node:path/posix'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'

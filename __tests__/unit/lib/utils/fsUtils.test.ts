@@ -1,5 +1,5 @@
 'use strict'
-import { readFile as fsReadFile, stat } from 'node:fs/promises'
+import { access, readFile as fsReadFile, stat } from 'node:fs/promises'
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
@@ -8,6 +8,7 @@ import {
   fileExists,
   isSamePath,
   isSubDir,
+  pathExists,
   readFile,
   sanitizePath,
   treatPathSep,
@@ -17,6 +18,7 @@ jest.mock('node:fs/promises')
 
 const mockedStat = jest.mocked(stat)
 const mockedReadFile = jest.mocked(fsReadFile)
+const mockedAccess = jest.mocked(access)
 
 beforeEach(() => {
   jest.resetAllMocks()
@@ -291,5 +293,31 @@ describe('isSamePath', () => {
       // Assert
       expect(result).toBe(false)
     })
+  })
+})
+
+describe('pathExists', () => {
+  it('returns true when path is accessible', async () => {
+    // Arrange
+    mockedAccess.mockResolvedValue(true as never)
+    const sut = pathExists
+
+    // Act
+    const result = await sut('accessible/path')
+
+    // Assert
+    expect(result).toBe(true)
+  })
+
+  it('returns false when path is not accessible', async () => {
+    // Arrange
+    mockedAccess.mockRejectedValue(new Error('not accessible'))
+    const sut = pathExists
+
+    // Act
+    const result = await sut('not/accessible/path')
+
+    // Assert
+    expect(result).toBe(false)
   })
 })

@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'node:path'
+import { join, parse } from 'node:path/posix'
 
 import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants.js'
 import {

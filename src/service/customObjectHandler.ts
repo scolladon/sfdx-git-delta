@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'node:path'
+import { join, parse } from 'node:path/posix'
 
 import {
   FIELD_DIRECTORY_NAME,
@@ -37,8 +37,8 @@ export default class CustomObjectHandler extends StandardHandler {
         return content.includes(MASTER_DETAIL_TAG)
       }
     )
-    await Promise.all(
-      masterDetailsFields.map((field: string) => this._copyWithMetaFile(field))
-    )
+    for (const masterDetailField of masterDetailsFields) {
+      await this._copyWithMetaFile(masterDetailField)
+    }
   }
 }

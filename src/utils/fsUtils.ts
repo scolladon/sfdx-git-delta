@@ -1,7 +1,7 @@
 'use strict'
-import { isAbsolute, normalize, relative } from 'node:path'
+import { isAbsolute, normalize, relative } from 'node:path/posix'
 
-import { readFile as fsReadFile, stat } from 'node:fs/promises'
+import { access, readFile as fsReadFile, stat } from 'node:fs/promises'
 
 import {
   PATH_SEP,
@@ -39,6 +39,16 @@ export const fileExists = async (file: string) => {
   } catch {
     return false
   }
+}
+
+export const pathExists = async (path: string) => {
+  let pathIsAccessible = true
+  try {
+    await access(path)
+  } catch {
+    pathIsAccessible = false
+  }
+  return pathIsAccessible
 }
 
 export const readFile = async (path: string) => {

@@ -1,60 +1,30 @@
-import * as fs from 'node:fs'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join } from 'node:path/posix'
 
-import * as git from 'isomorphic-git'
 import { SimpleGit, simpleGit } from 'simple-git'
 
-import { DOT } from '../constant/fsConstants.js'
+import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
+  BLOB_TYPE,
   DELETION,
-  GIT_FOLDER,
+  IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
-  UTF8_ENCODING,
+  NUM_STAT_CHANGE_INFORMATION,
+  TREE_TYPE,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
-import { SOURCE_DEFAULT_VALUE } from '../utils/cliConstants.js'
-import {
-  dirExists,
-  fileExists,
-  isSubDir,
-  treatPathSep,
-} from '../utils/fsUtils.js'
+import { TAB } from '../utils/cliConstants.js'
+import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 
-const { TREE } = git
+import { readFile } from 'node:fs/promises'
 
-const firstCommitParams = ['rev-list', '--max-parents=0', 'HEAD']
-const BLOB_TYPE = 'blob'
-const TREE_TYPE = 'tree'
+const EOL = new RegExp(/\r?\n/)
 
-const stripWhiteChar = (content: string) => content?.replace(/\s+/g, '')
-
-export const iterate = async (
-  walk: git.WalkerIterateCallback,
-  children: IterableIterator<Array<git.WalkerEntry>>
-) => {
-  const result = []
-  for (const child of children) {
-    const walkedChildResult = await walk(child)
-    result.push(walkedChildResult)
-  }
-  return result
-}
-
-type GitBaseConfig = {
-  fs: typeof fs
-  dir: string
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  cache: any
-  gitdir?: string
-}
-
+const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
-  private static sharedCache = {}
 
   public static getInstance(config: Config): GitAdapter {
     if (!GitAdapter.instances.has(config)) {
@@ -65,253 +35,153 @@ export default class GitAdapter {
     return GitAdapter.instances.get(config)!
   }
 
-  private async getBufferFromBlob(blob: Uint8Array): Promise<Buffer> {
-    let bufferData: Buffer = Buffer.from(blob)
-    if (isLFS(bufferData)) {
-      const lsfPath = getLFSObjectContentPath(bufferData)
-      bufferData = await readFile(join(this.config.repo, lsfPath))
-    }
-
-    return bufferData
-  }
-
-  protected readonly isoGit = git
   protected readonly simpleGit: SimpleGit
-  protected readonly gitConfig: GitBaseConfig
+  protected readonly getFilesPathCache: Map<string, Set<string>>
+  protected readonly pathExistsCache: Map<string, boolean>
 
   private constructor(protected readonly config: Config) {
-    this.simpleGit = simpleGit(config.repo)
-    this.gitConfig = {
-      fs: fs,
-      dir: config.repo,
-      cache: GitAdapter.sharedCache,
-    }
+    this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
+    this.getFilesPathCache = new Map<string, Set<string>>()
+    this.pathExistsCache = new Map<string, boolean>()
   }
 
   public async configureRepository() {
-    const quotepathOff = {
-      path: 'core.quotepath',
-      value: 'off',
-    }
-    await this.isoGit.setConfig({
-      ...this.gitConfig,
-      ...quotepathOff,
-    })
-  }
-
-  public async setGitDir(): Promise<void> {
-    if (this.gitConfig.gitdir) {
-      return
-    }
-    const gitInfoLocation = join(this.config.repo, GIT_FOLDER)
-    if (await dirExists(gitInfoLocation)) {
-      this.gitConfig.gitdir = gitInfoLocation
-    } else if (await fileExists(gitInfoLocation)) {
-      const gitFileContent = await readFile(gitInfoLocation)
-      this.gitConfig.gitdir = gitFileContent.toString().trim().substring(8)
-    } else {
-      throw new Error('Not a git repository')
-    }
+    await this.simpleGit.addConfig('core.longpaths', 'true')
+    await this.simpleGit.addConfig('core.quotepath', 'off')
   }
 
   public async parseRev(ref: string) {
-    const parsedRev = await this.simpleGit.revparse([ref])
-    return parsedRev
+    return await this.simpleGit.revparse([ref])
+  }
+
+  protected async pathExistsImpl(path: string) {
+    let doesPathExists = false
+    try {
+      const type = await this.simpleGit.catFile([
+        '-t',
+        revPath({ path, oid: this.config.to }),
+      ])
+      doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
+    } catch {
+      doesPathExists = false
+    }
+    return doesPathExists
   }
 
   public async pathExists(path: string) {
-    try {
-      const { type } = await this.isoGit.readObject({
-        ...this.gitConfig,
-        oid: this.config.to,
-        filepath: treatPathSep(path),
-      })
-      return [TREE_TYPE, BLOB_TYPE].includes(type)
-    } catch {
-      return false
+    if (this.pathExistsCache.has(path)) {
+      return this.pathExistsCache.get(path)
     }
+    const doesPathExists = await this.pathExistsImpl(path)
+    this.pathExistsCache.set(path, doesPathExists)
+    return doesPathExists
   }
 
   public async getFirstCommitRef() {
-    const sha = await this.simpleGit.raw(firstCommitParams)
-    return sha
+    return await this.simpleGit.raw(['rev-list', '--max-parents=0', 'HEAD'])
+  }
+
+  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
+    let content: Buffer = await this.simpleGit.showBuffer(revPath(forRef))
+
+    if (isLFS(content)) {
+      const lsfPath = getLFSObjectContentPath(content)
+      content = await readFile(join(this.config.repo, lsfPath))
+    }
+    return content
   }
 
   public async getStringContent(forRef: FileGitRef): Promise<string> {
-    try {
-      const { blob } = await this.isoGit.readBlob({
-        ...this.gitConfig,
-        oid: forRef.oid,
-        filepath: treatPathSep(forRef.path),
-      })
-      const bufferData = await this.getBufferFromBlob(blob)
-      return bufferData?.toString(UTF8_ENCODING) ?? ''
-    } catch (error) {
-      const err = error as Error
-      if (err.name === 'NotFoundError') {
-        return ''
-      } else {
-        throw error
-      }
-    }
+    const content = await this.getBufferContent(forRef)
+    return content.toString(UTF8_ENCODING)
   }
 
-  public async getFilesPath(path: string) {
-    const walker = filePathWalker(path)
-    return await this.isoGit.walk({
-      ...this.gitConfig,
-      dir: treatPathSep(path),
-      trees: [TREE({ ref: this.config.to })],
-      map: walker,
-      iterate,
-    })
-  }
-
-  public async getFilesFrom(path: string) {
-    const treatedPath = treatPathSep(path)
-    const object = await this.isoGit.readObject({
-      ...this.gitConfig,
-      oid: this.config.to,
-      filepath: treatedPath,
-    })
-    // Return object exposing async getContent
-    // Iterate over and output file using the getContent API when needed
-    const blobFiles: { path: string; content: Uint8Array }[] = []
-    if (object.type === TREE_TYPE) {
-      const filesContent = await this.isoGit.walk({
-        ...this.gitConfig,
-        dir: treatedPath,
-        trees: [TREE({ ref: this.config.to })],
-        map: contentWalker(treatedPath),
-        iterate,
-      })
-      blobFiles.push(...filesContent)
-    } else if (object.type === BLOB_TYPE) {
-      blobFiles.push({
+  protected async getFilesPathImpl(path: string): Promise<string[]> {
+    return (
+      await this.simpleGit.raw([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        this.config.to,
         path,
-        content: object.object as Uint8Array,
-      })
-    } else {
-      throw new Error(`Path ${path} does not exist in ${this.config.to}`)
-    }
-    return await this.getContentFromFiles(blobFiles)
-  }
-
-  protected async getContentFromFiles(
-    blobFiles: { path: string; content: Uint8Array }[]
-  ) {
-    const bufferFiles: { path: string; content: Buffer }[] = []
-    for (const file of blobFiles) {
-      const content = await this.getBufferFromBlob(file.content)
-      bufferFiles.push({
-        path: treatPathSep(file.path),
-        content,
-      })
-    }
-    return bufferFiles
-  }
-
-  public async getDiffLines() {
-    const walker = diffLineWalker(this.config)
-    return this.isoGit.walk({
-      ...this.gitConfig,
-      dir: join(this.config.repo, this.config.source),
-      trees: [TREE({ ref: this.config.from }), TREE({ ref: this.config.to })],
-      map: walker,
-      iterate,
-    })
-  }
-}
-
-export const filePathWalker = (path: string) => {
-  const shouldSkip = evaluateShouldSkip(path)
-  return async (filepath: string, trees: (git.WalkerEntry | null)[]) => {
-    if (await shouldSkip(filepath, trees)) {
-      return
-    }
-    return treatPathSep(filepath)
-  }
-}
-
-export const contentWalker = (path: string) => {
-  const shouldSkip = evaluateShouldSkip(path)
-  return async (filepath: string, trees: (git.WalkerEntry | null)[]) => {
-    if (await shouldSkip(filepath, trees)) {
-      return
-    }
-
-    const [tree] = trees
-    const blob: Uint8Array = (await tree!.content()) as Uint8Array
-    return {
-      path: treatPathSep(filepath),
-      content: blob,
-    }
-  }
-}
-
-export const diffLineWalker = (config: Config) => {
-  const shouldSkip = evaluateShouldSkip(config.source)
-
-  return async (filepath: string, trees: (git.WalkerEntry | null)[]) => {
-    if (await shouldSkip(filepath, trees)) {
-      return
-    }
-
-    const [fromOID, toOID] = await Promise.all(trees.map(tree => tree?.oid()))
-    if (fromOID === toOID) {
-      return
-    }
-    let type
-    if (fromOID === undefined) {
-      type = ADDITION
-    } else if (toOID === undefined) {
-      type = DELETION
-    } else {
-      if (
-        config.ignoreWhitespace &&
-        (await isContentsEqualIgnoringWhiteChars(trees))
-      ) {
-        return
-      }
-      type = MODIFICATION
-    }
-
-    const result = `${type}\t${treatPathSep(filepath)}`
-    return result
-  }
-}
-
-const isContentsEqualIgnoringWhiteChars = async (
-  trees: (git.WalkerEntry | null)[]
-) => {
-  const [fromContent, toContent] = await Promise.all(
-    trees.map(async tree => {
-      const content = (await tree!.content()) as Uint8Array
-      return stripWhiteChar(Buffer.from(content).toString())
-    })
-  )
-  return fromContent === toContent
-}
-
-const pathDoesNotStartsWith = (root: string) => {
-  const gitFormattedRoot = treatPathSep(root)
-
-  return (path: string) =>
-    gitFormattedRoot !== SOURCE_DEFAULT_VALUE &&
-    !isSubDir(gitFormattedRoot, path)
-}
-
-const evaluateShouldSkip = (base: string) => {
-  const checkPath = pathDoesNotStartsWith(base)
-  return async (path: string, trees: (git.WalkerEntry | null)[]) => {
-    if (path === DOT || checkPath(path)) {
-      return true
-    }
-
-    const types = await Promise.all(
-      trees.filter(Boolean).map(tree => tree!.type())
+      ])
     )
+      .split(EOL)
+      .filter(line => line)
+      .map(line => treatPathSep(line))
+  }
 
-    return types.some((type: string) => type !== BLOB_TYPE)
+  public async getFilesPath(path: string): Promise<string[]> {
+    if (this.getFilesPathCache.has(path)) {
+      return Array.from(this.getFilesPathCache.get(path)!)
+    }
+
+    const filesPath = await this.getFilesPathImpl(path)
+    const pathSegmentsLength = path.split(PATH_SEP).length
+
+    // Start iterating over each filePath
+    for (const filePath of filesPath) {
+      const relevantSegments = filePath
+        .split(PATH_SEP)
+        .slice(pathSegmentsLength)
+
+      // Only cache the sub-paths for relevant files starting from the given path
+      const subPathSegments = [path]
+      for (const segment of relevantSegments) {
+        subPathSegments.push(segment)
+        const currentPath = subPathSegments.join(PATH_SEP)
+        if (!this.getFilesPathCache.has(currentPath)) {
+          this.getFilesPathCache.set(currentPath, new Set())
+        }
+        this.getFilesPathCache.get(currentPath)!.add(filePath)
+      }
+    }
+
+    // Store the full set of file paths for the given path in cache
+    this.getFilesPathCache.set(path, new Set(filesPath))
+
+    return filesPath
+  }
+
+  public async *getFilesFrom(path: string) {
+    const filesPath = await this.getFilesPath(path)
+    for (const filePath of filesPath) {
+      const fileContent = await this.getBufferContent({
+        path: filePath,
+        oid: this.config.to,
+      })
+      yield {
+        path: filePath,
+        content: fileContent,
+      }
+    }
+  }
+
+  public async getDiffLines(): Promise<string[]> {
+    const lines: string[] = []
+    for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
+      const linesOfType = await this.getDiffForType(changeType)
+      lines.push(
+        ...linesOfType.map(line =>
+          line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}${TAB}`)
+        )
+      )
+    }
+    return lines.map(treatPathSep)
+  }
+
+  protected async getDiffForType(changeType: string): Promise<string[]> {
+    return (
+      await this.simpleGit.raw([
+        'diff',
+        '--numstat',
+        '--no-renames',
+        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+        `--diff-filter=${changeType}`,
+        this.config.from,
+        this.config.to,
+        this.config.source,
+      ])
+    ).split(EOL)
   }
 }

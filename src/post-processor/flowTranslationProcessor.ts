@@ -1,7 +1,6 @@
 'use strict'
-import { join, parse } from 'node:path'
+import { join, parse } from 'node:path/posix'
 
-import { pathExists } from 'fs-extra'
 import {
   FLOW_XML_NAME,
   META_REGEX,
@@ -11,12 +10,7 @@ import {
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
 import { readDir, writeFile } from '../utils/fsHelper.js'
-import {
-  isSamePath,
-  isSubDir,
-  readFile,
-  treatPathSep,
-} from '../utils/fsUtils.js'
+import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import {
   asArray,
   convertJsonToXml,
@@ -168,7 +162,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   protected async _getTranslationAsJSON(translationPath: string) {
     const translationPathInOutputFolder = join(
       this.config.output,
-      treatPathSep(translationPath)
+      translationPath
     )
     const translationExist = await pathExists(translationPathInOutputFolder)
 

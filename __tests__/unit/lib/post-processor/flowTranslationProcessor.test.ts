@@ -1,6 +1,5 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
-import { pathExists } from 'fs-extra'
 
 import {
   FLOW_XML_NAME,
@@ -11,11 +10,15 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import type { Work } from '../../../../src/types/work'
 import { readDir, writeFile } from '../../../../src/utils/fsHelper'
-import { isSubDir, readFile, treatPathSep } from '../../../../src/utils/fsUtils'
+import {
+  isSubDir,
+  pathExists,
+  readFile,
+  treatPathSep,
+} from '../../../../src/utils/fsUtils'
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
-jest.mock('fs-extra')
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsUtils')
 
@@ -174,7 +177,7 @@ describe('FlowTranslationProcessor', () => {
               [TRANSLATION_TYPE, new Set([FR])],
               [FLOW_XML_NAME, new Set([flowFullName])],
             ])
-            mockedPathExists.mockImplementation(() => Promise.resolve(true))
+            mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
             )
@@ -216,7 +219,7 @@ describe('FlowTranslationProcessor', () => {
               //[TRANSLATION_TYPE, new Set([FR])],
               [FLOW_XML_NAME, new Set([flowFullName])],
             ])
-            mockedPathExists.mockImplementation(() => Promise.resolve(true))
+            mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
             )
