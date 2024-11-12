@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.49.3](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.2...v5.49.3) (2024-11-12)
+
+
+### Bug Fixes
+
+* git compatibility issue with large repository on windows ([#947](https://github.com/scolladon/sfdx-git-delta/issues/947)) ([4728132](https://github.com/scolladon/sfdx-git-delta/commit/4728132a88f13f167259c0e94564014012482770))
+
 ## [5.49.2](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.1...v5.49.2) (2024-11-04)
 
 
