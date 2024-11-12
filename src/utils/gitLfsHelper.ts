@@ -1,5 +1,5 @@
 'use strict'
-import { sep } from 'path'
+import { sep } from 'path/posix'
 
 import { UTF8_ENCODING } from '../constant/fsConstants'
 import { GIT_FOLDER } from '../constant/gitConstants'

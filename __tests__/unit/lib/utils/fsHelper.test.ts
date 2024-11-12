@@ -126,14 +126,12 @@ describe('copyFile', () => {
     it('should copy file', async () => {
       // Arrange
       const sourcePath = 'source/copyFile'
-      mockGetFilesFrom.mockImplementation(() =>
-        Promise.resolve([
-          {
-            path: sourcePath,
-            content: Buffer.from(''),
-          },
-        ])
-      )
+      mockGetFilesFrom.mockImplementation(async function* () {
+        yield await {
+          path: sourcePath,
+          content: Buffer.from(''),
+        }
+      })
 
       // Act
       await copyFiles(work.config, sourcePath)
@@ -166,22 +164,29 @@ describe('copyFile', () => {
     describe('when source location is empty', () => {
       it('should copy file', async () => {
         // Arrange
-        mockGetFilesFrom.mockImplementation(() =>
-          Promise.resolve([
-            {
-              path: 'source/emptyFile',
-              content: Buffer.from(''),
-            },
-          ])
-        )
+        mockGetFilesFrom.mockImplementation(async function* () {
+          yield await {
+            path: 'source/emptyFile',
+            content: Buffer.from(''),
+          }
+          yield await {
+            path: 'source/anotherEmptyFile',
+            content: Buffer.from(''),
+          }
+        })
 
         // Act
         await copyFiles(work.config, 'source/emptyFile')
 
         // Assert
         expect(mockGetFilesFrom).toBeCalled()
+        expect(outputFile).toBeCalledTimes(2)
         expect(outputFile).toBeCalledWith(
           'output/source/emptyFile',
+          Buffer.from('')
+        )
+        expect(outputFile).toBeCalledWith(
+          'output/source/anotherEmptyFile',
           Buffer.from('')
         )
       })
@@ -191,14 +196,12 @@ describe('copyFile', () => {
       describe('when content is a folder', () => {
         it('should copy the folder', async () => {
           // Arrange
-          mockGetFilesFrom.mockImplementation(() =>
-            Promise.resolve([
-              {
-                path: 'copyDir/copyFile',
-                content: Buffer.from('content'),
-              },
-            ])
-          )
+          mockGetFilesFrom.mockImplementation(async function* () {
+            yield await {
+              path: 'copyDir/copyFile',
+              content: Buffer.from('content'),
+            }
+          })
 
           // Act
           await copyFiles(work.config, 'source/copyDir')
@@ -216,11 +219,10 @@ describe('copyFile', () => {
       describe('when content is not a git location', () => {
         it('should ignore this path', async () => {
           // Arrange
-          const sourcePath = 'source/warning'
-          mockGetFilesFrom.mockImplementation(() => Promise.reject())
+          mockGetFilesFrom.mockImplementation(async function* () {})
 
           // Act
-          await copyFiles(work.config, sourcePath)
+          await copyFiles(work.config, 'source/warning')
 
           // Assert
           expect(mockGetFilesFrom).toBeCalled()
@@ -230,11 +232,12 @@ describe('copyFile', () => {
       describe('when content is a file', () => {
         beforeEach(async () => {
           // Arrange
-          mockGetFilesFrom.mockImplementation(() =>
-            Promise.resolve([
-              { path: 'source/copyFile', content: Buffer.from('content') },
-            ])
-          )
+          mockGetFilesFrom.mockImplementation(async function* () {
+            yield await {
+              path: 'source/copyFile',
+              content: Buffer.from('content'),
+            }
+          })
         })
         it('should copy the file', async () => {
           // Act
@@ -251,143 +254,130 @@ describe('copyFile', () => {
       })
     })
   })
+})
 
-  describe('readDir', () => {
-    describe('when path exist', () => {
-      const dir = 'dir/'
-      const file = 'test.js'
-      beforeEach(() => {
-        // Arrange
-        mockGetFilesPath.mockImplementation(() =>
-          Promise.resolve([`${dir}${file}`])
-        )
-      })
-      it('should return the file', async () => {
-        // Act
-        const dirContent = await readDir(dir, work.config)
-
-        // Assert
-        expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
-        expect(mockGetFilesPath).toHaveBeenCalled()
-      })
-    })
-
-    describe('when path does not exist', () => {
-      beforeEach(() => {
-        // Arrange
-        mockGetFilesPath.mockImplementation(() =>
-          Promise.reject(new Error('test'))
-        )
-      })
-      it('should throw', async () => {
-        // Act
-        try {
-          await readDir('path', work.config)
-        } catch (err) {
-          // Assert
-          expect(err).toBeTruthy()
-          expect(mockGetFilesPath).toHaveBeenCalled()
-        }
-      })
-    })
-  })
-
-  describe('pathExists', () => {
-    it('returns true when path is folder', async () => {
-      // Arrange
-      mockPathExists.mockImplementation(() => Promise.resolve(true))
-
-      // Act
-      const result = await pathExists('path', work.config)
-
-      // Assert
-      expect(result).toBe(true)
-    })
-    it('returns true when path is file', async () => {
-      // Arrange
-      mockPathExists.mockImplementation(() => Promise.resolve(true))
-
-      // Act
-      const result = await pathExists('path', work.config)
-
-      // Assert
-      expect(result).toBe(true)
-    })
-    it('returns false when path does not exist', async () => {
-      // Arrange
-      mockPathExists.mockImplementation(() => Promise.resolve(false))
-
-      // Act
-      const result = await pathExists('path', work.config)
-
-      // Assert
-      expect(result).toBe(false)
-    })
-    it('returns false when sub service throws', async () => {
-      expect.assertions(1)
-      // Arrange
-      mockPathExists.mockImplementation(() => Promise.reject(new Error('test')))
-
-      // Act
-      const exist = await pathExists('path', work.config)
-
-      // Assert
-      expect(exist).toBe(false)
-    })
-  })
-
-  describe('writeFile', () => {
+describe('readDir', () => {
+  describe('when path exist', () => {
+    const dir = 'dir/'
+    const file = 'test.js'
     beforeEach(() => {
-      mockBuildIgnoreHelper.mockResolvedValue({
-        globalIgnore: {
-          ignores: () => false,
-        } as unknown as Ignore,
-      } as unknown as IgnoreHelper)
+      // Arrange
+      mockGetFilesPath.mockImplementation(() =>
+        Promise.resolve([`${dir}${file}`])
+      )
     })
-    it.each(['folder/file', 'folder\\file'])(
-      'write the content to the file system',
-      async path => {
-        // Arrange
-        const config: Config = work.config
-        config.output = 'root'
-        const content = 'content'
+    it('should return the file', async () => {
+      // Act
+      const dirContent = await readDir(dir, work.config)
 
-        // Act
-        await writeFile(path, content, config)
+      // Assert
+      expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
+      expect(mockGetFilesPath).toHaveBeenCalled()
+    })
+  })
 
+  describe('when path does not exist', () => {
+    beforeEach(() => {
+      // Arrange
+      mockGetFilesPath.mockImplementation(() =>
+        Promise.reject(new Error('test'))
+      )
+    })
+    it('should throw', async () => {
+      // Act
+      try {
+        await readDir('path', work.config)
+      } catch (err) {
         // Assert
-        expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
+        expect(err).toBeTruthy()
+        expect(mockGetFilesPath).toHaveBeenCalled()
       }
-    )
-
-    it('call only once for the same path', async () => {
-      // Arrange
-      const config: Config = work.config
-      config.output = 'root'
-      const content = 'content'
-      const path = 'other/path/file'
-      await writeFile(path, content, config)
-
-      // Act
-      await writeFile(path, content, config)
-
-      // Assert
-      expect(outputFile).toBeCalledTimes(1)
     })
+  })
+})
 
-    it('should not copy ignored path', async () => {
-      // Arrange
-      mockBuildIgnoreHelper.mockResolvedValue({
-        globalIgnore: {
-          ignores: () => true,
-        } as unknown as Ignore,
-      } as unknown as IgnoreHelper)
+describe('pathExists', () => {
+  it('returns true when path is folder', async () => {
+    // Arrange
+    mockPathExists.mockImplementation(() => Promise.resolve(true))
 
-      // Act
-      await writeFile('', '', {} as Config)
+    // Act
+    const result = await pathExists('path', work.config)
 
-      // Assert
-      expect(outputFile).not.toBeCalled()
-    })
+    // Assert
+    expect(result).toBe(true)
+  })
+  it('returns true when path is file', async () => {
+    // Arrange
+    mockPathExists.mockImplementation(() => Promise.resolve(true))
+
+    // Act
+    const result = await pathExists('path', work.config)
+
+    // Assert
+    expect(result).toBe(true)
+  })
+  it('returns false when path does not exist', async () => {
+    // Arrange
+    mockPathExists.mockImplementation(() => Promise.resolve(false))
+
+    // Act
+    const result = await pathExists('not/existing/path', work.config)
+
+    // Assert
+    expect(result).toBe(false)
+  })
+})
+
+describe('writeFile', () => {
+  beforeEach(() => {
+    mockBuildIgnoreHelper.mockResolvedValue({
+      globalIgnore: {
+        ignores: () => false,
+      } as unknown as Ignore,
+    } as unknown as IgnoreHelper)
+  })
+  it('write the content to the file system', async () => {
+    // Arrange
+    const path = 'folder/file'
+    const config: Config = work.config
+    config.output = 'root'
+    const content = 'content'
+
+    // Act
+    await writeFile(path, content, config)
+
+    // Assert
+    expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
+  })
+
+  it('call only once for the same path', async () => {
+    // Arrange
+    const config: Config = work.config
+    config.output = 'root'
+    const content = 'content'
+    const path = 'other/path/file'
+    await writeFile(path, content, config)
+
+    // Act
+    await writeFile(path, content, config)
+
+    // Assert
+    expect(outputFile).toBeCalledTimes(1)
+  })
+
+  it('should not copy ignored path', async () => {
+    // Arrange
+    mockBuildIgnoreHelper.mockResolvedValue({
+      globalIgnore: {
+        ignores: () => true,
+      } as unknown as Ignore,
+    } as unknown as IgnoreHelper)
+
+    // Act
+    await writeFile('', '', {} as Config)
+
+    // Assert
+    expect(outputFile).not.toBeCalled()
   })
 })

@@ -1,14 +1,10 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
 import { readFile } from 'fs-extra'
-import { WalkerEntry, WalkerIterateCallback } from 'isomorphic-git'
 
-import GitAdapter, {
-  contentWalker,
-  diffLineWalker,
-  filePathWalker,
-  iterate,
-} from '../../../../src/adapter/GitAdapter'
+import { EOL } from 'os'
+import GitAdapter from '../../../../src/adapter/GitAdapter'
+import { IGNORE_WHITESPACE_PARAMS } from '../../../../src/constant/gitConstants'
 import type { Config } from '../../../../src/types/config'
 import {
   getLFSObjectContentPath,
@@ -16,45 +12,21 @@ import {
 } from '../../../../src/utils/gitLfsHelper'
 import { getWork } from '../../../__utils__/globalTestHelper'
 
-const mockedDirExists = jest.fn()
-const mockedFileExists = jest.fn()
 const mockedRaw = jest.fn()
-const mockedSetConfig = jest.fn()
+const mockedAddConfig = jest.fn()
 const mockedRevParse = jest.fn()
-const mockedReadObject = jest.fn()
-const mockedReadBlob = jest.fn()
-const mockedWalk = jest.fn()
+const mockedCatFile = jest.fn()
+const mockedShowBuffer = jest.fn()
 
 jest.mock('simple-git', () => {
   return {
     simpleGit: jest.fn(() => ({
       raw: mockedRaw,
       revparse: mockedRevParse,
+      addConfig: mockedAddConfig,
+      catFile: mockedCatFile,
+      showBuffer: mockedShowBuffer,
     })),
-  }
-})
-jest.mock('isomorphic-git', () => ({
-  setConfig: function () {
-    return mockedSetConfig(...arguments)
-  },
-  readObject: function () {
-    return mockedReadObject(...arguments)
-  },
-  readBlob: function () {
-    return mockedReadBlob(...arguments)
-  },
-  walk: function () {
-    return mockedWalk(...arguments)
-  },
-  TREE: jest.fn(),
-}))
-jest.mock('../../../../src/utils/fsUtils', () => {
-  const actualModule: any = jest.requireActual('../../../../src/utils/fsUtils')
-
-  return {
-    ...actualModule,
-    dirExists: () => mockedDirExists(),
-    fileExists: () => mockedFileExists(),
   }
 })
 
@@ -107,80 +79,6 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('setGitDir', () => {
-    it('should set gitdir with git repository', async () => {
-      // Arrange
-      mockedDirExists.mockImplementation(() => Promise.resolve(true))
-      mockedFileExists.mockImplementation(() => Promise.resolve(false))
-      const gitAdapter = GitAdapter.getInstance({
-        ...config,
-        repo: 'repository',
-      })
-
-      // Act
-      await gitAdapter.setGitDir()
-
-      // Assert
-      expect(mockedDirExists).toBeCalledTimes(1)
-      expect(mockedFileExists).not.toBeCalled()
-    })
-
-    it('should set gitdir with submodules', async () => {
-      // Arrange
-      mockedDirExists.mockImplementation(() => Promise.resolve(false))
-      mockedFileExists.mockImplementation(() => Promise.resolve(true))
-      readFileMocked.mockResolvedValue(Buffer.from('content') as never)
-      const gitAdapter = GitAdapter.getInstance({
-        ...config,
-        repo: 'submodule',
-      })
-
-      // Act
-      await gitAdapter.setGitDir()
-
-      // Assert
-      expect(mockedDirExists).toBeCalledTimes(1)
-      expect(mockedFileExists).toBeCalledTimes(1)
-    })
-
-    it('should throw when no git material is found', async () => {
-      // Arrange
-      expect.assertions(1)
-      mockedDirExists.mockImplementation(() => Promise.resolve(false))
-      mockedFileExists.mockImplementation(() => Promise.resolve(false))
-      const gitAdapter = GitAdapter.getInstance({
-        ...config,
-        repo: 'not git material',
-      })
-
-      // Act
-      try {
-        await gitAdapter.setGitDir()
-      } catch (error) {
-        // Assert
-        expect(error).toBeDefined()
-      }
-    })
-
-    it('should set gitdir once', async () => {
-      // Arrange
-      mockedDirExists.mockImplementation(() => Promise.resolve(true))
-      mockedFileExists.mockImplementation(() => Promise.resolve(false))
-      const gitAdapter = GitAdapter.getInstance({
-        ...config,
-        repo: 'repository',
-      })
-      await gitAdapter.setGitDir()
-
-      // Act
-      await gitAdapter.setGitDir()
-
-      // Assert
-      expect(mockedDirExists).toBeCalledTimes(1)
-      expect(mockedFileExists).not.toBeCalled()
-    })
-  })
-
   describe('configureRepository', () => {
     it('should call setConfig', async () => {
       // Arrange
@@ -190,14 +88,9 @@ describe('GitAdapter', () => {
       await gitAdapter.configureRepository()
 
       // Assert
-      expect(mockedSetConfig).toBeCalledTimes(1)
-      expect(mockedSetConfig).toBeCalledWith(
-        expect.objectContaining({
-          dir: config.repo,
-          path: 'core.quotepath',
-          value: 'off',
-        })
-      )
+      expect(mockedAddConfig).toBeCalledTimes(2)
+      expect(mockedAddConfig).toBeCalledWith('core.longpaths', 'true')
+      expect(mockedAddConfig).toBeCalledWith('core.quotepath', 'off')
     })
   })
 
@@ -219,68 +112,67 @@ describe('GitAdapter', () => {
   })
 
   describe('pathExists', () => {
-    describe('when readObject returns a type', () => {
+    describe('when catFile returns a type', () => {
       it.each(['tree', 'blob'])('returns true when type is %s', async type => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedReadObject.mockImplementation(() => Promise.resolve({ type }))
+        mockedCatFile.mockResolvedValue(type as never)
 
         // Act
         const result = await gitAdapter.pathExists('path')
 
         // Assert
         expect(result).toBe(true)
-        expect(mockedReadObject).toBeCalledTimes(1)
-        expect(mockedReadObject).toBeCalledWith(
-          expect.objectContaining({
-            dir: config.repo,
-            oid: config.to,
-            filepath: 'path',
-          })
-        )
+        expect(mockedCatFile).toBeCalledTimes(1)
+        expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
       })
       it.each(['test', 'other', null, undefined, -1])(
         'returns false when type is not "blob" nor "tree"',
         async type => {
           // Arrange
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedReadObject.mockImplementation(() => Promise.resolve({ type }))
+          mockedCatFile.mockImplementation(() => Promise.resolve({ type }))
 
           // Act
           const result = await gitAdapter.pathExists('path')
 
           // Assert
           expect(result).toBe(false)
-          expect(mockedReadObject).toBeCalledTimes(1)
-          expect(mockedReadObject).toBeCalledWith(
-            expect.objectContaining({
-              dir: config.repo,
-              oid: config.to,
-              filepath: 'path',
-            })
-          )
+          expect(mockedCatFile).toBeCalledTimes(1)
+          expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
         }
       )
     })
-    describe('when readObject throws', () => {
+    describe('when called multiple times with the same parameters', () => {
+      it('returns cached value', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedCatFile.mockResolvedValue('blob' as never)
+
+        // Act
+        const result = await gitAdapter.pathExists('path')
+        const cachedResult = await gitAdapter.pathExists('path')
+
+        // Assert
+        expect(result).toBe(true)
+        expect(cachedResult).toStrictEqual(result)
+        expect(mockedCatFile).toBeCalledTimes(1)
+        expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
+      })
+    })
+    describe('when catFile throws', () => {
       it('returns false', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedReadObject.mockImplementation(() => Promise.reject())
+        mockedCatFile.mockImplementation(() => Promise.reject())
 
         // Act
         const result = await gitAdapter.pathExists('path')
 
         // Assert
         expect(result).toBe(false)
-        expect(mockedReadObject).toBeCalledTimes(1)
-        expect(mockedReadObject).toBeCalledWith(
-          expect.objectContaining({
-            dir: config.repo,
-            oid: config.to,
-            filepath: 'path',
-          })
-        )
+        expect(mockedCatFile).toBeCalledTimes(1)
+        expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
       })
     })
   })
@@ -302,17 +194,17 @@ describe('GitAdapter', () => {
   })
 
   describe('getStringContent', () => {
-    describe('when readBlob returns a blob', () => {
-      describe('when blob references a LFS file', () => {
+    describe('when catFile returns a string', () => {
+      describe('when string references a LFS file', () => {
         it('returns content from LFS', async () => {
           // Arrange
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedReadBlob.mockImplementation(() =>
-            Promise.resolve({ blob: Buffer.from('test') })
+          mockedShowBuffer.mockImplementation(() =>
+            Promise.resolve('lfs content')
           )
           isLFSmocked.mockReturnValueOnce(true)
           getLFSObjectContentPathMocked.mockReturnValueOnce('lfs/path')
-          readFileMocked.mockResolvedValue(null as never)
+          readFileMocked.mockResolvedValue(Buffer.from('') as never)
           // Act
           const result = await gitAdapter.getStringContent({
             path: '',
@@ -321,23 +213,15 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe('')
-          expect(mockedReadBlob).toBeCalledWith(
-            expect.objectContaining({
-              dir: config.repo,
-              oid: config.to,
-              filepath: '',
-            })
-          )
+          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
         })
       })
-      describe('when blob does not reference a LFS file', () => {
-        it('return blob as a string', async () => {
+      describe('when string does not reference a LFS file', () => {
+        it('return the content', async () => {
           // Arrange
           const expected = 'test'
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedReadBlob.mockImplementation(() =>
-            Promise.resolve({ blob: Buffer.from(expected) })
-          )
+          mockedShowBuffer.mockImplementation(() => Promise.resolve(expected))
           isLFSmocked.mockReturnValueOnce(false)
           // Act
           const result = await gitAdapter.getStringContent({
@@ -347,74 +231,34 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe(expected)
-          expect(mockedReadBlob).toBeCalledWith(
-            expect.objectContaining({
-              dir: config.repo,
-              oid: config.to,
-              filepath: '',
-            })
-          )
+          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
         })
       })
     })
-    describe('when readBlob throws exception', () => {
-      describe('when error name is NotFoundError', () => {
-        it('returns empty content', async () => {
-          // Arrange
-          const gitAdapter = GitAdapter.getInstance(config)
-          mockedReadBlob.mockImplementation(() => {
-            const error = new Error()
-            error.name = 'NotFoundError'
-            return Promise.reject(error)
-          })
-          // Act
-          const result = await gitAdapter.getStringContent({
+    describe('when catFile throws exception', () => {
+      it('throws the exception', async () => {
+        // Arrange
+        expect.assertions(1)
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedShowBuffer.mockImplementation(() =>
+          Promise.reject(new Error('test'))
+        )
+        // Act
+        try {
+          await gitAdapter.getStringContent({
             path: '',
             oid: config.to,
           })
-
+        } catch {
           // Assert
-          expect(result).toBe('')
-          expect(mockedReadBlob).toBeCalledWith(
-            expect.objectContaining({
-              dir: config.repo,
-              oid: config.to,
-              filepath: '',
-            })
-          )
-        })
-      })
-      describe('when error name is not NotFoundError', () => {
-        it('throws the exception', async () => {
-          // Arrange
-          expect.assertions(1)
-          const gitAdapter = GitAdapter.getInstance(config)
-          mockedReadBlob.mockImplementation(() =>
-            Promise.reject(new Error('test'))
-          )
-          // Act
-          try {
-            await gitAdapter.getStringContent({
-              path: '',
-              oid: config.to,
-            })
-          } catch {
-            // Assert
-            expect(mockedReadBlob).toBeCalledWith(
-              expect.objectContaining({
-                dir: config.repo,
-                oid: config.to,
-                filepath: '',
-              })
-            )
-          }
-        })
+          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
+        }
       })
     })
   })
 
   describe('getFilesPath', () => {
-    it('calls walk', async () => {
+    it('calls raw', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
 
@@ -422,517 +266,203 @@ describe('GitAdapter', () => {
       await gitAdapter.getFilesPath(config.source)
 
       // Assert
-      expect(mockedWalk).toBeCalled()
+      expect(mockedRaw).toBeCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        config.source,
+      ])
+    })
+
+    it('memoize call', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const rawOutput = [
+        'path/from/file',
+        'path/to/file',
+        'path/to/another/file',
+      ]
+      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+
+      // Act
+      const result = await gitAdapter.getFilesPath(config.source)
+      const cachedResult = await gitAdapter.getFilesPath(config.source)
+
+      // Assert
+      expect(result).toEqual(rawOutput)
+      expect(cachedResult).toStrictEqual(result)
+      expect(mockedRaw).toBeCalledTimes(1)
+      expect(mockedRaw).toBeCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        config.source,
+      ])
+    })
+
+    it('memoize sub call', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const rawOutput = [
+        'path/from/file',
+        'path/to/file',
+        'path/to/another/file',
+      ]
+      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+
+      // Act
+      const result = await gitAdapter.getFilesPath('path')
+      const subCachedResult = await gitAdapter.getFilesPath('path/to')
+
+      // Assert
+      expect(result).toEqual(rawOutput)
+      expect(subCachedResult).toEqual(rawOutput.slice(1)) // Only sub-paths
+      expect(mockedRaw).toBeCalledTimes(1)
+      expect(mockedRaw).toBeCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        'path',
+      ])
+    })
+
+    it('does not cache parent subpaths', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const rawOutput = [
+        'path/from/file',
+        'path/to/file',
+        'path/to/another/file',
+      ]
+      mockedRaw.mockResolvedValueOnce(rawOutput.slice(1).join(EOL) as never)
+      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+
+      // Act
+      const resultAtFilePath = await gitAdapter.getFilesPath('path/to')
+      const resultAtPath = await gitAdapter.getFilesPath('path')
+
+      // Assert
+      expect(resultAtFilePath).toEqual(rawOutput.slice(1))
+      expect(resultAtPath).toEqual(rawOutput)
+      expect(mockedRaw).toBeCalledTimes(2)
     })
   })
 
   describe('getFilesFrom', () => {
-    describe('when path is a directory', () => {
-      it('returns the list of files under this directory', async () => {
+    it('returns the list of files', async () => {
+      // Arrange
+      const content = 'content'
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockImplementation(() =>
+        Promise.resolve(['file', 'anotherFile'].join('\n'))
+      )
+      mockedShowBuffer.mockResolvedValue(Buffer.from(content) as never)
+
+      // Act
+      const result: any = []
+      for await (const file of gitAdapter.getFilesFrom('directory/path')) {
+        result.push(file)
+      }
+
+      // Assert
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          { path: 'file', content: Buffer.from(content) },
+        ])
+      )
+    })
+
+    describe('when files are LFS', () => {
+      it('returns the list of files', async () => {
         // Arrange
         const content = 'content'
-        const path = 'relative/path'
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedReadObject.mockImplementation(() =>
-          Promise.resolve({ type: 'tree' })
+        mockedRaw.mockImplementation(() =>
+          Promise.resolve(['file', 'anotherFile'].join('\n'))
         )
-        mockedWalk.mockImplementation(() =>
-          Promise.resolve([
-            {
-              path,
-              content: new TextEncoder().encode(content),
-            },
+        mockedCatFile.mockResolvedValue(Buffer.from(content) as never)
+
+        // Act
+        const result: any = []
+        for await (const file of gitAdapter.getFilesFrom('directory/path')) {
+          result.push(file)
+        }
+
+        // Assert
+
+        expect(result).toEqual(
+          expect.arrayContaining([
+            { path: 'file', content: Buffer.from(content) },
           ])
         )
-
-        // Act
-        const result = await gitAdapter.getFilesFrom('directory/path')
-
-        // Assert
-
-        expect(result).toEqual(
-          expect.arrayContaining([{ path, content: Buffer.from(content) }])
-        )
       })
     })
-    describe('when path is a file', () => {
-      it('returns the file content', async () => {
-        // Arrange
-        const content = 'content'
-        const path = 'file/path'
-        const gitAdapter = GitAdapter.getInstance(config)
-        mockedReadObject.mockImplementation(() =>
-          Promise.resolve({
-            type: 'blob',
-            object: new TextEncoder().encode(content),
-          })
-        )
 
-        // Act
-        const result = await gitAdapter.getFilesFrom('file/path')
-
-        // Assert
-
-        expect(result).toEqual(
-          expect.arrayContaining([{ path, content: Buffer.from(content) }])
-        )
-      })
-    })
     describe('when path is not a directory nor a file', () => {
-      it('throw an exception', async () => {
+      it('returns empty list', async () => {
         // Arrange
-        expect.assertions(1)
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedReadObject.mockImplementation(() => Promise.resolve({}))
+        mockedRaw.mockResolvedValue('' as never)
 
         // Act
-        try {
-          await gitAdapter.getFilesFrom('wrong/path')
-        } catch (error) {
-          // Assert
-          const err = error as Error
-          expect(err.message).toBe(
-            `Path wrong/path does not exist in ${config.to}`
-          )
+
+        const result: any = []
+        for await (const file of gitAdapter.getFilesFrom('directory/path')) {
+          result.push(file)
         }
+
+        expect(result).toEqual([])
       })
     })
   })
 
   describe('getDiffLines', () => {
-    it('calls walk', async () => {
+    it('calls diff numstats', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue(
+        `1\t11\ttest\n1\t11\tfile\n1\t1\tanotherfile` as never
+      )
 
       // Act
-      await gitAdapter.getDiffLines()
+      const result = await gitAdapter.getDiffLines()
 
       // Assert
-      expect(mockedWalk).toBeCalled()
+      expect(result.length).toBe(9)
+      expect(mockedRaw).toBeCalledTimes(3)
+      expect(mockedRaw).toBeCalledWith(
+        expect.arrayContaining(['diff', '--numstat', '--no-renames'])
+      )
     })
-  })
 
-  describe('filePathWalker', () => {
-    describe('when filepath should be ignored', () => {
-      describe('when filepath is "."', () => {
-        it('returns undefined', async () => {
-          // Arrange
-
-          // Act
-          const result = await filePathWalker('')('.', [null])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe('when filepath is not subfolder of path', () => {
-        it('returns undefined', async () => {
-          // Arrange
-
-          // Act
-          const result = await filePathWalker('dir')('another-dir/file', [null])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe('when type is not blob', () => {
-        it('returns undefined', async () => {
-          // Arrange
-          const entry = {
-            type: jest.fn(() => Promise.resolve('not-blob')),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await filePathWalker('dir')('dir/file', [entry])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-    })
-    describe('when path is afile', () => {
-      it('returns the normalized file path ', async () => {
+    describe('when called with ignore white space', () => {
+      it('add ignore white space params', async () => {
         // Arrange
-        const entry = {
-          type: jest.fn(() => Promise.resolve('blob')),
-        } as unknown as WalkerEntry
+        config.ignoreWhitespace = true
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedRaw.mockResolvedValue(
+          `1\t11\ttest\n1\t11\tfile\n1\t1\tanotherfile` as never
+        )
 
         // Act
-        const result = await filePathWalker('dir')('dir/file', [entry])
+        const result = await gitAdapter.getDiffLines()
 
         // Assert
-        expect(result).toBe('dir/file')
-      })
-    })
-  })
-
-  describe('diffLineWalker', () => {
-    describe('when filepath should be ignored', () => {
-      describe('when filepath is "."', () => {
-        it('returns undefined', async () => {
-          // Arrange
-
-          // Act
-          const result = await diffLineWalker(config)('.', [null])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe(`when filepath does not start with "config.source"`, () => {
-        it.each(['not-force-app', 'force-app-extended'])(
-          'returns undefined',
-          async root => {
-            // Arrange
-
-            // Act
-            const result = await diffLineWalker({
-              ...config,
-              source: 'force-app',
-            })(`${root}/test.file`, [null])
-
-            // Assert
-            expect(result).toBe(undefined)
-          }
+        expect(result.length).toBe(9)
+        expect(mockedRaw).toBeCalledTimes(3)
+        expect(mockedRaw).toBeCalledWith(
+          expect.arrayContaining([
+            'diff',
+            '--numstat',
+            '--no-renames',
+            ...IGNORE_WHITESPACE_PARAMS,
+          ])
         )
       })
-
-      describe('when first version of the file is not a blob', () => {
-        it('returns undefined', async () => {
-          // Arrange
-          const entry = {
-            type: jest.fn(() => Promise.resolve('not-blob')),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker(config)('file/path', [entry])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe('when second version of the file is not a blob', () => {
-        it('returns undefined', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('not-blob')),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker(config)('file/path', [
-            firstEntry,
-            secondEntry,
-          ])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe('when both oid are equals', () => {
-        it('returns undefined', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker(config)('file/path', [
-            firstEntry,
-            secondEntry,
-          ])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-    })
-
-    describe('when filepath should be treated', () => {
-      describe(`when "config.source" is '.'`, () => {
-        it('returns the normalized path', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => undefined),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker({
-            ...config,
-            source: '.',
-          })('force-app/test.file', [firstEntry, secondEntry])
-
-          // Assert
-          expect(result).toBe('A\tforce-app/test.file')
-        })
-      })
-
-      describe(`when filepath starts with "config.source"`, () => {
-        it('returns the normalized path', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => undefined),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker({
-            ...config,
-            source: 'force-app',
-          })('force-app/test.file', [firstEntry, secondEntry])
-
-          // Assert
-          expect(result).toBe('A\tforce-app/test.file')
-        })
-      })
-      describe('when file is added', () => {
-        it('returns the addition type and normalized path', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => undefined),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker(config)('file/path', [
-            firstEntry,
-            secondEntry,
-          ])
-
-          // Assert
-          expect(result).toBe('A\tfile/path')
-        })
-      })
-      describe('when file is deleted', () => {
-        it('returns the deletion type and normalized path', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => undefined),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker(config)('file/path', [
-            firstEntry,
-            secondEntry,
-          ])
-
-          // Assert
-          expect(result).toBe('D\tfile/path')
-        })
-      })
-      describe('when file is modified', () => {
-        it('returns the modification type and normalized path', async () => {
-          // Arrange
-          const firstEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 10),
-          } as unknown as WalkerEntry
-          const secondEntry = {
-            type: jest.fn(() => Promise.resolve('blob')),
-            oid: jest.fn(() => 11),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await diffLineWalker(config)('file/path', [
-            firstEntry,
-            secondEntry,
-          ])
-
-          // Assert
-          expect(result).toBe('M\tfile/path')
-        })
-
-        describe('when whitespace should be ignored', () => {
-          describe('when files contains only whitespace differences', () => {
-            it('returns undefined', async () => {
-              // Arrange
-              const firstEntry = {
-                type: jest.fn(() => Promise.resolve('blob')),
-                oid: jest.fn(() => 10),
-                content: jest.fn(() =>
-                  Promise.resolve(Buffer.from('<code> \t\n</code>'))
-                ),
-              } as unknown as WalkerEntry
-              const secondEntry = {
-                type: jest.fn(() => Promise.resolve('blob')),
-                oid: jest.fn(() => 11),
-                content: jest.fn(() =>
-                  Promise.resolve(Buffer.from(' \t\n<code> </code> \t\n'))
-                ),
-              } as unknown as WalkerEntry
-
-              // Act
-              const result = await diffLineWalker({
-                ...config,
-                ignoreWhitespace: true,
-              })('file/path', [firstEntry, secondEntry])
-
-              // Assert
-              expect(result).toBe(undefined)
-            })
-          })
-          describe('when files contains whitespace and non whitespace differences', () => {
-            it('returns the modification type and normalized path', async () => {
-              // Arrange
-              const firstEntry = {
-                type: jest.fn(() => Promise.resolve('blob')),
-                oid: jest.fn(() => 10),
-                content: jest.fn(() =>
-                  Promise.resolve(Buffer.from('<code> \t\n</code>'))
-                ),
-              } as unknown as WalkerEntry
-              const secondEntry = {
-                type: jest.fn(() => Promise.resolve('blob')),
-                oid: jest.fn(() => 11),
-                content: jest.fn(() =>
-                  Promise.resolve(
-                    Buffer.from(' \t\n<code>information</code> \t\n')
-                  )
-                ),
-              } as unknown as WalkerEntry
-
-              // Act
-              const result = await diffLineWalker({
-                ...config,
-                ignoreWhitespace: true,
-              })('file/path', [firstEntry, secondEntry])
-
-              // Assert
-              expect(result).toBe('M\tfile/path')
-            })
-          })
-        })
-      })
-    })
-  })
-
-  describe('contentWalker', () => {
-    describe('when filepath should be ignored', () => {
-      describe('when filepath is "."', () => {
-        it('returns undefined', async () => {
-          // Arrange
-
-          // Act
-          const result = await contentWalker('')('.', [null])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe('when filepath is not subfolder of path', () => {
-        it('returns undefined', async () => {
-          // Arrange
-
-          // Act
-          const result = await contentWalker('dir')('another-dir/file', [null])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-
-      describe('when type is not blob', () => {
-        it('returns undefined', async () => {
-          // Arrange
-          const entry = {
-            type: jest.fn(() => Promise.resolve('not-blob')),
-          } as unknown as WalkerEntry
-
-          // Act
-          const result = await contentWalker('dir')('dir/file', [entry])
-
-          // Assert
-          expect(result).toBe(undefined)
-        })
-      })
-    })
-    describe('when path is afile', () => {
-      it('returns the normalized file path ', async () => {
-        // Arrange
-        const content = new TextEncoder().encode('content')
-        const entry = {
-          type: jest.fn(() => Promise.resolve('blob')),
-          content: jest.fn(() => Promise.resolve(content)),
-        } as unknown as WalkerEntry
-
-        // Act
-        const result = await contentWalker('dir')('dir/file', [entry])
-
-        // Assert
-        expect(result).toStrictEqual({
-          path: 'dir/file',
-          content,
-        })
-      })
-    })
-  })
-
-  describe('iterate', () => {
-    it('call walk on every children', async () => {
-      // Arrange
-      const children = [
-        Array.from(
-          { length: 2 },
-          (_, index) => ({ type: 'blob', oid: index }) as unknown as WalkerEntry
-        ),
-      ]
-      const walkMock = jest.fn<WalkerIterateCallback>()
-
-      // Act
-      const iterable: IterableIterator<Array<WalkerEntry>> =
-        children[Symbol.iterator]()
-      const result = await iterate(walkMock, iterable)
-
-      // Assert
-      expect(result.length).toBe(children.length)
-      expect(walkMock).toBeCalledTimes(children.length)
-    })
-
-    it('do not walk without children', async () => {
-      // Arrange
-      const children = [] as Array<WalkerEntry[]>
-      const walkMock = jest.fn<WalkerIterateCallback>()
-
-      // Act
-      const iterable: IterableIterator<Array<WalkerEntry>> =
-        children[Symbol.iterator]()
-      const result = await iterate(walkMock, iterable)
-
-      // Assert
-      expect(result.length).toBe(0)
-      expect(walkMock).not.toBeCalled()
     })
   })
 })

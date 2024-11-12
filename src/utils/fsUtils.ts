@@ -1,7 +1,7 @@
 'use strict'
-import { isAbsolute, normalize, relative } from 'path'
+import { isAbsolute, normalize, relative } from 'path/posix'
 
-import { readFile as fsReadFile, stat } from 'fs-extra'
+import { readFile as fsReadFile, pathExists, stat } from 'fs-extra'
 
 import {
   PATH_SEP,
@@ -40,6 +40,8 @@ export const fileExists = async (file: string) => {
     return false
   }
 }
+
+export { pathExists }
 
 export const readFile = async (path: string) => {
   const file = await fsReadFile(path, {

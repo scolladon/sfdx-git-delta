@@ -1,5 +1,5 @@
 'use strict'
-import { basename } from 'path'
+import { basename } from 'path/posix'
 
 import { DOT } from '../constant/fsConstants'
 import { MetadataRepository } from '../metadata/MetadataRepository'

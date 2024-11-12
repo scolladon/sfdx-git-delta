@@ -1,6 +1,6 @@
 'use strict'
-import { join } from 'path'
 import { format } from 'util'
+import { join } from 'path/posix'
 
 import GitAdapter from '../adapter/GitAdapter'
 import messages from '../locales/en'
@@ -11,8 +11,15 @@ import {
 import type { Config } from '../types/config'
 import type { Work } from '../types/work'
 
+import { GIT_FOLDER } from '../constant/gitConstants'
 import asyncFilter from './asyncFilter'
-import { dirExists, fileExists, readFile, sanitizePath } from './fsUtils'
+import {
+  dirExists,
+  fileExists,
+  pathExists,
+  readFile,
+  sanitizePath,
+} from './fsUtils'
 
 const isBlank = (str: string) => !str || /^\s*$/.test(str)
 
@@ -75,9 +82,8 @@ export default class CLIHelper {
       errors.push(format(messages.errorPathIsNotFile, file))
     )
 
-    try {
-      await this.gitAdapter.setGitDir()
-    } catch {
+    const repoExists = await pathExists(join(this.config.repo, GIT_FOLDER))
+    if (!repoExists) {
       errors.push(format(messages.errorPathIsNotGit, this.config.repo))
     }
 

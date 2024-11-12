@@ -1,5 +1,5 @@
 'use strict'
-import { parse } from 'path'
+import { parse } from 'path/posix'
 
 import { PATH_SEP } from '../constant/fsConstants'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'

@@ -10,6 +10,7 @@ import CLIHelper from '../../../../src/utils/cliHelper'
 import {
   dirExists,
   fileExists,
+  pathExists,
   readFile,
   sanitizePath,
 } from '../../../../src/utils/fsUtils'
@@ -17,16 +18,15 @@ import { getWork } from '../../../__utils__/globalTestHelper'
 
 const mockParseRev = jest.fn()
 const mockConfigureRepository = jest.fn()
-const setGitDirMock = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => ({
   getInstance: () => ({
     parseRev: mockParseRev,
     configureRepository: mockConfigureRepository,
-    setGitDir: setGitDirMock,
   }),
 }))
 
 jest.mock('../../../../src/utils/fsUtils')
+const mockedPathExists = jest.mocked(pathExists)
 const mockedReadFile = jest.mocked(readFile)
 const mockedSanitizePath = jest.mocked(sanitizePath)
 const mockedDirExists = jest.mocked(dirExists)
@@ -43,7 +43,7 @@ describe(`test if the application`, () => {
     work.config.apiVersion = 46
     mockedFileExists.mockImplementation(() => Promise.resolve(true))
     mockedDirExists.mockImplementation(() => Promise.resolve(true))
-    setGitDirMock.mockImplementation(() => Promise.resolve(true))
+    mockedPathExists.mockResolvedValue(true as never)
     mockParseRev.mockImplementation(() => Promise.resolve('ref'))
   })
 
@@ -65,8 +65,8 @@ describe(`test if the application`, () => {
     expect(1).toBe(1)
   })
 
-  it('throws errors when repo is not a git repository', async () => {
-    setGitDirMock.mockImplementationOnce(() => Promise.reject(new Error()))
+  it('add errors when repo is not a git repository', async () => {
+    mockedPathExists.mockResolvedValue(false as never)
     const cliHelper = new CLIHelper({
       ...work,
       config: {
@@ -415,7 +415,6 @@ describe(`test if the application`, () => {
 
   it('do not throw errors when repo contains submodule git file', async () => {
     expect.assertions(1)
-    setGitDirMock.mockImplementationOnce(() => Promise.resolve(true))
     const cliHelper = new CLIHelper({
       ...work,
       config: {
@@ -430,7 +429,6 @@ describe(`test if the application`, () => {
 
   it('do not throw errors when repo submodule git folder', async () => {
     expect.assertions(1)
-    setGitDirMock.mockImplementationOnce(() => Promise.resolve(true))
     const cliHelper = new CLIHelper({
       ...work,
       config: {
