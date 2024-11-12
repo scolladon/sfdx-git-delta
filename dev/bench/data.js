@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1718278574017,
+  "lastUpdate": 1731409903159,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2139,6 +2139,37 @@ window.BENCHMARK_DATA = {
             "range": "±1.05%",
             "unit": "ops/sec",
             "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4728132a88f13f167259c0e94564014012482770",
+          "message": "fix: git compatibility issue with large repository on windows (#947)\n\n\r\nCo-authored-by: alesk <78688610+ALesc21@users.noreply.github.com>",
+          "timestamp": "2024-11-12T12:05:54+01:00",
+          "tree_id": "bb72419784378fd9e01ff52414267e8d8fcbcaf5",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/4728132a88f13f167259c0e94564014012482770"
+        },
+        "date": 1731409902711,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.72%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
           }
         ]
       }
