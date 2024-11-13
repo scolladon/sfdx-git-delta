@@ -102,7 +102,7 @@ export default class GitAdapter {
         '--name-only',
         '-r',
         this.config.to,
-        path,
+        path || '.',
       ])
     )
       .split(EOL)
