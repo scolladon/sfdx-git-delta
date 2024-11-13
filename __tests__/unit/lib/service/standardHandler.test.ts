@@ -308,7 +308,7 @@ describe(`StandardHandler`, () => {
         // Arrange
         work.config.repo = repoPath
         const sut = new StandardHandler(
-          `${MODIFICATION}       ${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
+          `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
           classType,
           work,
           globalMetadata
