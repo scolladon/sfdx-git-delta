@@ -261,6 +261,7 @@ describe('GitAdapter', () => {
     it('calls raw', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue('' as never)
 
       // Act
       await gitAdapter.getFilesPath(config.source)
@@ -272,6 +273,24 @@ describe('GitAdapter', () => {
         '-r',
         config.to,
         config.source,
+      ])
+    })
+
+    it('when path is empty it calls current directory', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue('' as never)
+
+      // Act
+      await gitAdapter.getFilesPath('')
+
+      // Assert
+      expect(mockedRaw).toBeCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        '.',
       ])
     })
 

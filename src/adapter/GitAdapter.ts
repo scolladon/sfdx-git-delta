@@ -103,7 +103,7 @@ export default class GitAdapter {
         '--name-only',
         '-r',
         this.config.to,
-        path,
+        path || '.',
       ])
     )
       .split(EOL)
@@ -158,11 +158,11 @@ export default class GitAdapter {
   }
 
   public async getDiffLines(): Promise<string[]> {
-    const lines: string[] = []
+    let lines: string[] = []
     for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
       const linesOfType = await this.getDiffForType(changeType)
-      lines.push(
-        ...linesOfType.map(line =>
+      lines = lines.concat(
+        linesOfType.map(line =>
           line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}${TAB}`)
         )
       )
