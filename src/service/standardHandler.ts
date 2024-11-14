@@ -149,7 +149,7 @@ export default class StandardHandler {
   protected _parseLine() {
     return this.line.match(
       new RegExp(
-        `(?<path>.*[/\\\\]${RegExpEscape(
+        `(?<path>.*[/\\\\]?${RegExpEscape(
           this.metadataDef.directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
