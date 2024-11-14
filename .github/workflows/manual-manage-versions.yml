@@ -34,4 +34,4 @@ jobs:
       - name: Change version
         run: npm dist-tag add sfdx-git-delta@${{ github.event.inputs.version-number }} ${{ github.event.inputs.version-alias }}
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

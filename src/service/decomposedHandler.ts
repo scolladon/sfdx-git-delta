@@ -1,5 +1,5 @@
 'use strict'
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 export default class DecomposedHandler extends StandardHandler {
   protected override _getElementName() {
