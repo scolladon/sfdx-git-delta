@@ -1,6 +1,6 @@
 'use strict'
 
-import { isEqual } from 'lodash'
+import { differenceWith, isEqual } from 'lodash'
 
 import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Config } from '../types/config'
@@ -42,8 +42,13 @@ const selectKey =
   (attributes: Map<string, SharedFileMetadata>) =>
   (type: string) =>
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (elem: any) =>
-    elem?.[attributes.get(type)!.key!]
+  (elem: any): string => {
+    const key = attributes.get(type)?.key
+    return key ? elem?.[key] : null
+  }
+
+const isValid = (key: string) =>
+  !['<array>', '<object>', null, undefined].includes(key)
 
 // Metadata JSON structure functional area
 // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
@@ -84,7 +89,7 @@ const compareContent =
     // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     predicat: (arg0: any, arg1: string, arg2: string) => boolean
   ): Manifest => {
-    const v: ManifestTypeMember[] = getSubTypeTags(attributes)(
+    const metadataMembers: ManifestTypeMember[] = getSubTypeTags(attributes)(
       contentAtRef
     ).flatMap(
       processMetadataForSubType(
@@ -95,7 +100,9 @@ const compareContent =
       )
     )
     const store: Manifest = new Map()
-    v.forEach((nameByType: ManifestTypeMember) => addToStore(store)(nameByType))
+    metadataMembers.forEach((nameByType: ManifestTypeMember) =>
+      addToStore(store)(nameByType)
+    )
     return store
   }
 
@@ -144,29 +151,43 @@ const getElementProcessor =
   }
 
 // Partial JSON generation functional area
-// Side effect on jsonContent
 const generatePartialJSON =
   (attributes: Map<string, SharedFileMetadata>) =>
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (jsonContent: any) =>
+  (fromJsonContent: any) =>
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
+  (toJsonContent: any) =>
   (store: Manifest) => {
-    const extract = extractMetadataForSubtype(jsonContent)
+    const extract = extractMetadataForSubtype(toJsonContent)
     const storeHasMember = hasMember(store)(attributes)
-    return getSubTypeTags(attributes)(jsonContent).reduce((acc, subType) => {
+    const keySelectorAttribute = selectKey(attributes)
+    const fromExtractor = extractMetadataForSubtype(fromJsonContent)
+    return getSubTypeTags(attributes)(toJsonContent).reduce((acc, subType) => {
+      const fromMeta = fromExtractor(subType)
       const meta = extract(subType)
       const storeHasMemberForType = storeHasMember(subType)
-      const key = selectKey(attributes)(subType)
+      const keySelector = keySelectorAttribute(subType)
       const rootMetadata = getRootMetadata(acc)
-      rootMetadata[subType] = meta.filter(elem =>
-        storeHasMemberForType(key(elem))
-      )
+      const keyField = attributes.get(subType)?.key
+      if (keyField === '<array>') {
+        rootMetadata[subType] = isEqual(fromMeta, meta) ? [] : meta
+      } else if (keyField === '<object>') {
+        rootMetadata[subType] = differenceWith(meta, fromMeta, isEqual)
+      } else {
+        rootMetadata[subType] = meta.filter(elem => {
+          const key = keySelector(elem)
+          return storeHasMemberForType(key)
+        })
+      }
       return acc
-    }, structuredClone(jsonContent))
+    }, structuredClone(toJsonContent))
   }
 
 export default class MetadataDiff {
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   protected toContent: any
+  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
+  protected fromContent: any
   protected add!: Manifest
   constructor(
     protected readonly config: Config,
@@ -179,21 +200,26 @@ export default class MetadataDiff {
       { path, oid: this.config.to },
       this.config
     )
-    const fromContent = await parseXmlFileToJson(
+    this.fromContent = await parseXmlFileToJson(
       { path, oid: this.config.from },
       this.config
     )
 
     const diff = compareContent(this.attributes)
 
+    const keySelector = selectKey(this.attributes)
+
     // Added or Modified
     this.add = diff(
       this.toContent,
-      fromContent,
+      this.fromContent,
       // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
       (meta: any[], type: string, elem: string) => {
-        const key = selectKey(this.attributes)(type)
-        const match = meta.find((el: string) => key(el) === key(elem))
+        const key = keySelector(type)
+        const elemKey = key(elem)
+        const match = isValid(elemKey)
+          ? meta.find((el: string) => key(el) === elemKey)
+          : null
         return !match || !isEqual(match, elem)
       }
     )
@@ -201,12 +227,15 @@ export default class MetadataDiff {
     // Will be done when not needed
     // Deleted
     const del = diff(
-      fromContent,
+      this.fromContent,
       this.toContent,
       // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
       (meta: any[], type: string, elem: string) => {
-        const key = selectKey(this.attributes)(type)
-        return !meta.some((el: string) => key(el) === key(elem))
+        const key = keySelector(type)
+        const elemKey = key(elem)
+        return (
+          isValid(elemKey) && !meta.some((el: string) => key(el) === elemKey)
+        )
       }
     )
 
@@ -217,9 +246,9 @@ export default class MetadataDiff {
   }
 
   public prune() {
-    const prunedContent = generatePartialJSON(this.attributes)(this.toContent)(
-      this.add
-    )
+    const prunedContent = generatePartialJSON(this.attributes)(
+      this.fromContent
+    )(this.toContent)(this.add)
     return {
       xmlContent: convertJsonToXml(prunedContent),
       isEmpty: isEmpty(prunedContent),

@@ -2,6 +2,8 @@
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getInFileAttributes } from '../../../../src/metadata/metadataManager'
+import { SharedFileMetadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
 import {
   convertJsonToXml,
@@ -22,11 +24,104 @@ jest.mock('../../../../src/utils/fxpHelper', () => {
 })
 const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
 
-const workFlowAttributes = new Map([
-  ['alerts', { xmlName: 'WorkflowAlert', key: 'fullName' }],
-])
-
 const xmlHeader = { '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' } }
+
+const emptyProfile = {
+  Profile: {
+    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+    layoutAssignments: [],
+    loginHours: [],
+    loginIpRanges: [],
+  },
+}
+
+const profile = {
+  Profile: {
+    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+    layoutAssignments: [
+      {
+        layout: 'test-layout',
+        recordType: 'test-recordType',
+      },
+    ],
+    loginHours: [
+      {
+        mondayStart: '300',
+        mondayEnd: '500',
+      },
+    ],
+    loginIpRanges: [
+      {
+        description: 'ip range description',
+        endAddress: '168.0.0.1',
+        startAddress: '168.0.0.255',
+      },
+    ],
+  },
+}
+
+const profileChanged = {
+  Profile: {
+    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+    layoutAssignments: [
+      {
+        layout: 'another-test-layout',
+        recordType: 'test-recordType',
+      },
+    ],
+    loginHours: [
+      {
+        mondayStart: '400',
+        mondayEnd: '500',
+      },
+    ],
+    loginIpRanges: [
+      {
+        description: 'ip range description',
+        endAddress: '168.0.0.0',
+        startAddress: '168.0.0.255',
+      },
+    ],
+  },
+}
+
+const profileAdded = {
+  Profile: {
+    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+    layoutAssignments: [
+      {
+        layout: 'test-layout',
+        recordType: 'test-recordType',
+      },
+      {
+        layout: 'another-test-layout',
+        recordType: 'test-recordType',
+      },
+    ],
+    loginHours: [
+      {
+        mondayStart: '300',
+        mondayEnd: '500',
+      },
+      {
+        tuesdayStart: '400',
+        tuesdayEnd: '500',
+      },
+    ],
+    loginIpRanges: [
+      {
+        description: 'ip range description',
+        endAddress: '168.0.0.0',
+        startAddress: '168.0.0.255',
+      },
+      {
+        description: 'complete ip range description',
+        endAddress: '168.0.0.1',
+        startAddress: '168.0.0.255',
+      },
+    ],
+  },
+}
 
 const alert = {
   Workflow: {
@@ -104,9 +199,11 @@ const unTracked = {
 describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
   let metadataDiff: MetadataDiff
   let globalMetadata: MetadataRepository
+  let inFileAttribute: Map<string, SharedFileMetadata>
   let work: Work
   beforeAll(async () => {
     globalMetadata = await getGlobalMetadata()
+    inFileAttribute = getInFileAttributes(globalMetadata)
   })
   beforeEach(() => {
     jest.resetAllMocks()
@@ -116,7 +213,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
     metadataDiff = new MetadataDiff(
       work.config,
       globalMetadata,
-      workFlowAttributes
+      inFileAttribute
     )
   })
 
@@ -289,6 +386,148 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
         ...alertOther,
       })
       expect(isEmpty).toBe(false)
+    })
+
+    describe('key less elements', () => {
+      it('given one element modified, the generated file contains the difference', async () => {
+        /*
+        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
+        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
+        */
+        // Arrange
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profileChanged,
+        })
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profile,
+        })
+        await metadataDiff.compare('file/path')
+
+        // Act
+        const { isEmpty } = metadataDiff.prune()
+
+        // Assert
+        expect(convertJsonToXml).toHaveBeenCalledWith({
+          ...header,
+          ...profileChanged,
+        })
+        expect(isEmpty).toBe(false)
+      })
+
+      it('given added elements, the generated file contains the difference', async () => {
+        /*
+        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
+        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
+        */
+        // Arrange
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profileAdded,
+        })
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profile,
+        })
+        await metadataDiff.compare('file/path')
+
+        // Act
+        const { isEmpty } = metadataDiff.prune()
+
+        // Assert
+        expect(convertJsonToXml).toHaveBeenCalledWith({
+          ...header,
+          ...{
+            Profile: {
+              '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+              layoutAssignments: [
+                {
+                  layout: 'another-test-layout',
+                  recordType: 'test-recordType',
+                },
+              ],
+              loginHours: [
+                {
+                  mondayStart: '300',
+                  mondayEnd: '500',
+                },
+                {
+                  tuesdayStart: '400',
+                  tuesdayEnd: '500',
+                },
+              ],
+              loginIpRanges: [
+                {
+                  description: 'ip range description',
+                  endAddress: '168.0.0.0',
+                  startAddress: '168.0.0.255',
+                },
+                {
+                  description: 'complete ip range description',
+                  endAddress: '168.0.0.1',
+                  startAddress: '168.0.0.255',
+                },
+              ],
+            },
+          },
+        })
+        expect(isEmpty).toBe(false)
+      })
+
+      it('given no element added nor modified, the generated file contains empty definition', async () => {
+        /*
+        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
+        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
+        */
+        // Arrange
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profile,
+        })
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profile,
+        })
+        await metadataDiff.compare('file/path')
+
+        // Act
+        const { isEmpty } = metadataDiff.prune()
+
+        // Assert
+        expect(convertJsonToXml).toHaveBeenCalledWith({
+          ...header,
+          ...emptyProfile,
+        })
+        expect(isEmpty).toBe(true)
+      })
+
+      it('given no element added nor modified, the generated file contains empty profile', async () => {
+        /*
+        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
+        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
+        */
+        // Arrange
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...emptyProfile,
+        })
+        mockedParseXmlFileToJson.mockResolvedValueOnce({
+          ...header,
+          ...profile,
+        })
+        await metadataDiff.compare('file/path')
+
+        // Act
+        const { isEmpty } = metadataDiff.prune()
+
+        // Assert
+        expect(convertJsonToXml).toHaveBeenCalledWith({
+          ...header,
+          ...emptyProfile,
+        })
+        expect(isEmpty).toBe(true)
+      })
     })
 
     it('given untracked element, nothing trackable changed, the generated file contains untracked elements', async () => {
