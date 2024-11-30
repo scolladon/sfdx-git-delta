@@ -1714,7 +1714,7 @@
     "parentXmlName": "Profile",
     "xmlName": "ProfileLayoutAssignments",
     "xmlTag": "layoutAssignments",
-    "key": "<object>",
+    "key": "layout",
     "excluded": true
   },
   {

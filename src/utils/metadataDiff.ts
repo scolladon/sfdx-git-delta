@@ -30,22 +30,12 @@ const addToStore =
     return store
   }
 
-const hasMember =
-  (store: Manifest) =>
-  (attributes: Map<string, SharedFileMetadata>) =>
-  (subType: string) =>
-  (member: string) =>
-    attributes.has(subType) &&
-    store.get(attributes.get(subType)!.xmlName!)?.has(member)
-
 const selectKey =
   (attributes: Map<string, SharedFileMetadata>) =>
   (type: string) =>
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (elem: any): string => {
-    const key = attributes.get(type)?.key
-    return key ? elem?.[key] : null
-  }
+  (elem: any): string =>
+    elem?.[attributes.get(type)?.key!]
 
 const isValid = (key: string) =>
   !['<array>', '<object>', null, undefined].includes(key)
@@ -156,28 +146,18 @@ const generatePartialJSON =
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   (fromJsonContent: any) =>
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (toJsonContent: any) =>
-  (store: Manifest) => {
+  (toJsonContent: any) => {
     const extract = extractMetadataForSubtype(toJsonContent)
-    const storeHasMember = hasMember(store)(attributes)
-    const keySelectorAttribute = selectKey(attributes)
     const fromExtractor = extractMetadataForSubtype(fromJsonContent)
     return getSubTypeTags(attributes)(toJsonContent).reduce((acc, subType) => {
       const fromMeta = fromExtractor(subType)
       const meta = extract(subType)
-      const storeHasMemberForType = storeHasMember(subType)
-      const keySelector = keySelectorAttribute(subType)
       const rootMetadata = getRootMetadata(acc)
       const keyField = attributes.get(subType)?.key
       if (keyField === '<array>') {
         rootMetadata[subType] = isEqual(fromMeta, meta) ? [] : meta
-      } else if (keyField === '<object>') {
-        rootMetadata[subType] = differenceWith(meta, fromMeta, isEqual)
       } else {
-        rootMetadata[subType] = meta.filter(elem => {
-          const key = keySelector(elem)
-          return storeHasMemberForType(key)
-        })
+        rootMetadata[subType] = differenceWith(meta, fromMeta, isEqual)
       }
       return acc
     }, structuredClone(toJsonContent))
@@ -248,7 +228,7 @@ export default class MetadataDiff {
   public prune() {
     const prunedContent = generatePartialJSON(this.attributes)(
       this.fromContent
-    )(this.toContent)(this.add)
+    )(this.toContent)
     return {
       xmlContent: convertJsonToXml(prunedContent),
       isEmpty: isEmpty(prunedContent),
