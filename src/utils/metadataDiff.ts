@@ -1,11 +1,9 @@
 'use strict'
 
 import { differenceWith, isEqual, isUndefined } from 'lodash'
-
 import type { Config } from '../types/config'
 import type { SharedFileMetadata } from '../types/metadata'
 import type { Manifest } from '../types/work'
-
 import {
   ATTRIBUTE_PREFIX,
   XML_HEADER_ATTRIBUTE_KEY,
@@ -15,188 +13,62 @@ import {
 } from './fxpHelper'
 import { fillPackageWithParameter } from './packageHelper'
 
-type DiffResult = {
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+type XmlContent = Record<string, any>
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+type XmlElement = Record<string, any>
+
+type KeySelectorFn = (elem: XmlElement) => string | undefined
+
+interface DiffResult {
   added: Manifest
   deleted: Manifest
 }
 
-type PrunedContent = {
+interface PrunedContent {
   xmlContent: string
   isEmpty: boolean
 }
 
-class MetadataExtractor {
-  constructor(private attributes: Map<string, SharedFileMetadata>) {}
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  public getRoot(fileContent: any): any {
-    return (
-      fileContent[
-        Object.keys(fileContent).find(
-          attr => attr !== XML_HEADER_ATTRIBUTE_KEY
-        )!
-      ] ?? {}
-    )
-  }
-
-  isTypePackageable(subType: string): unknown {
-    return this.attributes.get(subType)?.excluded !== true
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  public getSubTypes(fileContent: any): string[] {
-    const root = this.getRoot(fileContent)
-    return Object.keys(root).filter(tag => this.attributes.has(tag))
-  }
-
-  getXmlName(subType: string) {
-    return this.attributes.get(subType)?.xmlName!
-  }
-
-  public getKeySelector(subType: string) {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    return (elem: any) => elem[this.attributes.get(subType)?.key!]
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  public extractForSubType(fileContent: any, subType: string): any[] {
-    return asArray(this.getRoot(fileContent)?.[subType] ?? [])
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  public isContentEmpty(fileContent: any): boolean {
-    const root = this.getRoot(fileContent)
-    return Object.entries(root)
-      .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
-      .every(([, value]) => Array.isArray(value) && value.length === 0)
-  }
-}
-
-class MetadataComparator {
-  constructor(private extractor: MetadataExtractor) {}
-
-  public compare(
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    baseContent: any,
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    targetContent: any,
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    predicate: (base: any[], type: string, key: string) => boolean
-  ): Manifest {
-    const subTypes = this.extractor.getSubTypes(baseContent)
-
-    return subTypes
-      .filter(subType => this.extractor.isTypePackageable(subType))
-      .reduce((manifest, subType) => {
-        const baseMeta = this.extractor.extractForSubType(baseContent, subType)
-        const targetMeta = this.extractor.extractForSubType(
-          targetContent,
-          subType
-        )
-
-        const keySelector = this.extractor.getKeySelector(subType)
-        const xmlName = this.extractor.getXmlName(subType)
-        for (const elem of baseMeta) {
-          if (predicate(targetMeta, subType, elem)) {
-            fillPackageWithParameter({
-              store: manifest,
-              type: xmlName,
-              member: keySelector(elem),
-            })
-          }
-        }
-        return manifest
-      }, new Map())
-  }
-}
-
-class JsonTransformer {
-  constructor(private attributes: Map<string, SharedFileMetadata>) {}
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  public generatePartialJson(fromContent: any, toContent: any): any {
-    const metadataExtractor = new MetadataExtractor(this.attributes)
-    const subTypes = metadataExtractor.getSubTypes(toContent)
-    return subTypes.reduce((acc, subType) => {
-      const fromMeta = metadataExtractor.extractForSubType(fromContent, subType)
-      const toMeta = metadataExtractor.extractForSubType(toContent, subType)
-
-      const rootMetadata = metadataExtractor.getRoot(acc)
-
-      rootMetadata[subType] = this.getPartialContent(fromMeta, toMeta, subType)
-      return acc
-    }, structuredClone(toContent))
-  }
-
-  private getPartialContent(
-    fromMeta: string[],
-    toMeta: string[],
-    subType: string
-  ): string[] {
-    const keyField = this.attributes.get(subType)?.key
-    if (isUndefined(keyField)) {
-      return isEqual(fromMeta, toMeta) ? [] : toMeta
-    }
-    return differenceWith(toMeta, fromMeta, isEqual)
-  }
-}
-
 export default class MetadataDiff {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  private toContent: any
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  private fromContent: any
-  private added!: Manifest
-  private metadataExtractor!: MetadataExtractor
+  private toContent!: XmlContent
+  private fromContent!: XmlContent
+  private extractor: MetadataExtractor
 
   constructor(
     private config: Config,
-    private attributes: Map<string, SharedFileMetadata>
+    attributes: Map<string, SharedFileMetadata>
   ) {
-    this.metadataExtractor = new MetadataExtractor(this.attributes)
+    this.extractor = new MetadataExtractor(attributes)
   }
 
-  public async compare(path: string): Promise<DiffResult> {
-    this.toContent = await parseXmlFileToJson(
-      { path, oid: this.config.to },
-      this.config
-    )
-    this.fromContent = await parseXmlFileToJson(
-      { path, oid: this.config.from },
-      this.config
-    )
+  async compare(path: string): Promise<DiffResult> {
+    const [toContent, fromContent] = await Promise.all([
+      parseXmlFileToJson({ path, oid: this.config.to }, this.config),
+      parseXmlFileToJson({ path, oid: this.config.from }, this.config),
+    ])
 
-    const comparator = new MetadataComparator(this.metadataExtractor)
-    this.added = comparator.compare(
+    this.toContent = toContent
+    this.fromContent = fromContent
+
+    const comparator = new MetadataComparator(this.extractor)
+
+    const added = comparator.compare(
       this.toContent,
       this.fromContent,
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-      (meta, type, elem: any) => {
-        const keySelector = this.metadataExtractor.getKeySelector(type)
-        const elemKey = keySelector(elem)
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        const match = meta.find((el: any) => keySelector(el) === elemKey)
-        return !match || !isEqual(match, elem)
-      }
+      this.compareAdded()
     )
-
     const deleted = comparator.compare(
       this.fromContent,
       this.toContent,
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-      (meta, type, elem: any) => {
-        const keySelector = this.metadataExtractor.getKeySelector(type)
-        const elemKey = keySelector(elem)
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        return !meta.some((el: any) => keySelector(el) === elemKey)
-      }
+      this.compareDeleted()
     )
 
-    return { added: this.added, deleted }
+    return { added, deleted }
   }
 
-  public prune(): PrunedContent {
-    const transformer = new JsonTransformer(this.attributes)
+  prune(): PrunedContent {
+    const transformer = new JsonTransformer(this.extractor)
     const prunedContent = transformer.generatePartialJson(
       this.fromContent,
       this.toContent
@@ -204,7 +76,157 @@ export default class MetadataDiff {
 
     return {
       xmlContent: convertJsonToXml(prunedContent),
-      isEmpty: this.metadataExtractor.isContentEmpty(prunedContent),
+      isEmpty: this.extractor.isContentEmpty(prunedContent),
     }
+  }
+
+  private compareAdded() {
+    return (
+      meta: XmlElement[],
+      keySelector: KeySelectorFn,
+      elem: XmlElement
+    ) => {
+      const elemKey = keySelector(elem)
+      const match = meta.find(el => keySelector(el) === elemKey)
+      return !match || !isEqual(match, elem)
+    }
+  }
+
+  private compareDeleted() {
+    return (
+      meta: XmlElement[],
+      keySelector: KeySelectorFn,
+      elem: XmlElement
+    ) => {
+      const elemKey = keySelector(elem)
+      return !meta.some(el => keySelector(el) === elemKey)
+    }
+  }
+}
+
+class MetadataExtractor {
+  constructor(readonly attributes: Map<string, SharedFileMetadata>) {}
+
+  getSubTypes(fileContent: XmlContent): string[] {
+    const root = this.extractRootElement(fileContent)
+    return Object.keys(root).filter(tag => this.attributes.has(tag))
+  }
+
+  isTypePackageable(subType: string): boolean {
+    return !this.attributes.get(subType)?.excluded
+  }
+
+  getXmlName(subType: string): string {
+    return this.attributes.get(subType)?.xmlName!
+  }
+
+  getKeyValueSelector(subType: string): KeySelectorFn {
+    const metadataKey = this.getKeyFieldDefinition(subType)
+    return elem => elem[metadataKey!] as string
+  }
+
+  getKeyFieldDefinition(subType: string): string | undefined {
+    return this.attributes.get(subType)?.key
+  }
+
+  extractForSubType(fileContent: XmlContent, subType: string): XmlElement[] {
+    const root = this.extractRootElement(fileContent)
+    const content = root[subType]
+    return content ? asArray(content) : []
+  }
+
+  isContentEmpty(fileContent: XmlContent): boolean {
+    const root = this.extractRootElement(fileContent)
+    return Object.entries(root)
+      .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
+      .every(
+        ([, value]) => !value || (Array.isArray(value) && value.length === 0)
+      )
+  }
+
+  extractRootElement(fileContent: XmlContent): XmlElement {
+    const rootKey =
+      Object.keys(fileContent).find(key => key !== XML_HEADER_ATTRIBUTE_KEY) ??
+      ''
+    return (fileContent[rootKey] as XmlElement) ?? {}
+  }
+}
+
+class MetadataComparator {
+  constructor(private extractor: MetadataExtractor) {}
+
+  compare(
+    baseContent: XmlContent,
+    targetContent: XmlContent,
+    elementMatcher: (
+      meta: XmlElement[],
+      keySelector: KeySelectorFn,
+      elem: XmlElement
+    ) => boolean
+  ): Manifest {
+    return this.extractor
+      .getSubTypes(baseContent)
+      .filter(subType => this.extractor.isTypePackageable(subType))
+      .reduce((manifest, subType) => {
+        const baseMeta = this.extractor.extractForSubType(baseContent, subType)
+        const targetMeta = this.extractor.extractForSubType(
+          targetContent,
+          subType
+        )
+        const keySelector = this.extractor.getKeyValueSelector(subType)
+        const xmlName = this.extractor.getXmlName(subType)
+
+        baseMeta
+          .filter(elem => elementMatcher(targetMeta, keySelector, elem))
+          .forEach(elem => {
+            fillPackageWithParameter({
+              store: manifest,
+              type: xmlName,
+              member: keySelector(elem)!,
+            })
+          })
+
+        return manifest
+      }, new Map())
+  }
+}
+
+class JsonTransformer {
+  constructor(private extractor: MetadataExtractor) {}
+
+  generatePartialJson(
+    fromContent: XmlContent,
+    toContent: XmlContent
+  ): XmlContent {
+    return this.extractor.getSubTypes(toContent).reduce((acc, subType) => {
+      const fromMeta = this.extractor.extractForSubType(fromContent, subType)
+      const toMeta = this.extractor.extractForSubType(toContent, subType)
+      const keyField = this.extractor.getKeyFieldDefinition(subType)
+
+      const partialContentBuilder = isUndefined(keyField)
+        ? this.getPartialContentWithoutKey
+        : this.getPartialContentWithKey
+
+      this.extractor.extractRootElement(acc)[subType] = partialContentBuilder(
+        fromMeta,
+        toMeta
+      )
+
+      return acc
+    }, structuredClone(toContent))
+  }
+
+  private getPartialContentWithoutKey(
+    fromMeta: XmlElement[],
+    toMeta: XmlElement[]
+  ): XmlElement[] {
+    return isEqual(fromMeta, toMeta) ? [] : toMeta
+  }
+
+  private getPartialContentWithKey(
+    fromMeta: XmlElement[],
+    toMeta: XmlElement[]
+  ): XmlElement[] {
+    return differenceWith(toMeta, fromMeta, isEqual)
   }
 }
