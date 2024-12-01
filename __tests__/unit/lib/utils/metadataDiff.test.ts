@@ -210,11 +210,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
     work = getWork()
     work.config.from = 'from'
     work.config.to = 'to'
-    metadataDiff = new MetadataDiff(
-      work.config,
-      globalMetadata,
-      inFileAttribute
-    )
+    metadataDiff = new MetadataDiff(work.config, inFileAttribute)
   })
 
   describe(`compare with ${JSON.stringify(header)} header`, () => {

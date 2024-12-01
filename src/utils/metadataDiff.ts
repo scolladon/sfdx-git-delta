@@ -1,8 +1,7 @@
 'use strict'
 
-import { differenceWith, isEqual } from 'lodash'
+import { differenceWith, isEqual, isUndefined } from 'lodash'
 
-import { MetadataRepository } from '../metadata/MetadataRepository'
 import type { Config } from '../types/config'
 import type { SharedFileMetadata } from '../types/metadata'
 import type { Manifest } from '../types/work'
@@ -16,166 +15,148 @@ import {
 } from './fxpHelper'
 import { fillPackageWithParameter } from './packageHelper'
 
-type ManifestTypeMember = {
-  type: string
-  member: string
+type DiffResult = {
+  added: Manifest
+  deleted: Manifest
 }
 
-// Store functional area
-// Side effect on store
-const addToStore =
-  (store: Manifest) =>
-  ({ type, member }: ManifestTypeMember): Manifest => {
-    fillPackageWithParameter({ store, type, member })
-    return store
+type PrunedContent = {
+  xmlContent: string
+  isEmpty: boolean
+}
+
+class MetadataExtractor {
+  constructor(private attributes: Map<string, SharedFileMetadata>) {}
+
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  public getRoot(fileContent: any): any {
+    return (
+      fileContent[
+        Object.keys(fileContent).find(
+          attr => attr !== XML_HEADER_ATTRIBUTE_KEY
+        )!
+      ] ?? {}
+    )
   }
 
-const selectKey =
-  (attributes: Map<string, SharedFileMetadata>) =>
-  (type: string) =>
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (elem: any): string =>
-    elem?.[attributes.get(type)?.key!]
-
-const isValid = (key: string) =>
-  !['<array>', '<object>', null, undefined].includes(key)
-
-// Metadata JSON structure functional area
-// biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-const getRootMetadata = (fileContent: any): any =>
-  fileContent[
-    Object.keys(fileContent).find(
-      attribute => attribute !== XML_HEADER_ATTRIBUTE_KEY
-    ) as string
-  ] ?? {}
-
-const getSubTypeTags =
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (attributes: Map<string, SharedFileMetadata>) => (fileContent: any) =>
-    Object.keys(getRootMetadata(fileContent)).filter(tag => attributes.has(tag))
-
-const extractMetadataForSubtype =
-  (
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    fileContent: any
-  ) =>
-  (subType: string): string[] =>
-    asArray(getRootMetadata(fileContent)?.[subType])
-
-// biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-const isEmpty = (fileContent: any) =>
-  Object.entries(getRootMetadata(fileContent))
-    .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
-    .every(([, value]) => Array.isArray(value) && value.length === 0)
-
-// Diff processing functional area
-const compareContent =
-  (attributes: Map<string, SharedFileMetadata>) =>
-  (
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    contentAtRef: any,
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    otherContent: any,
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    predicat: (arg0: any, arg1: string, arg2: string) => boolean
-  ): Manifest => {
-    const metadataMembers: ManifestTypeMember[] = getSubTypeTags(attributes)(
-      contentAtRef
-    ).flatMap(
-      processMetadataForSubType(
-        contentAtRef,
-        otherContent,
-        predicat,
-        attributes
-      )
-    )
-    const store: Manifest = new Map()
-    metadataMembers.forEach((nameByType: ManifestTypeMember) =>
-      addToStore(store)(nameByType)
-    )
-    return store
+  isTypePackageable(subType: string): unknown {
+    return this.attributes.get(subType)?.excluded !== true
   }
 
-const processMetadataForSubType =
-  (
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  public getSubTypes(fileContent: any): string[] {
+    const root = this.getRoot(fileContent)
+    return Object.keys(root).filter(tag => this.attributes.has(tag))
+  }
+
+  getXmlName(subType: string) {
+    return this.attributes.get(subType)?.xmlName!
+  }
+
+  public getKeySelector(subType: string) {
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    return (elem: any) => elem[this.attributes.get(subType)?.key!]
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  public extractForSubType(fileContent: any, subType: string): any[] {
+    return asArray(this.getRoot(fileContent)?.[subType] ?? [])
+  }
+
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  public isContentEmpty(fileContent: any): boolean {
+    const root = this.getRoot(fileContent)
+    return Object.entries(root)
+      .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
+      .every(([, value]) => Array.isArray(value) && value.length === 0)
+  }
+}
+
+class MetadataComparator {
+  constructor(private extractor: MetadataExtractor) {}
+
+  public compare(
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     baseContent: any,
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    otherContent: any,
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    predicat: (arg0: any, arg1: string, arg2: string) => boolean,
-    attributes: Map<string, SharedFileMetadata>
-  ) =>
-  (subType: string): ManifestTypeMember[] => {
-    const baseMeta = extractMetadataForSubtype(baseContent)(subType)
-    const otherMeta = extractMetadataForSubtype(otherContent)(subType)
-    const processElement = getElementProcessor(
-      subType,
-      predicat,
-      otherMeta,
-      attributes
-    )
-    return baseMeta
-      .map(processElement)
-      .filter(x => x !== undefined) as ManifestTypeMember[]
-  }
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    targetContent: any,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    predicate: (base: any[], type: string, key: string) => boolean
+  ): Manifest {
+    const subTypes = this.extractor.getSubTypes(baseContent)
 
-const getElementProcessor =
-  (
-    type: string,
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    predicat: (arg0: any, arg1: string, arg2: string) => boolean,
-    otherMeta: string[],
-    attributes: Map<string, SharedFileMetadata>
-  ) =>
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (elem: any) => {
-    let metadataMember
-    if (predicat(otherMeta, type, elem)) {
-      metadataMember = {
-        type: attributes.get(type)!.xmlName,
-        member: selectKey(attributes)(type)(elem),
-      }
-    }
-    return metadataMember
-  }
+    return subTypes
+      .filter(subType => this.extractor.isTypePackageable(subType))
+      .reduce((manifest, subType) => {
+        const baseMeta = this.extractor.extractForSubType(baseContent, subType)
+        const targetMeta = this.extractor.extractForSubType(
+          targetContent,
+          subType
+        )
 
-// Partial JSON generation functional area
-const generatePartialJSON =
-  (attributes: Map<string, SharedFileMetadata>) =>
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (fromJsonContent: any) =>
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  (toJsonContent: any) => {
-    const extract = extractMetadataForSubtype(toJsonContent)
-    const fromExtractor = extractMetadataForSubtype(fromJsonContent)
-    return getSubTypeTags(attributes)(toJsonContent).reduce((acc, subType) => {
-      const fromMeta = fromExtractor(subType)
-      const meta = extract(subType)
-      const rootMetadata = getRootMetadata(acc)
-      const keyField = attributes.get(subType)?.key
-      if (keyField === '<array>') {
-        rootMetadata[subType] = isEqual(fromMeta, meta) ? [] : meta
-      } else {
-        rootMetadata[subType] = differenceWith(meta, fromMeta, isEqual)
-      }
+        const keySelector = this.extractor.getKeySelector(subType)
+        const xmlName = this.extractor.getXmlName(subType)
+        for (const elem of baseMeta) {
+          if (predicate(targetMeta, subType, elem)) {
+            fillPackageWithParameter({
+              store: manifest,
+              type: xmlName,
+              member: keySelector(elem),
+            })
+          }
+        }
+        return manifest
+      }, new Map())
+  }
+}
+
+class JsonTransformer {
+  constructor(private attributes: Map<string, SharedFileMetadata>) {}
+
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  public generatePartialJson(fromContent: any, toContent: any): any {
+    const metadataExtractor = new MetadataExtractor(this.attributes)
+    const subTypes = metadataExtractor.getSubTypes(toContent)
+    return subTypes.reduce((acc, subType) => {
+      const fromMeta = metadataExtractor.extractForSubType(fromContent, subType)
+      const toMeta = metadataExtractor.extractForSubType(toContent, subType)
+
+      const rootMetadata = metadataExtractor.getRoot(acc)
+
+      rootMetadata[subType] = this.getPartialContent(fromMeta, toMeta, subType)
       return acc
-    }, structuredClone(toJsonContent))
+    }, structuredClone(toContent))
   }
+
+  private getPartialContent(
+    fromMeta: string[],
+    toMeta: string[],
+    subType: string
+  ): string[] {
+    const keyField = this.attributes.get(subType)?.key
+    if (isUndefined(keyField)) {
+      return isEqual(fromMeta, toMeta) ? [] : toMeta
+    }
+    return differenceWith(toMeta, fromMeta, isEqual)
+  }
+}
 
 export default class MetadataDiff {
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  protected toContent: any
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  protected fromContent: any
-  protected add!: Manifest
-  constructor(
-    protected readonly config: Config,
-    protected readonly metadata: MetadataRepository,
-    protected readonly attributes: Map<string, SharedFileMetadata>
-  ) {}
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  private toContent: any
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  private fromContent: any
+  private added!: Manifest
+  private metadataExtractor!: MetadataExtractor
 
-  public async compare(path: string) {
+  constructor(
+    private config: Config,
+    private attributes: Map<string, SharedFileMetadata>
+  ) {
+    this.metadataExtractor = new MetadataExtractor(this.attributes)
+  }
+
+  public async compare(path: string): Promise<DiffResult> {
     this.toContent = await parseXmlFileToJson(
       { path, oid: this.config.to },
       this.config
@@ -185,53 +166,45 @@ export default class MetadataDiff {
       this.config
     )
 
-    const diff = compareContent(this.attributes)
-
-    const keySelector = selectKey(this.attributes)
-
-    // Added or Modified
-    this.add = diff(
+    const comparator = new MetadataComparator(this.metadataExtractor)
+    this.added = comparator.compare(
       this.toContent,
       this.fromContent,
-      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-      (meta: any[], type: string, elem: string) => {
-        const key = keySelector(type)
-        const elemKey = key(elem)
-        const match = isValid(elemKey)
-          ? meta.find((el: string) => key(el) === elemKey)
-          : null
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      (meta, type, elem: any) => {
+        const keySelector = this.metadataExtractor.getKeySelector(type)
+        const elemKey = keySelector(elem)
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        const match = meta.find((el: any) => keySelector(el) === elemKey)
         return !match || !isEqual(match, elem)
       }
     )
 
-    // Will be done when not needed
-    // Deleted
-    const del = diff(
+    const deleted = comparator.compare(
       this.fromContent,
       this.toContent,
-      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-      (meta: any[], type: string, elem: string) => {
-        const key = keySelector(type)
-        const elemKey = key(elem)
-        return (
-          isValid(elemKey) && !meta.some((el: string) => key(el) === elemKey)
-        )
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      (meta, type, elem: any) => {
+        const keySelector = this.metadataExtractor.getKeySelector(type)
+        const elemKey = keySelector(elem)
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        return !meta.some((el: any) => keySelector(el) === elemKey)
       }
     )
 
-    return {
-      added: this.add,
-      deleted: del,
-    }
+    return { added: this.added, deleted }
   }
 
-  public prune() {
-    const prunedContent = generatePartialJSON(this.attributes)(
-      this.fromContent
-    )(this.toContent)
+  public prune(): PrunedContent {
+    const transformer = new JsonTransformer(this.attributes)
+    const prunedContent = transformer.generatePartialJson(
+      this.fromContent,
+      this.toContent
+    )
+
     return {
       xmlContent: convertJsonToXml(prunedContent),
-      isEmpty: isEmpty(prunedContent),
+      isEmpty: this.metadataExtractor.isContentEmpty(prunedContent),
     }
   }
 }

@@ -21,11 +21,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
 
   protected async _copyObjectTranslation(path: string) {
     const inFileMetadata = getInFileAttributes(this.metadata)
-    const metadataDiff = new MetadataDiff(
-      this.config,
-      this.metadata,
-      inFileMetadata
-    )
+    const metadataDiff = new MetadataDiff(this.config, inFileMetadata)
     await metadataDiff.compare(path)
     const { xmlContent } = metadataDiff.prune()
     await writeFile(path, xmlContent, this.config)

@@ -1927,7 +1927,6 @@
     "parentXmlName": "Profile",
     "xmlName": "ProfileLoginHours",
     "xmlTag": "loginHours",
-    "key": "<array>",
     "excluded": true
   },
   {
@@ -1936,7 +1935,6 @@
     "parentXmlName": "Profile",
     "xmlName": "ProfileLoginIpRange",
     "xmlTag": "loginIpRanges",
-    "key": "<array>",
     "excluded": true
   },
   {
