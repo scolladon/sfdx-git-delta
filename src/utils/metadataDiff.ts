@@ -1,13 +1,12 @@
 'use strict'
 
-import { differenceWith, isEqual, isUndefined } from 'lodash'
+import { castArray, differenceWith, isEqual, isUndefined } from 'lodash'
 import type { Config } from '../types/config'
 import type { SharedFileMetadata } from '../types/metadata'
 import type { Manifest } from '../types/work'
 import {
   ATTRIBUTE_PREFIX,
   XML_HEADER_ATTRIBUTE_KEY,
-  asArray,
   convertJsonToXml,
   parseXmlFileToJson,
 } from './fxpHelper'
@@ -15,10 +14,8 @@ import { fillPackageWithParameter } from './packageHelper'
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 type XmlContent = Record<string, any>
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-type XmlElement = Record<string, any>
 
-type KeySelectorFn = (elem: XmlElement) => string | undefined
+type KeySelectorFn = (elem: XmlContent) => string | undefined
 
 interface DiffResult {
   added: Manifest
@@ -82,9 +79,9 @@ export default class MetadataDiff {
 
   private compareAdded() {
     return (
-      meta: XmlElement[],
+      meta: XmlContent[],
       keySelector: KeySelectorFn,
-      elem: XmlElement
+      elem: XmlContent
     ) => {
       const elemKey = keySelector(elem)
       const match = meta.find(el => keySelector(el) === elemKey)
@@ -94,9 +91,9 @@ export default class MetadataDiff {
 
   private compareDeleted() {
     return (
-      meta: XmlElement[],
+      meta: XmlContent[],
       keySelector: KeySelectorFn,
-      elem: XmlElement
+      elem: XmlContent
     ) => {
       const elemKey = keySelector(elem)
       return !meta.some(el => keySelector(el) === elemKey)
@@ -129,10 +126,10 @@ class MetadataExtractor {
     return this.attributes.get(subType)?.key
   }
 
-  extractForSubType(fileContent: XmlContent, subType: string): XmlElement[] {
+  extractForSubType(fileContent: XmlContent, subType: string): XmlContent[] {
     const root = this.extractRootElement(fileContent)
     const content = root[subType]
-    return content ? asArray(content) : []
+    return content ? castArray(content) : []
   }
 
   isContentEmpty(fileContent: XmlContent): boolean {
@@ -144,11 +141,11 @@ class MetadataExtractor {
       )
   }
 
-  extractRootElement(fileContent: XmlContent): XmlElement {
+  extractRootElement(fileContent: XmlContent): XmlContent {
     const rootKey =
       Object.keys(fileContent).find(key => key !== XML_HEADER_ATTRIBUTE_KEY) ??
       ''
-    return (fileContent[rootKey] as XmlElement) ?? {}
+    return (fileContent[rootKey] as XmlContent) ?? {}
   }
 }
 
@@ -159,9 +156,9 @@ class MetadataComparator {
     baseContent: XmlContent,
     targetContent: XmlContent,
     elementMatcher: (
-      meta: XmlElement[],
+      meta: XmlContent[],
       keySelector: KeySelectorFn,
-      elem: XmlElement
+      elem: XmlContent
     ) => boolean
   ): Manifest {
     return this.extractor
@@ -217,16 +214,16 @@ class JsonTransformer {
   }
 
   private getPartialContentWithoutKey(
-    fromMeta: XmlElement[],
-    toMeta: XmlElement[]
-  ): XmlElement[] {
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[]
+  ): XmlContent[] {
     return isEqual(fromMeta, toMeta) ? [] : toMeta
   }
 
   private getPartialContentWithKey(
-    fromMeta: XmlElement[],
-    toMeta: XmlElement[]
-  ): XmlElement[] {
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[]
+  ): XmlContent[] {
     return differenceWith(toMeta, fromMeta, isEqual)
   }
 }

@@ -4,7 +4,6 @@ import { describe, expect, it, jest } from '@jest/globals'
 import type { Config } from '../../../../src/types/config'
 import { readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
-  asArray,
   convertJsonToXml,
   parseXmlFileToJson,
   xml2Json,
@@ -15,32 +14,6 @@ const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 jest.mock('../../../../src/utils/fsHelper')
 
 describe('fxpHelper', () => {
-  describe('asArray', () => {
-    describe('when called with array', () => {
-      // Arrange
-      const expected = ['test']
-
-      it('returns the same array', () => {
-        // Act
-        const actual = asArray(expected)
-
-        // Assert
-        expect(actual).toBe(expected)
-      })
-    })
-    describe('when called with object', () => {
-      // Arrange
-      const expected = 'test'
-
-      it('returns the array with this object', () => {
-        // Act
-        const actual = asArray(expected)
-
-        // Assert
-        expect(actual).toEqual([expected])
-      })
-    })
-  })
   describe('parseXmlFileToJson', () => {
     const config: Config = {
       from: '',
