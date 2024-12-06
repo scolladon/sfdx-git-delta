@@ -1,4 +1,6 @@
 'use strict'
+
+import { castArray } from 'lodash'
 import { join, parse } from 'path/posix'
 
 import { pathExists } from 'fs-extra'
@@ -14,7 +16,6 @@ import type { Work } from '../types/work'
 import { readDir, writeFile } from '../utils/fsHelper'
 import { isSamePath, isSubDir, readFile } from '../utils/fsUtils'
 import {
-  asArray,
   convertJsonToXml,
   parseXmlFileToJson,
   xml2Json,
@@ -111,7 +112,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
     actualFlowDefinition: any
   ) {
-    const flowDefinitions = asArray(
+    const flowDefinitions = castArray(
       jsonTranslation.Translations?.flowDefinitions
     )
     const fullNames = new Set(
@@ -133,7 +134,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       { path: translationPath, oid: this.config.to },
       this.config
     )
-    const flowDefinitions = asArray(
+    const flowDefinitions = castArray(
       translationJSON?.Translations?.flowDefinitions
     )
     flowDefinitions.forEach(flowDefinition =>

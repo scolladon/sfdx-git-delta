@@ -1505,14 +1505,38 @@
     "xmlTag": "fieldPermissions",
     "key": "field",
     "excluded": true
-  },
-  {
+  },{
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Profile",
     "xmlName": "ProfileFlowAccess",
     "xmlTag": "flowAccesses",
     "key": "flow",
+    "excluded": true
+  },
+  {
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLayoutAssignments",
+    "xmlTag": "layoutAssignments",
+    "key": "<object>",
+    "excluded": true
+  },
+  {
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLoginHours",
+    "xmlTag": "loginHours",
+    "excluded": true
+  },
+  {
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLoginIpRange",
+    "xmlTag": "loginIpRanges",
     "excluded": true
   },
   {

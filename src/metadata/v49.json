@@ -1547,6 +1547,31 @@
     "inFolder": false,
     "metaFile": false,
     "parentXmlName": "Profile",
+    "xmlName": "ProfileLayoutAssignments",
+    "xmlTag": "layoutAssignments",
+    "key": "layout",
+    "excluded": true
+  },
+  {
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLoginHours",
+    "xmlTag": "loginHours",
+    "excluded": true
+  },
+  {
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
+    "xmlName": "ProfileLoginIpRange",
+    "xmlTag": "loginIpRanges",
+    "excluded": true
+  },
+  {
+    "inFolder": false,
+    "metaFile": false,
+    "parentXmlName": "Profile",
     "xmlName": "LoginFlow",
     "xmlTag": "loginFlows",
     "key": "friendlyname",
