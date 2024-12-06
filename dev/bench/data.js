@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1733474718669,
+  "lastUpdate": 1733480134024,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2230,6 +2230,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.29,
             "range": "±7.53%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "05bd9e6facb99001e251cd4ea59071b64b756fed",
+          "message": "feat: add `ExternalClientApplication` metadata support (#956)",
+          "timestamp": "2024-12-06T11:10:00+01:00",
+          "tree_id": "ca43294956988873c5df2f01a760e270c03e440c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/05bd9e6facb99001e251cd4ea59071b64b756fed"
+        },
+        "date": 1733480133502,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±1.32%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
