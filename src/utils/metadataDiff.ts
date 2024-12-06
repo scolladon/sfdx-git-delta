@@ -48,18 +48,14 @@ export default class MetadataDiff {
     this.toContent = toContent
     this.fromContent = fromContent
 
-    const comparator = new MetadataComparator(this.extractor)
+    const comparator = new MetadataComparator(
+      this.extractor,
+      this.fromContent,
+      this.toContent
+    )
 
-    const added = comparator.compare(
-      this.toContent,
-      this.fromContent,
-      this.compareAdded()
-    )
-    const deleted = comparator.compare(
-      this.fromContent,
-      this.toContent,
-      this.compareDeleted()
-    )
+    const added = comparator.getChanges()
+    const deleted = comparator.getDeletion()
 
     return { added, deleted }
   }
@@ -74,29 +70,6 @@ export default class MetadataDiff {
     return {
       xmlContent: convertJsonToXml(prunedContent),
       isEmpty: this.extractor.isContentEmpty(prunedContent),
-    }
-  }
-
-  private compareAdded() {
-    return (
-      meta: XmlContent[],
-      keySelector: KeySelectorFn,
-      elem: XmlContent
-    ) => {
-      const elemKey = keySelector(elem)
-      const match = meta.find(el => keySelector(el) === elemKey)
-      return !match || !isEqual(match, elem)
-    }
-  }
-
-  private compareDeleted() {
-    return (
-      meta: XmlContent[],
-      keySelector: KeySelectorFn,
-      elem: XmlContent
-    ) => {
-      const elemKey = keySelector(elem)
-      return !meta.some(el => keySelector(el) === elemKey)
     }
   }
 }
@@ -150,9 +123,21 @@ class MetadataExtractor {
 }
 
 class MetadataComparator {
-  constructor(private extractor: MetadataExtractor) {}
+  constructor(
+    private extractor: MetadataExtractor,
+    private fromContent: XmlContent,
+    private toContent: XmlContent
+  ) {}
 
-  compare(
+  getChanges() {
+    return this.compare(this.toContent, this.fromContent, this.compareAdded)
+  }
+
+  getDeletion() {
+    return this.compare(this.fromContent, this.toContent, this.compareDeleted)
+  }
+
+  private compare(
     baseContent: XmlContent,
     targetContent: XmlContent,
     elementMatcher: (
@@ -185,6 +170,25 @@ class MetadataComparator {
 
         return manifest
       }, new Map())
+  }
+
+  private compareAdded = (
+    meta: XmlContent[],
+    keySelector: KeySelectorFn,
+    elem: XmlContent
+  ) => {
+    const elemKey = keySelector(elem)
+    const match = meta.find(el => keySelector(el) === elemKey)
+    return !match || !isEqual(match, elem)
+  }
+
+  private compareDeleted = (
+    meta: XmlContent[],
+    keySelector: KeySelectorFn,
+    elem: XmlContent
+  ) => {
+    const elemKey = keySelector(elem)
+    return !meta.some(el => keySelector(el) === elemKey)
   }
 }
 
