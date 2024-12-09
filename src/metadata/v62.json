@@ -336,6 +336,13 @@
     "xmlName": "ExpressionSetObjectAlias"
   },
   {
+    "directoryName": "ExpressionSetMessageToken",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "expressionSetMessageToken",
+    "xmlName": "ExpressionSetMessageToken"
+  },
+  {
     "directoryName": "contextDefinitions",
     "inFolder": false,
     "metaFile": false,
