@@ -25,10 +25,6 @@ const JSON_PARSER_OPTION = {
   suppressEmptyNode: false,
 }
 
-export const asArray = (node: string[] | string) => {
-  return Array.isArray(node) ? node : [node]
-}
-
 export const xml2Json = (xmlContent: string) => {
   // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
   let jsonContent: any = {}

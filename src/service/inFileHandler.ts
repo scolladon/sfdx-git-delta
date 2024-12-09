@@ -24,7 +24,7 @@ export default class InFileHandler extends StandardHandler {
   ) {
     super(line, metadataDef, work, metadata)
     const inFileMetadata = getInFileAttributes(metadata)
-    this.metadataDiff = new MetadataDiff(this.config, metadata, inFileMetadata)
+    this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
   public override async handleAddition() {
