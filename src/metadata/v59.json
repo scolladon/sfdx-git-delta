@@ -294,6 +294,13 @@
     "xmlName": "ExpressionSetObjectAlias"
   },
   {
+    "directoryName": "contextDefinitions",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "contextDefinition",
+    "xmlName": "ContextDefinition"
+  },
+  {
     "directoryName": "explainabilityActionDefinition",
     "inFolder": false,
     "metaFile": false,
