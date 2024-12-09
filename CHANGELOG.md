@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.50.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.4...v5.50.0) (2024-12-06)
+
+
+### Features
+
+* add `ExternalClientApplication` metadata support ([#956](https://github.com/scolladon/sfdx-git-delta/issues/956)) ([05bd9e6](https://github.com/scolladon/sfdx-git-delta/commit/05bd9e6facb99001e251cd4ea59071b64b756fed))
+* prune `layoutAssignments`, `loginHours` and `loginIpRanges` ([#954](https://github.com/scolladon/sfdx-git-delta/issues/954)) ([7d1804d](https://github.com/scolladon/sfdx-git-delta/commit/7d1804d16ebff87ee78a5c88a210eac7d26b59df))
+
 ## [5.49.4](https://github.com/scolladon/sfdx-git-delta/compare/v5.49.3...v5.49.4) (2024-11-14)
 
 
