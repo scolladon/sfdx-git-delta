@@ -51,7 +51,7 @@ Issue verification check:
   Ex:
   https://github.com/scolladon/sfdx-git-delta-reproduction-playground
   sgd -d -r . -f HEAD^
-  sfdx sgd:source:delta -d -f HEAD^
+  sf sgd source delta -d -f HEAD^
 -->
 
 ## Execution context
@@ -59,18 +59,18 @@ Issue verification check:
 ---
 
 <!--
-$ uname -v ; yarn -v ; node -v ; git --version ; sfdx --version ; sfdx plugins
+$ uname -v; npm -v ; node -v ; git --version ; sf --version ; sf plugins
 -->
 
 **Operating System:** …
 
-**yarn version:** …
+**npm version:** …
 
 **node version:** …
 
 **git version:** …
 
-**sfdx version:** …
+**sf version:** …
 
 **sgd plugin version:** …
 

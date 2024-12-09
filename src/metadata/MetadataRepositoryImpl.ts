@@ -1,8 +1,8 @@
 'use strict'
 
-import { parse } from 'path/posix'
+import { parse } from 'node:path/posix'
 
-import { DOT, PATH_SEP } from '../constant/fsConstants'
+import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {
   CUSTOM_APPLICATION_SUFFIX,
   CUSTOM_METADATA_SUFFIX,
@@ -14,10 +14,10 @@ import {
   SUB_OBJECT_TYPES,
   TERRITORY_MODEL_TYPE,
   WORKFLOW_TYPE,
-} from '../constant/metadataConstants'
-import type { Metadata } from '../types/metadata'
+} from '../constant/metadataConstants.js'
+import type { Metadata } from '../types/metadata.js'
 
-import { MetadataRepository } from './MetadataRepository'
+import { MetadataRepository } from './MetadataRepository.js'
 
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>

@@ -28,14 +28,18 @@ const mockGetStringContent = jest.fn()
 const mockGetFilesFrom = jest.fn()
 const mockGetFilesPath = jest.fn()
 const mockPathExists = jest.fn()
-jest.mock('../../../../src/adapter/GitAdapter', () => ({
-  getInstance: () => ({
-    getStringContent: mockGetStringContent,
-    getFilesFrom: mockGetFilesFrom,
-    getFilesPath: mockGetFilesPath,
-    pathExists: mockPathExists,
-  }),
-}))
+jest.mock('../../../../src/adapter/GitAdapter', () => {
+  return {
+    default: {
+      getInstance: () => ({
+        getStringContent: mockGetStringContent,
+        getFilesFrom: mockGetFilesFrom,
+        getFilesPath: mockGetFilesPath,
+        pathExists: mockPathExists,
+      }),
+    },
+  }
+})
 
 let work: Work
 beforeEach(() => {
