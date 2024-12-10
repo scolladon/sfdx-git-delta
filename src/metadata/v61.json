@@ -1,5 +1,19 @@
 [
   {
+    "directoryName": "productSpecificationTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "productSpecificationType",
+    "xmlName": "ProductSpecificationType"
+  },
+  {
+    "directoryName": "productSpecificationRecTypes",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "productSpecificationRecType",
+    "xmlName": "ProductSpecificationRecType"
+  },
+  {
     "directoryName": "externalClientApps",
     "inFolder": false,
     "metaFile": false,
