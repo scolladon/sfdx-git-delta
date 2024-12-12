@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1733480134024,
+  "lastUpdate": 1734013316984,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2261,6 +2261,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±1.32%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6988778d7cedba8a89ab8f897c802c10a67ff734",
+          "message": "feat: add Expression Set metadatas support (#960)",
+          "timestamp": "2024-12-12T15:16:03+01:00",
+          "tree_id": "92d33e83b75065d5e0d7ebb2884eb2181849325c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/6988778d7cedba8a89ab8f897c802c10a67ff734"
+        },
+        "date": 1734013316658,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±1.03%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
