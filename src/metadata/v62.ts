@@ -1,5 +1,26 @@
 export default [
   {
+    directoryName: 'uiFormatSpecificationSets',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'uiFormatSpecificationSet',
+    xmlName: 'UiFormatSpecificationSet',
+  },
+  {
+    directoryName: 'productSpecificationTypes',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'productSpecificationType',
+    xmlName: 'ProductSpecificationType',
+  },
+  {
+    directoryName: 'productSpecificationRecTypes',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'productSpecificationRecType',
+    xmlName: 'ProductSpecificationRecType',
+  },
+  {
     directoryName: 'externalClientApps',
     inFolder: false,
     metaFile: false,
@@ -327,6 +348,34 @@ export default [
     metaFile: false,
     suffix: 'expressionSetDefinition',
     xmlName: 'ExpressionSetDefinition',
+  },
+  {
+    directoryName: 'expressionSetVersion',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'expressionSetVersion',
+    xmlName: 'ExpressionSetVersion',
+  },
+  {
+    directoryName: 'expressionSetObjectAlias',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'expressionSetObjectAlias',
+    xmlName: 'ExpressionSetObjectAlias',
+  },
+  {
+    directoryName: 'ExpressionSetMessageToken',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'expressionSetMessageToken',
+    xmlName: 'ExpressionSetMessageToken',
+  },
+  {
+    directoryName: 'contextDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'contextDefinition',
+    xmlName: 'ContextDefinition',
   },
   {
     directoryName: 'explainabilityActionDefinition',

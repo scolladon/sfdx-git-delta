@@ -196,6 +196,13 @@ export default [
     xmlName: 'ExpressionSetDefinition',
   },
   {
+    directoryName: 'expressionSetVersion',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'expressionSetVersion',
+    xmlName: 'ExpressionSetVersion',
+  },
+  {
     directoryName: 'actionPlanTemplates',
     inFolder: false,
     metaFile: false,
