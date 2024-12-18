@@ -228,7 +228,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'expressionSetVersion',
-    xmlName: 'ExpressionSetVersion',
+    xmlName: 'ExpressionSetDefinitionVersion',
   },
   {
     directoryName: 'expressionSetObjectAlias',
