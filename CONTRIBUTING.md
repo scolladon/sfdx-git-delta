@@ -9,8 +9,8 @@ We encourage the developer community to contribute to this repository. This guid
 
 ## Requirements
 
-- [Node](https://nodejs.org/) >= 18
-- [yarn](https://yarnpkg.com/) >= 3.6.0
+- [Node](https://nodejs.org/) >= 18.6.0
+- [npm](https://www.npmjs.com/) >= 10.9.0
 
 ## Installation
 
@@ -25,13 +25,13 @@ git clone git@github.com:scolladon/sfdx-git-delta.git
 This will install all the tools needed to contribute
 
 ```bash
-yarn
+npm install
 ```
 
 ### 3) Build application
 
 ```bash
-yarn pack
+npm pack
 ```
 
 Rebuild every time you made a change in the source and you need to test locally
@@ -44,13 +44,13 @@ When developing, use [jest](https://jestjs.io/en/) unit testing to provide test 
 
 ```bash
 # just run test
-yarn test:unit
+npm run test:unit
 ```
 
 To execute a particular test, use the following command:
 
 ```bash
-yarn test:unit -- <path_to_test>
+npm run test:unit -- <path_to_test>
 
 ```
 
@@ -60,7 +60,7 @@ When developing, use mocha testing to provide NUT functional test. To run the mo
 
 ```bash
 # run test
-yarn test:nut
+npm run test:nut
 ```
 
 ### E2E Testing sgd
@@ -75,11 +75,11 @@ Then execute:
 
 ```bash
 # remove expected content
-yarn clean
+npm run clean
 # run the test
-sfdx sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+sf sgd source delta --from "e2e/base" --to "e2e/head" --output "expected" --generate-delta
 # check expected is back to normal
-yarn test:e2e
+npm run test:e2e
 ```
 
 Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
@@ -108,7 +108,7 @@ Pre-commit git hook using husky and pull request check both the commit conventio
 You can use an interactive command line to help you create supported commit message
 
 ```bash
-yarn commit
+npm run commit
 ```
 ### PR linting
 
@@ -180,12 +180,20 @@ _note: If no conflicts arise, these commands will apply your changes on top of t
 #### Lint your changes
 
 ```bash
-yarn lint
+npm run lint
 ```
 
 The above command may display lint issues not related to your changes.
 The recommended way to avoid lint issues is to [configure your
 editor](https://biomejs.dev/guides/integrate-in-vcs/) to warn you in real time as you edit the file.
+
+the plugin lint all those things :
+- typescript files
+- folder structure
+- plugin parameters
+- plugin output
+- dependencies
+- dead code / configuration
 
 Fixing all existing lint issues is a tedious task so please pitch in by fixing
 the ones related to the files you make changes to!
@@ -222,21 +230,17 @@ The repo contains a script to increment the Salesforce API version supported by 
 To upgrade the API version, run the following command:
 
 ```bash
-yarn && yarn increment:apiversion
+npm run increment:apiversion
 ```
 
 ## CLI parameters convention
 
-The CLI uses [Apache Commons CLI](https://commons.apache.org/proper/commons-cli/index.html) parameters convention to define parameters for the CLI.
-When long parameter is one word then take the first character to define the short parameter. Ex: `--word` `-w`
-When long parameter is many words then take the first character of the last word to define the short parameter. Ex: `--long-phrase` `-p`
-When the short parameter is already taken then put the short parameter uppercase. Ex: `--with` `-W`, `--long-paragraph` `-P`
-When the character you should take for the short parameter is already taken then choose another character. Explain your choice in the PR description and let's discuss it!
+The plugins uses [sf cli parameters convention](https://github.com/salesforcecli/cli/wiki/Design-Guidelines-Flags) to define parameters for the CLI.
 
 ## Testing the plugin from a pull request
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
 1. locate the comment with the beta version published in the pull request
-2. install the beta version `sfdx plugins:install sfdx-git-delta@<beta-channel>`
+2. install the beta version `sf plugins install sfdx-git-delta@<beta-channel>`
 3. test the plugin!

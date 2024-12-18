@@ -10,9 +10,11 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 const mockCompare = jest.fn()
 const mockPrune = jest.fn()
 jest.mock('../../../../src/utils/metadataDiff', () => {
-  return jest.fn().mockImplementation(() => {
-    return { compare: mockCompare, prune: mockPrune }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return { compare: mockCompare, prune: mockPrune }
+    }),
+  }
 })
 jest.mock('../../../../src/utils/fsHelper')
 

@@ -46,9 +46,9 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Publish to npm
-        run: yarn npm publish --access public --tag latest-rc
+        run: npm publish --access public --tag latest-rc
         env:
-          YARN_NPM_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   test-release:
     uses: ./.github/workflows/run-e2e-tests.yml
@@ -76,16 +76,15 @@ jobs:
       - uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Build plugin
-        run: yarn pack
+        run: npm pack
 
       - name: Install salesforce CLI
         run: npm install -g @salesforce/cli
 
       - name: Install plugin
         run: |
-          yarn set version classic
-          sfdx plugins:link .
-          sfdx plugins
+          sf plugins link .
+          sf plugins
 
       - name: Checkout e2e test subject
         uses: actions/checkout@v4
@@ -96,7 +95,7 @@ jobs:
 
       - name: Run benchmark
         run: |
-          yarn test:perf
+          npm run test:perf
           git reset --hard
 
       - name: Store benchmark result

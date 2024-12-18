@@ -1,14 +1,14 @@
 'use strict'
-import { parse } from 'path/posix'
+import { parse } from 'node:path/posix'
 
-import { PATH_SEP } from '../constant/fsConstants'
-import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants'
-import { getInFileAttributes } from '../metadata/metadataManager'
-import { writeFile } from '../utils/fsHelper'
-import MetadataDiff from '../utils/metadataDiff'
+import { PATH_SEP } from '../constant/fsConstants.js'
+import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
+import { getInFileAttributes } from '../metadata/metadataManager.js'
+import { writeFile } from '../utils/fsHelper.js'
+import MetadataDiff from '../utils/metadataDiff.js'
 
-import ResourceHandler from './inResourceHandler'
-import StandardHandler from './standardHandler'
+import ResourceHandler from './inResourceHandler.js'
+import StandardHandler from './standardHandler.js'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
   public override async handleAddition() {

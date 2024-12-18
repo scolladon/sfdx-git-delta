@@ -1,6 +1,6 @@
 'use strict'
+import { access, readFile as fsReadFile, stat } from 'node:fs/promises'
 import { describe, expect, it, jest } from '@jest/globals'
-import { Stats, readFile as fsReadFile, stat } from 'fs-extra'
 
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
 import {
@@ -8,15 +8,17 @@ import {
   fileExists,
   isSamePath,
   isSubDir,
+  pathExists,
   readFile,
   sanitizePath,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 
-jest.mock('fs-extra')
+jest.mock('node:fs/promises')
 
 const mockedStat = jest.mocked(stat)
 const mockedReadFile = jest.mocked(fsReadFile)
+const mockedAccess = jest.mocked(access)
 
 beforeEach(() => {
   jest.resetAllMocks()
@@ -78,7 +80,7 @@ describe('dirExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isDirectory: () => true,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await dirExists('test')
@@ -92,7 +94,7 @@ describe('dirExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isDirectory: () => false,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await dirExists('test')
@@ -120,7 +122,7 @@ describe('fileExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isFile: () => true,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await fileExists('test')
@@ -134,7 +136,7 @@ describe('fileExists', () => {
     mockedStat.mockImplementation((() =>
       Promise.resolve({
         isFile: () => false,
-      } as unknown as Stats)) as unknown as typeof stat)
+      })) as unknown as typeof stat)
 
     // Act
     const exist = await fileExists('test')
@@ -291,5 +293,31 @@ describe('isSamePath', () => {
       // Assert
       expect(result).toBe(false)
     })
+  })
+})
+
+describe('pathExists', () => {
+  it('returns true when path is accessible', async () => {
+    // Arrange
+    mockedAccess.mockResolvedValue(true as never)
+    const sut = pathExists
+
+    // Act
+    const result = await sut('accessible/path')
+
+    // Assert
+    expect(result).toBe(true)
+  })
+
+  it('returns false when path is not accessible', async () => {
+    // Arrange
+    mockedAccess.mockRejectedValue(new Error('not accessible'))
+    const sut = pathExists
+
+    // Act
+    const result = await sut('not/accessible/path')
+
+    // Assert
+    expect(result).toBe(false)
   })
 })

@@ -1,9 +1,8 @@
-import { join } from 'path/posix'
+import { join } from 'node:path/posix'
 
-import { readFile } from 'fs-extra'
 import { SimpleGit, simpleGit } from 'simple-git'
 
-import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants'
+import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
   BLOB_TYPE,
@@ -12,12 +11,14 @@ import {
   MODIFICATION,
   NUM_STAT_CHANGE_INFORMATION,
   TREE_TYPE,
-} from '../constant/gitConstants'
-import type { Config } from '../types/config'
-import type { FileGitRef } from '../types/git'
-import { TAB } from '../utils/cliConstants'
-import { treatPathSep } from '../utils/fsUtils'
-import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper'
+} from '../constant/gitConstants.js'
+import type { Config } from '../types/config.js'
+import type { FileGitRef } from '../types/git.js'
+import { TAB } from '../utils/cliConstants.js'
+import { treatPathSep } from '../utils/fsUtils.js'
+import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
+
+import { readFile } from 'node:fs/promises'
 
 const EOL = new RegExp(/\r?\n/)
 

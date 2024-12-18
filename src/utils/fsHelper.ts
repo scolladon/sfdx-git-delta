@@ -1,13 +1,13 @@
 'use strict'
-import { join } from 'path/posix'
+import { join } from 'node:path/posix'
 
 import { outputFile } from 'fs-extra'
 
-import GitAdapter from '../adapter/GitAdapter'
-import type { Config } from '../types/config'
-import type { FileGitRef } from '../types/git'
+import GitAdapter from '../adapter/GitAdapter.js'
+import type { Config } from '../types/config.js'
+import type { FileGitRef } from '../types/git.js'
 
-import { buildIgnoreHelper } from './ignoreHelper'
+import { buildIgnoreHelper } from './ignoreHelper.js'
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()

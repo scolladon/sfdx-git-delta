@@ -1,3 +1,4 @@
 #!/bin/sh
 
-yarn lint-staged
+npx validate-branch-name
+npx lint-staged
