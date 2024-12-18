@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.51.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.51.0...v5.51.1) (2024-12-18)
+
+
+### Bug Fixes
+
+* metadata definition for `ExpressionSetDefinitionVersion` ([#965](https://github.com/scolladon/sfdx-git-delta/issues/965)) ([c49df86](https://github.com/scolladon/sfdx-git-delta/commit/c49df864385aabbd2ce25247963a750397fa8bbd))
+
 ## [5.51.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.50.0...v5.51.0) (2024-12-12)
 
 
