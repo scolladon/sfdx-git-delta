@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1734013316984,
+  "lastUpdate": 1734518986357,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2294,6 +2294,37 @@ window.BENCHMARK_DATA = {
             "range": "±1.03%",
             "unit": "ops/sec",
             "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c49df864385aabbd2ce25247963a750397fa8bbd",
+          "message": "fix: metadata definition for `ExpressionSetDefinitionVersion` (#965)\n\nCo-authored-by: Jakub Jurycz <40042814+PythSomeone@users.noreply.github.com>",
+          "timestamp": "2024-12-18T11:43:47+01:00",
+          "tree_id": "cee690e91ff015b349b1c4b6592915462d89b27b",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/c49df864385aabbd2ce25247963a750397fa8bbd"
+        },
+        "date": 1734518985437,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.39,
+            "range": "±4.06%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
           }
         ]
       }
