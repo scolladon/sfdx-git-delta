@@ -1,5 +1,12 @@
 [
   {
+    "directoryName": "ApplicationRecordTypeConfig",
+    "inFolder": false,
+    "metaFile": false,
+    "suffix": "applicationRecordTypeConfig",
+    "xmlName": "ApplicationRecordTypeConfig"
+  },
+  {
     "directoryName": "uiFormatSpecificationSets",
     "inFolder": false,
     "metaFile": false,
