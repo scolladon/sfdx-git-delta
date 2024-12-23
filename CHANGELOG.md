@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.52.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.51.1...v5.52.0) (2024-12-23)
+
+
+### Features
+
+* add ApplicationRecordTypeConfig metadata support ([#969](https://github.com/scolladon/sfdx-git-delta/issues/969)) ([8cda753](https://github.com/scolladon/sfdx-git-delta/commit/8cda75328e48325c469be9af9805d4763c266332))
+
 ## [5.51.1](https://github.com/scolladon/sfdx-git-delta/compare/v5.51.0...v5.51.1) (2024-12-18)
 
 

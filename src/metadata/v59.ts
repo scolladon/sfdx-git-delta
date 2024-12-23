@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'ApplicationRecordTypeConfig',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'applicationRecordTypeConfig',
+    xmlName: 'ApplicationRecordTypeConfig',
+  },
+  {
     directoryName: 'externalClientApps',
     inFolder: false,
     metaFile: false,
