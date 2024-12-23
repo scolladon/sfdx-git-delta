@@ -1,8 +1,8 @@
 'use strict'
 
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import type { Config } from '../types/config'
-import type { Work } from '../types/work'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Config } from '../types/config.js'
+import type { Work } from '../types/work.js'
 
 export default class BaseProcessor {
   protected readonly config: Config

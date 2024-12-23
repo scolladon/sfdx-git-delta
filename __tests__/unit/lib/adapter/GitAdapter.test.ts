@@ -1,6 +1,6 @@
 'use strict'
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it, jest } from '@jest/globals'
-import { readFile } from 'fs-extra'
 
 import { EOL } from 'os'
 import GitAdapter from '../../../../src/adapter/GitAdapter'
@@ -31,7 +31,7 @@ jest.mock('simple-git', () => {
 })
 
 jest.mock('../../../../src/utils/gitLfsHelper')
-jest.mock('fs-extra')
+jest.mock('node:fs/promises')
 
 const isLFSmocked = jest.mocked(isLFS)
 const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)
