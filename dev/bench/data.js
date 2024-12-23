@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1734518986357,
+  "lastUpdate": 1734977638618,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2323,6 +2323,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.39,
             "range": "±4.06%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8cda75328e48325c469be9af9805d4763c266332",
+          "message": "feat: add ApplicationRecordTypeConfig metadata support (#969)",
+          "timestamp": "2024-12-23T19:07:58+01:00",
+          "tree_id": "65cd3126cbcdebc8fe48dcc281202d45dba92f86",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/8cda75328e48325c469be9af9805d4763c266332"
+        },
+        "date": 1734977637769,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.4,
+            "range": "±4.74%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
