@@ -1,3 +1,4 @@
+---
 ls:
   .config.ts: camelCase | PascalCase
   .d.ts: camelCase | PascalCase

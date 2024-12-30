@@ -43,4 +43,4 @@ jobs:
           npm run test:e2e
 
       - name: Display diff
-        run: git --no-pager diff 
+        run: git --no-pager diff
