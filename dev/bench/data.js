@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1734977638618,
+  "lastUpdate": 1736257100536,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2356,6 +2356,37 @@ window.BENCHMARK_DATA = {
             "range": "±4.74%",
             "unit": "ops/sec",
             "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9841ce39ab56eee1386f04091842869beda1dcc7",
+          "message": "feat!: migrate to plugin v2 (#924)\n\nCo-authored-by: Mehdi Cherfaoui <>",
+          "timestamp": "2025-01-07T14:35:01+01:00",
+          "tree_id": "53b3c206d4ba87b8b4bf060c0f54bb0eeaab2f83",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/9841ce39ab56eee1386f04091842869beda1dcc7"
+        },
+        "date": 1736257100093,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.37%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
           }
         ]
       }
