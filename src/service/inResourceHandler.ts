@@ -1,11 +1,11 @@
 'use strict'
-import { join, parse } from 'path/posix'
+import { join, parse } from 'node:path/posix'
 
-import { DOT, PATH_SEP } from '../constant/fsConstants'
-import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants'
-import { pathExists, readDir } from '../utils/fsHelper'
+import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants.js'
+import { pathExists, readDir } from '../utils/fsHelper.js'
 
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 export default class ResourceHandler extends StandardHandler {
   protected metadataName: string | undefined

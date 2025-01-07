@@ -1,9 +1,7 @@
 'use strict'
-import { format } from 'util'
 
-import messages from '../locales/en'
-
-import StandardHandler from './standardHandler'
+import { MessageService } from '../utils/MessageService.js'
+import StandardHandler from './standardHandler.js'
 
 export default class FlowHandler extends StandardHandler {
   public override async handleDeletion() {
@@ -12,8 +10,11 @@ export default class FlowHandler extends StandardHandler {
   }
 
   private warnFlowDeleted() {
+    const message = new MessageService()
     this.work.warnings.push(
-      new Error(format(messages.warningFlowDeleted, this._getElementName()))
+      new Error(
+        message.getMessage('warning.FlowDeleted', [this._getElementName()])
+      )
     )
   }
 }

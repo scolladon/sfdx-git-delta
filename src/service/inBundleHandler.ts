@@ -1,8 +1,8 @@
 'use strict'
-import { PATH_SEP } from '../constant/fsConstants'
-import { META_REGEX } from '../constant/metadataConstants'
+import { PATH_SEP } from '../constant/fsConstants.js'
+import { META_REGEX } from '../constant/metadataConstants.js'
 
-import InResourceHandler from './inResourceHandler'
+import InResourceHandler from './inResourceHandler.js'
 
 export default class BundleHandler extends InResourceHandler {
   protected override _getElementName() {

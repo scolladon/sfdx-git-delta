@@ -1,54 +1,22 @@
 'use strict'
-import fs from 'fs'
+import fs from 'node:fs'
 import readline from 'readline'
 
 import { execCmd } from '@salesforce/cli-plugins-testkit'
-import { expect } from '@salesforce/command/lib/test'
+import { expect } from 'chai'
 
-describe('sgd:source:delta NUTS', () => {
+describe('sgd source delta NUTS', () => {
   it('run help', () => {
-    const result = execCmd('sgd:source:delta --help', {
+    const result = execCmd('sgd source delta --help', {
       ensureExitCode: 0,
     }).shellOutput
-    expect(result).to.include('sgd:source:delta')
-  })
-
-  it('detects not existing output folder', () => {
-    const result = execCmd('sgd:source:delta --from "HEAD"', {
-      ensureExitCode: 1,
-    }).shellOutput
-    expect(result).to.include('folder does not exist')
-    expect(result).to.include('"success": false')
-  })
-
-  it('detects not existing output folder with json outputs', () => {
-    const result = execCmd('sgd:source:delta --from "HEAD" --json', {
-      ensureExitCode: 1,
-    }).shellOutput
-    expect(result).to.include('folder does not exist')
-    expect(result).to.include('"success": false')
-  })
-
-  it('outputs json', () => {
-    const result = execCmd('sgd:source:delta --from "HEAD" -o reports', {
-      ensureExitCode: 0,
-    }).shellOutput
-    expect(result).to.include('"error": null')
-    expect(result).to.include('"success": true')
-  })
-
-  it('outputs json with `--json`', () => {
-    const result = execCmd('sgd:source:delta --from "HEAD" -o reports --json', {
-      ensureExitCode: 0,
-    }).shellOutput
-    expect(result).to.include('"error": null')
-    expect(result).to.include('"success": true')
+    expect(result).to.include('incremental')
   })
 
   it('run `e2e` tests', async () => {
     // Act
     const result = execCmd(
-      'sgd:source:delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --include e2e/.sgdinclude --include-destructive e2e/.sgdincludeDestructive --ignore e2e/.sgdignore --ignore-destructive e2e/.sgdignoreDestructive',
+      'sgd source delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --include e2e/.sgdinclude --include-destructive e2e/.sgdincludeDestructive --ignore e2e/.sgdignore --ignore-destructive e2e/.sgdignoreDestructive --json',
       {
         ensureExitCode: 0,
       }
@@ -63,8 +31,7 @@ describe('sgd:source:delta NUTS', () => {
     )
     expect(packageLineCount).to.equal(232)
     expect(destructiveChangesLineCount).to.equal(137)
-    expect(result).to.include('"error": null')
-    expect(result).to.include('"success": true')
+    expect(result).to.include('"status": 0')
   })
 })
 

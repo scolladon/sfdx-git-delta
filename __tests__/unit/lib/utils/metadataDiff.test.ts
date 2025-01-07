@@ -413,10 +413,6 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
       })
 
       it('given added elements, the generated file contains the difference', async () => {
-        /*
-        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
-        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
-        */
         // Arrange
         mockedParseXmlFileToJson.mockResolvedValueOnce({
           ...header,
@@ -472,10 +468,6 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
       })
 
       it('given no element added nor modified, the generated file contains empty definition', async () => {
-        /*
-        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
-        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
-        */
         // Arrange
         mockedParseXmlFileToJson.mockResolvedValueOnce({
           ...header,
@@ -499,10 +491,6 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
       })
 
       it('given no element added nor modified, the generated file contains empty profile', async () => {
-        /*
-        Cas loginHours et loginIpRanges = si les tableaux sont égaux => on met tableau vide sinon on met le dernier tableau
-        Cas layout : ajouter tous les éléments de to qui ne sont pas dans from
-        */
         // Arrange
         mockedParseXmlFileToJson.mockResolvedValueOnce({
           ...header,

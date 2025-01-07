@@ -1,7 +1,7 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
-module.exports = {
+export default {
   // All imported modules in your tests should be mocked automatically
   automock: false,
 
@@ -74,18 +74,37 @@ module.exports = {
   //   "node_modules"
   // ],
 
-  // An array of file extensions your modules use
-  // moduleFileExtensions: [
-  //   "js",
-  //   "json",
-  //   "jsx",
-  //   "ts",
-  //   "tsx",
-  //   "node"
-  // ],
-
+  // A map from regular expressions to paths to transformers
+  transform: {
+    '\\.[jt]sx?$': [
+      'ts-jest',
+      {
+        diagnostics: {
+          ignoreCodes: [1343],
+        },
+        astTransformers: {
+          before: [
+            {
+              path: 'ts-jest-mock-import-meta',
+              options: {
+                metaObjectReplacement: {
+                  url: 'https://www.url.com',
+                  dirname: 'src/metadata/',
+                },
+              },
+            },
+          ],
+        },
+        tsconfig: './tsconfig.json',
+      },
+    ],
+  },
+  extensionsToTreatAsEsm: ['.ts'],
   // A map from regular expressions to module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  moduleNameMapper: {
+    '(.+)\\.js': '$1',
+    '^lodash-es$': 'lodash', // FIXME: Huge workaround to allow compile lodash-es module when testing https://stackoverflow.com/a/54117206/1809659
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -97,7 +116,7 @@ module.exports = {
   // notifyMode: "failure-change",
 
   // A preset that is used as a base for Jest's configuration
-  preset: 'ts-jest',
+  //preset: 'ts-jest',
 
   // Run tests from one or more projects
   // projects: null,
@@ -151,6 +170,7 @@ module.exports = {
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: [
+    'src',
     '/node_modules/',
     '/__tests__/__utils__/',
     '/reports/',
@@ -171,9 +191,6 @@ module.exports = {
 
   // Setting this value to "fake" allows the use of fake timers for functions such as "setTimeout"
   // timers: "real",
-
-  // A map from regular expressions to paths to transformers
-  // transform: null,
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [

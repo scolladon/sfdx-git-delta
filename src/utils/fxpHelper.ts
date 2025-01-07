@@ -2,10 +2,10 @@
 
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
 
-import type { Config } from '../types/config'
-import type { FileGitRef } from '../types/git'
+import type { Config } from '../types/config.js'
+import type { FileGitRef } from '../types/git.js'
 
-import { readPathFromGit } from './fsHelper'
+import { readPathFromGit } from './fsHelper.js'
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',

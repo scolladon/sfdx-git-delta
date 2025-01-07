@@ -1,10 +1,12 @@
+---
 ls:
-  .md: lowercase | SCREAMING_SNAKE_CASE
-  .ts: camelCase | PascalCase
-  .test.ts: camelCase | PascalCase
-  .nut.ts: camelCase | PascalCase
   .config.ts: camelCase | PascalCase
+  .d.ts: camelCase | PascalCase
   .dir: kebab-case | regex:__[a-z]+__
+  .md: lowercase | SCREAMING_SNAKE_CASE
+  .nut.ts: camelCase | PascalCase
+  .test.ts: camelCase | PascalCase
+  .ts: camelCase | PascalCase
 
 ignore: 
   - .git 
@@ -14,7 +16,6 @@ ignore:
   - .stryker-tmp
   - .vscode
   - .wireit
-  - .yarn
   - e2e
   - lib
   - megalinter-reports

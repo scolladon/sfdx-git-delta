@@ -8,24 +8,28 @@ const mockValidateConfig = jest.fn()
 jest.mock('../../src/utils/cliHelper', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual('../../src/utils/cliHelper')
-  return jest.fn().mockImplementation(() => {
-    return {
-      ...actualModule,
-      validateConfig: mockValidateConfig,
-    }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        ...actualModule,
+        validateConfig: mockValidateConfig,
+      }
+    }),
+  }
 })
 
 const mockGetLines = jest.fn()
 jest.mock('../../src/utils/repoGitDiff', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual('../../src/utils/repoGitDiff')
-  return jest.fn().mockImplementation(() => {
-    return {
-      ...actualModule,
-      getLines: mockGetLines,
-    }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        ...actualModule,
+        getLines: mockGetLines,
+      }
+    }),
+  }
 })
 
 const mockProcess = jest.fn()
@@ -34,12 +38,14 @@ jest.mock('../../src/service/diffLineInterpreter', () => {
   const actualModule: any = jest.requireActual(
     '../../src/service/diffLineInterpreter'
   )
-  return jest.fn().mockImplementation(() => {
-    return {
-      ...actualModule,
-      process: mockProcess,
-    }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        ...actualModule,
+        process: mockProcess,
+      }
+    }),
+  }
 })
 
 describe('external library inclusion', () => {

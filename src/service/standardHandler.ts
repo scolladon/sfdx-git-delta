@@ -1,20 +1,20 @@
 'use strict'
-import { ParsedPath, join, parse } from 'path/posix'
+import { ParsedPath, join, parse } from 'node:path/posix'
 
-import { DOT, PATH_SEP } from '../constant/fsConstants'
+import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {
   ADDITION,
   DELETION,
   GIT_DIFF_TYPE_REGEX,
   MODIFICATION,
-} from '../constant/gitConstants'
-import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants'
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import type { Config } from '../types/config'
-import type { Metadata } from '../types/metadata'
-import type { Manifest, Manifests, Work } from '../types/work'
-import { copyFiles } from '../utils/fsHelper'
-import { fillPackageWithParameter } from '../utils/packageHelper'
+} from '../constant/gitConstants.js'
+import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants.js'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Config } from '../types/config.js'
+import type { Metadata } from '../types/metadata.js'
+import type { Manifest, Manifests, Work } from '../types/work.js'
+import { copyFiles } from '../utils/fsHelper.js'
+import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

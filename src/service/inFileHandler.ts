@@ -1,16 +1,16 @@
 'use strict'
-import { basename } from 'path/posix'
+import { basename } from 'node:path/posix'
 
-import { DOT } from '../constant/fsConstants'
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import { getInFileAttributes, isPackable } from '../metadata/metadataManager'
-import { Metadata } from '../types/metadata'
-import type { Manifest, Work } from '../types/work'
-import { writeFile } from '../utils/fsHelper'
-import MetadataDiff from '../utils/metadataDiff'
-import { fillPackageWithParameter } from '../utils/packageHelper'
+import { DOT } from '../constant/fsConstants.js'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import { getInFileAttributes, isPackable } from '../metadata/metadataManager.js'
+import { Metadata } from '../types/metadata.js'
+import type { Manifest, Work } from '../types/work.js'
+import { writeFile } from '../utils/fsHelper.js'
+import MetadataDiff from '../utils/metadataDiff.js'
+import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 const getRootType = (line: string) => basename(line).split(DOT)[0]
 

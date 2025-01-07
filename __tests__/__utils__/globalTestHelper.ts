@@ -7,7 +7,7 @@ import {
 import type { Work } from '../../src/types/work'
 
 export const getGlobalMetadata = async (): Promise<MetadataRepository> => {
-  const apiVersion: number = await getLatestSupportedVersion()
+  const apiVersion: number = getLatestSupportedVersion()
   const metadata: MetadataRepository = await getDefinition(apiVersion)
   return metadata
 }

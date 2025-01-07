@@ -13,8 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [18, 20]
-        cli: [sfdx-cli, '@salesforce/cli']
+        node: [18, 20, 22]
+        cli: ['@salesforce/cli']
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
@@ -29,15 +29,18 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Install cli
-        run: npm install -g ${{matrix.cli}}
+        run: npm install -g ${{ matrix.cli }}
 
       - name: Install new plugin version
-        run: echo y | sfdx plugins:install sfdx-git-delta@${{ inputs.channel }}
+        run: echo y | sf plugins install sfdx-git-delta@${{ inputs.channel }}
 
       - name: Test new plugin version
-        run: sfdx sgd:source:delta --help
+        run: sf sgd source delta --help
 
       - name: E2E Tests
         run: |
-          yarn
-          yarn test:e2e
+          npm install
+          npm run test:e2e
+
+      - name: Display diff
+        run: git --no-pager diff

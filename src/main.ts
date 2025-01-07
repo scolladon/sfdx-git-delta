@@ -1,14 +1,14 @@
 'use strict'
-import { MetadataRepository } from './metadata/MetadataRepository'
-import { getDefinition } from './metadata/metadataManager'
-import { getPostProcessors } from './post-processor/postProcessorManager'
-import DiffLineInterpreter from './service/diffLineInterpreter'
-import type { Config } from './types/config'
-import type { Work } from './types/work'
-import CLIHelper from './utils/cliHelper'
-import RepoGitDiff from './utils/repoGitDiff'
+import { MetadataRepository } from './metadata/MetadataRepository.js'
+import { getDefinition } from './metadata/metadataManager.js'
+import { getPostProcessors } from './post-processor/postProcessorManager.js'
+import DiffLineInterpreter from './service/diffLineInterpreter.js'
+import type { Config } from './types/config.js'
+import type { Work } from './types/work.js'
+import CLIHelper from './utils/cliHelper.js'
+import RepoGitDiff from './utils/repoGitDiff.js'
 
-const sgd = async (config: Config): Promise<Work> => {
+export default async (config: Config): Promise<Work> => {
   const work: Work = {
     config,
     diffs: { package: new Map(), destructiveChanges: new Map() },
@@ -26,5 +26,3 @@ const sgd = async (config: Config): Promise<Work> => {
   await getPostProcessors(work, metadata).execute()
   return work
 }
-
-export = sgd

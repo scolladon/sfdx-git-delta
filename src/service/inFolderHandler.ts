@@ -1,15 +1,15 @@
 'use strict'
-import { join, parse } from 'path/posix'
+import { join, parse } from 'node:path/posix'
 
-import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants'
+import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants.js'
 import {
   INFOLDER_SUFFIX,
   METAFILE_SUFFIX,
   META_REGEX,
-} from '../constant/metadataConstants'
-import { readDir } from '../utils/fsHelper'
+} from '../constant/metadataConstants.js'
+import { readDir } from '../utils/fsHelper.js'
 
-import StandardHandler from './standardHandler'
+import StandardHandler from './standardHandler.js'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {

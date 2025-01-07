@@ -12,19 +12,23 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 const mockProcess = jest.fn()
 jest.mock('../../../../src/service/diffLineInterpreter', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      process: mockProcess,
-    }
-  })
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        process: mockProcess,
+      }
+    }),
+  }
 })
 
 const mockGetFilesPath = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => ({
-  getInstance: jest.fn(() => ({
-    getFilesPath: mockGetFilesPath,
-    getFirstCommitRef: jest.fn(),
-  })),
+  default: {
+    getInstance: jest.fn(() => ({
+      getFilesPath: mockGetFilesPath,
+      getFirstCommitRef: jest.fn(),
+    })),
+  },
 }))
 
 jest.mock('../../../../src/utils/ignoreHelper')

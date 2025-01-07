@@ -24,7 +24,7 @@ npm dist-tag add sfdx-git-delta@<version-source> <version-target>
 It will set the `version-source` release channel to the `version-target` specific release (`vX.Y.Z`).
 
 **Update `v5.6.0` to be `latest`:**
-To be performed once the current `latest-rc` version (`v5.6.0` at that time) is considered stable enough. The `latest` version is the one installed by default with the `sfdx plugins:install sfdx-git-delta` command.
+To be performed once the current `latest-rc` version (`v5.6.0` at that time) is considered stable enough. The `latest` version is the one installed by default with the `sf plugins install sfdx-git-delta` command.
 ```sh
 npm dist-tag add sfdx-git-delta@v5.6.0 latest
 ```

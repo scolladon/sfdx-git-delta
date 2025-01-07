@@ -1,11 +1,11 @@
 'use strict'
-import { MetadataRepository } from '../metadata/MetadataRepository'
-import type { Work } from '../types/work'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Work } from '../types/work.js'
 
-import BaseProcessor from './baseProcessor'
-import FlowTranslationProcessor from './flowTranslationProcessor'
-import IncludeProcessor from './includeProcessor'
-import PackageGenerator from './packageGenerator'
+import BaseProcessor from './baseProcessor.js'
+import FlowTranslationProcessor from './flowTranslationProcessor.js'
+import IncludeProcessor from './includeProcessor.js'
+import PackageGenerator from './packageGenerator.js'
 
 const processors: Array<typeof BaseProcessor> = [
   FlowTranslationProcessor,

@@ -1,21 +1,24 @@
 'use strict'
-import { join } from 'path/posix'
+import { join } from 'node:path/posix'
 
-import { PATH_SEP } from '../constant/fsConstants'
+import { PATH_SEP } from '../constant/fsConstants.js'
 import {
   MASTER_DETAIL_TAG,
   OBJECT_META_XML_SUFFIX,
-} from '../constant/metadataConstants'
-import { readPathFromGit } from '../utils/fsHelper'
+} from '../constant/metadataConstants.js'
+import { readPathFromGit } from '../utils/fsHelper.js'
 
-import DecomposedHandler from './decomposedHandler'
+import DecomposedHandler from './decomposedHandler.js'
 
 export default class CustomFieldHandler extends DecomposedHandler {
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
+    await this._copyParentObject()
+  }
 
-    // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
+  // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
+  protected async _copyParentObject() {
     const data = await readPathFromGit(
       { path: this.line, oid: this.config.to },
       this.config

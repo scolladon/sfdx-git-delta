@@ -8,6 +8,7 @@ import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
+jest.mock('../../../../src/utils/MessageService')
 
 const objectType = {
   directoryName: 'flows',
