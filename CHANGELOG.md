@@ -4,6 +4,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.0.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.52.0...v6.0.0) (2025-01-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to plugin v2 ([#924](https://github.com/scolladon/sfdx-git-delta/issues/924))
+
+### Features
+
+* migrate to plugin v2 ([#924](https://github.com/scolladon/sfdx-git-delta/issues/924)) ([9841ce3](https://github.com/scolladon/sfdx-git-delta/commit/9841ce39ab56eee1386f04091842869beda1dcc7))
+
 ## [5.52.0](https://github.com/scolladon/sfdx-git-delta/compare/v5.51.1...v5.52.0) (2024-12-23)
 
 
