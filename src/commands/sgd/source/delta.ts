@@ -1,4 +1,4 @@
-import { Flags, SfCommand } from '@salesforce/sf-plugins-core'
+import { Flags, SfCommand, loglevel } from '@salesforce/sf-plugins-core'
 
 import sgd from '../../../main.js'
 import type { Config } from '../../../types/config.js'
@@ -115,6 +115,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       summary: messages.getMessage('flags.deprecated', ['source-dir']),
       exists: true,
     }),
+    loglevel,
   }
 
   public async run(): Promise<SgdResult> {
