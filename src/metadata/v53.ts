@@ -1331,6 +1331,7 @@ export default [
   {
     childXmlNames: [
       'WorkflowFieldUpdate',
+      'WorkflowFlowAction',
       'WorkflowKnowledgePublish',
       'WorkflowTask',
       'WorkflowAlert',
@@ -1362,6 +1363,16 @@ export default [
     parentXmlName: 'Workflow',
     xmlName: 'WorkflowFieldUpdate',
     xmlTag: 'fieldUpdates',
+    key: 'fullName',
+  },
+  {
+    directoryName: 'workflowFlowActions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'workflowFlowAction',
+    parentXmlName: 'Workflow',
+    xmlName: 'WorkflowFlowAction',
+    xmlTag: 'flowActions',
     key: 'fullName',
   },
   {
