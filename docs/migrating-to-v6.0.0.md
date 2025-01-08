@@ -13,6 +13,7 @@ Version `v6.0.0` brings the plugin into the **sf plugin v2 architecture**, which
 - [Plugin output format changes](#default-output)
 - [Streamlined JSON output](#json-output)
 - [Switch to ES modules (no more CommonJS)](#export-module)
+- [API version format](#api-version-format)
 
 ## Installation Details
 
@@ -165,3 +166,13 @@ Here’s is how to import the plugin:
 ```js
 import sgd from 'sfdx-git-delta'
 ```
+
+### <a name="api-version-format"></a> API version format
+
+Previously, the plugin accepted API versions using the -a or --api-version parameter in two formats:
+- Integer (e.g., `62`)
+- Float (e.g., `62.0`)
+
+Now it uses the [`orgApiVersionFlag`](https://github.com/salesforcecli/sf-plugins-core/blob/43c7203a55ed2fa063d2bff3b62dfd16b37410ce/src/flags/orgApiVersion.ts#L39) standard flag and only accept floats ending with `.0` (e.g., `62.0`)
+Providing an integer will result in an error:  
+_"62 is not a valid API version. It should end in '.0' like '54.0'."_
