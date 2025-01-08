@@ -13,6 +13,7 @@ Version `v6.0.0` brings the plugin into the **sf plugin v2 architecture**, which
 - [Plugin output format changes](#default-output)
 - [Streamlined JSON output](#json-output)
 - [Switch to ES modules (no more CommonJS)](#export-module)
+- [Setting LogLevel](#setting-log-level)
 
 ## Installation Details
 
@@ -165,3 +166,9 @@ Here’s is how to import the plugin:
 ```js
 import sgd from 'sfdx-git-delta'
 ```
+
+### <a name="setting-log-level"></a> Setting LogLevel
+
+Previously with `sfdx/cli` LogLevel was set using the `--loglevel` parameter. It is still usable but is ignored and logs a warning message.  
+Now with the `salesforce/cli` LogLevel is set with the [SF_LOG_LEVEL environment variable](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/
+sfdx_dev_cli_log_messages.htm) and the parameter will soon be removed
