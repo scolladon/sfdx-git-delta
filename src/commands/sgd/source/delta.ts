@@ -124,7 +124,9 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     }
     try {
       const jobResult = await sgd(config)
-      jobResult.warnings?.forEach(this.warn)
+      for (const warning of jobResult.warnings) {
+        this.warn(warning.message)
+      }
       this.info(messages.getMessage('info.EncourageSponsorship'))
     } catch (err) {
       if (err instanceof Error) {
