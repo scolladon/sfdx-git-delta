@@ -64,10 +64,6 @@ file listing paths to explicitly include for any diff actions
 
 file listing paths to explicitly include for any destructive actions
 
-# flags.deprecated
-
-/!\ deprecated, use '--%s' instead.
-
 # error.ParameterIsNotGitSHA
 
 --%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
@@ -83,10 +79,6 @@ API version not found or not supported, using '%s' instead
 # warning.FlowDeleted
 
 Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expected (see https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)
-
-# warning.oldParameters
-
-Using the '--%s' parameter is deprecated and will soon be obsolete. Use '--%s' parameter instead.
  
 # info.CommandIsRunning
 
