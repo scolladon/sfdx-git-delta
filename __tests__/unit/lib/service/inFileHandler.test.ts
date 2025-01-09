@@ -21,6 +21,7 @@ jest.mock('../../../../src/utils/fsHelper')
 const workflowType = {
   childXmlNames: [
     'WorkflowFieldUpdate',
+    'WorkflowFlowAction',
     'WorkflowKnowledgePublish',
     'WorkflowTask',
     'WorkflowAlert',
@@ -70,7 +71,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       )
       mockCompare.mockImplementation(() =>
         Promise.resolve({
-          added: new Map([['WorkflowAlert', new Set(['test'])]]),
+          added: new Map([['WorkflowFlowAction', new Set(['test'])]]),
           deleted: new Map(),
         })
       )
@@ -82,7 +83,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       // Assert
       expect(work.diffs.destructiveChanges.size).toEqual(0)
       expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
-      expect(work.diffs.package.get('WorkflowAlert')).toEqual(
+      expect(work.diffs.package.get('WorkflowFlowAction')).toEqual(
         new Set(['Account.test'])
       )
 
