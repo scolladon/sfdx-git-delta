@@ -78,7 +78,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       char: 'W',
       summary: messages.getMessage('flags.ignore-whitespace.summary'),
     }),
-    'api-version': Flags.integer({
+    'api-version': Flags.orgApiVersion({
       char: 'a',
       summary: messages.getMessage('flags.api-version.summary'),
     }),
@@ -121,7 +121,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     const { flags } = await this.parse(SourceDeltaGenerate)
 
     const config: Config = {
-      apiVersion: flags['api-version'],
+      apiVersion: parseInt(flags['api-version']!) || undefined,
       from: flags['from'],
       generateDelta: flags['generate-delta'],
       ignore: flags['ignore-file'],
