@@ -181,5 +181,4 @@ _"62 is not a valid API version. It should end in '.0' like '54.0'."_
 ### <a name="setting-log-level"></a> Setting LogLevel
 
 Previously with `sfdx/cli` LogLevel was set using the `--loglevel` parameter. It is deprecated, you cannot set the loglevel this way anymore.
-Now with the `salesforce/cli` LogLevel is set with the [SF_LOG_LEVEL environment variable](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/
-sfdx_dev_cli_log_messages.htm)
+Now with the `salesforce/cli` LogLevel is set with the [SF_LOG_LEVEL environment variable](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_dev_cli_log_messages.htm)
