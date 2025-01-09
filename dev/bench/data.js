@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736418130318,
+  "lastUpdate": 1736434541944,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2416,6 +2416,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.41%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6ca1c7d967fed453a99ac2831134c64517d7ed13",
+          "message": "fix: how warnings are displayed (#983)",
+          "timestamp": "2025-01-09T15:52:20+01:00",
+          "tree_id": "4ec07fd22a5b6e4e9023f3f3a504ba9502f9b5c2",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/6ca1c7d967fed453a99ac2831134c64517d7ed13"
+        },
+        "date": 1736434541616,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.89%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
