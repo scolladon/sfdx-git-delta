@@ -69,11 +69,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+      
+      - uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
-      - uses: google/wireit@setup-github-actions-caching/v2
+      - name: Set environment variables
+        run: |
+          echo "SF_DISABLE_AUTOUPDATE=true" >> $GITHUB_ENV
+          echo "SF_DISABLE_TELEMETRY=true" >> $GITHUB_ENV    
 
       - name: Build plugin
         run: npm pack

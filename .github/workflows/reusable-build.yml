@@ -15,10 +15,10 @@ jobs:
         with:
           node-version: 18
 
+      - uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
-
-      - uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Lint plugin
         run: npm run lint
