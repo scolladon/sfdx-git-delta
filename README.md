@@ -162,7 +162,7 @@ FLAGS
   -o, --output-dir=<value>                [default: ./output] source package specific output
   -r, --repo-dir=<value>                  [default: ./] git repository location
   -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo-dir
-  -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
+  -t, --to=<value>                        [default: ""]commit sha to where the diff is done
       --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
       --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
       --include=<value>                   /!\ deprecated, use '--include-file' instead.
@@ -185,6 +185,13 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --output-dir incremental
   - Build incremental manifest and source from the development branch
   $ sf sgd source delta --from "origin/development" --generate-delta --output-dir incremental
+
+FLAG DESCRIPTIONS
+  -a, --api-version=<value>
+
+    salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribute or latest version
+
+    Override the api version used for api requests made by this command
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
@@ -379,7 +386,7 @@ _Content of the output folder when using the --generate-delta option, with the s
 > ```sh
 > # move HEAD to the wanted past commit
 > $ git checkout <not-HEAD-commit-sha>
-> # You can omit --to, it will take "HEAD" as default value
+> # You can omit --to, it will take "" as default value and will compare with current HEAD with work pending
 > $ sf sgd source delta --from "HEAD~1" --output-dir changed-sources/ --generate-delta
 > ```
 
@@ -507,7 +514,7 @@ Then use the JavaScript module
 import sgd from 'sfdx-git-delta'
 
 const work = await sgd({
-  to: '', // commit sha to where the diff is done. [default : "HEAD"]
+  to: '', // commit sha to where the diff is done. [default : ""]
   from: '', // (required) commit sha from where the diff is done. [default : git rev-list --max-parents=0 HEAD]
   output: '', // source package specific output. [default : "./output"]
   apiVersion: '', // salesforce API version. [default : latest]
