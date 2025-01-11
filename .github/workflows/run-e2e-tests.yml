@@ -30,8 +30,8 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "SF_DISABLE_AUTOUPDATE=true" >> $GITHUB_ENV
-          echo "SF_DISABLE_TELEMETRY=true" >> $GITHUB_ENV
+          echo "SF_DISABLE_AUTOUPDATE=true" >> "$GITHUB_ENV"
+          echo "SF_DISABLE_TELEMETRY=true" >> "$GITHUB_ENV"
 
       - name: Install cli
         run: npm install -g ${{ matrix.cli }}

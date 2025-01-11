@@ -122,7 +122,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     const output: SgdResult = {
       'output-dir': config.output,
     }
-    let finalMessage = messages.getMessage('info.CommandSucces')
+    let finalMessage = messages.getMessage('info.CommandSuccess')
     try {
       const jobResult = await sgd(config)
       for (const warning of jobResult.warnings) {
