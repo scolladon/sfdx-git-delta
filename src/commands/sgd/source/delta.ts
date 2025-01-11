@@ -122,6 +122,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     const output: SgdResult = {
       'output-dir': config.output,
     }
+    let finalMessage = messages.getMessage('info.CommandSucces')
     try {
       const jobResult = await sgd(config)
       for (const warning of jobResult.warnings) {
@@ -130,11 +131,14 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       this.info(messages.getMessage('info.EncourageSponsorship'))
     } catch (err) {
       if (err instanceof Error) {
+        finalMessage = `${messages.getMessage('info.CommandFailure')}: ${
+          err.message
+        }`
         output.error = err.message
       }
       process.exitCode = 1
     }
-    this.spinner.stop(messages.getMessage('info.CommandHasRun'))
+    this.spinner.stop(finalMessage)
     return output
   }
 }
