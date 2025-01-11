@@ -1,10 +1,10 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
+import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { Work } from '../types/work.js'
-import { TAB } from '../utils/cliConstants.js'
 import { IgnoreHelper, buildIncludeHelper } from '../utils/ignoreHelper.js'
 
 import BaseProcessor from './baseProcessor.js'

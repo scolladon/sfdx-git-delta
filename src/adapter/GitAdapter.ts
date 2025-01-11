@@ -2,6 +2,7 @@ import { join } from 'node:path/posix'
 
 import { SimpleGit, simpleGit } from 'simple-git'
 
+import { TAB } from '../constant/cliConstants.js'
 import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
@@ -14,7 +15,6 @@ import {
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
-import { TAB } from '../utils/cliConstants.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 

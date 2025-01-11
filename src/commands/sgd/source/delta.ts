@@ -1,15 +1,15 @@
 import { Flags, SfCommand } from '@salesforce/sf-plugins-core'
 
-import sgd from '../../../main.js'
-import type { Config } from '../../../types/config.js'
-import type { SgdResult } from '../../../types/sgdResult.js'
-import { MessageService } from '../../../utils/MessageService.js'
 import {
   OUTPUT_DEFAULT_VALUE,
   REPO_DEFAULT_VALUE,
   SOURCE_DEFAULT_VALUE,
   TO_DEFAULT_VALUE,
-} from '../../../utils/cliConstants.js'
+} from '../../../constant/cliConstants.js'
+import sgd from '../../../main.js'
+import type { Config } from '../../../types/config.js'
+import type { SgdResult } from '../../../types/sgdResult.js'
+import { MessageService } from '../../../utils/MessageService.js'
 
 const messages = new MessageService()
 
