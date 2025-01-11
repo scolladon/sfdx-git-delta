@@ -70,7 +70,7 @@ export default class IncludeProcessor extends BaseProcessor {
       // for the lines of InFile metadata type
       const tobackup = this.work.config.to
       this.work.config.to = firsSHA
-      this.work.config.from = tobackup || HEAD // fallback to HEAD as "--to" can be '' by default
+      this.work.config.from = tobackup || HEAD // fallback to HEAD as "--to" can be ""
       await this._processLines(includeLines.get(DELETION)!)
       this.work.config.to = tobackup
     }

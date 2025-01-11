@@ -79,7 +79,7 @@ export default class GitAdapter {
   }
 
   public async getFirstCommitRef() {
-    return await this.simpleGit.raw(['rev-list', '--max-parents=0', 'HEAD'])
+    return await this.simpleGit.raw(['rev-list', '--max-parents=0', HEAD])
   }
 
   protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {

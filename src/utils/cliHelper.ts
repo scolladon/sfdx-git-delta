@@ -10,7 +10,6 @@ import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
 import { MessageService } from './MessageService.js'
 
-import { TO_DEFAULT_VALUE } from '../constant/cliConstants.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
 
@@ -35,7 +34,7 @@ export default class CLIHelper {
     const errors: string[] = []
 
     const GIT_SHA_PARAMETERS: (keyof Config)[] = [FROM]
-    if (this.config.to !== TO_DEFAULT_VALUE) {
+    if (this.config.to !== '') {
       GIT_SHA_PARAMETERS.push(TO)
     }
 
