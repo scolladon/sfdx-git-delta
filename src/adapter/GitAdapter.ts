@@ -8,6 +8,7 @@ import {
   ADDITION,
   BLOB_TYPE,
   DELETION,
+  HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   NUM_STAT_CHANGE_INFORMATION,
@@ -51,7 +52,7 @@ export default class GitAdapter {
   }
 
   public async parseRev(ref: string) {
-    return await this.simpleGit.revparse([ref])
+    return await this.simpleGit.revparse(['--verify', ref])
   }
 
   protected async pathExistsImpl(path: string) {
@@ -102,7 +103,7 @@ export default class GitAdapter {
         'ls-tree',
         '--name-only',
         '-r',
-        this.config.to,
+        this.config.to || HEAD,
         path || '.',
       ])
     )
@@ -178,8 +179,8 @@ export default class GitAdapter {
         '--no-renames',
         ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
         `--diff-filter=${changeType}`,
-        this.config.from,
-        this.config.to,
+        ...[this.config.from, this.config.to].filter(e => !!e),
+        '--',
         this.config.source,
       ])
     ).split(EOL)
