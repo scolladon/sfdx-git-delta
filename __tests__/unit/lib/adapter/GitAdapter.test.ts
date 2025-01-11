@@ -260,7 +260,7 @@ describe('GitAdapter', () => {
   describe('getFilesPath', () => {
     it('calls raw', async () => {
       // Arrange
-      const gitAdapter = GitAdapter.getInstance(config)
+      const gitAdapter = GitAdapter.getInstance({ ...config, to: 'test' })
       mockedRaw.mockResolvedValue('' as never)
 
       // Act
@@ -271,7 +271,7 @@ describe('GitAdapter', () => {
         'ls-tree',
         '--name-only',
         '-r',
-        config.to,
+        'test',
         config.source,
       ])
     })
@@ -289,7 +289,7 @@ describe('GitAdapter', () => {
         'ls-tree',
         '--name-only',
         '-r',
-        config.to,
+        'HEAD',
         '.',
       ])
     })
@@ -316,7 +316,7 @@ describe('GitAdapter', () => {
         'ls-tree',
         '--name-only',
         '-r',
-        config.to,
+        'HEAD',
         config.source,
       ])
     })
@@ -343,7 +343,7 @@ describe('GitAdapter', () => {
         'ls-tree',
         '--name-only',
         '-r',
-        config.to,
+        'HEAD',
         'path',
       ])
     })
