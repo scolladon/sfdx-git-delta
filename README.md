@@ -47,6 +47,7 @@
   - [Execute sgd](#execute-sgd)
   - [Deploy the delta metadata](#deploy-the-delta-metadata)
 - [Advanced use-cases](#advanced-use-cases)
+  - [Evaluate uncommitted work as well](#evaluate-uncommitted-work-as-well)
   - [Generate a folder containing only the added/modified sources](#generate-a-folder-containing-only-the-addedmodified-sources)
   - [Exclude some metadata only from destructiveChanges.xml](#exclude-some-metadata-only-from-destructivechangesxml)
   - [Explicitly including specific files for inclusion or destruction regardless of diff](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
@@ -358,6 +359,16 @@ sf project deploy start --pre-destructive-changes destructiveChanges/destructive
 ```
 
 ## Advanced use-cases
+
+### Evaluate uncommitted work as well
+
+`--to` parameter default value is ""
+It allows to compare `--from` with "HEAD" plus the current uncommitted work
+```sh
+sf sgd source delta --from "HEAD~1" --generate-delta
+# or
+sf sgd source delta --to "" --from "HEAD~1" --generate-delta
+```
 
 ### Generate a folder containing only the added/modified sources
 
