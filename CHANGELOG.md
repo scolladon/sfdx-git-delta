@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.1.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.0.2...v6.1.0) (2025-01-14)
+
+
+### Features
+
+* add `Summer '25` `(v63)` release preview support ([#987](https://github.com/scolladon/sfdx-git-delta/issues/987)) ([887d818](https://github.com/scolladon/sfdx-git-delta/commit/887d81837a5de1cf9e213955fe8ea5ee2d93ec2f))
+
 ## [6.0.2](https://github.com/scolladon/sfdx-git-delta/compare/v6.0.1...v6.0.2) (2025-01-09)
 
 
