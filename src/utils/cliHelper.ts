@@ -13,8 +13,8 @@ import { MessageService } from './MessageService.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
 
-const TO = 'to'
-const FROM = 'from'
+const TO: keyof Config = 'to'
+const FROM: keyof Config = 'from'
 
 const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
@@ -33,13 +33,8 @@ export default class CLIHelper {
   protected async _validateGitSha() {
     const errors: string[] = []
 
-    const GIT_SHA_PARAMETERS: (keyof Config)[] = [FROM]
-    if (this.config.to !== '') {
-      GIT_SHA_PARAMETERS.push(TO)
-    }
-
     await Promise.all(
-      GIT_SHA_PARAMETERS.map(async (shaParameter: keyof Config) => {
+      [FROM, TO].map(async (shaParameter: keyof Config) => {
         const shaValue: string = this.config[shaParameter] as string
         try {
           const ref: string = await this.gitAdapter.parseRev(shaValue)

@@ -362,12 +362,17 @@ sf project deploy start --pre-destructive-changes destructiveChanges/destructive
 
 ### Evaluate uncommitted work as well
 
-Pass the value `""` explicitly to `--to` parameter
-It generate incremental package from `--from` to `HEAD` plus the current uncommitted work
+Commit your changes, then use SGD, then reset (soft if you want to keep the changes) the commit
+
 ```sh
-sf sgd source delta --to "" --from "HEAD~1" --generate-delta
+git add '<files>'
+git commit -m '<meaningful temporary message>'
+sf sgd source delta --from <sha-pointer>
+git reset --soft HEAD~1
 ```
 
+It is also possible to do those operation inside a temporary branch to further isolate the operation.
+ 
 ### Generate a folder containing only the added/modified sources
 
 Using a package.xml for deployment is the simplest approach to delta deployments. But in some cases you may want to have only the actual recently changed source files.

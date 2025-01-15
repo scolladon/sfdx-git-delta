@@ -1,7 +1,7 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
 import { TAB } from '../constant/cliConstants.js'
-import { ADDITION, DELETION, HEAD } from '../constant/gitConstants.js'
+import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { Work } from '../types/work.js'
@@ -68,11 +68,10 @@ export default class IncludeProcessor extends BaseProcessor {
       // Need to invert the SHA pointer for DELETION
       // so all the addition are interpreted has deletion by MetadataDiff
       // for the lines of InFile metadata type
-      const tobackup = this.work.config.to
+      this.work.config.from = this.work.config.to
       this.work.config.to = firsSHA
-      this.work.config.from = tobackup || HEAD // fallback to HEAD as "--to" can be ""
       await this._processLines(includeLines.get(DELETION)!)
-      this.work.config.to = tobackup
+      this.work.config.to = this.work.config.from
     }
     this.work.config.from = fromBackup
   }

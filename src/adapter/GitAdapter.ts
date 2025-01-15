@@ -103,7 +103,7 @@ export default class GitAdapter {
         'ls-tree',
         '--name-only',
         '-r',
-        this.config.to || HEAD,
+        this.config.to,
         path || '.',
       ])
     )
@@ -179,7 +179,8 @@ export default class GitAdapter {
         '--no-renames',
         ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
         `--diff-filter=${changeType}`,
-        ...[this.config.from, this.config.to].filter(e => !!e),
+        this.config.from,
+        this.config.to,
         '--',
         this.config.source,
       ])
