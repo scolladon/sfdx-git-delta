@@ -1,89 +1,83 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
+import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { Work } from '../types/work.js'
-import { TAB } from '../utils/cliConstants.js'
-import { IgnoreHelper, buildIncludeHelper } from '../utils/ignoreHelper.js'
+import { buildIncludeHelper } from '../utils/ignoreHelper.js'
 
 import BaseProcessor from './baseProcessor.js'
 
+type GitChange = typeof ADDITION | typeof DELETION
+
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitAdapter: GitAdapter
-  protected from: string
-  protected includeHelper!: IgnoreHelper
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
     this.gitAdapter = GitAdapter.getInstance(this.config)
-    this.from = this.config.from
-  }
-
-  public override async process() {
-    if (this._shouldProcess()) {
-      await this._prepare()
-      await this._process()
-      this._cleanup()
-    }
   }
 
   protected _shouldProcess() {
     return !!this.config.include || !!this.config.includeDestructive
   }
 
-  protected async _prepare() {
-    const firstSha = await this.gitAdapter.getFirstCommitRef()
-    this.config.from = firstSha
-
-    this.includeHelper = await buildIncludeHelper(this.config)
-  }
-
-  protected async _process() {
-    const includeHolder: {
-      [ADDITION]: string[]
-      [DELETION]: string[]
-    } = {
-      [ADDITION]: [],
-      [DELETION]: [],
+  public override async process() {
+    if (!this._shouldProcess()) {
+      return
     }
+
+    const includeHelper = await buildIncludeHelper(this.config)
+    const includeLines = new Map<GitChange, string[]>()
+    const gitChanges: GitChange[] = [ADDITION, DELETION]
     const lines: string[] = await this.gitAdapter.getFilesPath(
       this.config.source
     )
     for (const line of lines) {
-      Object.keys(includeHolder).forEach(changeType => {
+      gitChanges.forEach((changeType: GitChange) => {
         const changedLine = `${changeType}${TAB}${line}`
-        if (!this.includeHelper.keep(changedLine)) {
-          includeHolder[changeType as keyof typeof includeHolder].push(
-            changedLine
-          )
+        if (!includeHelper.keep(changedLine)) {
+          if (!includeLines.has(changeType)) {
+            includeLines.set(changeType, [])
+          }
+          includeLines.get(changeType)?.push(changedLine)
         }
       })
     }
 
-    if (includeHolder[ADDITION].length > 0) {
-      await this._processInclude(includeHolder[ADDITION])
+    await this._processIncludes(includeLines)
+  }
+
+  protected async _processIncludes(includeLines: Map<GitChange, string[]>) {
+    if (includeLines.size === 0) {
+      return
     }
 
-    if (includeHolder[DELETION].length > 0) {
-      await this._processIncludeDestructive(includeHolder[DELETION])
+    const fromBackup = this.work.config.from
+    const firsSHA = await this.gitAdapter.getFirstCommitRef()
+
+    // Compare with the whole history of the repository
+    // so it can get full file content for inFile metadata
+    // while reusing current way to do it on a minimal scope
+    if (includeLines.has(ADDITION)) {
+      this.work.config.from = firsSHA
+      await this._processLines(includeLines.get(ADDITION)!)
     }
+
+    if (includeLines.has(DELETION)) {
+      // Need to invert the SHA pointer for DELETION
+      // so all the addition are interpreted has deletion by MetadataDiff
+      // for the lines of InFile metadata type
+      this.work.config.from = this.work.config.to
+      this.work.config.to = firsSHA
+      await this._processLines(includeLines.get(DELETION)!)
+      this.work.config.to = this.work.config.from
+    }
+    this.work.config.from = fromBackup
   }
 
-  protected async _processInclude(lines: string[]) {
+  protected async _processLines(lines: string[]) {
     const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
     await lineProcessor.process(lines)
-  }
-
-  protected async _processIncludeDestructive(lines: string[]) {
-    const to = this.config.to
-    this.config.to = this.config.from
-    this.config.from = to
-    const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
-    await lineProcessor.process(lines)
-    this.config.to = to
-  }
-
-  protected async _cleanup() {
-    this.config.from = this.from
   }
 }

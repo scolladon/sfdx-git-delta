@@ -2,11 +2,13 @@ import { join } from 'node:path/posix'
 
 import { SimpleGit, simpleGit } from 'simple-git'
 
+import { TAB } from '../constant/cliConstants.js'
 import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
   BLOB_TYPE,
   DELETION,
+  HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   NUM_STAT_CHANGE_INFORMATION,
@@ -14,7 +16,6 @@ import {
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
-import { TAB } from '../utils/cliConstants.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 
@@ -51,7 +52,7 @@ export default class GitAdapter {
   }
 
   public async parseRev(ref: string) {
-    return await this.simpleGit.revparse([ref])
+    return await this.simpleGit.revparse(['--verify', ref])
   }
 
   protected async pathExistsImpl(path: string) {
@@ -78,7 +79,7 @@ export default class GitAdapter {
   }
 
   public async getFirstCommitRef() {
-    return await this.simpleGit.raw(['rev-list', '--max-parents=0', 'HEAD'])
+    return await this.simpleGit.raw(['rev-list', '--max-parents=0', HEAD])
   }
 
   protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
@@ -180,6 +181,7 @@ export default class GitAdapter {
         `--diff-filter=${changeType}`,
         this.config.from,
         this.config.to,
+        '--',
         this.config.source,
       ])
     ).split(EOL)

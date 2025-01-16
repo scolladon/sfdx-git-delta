@@ -47,6 +47,7 @@
   - [Execute sgd](#execute-sgd)
   - [Deploy the delta metadata](#deploy-the-delta-metadata)
 - [Advanced use-cases](#advanced-use-cases)
+  - [Test Changes Without Committing](#test-changes-without-committing)
   - [Generate a folder containing only the added/modified sources](#generate-a-folder-containing-only-the-addedmodified-sources)
   - [Exclude some metadata only from destructiveChanges.xml](#exclude-some-metadata-only-from-destructivechangesxml)
   - [Explicitly including specific files for inclusion or destruction regardless of diff](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
@@ -185,6 +186,13 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --output-dir incremental
   - Build incremental manifest and source from the development branch
   $ sf sgd source delta --from "origin/development" --generate-delta --output-dir incremental
+
+FLAG DESCRIPTIONS
+  -a, --api-version=<value>
+
+    salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribute or latest version
+
+    Override the api version used for api requests made by this command
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
@@ -352,6 +360,28 @@ sf project deploy start --pre-destructive-changes destructiveChanges/destructive
 
 ## Advanced use-cases
 
+### Test Changes Without Committing
+
+To check changes that aren't committed yet:
+
+1. Make a temporary commit:
+```sh
+git add '<files>'
+git commit -m 'temp: testing changes'
+```
+
+2. Run SGD:
+```sh
+sf sgd source delta --from <sha-pointer>
+```
+
+3. Undo the temporary commit while keeping your changes:
+```sh
+git reset --soft HEAD~1
+```
+
+Tip: For extra safety, do this in a temporary branch.
+ 
 ### Generate a folder containing only the added/modified sources
 
 Using a package.xml for deployment is the simplest approach to delta deployments. But in some cases you may want to have only the actual recently changed source files.

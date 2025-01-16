@@ -84,9 +84,13 @@ Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expec
 
 Generating incremental package
 
-# info.CommandHasRun
+# info.CommandSuccess
 
-Done
+Success
+
+# info.CommandFailure
+
+Failure
 
 # info.EncourageSponsorship
 

@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "^4.2.2",
+    "@oclif/core": "^4.2.3",
     "@salesforce/core": "^8.8.0",
     "@salesforce/sf-plugins-core": "^12.1.2",
     "async": "^3.2.6",
@@ -84,12 +84,12 @@
     "chai": "^5.1.2",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
-    "knip": "^5.42.0",
+    "knip": "^5.42.1",
     "lint-staged": "^15.3.0",
     "lodash": "^4.17.21",
     "mocha": "^11.0.1",
     "nyc": "^17.1.0",
-    "oclif": "^4.17.11",
+    "oclif": "^4.17.13",
     "shx": "^0.3.4",
     "sinon": "^19.0.2",
     "ts-jest": "^29.2.5",
