@@ -47,7 +47,7 @@
   - [Execute sgd](#execute-sgd)
   - [Deploy the delta metadata](#deploy-the-delta-metadata)
 - [Advanced use-cases](#advanced-use-cases)
-  - [Evaluate uncommitted work as well](#evaluate-uncommitted-work-as-well)
+  - [Test Changes Without Committing](#test-changes-without-committing)
   - [Generate a folder containing only the added/modified sources](#generate-a-folder-containing-only-the-addedmodified-sources)
   - [Exclude some metadata only from destructiveChanges.xml](#exclude-some-metadata-only-from-destructivechangesxml)
   - [Explicitly including specific files for inclusion or destruction regardless of diff](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
@@ -360,18 +360,27 @@ sf project deploy start --pre-destructive-changes destructiveChanges/destructive
 
 ## Advanced use-cases
 
-### Evaluate uncommitted work as well
+### Test Changes Without Committing
 
-Commit your changes, then use SGD, then reset (soft if you want to keep the changes) the commit
+To check changes that aren't committed yet:
 
+1. Make a temporary commit:
 ```sh
 git add '<files>'
-git commit -m '<meaningful temporary message>'
+git commit -m 'temp: testing changes'
+```
+
+2. Run SGD:
+```sh
 sf sgd source delta --from <sha-pointer>
+```
+
+3. Undo the temporary commit while keeping your changes:
+```sh
 git reset --soft HEAD~1
 ```
 
-It is also possible to do those operation inside a temporary branch to further isolate the operation.
+Tip: For extra safety, do this in a temporary branch.
  
 ### Generate a folder containing only the added/modified sources
 
