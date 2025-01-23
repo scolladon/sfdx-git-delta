@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.2.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.2.0...v6.2.1) (2025-01-23)
+
+
+### Bug Fixes
+
+* add `WorkflowFlowAction` to sub-object types ([#995](https://github.com/scolladon/sfdx-git-delta/issues/995)) ([2a50655](https://github.com/scolladon/sfdx-git-delta/commit/2a5065581029fe7e9d3b7bd7dd6beddcf539db30))
+
 ## [6.2.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.1.1...v6.2.0) (2025-01-23)
 
 
