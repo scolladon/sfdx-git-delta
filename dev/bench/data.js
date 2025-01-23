@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737034544565,
+  "lastUpdate": 1737629387167,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2509,6 +2509,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±1.32%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4c2bce2b1cee1af327dd909ae0bf69a0391d5cb6",
+          "message": "feat: add `WorkflowFlowActions` metadata support (#991)\n\nCo-authored-by: Matt Carvin <90224411+mcarvin8@users.noreply.github.com>",
+          "timestamp": "2025-01-23T11:45:50+01:00",
+          "tree_id": "204090c8f2d863d43da3481f7ce66e004fcbda4e",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/4c2bce2b1cee1af327dd909ae0bf69a0391d5cb6"
+        },
+        "date": 1737629386236,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±1.18%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
