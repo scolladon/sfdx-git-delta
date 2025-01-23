@@ -69,6 +69,7 @@ const handlerMap = {
   Workflow: InFile,
   WorkflowAlert: Decomposed,
   WorkflowFieldUpdate: Decomposed,
+  WorkflowFlowAction: Decomposed,
   WorkflowKnowledgePublish: Decomposed,
   WorkflowOutboundMessage: Decomposed,
   WorkflowRule: Decomposed,

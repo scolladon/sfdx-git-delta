@@ -32,6 +32,7 @@ export const SUB_OBJECT_TYPES = [
   'WebLink',
   'WorkflowAlert',
   'WorkflowFieldUpdate',
+  'WorkflowFlowAction',
   'WorkflowKnowledgePublish',
   'WorkflowOutboundMessage',
   'WorkflowRule',
