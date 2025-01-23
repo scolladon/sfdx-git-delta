@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737629387167,
+  "lastUpdate": 1737667353221,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2540,6 +2540,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±1.18%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2a5065581029fe7e9d3b7bd7dd6beddcf539db30",
+          "message": "fix: add `WorkflowFlowAction` to sub-object types (#995)\n\nCo-authored-by: Matt Carvin <90224411+mcarvin8@users.noreply.github.com>",
+          "timestamp": "2025-01-23T22:18:53+01:00",
+          "tree_id": "abfc478508e2be35cab6a84f8cf9fb48a6c171eb",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2a5065581029fe7e9d3b7bd7dd6beddcf539db30"
+        },
+        "date": 1737667352903,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.39%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
