@@ -32,6 +32,11 @@ const testContext = [
     'WorkflowAlert',
   ],
   [
+    'force-app/main/default/workflows/Account/workflowFlowActions/TestFlowAction.workflowFlowAction-meta.xml',
+    new Set(['Account.TestFlowAction']),
+    'WorkflowFlowAction',
+  ],
+  [
     'force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
     new Set(['TestBot']),
     'Bot',
