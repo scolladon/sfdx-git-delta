@@ -23,13 +23,16 @@ import { MetadataRepository } from './MetadataRepository.js'
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
+  protected readonly metadataPerXmlName: Map<string, Metadata>
   constructor(protected readonly metadatas: Metadata[]) {
     this.metadataPerExt = new Map<string, Metadata>()
     this.metadataPerDir = new Map<string, Metadata>()
+    this.metadataPerXmlName = new Map<string, Metadata>()
 
     this.metadatas.forEach(metadata => {
       this.addSuffix(metadata)
       this.addFolder(metadata)
+      this.addXmlName(metadata)
     })
   }
 
@@ -62,6 +65,12 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   protected addFolder(metadata: Metadata) {
     if (metadata.directoryName) {
       this.metadataPerDir.set(metadata.directoryName, metadata)
+    }
+  }
+
+  protected addXmlName(metadata: Metadata) {
+    if (metadata.xmlName) {
+      this.metadataPerDir.set(metadata.xmlName, metadata)
     }
   }
 
@@ -98,6 +107,10 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       }
     }
     return metadata
+  }
+
+  protected searchByXmlName(xmlName: string): Metadata | undefined {
+    return this.metadataPerXmlName.get(xmlName)
   }
 
   public getFullyQualifiedName(path: string): string {
