@@ -18,7 +18,9 @@ export default class DecomposedHandler extends StandardHandler {
       .join(PATH_SEP)
     const parentTypeName = this.getParentName()
 
-    const parentTypeSuffix = this.metadata.get(parentTypeName)?.suffix
+    const parentTypeSuffix = this.metadata.get(
+      this.metadataDef.parentXmlName!
+    )!.suffix
 
     const parentPath = join(
       parentDirPath,

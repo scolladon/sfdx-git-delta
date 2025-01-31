@@ -70,7 +70,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
 
   protected addXmlName(metadata: Metadata) {
     if (metadata.xmlName) {
-      this.metadataPerDir.set(metadata.xmlName, metadata)
+      this.metadataPerXmlName.set(metadata.xmlName, metadata)
     }
   }
 
@@ -80,8 +80,11 @@ export class MetadataRepositoryImpl implements MetadataRepository {
 
   public get(path: string): Metadata | undefined {
     const parts = path.split(PATH_SEP)
-    const metadata = this.searchByExtension(parts)
-    return metadata ?? this.searchByDirectory(parts)
+    return (
+      this.searchByExtension(parts) ??
+      this.searchByDirectory(parts) ??
+      this.searchByXmlName(path)
+    )
   }
 
   protected searchByExtension(parts: string[]): Metadata | undefined {
