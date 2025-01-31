@@ -9,7 +9,6 @@ export const LABEL_DECOMPOSED_SUFFIX = 'label'
 export const MASTER_DETAIL_TAG = '<type>MasterDetail</type>'
 export const METAFILE_SUFFIX = '-meta.xml'
 export const META_REGEX = new RegExp(`${METAFILE_SUFFIX}$`)
-export const OBJECT_META_XML_SUFFIX = `object${METAFILE_SUFFIX}`
 export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_SUFFIX}`
 export const OBJECT_TRANSLATION_TYPE = 'CustomObjectTranslation'
 export const OBJECT_TYPE = 'CustomObject'
