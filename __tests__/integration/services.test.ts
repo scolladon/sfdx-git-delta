@@ -20,7 +20,7 @@ const mockedPathExists = jest.mocked(pathExists)
 
 const testContext = [
   [
-    'force-app/main/default/permissionsets/Admin/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
+    'force-app/main/default/permissionsets/Admin/objectSettings/Account.Test__c.objectSettings-meta.xml',
     new Set(['Admin']),
     'PermissionSet',
   ],

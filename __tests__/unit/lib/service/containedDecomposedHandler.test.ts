@@ -24,6 +24,26 @@ beforeEach(() => {
 })
 
 describe('ContainedDecomposedHandler', () => {
+  describe('when generateDelta is false', () => {
+    it('addition does not copy files', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const sut = new ContainedDecomposedHandler(
+        `A       force-app/main/permissionsets/Subject.permissionset-meta.xml`,
+        globalMetadata.get('permissionsets')!,
+        work,
+        globalMetadata
+      )
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
+      expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
+      expect(copyFiles).not.toBeCalled()
+    })
+  })
+
   describe.each(['permissionsets', 'other', 'permissionsets/subFolder'])(
     'when it is not decomposed',
     folder => {
@@ -86,14 +106,15 @@ describe('ContainedDecomposedHandler', () => {
       })
     }
   )
-  describe('when it is decomposed', () => {
+  describe.each([
+    'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
+    'force-app/main/default/permissionsets/Admin/Admin.flowAccesses-meta.xml',
+  ])('when it is decomposed', decomposedLine => {
     it('should copy all decomposed files when adding a file', async () => {
       // Arrange
-      const decomposedLine =
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml'
       const existingFiles = [
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml',
+        'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
         'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermissions-meta.xml',
       ]
       mockedReadDir.mockResolvedValue(existingFiles)
@@ -116,11 +137,9 @@ describe('ContainedDecomposedHandler', () => {
 
     it('should copy all decomposed files when modifying a file', async () => {
       // Arrange
-      const decomposedLine =
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml'
       const existingFiles = [
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml',
+        'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
         'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermissions-meta.xml',
       ]
       mockedReadDir.mockResolvedValue(existingFiles)
@@ -143,11 +162,9 @@ describe('ContainedDecomposedHandler', () => {
 
     it('should handle deletion with remaining files as modification', async () => {
       // Arrange
-      const decomposedLine =
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml'
       const existingFiles = [
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml',
+        'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
         'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermissions-meta.xml',
       ]
       mockedReadDir.mockResolvedValue(existingFiles)
@@ -170,8 +187,6 @@ describe('ContainedDecomposedHandler', () => {
 
     it('should handle deletion with no remaining files as destructive change', async () => {
       // Arrange
-      const decomposedLine =
-        'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermissions-meta.xml'
       mockedReadDir.mockResolvedValue([])
 
       const sut = new ContainedDecomposedHandler(
