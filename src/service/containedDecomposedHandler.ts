@@ -58,7 +58,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     // If parent folder is objectSettings, use the grandparent folder name
     // Otherwise use the parent folder name
     const index =
-      parentFolderName === PERMISSIONSET_OBJECTSETTINGS_FOLDER ? -3 : -2
+      parentFolderName === PERMISSIONSET_OBJECTSETTINGS_FOLDER ? -2 : -1
 
     this.holderFolder = parse(this.splittedLine.slice(0, index).join(PATH_SEP))
   }
