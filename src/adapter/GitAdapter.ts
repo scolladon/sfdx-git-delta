@@ -71,7 +71,7 @@ export default class GitAdapter {
 
   public async pathExists(path: string) {
     if (this.pathExistsCache.has(path)) {
-      return this.pathExistsCache.get(path)
+      return this.pathExistsCache.get(path)!
     }
     const doesPathExists = await this.pathExistsImpl(path)
     this.pathExistsCache.set(path, doesPathExists)
