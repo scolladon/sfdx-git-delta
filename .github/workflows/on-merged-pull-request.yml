@@ -48,7 +48,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Delete package dev channel PR comment
-        uses: thollander/actions-comment-pull-request@v2
+        uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
             Published under `${{ env.DEV_CHANNEL }}` npm channel.
