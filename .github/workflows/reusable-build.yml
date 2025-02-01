@@ -30,7 +30,7 @@ jobs:
         run: npm run test:unit -- --runInBand
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
