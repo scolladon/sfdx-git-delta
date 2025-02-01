@@ -9,12 +9,15 @@ import {
 import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
 import type { Work } from '../../src/types/work'
-import { readPathFromGit } from '../../src/utils/fsHelper'
+import { pathExists, readDir, readPathFromGit } from '../../src/utils/fsHelper'
 import { getGlobalMetadata } from '../__utils__/globalTestHelper'
 
 jest.mock('../../src/utils/fsHelper')
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
+const mockedReadDir = jest.mocked(readDir)
+const mockedPathExists = jest.mocked(pathExists)
+
 const testContext = [
   [
     'force-app/main/default/permissionsets/Admin/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
@@ -459,6 +462,10 @@ const testContext = [
   ],
 ]
 
+const existingFiles = [
+  'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
+]
+
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
   globalMetadata = await getGlobalMetadata()
@@ -486,6 +493,11 @@ beforeEach(() => {
     warnings: [],
   }
   handlerFactory = new TypeHandlerFactory(work, globalMetadata)
+
+  mockedReadDir.mockResolvedValue(existingFiles)
+  mockedPathExists.mockImplementation(path => {
+    return Promise.resolve(existingFiles.includes(path))
+  })
 })
 describe.each(testContext)(
   `integration test %s`,
@@ -518,6 +530,9 @@ describe.each(testContext)(
         mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
         mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
       }
+
+      mockedReadDir.mockResolvedValue([])
+      mockedPathExists.mockResolvedValue(false)
 
       const sut = handlerFactory.getTypeHandler(
         `${DELETION}       ${changePath}`
