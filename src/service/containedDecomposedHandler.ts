@@ -1,7 +1,10 @@
 'use strict'
 import { ParsedPath, join, parse } from 'node:path/posix'
 import { PATH_SEP } from '../constant/fsConstants.js'
-import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import {
+  METAFILE_SUFFIX,
+  PERMISSIONSET_OBJECTSETTINGS_FOLDER,
+} from '../constant/metadataConstants.js'
 import { readDir } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
@@ -54,7 +57,8 @@ export default class ContainedDecomposedHandler extends StandardHandler {
 
     // If parent folder is objectSettings, use the grandparent folder name
     // Otherwise use the parent folder name
-    const index = parentFolderName === 'objectSettings' ? -3 : -2
+    const index =
+      parentFolderName === PERMISSIONSET_OBJECTSETTINGS_FOLDER ? -3 : -2
 
     this.holderFolder = parse(this.splittedLine.slice(0, index).join(PATH_SEP))
   }
