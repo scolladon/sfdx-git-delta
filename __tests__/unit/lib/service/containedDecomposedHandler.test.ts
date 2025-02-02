@@ -110,7 +110,7 @@ describe('ContainedDecomposedHandler', () => {
     'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
     'force-app/main/default/permissionsets/Admin/Admin.flowAccesses-meta.xml',
   ])('when it is decomposed', decomposedLine => {
-    it('should copy all decomposed files when adding a file', async () => {
+    it(`should copy all decomposed files when adding a file for "${decomposedLine}"`, async () => {
       // Arrange
       const existingFiles = [
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
@@ -135,7 +135,7 @@ describe('ContainedDecomposedHandler', () => {
       expect(copyFiles).toBeCalledTimes(2)
     })
 
-    it('should copy all decomposed files when modifying a file', async () => {
+    it(`should copy all decomposed files when modifying a file for "${decomposedLine}"`, async () => {
       // Arrange
       const existingFiles = [
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
@@ -160,7 +160,7 @@ describe('ContainedDecomposedHandler', () => {
       expect(copyFiles).toBeCalledTimes(2)
     })
 
-    it('should handle deletion with remaining files as modification', async () => {
+    it(`should handle deletion with remaining files as modification for "${decomposedLine}"`, async () => {
       // Arrange
       const existingFiles = [
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
@@ -185,7 +185,7 @@ describe('ContainedDecomposedHandler', () => {
       expect(copyFiles).toBeCalledTimes(2)
     })
 
-    it('should handle deletion with no remaining files as destructive change', async () => {
+    it(`should handle deletion with no remaining files as destructive change for "${decomposedLine}"`, async () => {
       // Arrange
       mockedReadDir.mockResolvedValue([])
 
