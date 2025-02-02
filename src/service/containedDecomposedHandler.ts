@@ -5,14 +5,26 @@ import {
   METAFILE_SUFFIX,
   PERMISSIONSET_OBJECTSETTINGS_FOLDER,
 } from '../constant/metadataConstants.js'
+import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import { Metadata } from '../types/metadata.js'
+import { Work } from '../types/work.js'
 import { readDir } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ContainedDecomposedHandler extends StandardHandler {
   protected holderFolder: ParsedPath | undefined
 
+  constructor(
+    line: string,
+    metadataDef: Metadata,
+    work: Work,
+    metadata: MetadataRepository
+  ) {
+    super(line, metadataDef, work, metadata)
+    this._setholderFolder()
+  }
+
   public override async handleAddition() {
-    await this._setholderFolder()
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
@@ -23,27 +35,19 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   }
 
   public override async handleDeletion() {
-    await this._setholderFolder()
-    if (this._isDecomposedFormat()) {
-      // Check if any related files/folders still exist
-      const hasRelatedContent = await this._hasRelatedContent()
+    if (!this._isDecomposedFormat()) {
+      await super.handleDeletion()
+      return
+    }
 
-      if (hasRelatedContent) {
-        // If there are still related files, treat as modification
-        await this.handleModification()
-      } else {
-        await super.handleDeletion()
-      }
+    if (await this._hasRelatedContent()) {
+      await this.handleModification()
     } else {
       await super.handleDeletion()
     }
   }
 
   protected _setholderFolder() {
-    if (this.holderFolder) {
-      return
-    }
-
     if (!this._isDecomposedFormat()) {
       this.holderFolder = parse(
         this.line
