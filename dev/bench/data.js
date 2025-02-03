@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737667353221,
+  "lastUpdate": 1738576204227,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2571,6 +2571,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.39%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "67071e2120a36f88bf25237951dd5e7bd495d80c",
+          "message": "feat: implementation of the ContainedDecomposed type (#1006)",
+          "timestamp": "2025-02-03T10:46:17+01:00",
+          "tree_id": "74215e495d8292a5576d1e1bc334005963292783",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/67071e2120a36f88bf25237951dd5e7bd495d80c"
+        },
+        "date": 1738576203294,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.70%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
