@@ -23,13 +23,16 @@ import { MetadataRepository } from './MetadataRepository.js'
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
+  protected readonly metadataPerXmlName: Map<string, Metadata>
   constructor(protected readonly metadatas: Metadata[]) {
     this.metadataPerExt = new Map<string, Metadata>()
     this.metadataPerDir = new Map<string, Metadata>()
+    this.metadataPerXmlName = new Map<string, Metadata>()
 
     this.metadatas.forEach(metadata => {
       this.addSuffix(metadata)
       this.addFolder(metadata)
+      this.addXmlName(metadata)
     })
   }
 
@@ -65,14 +68,23 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     }
   }
 
+  protected addXmlName(metadata: Metadata) {
+    if (metadata.xmlName) {
+      this.metadataPerXmlName.set(metadata.xmlName, metadata)
+    }
+  }
+
   public has(path: string): boolean {
     return !!this.get(path)
   }
 
   public get(path: string): Metadata | undefined {
     const parts = path.split(PATH_SEP)
-    const metadata = this.searchByExtension(parts)
-    return metadata ?? this.searchByDirectory(parts)
+    return (
+      this.searchByExtension(parts) ??
+      this.searchByDirectory(parts) ??
+      this.searchByXmlName(path)
+    )
   }
 
   protected searchByExtension(parts: string[]): Metadata | undefined {
@@ -98,6 +110,10 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       }
     }
     return metadata
+  }
+
+  protected searchByXmlName(xmlName: string): Metadata | undefined {
+    return this.metadataPerXmlName.get(xmlName)
   }
 
   public getFullyQualifiedName(path: string): string {

@@ -181,16 +181,16 @@ export default [
   },
   {
     childXmlNames: [
-      'CustomField',
-      'Index',
       'BusinessProcess',
-      'RecordType',
       'CompactLayout',
-      'WebLink',
-      'ValidationRule',
-      'SharingReason',
-      'ListView',
+      'CustomField',
       'FieldSet',
+      'Index',
+      'ListView',
+      'RecordType',
+      'SharingReason',
+      'ValidationRule',
+      'WebLink',
     ],
     directoryName: 'objects',
     inFolder: false,
@@ -203,6 +203,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'businessProcess',
+    parentXmlName: 'CustomObject',
     xmlName: 'BusinessProcess',
   },
   {
@@ -210,6 +211,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'compactLayout',
+    parentXmlName: 'CustomObject',
     xmlName: 'CompactLayout',
   },
   {
@@ -217,6 +219,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'field',
+    parentXmlName: 'CustomObject',
     xmlName: 'CustomField',
   },
   {
@@ -224,6 +227,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'fieldSet',
+    parentXmlName: 'CustomObject',
     xmlName: 'FieldSet',
   },
   {
@@ -231,6 +235,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'index',
+    parentXmlName: 'CustomObject',
     xmlName: 'Index',
   },
   {
@@ -238,6 +243,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'listView',
+    parentXmlName: 'CustomObject',
     xmlName: 'ListView',
   },
   {
@@ -245,6 +251,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'recordType',
+    parentXmlName: 'CustomObject',
     xmlName: 'RecordType',
   },
   {
@@ -252,6 +259,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'sharingReason',
+    parentXmlName: 'CustomObject',
     xmlName: 'SharingReason',
   },
   {
@@ -259,6 +267,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'validationRule',
+    parentXmlName: 'CustomObject',
     xmlName: 'ValidationRule',
   },
   {
@@ -266,6 +275,7 @@ export default [
     inFolder: false,
     metaFile: false,
     suffix: 'webLink',
+    parentXmlName: 'CustomObject',
     xmlName: 'WebLink',
   },
   {

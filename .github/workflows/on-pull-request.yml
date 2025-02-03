@@ -80,7 +80,7 @@ jobs:
       - name: MegaLinter
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/latest/flavors/
-        uses: oxsecurity/megalinter/flavors/javascript@v7
+        uses: oxsecurity/megalinter/flavors/javascript@v8
         env:
           # All available variables are described in documentation
           # https://megalinter.io/latest/config-file/
@@ -164,7 +164,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Comment PR dev channel
-        uses: thollander/actions-comment-pull-request@v2
+        uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
             Published under `${{ env.DEV_CHANNEL }}` npm channel.

@@ -17,6 +17,7 @@ const objectType = {
   inFolder: false,
   metaFile: false,
   suffix: 'field',
+  parentXmlName: 'CustomObject',
   xmlName: 'CustomField',
 }
 const line =
