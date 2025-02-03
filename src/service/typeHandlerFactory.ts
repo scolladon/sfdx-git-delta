@@ -4,6 +4,7 @@ import { Metadata } from '../types/metadata.js'
 import type { Work } from '../types/work.js'
 
 import Bot from './botHandler.js'
+import ContainedDecomposed from './containedDecomposedHandler.js'
 import CustomFieldHandler from './customFieldHandler.js'
 import CustomLabel from './customLabelHandler.js'
 import CustomObject from './customObjectHandler.js'
@@ -44,7 +45,7 @@ const handlerMap = {
   ListView: Decomposed,
   MarketingAppExtension: InFile,
   MatchingRules: InFile,
-  PermissionSet: InResource,
+  PermissionSet: ContainedDecomposed,
   Profile: InFile,
   RecordType: Decomposed,
   Report: InFolder,

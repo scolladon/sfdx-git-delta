@@ -2,6 +2,7 @@
 import { describe, expect, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import CustomField from '../../../../src/service/customFieldHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
@@ -23,6 +24,7 @@ describe('the type handler factory', () => {
   })
   describe.each([
     [CustomField, ['fields']],
+    [ContainedDecomposedHandler, ['permissionsets']],
     [
       Decomposed,
       [
@@ -38,7 +40,7 @@ describe('the type handler factory', () => {
       ],
     ],
     [InFolder, ['dashboards', 'documents', 'reports']],
-    [InResource, ['staticresources', 'aura', 'lwc', 'permissionsets']],
+    [InResource, ['staticresources', 'aura', 'lwc']],
     [Standard, ['classes']],
     [SharedFolder, ['moderation', 'wave', 'discovery']],
   ])('give %p handler', (handler, types) => {

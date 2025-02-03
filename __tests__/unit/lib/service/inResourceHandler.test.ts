@@ -27,13 +27,6 @@ const experienceBundleType = {
   suffix: 'site',
   xmlName: 'ExperienceBundle',
 }
-const permissionSetType = {
-  directoryName: 'permissionsets',
-  inFolder: false,
-  metaFile: false,
-  suffix: 'permissionset',
-  xmlName: 'PermissionSet',
-}
 const element = 'myResources'
 const basePath = 'force-app/main/default/staticresources'
 const entityPath = `${basePath}/${element}.js`
@@ -88,12 +81,6 @@ describe('InResourceHandler', () => {
             experienceBundleType,
             'my_experience_bundle',
             5,
-          ],
-          [
-            'CustomerSupport/permissionSetFieldPermissions/Account.Test__c.permissionSetFieldPermission-meta.xml',
-            permissionSetType,
-            'CustomerSupport',
-            2,
           ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file %s',
@@ -185,33 +172,6 @@ describe('InResourceHandler', () => {
             `${basePath}/${element}.${type}${METAFILE_SUFFIX}`
           )
         })
-      })
-    })
-
-    describe('when outside its folder', () => {
-      it('should match via the extension', async () => {
-        // Arrange
-        const metadataElement = `MarketingUser`
-        const path = `force-app/main/default/wrongFolder/${metadataElement}.permissionset-meta.xml`
-        const line = `A  ${path}`
-
-        const sut = new InResourceHandler(
-          line,
-          permissionSetType,
-          work,
-          globalMetadata
-        )
-        mockedReadDir.mockResolvedValueOnce([])
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(
-          Array.from(work.diffs.package.get(permissionSetType.xmlName)!)
-        ).toEqual([metadataElement])
-        expect(copyFiles).toBeCalledTimes(2)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, path)
       })
     })
   })
