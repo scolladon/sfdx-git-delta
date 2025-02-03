@@ -144,7 +144,7 @@
       "clean": "if-file-deleted"
     },
     "clean": {
-      "command": "shx rm -rf 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-v*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
+      "command": "shx rm -rf 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
       "files": [
         "lib",
         "reports/*",
