@@ -111,7 +111,7 @@
     "lint:fs": "wireit",
     "lint": "wireit",
     "postpack": "shx rm -f oclif.manifest.json",
-    "prepack": "npm run build && oclif manifest && oclif readme",
+    "prepack": "wireit",
     "prepare": "husky",
     "prepublishOnly": "npm shrinkwrap",
     "test:build": "wireit",
@@ -210,6 +210,21 @@
         "**/.ls-lint.yml"
       ],
       "output": []
+    },
+    "prepack": {
+      "command": "oclif manifest && oclif readme",
+      "files": [
+        "src/commands/sgd/source/delta.ts",
+        "messages/delta.md",
+        "README.md"
+      ],
+      "dependencies": [
+        "build"
+      ],
+      "output": [
+        "README.md"
+      ],
+      "clean": false
     },
     "test": {
       "dependencies": [
