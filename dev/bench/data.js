@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1738576204227,
+  "lastUpdate": 1738659449733,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2602,6 +2602,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.70%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e5f2a27af18a78fca83031bd4ff216e2941a0487",
+          "message": "fix: parent file inclusion for Decomposed type (#1002)",
+          "timestamp": "2025-02-04T09:54:02+01:00",
+          "tree_id": "4ee5a196d170957381ac89f4477d518537310bd2",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/e5f2a27af18a78fca83031bd4ff216e2941a0487"
+        },
+        "date": 1738659448820,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.72%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
