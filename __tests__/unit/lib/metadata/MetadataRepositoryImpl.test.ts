@@ -345,6 +345,26 @@ describe('MetadataRepositoryImpl', () => {
       })
     })
 
+    describe('when matching on xmlName', () => {
+      it('matches existing xmlName', () => {
+        // Act
+        const result = sut.get('AuraDefinitionBundle')
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'aura' })
+        )
+      })
+
+      it('does not match non existing xmlName', () => {
+        // Act
+        const result = sut.get('DoNotExist')
+
+        // Assert
+        expect(result).toBeUndefined()
+      })
+    })
+
     describe('when no match is found', () => {
       it('returns undefined', () => {
         // Act

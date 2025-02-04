@@ -10,6 +10,7 @@ export type SharedFolderMetadata = BaseMetadata & {
 }
 
 export type SharedFileMetadata = BaseMetadata & {
+  parentXmlName?: string
   xmlTag?: string
   key?: string
   excluded?: boolean
