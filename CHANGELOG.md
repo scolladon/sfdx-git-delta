@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.3.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.2.1...v6.3.0) (2025-02-04)
+
+
+### Features
+
+* implementation of the ContainedDecomposed type ([#1006](https://github.com/scolladon/sfdx-git-delta/issues/1006)) ([67071e2](https://github.com/scolladon/sfdx-git-delta/commit/67071e2120a36f88bf25237951dd5e7bd495d80c))
+
+
+### Bug Fixes
+
+* parent file inclusion for Decomposed type ([#1002](https://github.com/scolladon/sfdx-git-delta/issues/1002)) ([e5f2a27](https://github.com/scolladon/sfdx-git-delta/commit/e5f2a27af18a78fca83031bd4ff216e2941a0487))
+
 ## [6.2.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.2.0...v6.2.1) (2025-01-23)
 
 
