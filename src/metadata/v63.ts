@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'externalAuthIdentityProviders',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'externalAuthIdentityProvider',
+    xmlName: 'ExternalAuthIdentityProvider',
+  },
+  {
     directoryName: 'ApplicationRecordTypeConfig',
     inFolder: false,
     metaFile: false,
