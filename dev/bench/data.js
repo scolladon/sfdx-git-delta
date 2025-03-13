@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1738659449733,
+  "lastUpdate": 1741880826336,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2633,6 +2633,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.72%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c43c66aaf8ebf6850949e119481100a626e84421",
+          "message": "feat: add ExternalAuthIdentityProvider support (#1031)",
+          "timestamp": "2025-03-13T16:43:51+01:00",
+          "tree_id": "42986b4b8d7d552fb0e423381f48bf50807c46fe",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/c43c66aaf8ebf6850949e119481100a626e84421"
+        },
+        "date": 1741880825949,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.21%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
