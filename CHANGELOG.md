@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.3.0...v6.4.0) (2025-03-13)
+
+
+### Features
+
+* add ExternalAuthIdentityProvider support ([#1031](https://github.com/scolladon/sfdx-git-delta/issues/1031)) ([c43c66a](https://github.com/scolladon/sfdx-git-delta/commit/c43c66aaf8ebf6850949e119481100a626e84421))
+
 ## [6.3.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.2.1...v6.3.0) (2025-02-04)
 
 
