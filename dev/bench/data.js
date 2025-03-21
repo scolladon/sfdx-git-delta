@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1741880826336,
+  "lastUpdate": 1742557423754,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2664,6 +2664,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.21%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a2e163fb0e1df6ccd79d4d63255abbfe538dada9",
+          "message": "feat: add `PublicKeyCertificate` metadata support (#1036)",
+          "timestamp": "2025-03-21T12:40:24+01:00",
+          "tree_id": "77263816ef4653e819ce76eb6e693311146e89aa",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/a2e163fb0e1df6ccd79d4d63255abbfe538dada9"
+        },
+        "date": 1742557423205,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±1.62%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
