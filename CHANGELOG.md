@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.5.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.4.0...v6.5.0) (2025-03-21)
+
+
+### Features
+
+* add `PublicKeyCertificate` metadata support ([#1036](https://github.com/scolladon/sfdx-git-delta/issues/1036)) ([a2e163f](https://github.com/scolladon/sfdx-git-delta/commit/a2e163fb0e1df6ccd79d4d63255abbfe538dada9))
+
 ## [6.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.3.0...v6.4.0) (2025-03-13)
 
 
