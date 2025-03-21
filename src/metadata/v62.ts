@@ -1,5 +1,19 @@
 export default [
   {
+    directoryName: 'PublicKeyCertificate',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'PublicKeyCertificate',
+    xmlName: 'PublicKeyCertificate',
+  },
+  {
+    directoryName: 'PublicKeyCertificateSet',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'PublicKeyCertificateSet',
+    xmlName: 'PublicKeyCertificateSet',
+  },
+  {
     directoryName: 'externalAuthIdentityProviders',
     inFolder: false,
     metaFile: false,
