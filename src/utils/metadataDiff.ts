@@ -1,6 +1,12 @@
 'use strict'
 
-import { castArray, differenceWith, isEqual, isUndefined } from 'lodash-es'
+import {
+  castArray,
+  differenceWith,
+  isEmpty,
+  isEqual,
+  isUndefined,
+} from 'lodash-es'
 
 import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
@@ -64,14 +70,14 @@ export default class MetadataDiff {
 
   prune(): PrunedContent {
     const transformer = new JsonTransformer(this.extractor)
-    const prunedContent = transformer.generatePartialJson(
+    const { prunedContent, isEmpty } = transformer.generatePartialJson(
       this.fromContent,
       this.toContent
     )
 
     return {
       xmlContent: convertJsonToXml(prunedContent),
-      isEmpty: this.extractor.isContentEmpty(prunedContent),
+      isEmpty,
     }
   }
 }
@@ -81,6 +87,10 @@ class MetadataExtractor {
 
   getSubTypes(root: XmlContent): string[] {
     return Object.keys(root).filter(tag => this.attributes.has(tag))
+  }
+
+  getSubKeys(root: XmlContent): string[] {
+    return Object.keys(root).filter(tag => !tag.startsWith(ATTRIBUTE_PREFIX))
   }
 
   isTypePackageable(subType: string): boolean {
@@ -103,15 +113,6 @@ class MetadataExtractor {
   extractForSubType(root: XmlContent, subType: string): XmlContent[] {
     const content = root[subType]
     return content ? castArray(content) : []
-  }
-
-  isContentEmpty(fileContent: XmlContent): boolean {
-    const root = this.extractRootElement(fileContent)
-    return Object.entries(root)
-      .filter(([key]) => !key.startsWith(ATTRIBUTE_PREFIX))
-      .every(
-        ([, value]) => !value || (Array.isArray(value) && value.length === 0)
-      )
   }
 
   extractRootElement(fileContent: XmlContent): XmlContent {
@@ -192,41 +193,73 @@ class MetadataComparator {
 }
 
 class JsonTransformer {
+  private isEmpty: boolean = true
+
   constructor(private extractor: MetadataExtractor) {}
 
   generatePartialJson(
     fromContent: XmlContent,
     toContent: XmlContent
-  ): XmlContent {
+  ): { prunedContent: XmlContent; isEmpty: boolean } {
     const base = structuredClone(toContent)
     const root = this.extractor.extractRootElement(base)
     const from = this.extractor.extractRootElement(fromContent)
     const to = this.extractor.extractRootElement(toContent)
-    this.extractor.getSubTypes(to).forEach(subType => {
-      const fromMeta = this.extractor.extractForSubType(from, subType)
-      const toMeta = this.extractor.extractForSubType(to, subType)
-      const keyField = this.extractor.getKeyFieldDefinition(subType)
 
-      const partialContentBuilder = isUndefined(keyField)
-        ? this.getPartialContentWithoutKey
-        : this.getPartialContentWithKey
+    this.extractor.getSubKeys(root).forEach(key => {
+      const fromMeta = this.extractor.extractForSubType(from, key)
+      const toMeta = this.extractor.extractForSubType(to, key)
+      const keyField = this.extractor.getKeyFieldDefinition(key)
 
-      root[subType] = partialContentBuilder(fromMeta, toMeta)
+      root[key] = this.getPartialContent(fromMeta, toMeta, keyField)
     })
-    return base
+
+    return { prunedContent: base, isEmpty: this.isEmpty }
+  }
+
+  private getPartialContent(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[],
+    keyField: string | undefined
+  ): XmlContent[] {
+    if (isUndefined(keyField)) {
+      return this.getPartialContentWithoutKey(fromMeta, toMeta)
+    } else if (keyField === '<array>') {
+      return this.getPartialContentForArray(fromMeta, toMeta)
+    } else {
+      return this.getPartialContentWithKey(fromMeta, toMeta)
+    }
   }
 
   private getPartialContentWithoutKey(
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    return isEqual(fromMeta, toMeta) ? [] : toMeta
+    if (!isEqual(fromMeta, toMeta)) {
+      this.isEmpty = false
+    }
+    return toMeta
+  }
+
+  private getPartialContentForArray(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[]
+  ): XmlContent[] {
+    if (!isEqual(fromMeta, toMeta)) {
+      this.isEmpty = false
+      return toMeta
+    }
+    return []
   }
 
   private getPartialContentWithKey(
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    return differenceWith(toMeta, fromMeta, isEqual)
+    const diff = differenceWith(toMeta, fromMeta, isEqual)
+    if (!isEmpty(diff)) {
+      this.isEmpty = false
+    }
+    return diff
   }
 }

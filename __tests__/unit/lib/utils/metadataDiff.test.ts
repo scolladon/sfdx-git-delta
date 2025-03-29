@@ -29,9 +29,6 @@ const xmlHeader = { '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' } }
 const emptyProfile = {
   Profile: {
     '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-    layoutAssignments: [],
-    loginHours: [],
-    loginIpRanges: [],
   },
 }
 
@@ -190,9 +187,11 @@ const wfBase = {
 const unTracked = {
   Workflow: {
     '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-    unTracked: {
-      fullName: 'untracked',
-    },
+    unTracked: [
+      {
+        fullName: 'untracked',
+      },
+    ],
   },
 }
 
@@ -227,7 +226,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
       expect(added.size).toBe(0)
     })
 
-    it('does not detect not tracked elements', async () => {
+    it('do not detect not tracked elements', async () => {
       // Arrange
       mockedParseXmlFileToJson.mockResolvedValueOnce({
         ...header,
@@ -485,7 +484,14 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
           ...header,
-          ...emptyProfile,
+          ...{
+            Profile: {
+              '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+              layoutAssignments: [],
+              loginHours: [],
+              loginIpRanges: [],
+            },
+          },
         })
         expect(isEmpty).toBe(true)
       })
@@ -514,7 +520,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
       })
     })
 
-    it('given untracked element, nothing trackable changed, the generated file contains untracked elements', async () => {
+    it('given untracked element added, nothing trackable changed, the generated file is not empty', async () => {
       // Arrange
       mockedParseXmlFileToJson.mockResolvedValueOnce({
         ...header,
