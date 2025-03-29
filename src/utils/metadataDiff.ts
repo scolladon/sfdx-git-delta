@@ -79,8 +79,7 @@ export default class MetadataDiff {
 class MetadataExtractor {
   constructor(readonly attributes: Map<string, SharedFileMetadata>) {}
 
-  getSubTypes(fileContent: XmlContent): string[] {
-    const root = this.extractRootElement(fileContent)
+  getSubTypes(root: XmlContent): string[] {
     return Object.keys(root).filter(tag => this.attributes.has(tag))
   }
 
@@ -101,8 +100,7 @@ class MetadataExtractor {
     return this.attributes.get(subType)?.key
   }
 
-  extractForSubType(fileContent: XmlContent, subType: string): XmlContent[] {
-    const root = this.extractRootElement(fileContent)
+  extractForSubType(root: XmlContent, subType: string): XmlContent[] {
     const content = root[subType]
     return content ? castArray(content) : []
   }
@@ -148,15 +146,14 @@ class MetadataComparator {
       elem: XmlContent
     ) => boolean
   ): Manifest {
+    const base = this.extractor.extractRootElement(baseContent)
+    const target = this.extractor.extractRootElement(targetContent)
     return this.extractor
-      .getSubTypes(baseContent)
+      .getSubTypes(base)
       .filter(subType => this.extractor.isTypePackageable(subType))
       .reduce((manifest, subType) => {
-        const baseMeta = this.extractor.extractForSubType(baseContent, subType)
-        const targetMeta = this.extractor.extractForSubType(
-          targetContent,
-          subType
-        )
+        const baseMeta = this.extractor.extractForSubType(base, subType)
+        const targetMeta = this.extractor.extractForSubType(target, subType)
         const keySelector = this.extractor.getKeyValueSelector(subType)
         const xmlName = this.extractor.getXmlName(subType)
 
@@ -201,22 +198,22 @@ class JsonTransformer {
     fromContent: XmlContent,
     toContent: XmlContent
   ): XmlContent {
-    return this.extractor.getSubTypes(toContent).reduce((acc, subType) => {
-      const fromMeta = this.extractor.extractForSubType(fromContent, subType)
-      const toMeta = this.extractor.extractForSubType(toContent, subType)
+    const base = structuredClone(toContent)
+    const root = this.extractor.extractRootElement(base)
+    const from = this.extractor.extractRootElement(fromContent)
+    const to = this.extractor.extractRootElement(toContent)
+    this.extractor.getSubTypes(to).forEach(subType => {
+      const fromMeta = this.extractor.extractForSubType(from, subType)
+      const toMeta = this.extractor.extractForSubType(to, subType)
       const keyField = this.extractor.getKeyFieldDefinition(subType)
 
       const partialContentBuilder = isUndefined(keyField)
         ? this.getPartialContentWithoutKey
         : this.getPartialContentWithKey
 
-      this.extractor.extractRootElement(acc)[subType] = partialContentBuilder(
-        fromMeta,
-        toMeta
-      )
-
-      return acc
-    }, structuredClone(toContent))
+      root[subType] = partialContentBuilder(fromMeta, toMeta)
+    })
+    return base
   }
 
   private getPartialContentWithoutKey(
