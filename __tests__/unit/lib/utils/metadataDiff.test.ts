@@ -484,14 +484,7 @@ describe.each([[{}], [xmlHeader]])(`MetadataDiff`, header => {
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
           ...header,
-          ...{
-            Profile: {
-              '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-              layoutAssignments: [],
-              loginHours: [],
-              loginIpRanges: [],
-            },
-          },
+          ...emptyProfile,
         })
         expect(isEmpty).toBe(true)
       })

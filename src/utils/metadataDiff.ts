@@ -1,26 +1,23 @@
 'use strict'
 
-import {
-  castArray,
-  differenceWith,
-  isEmpty,
-  isEqual,
-  isUndefined,
-} from 'lodash-es'
+import { deepEqual } from 'fast-equals'
+import { differenceWith, isUndefined } from 'lodash-es'
 
 import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
 import type { Manifest } from '../types/work.js'
 
 import {
-  ATTRIBUTE_PREFIX,
   XML_HEADER_ATTRIBUTE_KEY,
   convertJsonToXml,
   parseXmlFileToJson,
 } from './fxpHelper.js'
+import { ATTRIBUTE_PREFIX } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
-const ARRAY_SPECIAL_KEY = 'array'
+const ARRAY_SPECIAL_KEY = '<array>'
+
+const isEmpty = (arr: unknown[]) => arr.length === 0
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 type XmlContent = Record<string, any>
@@ -85,6 +82,8 @@ export default class MetadataDiff {
 }
 
 class MetadataExtractor {
+  private keySelectorCache = new Map<string, KeySelectorFn>()
+
   constructor(readonly attributes: Map<string, SharedFileMetadata>) {}
 
   getSubTypes(root: XmlContent): string[] {
@@ -92,7 +91,7 @@ class MetadataExtractor {
   }
 
   getSubKeys(root: XmlContent): string[] {
-    return Object.keys(root).filter(tag => !tag.startsWith(ATTRIBUTE_PREFIX))
+    return Object.keys(root)
   }
 
   isTypePackageable(subType: string): boolean {
@@ -104,8 +103,11 @@ class MetadataExtractor {
   }
 
   getKeyValueSelector(subType: string): KeySelectorFn {
-    const metadataKey = this.getKeyFieldDefinition(subType)
-    return elem => elem[metadataKey!] as string
+    if (!this.keySelectorCache.has(subType)) {
+      const metadataKey = this.getKeyFieldDefinition(subType)
+      this.keySelectorCache.set(subType, elem => elem[metadataKey!] as string)
+    }
+    return this.keySelectorCache.get(subType)!
   }
 
   getKeyFieldDefinition(subType: string): string | undefined {
@@ -114,14 +116,20 @@ class MetadataExtractor {
 
   extractForSubType(root: XmlContent, subType: string): XmlContent[] {
     const content = root[subType]
-    return content ? castArray(content) : []
+    // Only cast to array if it's not already an array
+    return Array.isArray(content) ? content : content ? [content] : []
   }
 
   extractRootElement(fileContent: XmlContent): XmlContent {
-    const rootKey =
+    const rootKey = this.extractRootKey(fileContent)
+    return (fileContent[rootKey] as XmlContent) ?? {}
+  }
+
+  extractRootKey(fileContent: XmlContent): string {
+    return (
       Object.keys(fileContent).find(key => key !== XML_HEADER_ATTRIBUTE_KEY) ??
       ''
-    return (fileContent[rootKey] as XmlContent) ?? {}
+    )
   }
 }
 
@@ -151,27 +159,32 @@ class MetadataComparator {
   ): Manifest {
     const base = this.extractor.extractRootElement(baseContent)
     const target = this.extractor.extractRootElement(targetContent)
-    return this.extractor
-      .getSubTypes(base)
-      .filter(subType => this.extractor.isTypePackageable(subType))
-      .reduce((manifest, subType) => {
-        const baseMeta = this.extractor.extractForSubType(base, subType)
-        const targetMeta = this.extractor.extractForSubType(target, subType)
-        const keySelector = this.extractor.getKeyValueSelector(subType)
-        const xmlName = this.extractor.getXmlName(subType)
+    const manifest = new Map()
 
-        baseMeta
-          .filter(elem => elementMatcher(targetMeta, keySelector, elem))
-          .forEach(elem => {
-            fillPackageWithParameter({
-              store: manifest,
-              type: xmlName,
-              member: keySelector(elem)!,
-            })
+    // Get all subtypes once
+    const subTypes = this.extractor.getSubTypes(base)
+    for (const subType of subTypes) {
+      if (!this.extractor.isTypePackageable(subType)) continue
+
+      const baseMeta = this.extractor.extractForSubType(base, subType)
+      if (isEmpty(baseMeta)) continue
+
+      const targetMeta = this.extractor.extractForSubType(target, subType)
+      const keySelector = this.extractor.getKeyValueSelector(subType)
+      const xmlName = this.extractor.getXmlName(subType)
+
+      for (const elem of baseMeta) {
+        if (elementMatcher(targetMeta, keySelector, elem)) {
+          fillPackageWithParameter({
+            store: manifest,
+            type: xmlName,
+            member: keySelector(elem)!,
           })
+        }
+      }
+    }
 
-        return manifest
-      }, new Map())
+    return manifest
   }
 
   private compareAdded = (
@@ -181,7 +194,7 @@ class MetadataComparator {
   ) => {
     const elemKey = keySelector(elem)
     const match = meta.find(el => keySelector(el) === elemKey)
-    return !match || !isEqual(match, elem)
+    return !match || !deepEqual(match, elem)
   }
 
   private compareDeleted = (
@@ -203,19 +216,29 @@ class JsonTransformer {
     fromContent: XmlContent,
     toContent: XmlContent
   ): { prunedContent: XmlContent; isEmpty: boolean } {
-    const base = structuredClone(toContent)
-    const root = this.extractor.extractRootElement(base)
     const from = this.extractor.extractRootElement(fromContent)
     const to = this.extractor.extractRootElement(toContent)
-
-    this.extractor.getSubKeys(root).forEach(key => {
+    const base: XmlContent = {}
+    if (XML_HEADER_ATTRIBUTE_KEY in toContent) {
+      base[XML_HEADER_ATTRIBUTE_KEY] = toContent[XML_HEADER_ATTRIBUTE_KEY]
+    }
+    const rootKey = this.extractor.extractRootKey(toContent)
+    base[rootKey] = {}
+    const root = base[rootKey]
+    const subKeys = this.extractor.getSubKeys(to)
+    for (const key of subKeys) {
+      if (key.startsWith(ATTRIBUTE_PREFIX)) {
+        root[key] = to[key]
+        continue
+      }
       const fromMeta = this.extractor.extractForSubType(from, key)
       const toMeta = this.extractor.extractForSubType(to, key)
       const keyField = this.extractor.getKeyFieldDefinition(key)
-
-      root[key] = this.getPartialContent(fromMeta, toMeta, keyField)
-    })
-
+      const partialContent = this.getPartialContent(fromMeta, toMeta, keyField)
+      if (!isEmpty(partialContent)) {
+        root[key] = partialContent
+      }
+    }
     return { prunedContent: base, isEmpty: this.isEmpty }
   }
 
@@ -224,6 +247,15 @@ class JsonTransformer {
     toMeta: XmlContent[],
     keyField: string | undefined
   ): XmlContent[] {
+    // Early return for empty arrays
+    if (isEmpty(toMeta)) {
+      return []
+    }
+    if (isEmpty(fromMeta)) {
+      this.isEmpty = false
+      return toMeta
+    }
+
     if (isUndefined(keyField)) {
       return this.getPartialContentWithoutKey(fromMeta, toMeta)
     } else if (keyField === ARRAY_SPECIAL_KEY) {
@@ -237,7 +269,7 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    if (!isEqual(fromMeta, toMeta)) {
+    if (!deepEqual(fromMeta, toMeta)) {
       this.isEmpty = false
     }
     return toMeta
@@ -247,7 +279,7 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    if (!isEqual(fromMeta, toMeta)) {
+    if (!deepEqual(fromMeta, toMeta)) {
       this.isEmpty = false
       return toMeta
     }
@@ -258,7 +290,7 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    const diff = differenceWith(toMeta, fromMeta, isEqual)
+    const diff = differenceWith(toMeta, fromMeta, deepEqual)
     if (!isEmpty(diff)) {
       this.isEmpty = false
     }
