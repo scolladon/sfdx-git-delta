@@ -20,6 +20,8 @@ import {
 } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
+const ARRAY_SPECIAL_KEY = 'array'
+
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 type XmlContent = Record<string, any>
 
@@ -224,7 +226,7 @@ class JsonTransformer {
   ): XmlContent[] {
     if (isUndefined(keyField)) {
       return this.getPartialContentWithoutKey(fromMeta, toMeta)
-    } else if (keyField === '<array>') {
+    } else if (keyField === ARRAY_SPECIAL_KEY) {
       return this.getPartialContentForArray(fromMeta, toMeta)
     } else {
       return this.getPartialContentWithKey(fromMeta, toMeta)
