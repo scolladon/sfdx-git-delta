@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1742557423754,
+  "lastUpdate": 1743589172435,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2695,6 +2695,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±1.62%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4aeaea69e8f77cd98f63b2b6975af26f31419792",
+          "message": "fix: do not copy empty metadata (#1040)\n\nCo-authored-by: Alexis Rafesthain <13768869+arafesthain@users.noreply.github.com>\nCo-authored-by: EmilioCarrelon99 <193340106+EmilioCarrelon99@users.noreply.github.com>",
+          "timestamp": "2025-04-02T12:16:23+02:00",
+          "tree_id": "cc17adef2bd96889a61daede56588dd9ab5b9441",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/4aeaea69e8f77cd98f63b2b6975af26f31419792"
+        },
+        "date": 1743589171468,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.34%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
