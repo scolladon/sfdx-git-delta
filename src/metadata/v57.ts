@@ -1944,6 +1944,7 @@ export default [
     parentXmlName: 'Profile',
     xmlName: 'ProfileLoginHours',
     xmlTag: 'loginHours',
+    key: '<array>',
     excluded: true,
   },
   {
@@ -1952,6 +1953,7 @@ export default [
     parentXmlName: 'Profile',
     xmlName: 'ProfileLoginIpRange',
     xmlTag: 'loginIpRanges',
+    key: '<array>',
     excluded: true,
   },
   {
