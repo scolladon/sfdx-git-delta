@@ -41,6 +41,7 @@ interface Alert {
 
 function makeWorkflow(alerts: Alert[]) {
   return {
+    ...xmlHeader,
     Workflow: {
       '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
       alerts,
@@ -48,7 +49,7 @@ function makeWorkflow(alerts: Alert[]) {
   }
 }
 
-function makeAlertWorkflow(recordCount = 1000) {
+function makeAlertWorkflow(recordCount: number) {
   const alerts: Alert[] = []
   for (let i = 0; i < recordCount; i++) {
     alerts.push({
@@ -85,11 +86,11 @@ describe(`MetadataDiffLarge`, () => {
   describe(`When prune is called with 2 alert workflows where one has an extra alert`, () => {
     it('Returns only the extra alert', async () => {
       // Arrange
-      const baseWorkflow = makeAlertWorkflow()
-      const modifiedWorkflow = structuredClone(baseWorkflow)
+      const baseWorkflow = makeAlertWorkflow(5000)
+      const modifiedWorkflow = JSON.parse(JSON.stringify(baseWorkflow))
       const extraAlert = {
-        fullName: 'AlertTest1',
-        description: 'alert-test-1',
+        fullName: 'OtherTestEmailAlert',
+        description: 'awesome',
         protected: 'false',
         recipients: { field: 'OtherEmail', type: 'email' },
         senderAddress: 'awesome@awesome.com',
@@ -97,14 +98,8 @@ describe(`MetadataDiffLarge`, () => {
         template: 'None',
       }
       modifiedWorkflow.Workflow.alerts.push(extraAlert)
-      mockedParseXmlFileToJson.mockResolvedValueOnce({
-        ...xmlHeader,
-        ...modifiedWorkflow,
-      })
-      mockedParseXmlFileToJson.mockResolvedValueOnce({
-        ...xmlHeader,
-        ...baseWorkflow,
-      })
+      mockedParseXmlFileToJson.mockResolvedValueOnce(modifiedWorkflow)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(baseWorkflow)
 
       // Act
       await metadataDiff.compare('file/path')
