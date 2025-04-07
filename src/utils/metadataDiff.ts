@@ -1,7 +1,7 @@
 'use strict'
 
 import { deepEqual } from 'fast-equals'
-import { differenceWith, isUndefined } from 'lodash-es'
+import { isUndefined } from 'lodash-es'
 
 import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
@@ -290,10 +290,24 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    const diff = differenceWith(toMeta, fromMeta, deepEqual)
+    // Build map of fromMeta elements by their stringified representation
+    const fromMap = new Map<string, XmlContent>()
+    for (const item of fromMeta) {
+      // Create a stable string key from the item
+      const key = JSON.stringify(item)
+      fromMap.set(key, item)
+    }
+
+    // Filter toMeta to only include items not in fromMap
+    const diff = toMeta.filter(item => {
+      const key = JSON.stringify(item)
+      return !fromMap.has(key)
+    })
+
     if (!isEmpty(diff)) {
       this.isEmpty = false
     }
+
     return diff
   }
 }
