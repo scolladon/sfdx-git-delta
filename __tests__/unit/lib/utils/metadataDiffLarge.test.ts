@@ -113,4 +113,50 @@ describe(`MetadataDiffLarge`, () => {
       expect(isEmpty).toBe(false)
     })
   })
+
+  describe('Performance tests', () => {
+    it('handles large workflows efficiently', async () => {
+      // Arrange
+      const baseWorkflow = makeAlertWorkflow(5000)
+      const modifiedWorkflow = JSON.parse(JSON.stringify(baseWorkflow))
+      const extraAlert = {
+        fullName: 'OtherTestEmailAlert',
+        description: 'awesome',
+        protected: 'false',
+        recipients: { field: 'OtherEmail', type: 'email' },
+        senderAddress: 'awesome@awesome.com',
+        senderType: 'OrgWideEmailAddress',
+        template: 'None',
+      }
+      modifiedWorkflow.Workflow.alerts.push(extraAlert)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(modifiedWorkflow)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(baseWorkflow)
+
+      // Act
+      // process.hrtime.bigint() returns the current high-resolution time in nanoseconds as a bigint
+      // This provides more precise timing than Date.now() for measuring code execution duration
+      const startTime = process.hrtime.bigint()
+      await metadataDiff.compare('file/path')
+      const { isEmpty } = metadataDiff.prune()
+      const endTime = process.hrtime.bigint()
+      // Convert nanoseconds to milliseconds for more readable output
+      const duration = Number(endTime - startTime) / 1_000_000
+      console.log(`Performance test duration: ${duration.toFixed(2)}ms`)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      // This assertion may be environment-dependent and should be adjusted
+      // based on representative performance data from different environments
+      expect(duration).toBeLessThan(1000) // Should process in under 1 second
+
+      // Verify that the output contains only the extra alert
+      expect(convertJsonToXml).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Workflow: expect.objectContaining({
+            alerts: expect.arrayContaining([extraAlert]),
+          }),
+        })
+      )
+    })
+  })
 })

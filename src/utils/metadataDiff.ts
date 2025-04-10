@@ -290,19 +290,11 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    // Build map of fromMeta elements by their stringified representation
-    const fromMap = new Map<string, XmlContent>()
-    for (const item of fromMeta) {
-      // Create a stable string key from the item
-      const key = JSON.stringify(item)
-      fromMap.set(key, item)
-    }
-
-    // Filter toMeta to only include items not in fromMap
-    const diff = toMeta.filter(item => {
-      const key = JSON.stringify(item)
-      return !fromMap.has(key)
-    })
+    const genKey = (item: XmlContent[0]) => JSON.stringify(item)
+    // Build set of stringified fromMeta elements
+    const fromSet = new Set<string>(fromMeta.map(genKey))
+    // Filter toMeta to only include items not in fromSet
+    const diff = toMeta.filter(item => !fromSet.has(genKey(item)))
 
     if (!isEmpty(diff)) {
       this.isEmpty = false
