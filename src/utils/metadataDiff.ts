@@ -16,6 +16,7 @@ import { ATTRIBUTE_PREFIX } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
 const ARRAY_SPECIAL_KEY = '<array>'
+const OBJECT_SPECIAL_KEY = '<object>'
 
 const isEmpty = (arr: unknown[]) => arr.length === 0
 
@@ -260,8 +261,10 @@ class JsonTransformer {
       return this.getPartialContentWithoutKey(fromMeta, toMeta)
     } else if (keyField === ARRAY_SPECIAL_KEY) {
       return this.getPartialContentForArray(fromMeta, toMeta)
+    } else if (keyField === OBJECT_SPECIAL_KEY) {
+      return this.getPartialContentForObject(fromMeta, toMeta)
     } else {
-      return this.getPartialContentWithKey(fromMeta, toMeta)
+      return this.getPartialContentWithKey(fromMeta, toMeta, keyField)
     }
   }
 
@@ -286,7 +289,7 @@ class JsonTransformer {
     return []
   }
 
-  private getPartialContentWithKey(
+  private getPartialContentForObject(
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
@@ -295,6 +298,31 @@ class JsonTransformer {
     const fromSet = new Set<string>(fromMeta.map(genKey))
     // Filter toMeta to only include items not in fromSet
     const diff = toMeta.filter(item => !fromSet.has(genKey(item)))
+
+    if (!isEmpty(diff)) {
+      this.isEmpty = false
+    }
+
+    return diff
+  }
+
+  private getPartialContentWithKey(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[],
+    keyField: string
+  ): XmlContent[] {
+    const genKey = (item: XmlContent[0]) => item[keyField]
+    // Build map of keyField values to items
+    const fromMap = new Map(fromMeta.map(item => [genKey(item), item]))
+
+    // Filter toMeta to include items that:
+    // 1. Don't exist in fromMap (new items)
+    // 2. Exist but have changed (modified items, detected by !deepEqual)
+    const diff = toMeta.filter(item => {
+      const key = genKey(item)
+      const fromItem = fromMap.get(key)
+      return !fromItem || !deepEqual(item, fromItem)
+    })
 
     if (!isEmpty(diff)) {
       this.isEmpty = false
