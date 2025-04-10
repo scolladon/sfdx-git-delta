@@ -257,15 +257,17 @@ class JsonTransformer {
       return toMeta
     }
 
+    let result: XmlContent[]
     if (isUndefined(keyField)) {
-      return this.getPartialContentWithoutKey(fromMeta, toMeta)
+      result = this.getPartialContentWithoutKey(fromMeta, toMeta)
     } else if (keyField === ARRAY_SPECIAL_KEY) {
-      return this.getPartialContentForArray(fromMeta, toMeta)
+      result = this.getPartialContentForArray(fromMeta, toMeta)
     } else if (keyField === OBJECT_SPECIAL_KEY) {
-      return this.getPartialContentForObject(fromMeta, toMeta)
+      result = this.getPartialContentForObject(fromMeta, toMeta)
     } else {
-      return this.getPartialContentWithKey(fromMeta, toMeta, keyField)
+      result = this.getPartialContentWithKey(fromMeta, toMeta, keyField)
     }
+    return result
   }
 
   private getPartialContentWithoutKey(
