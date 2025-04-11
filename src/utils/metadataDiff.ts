@@ -69,7 +69,10 @@ export default class MetadataDiff {
   }
 
   prune(): PrunedContent {
-    const transformer = new JsonTransformer(this.extractor)
+    const transformer = new JsonTransformer(
+      this.extractor,
+      hasher({ sort: true, coerce: true })
+    )
     const { prunedContent, isEmpty } = transformer.generatePartialJson(
       this.fromContent,
       this.toContent
@@ -210,11 +213,12 @@ class MetadataComparator {
 
 class JsonTransformer {
   private isEmpty: boolean = true
-  private hashSortCoerce: Hasher
 
-  constructor(private extractor: MetadataExtractor) {
-    this.hashSortCoerce = hasher({ sort: true, coerce: true })
-  }
+  constructor(
+    private extractor: MetadataExtractor,
+    // @ts-ignore Property is intended for future use
+    private hasher: Hasher
+  ) {}
 
   generatePartialJson(
     fromContent: XmlContent,
@@ -296,7 +300,9 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    const genKey = (item: XmlContent[0]) => this.hashSortCoerce.sort(item)
+    // const genKey = (item: XmlContent[0]) => this.hasher.hash(item)
+    // const genKey = (item: XmlContent[0]) => this.hasher.sort(item)
+    const genKey = (item: XmlContent[0]) => JSON.stringify(item)
     const fromSet = new Set<string>(fromMeta.map(genKey))
     const diff = toMeta.filter(item => !fromSet.has(genKey(item)))
 

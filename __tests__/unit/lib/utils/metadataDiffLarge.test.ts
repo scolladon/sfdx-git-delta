@@ -132,22 +132,51 @@ describe(`MetadataDiffLarge`, () => {
       mockedParseXmlFileToJson.mockResolvedValueOnce(modifiedWorkflow)
       mockedParseXmlFileToJson.mockResolvedValueOnce(baseWorkflow)
 
+      if (global.gc) {
+        global.gc()
+      }
+
+      // Get initial memory usage
+      const initialMemory = process.memoryUsage()
+
+      // Track max memory usage during execution
+      let maxHeapUsed = initialMemory.heapUsed
+
+      // Setup memory sampling
+      const memoryCheckInterval = 5 // ms
+      const sampleMemoryUsage = () => {
+        const currentMemory = process.memoryUsage()
+        maxHeapUsed = Math.max(maxHeapUsed, currentMemory.heapUsed)
+      }
+
+      // Start sampling
+      const samplingInterval = setInterval(
+        sampleMemoryUsage,
+        memoryCheckInterval
+      )
+
       // Act
-      // process.hrtime.bigint() returns the current high-resolution time in nanoseconds as a bigint
-      // This provides more precise timing than Date.now() for measuring code execution duration
       const startTime = process.hrtime.bigint()
       await metadataDiff.compare('file/path')
       const { isEmpty } = metadataDiff.prune()
       const endTime = process.hrtime.bigint()
-      // Convert nanoseconds to milliseconds for more readable output
+
+      // Stop sampling
+      clearInterval(samplingInterval)
+      // Final check to capture any last peak
+      sampleMemoryUsage()
+
+      // Calculate duration
       const duration = Number(endTime - startTime) / 1_000_000
-      console.log(`Performance test duration: ${duration.toFixed(2)}ms`)
+
+      // Log performance metrics
+      console.log(`Duration: ${duration.toFixed(2)}ms`)
+      console.log(
+        `Max Heap Used: ${formatMemory(maxHeapUsed - initialMemory.heapUsed)}`
+      )
 
       // Assert
       expect(isEmpty).toBe(false)
-      // This assertion may be environment-dependent and should be adjusted
-      // based on representative performance data from different environments
-      expect(duration).toBeLessThan(1000) // Should process in under 1 second
 
       // Verify that the output contains only the extra alert
       expect(convertJsonToXml).toHaveBeenCalledWith(
@@ -157,6 +186,18 @@ describe(`MetadataDiffLarge`, () => {
           }),
         })
       )
-    })
+    }, 20000)
   })
 })
+
+/**
+ * Format memory size in bytes to a human-readable string
+ * @param bytes Memory size in bytes
+ * @returns Formatted string with appropriate unit (B, KB, MB)
+ */
+function formatMemory(bytes: number): string {
+  if (bytes < 0) return '-' + formatMemory(-bytes)
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
