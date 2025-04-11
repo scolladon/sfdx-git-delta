@@ -7,6 +7,7 @@ import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
 import type { Manifest } from '../types/work.js'
 
+import { Hasher, hasher } from 'node-object-hash'
 import {
   XML_HEADER_ATTRIBUTE_KEY,
   convertJsonToXml,
@@ -16,7 +17,6 @@ import { ATTRIBUTE_PREFIX } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
 const ARRAY_SPECIAL_KEY = '<array>'
-const OBJECT_SPECIAL_KEY = '<object>'
 
 const isEmpty = (arr: unknown[]) => arr.length === 0
 
@@ -210,8 +210,11 @@ class MetadataComparator {
 
 class JsonTransformer {
   private isEmpty: boolean = true
+  private hashSortCoerce: Hasher
 
-  constructor(private extractor: MetadataExtractor) {}
+  constructor(private extractor: MetadataExtractor) {
+    this.hashSortCoerce = hasher({ sort: true, coerce: true })
+  }
 
   generatePartialJson(
     fromContent: XmlContent,
@@ -262,10 +265,8 @@ class JsonTransformer {
       result = this.getPartialContentWithoutKey(fromMeta, toMeta)
     } else if (keyField === ARRAY_SPECIAL_KEY) {
       result = this.getPartialContentForArray(fromMeta, toMeta)
-    } else if (keyField === OBJECT_SPECIAL_KEY) {
-      result = this.getPartialContentForObject(fromMeta, toMeta)
     } else {
-      result = this.getPartialContentWithKey(fromMeta, toMeta, keyField)
+      result = this.getPartialContentForObject(fromMeta, toMeta)
     }
     return result
   }
@@ -295,36 +296,9 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    const genKey = (item: XmlContent[0]) => JSON.stringify(item)
-    // Build set of stringified fromMeta elements
+    const genKey = (item: XmlContent[0]) => this.hashSortCoerce.sort(item)
     const fromSet = new Set<string>(fromMeta.map(genKey))
-    // Filter toMeta to only include items not in fromSet
     const diff = toMeta.filter(item => !fromSet.has(genKey(item)))
-
-    if (!isEmpty(diff)) {
-      this.isEmpty = false
-    }
-
-    return diff
-  }
-
-  private getPartialContentWithKey(
-    fromMeta: XmlContent[],
-    toMeta: XmlContent[],
-    keyField: string
-  ): XmlContent[] {
-    const genKey = (item: XmlContent[0]) => item[keyField]
-    // Build map of keyField values to items
-    const fromMap = new Map(fromMeta.map(item => [genKey(item), item]))
-
-    // Filter toMeta to include items that:
-    // 1. Don't exist in fromMap (new items)
-    // 2. Exist but have changed (modified items, detected by !deepEqual)
-    const diff = toMeta.filter(item => {
-      const key = genKey(item)
-      const fromItem = fromMap.get(key)
-      return !fromItem || !deepEqual(item, fromItem)
-    })
 
     if (!isEmpty(diff)) {
       this.isEmpty = false
