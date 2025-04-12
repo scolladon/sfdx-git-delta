@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1743589172435,
+  "lastUpdate": 1744446372635,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2726,6 +2726,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.34%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mat+github@dodgson.me",
+            "name": "mat dodgson",
+            "username": "matdodgson"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "951d5c22bb7efc844dbebfb03da6d43c1ecc3356",
+          "message": "feat: improve metadatadiff performance (#1047)\n\nCo-authored-by: mat dodgson <12230886+matdodgson@users.noreply.github.com>",
+          "timestamp": "2025-04-12T10:23:12+02:00",
+          "tree_id": "4897df9d192ef9d9d0c21f3c708e51a80b7fb736",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/951d5c22bb7efc844dbebfb03da6d43c1ecc3356"
+        },
+        "date": 1744446372361,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.30%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
