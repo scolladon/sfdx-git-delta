@@ -1,5 +1,4 @@
 export default {
-  packageManager: 'npm',
   entry: [
     'src/commands/sgd/source/delta.ts',
     'src/main.ts',

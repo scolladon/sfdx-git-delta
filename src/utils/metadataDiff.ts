@@ -1,7 +1,6 @@
 'use strict'
-
 import { deepEqual } from 'fast-equals'
-import { differenceWith, isUndefined } from 'lodash-es'
+import { isUndefined } from 'lodash-es'
 
 import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
@@ -16,6 +15,7 @@ import { ATTRIBUTE_PREFIX } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
 const ARRAY_SPECIAL_KEY = '<array>'
+const OBJECT_SPECIAL_KEY = '<object>'
 
 const isEmpty = (arr: unknown[]) => arr.length === 0
 
@@ -256,13 +256,17 @@ class JsonTransformer {
       return toMeta
     }
 
+    let result: XmlContent[]
     if (isUndefined(keyField)) {
-      return this.getPartialContentWithoutKey(fromMeta, toMeta)
+      result = this.getPartialContentWithoutKey(fromMeta, toMeta)
     } else if (keyField === ARRAY_SPECIAL_KEY) {
-      return this.getPartialContentForArray(fromMeta, toMeta)
+      result = this.getPartialContentForArray(fromMeta, toMeta)
+    } else if (keyField === OBJECT_SPECIAL_KEY) {
+      result = this.getPartialContentForObject(fromMeta, toMeta)
     } else {
-      return this.getPartialContentWithKey(fromMeta, toMeta)
+      result = this.getPartialContentWithKey(fromMeta, toMeta, keyField)
     }
+    return result
   }
 
   private getPartialContentWithoutKey(
@@ -279,21 +283,43 @@ class JsonTransformer {
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
   ): XmlContent[] {
-    if (!deepEqual(fromMeta, toMeta)) {
-      this.isEmpty = false
-      return toMeta
-    }
-    return []
+    const diff = deepEqual(fromMeta, toMeta) ? [] : toMeta
+    this.checkEmpty(diff)
+    return diff
+  }
+
+  private getPartialContentForObject(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[]
+  ): XmlContent[] {
+    const keySelector = (item: XmlContent[0]) => JSON.stringify(item)
+    const fromSet = new Set<string>(fromMeta.map(keySelector))
+    const diff = toMeta.filter(item => !fromSet.has(keySelector(item)))
+
+    this.checkEmpty(diff)
+    return diff
   }
 
   private getPartialContentWithKey(
     fromMeta: XmlContent[],
-    toMeta: XmlContent[]
+    toMeta: XmlContent[],
+    keyField: string
   ): XmlContent[] {
-    const diff = differenceWith(toMeta, fromMeta, deepEqual)
-    if (!isEmpty(diff)) {
-      this.isEmpty = false
-    }
+    const keySelector = (item: XmlContent[0]) => item[keyField]
+    const fromMap = new Map(fromMeta.map(item => [keySelector(item), item]))
+    const diff = toMeta.filter(item => {
+      const key = keySelector(item)
+      const fromItem = fromMap.get(key)
+      return isUndefined(fromItem) || !deepEqual(item, fromItem)
+    })
+
+    this.checkEmpty(diff)
     return diff
+  }
+
+  private checkEmpty(diff: XmlContent[]) {
+    if (this.isEmpty) {
+      this.isEmpty = isEmpty(diff)
+    }
   }
 }
