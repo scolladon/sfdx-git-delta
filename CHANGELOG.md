@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.6.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.5.1...v6.6.0) (2025-04-12)
+
+
+### Features
+
+* improve metadatadiff performance ([#1047](https://github.com/scolladon/sfdx-git-delta/issues/1047)) ([951d5c2](https://github.com/scolladon/sfdx-git-delta/commit/951d5c22bb7efc844dbebfb03da6d43c1ecc3356))
+
 ## [6.5.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.5.0...v6.5.1) (2025-04-02)
 
 
