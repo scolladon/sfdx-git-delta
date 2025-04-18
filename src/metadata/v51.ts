@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'mktDataSourceObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSourceObject',
+    xmlName: 'DataSourceObject',
+  },
+  {
     directoryName: 'apexEmailNotifications',
     inFolder: false,
     metaFile: false,
