@@ -1,5 +1,47 @@
 export default [
   {
+    directoryName: 'dataStreamTemplates',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataStreamTemplate',
+    xmlName: 'DataStreamTemplate',
+  },
+  {
+    directoryName: 'dataSrcDataModelFieldMaps',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSrcDataModelFieldMap',
+    xmlName: 'DataSrcDataModelFieldMap',
+  },
+  {
+    directoryName: 'DataPackageKitObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'DataPackageKitObject',
+    xmlName: 'DataPackageKitObject',
+  },
+  {
+    directoryName: 'dataPackageKitDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataPackageKitDefinition',
+    xmlName: 'DataPackageKitDefinition',
+  },
+  {
+    directoryName: 'dataSourceBundleDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSourceBundleDefinition',
+    xmlName: 'DataSourceBundleDefinition',
+  },
+  {
+    directoryName: 'mktDataSourceObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSourceObject',
+    xmlName: 'DataSourceObject',
+  },
+  {
     directoryName: 'apexEmailNotifications',
     inFolder: false,
     metaFile: false,
