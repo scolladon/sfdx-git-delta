@@ -47,13 +47,14 @@ export default class MetadataDiff {
   }
 
   async compare(path: string): Promise<DiffResult> {
-    const [toContent, fromContent] = await Promise.all([
-      parseXmlFileToJson({ path, oid: this.config.to }, this.config),
-      parseXmlFileToJson({ path, oid: this.config.from }, this.config),
-    ])
-
-    this.toContent = toContent
-    this.fromContent = fromContent
+    this.toContent = await parseXmlFileToJson(
+      { path, oid: this.config.to },
+      this.config
+    )
+    this.fromContent = await parseXmlFileToJson(
+      { path, oid: this.config.from },
+      this.config
+    )
 
     const comparator = new MetadataComparator(
       this.extractor,
