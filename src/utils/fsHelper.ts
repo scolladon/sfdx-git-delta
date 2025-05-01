@@ -31,7 +31,8 @@ export const copyFiles = async (config: Config, src: string) => {
       await outputFile(dst, file.content)
       copiedFiles.add(dst)
     }
-  } catch {
+  } catch (err) {
+    console.error(err)
     /* empty */
   }
 }
@@ -41,7 +42,8 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   try {
     const gitAdapter = GitAdapter.getInstance(config)
     utf8Data = await gitAdapter.getStringContent(forRef)
-  } catch {
+  } catch (err) {
+    console.error(err)
     /* empty */
   }
   return utf8Data

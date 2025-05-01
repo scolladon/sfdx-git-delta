@@ -63,7 +63,8 @@ export default class GitAdapter {
         revPath({ path, oid: this.config.to }),
       ])
       doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
-    } catch {
+    } catch (err) {
+      console.error(err)
       doesPathExists = false
     }
     return doesPathExists

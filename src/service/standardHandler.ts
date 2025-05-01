@@ -70,6 +70,7 @@ export default class StandardHandler {
             break
         }
       } catch (error) {
+        console.error(error)
         if (error instanceof Error) {
           error.message = `${this.line}: ${error.message}`
           this.warnings.push(error)

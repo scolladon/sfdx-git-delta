@@ -130,6 +130,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       }
       this.info(messages.getMessage('info.EncourageSponsorship'))
     } catch (err) {
+      console.error(err)
       if (err instanceof Error) {
         finalMessage = `${messages.getMessage('info.CommandFailure')}: ${
           err.message
