@@ -1,5 +1,26 @@
 export default [
   {
+    directoryName: 'mktDataSources',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSource',
+    xmlName: 'DataSource',
+  },
+  {
+    directoryName: 'dataKitObjectTemplates',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataStreamdataKitObjectTemplateTemplate',
+    xmlName: 'DataKitObjectTemplate',
+  },
+  {
+    directoryName: 'dataKitObjectDependencies',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataKitObjectDependency',
+    xmlName: 'DataKitObjectDependency',
+  },
+  {
     directoryName: 'dataStreamTemplates',
     inFolder: false,
     metaFile: false,

@@ -1,5 +1,19 @@
 export default [
   {
+    directoryName: 'mktDataSources',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSource',
+    xmlName: 'DataSource',
+  },
+  {
+    directoryName: 'mktDataSources',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSource',
+    xmlName: 'DataSource',
+  },
+  {
     directoryName: 'dataSourceBundleDefinitions',
     inFolder: false,
     metaFile: false,
