@@ -10,7 +10,7 @@ export default [
     directoryName: 'dataKitObjectTemplates',
     inFolder: false,
     metaFile: false,
-    suffix: 'dataStreamdataKitObjectTemplateTemplate',
+    suffix: 'dataKitObjectTemplate',
     xmlName: 'DataKitObjectTemplate',
   },
   {
