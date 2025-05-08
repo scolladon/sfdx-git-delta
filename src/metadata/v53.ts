@@ -7,13 +7,6 @@ export default [
     xmlName: 'DataSource',
   },
   {
-    directoryName: 'mktDataSources',
-    inFolder: false,
-    metaFile: false,
-    suffix: 'dataSource',
-    xmlName: 'DataSource',
-  },
-  {
     directoryName: 'dataStreamTemplates',
     inFolder: false,
     metaFile: false,
