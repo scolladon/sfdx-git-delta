@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744446372635,
+  "lastUpdate": 1747058913944,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2757,6 +2757,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.30%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0d8ccaa5cc51169a1de95ec90d43a0cd489b3738",
+          "message": "feat: add Summer '25 (v63) release preview support (#1064)",
+          "timestamp": "2025-05-12T16:05:21+02:00",
+          "tree_id": "54fe53d5293364a5f43063f5e8fe0a07d2ff9500",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/0d8ccaa5cc51169a1de95ec90d43a0cd489b3738"
+        },
+        "date": 1747058913348,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.26%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
