@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.8.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.7.0...v6.8.0) (2025-05-16)
+
+
+### Features
+
+* add support for `DataCloud` metadata ([#1056](https://github.com/scolladon/sfdx-git-delta/issues/1056)) ([6f68281](https://github.com/scolladon/sfdx-git-delta/commit/6f68281c6c4efb54a9754ef73fa718485915252a))
+
 ## [6.7.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.6.0...v6.7.0) (2025-05-12)
 
 
