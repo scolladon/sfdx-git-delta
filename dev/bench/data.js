@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747058913944,
+  "lastUpdate": 1747399537603,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2788,6 +2788,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.26%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6f68281c6c4efb54a9754ef73fa718485915252a",
+          "message": "feat: add support for `DataCloud` metadata (#1056)",
+          "timestamp": "2025-05-16T14:42:21+02:00",
+          "tree_id": "73fa3120737ca2740b707969ba5e328a5dfb2253",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/6f68281c6c4efb54a9754ef73fa718485915252a"
+        },
+        "date": 1747399537272,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.18%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
