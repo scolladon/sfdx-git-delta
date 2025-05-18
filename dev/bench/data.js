@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747399537603,
+  "lastUpdate": 1747574023895,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2819,6 +2819,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.18%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eddcba587d99b5554f716581a7eaaefb8f1e31c7",
+          "message": "fix: profile sub elements declaration (#1068)",
+          "timestamp": "2025-05-18T15:10:21+02:00",
+          "tree_id": "b691565abc32198051de9f36c558caf14af781d7",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/eddcba587d99b5554f716581a7eaaefb8f1e31c7"
+        },
+        "date": 1747574023429,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.27%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
