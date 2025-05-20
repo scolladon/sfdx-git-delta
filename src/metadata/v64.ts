@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'contractTypes',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'contractType',
+    xmlName: 'ContractType',
+  },
+  {
     directoryName: 'PublicKeyCertificate',
     inFolder: false,
     metaFile: false,

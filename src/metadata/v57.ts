@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'contractTypes',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'contractType',
+    xmlName: 'ContractType',
+  },
+  {
     directoryName: 'mktDataSources',
     inFolder: false,
     metaFile: false,
