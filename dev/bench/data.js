@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747574023895,
+  "lastUpdate": 1747755223716,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2850,6 +2850,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.27%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d24d5dd5bbd91ba80cd0c2dd5adfe171e77da401",
+          "message": "fix: large xml file parsing flaky concurrent issue (#1061)",
+          "timestamp": "2025-05-20T17:30:06+02:00",
+          "tree_id": "8a4b47ecb9807e26fe7e418a09da6c6b6cbd5a37",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/d24d5dd5bbd91ba80cd0c2dd5adfe171e77da401"
+        },
+        "date": 1747755222720,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.3,
+            "range": "±0.41%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
