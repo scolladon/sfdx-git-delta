@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'contextUseCaseMappings',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'contextUseCaseMapping',
+    xmlName: 'ContextUseCaseMapping',
+  },
+  {
     directoryName: 'contractTypes',
     inFolder: false,
     metaFile: false,
