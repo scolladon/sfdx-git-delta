@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747755223716,
+  "lastUpdate": 1747832552596,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2881,6 +2881,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.3,
             "range": "±0.41%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75c9bc8f5f5a233e4e41ca3c596dc42b4dcc56cb",
+          "message": "feat: add Salesforce Contract metadata support (#1070)",
+          "timestamp": "2025-05-21T14:59:14+02:00",
+          "tree_id": "5c0487270a535853e28a3a66f49d892614511549",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/75c9bc8f5f5a233e4e41ca3c596dc42b4dcc56cb"
+        },
+        "date": 1747832552135,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.3,
+            "range": "±1.71%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
