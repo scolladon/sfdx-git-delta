@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.9.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.8.0...v6.9.0) (2025-05-21)
+
+
+### Features
+
+* add Salesforce Contract metadata support ([#1070](https://github.com/scolladon/sfdx-git-delta/issues/1070)) ([75c9bc8](https://github.com/scolladon/sfdx-git-delta/commit/75c9bc8f5f5a233e4e41ca3c596dc42b4dcc56cb))
+
+
+### Bug Fixes
+
+* large xml file parsing flaky concurrent issue ([#1061](https://github.com/scolladon/sfdx-git-delta/issues/1061)) ([d24d5dd](https://github.com/scolladon/sfdx-git-delta/commit/d24d5dd5bbd91ba80cd0c2dd5adfe171e77da401))
+
 ## [6.8.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.7.0...v6.8.0) (2025-05-18)
 
 
