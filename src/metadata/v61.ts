@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'documentTemplates',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dt',
+    xmlName: 'DocumentTemplate',
+  },
+  {
     directoryName: 'documentGenerationSettings',
     inFolder: false,
     metaFile: false,
