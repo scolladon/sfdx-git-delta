@@ -14,7 +14,6 @@ export default {
     'mocha',
     'sinon',
     'ts-jest-mock-import-meta',
-    'ts-node',
   ],
   ignoreBinaries: ['npm-check-updates'],
 }
