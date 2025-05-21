@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747837825854,
+  "lastUpdate": 1747841337352,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2943,6 +2943,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.3,
             "range": "±0.28%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3de90c9664b8198ccef19e2551e40b622156541f",
+          "message": "feat: add `DocumentTemplate` metadata support (#1077)",
+          "timestamp": "2025-05-21T17:25:34+02:00",
+          "tree_id": "cdb21e8755593cd0db5b1113c99d5393a33c38ab",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/3de90c9664b8198ccef19e2551e40b622156541f"
+        },
+        "date": 1747841336819,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.23%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
