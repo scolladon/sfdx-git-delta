@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'documentGenerationSettings',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'documentGenerationSetting',
+    xmlName: 'DocumentGenerationSetting',
+  },
+  {
     directoryName: 'contractTypes',
     inFolder: false,
     metaFile: false,
