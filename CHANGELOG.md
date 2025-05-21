@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.11.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.10.0...v6.11.0) (2025-05-21)
+
+
+### Features
+
+* add `DocumentTemplate` metadata support ([#1077](https://github.com/scolladon/sfdx-git-delta/issues/1077)) ([3de90c9](https://github.com/scolladon/sfdx-git-delta/commit/3de90c9664b8198ccef19e2551e40b622156541f))
+
 ## [6.10.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.9.0...v6.10.0) (2025-05-21)
 
 
