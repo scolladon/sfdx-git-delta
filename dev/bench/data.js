@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747832552596,
+  "lastUpdate": 1747837825854,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2912,6 +2912,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.3,
             "range": "±1.71%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8ed4fbdddfa649ed40f55334b7393499c63824e5",
+          "message": "feat: add `DocumentGenerationSetting` metadata support (#1074)",
+          "timestamp": "2025-05-21T16:27:17+02:00",
+          "tree_id": "404de466fa83b3b4312dad7a7bc55bfbee4ada4d",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/8ed4fbdddfa649ed40f55334b7393499c63824e5"
+        },
+        "date": 1747837825451,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.3,
+            "range": "±0.28%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
