@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747841337352,
+  "lastUpdate": 1748594308268,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -2974,6 +2974,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.23%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "119449315+danielwublock@users.noreply.github.com",
+            "name": "Daniel Wu",
+            "username": "danielwublock"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b94b56fc9cbeae864e0abc271726ed22e5b57cab",
+          "message": "feat: add ChoiceList metadata support (#1079)",
+          "timestamp": "2025-05-30T10:35:09+02:00",
+          "tree_id": "cb8e281fcfdb8fd5cfb5f13ca44ac7a8e6519810",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/b94b56fc9cbeae864e0abc271726ed22e5b57cab"
+        },
+        "date": 1748594307273,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.14%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
