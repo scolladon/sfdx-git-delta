@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.11.0...v6.12.0) (2025-05-30)
+
+
+### Features
+
+* add ChoiceList metadata support ([#1079](https://github.com/scolladon/sfdx-git-delta/issues/1079)) ([b94b56f](https://github.com/scolladon/sfdx-git-delta/commit/b94b56fc9cbeae864e0abc271726ed22e5b57cab))
+
 ## [6.11.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.10.0...v6.11.0) (2025-05-21)
 
 
