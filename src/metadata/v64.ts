@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'ChoiceList',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'ChoiceList',
+    xmlName: 'ChoiceList',
+  },
+  {
     directoryName: 'documentTemplates',
     inFolder: false,
     metaFile: false,
