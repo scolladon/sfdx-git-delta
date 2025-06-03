@@ -260,11 +260,12 @@ describe('GitAdapter', () => {
   describe('getFilesPath', () => {
     it('calls raw', async () => {
       // Arrange
+      const source = 'path'
       const gitAdapter = GitAdapter.getInstance(config)
       mockedRaw.mockResolvedValue('' as never)
 
       // Act
-      await gitAdapter.getFilesPath(config.source)
+      await gitAdapter.getFilesPath(source)
 
       // Assert
       expect(mockedRaw).toBeCalledWith([
@@ -272,7 +273,7 @@ describe('GitAdapter', () => {
         '--name-only',
         '-r',
         config.to,
-        config.source,
+        source,
       ])
     })
 
@@ -296,6 +297,7 @@ describe('GitAdapter', () => {
 
     it('memoize call', async () => {
       // Arrange
+      const source = 'path'
       const gitAdapter = GitAdapter.getInstance(config)
       const rawOutput = [
         'path/from/file',
@@ -305,8 +307,8 @@ describe('GitAdapter', () => {
       mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
 
       // Act
-      const result = await gitAdapter.getFilesPath(config.source)
-      const cachedResult = await gitAdapter.getFilesPath(config.source)
+      const result = await gitAdapter.getFilesPath(source)
+      const cachedResult = await gitAdapter.getFilesPath(source)
 
       // Assert
       expect(result).toEqual(rawOutput)
@@ -317,7 +319,7 @@ describe('GitAdapter', () => {
         '--name-only',
         '-r',
         config.to,
-        config.source,
+        source,
       ])
     })
 
@@ -346,6 +348,72 @@ describe('GitAdapter', () => {
         config.to,
         'path',
       ])
+    })
+
+    it('handles multiple paths correctly', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const path1Output = ['path1/file1', 'path1/file2']
+      const path2Output = ['path2/file1', 'path2/file2']
+
+      mockedRaw
+        .mockResolvedValueOnce(path1Output.join(EOL) as never)
+        .mockResolvedValueOnce(path2Output.join(EOL) as never)
+
+      // Act
+      const result = await gitAdapter.getFilesPath(['path1', 'path2'])
+
+      // Assert
+      expect(result).toEqual([...path1Output, ...path2Output])
+      expect(mockedRaw).toBeCalledTimes(2)
+      expect(mockedRaw).toHaveBeenNthCalledWith(1, [
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        'path1',
+      ])
+      expect(mockedRaw).toHaveBeenNthCalledWith(2, [
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        'path2',
+      ])
+    })
+
+    it('caches results for multiple paths independently', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const path1Output = ['path1/file1', 'path1/file2']
+      const path2Output = ['path2/file1', 'path2/file2']
+
+      mockedRaw
+        .mockResolvedValueOnce(path1Output.join(EOL) as never)
+        .mockResolvedValueOnce(path2Output.join(EOL) as never)
+
+      // Act
+      const result1 = await gitAdapter.getFilesPath(['path1', 'path2'])
+      const result2 = await gitAdapter.getFilesPath(['path1']) // Should use cache
+      const result3 = await gitAdapter.getFilesPath(['path2']) // Should use cache
+
+      // Assert
+      expect(result1).toEqual([...path1Output, ...path2Output])
+      expect(result2).toEqual(path1Output)
+      expect(result3).toEqual(path2Output)
+      expect(mockedRaw).toBeCalledTimes(2) // Only called for initial paths
+    })
+
+    it('handles empty array of paths', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+
+      // Act
+      const result = await gitAdapter.getFilesPath([])
+
+      // Assert
+      expect(result).toEqual([])
+      expect(mockedRaw).not.toBeCalled()
     })
 
     it('does not cache parent subpaths', async () => {

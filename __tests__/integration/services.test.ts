@@ -477,7 +477,7 @@ beforeEach(() => {
   work = {
     config: {
       output: '',
-      source: '',
+      source: [''],
       repo: '',
       generateDelta: true,
       to: '',

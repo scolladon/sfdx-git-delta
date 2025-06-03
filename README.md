@@ -148,7 +148,7 @@ Generate incremental package manifest and source content
 ```
 USAGE
   $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
-    <value>] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-W] [-a <value>]
+    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-W] [-a <value>]
 
 FLAGS
   -D, --ignore-destructive-file=<value>   file listing paths to explicitly ignore for any destructive actions
@@ -162,7 +162,7 @@ FLAGS
   -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
   -o, --output-dir=<value>                [default: ./output] source package specific output
   -r, --repo-dir=<value>                  [default: ./] git repository location
-  -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo-dir
+  -s, --source-dir=<value>...             [default: ./] source folder focus location related to --repo-dir
   -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
       --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
       --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.

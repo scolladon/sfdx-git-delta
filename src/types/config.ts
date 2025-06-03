@@ -2,7 +2,7 @@ export type Config = {
   to: string
   from: string
   output: string
-  source: string
+  source: string[]
   ignore?: string | undefined
   ignoreDestructive?: string | undefined
   apiVersion?: number | undefined

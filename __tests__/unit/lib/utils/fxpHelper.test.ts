@@ -19,7 +19,7 @@ describe('fxpHelper', () => {
       from: '',
       to: '',
       output: '',
-      source: '',
+      source: [''],
       ignore: '',
       ignoreDestructive: '',
       apiVersion: 0,

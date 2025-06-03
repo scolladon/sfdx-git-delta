@@ -18,7 +18,7 @@ export const getWork = (): Work => ({
     destructiveChanges: new Map<string, Set<string>>(),
   },
   config: {
-    source: './',
+    source: ['./'],
     output: 'output',
     generateDelta: true,
     to: '',

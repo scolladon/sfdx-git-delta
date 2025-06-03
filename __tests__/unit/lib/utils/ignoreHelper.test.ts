@@ -24,7 +24,7 @@ describe('ignoreHelper', () => {
     to: '',
     from: '',
     output: '',
-    source: '',
+    source: [''],
     ignore: '',
     ignoreDestructive: '',
     apiVersion: 0,
