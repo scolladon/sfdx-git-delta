@@ -3,7 +3,7 @@ import { join, parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants.js'
-import { pathExists, readDir } from '../utils/fsHelper.js'
+import { pathExists, readDirs } from '../utils/fsHelper.js'
 
 import StandardHandler from './standardHandler.js'
 
@@ -33,7 +33,7 @@ export default class ResourceHandler extends StandardHandler {
       0,
       this.metadataName!.lastIndexOf(PATH_SEP)
     )
-    const allStaticResources = await readDir(
+    const allStaticResources = await readDirs(
       staticResourcePath,
       this.work.config
     )

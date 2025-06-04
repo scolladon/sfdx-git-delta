@@ -5,12 +5,12 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, pathExists, readDir } from '../../../../src/utils/fsHelper'
+import { copyFiles, pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const mockedReadDir = jest.mocked(readDir)
+const mockedReadDirs = jest.mocked(readDirs)
 const mockedPathExists = jest.mocked(pathExists)
 
 const staticResourceType = {
@@ -88,7 +88,7 @@ describe('InResourceHandler', () => {
             // Arrange
             const base = 'force-app/main/default/'
             const line = `A       ${base}${type.directoryName}/${path}`
-            mockedReadDir.mockResolvedValue([
+            mockedReadDirs.mockResolvedValue([
               `${base}${type.directoryName}/other.resource-meta.xml`,
               `${base}${type.directoryName}/other/`,
               `${base}${type.directoryName}/image.resource-meta.xml`,
@@ -156,7 +156,7 @@ describe('InResourceHandler', () => {
             work,
             globalMetadata
           )
-          mockedReadDir.mockResolvedValueOnce([])
+          mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
           await sut.handle()

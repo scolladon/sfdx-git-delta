@@ -4,12 +4,12 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, readDir } from '../../../../src/utils/fsHelper'
+import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const mockedReadDir = jest.mocked(readDir)
+const mockedReadDirs = jest.mocked(readDirs)
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
@@ -117,7 +117,7 @@ describe('ContainedDecomposedHandler', () => {
         'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
         'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermissions-meta.xml',
       ]
-      mockedReadDir.mockResolvedValue(existingFiles)
+      mockedReadDirs.mockResolvedValue(existingFiles)
 
       const sut = new ContainedDecomposedHandler(
         `A       ${decomposedLine}`,
@@ -142,7 +142,7 @@ describe('ContainedDecomposedHandler', () => {
         'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
         'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermissions-meta.xml',
       ]
-      mockedReadDir.mockResolvedValue(existingFiles)
+      mockedReadDirs.mockResolvedValue(existingFiles)
 
       const sut = new ContainedDecomposedHandler(
         `M       ${decomposedLine}`,
@@ -167,7 +167,7 @@ describe('ContainedDecomposedHandler', () => {
         'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
         'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermissions-meta.xml',
       ]
-      mockedReadDir.mockResolvedValue(existingFiles)
+      mockedReadDirs.mockResolvedValue(existingFiles)
 
       const sut = new ContainedDecomposedHandler(
         `D       ${decomposedLine}`,
@@ -187,7 +187,7 @@ describe('ContainedDecomposedHandler', () => {
 
     it(`should handle deletion with no remaining files as destructive change for "${decomposedLine}"`, async () => {
       // Arrange
-      mockedReadDir.mockResolvedValue([])
+      mockedReadDirs.mockResolvedValue([])
 
       const sut = new ContainedDecomposedHandler(
         `D       ${decomposedLine}`,

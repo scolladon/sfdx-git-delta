@@ -9,13 +9,13 @@ import {
 import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
 import type { Work } from '../../src/types/work'
-import { pathExists, readDir, readPathFromGit } from '../../src/utils/fsHelper'
+import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 import { getGlobalMetadata } from '../__utils__/globalTestHelper'
 
 jest.mock('../../src/utils/fsHelper')
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
-const mockedReadDir = jest.mocked(readDir)
+const mockedReadDirs = jest.mocked(readDirs)
 const mockedPathExists = jest.mocked(pathExists)
 
 const testContext = [
@@ -494,7 +494,7 @@ beforeEach(() => {
   }
   handlerFactory = new TypeHandlerFactory(work, globalMetadata)
 
-  mockedReadDir.mockResolvedValue(existingFiles)
+  mockedReadDirs.mockResolvedValue(existingFiles)
   mockedPathExists.mockImplementation(path => {
     return Promise.resolve(existingFiles.includes(path))
   })
@@ -531,7 +531,7 @@ describe.each(testContext)(
         mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
       }
 
-      mockedReadDir.mockResolvedValue([])
+      mockedReadDirs.mockResolvedValue([])
       mockedPathExists.mockResolvedValue(false)
 
       const sut = handlerFactory.getTypeHandler(

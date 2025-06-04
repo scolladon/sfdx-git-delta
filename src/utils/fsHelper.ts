@@ -52,7 +52,7 @@ export const pathExists = async (path: string, config: Config) => {
   return await gitAdapter.pathExists(path)
 }
 
-export const readDir = async (
+export const readDirs = async (
   paths: string | string[],
   config: Config
 ): Promise<string[]> => {

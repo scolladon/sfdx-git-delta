@@ -5,11 +5,11 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import InFolder from '../../../../src/service/inFolderHandler'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, readDir } from '../../../../src/utils/fsHelper'
+import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
-const mockedReadDir = jest.mocked(readDir)
+const mockedReadDirs = jest.mocked(readDirs)
 
 const entity = 'folder/test'
 const extension = 'document'
@@ -56,18 +56,18 @@ describe('InFolderHandler', () => {
       work.config.generateDelta = true
     })
 
-    describe('when readDir does not return files', () => {
+    describe('when readDirs does not return files', () => {
       it('should not copy special extension and copy meta files', async () => {
         // Arrange
         const sut = new InFolder(line, objectType, work, globalMetadata)
-        mockedReadDir.mockImplementation(() => Promise.resolve([]))
+        mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
         // Act
         await sut.handleAddition()
 
         // Assert
         expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
-        expect(readDir).toHaveBeenCalledTimes(1)
+        expect(readDirs).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(3)
         expect(copyFiles).toHaveBeenCalledWith(
           work.config,
@@ -76,11 +76,11 @@ describe('InFolderHandler', () => {
       })
     })
 
-    describe('when readDir returns files', () => {
+    describe('when readDirs returns files', () => {
       it('should copy special extension', async () => {
         // Arrange
         const sut = new InFolder(line, objectType, work, globalMetadata)
-        mockedReadDir.mockImplementationOnce(() =>
+        mockedReadDirs.mockImplementationOnce(() =>
           Promise.resolve([entity, 'not/matching'])
         )
 
@@ -89,7 +89,7 @@ describe('InFolderHandler', () => {
 
         // Assert
         expect(work.diffs.package.get(xmlName)).toEqual(new Set([entity]))
-        expect(readDir).toHaveBeenCalledTimes(1)
+        expect(readDirs).toHaveBeenCalledTimes(1)
         expect(copyFiles).toHaveBeenCalledTimes(5)
       })
     })

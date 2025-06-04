@@ -7,7 +7,7 @@ import {
   METAFILE_SUFFIX,
   META_REGEX,
 } from '../constant/metadataConstants.js'
-import { readDir } from '../utils/fsHelper.js'
+import { readDirs } from '../utils/fsHelper.js'
 
 import StandardHandler from './standardHandler.js'
 
@@ -34,7 +34,7 @@ export default class InFolderHandler extends StandardHandler {
 
   protected async _copySpecialExtension() {
     const parsedLine = parse(this.line)
-    const dirContent = await readDir(parsedLine.dir, this.config)
+    const dirContent = await readDirs(parsedLine.dir, this.config)
 
     await Promise.all(
       dirContent

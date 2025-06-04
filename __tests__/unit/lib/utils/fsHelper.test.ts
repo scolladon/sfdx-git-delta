@@ -8,7 +8,7 @@ import type { Work } from '../../../../src/types/work'
 import {
   copyFiles,
   pathExists,
-  readDir,
+  readDirs,
   readPathFromGit,
   writeFile,
 } from '../../../../src/utils/fsHelper'
@@ -260,7 +260,7 @@ describe('copyFile', () => {
   })
 })
 
-describe('readDir', () => {
+describe('readDirs', () => {
   describe('when path exist', () => {
     const dir = 'dir/'
     const file = 'test.js'
@@ -272,11 +272,28 @@ describe('readDir', () => {
     })
     it('should return the file', async () => {
       // Act
-      const dirContent = await readDir(dir, work.config)
+      const dirContent = await readDirs(dir, work.config)
 
       // Assert
       expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
       expect(mockGetFilesPath).toHaveBeenCalled()
+    })
+
+    it('should work with an array of paths', async () => {
+      // Arrange
+      const paths = ['dir1/', 'dir2/']
+      mockGetFilesPath.mockImplementation(() =>
+        Promise.resolve(['dir1/file1.js', 'dir2/file2.js'])
+      )
+
+      // Act
+      const dirContent = await readDirs(paths, work.config)
+
+      // Assert
+      expect(dirContent).toEqual(
+        expect.arrayContaining(['dir1/file1.js', 'dir2/file2.js'])
+      )
+      expect(mockGetFilesPath).toHaveBeenCalledWith(paths)
     })
   })
 
@@ -290,7 +307,7 @@ describe('readDir', () => {
     it('should throw', async () => {
       // Act
       try {
-        await readDir('path', work.config)
+        await readDirs('path', work.config)
       } catch (err) {
         // Assert
         expect(err).toBeTruthy()
