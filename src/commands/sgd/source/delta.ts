@@ -53,6 +53,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     'source-dir': Flags.directory({
       char: 's',
       summary: messages.getMessage('flags.source.summary'),
+      description: messages.getMessage('flags.source.description'),
       default: [SOURCE_DEFAULT_VALUE],
       aliases: ['source'],
       deprecateAliases: true,

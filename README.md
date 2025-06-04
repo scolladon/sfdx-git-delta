@@ -162,7 +162,7 @@ FLAGS
   -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
   -o, --output-dir=<value>                [default: ./output] source package specific output
   -r, --repo-dir=<value>                  [default: ./] git repository location
-  -s, --source-dir=<value>...             [default: ./] source folder focus location related to --repo-dir
+  -s, --source-dir=<value>...             [default: ./] source folders focus location relative to --repo-dir
   -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
       --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
       --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
@@ -193,6 +193,16 @@ FLAG DESCRIPTIONS
     salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribute or latest version
 
     Override the api version used for api requests made by this command
+
+  -s, --source-dir=<value>...  source folders focus location relative to --repo-dir
+
+    You can use this flag multiple times to include different folders that contain source files. Each path should be
+    relative to --repo-dir.
+
+    The folder can exist or not.
+    * If the folder exists, its contents will be processed.
+    * If the folder doesn't exist, it usually won't show any output—unless the folder was recently deleted and is part
+    of a diff, in which case changes may still be picked up.
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
