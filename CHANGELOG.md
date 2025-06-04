@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.13.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.12.0...v6.13.0) (2025-06-04)
+
+
+### Features
+
+* support multiple --source-dir flags ([#1084](https://github.com/scolladon/sfdx-git-delta/issues/1084)) ([973913d](https://github.com/scolladon/sfdx-git-delta/commit/973913dcc225d88203f2001dc3199faa319dd41e))
+
 ## [6.12.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.11.0...v6.12.0) (2025-05-30)
 
 
