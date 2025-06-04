@@ -52,12 +52,12 @@ export const pathExists = async (path: string, config: Config) => {
   return await gitAdapter.pathExists(path)
 }
 
-export const readDir = async (
-  path: string,
+export const readDirs = async (
+  paths: string | string[],
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.getFilesPath(path)
+  return await gitAdapter.getFilesPath(paths)
 }
 
 export const writeFile = async (

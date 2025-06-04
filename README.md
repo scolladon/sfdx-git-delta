@@ -148,7 +148,7 @@ Generate incremental package manifest and source content
 ```
 USAGE
   $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
-    <value>] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-W] [-a <value>]
+    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-W] [-a <value>]
 
 FLAGS
   -D, --ignore-destructive-file=<value>   file listing paths to explicitly ignore for any destructive actions
@@ -162,7 +162,7 @@ FLAGS
   -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
   -o, --output-dir=<value>                [default: ./output] source package specific output
   -r, --repo-dir=<value>                  [default: ./] git repository location
-  -s, --source-dir=<value>                [default: ./] source folder focus location related to --repo-dir
+  -s, --source-dir=<value>...             [default: ./] source folders focus location relative to --repo-dir
   -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
       --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
       --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
@@ -193,6 +193,16 @@ FLAG DESCRIPTIONS
     salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribute or latest version
 
     Override the api version used for api requests made by this command
+
+  -s, --source-dir=<value>...  source folders focus location relative to --repo-dir
+
+    You can use this flag multiple times to include different folders that contain source files. Each path should be
+    relative to --repo-dir.
+
+    The folder can exist or not.
+    * If the folder exists, its contents will be processed.
+    * If the folder doesn't exist, it usually won't show any output—unless the folder was recently deleted and is part
+    of a diff, in which case changes may still be picked up.
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
@@ -471,29 +481,36 @@ $ sf sgd source delta --from commit --include-destructive-file .destructiveinclu
 
 The path matchers in includes file must follow [`gitignore`](https://git-scm.com/docs/gitignore#:~:text=The%20slash%20/%20is%20used%20as%20the%20directory%20separator.) spec and accept only unix path separator `/` (even for windows system).
 
-### Scoping delta generation to a specific folder
+### Scoping delta generation to specific folders
 
-The `--source-dir [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
-It means the delta generation will only focus on the dedicated folder.
+The `--source-dir [-s]` parameter allows you to specify one or more folders to focus on, making any other folders ignored.
+It means the delta generation will only focus on the dedicated folders.
 
-For example, consider a repository containing many sub-folders (force-app/package, force-app/unpackaged, etc).
+For example, consider a repository containing many sub-folders (force-app/packaged, force-app/unpackaged, etc).
 This repository contains packaged (deployed via package) and unpackaged (deployed via CLI) sources.
-You only want to apply delta generation for the unpackaged sources.
+You only want to apply delta generation for the `admin` and `ui` folder of the unpackaged sources.
 
 ```sh
 $ tree
 .
 ├── force-app
-    ├── packaged
-    │    └── classes
-    │        └── PackagedClass.cls
-    └── unpackaged
-        └── classes
-            └── UnpackagedClass.cls
-├── ...
+│   ├── packaged
+│   │   └── classes
+│   │       └── PackagedClass.cls
+│   └── unpackaged
+│       ├── admin
+│       │   └── profile
+│       │       └── Admin.profile-meta.xml
+│       ├── legacy
+│       │   └── classes
+│       │       └── LegacyClass.cls
+│       └── ui
+│           └── lightningExperienceThemes
+│               └── MyCustomTheme.lightningExperienceTheme-meta.xml
+└── ...
 
-# scope the delta generation only to the unpackaged folder
-$ sf sgd source delta --from commit --source-dir force-app/unpackaged
+# scope the delta generation only to the unpackaged folders
+$ sf sgd source delta --from commit --source-dir force-app/unpackaged/admin --source-dir force-app/unpackaged/ui
 ```
 
 > The ignored patterns specified using `--ignore-file [-i]` and `--ignore-destructive-file [-D]` still apply.

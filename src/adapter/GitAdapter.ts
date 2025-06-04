@@ -112,7 +112,7 @@ export default class GitAdapter {
       .map(line => treatPathSep(line))
   }
 
-  public async getFilesPath(path: string): Promise<string[]> {
+  protected async getFilesPathCached(path: string): Promise<string[]> {
     if (this.getFilesPathCache.has(path)) {
       return Array.from(this.getFilesPathCache.get(path)!)
     }
@@ -142,6 +142,20 @@ export default class GitAdapter {
     this.getFilesPathCache.set(path, new Set(filesPath))
 
     return filesPath
+  }
+
+  public async getFilesPath(paths: string | string[]): Promise<string[]> {
+    if (typeof paths === 'string') {
+      return this.getFilesPathCached(paths)
+    }
+
+    const result: string[] = []
+    for (const path of paths) {
+      const filesPath = await this.getFilesPathCached(path)
+      result.push(...filesPath)
+    }
+
+    return result
   }
 
   public async *getFilesFrom(path: string) {
@@ -182,7 +196,7 @@ export default class GitAdapter {
         this.config.from,
         this.config.to,
         '--',
-        this.config.source,
+        ...this.config.source,
       ])
     ).split(EOL)
   }

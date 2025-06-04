@@ -44,7 +44,7 @@ describe(`test if repoGitDiff`, () => {
       to: '',
       from: '',
       output: '',
-      source: '',
+      source: [''],
       ignore: '',
       ignoreDestructive: '',
       apiVersion: 0,

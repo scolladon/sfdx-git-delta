@@ -12,7 +12,7 @@ const config: Config = {
   to: '',
   from: '',
   output: '',
-  source: '',
+  source: [''],
   ignore: '',
   ignoreDestructive: '',
   repo: '',

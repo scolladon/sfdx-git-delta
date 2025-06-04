@@ -8,7 +8,7 @@ import {
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { Metadata } from '../types/metadata.js'
 import { Work } from '../types/work.js'
-import { readDir } from '../utils/fsHelper.js'
+import { readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ContainedDecomposedHandler extends StandardHandler {
@@ -75,7 +75,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   }
 
   protected async _hasRelatedContent(): Promise<boolean> {
-    const files = await readDir(
+    const files = await readDirs(
       join(this.holderFolder!.dir, this.holderFolder!.base),
       this.config
     )

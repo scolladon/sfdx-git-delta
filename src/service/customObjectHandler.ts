@@ -7,7 +7,7 @@ import {
   OBJECT_TYPE,
 } from '../constant/metadataConstants.js'
 import asyncFilter from '../utils/asyncFilter.js'
-import { pathExists, readDir, readPathFromGit } from '../utils/fsHelper.js'
+import { pathExists, readDirs, readPathFromGit } from '../utils/fsHelper.js'
 
 import StandardHandler from './standardHandler.js'
 
@@ -26,7 +26,7 @@ export default class CustomObjectHandler extends StandardHandler {
     if (!exists) return
 
     // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
-    const fields = await readDir(fieldsFolder, this.config)
+    const fields = await readDirs(fieldsFolder, this.config)
     const masterDetailsFields = await asyncFilter(
       fields,
       async (path: string) => {

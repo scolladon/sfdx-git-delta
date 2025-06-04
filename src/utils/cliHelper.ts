@@ -117,7 +117,7 @@ export default class CLIHelper {
 
   protected _sanitizeConfig() {
     this.config.repo = sanitizePath(this.config.repo)!
-    this.config.source = sanitizePath(this.config.source)!
+    this.config.source = this.config.source.map(source => sanitizePath(source)!)
     this.config.output = sanitizePath(this.config.output)!
     this.config.ignore = sanitizePath(this.config.ignore)
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)

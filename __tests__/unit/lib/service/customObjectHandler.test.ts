@@ -8,7 +8,7 @@ import type { Work } from '../../../../src/types/work'
 import {
   copyFiles,
   pathExists,
-  readDir,
+  readDirs,
   readPathFromGit,
 } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
@@ -16,7 +16,7 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedPathExist = jest.mocked(pathExists)
-const mockedReadDir = jest.mocked(readDir)
+const mockedReadDirs = jest.mocked(readDirs)
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 
 mockedPathExist.mockResolvedValue(true)
@@ -106,7 +106,7 @@ describe('CustomObjectHandler', () => {
       describe('when field folder contains master details', () => {
         it('should copy master detail fields', async () => {
           // Arrange
-          mockedReadDir.mockResolvedValueOnce(['Name.field-meta.xml'])
+          mockedReadDirs.mockResolvedValueOnce(['Name.field-meta.xml'])
           mockedReadPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
           const sut = new CustomObjectHandler(
             line,
@@ -126,7 +126,7 @@ describe('CustomObjectHandler', () => {
       describe('when field folder does not contain master details', () => {
         it('should not copy master detail fields', async () => {
           // Arrange
-          mockedReadDir.mockResolvedValue([])
+          mockedReadDirs.mockResolvedValue([])
           mockedReadPathFromGit.mockResolvedValueOnce('')
           const sut = new CustomObjectHandler(
             line,
@@ -159,7 +159,7 @@ describe('CustomObjectHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readDir).not.toBeCalled()
+        expect(readDirs).not.toBeCalled()
       })
     })
   })

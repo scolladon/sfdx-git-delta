@@ -34,7 +34,15 @@ source package specific output
 
 # flags.source.summary
 
-source folder focus location related to --repo-dir
+source folders focus location relative to --repo-dir
+
+# flags.source.description
+
+You can use this flag multiple times to include different folders that contain source files. Each path should be relative to --repo-dir.
+
+The folder can exist or not.
+* If the folder exists, its contents will be processed.
+* If the folder doesn't exist, it usually won't show any output—unless the folder was recently deleted and is part of a diff, in which case changes may still be picked up.
 
 # flags.ignore.summary
 

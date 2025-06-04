@@ -9,7 +9,7 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import type { Work } from '../../../../src/types/work'
-import { readDir, writeFile } from '../../../../src/utils/fsHelper'
+import { readDirs, writeFile } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
@@ -22,7 +22,7 @@ import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsUtils')
 
-const mockedReadDir = jest.mocked(readDir)
+const mockedReadDirs = jest.mocked(readDirs)
 const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
 const mockedIsSubDir = jest.mocked(isSubDir)
 const mockedPathExists = jest.mocked(pathExists)
@@ -80,7 +80,7 @@ describe('FlowTranslationProcessor', () => {
         work.config.repo = './'
         work.config.output = outputPath
         sut = new FlowTranslationProcessor(work, metadata)
-        mockedReadDir.mockResolvedValue([translationPath])
+        mockedReadDirs.mockResolvedValue([translationPath])
       })
 
       describe('when no flow have been modified', () => {
@@ -89,7 +89,7 @@ describe('FlowTranslationProcessor', () => {
           await sut.process()
 
           // Assert
-          expect(mockedReadDir).not.toHaveBeenCalled()
+          expect(mockedReadDirs).not.toHaveBeenCalled()
           expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
         })
       })
@@ -108,15 +108,15 @@ describe('FlowTranslationProcessor', () => {
         describe('when there is no translation file', () => {
           beforeEach(() => {
             // Arrange
-            mockedReadDir.mockResolvedValue([])
+            mockedReadDirs.mockResolvedValue([])
           })
           it('should not add translation file', async () => {
             // Act
             await sut.process()
 
             // Assert
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -137,8 +137,8 @@ describe('FlowTranslationProcessor', () => {
 
             // Assert
             expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -159,8 +159,8 @@ describe('FlowTranslationProcessor', () => {
             await sut.process()
 
             // Assert
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -187,8 +187,8 @@ describe('FlowTranslationProcessor', () => {
             await sut.process()
 
             // Assert
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -229,8 +229,8 @@ describe('FlowTranslationProcessor', () => {
             await sut.process()
 
             // Assert
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -247,7 +247,7 @@ describe('FlowTranslationProcessor', () => {
         describe('when there is multiple translation file with multiple flow def', () => {
           beforeEach(() => {
             // Arrange
-            mockedReadDir.mockResolvedValue([
+            mockedReadDirs.mockResolvedValue([
               translationPath,
               `fr_${translationPath}`,
             ])
@@ -266,8 +266,8 @@ describe('FlowTranslationProcessor', () => {
 
               // Assert
               expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-              expect(mockedReadDir).toHaveBeenCalledTimes(1)
-              expect(mockedReadDir).toHaveBeenCalledWith(
+              expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+              expect(mockedReadDirs).toHaveBeenCalledWith(
                 work.config.source,
                 work.config
               )
@@ -302,8 +302,8 @@ describe('FlowTranslationProcessor', () => {
 
                   // Assert
                   expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-                  expect(mockedReadDir).toHaveBeenCalledTimes(1)
-                  expect(mockedReadDir).toHaveBeenCalledWith(
+                  expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+                  expect(mockedReadDirs).toHaveBeenCalledWith(
                     work.config.source,
                     work.config
                   )
@@ -328,8 +328,8 @@ describe('FlowTranslationProcessor', () => {
 
             // Assert
             expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -353,8 +353,8 @@ describe('FlowTranslationProcessor', () => {
 
             // Assert
             expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
@@ -377,8 +377,8 @@ describe('FlowTranslationProcessor', () => {
 
             // Assert
             expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
-            expect(mockedReadDir).toHaveBeenCalledTimes(1)
-            expect(mockedReadDir).toHaveBeenCalledWith(
+            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
+            expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )

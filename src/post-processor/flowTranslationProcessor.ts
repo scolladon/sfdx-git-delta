@@ -10,7 +10,7 @@ import {
 } from '../constant/metadataConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
-import { readDir, writeFile } from '../utils/fsHelper.js'
+import { readDirs, writeFile } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import {
   convertJsonToXml,
@@ -56,7 +56,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translations.clear()
 
-    const allFiles = await readDir(this.config.source, this.work.config)
+    const allFiles = await readDirs(this.config.source, this.work.config)
     const translationPaths = allFiles.filter((file: string) =>
       file.replace(META_REGEX, '').endsWith(EXTENSION)
     )
