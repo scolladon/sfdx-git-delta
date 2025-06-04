@@ -471,29 +471,36 @@ $ sf sgd source delta --from commit --include-destructive-file .destructiveinclu
 
 The path matchers in includes file must follow [`gitignore`](https://git-scm.com/docs/gitignore#:~:text=The%20slash%20/%20is%20used%20as%20the%20directory%20separator.) spec and accept only unix path separator `/` (even for windows system).
 
-### Scoping delta generation to a specific folder
+### Scoping delta generation to specific folders
 
-The `--source-dir [-s]`parameter allows you to specify a folder to focus on, making any other folder ignored.
-It means the delta generation will only focus on the dedicated folder.
+The `--source-dir [-s]` parameter allows you to specify one or more folders to focus on, making any other folders ignored.
+It means the delta generation will only focus on the dedicated folders.
 
-For example, consider a repository containing many sub-folders (force-app/package, force-app/unpackaged, etc).
+For example, consider a repository containing many sub-folders (force-app/packaged, force-app/unpackaged, etc).
 This repository contains packaged (deployed via package) and unpackaged (deployed via CLI) sources.
-You only want to apply delta generation for the unpackaged sources.
+You only want to apply delta generation for the `admin` and `ui` folder of the unpackaged sources.
 
 ```sh
 $ tree
 .
 ├── force-app
-    ├── packaged
-    │    └── classes
-    │        └── PackagedClass.cls
-    └── unpackaged
-        └── classes
-            └── UnpackagedClass.cls
-├── ...
+│   ├── packaged
+│   │   └── classes
+│   │       └── PackagedClass.cls
+│   └── unpackaged
+│       ├── admin
+│       │   └── profile
+│       │       └── Admin.profile-meta.xml
+│       ├── legacy
+│       │   └── classes
+│       │       └── LegacyClass.cls
+│       └── ui
+│           └── lightningExperienceThemes
+│               └── MyCustomTheme.lightningExperienceTheme-meta.xml
+└── ...
 
-# scope the delta generation only to the unpackaged folder
-$ sf sgd source delta --from commit --source-dir force-app/unpackaged
+# scope the delta generation only to the unpackaged folders
+$ sf sgd source delta --from commit --source-dir force-app/unpackaged/admin --source-dir force-app/unpackaged/ui
 ```
 
 > The ignored patterns specified using `--ignore-file [-i]` and `--ignore-destructive-file [-D]` still apply.
