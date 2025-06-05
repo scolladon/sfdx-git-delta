@@ -55,7 +55,7 @@ export default class ResourceHandler extends StandardHandler {
       !this.metadataDef.excluded && this.ext === this.metadataDef.suffix
         ? this.splittedLine.at(-1)!
         : this.splittedLine[
-            this.splittedLine.indexOf(this.metadataDef.directoryName) + 1
+            this.splittedLine.lastIndexOf(this.metadataDef.directoryName) + 1
           ]
     return parse(base.replace(META_REGEX, ''))
   }
@@ -65,22 +65,22 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected _getMetadataName() {
-    const resourcePath = []
-    for (const pathElement of this.splittedLine) {
-      if (resourcePath.slice(-2)[0] === this.metadataDef.directoryName) {
-        break
-      }
-      resourcePath.push(pathElement)
-    }
-    const lastPathElement = resourcePath[resourcePath.length - 1]
+    const metadataDirIndex = this.splittedLine.lastIndexOf(
+      this.metadataDef.directoryName
+    )
+
+    const metadataFullPath = this.splittedLine.slice(0, metadataDirIndex + 2)
+    const componentNameIndex = metadataFullPath.length - 1
+    const componentNameParts = metadataFullPath[componentNameIndex]
       .replace(METAFILE_SUFFIX, '')
       .split(DOT)
-    if (lastPathElement.length > 1) {
-      lastPathElement.pop()
+
+    if (componentNameParts.length > 1) {
+      componentNameParts.pop()
     }
 
-    resourcePath[resourcePath.length - 1] = lastPathElement.join(DOT)
-    return `${resourcePath.join(PATH_SEP)}`
+    metadataFullPath[componentNameIndex] = componentNameParts.join(DOT)
+    return metadataFullPath.join(PATH_SEP)
   }
 
   protected override _getMetaTypeFilePath() {
