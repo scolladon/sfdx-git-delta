@@ -66,6 +66,29 @@ describe('InResourceHandler', () => {
         expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([element])
         expect(copyFiles).not.toBeCalled()
       })
+
+      it('should correctly identify component name in deeply nested metadata kind folder structure', async () => {
+        // Arrange
+        const lwcType = {
+          directoryName: 'lwc',
+          inFolder: false,
+          metaFile: false,
+          xmlName: 'LightningComponentBundle',
+          element: 'deeplyNestedComponent',
+        }
+        const nestedPath = `force-app/main/default/lwc/sub_folder1/lwc/${lwcType.element}/${lwcType.element}.js`
+        const line = `A       ${nestedPath}`
+        const sut = new InResourceHandler(line, lwcType, work, globalMetadata)
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(Array.from(work.diffs.package.get(lwcType.xmlName)!)).toEqual([
+          lwcType.element,
+        ])
+        expect(copyFiles).not.toBeCalled()
+      })
     })
 
     describe('when generating delta', () => {
