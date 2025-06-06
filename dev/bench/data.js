@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749056626483,
+  "lastUpdate": 1749219696093,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3036,6 +3036,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.3,
             "range": "±0.25%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b5461856818842933ee8f826c4abc9fdc7232470",
+          "message": "fix: improve metadata path resolution for nested directories (#1087)\n\nCo-authored-by: vradk <45564266+vradk@users.noreply.github.com>",
+          "timestamp": "2025-06-06T16:18:06+02:00",
+          "tree_id": "1a0f8157cf60489204efe6524aae4ebef673d291",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/b5461856818842933ee8f826c4abc9fdc7232470"
+        },
+        "date": 1749219695620,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.30%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
