@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.13.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.13.0...v6.13.1) (2025-06-06)
+
+
+### Bug Fixes
+
+* improve metadata path resolution for nested directories ([#1087](https://github.com/scolladon/sfdx-git-delta/issues/1087)) ([b546185](https://github.com/scolladon/sfdx-git-delta/commit/b5461856818842933ee8f826c4abc9fdc7232470))
+
 ## [6.13.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.12.0...v6.13.0) (2025-06-04)
 
 
