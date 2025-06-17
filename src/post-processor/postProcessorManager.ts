@@ -33,7 +33,7 @@ export default class PostProcessorManager {
         await postProcessor.process()
       } catch (error) {
         // biome-ignore lint/suspicious/noConsoleLog: temporary log
-        console.error(error)
+        console.log(error)
         if (error instanceof Error) {
           this.work.warnings.push(error)
         }
