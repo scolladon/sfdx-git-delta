@@ -71,7 +71,7 @@ export default class StandardHandler {
         }
       } catch (error) {
         // biome-ignore lint/suspicious/noConsoleLog: temporary log
-        console.error(error)
+        console.log(error)
         if (error instanceof Error) {
           error.message = `${this.line}: ${error.message}`
           this.warnings.push(error)
