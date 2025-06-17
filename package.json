@@ -111,6 +111,7 @@
     "lint:dependencies": "wireit",
     "lint:fs": "wireit",
     "lint": "wireit",
+    "lint:fix": "wireit",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "wireit",
     "prepare": "husky",
@@ -175,7 +176,21 @@
       ]
     },
     "lint": {
-      "command": "npx @biomejs/biome check --error-on-warnings src __tests__",
+      "command": "npx @biomejs/biome check --error-on-warnings src __tests__ messages",
+      "files": [
+        "src/**",
+        "__tests__/**/*.ts",
+        "messages/**",
+        "**/biome.json",
+        "**/tsconfig.json"
+      ],
+      "output": [],
+      "dependencies": [
+        "lint:fs"
+      ]
+    },
+    "lint:fix": {
+      "command": "npx @biomejs/biome check --fix --unsafe src __tests__ messages",
       "files": [
         "src/**",
         "__tests__/**/*.ts",
