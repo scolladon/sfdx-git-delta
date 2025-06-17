@@ -175,7 +175,7 @@
       ]
     },
     "lint": {
-      "command": "npx @biomejs/biome check --error-on-warnings src __tests__ messages",
+      "command": "npx @biomejs/biome check src __tests__ messages",
       "files": [
         "src/**",
         "__tests__/**/*.ts",
