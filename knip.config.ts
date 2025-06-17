@@ -1,7 +1,6 @@
 export default {
   entry: [
     'src/commands/sgd/source/delta.ts',
-    'src/main.ts',
     'bin/dev.js',
     'bin/run.js',
     '**/*.{nut,test}.ts',
