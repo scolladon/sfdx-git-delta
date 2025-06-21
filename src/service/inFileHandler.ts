@@ -45,9 +45,17 @@ export default class InFileHandler extends StandardHandler {
 
   protected async _compareRevisionAndStoreComparison() {
     const { added, deleted } = await this.metadataDiff.compare(this.line)
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(added)
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(deleted)
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
     const { xmlContent, isEmpty } = this.metadataDiff.prune()
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(isEmpty)
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(xmlContent)
     if (this._shouldTreatContainerType(isEmpty)) {
       // Call from super.handleAddition to add the Root Type
       // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
