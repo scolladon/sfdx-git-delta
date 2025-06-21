@@ -23,7 +23,7 @@ export default class RepoGitDiff {
     const treatedLines = await this._treatResult(lines)
     // biome-ignore lint/suspicious/noConsoleLog: temporary log
     console.log(treatedLines)
-    return Array.from(new Set([...treatedLines]))
+    return treatedLines
   }
 
   protected async _treatResult(lines: string[]): Promise<string[]> {
