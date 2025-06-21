@@ -56,6 +56,8 @@ export default class StandardHandler {
   }
 
   public async handle() {
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(this.line)
     if (this._isProcessable()) {
       try {
         switch (this.changeType) {

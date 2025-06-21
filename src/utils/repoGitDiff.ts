@@ -18,7 +18,11 @@ export default class RepoGitDiff {
 
   public async getLines() {
     const lines = await this.gitAdapter.getDiffLines()
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(lines)
     const treatedLines = await this._treatResult(lines)
+    // biome-ignore lint/suspicious/noConsoleLog: temporary log
+    console.log(treatedLines)
     return Array.from(new Set([...treatedLines]))
   }
 
