@@ -32,6 +32,7 @@ export default class PostProcessorManager {
       try {
         await postProcessor.process()
       } catch (error) {
+        console.log(error)
         if (error instanceof Error) {
           this.work.warnings.push(error)
         }
