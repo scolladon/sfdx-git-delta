@@ -88,9 +88,9 @@ describe('GitAdapter', () => {
       await gitAdapter.configureRepository()
 
       // Assert
-      expect(mockedAddConfig).toBeCalledTimes(2)
-      expect(mockedAddConfig).toBeCalledWith('core.longpaths', 'true')
-      expect(mockedAddConfig).toBeCalledWith('core.quotepath', 'off')
+      expect(mockedAddConfig).toHaveBeenCalledTimes(2)
+      expect(mockedAddConfig).toHaveBeenCalledWith('core.longpaths', 'true')
+      expect(mockedAddConfig).toHaveBeenCalledWith('core.quotepath', 'off')
     })
   })
 
@@ -106,8 +106,10 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toStrictEqual(expected)
-      expect(mockedRevParse).toBeCalledTimes(1)
-      expect(mockedRevParse).toBeCalledWith(expect.arrayContaining(['ref']))
+      expect(mockedRevParse).toHaveBeenCalledTimes(1)
+      expect(mockedRevParse).toHaveBeenCalledWith(
+        expect.arrayContaining(['ref'])
+      )
     })
   })
 
@@ -123,8 +125,8 @@ describe('GitAdapter', () => {
 
         // Assert
         expect(result).toBe(true)
-        expect(mockedCatFile).toBeCalledTimes(1)
-        expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
+        expect(mockedCatFile).toHaveBeenCalledTimes(1)
+        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
       it.each(['test', 'other', null, undefined, -1])(
         'returns false when type is not "blob" nor "tree"',
@@ -138,8 +140,11 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe(false)
-          expect(mockedCatFile).toBeCalledTimes(1)
-          expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
+          expect(mockedCatFile).toHaveBeenCalledTimes(1)
+          expect(mockedCatFile).toHaveBeenCalledWith([
+            '-t',
+            `${config.to}:path`,
+          ])
         }
       )
     })
@@ -156,8 +161,8 @@ describe('GitAdapter', () => {
         // Assert
         expect(result).toBe(true)
         expect(cachedResult).toStrictEqual(result)
-        expect(mockedCatFile).toBeCalledTimes(1)
-        expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
+        expect(mockedCatFile).toHaveBeenCalledTimes(1)
+        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
     })
     describe('when catFile throws', () => {
@@ -171,8 +176,8 @@ describe('GitAdapter', () => {
 
         // Assert
         expect(result).toBe(false)
-        expect(mockedCatFile).toBeCalledTimes(1)
-        expect(mockedCatFile).toBeCalledWith(['-t', `${config.to}:path`])
+        expect(mockedCatFile).toHaveBeenCalledTimes(1)
+        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
     })
   })
@@ -189,7 +194,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toBe(expected)
-      expect(mockedRaw).toBeCalledTimes(1)
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -213,7 +218,7 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe('')
-          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
+          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
         })
       })
       describe('when string does not reference a LFS file', () => {
@@ -231,7 +236,7 @@ describe('GitAdapter', () => {
 
           // Assert
           expect(result).toBe(expected)
-          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
+          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
         })
       })
     })
@@ -251,7 +256,7 @@ describe('GitAdapter', () => {
           })
         } catch {
           // Assert
-          expect(mockedShowBuffer).toBeCalledWith(`${config.to}:`)
+          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
         }
       })
     })
@@ -268,7 +273,7 @@ describe('GitAdapter', () => {
       await gitAdapter.getFilesPath(source)
 
       // Assert
-      expect(mockedRaw).toBeCalledWith([
+      expect(mockedRaw).toHaveBeenCalledWith([
         'ls-tree',
         '--name-only',
         '-r',
@@ -286,7 +291,7 @@ describe('GitAdapter', () => {
       await gitAdapter.getFilesPath('')
 
       // Assert
-      expect(mockedRaw).toBeCalledWith([
+      expect(mockedRaw).toHaveBeenCalledWith([
         'ls-tree',
         '--name-only',
         '-r',
@@ -313,8 +318,8 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(rawOutput)
       expect(cachedResult).toStrictEqual(result)
-      expect(mockedRaw).toBeCalledTimes(1)
-      expect(mockedRaw).toBeCalledWith([
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(mockedRaw).toHaveBeenCalledWith([
         'ls-tree',
         '--name-only',
         '-r',
@@ -340,8 +345,8 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(rawOutput)
       expect(subCachedResult).toEqual(rawOutput.slice(1)) // Only sub-paths
-      expect(mockedRaw).toBeCalledTimes(1)
-      expect(mockedRaw).toBeCalledWith([
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(mockedRaw).toHaveBeenCalledWith([
         'ls-tree',
         '--name-only',
         '-r',
@@ -365,7 +370,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([...path1Output, ...path2Output])
-      expect(mockedRaw).toBeCalledTimes(2)
+      expect(mockedRaw).toHaveBeenCalledTimes(2)
       expect(mockedRaw).toHaveBeenNthCalledWith(1, [
         'ls-tree',
         '--name-only',
@@ -401,7 +406,7 @@ describe('GitAdapter', () => {
       expect(result1).toEqual([...path1Output, ...path2Output])
       expect(result2).toEqual(path1Output)
       expect(result3).toEqual(path2Output)
-      expect(mockedRaw).toBeCalledTimes(2) // Only called for initial paths
+      expect(mockedRaw).toHaveBeenCalledTimes(2) // Only called for initial paths
     })
 
     it('handles empty array of paths', async () => {
@@ -413,7 +418,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([])
-      expect(mockedRaw).not.toBeCalled()
+      expect(mockedRaw).not.toHaveBeenCalled()
     })
 
     it('does not cache parent subpaths', async () => {
@@ -434,7 +439,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(resultAtFilePath).toEqual(rawOutput.slice(1))
       expect(resultAtPath).toEqual(rawOutput)
-      expect(mockedRaw).toBeCalledTimes(2)
+      expect(mockedRaw).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -520,8 +525,8 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result.length).toBe(9)
-      expect(mockedRaw).toBeCalledTimes(3)
-      expect(mockedRaw).toBeCalledWith(
+      expect(mockedRaw).toHaveBeenCalledTimes(3)
+      expect(mockedRaw).toHaveBeenCalledWith(
         expect.arrayContaining(['diff', '--numstat', '--no-renames'])
       )
     })
@@ -540,8 +545,8 @@ describe('GitAdapter', () => {
 
         // Assert
         expect(result.length).toBe(9)
-        expect(mockedRaw).toBeCalledTimes(3)
-        expect(mockedRaw).toBeCalledWith(
+        expect(mockedRaw).toHaveBeenCalledTimes(3)
+        expect(mockedRaw).toHaveBeenCalledWith(
           expect.arrayContaining([
             'diff',
             '--numstat',

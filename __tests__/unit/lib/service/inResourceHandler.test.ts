@@ -64,7 +64,7 @@ describe('InResourceHandler', () => {
 
         // Assert
         expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([element])
-        expect(copyFiles).not.toBeCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
       })
 
       it('should correctly identify component name in deeply nested metadata kind folder structure', async () => {
@@ -87,7 +87,7 @@ describe('InResourceHandler', () => {
         expect(Array.from(work.diffs.package.get(lwcType.xmlName)!)).toEqual([
           lwcType.element,
         ])
-        expect(copyFiles).not.toBeCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
       })
     })
 
@@ -129,7 +129,7 @@ describe('InResourceHandler', () => {
             expect(Array.from(work.diffs.package.get(type.xmlName)!)).toEqual([
               entity,
             ])
-            expect(copyFiles).toBeCalledTimes(expectedCopyCount)
+            expect(copyFiles).toHaveBeenCalledTimes(expectedCopyCount)
             expect(copyFiles).toHaveBeenCalledWith(
               work.config,
               `${base}${type.directoryName}/${path}`
@@ -162,7 +162,7 @@ describe('InResourceHandler', () => {
           expect(work.diffs.package.get(type.xmlName)).toEqual(
             new Set([entity])
           )
-          expect(copyFiles).toBeCalledTimes(2)
+          expect(copyFiles).toHaveBeenCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
             `${base}${type.directoryName}/${path}`
@@ -188,7 +188,7 @@ describe('InResourceHandler', () => {
           expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
             element,
           ])
-          expect(copyFiles).toBeCalledTimes(2)
+          expect(copyFiles).toHaveBeenCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,

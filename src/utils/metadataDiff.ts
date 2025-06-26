@@ -5,13 +5,12 @@ import { isUndefined } from 'lodash-es'
 import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
 import type { Manifest } from '../types/work.js'
-
 import {
-  XML_HEADER_ATTRIBUTE_KEY,
+  ATTRIBUTE_PREFIX,
   convertJsonToXml,
   parseXmlFileToJson,
+  XML_HEADER_ATTRIBUTE_KEY,
 } from './fxpHelper.js'
-import { ATTRIBUTE_PREFIX } from './fxpHelper.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
 const ARRAY_SPECIAL_KEY = '<array>'
@@ -19,7 +18,7 @@ const OBJECT_SPECIAL_KEY = '<object>'
 
 const isEmpty = (arr: unknown[]) => arr.length === 0
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: waiting for Salesforce metadata custom type
 type XmlContent = Record<string, any>
 
 type KeySelectorFn = (elem: XmlContent) => string | undefined

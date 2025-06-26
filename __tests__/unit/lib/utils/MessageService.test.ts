@@ -26,7 +26,7 @@ describe('MessageService', () => {
       sut.getMessage('arg')
 
       // Assert
-      expect(mockedMessages).toBeCalledWith('arg', undefined)
+      expect(mockedMessages).toHaveBeenCalledWith('arg', undefined)
     })
   })
 
@@ -39,7 +39,7 @@ describe('MessageService', () => {
       sut.getMessages('arg')
 
       // Assert
-      expect(mockedMessages).toBeCalledWith('arg', undefined)
+      expect(mockedMessages).toHaveBeenCalledWith('arg', undefined)
     })
   })
 })

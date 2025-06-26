@@ -81,7 +81,7 @@ describe('external library inclusion', () => {
       await sgd({} as Config)
 
       // Assert
-      expect(mockProcess).toBeCalledWith([])
+      expect(mockProcess).toHaveBeenCalledWith([])
     })
   })
 
@@ -95,7 +95,7 @@ describe('external library inclusion', () => {
       await sgd({} as Config)
 
       // Assert
-      expect(mockProcess).toBeCalledWith(['line'])
+      expect(mockProcess).toHaveBeenCalledWith(['line'])
     })
   })
 })

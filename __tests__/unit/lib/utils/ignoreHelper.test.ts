@@ -9,12 +9,13 @@ import {
 import type { Config } from '../../../../src/types/config'
 import { readFile } from '../../../../src/utils/fsUtils'
 import {
-  IgnoreHelper,
   buildIgnoreHelper,
   buildIncludeHelper,
+  IgnoreHelper,
   resetIgnoreInstance,
   resetIncludeInstance,
 } from '../../../../src/utils/ignoreHelper'
+
 jest.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = jest.mocked(readFile)
 

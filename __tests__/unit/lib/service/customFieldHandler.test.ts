@@ -45,7 +45,7 @@ describe('CustomFieldHandler', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(readPathFromGit).not.toBeCalled()
+      expect(readPathFromGit).not.toHaveBeenCalled()
     })
   })
   describe('when called with generateDelta true', () => {
@@ -64,8 +64,8 @@ describe('CustomFieldHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readPathFromGit).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledTimes(1)
+        expect(readPathFromGit).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(1)
       })
     })
     describe(`when field is master detail`, () => {
@@ -83,8 +83,8 @@ describe('CustomFieldHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readPathFromGit).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledTimes(2)
+        expect(readPathFromGit).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(2)
       })
     })
   })

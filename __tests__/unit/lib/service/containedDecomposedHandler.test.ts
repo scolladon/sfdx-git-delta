@@ -40,7 +40,7 @@ describe('ContainedDecomposedHandler', () => {
       // Assert
       expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
       expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-      expect(copyFiles).not.toBeCalled()
+      expect(copyFiles).not.toHaveBeenCalled()
     })
   })
 
@@ -66,7 +66,7 @@ describe('ContainedDecomposedHandler', () => {
         // Assert
         expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
         expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-        expect(copyFiles).toBeCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(1)
       })
 
       it('should add modification to the package.xml', async () => {
@@ -83,7 +83,7 @@ describe('ContainedDecomposedHandler', () => {
         // Assert
         expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
         expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-        expect(copyFiles).toBeCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(1)
       })
 
       it('should add deletion to the package.xml', async () => {
@@ -102,7 +102,7 @@ describe('ContainedDecomposedHandler', () => {
         expect(work.diffs.destructiveChanges.get('PermissionSet')).toContain(
           'Subject'
         )
-        expect(copyFiles).not.toBeCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
       })
     }
   )
@@ -132,7 +132,7 @@ describe('ContainedDecomposedHandler', () => {
       // Assert
       expect(work.diffs.package.get('PermissionSet')).toContain('Admin')
       expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-      expect(copyFiles).toBeCalledTimes(2)
+      expect(copyFiles).toHaveBeenCalledTimes(2)
     })
 
     it(`should copy all decomposed files when modifying a file for "${decomposedLine}"`, async () => {
@@ -157,7 +157,7 @@ describe('ContainedDecomposedHandler', () => {
       // Assert
       expect(work.diffs.package.get('PermissionSet')).toContain('Admin')
       expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-      expect(copyFiles).toBeCalledTimes(2)
+      expect(copyFiles).toHaveBeenCalledTimes(2)
     })
 
     it(`should handle deletion with remaining files as modification for "${decomposedLine}"`, async () => {
@@ -182,7 +182,7 @@ describe('ContainedDecomposedHandler', () => {
       // Assert
       expect(work.diffs.package.get('PermissionSet')).toContain('Admin')
       expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-      expect(copyFiles).toBeCalledTimes(2)
+      expect(copyFiles).toHaveBeenCalledTimes(2)
     })
 
     it(`should handle deletion with no remaining files as destructive change for "${decomposedLine}"`, async () => {
@@ -204,7 +204,7 @@ describe('ContainedDecomposedHandler', () => {
       expect(work.diffs.destructiveChanges.get('PermissionSet')).toContain(
         'Admin'
       )
-      expect(copyFiles).not.toBeCalled()
+      expect(copyFiles).not.toHaveBeenCalled()
     })
   })
 })

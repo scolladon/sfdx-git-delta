@@ -73,12 +73,12 @@ describe('SharedFolderHandler', () => {
       // Assert
       expect(work.diffs.package.get(entityType)!.size).toEqual(1)
       expect(work.diffs.package.get(entityType)).toEqual(new Set([entityName]))
-      expect(copyFiles).toBeCalledTimes(2)
-      expect(copyFiles).toBeCalledWith(
+      expect(copyFiles).toHaveBeenCalledTimes(2)
+      expect(copyFiles).toHaveBeenCalledWith(
         work.config,
         `${basePath}${objectType}/${entityName}.${entityExtension}`
       )
-      expect(copyFiles).toBeCalledWith(
+      expect(copyFiles).toHaveBeenCalledWith(
         work.config,
         `${basePath}${objectType}/${entityName}.${entityExtension}${METAFILE_SUFFIX}`
       )

@@ -2,7 +2,7 @@
 import { join, parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
-import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants.js'
+import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 
 import StandardHandler from './standardHandler.js'

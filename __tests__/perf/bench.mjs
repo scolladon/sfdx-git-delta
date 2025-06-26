@@ -1,6 +1,7 @@
 'use strict'
 import { execCmd } from '@salesforce/cli-plugins-testkit'
 import benchmark from 'benchmark'
+
 const suite = new benchmark.Suite()
 
 suite
@@ -13,6 +14,7 @@ suite
     )
   })
   .on('cycle', event => {
+    // biome-ignore lint/suspicious/noConsole: necessary for metric aggregation
     console.info(String(event.target))
   })
   .run()

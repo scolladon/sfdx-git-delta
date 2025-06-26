@@ -56,7 +56,7 @@ describe('ObjectTranslation', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(writeFile).not.toBeCalled()
+      expect(writeFile).not.toHaveBeenCalled()
       expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
         'Account-es',
       ])
@@ -72,8 +72,8 @@ describe('ObjectTranslation', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(copyFiles).not.toBeCalled()
-      expect(writeFile).toBeCalledTimes(1)
+      expect(copyFiles).not.toHaveBeenCalled()
+      expect(writeFile).toHaveBeenCalledTimes(1)
       expect(writeFile).toHaveBeenCalledWith(
         expect.stringContaining('Account-es.objectTranslation'),
         xmlContent,
@@ -100,12 +100,12 @@ describe('ObjectTranslation', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(copyFiles).toBeCalledTimes(2)
+        expect(copyFiles).toHaveBeenCalledTimes(2)
         expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           expect.stringContaining('BillingFloor__c.fieldTranslation')
         )
-        expect(writeFile).toBeCalledTimes(1)
+        expect(writeFile).toHaveBeenCalledTimes(1)
         expect(writeFile).toHaveBeenCalledWith(
           expect.stringContaining('Account-es.objectTranslation'),
           xmlContent,

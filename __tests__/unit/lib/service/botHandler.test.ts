@@ -57,7 +57,7 @@ describe('BotHandler', () => {
       // Assert
       expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
       expect(work.diffs.package.get('BotVersion')).toBeUndefined()
-      expect(copyFiles).not.toBeCalled()
+      expect(copyFiles).not.toHaveBeenCalled()
     })
   })
 
@@ -76,7 +76,7 @@ describe('BotHandler', () => {
         expect(work.diffs.package.get('BotVersion')).toEqual(
           new Set(['TestBot.v1'])
         )
-        expect(copyFiles).not.toBeCalled()
+        expect(copyFiles).not.toHaveBeenCalled()
       })
     })
 
@@ -92,20 +92,20 @@ describe('BotHandler', () => {
         expect(work.diffs.package.get('BotVersion')).toEqual(
           new Set(['TestBot.v1'])
         )
-        expect(copyFiles).toBeCalledTimes(4)
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledTimes(4)
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           `force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`
         )
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           `force-app/main/default/bots/TestBot/v1.botVersion`
         )
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           `force-app/main/default/bots/TestBot/TestBot.bot`
         )
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           `force-app/main/default/bots/TestBot/TestBot.bot-meta.xml`
         )

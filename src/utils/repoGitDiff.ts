@@ -19,7 +19,7 @@ export default class RepoGitDiff {
   public async getLines() {
     const lines = await this.gitAdapter.getDiffLines()
     const treatedLines = await this._treatResult(lines)
-    return Array.from(new Set([...treatedLines]))
+    return treatedLines
   }
 
   protected async _treatResult(lines: string[]): Promise<string[]> {
