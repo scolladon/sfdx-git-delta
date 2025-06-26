@@ -2,16 +2,15 @@
 import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
+import { GIT_FOLDER } from '../constant/gitConstants.js'
 import {
   getLatestSupportedVersion,
   isVersionSupported,
 } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
-import { MessageService } from './MessageService.js'
-
-import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
+import { MessageService } from './MessageService.js'
 
 const TO: keyof Config = 'to'
 const FROM: keyof Config = 'from'

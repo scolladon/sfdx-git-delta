@@ -1,7 +1,7 @@
 'use strict'
-import { isAbsolute, normalize, relative } from 'node:path/posix'
 
 import { access, readFile as fsReadFile, stat } from 'node:fs/promises'
+import { isAbsolute, normalize, relative } from 'node:path/posix'
 
 import {
   PATH_SEP,

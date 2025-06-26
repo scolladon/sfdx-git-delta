@@ -79,7 +79,7 @@ describe('CustomObjectHandler', () => {
       await sut.handleAddition()
 
       // Assert
-      expect(pathExists).not.toBeCalled()
+      expect(pathExists).not.toHaveBeenCalled()
     })
   })
 
@@ -98,7 +98,7 @@ describe('CustomObjectHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(pathExists).not.toBeCalled()
+        expect(pathExists).not.toHaveBeenCalled()
       })
     })
 
@@ -119,7 +119,7 @@ describe('CustomObjectHandler', () => {
           await sut.handleAddition()
 
           // Assert
-          expect(copyFiles).toBeCalledTimes(2)
+          expect(copyFiles).toHaveBeenCalledTimes(2)
         })
       })
 
@@ -139,7 +139,7 @@ describe('CustomObjectHandler', () => {
           await sut.handleAddition()
 
           // Assert
-          expect(copyFiles).toBeCalledTimes(1)
+          expect(copyFiles).toHaveBeenCalledTimes(1)
         })
       })
     })
@@ -159,7 +159,7 @@ describe('CustomObjectHandler', () => {
         await sut.handleAddition()
 
         // Assert
-        expect(readDirs).not.toBeCalled()
+        expect(readDirs).not.toHaveBeenCalled()
       })
     })
   })

@@ -4,8 +4,8 @@ import { join, parse } from 'node:path/posix'
 import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants.js'
 import {
   INFOLDER_SUFFIX,
-  METAFILE_SUFFIX,
   META_REGEX,
+  METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
 import { readDirs } from '../utils/fsHelper.js'
 

@@ -5,8 +5,8 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import type { Work } from '../../../../src/types/work'
 import {
-  IgnoreHelper,
   buildIncludeHelper,
+  IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
@@ -61,7 +61,7 @@ describe('IncludeProcessor', () => {
       await sut.process()
 
       // Assert
-      expect(mockedBuildIncludeHelper).not.toBeCalled()
+      expect(mockedBuildIncludeHelper).not.toHaveBeenCalled()
     })
   })
 
@@ -83,8 +83,8 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
-        expect(mockProcess).not.toBeCalled()
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).not.toHaveBeenCalled()
       })
     })
 
@@ -101,8 +101,8 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
-        expect(mockProcess).toBeCalled()
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).toHaveBeenCalled()
       })
     })
   })
@@ -124,8 +124,8 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
-        expect(mockProcess).not.toBeCalled()
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).not.toHaveBeenCalled()
       })
     })
 
@@ -142,8 +142,8 @@ describe('IncludeProcessor', () => {
         await sut.process()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toBeCalled()
-        expect(mockProcess).toBeCalled()
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).toHaveBeenCalled()
       })
     })
   })

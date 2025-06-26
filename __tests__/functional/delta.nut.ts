@@ -1,9 +1,8 @@
 'use strict'
 import fs from 'node:fs'
-import readline from 'readline'
-
 import { execCmd } from '@salesforce/cli-plugins-testkit'
 import { expect } from 'chai'
+import readline from 'readline'
 
 import { getLatestSupportedVersion } from '../../src/metadata/metadataManager.js'
 

@@ -1,5 +1,5 @@
 'use strict'
-import { ParsedPath, join, parse } from 'node:path/posix'
+import { join, ParsedPath, parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {
@@ -8,7 +8,7 @@ import {
   GIT_DIFF_TYPE_REGEX,
   MODIFICATION,
 } from '../constant/gitConstants.js'
-import { METAFILE_SUFFIX, META_REGEX } from '../constant/metadataConstants.js'
+import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type { Metadata } from '../types/metadata.js'

@@ -69,7 +69,7 @@ describe(`StandardHandler`, () => {
     expect(work.warnings.length).toEqual(1)
     expect(work.diffs.package.get(classType.xmlName)).toEqual(new Set([entity]))
     expect(work.diffs.destructiveChanges.size).toEqual(0)
-    expect(copyFiles).toBeCalled()
+    expect(copyFiles).toHaveBeenCalled()
   })
 
   it('does not handle not ADM line, silently', async () => {
@@ -88,7 +88,7 @@ describe(`StandardHandler`, () => {
     expect(work.warnings).toEqual([])
     expect(work.diffs.package.size).toEqual(0)
     expect(work.diffs.destructiveChanges.size).toEqual(0)
-    expect(copyFiles).not.toBeCalled()
+    expect(copyFiles).not.toHaveBeenCalled()
   })
 
   describe('when not generating delta', () => {
@@ -117,7 +117,7 @@ describe(`StandardHandler`, () => {
         new Set([entity])
       )
       expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(copyFiles).not.toBeCalled()
+      expect(copyFiles).not.toHaveBeenCalled()
     })
     it('should add deleted element to destructiveChanges', async () => {
       // Arrange
@@ -137,7 +137,7 @@ describe(`StandardHandler`, () => {
       expect(work.diffs.destructiveChanges.get(classType.xmlName)).toEqual(
         new Set([entity])
       )
-      expect(copyFiles).not.toBeCalled()
+      expect(copyFiles).not.toHaveBeenCalled()
     })
   })
 
@@ -164,8 +164,8 @@ describe(`StandardHandler`, () => {
           new Set([entity])
         )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath)
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           entityPath.replace(METAFILE_SUFFIX, '')
         )
@@ -189,8 +189,8 @@ describe(`StandardHandler`, () => {
           new Set([entity])
         )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath)
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           entityPath.replace(METAFILE_SUFFIX, '')
         )
@@ -217,9 +217,9 @@ describe(`StandardHandler`, () => {
           new Set(['suite'])
         )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath)
-        expect(copyFiles).toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
+        expect(copyFiles).toHaveBeenCalledWith(
           work.config,
           expect.stringContaining(METAFILE_SUFFIX)
         )
@@ -244,9 +244,9 @@ describe(`StandardHandler`, () => {
           new Set(['suite'])
         )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledTimes(1)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath)
-        expect(copyFiles).not.toBeCalledWith(
+        expect(copyFiles).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
+        expect(copyFiles).not.toHaveBeenCalledWith(
           work.config,
           expect.stringContaining(METAFILE_SUFFIX)
         )
@@ -276,7 +276,7 @@ describe(`StandardHandler`, () => {
           new Set([entity])
         )
         expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toBeCalledWith(work.config, entityPath)
+        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
       }
     )
     it('should add deleted element to destructiveChanges and do not copy file', async () => {
@@ -297,7 +297,7 @@ describe(`StandardHandler`, () => {
       expect(work.diffs.destructiveChanges.get(classType.xmlName)).toEqual(
         new Set([entity])
       )
-      expect(copyFiles).not.toBeCalled()
+      expect(copyFiles).not.toHaveBeenCalled()
     })
   })
 

@@ -17,7 +17,7 @@ import {
   parseXmlFileToJson,
   xml2Json,
 } from '../utils/fxpHelper.js'
-import { IgnoreHelper, buildIgnoreHelper } from '../utils/ignoreHelper.js'
+import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 import BaseProcessor from './baseProcessor.js'

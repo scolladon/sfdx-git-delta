@@ -13,8 +13,8 @@ import {
   writeFile,
 } from '../../../../src/utils/fsHelper'
 import {
-  IgnoreHelper,
   buildIgnoreHelper,
+  IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/globalTestHelper'
 
@@ -107,8 +107,8 @@ describe('copyFile', () => {
       await copyFiles(work.config, 'source/file')
 
       // Assert
-      expect(mockGetStringContent).not.toBeCalled()
-      expect(outputFile).not.toBeCalled()
+      expect(mockGetStringContent).not.toHaveBeenCalled()
+      expect(outputFile).not.toHaveBeenCalled()
     })
   })
 
@@ -122,7 +122,7 @@ describe('copyFile', () => {
       await copyFiles(work.config, 'source/file')
 
       // Assert
-      expect(outputFile).not.toBeCalled()
+      expect(outputFile).not.toHaveBeenCalled()
     })
   })
 
@@ -141,8 +141,11 @@ describe('copyFile', () => {
       await copyFiles(work.config, sourcePath)
 
       // Assert
-      expect(mockGetFilesFrom).toBeCalled()
-      expect(outputFile).toBeCalledWith(`output/${sourcePath}`, Buffer.from(''))
+      expect(mockGetFilesFrom).toHaveBeenCalled()
+      expect(outputFile).toHaveBeenCalledWith(
+        `output/${sourcePath}`,
+        Buffer.from('')
+      )
     })
   })
 
@@ -159,8 +162,8 @@ describe('copyFile', () => {
       await copyFiles(work.config, 'source/ignored')
 
       // Assert
-      expect(mockGetFilesFrom).not.toBeCalled()
-      expect(outputFile).not.toBeCalled()
+      expect(mockGetFilesFrom).not.toHaveBeenCalled()
+      expect(outputFile).not.toHaveBeenCalled()
     })
   })
 
@@ -183,13 +186,13 @@ describe('copyFile', () => {
         await copyFiles(work.config, 'source/emptyFile')
 
         // Assert
-        expect(mockGetFilesFrom).toBeCalled()
-        expect(outputFile).toBeCalledTimes(2)
-        expect(outputFile).toBeCalledWith(
+        expect(mockGetFilesFrom).toHaveBeenCalled()
+        expect(outputFile).toHaveBeenCalledTimes(2)
+        expect(outputFile).toHaveBeenCalledWith(
           'output/source/emptyFile',
           Buffer.from('')
         )
-        expect(outputFile).toBeCalledWith(
+        expect(outputFile).toHaveBeenCalledWith(
           'output/source/anotherEmptyFile',
           Buffer.from('')
         )
@@ -211,8 +214,8 @@ describe('copyFile', () => {
           await copyFiles(work.config, 'source/copyDir')
 
           // Assert
-          expect(mockGetFilesFrom).toBeCalledTimes(1)
-          expect(outputFile).toBeCalledTimes(1)
+          expect(mockGetFilesFrom).toHaveBeenCalledTimes(1)
+          expect(outputFile).toHaveBeenCalledTimes(1)
           expect(outputFile).toHaveBeenCalledWith(
             'output/copyDir/copyFile',
             Buffer.from('content')
@@ -229,8 +232,8 @@ describe('copyFile', () => {
           await copyFiles(work.config, 'source/warning')
 
           // Assert
-          expect(mockGetFilesFrom).toBeCalled()
-          expect(outputFile).not.toBeCalled()
+          expect(mockGetFilesFrom).toHaveBeenCalled()
+          expect(outputFile).not.toHaveBeenCalled()
         })
       })
       describe('when content is a file', () => {
@@ -248,8 +251,8 @@ describe('copyFile', () => {
           await copyFiles(work.config, 'source/copyfile')
 
           // Assert
-          expect(mockGetFilesFrom).toBeCalled()
-          expect(outputFile).toBeCalledTimes(1)
+          expect(mockGetFilesFrom).toHaveBeenCalled()
+          expect(outputFile).toHaveBeenCalledTimes(1)
           expect(outputFile).toHaveBeenCalledWith(
             'output/source/copyFile',
             Buffer.from('content')
@@ -384,7 +387,7 @@ describe('writeFile', () => {
     await writeFile(path, content, config)
 
     // Assert
-    expect(outputFile).toBeCalledTimes(1)
+    expect(outputFile).toHaveBeenCalledTimes(1)
   })
 
   it('should not copy ignored path', async () => {
@@ -399,6 +402,6 @@ describe('writeFile', () => {
     await writeFile('', '', {} as Config)
 
     // Assert
-    expect(outputFile).not.toBeCalled()
+    expect(outputFile).not.toHaveBeenCalled()
   })
 })

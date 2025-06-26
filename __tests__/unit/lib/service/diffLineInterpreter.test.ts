@@ -45,7 +45,7 @@ describe('DiffLineInterpreter', () => {
       await sut.process(lines)
 
       // Assert
-      expect(mockHandle).toBeCalledTimes(lines.length)
+      expect(mockHandle).toHaveBeenCalledTimes(lines.length)
     })
   })
 
@@ -58,7 +58,7 @@ describe('DiffLineInterpreter', () => {
       await sut.process(lines)
 
       // Assert
-      expect(mockHandle).not.toBeCalled()
+      expect(mockHandle).not.toHaveBeenCalled()
     })
   })
 })
