@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.14.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.13.1...v6.14.0) (2025-06-26)
+
+
+### Features
+
+* add GenAiPlannerBundle metadata support starting v64.0 ([#1094](https://github.com/scolladon/sfdx-git-delta/issues/1094)) ([c41f586](https://github.com/scolladon/sfdx-git-delta/commit/c41f58651d7d35828aa625838519a4dcf071f832))
+
 ## [6.13.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.13.0...v6.13.1) (2025-06-06)
 
 
