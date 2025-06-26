@@ -147,6 +147,13 @@ export default [
     xmlName: 'GenAiPlanner',
   },
   {
+    directoryName: 'genAiPlannerBundles',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'genAiPlannerBundle',
+    xmlName: 'GenAiPlannerBundle',
+  },
+  {
     directoryName: 'briefcaseDefinitions',
     inFolder: false,
     metaFile: false,
