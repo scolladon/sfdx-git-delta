@@ -173,7 +173,7 @@ export default class GitAdapter {
     let lines: string[] = []
     for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
       const linesOfType = await this.getDiffForType(changeType)
-      // biome-ignore lint/suspicious/noConsoleLog: temporary log
+
       console.log(changeType, linesOfType)
       lines = lines.concat(
         linesOfType.map(line =>

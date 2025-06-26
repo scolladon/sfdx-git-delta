@@ -131,7 +131,6 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       }
       this.info(messages.getMessage('info.EncourageSponsorship'))
     } catch (err) {
-      // biome-ignore lint/suspicious/noConsoleLog: temporary log
       console.log(err)
       if (err instanceof Error) {
         finalMessage = `${messages.getMessage('info.CommandFailure')}: ${

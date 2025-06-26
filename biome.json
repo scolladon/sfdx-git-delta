@@ -93,8 +93,7 @@
         "noUnsafeNegation": "error",
         "useGetterReturn": "error",
         "useNamespaceKeyword": "error",
-        "noWith": "error",
-        "noConsole": { "level": "error", "options": { "allow": ["log"] } }
+        "noWith": "error"
       }
     },
     "includes": [
