@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749219696093,
+  "lastUpdate": 1750957487479,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3067,6 +3067,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.30%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c41f58651d7d35828aa625838519a4dcf071f832",
+          "message": "feat: add GenAiPlannerBundle metadata support starting v64.0 (#1094)",
+          "timestamp": "2025-06-26T19:01:29+02:00",
+          "tree_id": "91bec808883d902191ef53d790c02dfa1abbb7ca",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/c41f58651d7d35828aa625838519a4dcf071f832"
+        },
+        "date": 1750957486922,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.20%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
