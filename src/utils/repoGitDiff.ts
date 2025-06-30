@@ -18,7 +18,11 @@ export default class RepoGitDiff {
 
   public async getLines() {
     const lines = await this.gitAdapter.getDiffLines()
+
+    console.log(lines)
     const treatedLines = await this._treatResult(lines)
+
+    console.log(treatedLines)
     return treatedLines
   }
 
