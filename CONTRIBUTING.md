@@ -9,8 +9,8 @@ We encourage the developer community to contribute to this repository. This guid
 
 ## Requirements
 
-- [Node](https://nodejs.org/) >= 18.6.0
-- [npm](https://www.npmjs.com/) >= 10.9.0
+- [Node](https://nodejs.org/) >= 20
+- [npm](https://www.npmjs.com/) >= 10
 
 ## Installation
 
