@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1750957487479,
+  "lastUpdate": 1751295995960,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3098,6 +3098,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.20%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7188832f670c984449950949243de9c4c74a02f5",
+          "message": "feat: end of support for node `18` (#1082)",
+          "timestamp": "2025-06-30T17:03:23+02:00",
+          "tree_id": "dbc2e3bf67ad4a98d0d4bdad77596f72c689ac8f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/7188832f670c984449950949243de9c4c74a02f5"
+        },
+        "date": 1751295994906,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.44%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
