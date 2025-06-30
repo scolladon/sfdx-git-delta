@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.15.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.14.0...v6.15.0) (2025-06-30)
+
+
+### Features
+
+* end of support for node `18` ([#1082](https://github.com/scolladon/sfdx-git-delta/issues/1082)) ([7188832](https://github.com/scolladon/sfdx-git-delta/commit/7188832f670c984449950949243de9c4c74a02f5))
+
 ## [6.14.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.13.1...v6.14.0) (2025-06-26)
 
 
