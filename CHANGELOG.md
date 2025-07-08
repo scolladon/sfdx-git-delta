@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.16.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.15.0...v6.16.0) (2025-07-08)
+
+
+### Features
+
+* add `EnablementProgramDefinition` metadata support ([#1101](https://github.com/scolladon/sfdx-git-delta/issues/1101)) ([97a24ed](https://github.com/scolladon/sfdx-git-delta/commit/97a24ed07c5b5b023de4eec72a76c0447784e9c6))
+
 ## [6.15.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.14.0...v6.15.0) (2025-06-30)
 
 
