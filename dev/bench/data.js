@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1751295995960,
+  "lastUpdate": 1751992061443,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3129,6 +3129,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±0.44%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "97a24ed07c5b5b023de4eec72a76c0447784e9c6",
+          "message": "feat: add `EnablementProgramDefinition` metadata support (#1101)",
+          "timestamp": "2025-07-08T18:24:08+02:00",
+          "tree_id": "8be07163bda06d0b27b9efcdfc879e2c1506a4d5",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/97a24ed07c5b5b023de4eec72a76c0447784e9c6"
+        },
+        "date": 1751992061055,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.53%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
