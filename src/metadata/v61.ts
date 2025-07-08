@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'enablementProgramDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'enablementProgramDefinition',
+    xmlName: 'EnablementProgramDefinition',
+  },
+  {
     directoryName: 'documentTemplates',
     inFolder: false,
     metaFile: false,
