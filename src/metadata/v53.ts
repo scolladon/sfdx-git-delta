@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'fieldSrcTrgtRelationships',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'fieldSrcTrgtRelationship',
+    xmlName: 'FieldSrcTrgtRelationship',
+  },
+  {
     directoryName: 'externalDataConnectors',
     inFolder: false,
     metaFile: false,
