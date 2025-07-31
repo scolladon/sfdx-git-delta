@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'objectSourceTargetMaps',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'objectSourceTargetMap',
+    xmlName: 'ObjectSourceTargetMap',
+  },
+  {
     directoryName: 'mktDataTranObjects',
     inFolder: false,
     metaFile: false,
