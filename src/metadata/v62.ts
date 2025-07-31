@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'marketSegmentDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'marketSegmentDefinition',
+    xmlName: 'MarketSegmentDefinition',
+  },
+  {
     directoryName: 'fieldSrcTrgtRelationships',
     inFolder: false,
     metaFile: false,
