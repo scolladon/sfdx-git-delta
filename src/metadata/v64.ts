@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'streamingAppDataConnectors',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'streamingAppDataConnector',
+    xmlName: 'StreamingAppDataConnector',
+  },
+  {
     directoryName: 'objectSourceTargetMaps',
     inFolder: false,
     metaFile: false,
