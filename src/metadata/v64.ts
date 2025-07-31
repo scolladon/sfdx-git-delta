@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'dataConnectorIngestApis',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataConnectorIngestApi',
+    xmlName: 'DataConnectorIngestApi',
+  },
+  {
     directoryName: 'dataconnectors',
     inFolder: false,
     metaFile: false,

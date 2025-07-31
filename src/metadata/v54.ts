@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'dataConnectorIngestApis',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataConnectorIngestApi',
+    xmlName: 'DataConnectorIngestApi',
+  },
+  {
     directoryName: 'actvPlatformFieldValues',
     inFolder: false,
     metaFile: false,
