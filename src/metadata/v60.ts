@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'dataStreamDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataStreamDefinition',
+    xmlName: 'DataStreamDefinition',
+  },
+  {
     directoryName: 'dataSourceFields',
     inFolder: false,
     metaFile: false,

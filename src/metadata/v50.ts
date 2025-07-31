@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'dataStreamDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataStreamDefinition',
+    xmlName: 'DataStreamDefinition',
+  },
+  {
     directoryName: 'mktDataSourceObjects',
     inFolder: false,
     metaFile: false,
