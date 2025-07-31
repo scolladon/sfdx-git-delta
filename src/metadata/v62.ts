@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'mktCalcInsightObjectDefs',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'mktCalcInsightObjectDef',
+    xmlName: 'MktCalcInsightObjectDef',
+  },
+  {
     directoryName: 'marketSegmentDefinitions',
     inFolder: false,
     metaFile: false,
