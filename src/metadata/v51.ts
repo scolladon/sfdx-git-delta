@@ -1,5 +1,40 @@
 export default [
   {
+    directoryName: 'objectSourceTargetMaps',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'objectSourceTargetMap',
+    xmlName: 'ObjectSourceTargetMap',
+  },
+  {
+    directoryName: 'mktDataTranObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'mktDataTranObject',
+    xmlName: 'MktDataTranObject',
+  },
+  {
+    directoryName: 'fieldSrcTrgtRelationships',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'fieldSrcTrgtRelationship',
+    xmlName: 'FieldSrcTrgtRelationship',
+  },
+  {
+    directoryName: 'externalDataConnectors',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'externalDataConnector',
+    xmlName: 'ExternalDataConnector',
+  },
+  {
+    directoryName: 'dataStreamDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataStreamDefinition',
+    xmlName: 'DataStreamDefinition',
+  },
+  {
     directoryName: 'mktDataSourceObjects',
     inFolder: false,
     metaFile: false,

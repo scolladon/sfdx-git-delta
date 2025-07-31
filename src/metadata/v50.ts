@@ -1,5 +1,26 @@
 export default [
   {
+    directoryName: 'mktDataTranObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'mktDataTranObject',
+    xmlName: 'MktDataTranObject',
+  },
+  {
+    directoryName: 'externalDataConnectors',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'externalDataConnector',
+    xmlName: 'ExternalDataConnector',
+  },
+  {
+    directoryName: 'dataStreamDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataStreamDefinition',
+    xmlName: 'DataStreamDefinition',
+  },
+  {
     directoryName: 'mktDataSourceObjects',
     inFolder: false,
     metaFile: false,
