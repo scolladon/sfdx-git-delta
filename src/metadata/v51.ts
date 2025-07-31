@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'mktDataTranObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'mktDataTranObject',
+    xmlName: 'MktDataTranObject',
+  },
+  {
     directoryName: 'fieldSrcTrgtRelationships',
     inFolder: false,
     metaFile: false,
