@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'externalDataTranObjects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'externalDataTranObject',
+    xmlName: 'ExternalDataTranObject',
+  },
+  {
     directoryName: 'externalDataConnectors',
     inFolder: false,
     metaFile: false,
