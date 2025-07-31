@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'actvPlatformAdncIdentifiers',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'actvPlatformAdncIdentifier',
+    xmlName: 'ActvPlatformAdncIdentifier',
+  },
+  {
     directoryName: 'actvPfrmDataConnectorS3s',
     inFolder: false,
     metaFile: false,
