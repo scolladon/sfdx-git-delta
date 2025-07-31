@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'dataSourceFields',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSourceField',
+    xmlName: 'DataSourceField',
+  },
+  {
     directoryName: 'documentGenerationSettings',
     inFolder: false,
     metaFile: false,
