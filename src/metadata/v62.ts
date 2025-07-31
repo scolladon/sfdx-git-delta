@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'actvPlatformFieldValues',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'actvPlatformFieldValue',
+    xmlName: 'ActvPlatformFieldValue',
+  },
+  {
     directoryName: 'actvPlatformAdncIdentifiers',
     inFolder: false,
     metaFile: false,
