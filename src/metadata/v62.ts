@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'activationPlatforms',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'activationPlatform',
+    xmlName: 'ActivationPlatform',
+  },
+  {
     directoryName: 'enablementProgramDefinitions',
     inFolder: false,
     metaFile: false,
