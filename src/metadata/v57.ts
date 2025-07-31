@@ -1,5 +1,19 @@
 export default [
   {
+    directoryName: 'actvPfrmDataConnectorS3s',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'actvPfrmDataConnectorS3',
+    xmlName: 'ActvPfrmDataConnectorS3',
+  },
+  {
+    directoryName: 'activationPlatformFields',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'activationPlatformField',
+    xmlName: 'ActivationPlatformField',
+  },
+  {
     directoryName: 'activationPlatforms',
     inFolder: false,
     metaFile: false,
