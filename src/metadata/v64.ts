@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'dataconnectors',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataconnector',
+    xmlName: 'DataConnector',
+  },
+  {
     directoryName: 'actvPlatformFieldValues',
     inFolder: false,
     metaFile: false,
