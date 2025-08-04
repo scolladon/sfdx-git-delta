@@ -164,13 +164,6 @@ FLAGS
   -r, --repo-dir=<value>                  [default: ./] git repository location
   -s, --source-dir=<value>...             [default: ./] source folders focus location relative to --repo-dir
   -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
-      --ignore=<value>                    /!\ deprecated, use '--ignore-file' instead.
-      --ignore-destructive=<value>        /!\ deprecated, use '--ignore-destructive-file' instead.
-      --include=<value>                   /!\ deprecated, use '--include-file' instead.
-      --include-destructive=<value>       /!\ deprecated, use '--include-destructive-file' instead.
-      --output=<value>                    /!\ deprecated, use '--output-dir' instead.
-      --repo=<value>                      /!\ deprecated, use '--repo-dir' instead.
-      --source=<value>                    /!\ deprecated, use '--source-dir' instead.
 
 GLOBAL FLAGS
   --flags-dir=<value>  Import flag values from a directory.
