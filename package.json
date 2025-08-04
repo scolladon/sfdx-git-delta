@@ -106,7 +106,7 @@
     "clean:package-manager": "wireit",
     "clean": "wireit",
     "dependencies:reinstall": "npm install",
-    "dependencies:upgrade": "npx npm-check-updates -u ; npm install ; npm audit fix",
+    "dependencies:upgrade": "npm update ; npm audit fix",
     "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint:dependencies": "wireit",
     "lint:fs": "wireit",
