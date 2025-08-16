@@ -7,6 +7,7 @@ import CustomField from '../../../../src/service/customFieldHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
+import InNestedFolder from '../../../../src/service/inNestedFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
@@ -39,7 +40,8 @@ describe('the type handler factory', () => {
         'webLinks',
       ],
     ],
-    [InFolder, ['dashboards', 'documents', 'reports']],
+    [InFolder, ['documents']],
+    [InNestedFolder, ['dashboards', 'reports']],
     [InResource, ['staticresources', 'aura', 'lwc']],
     [Standard, ['classes']],
     [SharedFolder, ['moderation', 'wave', 'discovery']],
