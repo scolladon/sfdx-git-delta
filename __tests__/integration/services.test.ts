@@ -196,9 +196,24 @@ const testContext = [
     'Dashboard',
   ],
   [
+    'force-app/main/default/dashboards/folder.dashboardFolder-meta.xml',
+    new Set(['folder']),
+    'DashboardFolder',
+  ],
+  [
+    'force-app/main/default/dashboards/folder/folder.dashboardFolder-meta.xml',
+    new Set(['folder/folder']),
+    'DashboardFolder',
+  ],
+  [
+    'force-app/main/default/reports/folder/file.report-meta.xml',
+    new Set(['folder/file']),
+    'Report',
+  ],
+  [
     'force-app/main/default/reports/folder.reportFolder-meta.xml',
     new Set(['folder']),
-    'Report',
+    'ReportFolder',
   ],
   [
     'force-app/main/default/documents/folder.documentFolder-meta.xml',
@@ -461,7 +476,6 @@ const testContext = [
     'FeatureParameterDate',
   ],
 ]
-
 const existingFiles = [
   'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
 ]
