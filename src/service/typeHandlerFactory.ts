@@ -42,6 +42,7 @@ const handlerMap = {
   GlobalValueSetTranslation: InFile,
   Index: Decomposed,
   LightningComponentBundle: Lwc,
+  LightningTypeBundle: InResource,
   ListView: Decomposed,
   MarketingAppExtension: InFile,
   MatchingRules: InFile,
