@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'lightningTypes',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'lightningType',
+    xmlName: 'LightningTypeBundle',
+  },
+  {
     directoryName: 'streamingAppDataConnectors',
     inFolder: false,
     metaFile: false,
