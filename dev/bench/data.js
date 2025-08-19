@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754316719907,
+  "lastUpdate": 1755594279017,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3191,6 +3191,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±1.61%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6306a8b992417d6eeaae935a6222b8a30c7876af",
+          "message": "feat: add `LightningTypeBundle` metadata support (#1113)\n\nCo-authored-by: Gil Avignon <15981196+gavignon@users.noreply.github.com>",
+          "timestamp": "2025-08-18T15:17:13+02:00",
+          "tree_id": "f6bc497c9ba43c29280266232573fd9e70b84bb8",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/6306a8b992417d6eeaae935a6222b8a30c7876af"
+        },
+        "date": 1755594277949,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.95%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
