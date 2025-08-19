@@ -13,10 +13,10 @@ import FlowHandler from './flowHandler.js'
 import InBundle from './inBundleHandler.js'
 import InFile from './inFileHandler.js'
 import InFolder from './inFolderHandler.js'
-import InNestedFolder from './inNestedFolderHandler.js'
 import InResource from './inResourceHandler.js'
 import Lwc from './lwcHandler.js'
 import ObjectTranslation from './objectTranslationHandler.js'
+import ReportingFolderHandler from './reportingFolderHandler.js'
 import SharedFolder from './sharedFolderHandler.js'
 import Standard from './standardHandler.js'
 
@@ -31,7 +31,7 @@ const handlerMap = {
   CustomLabel: CustomLabel,
   CustomObject: CustomObject,
   CustomObjectTranslation: ObjectTranslation,
-  Dashboard: InNestedFolder,
+  Dashboard: ReportingFolderHandler,
   DigitalExperienceBundle: InBundle,
   Document: InFolder,
   EmailTemplate: InFolder,
@@ -50,7 +50,7 @@ const handlerMap = {
   PermissionSet: ContainedDecomposed,
   Profile: InFile,
   RecordType: Decomposed,
-  Report: InNestedFolder,
+  Report: ReportingFolderHandler,
   SharingCriteriaRule: Decomposed,
   SharingGuestRule: Decomposed,
   SharingOwnerRule: Decomposed,

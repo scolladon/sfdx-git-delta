@@ -9,7 +9,7 @@ import type { Manifest, Work } from '../types/work.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import InFolderHandler from './inFolderHandler.js'
 
-export default class InNestedFolderHandler extends InFolderHandler {
+export default class ReportingFolderHandler extends InFolderHandler {
   protected readonly sharedFolderMetadata: Map<string, string>
 
   constructor(

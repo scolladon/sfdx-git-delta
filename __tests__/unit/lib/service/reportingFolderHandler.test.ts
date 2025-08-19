@@ -3,7 +3,7 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import InNestedFolder from '../../../../src/service/inNestedFolderHandler'
+import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
@@ -77,7 +77,7 @@ describe('InNestedFolderHandler', () => {
       })
       it(`should not copy meta files nor copy special extension when adding ${expectedType}`, async () => {
         // Arrange
-        const sut = new InNestedFolder(
+        const sut = new ReportingFolderHandler(
           changePath as string,
           objectType,
           work,
@@ -108,7 +108,7 @@ describe('InNestedFolderHandler', () => {
       describe(`when readDirs does not return files`, () => {
         it(`should not copy special extension and copy meta files in addition ${expectedType}`, async () => {
           // Arrange
-          const sut = new InNestedFolder(
+          const sut = new ReportingFolderHandler(
             changePath as string,
             objectType,
             work,
@@ -135,7 +135,7 @@ describe('InNestedFolderHandler', () => {
       describe('when readDirs returns files', () => {
         it('should copy special extension', async () => {
           // Arrange
-          const sut = new InNestedFolder(
+          const sut = new ReportingFolderHandler(
             changePath as string,
             objectType,
             work,
@@ -164,7 +164,7 @@ describe('InNestedFolderHandler', () => {
       `force-app/main/default/${objectType.directoryName}/test.otherExtension`,
     ])('does not handle the line', async entityPath => {
       // Arrange
-      const sut = new InNestedFolder(
+      const sut = new ReportingFolderHandler(
         `A       ${entityPath}`,
         objectType,
         work,

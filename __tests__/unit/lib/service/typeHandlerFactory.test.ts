@@ -7,8 +7,8 @@ import CustomField from '../../../../src/service/customFieldHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
-import InNestedFolder from '../../../../src/service/inNestedFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
+import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
@@ -41,7 +41,7 @@ describe('the type handler factory', () => {
       ],
     ],
     [InFolder, ['documents']],
-    [InNestedFolder, ['dashboards', 'reports']],
+    [ReportingFolderHandler, ['dashboards', 'reports']],
     [InResource, ['staticresources', 'aura', 'lwc']],
     [Standard, ['classes']],
     [SharedFolder, ['moderation', 'wave', 'discovery']],
