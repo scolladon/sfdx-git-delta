@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.18.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.17.0...v6.18.0) (2025-08-19)
+
+
+### Features
+
+* add `LightningTypeBundle` metadata support ([#1113](https://github.com/scolladon/sfdx-git-delta/issues/1113)) ([6306a8b](https://github.com/scolladon/sfdx-git-delta/commit/6306a8b992417d6eeaae935a6222b8a30c7876af))
+
 ## [6.17.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.16.0...v6.17.0) (2025-08-04)
 
 
