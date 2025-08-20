@@ -303,15 +303,33 @@ export default [
     directoryName: 'reports',
     inFolder: true,
     metaFile: false,
-    suffix: 'report',
     xmlName: 'Report',
+    content: [
+      {
+        suffix: 'report',
+        xmlName: 'Report',
+      },
+      {
+        suffix: 'reportFolder',
+        xmlName: 'ReportFolder',
+      },
+    ],
   },
   {
     directoryName: 'dashboards',
     inFolder: true,
     metaFile: false,
-    suffix: 'dashboard',
     xmlName: 'Dashboard',
+    content: [
+      {
+        suffix: 'dashboard',
+        xmlName: 'Dashboard',
+      },
+      {
+        suffix: 'dashboardFolder',
+        xmlName: 'DashboardFolder',
+      },
+    ],
   },
   {
     directoryName: 'analyticSnapshots',
