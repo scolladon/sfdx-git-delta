@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755594279017,
+  "lastUpdate": 1755792518754,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3222,6 +3222,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±0.95%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sébastien Colladon",
+            "username": "scolladon"
+          },
+          "distinct": true,
+          "id": "ef139cf6d6562060b378e8e593a3e64f3d04ceb7",
+          "message": "fix: handle core analytic folders gracefully (#1116)\n\nCo-authored-by: mohd anas <anas.dev01@gmail.com>",
+          "timestamp": "2025-08-21T18:05:54+02:00",
+          "tree_id": "59c1ba4523fbb8926b3110a3064cf5441415d980",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/ef139cf6d6562060b378e8e593a3e64f3d04ceb7"
+        },
+        "date": 1755792518083,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.86%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
