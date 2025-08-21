@@ -8,6 +8,7 @@ import Decomposed from '../../../../src/service/decomposedHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
+import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
@@ -39,7 +40,8 @@ describe('the type handler factory', () => {
         'webLinks',
       ],
     ],
-    [InFolder, ['dashboards', 'documents', 'reports']],
+    [InFolder, ['documents']],
+    [ReportingFolderHandler, ['dashboards', 'reports']],
     [InResource, ['staticresources', 'aura', 'lwc']],
     [Standard, ['classes']],
     [SharedFolder, ['moderation', 'wave', 'discovery']],
