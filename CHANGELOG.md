@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.18.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.18.0...v6.18.1) (2025-08-21)
+
+
+### Bug Fixes
+
+* handle core analytic folders gracefully ([#1116](https://github.com/scolladon/sfdx-git-delta/issues/1116)) ([ef139cf](https://github.com/scolladon/sfdx-git-delta/commit/ef139cf6d6562060b378e8e593a3e64f3d04ceb7))
+
 ## [6.18.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.17.0...v6.18.0) (2025-08-19)
 
 
