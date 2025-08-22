@@ -37,8 +37,12 @@ export default class ResourceHandler extends StandardHandler {
       staticResourcePath,
       this.work.config
     )
+
+    const startsWithMetadataName = new RegExp(
+      `${this.metadataName!}[${PATH_SEP}${DOT}]`
+    )
     const resourceFiles = allStaticResources.filter((file: string) =>
-      file.startsWith(this.metadataName!)
+      startsWithMetadataName.test(file)
     )
     for (const resourceFile of resourceFiles) {
       await this._copy(resourceFile)
