@@ -13,6 +13,14 @@ jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
 const mockedPathExists = jest.mocked(pathExists)
 
+const lwcType = {
+  directoryName: 'lwc',
+  inFolder: false,
+  metaFile: false,
+  suffix: '',
+  xmlName: 'LightningComponentBundle',
+}
+
 const staticResourceType = {
   directoryName: 'staticresources',
   inFolder: false,
@@ -97,13 +105,14 @@ describe('InResourceHandler', () => {
       })
       describe('when matching resource exist', () => {
         it.each([
+          ['myComponent.js', lwcType, 'myComponent', 6],
           ['imageFile.png', staticResourceType, 'imageFile', 2],
           ['imageFolder/logo.png', staticResourceType, 'imageFolder', 2],
           [
             'my_experience_bundle/config/myexperiencebundle.json',
             experienceBundleType,
             'my_experience_bundle',
-            5,
+            4,
           ],
         ])(
           'should copy the matching folder resource, matching meta file and subject file %s',
@@ -113,10 +122,17 @@ describe('InResourceHandler', () => {
             const line = `A       ${base}${type.directoryName}/${path}`
             mockedReadDirs.mockResolvedValue([
               `${base}${type.directoryName}/other.resource-meta.xml`,
-              `${base}${type.directoryName}/other/`,
+              `${base}${type.directoryName}/myComponent/myComponent.js`,
+              `${base}${type.directoryName}/myComponent/myComponent.css`,
+              `${base}${type.directoryName}/myComponent/myComponent.html`,
+              `${base}${type.directoryName}/myComponent/myComponent.js-meta.xml`,
+              `${base}${type.directoryName}/myComponentForExperienceCloud/`,
+              `${base}${type.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.js`,
+              `${base}${type.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.css`,
+              `${base}${type.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.html`,
+              `${base}${type.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.js-meta.xml`,
               `${base}${type.directoryName}/image.resource-meta.xml`,
               `${base}${type.directoryName}/my_experience_bundle.site-meta.xml`,
-              `${base}${type.directoryName}/my_experience_bundle/`,
               `${base}${type.directoryName}/my_experience_bundle/config/myexperiencebundle.json`,
               `${base}${type.directoryName}/other_experience_bundle.resource-meta.xml`,
             ])
@@ -143,29 +159,23 @@ describe('InResourceHandler', () => {
 
         it('should copy the matching lwc', async () => {
           // Arrange
-          const type = {
-            directoryName: 'lwc',
-            inFolder: false,
-            metaFile: false,
-            xmlName: 'LightningComponentBundle',
-          }
           const entity = 'lwcc'
           const path = 'lwcc/lwcc.js'
           const base = 'force-app/main/default/'
-          const line = `A       ${base}${type.directoryName}/${path}`
-          const sut = new InResourceHandler(line, type, work, globalMetadata)
+          const line = `A       ${base}${lwcType.directoryName}/${path}`
+          const sut = new InResourceHandler(line, lwcType, work, globalMetadata)
 
           // Act
           await sut.handle()
 
           // Assert
-          expect(work.diffs.package.get(type.xmlName)).toEqual(
+          expect(work.diffs.package.get(lwcType.xmlName)).toEqual(
             new Set([entity])
           )
           expect(copyFiles).toHaveBeenCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
-            `${base}${type.directoryName}/${path}`
+            `${base}${lwcType.directoryName}/${path}`
           )
         })
       })
