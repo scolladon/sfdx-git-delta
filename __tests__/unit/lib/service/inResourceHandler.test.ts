@@ -13,6 +13,14 @@ jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
 const mockedPathExists = jest.mocked(pathExists)
 
+const lwcType = {
+  directoryName: 'lwc',
+  inFolder: false,
+  metaFile: false,
+  suffix: '',
+  xmlName: 'LightningComponentBundle',
+}
+
 const staticResourceType = {
   directoryName: 'staticresources',
   inFolder: false,
@@ -96,76 +104,142 @@ describe('InResourceHandler', () => {
         work.config.generateDelta = true
       })
       describe('when matching resource exist', () => {
-        it.each([
-          ['imageFile.png', staticResourceType, 'imageFile', 2],
-          ['imageFolder/logo.png', staticResourceType, 'imageFolder', 2],
-          [
-            'my_experience_bundle/config/myexperiencebundle.json',
-            experienceBundleType,
-            'my_experience_bundle',
-            5,
-          ],
-        ])(
-          'should copy the matching folder resource, matching meta file and subject file %s',
-          async (path, type, entity, expectedCopyCount) => {
-            // Arrange
-            const base = 'force-app/main/default/'
-            const line = `A       ${base}${type.directoryName}/${path}`
-            mockedReadDirs.mockResolvedValue([
-              `${base}${type.directoryName}/other.resource-meta.xml`,
-              `${base}${type.directoryName}/other/`,
-              `${base}${type.directoryName}/image.resource-meta.xml`,
-              `${base}${type.directoryName}/my_experience_bundle.site-meta.xml`,
-              `${base}${type.directoryName}/my_experience_bundle/`,
-              `${base}${type.directoryName}/my_experience_bundle/config/myexperiencebundle.json`,
-              `${base}${type.directoryName}/other_experience_bundle.resource-meta.xml`,
-            ])
-            const sut = new InResourceHandler(line, type, work, globalMetadata)
-
-            // Act
-            await sut.handle()
-
-            // Assert
-            expect(Array.from(work.diffs.package.get(type.xmlName)!)).toEqual([
-              entity,
-            ])
-            expect(copyFiles).toHaveBeenCalledTimes(expectedCopyCount)
-            expect(copyFiles).toHaveBeenCalledWith(
-              work.config,
-              `${base}${type.directoryName}/${path}`
-            )
-            expect(copyFiles).toHaveBeenCalledWith(
-              work.config,
-              `${base}${type.directoryName}/${entity}.${type.suffix}${METAFILE_SUFFIX}`
-            )
-          }
-        )
-
-        it('should copy the matching lwc', async () => {
+        it('should copy lwc bundle folder and its files (and exclude not matching files)', async () => {
           // Arrange
-          const type = {
-            directoryName: 'lwc',
-            inFolder: false,
-            metaFile: false,
-            xmlName: 'LightningComponentBundle',
-          }
-          const entity = 'lwcc'
-          const path = 'lwcc/lwcc.js'
           const base = 'force-app/main/default/'
-          const line = `A       ${base}${type.directoryName}/${path}`
-          const sut = new InResourceHandler(line, type, work, globalMetadata)
+          const entity = 'myComponent'
+          const path = `${entity}/${entity}.js`
+          const line = `A       ${base}${lwcType.directoryName}/${path}`
+          mockedReadDirs.mockResolvedValue([
+            `${base}${lwcType.directoryName}/${entity}/${entity}.js`,
+            `${base}${lwcType.directoryName}/${entity}/${entity}.css`,
+            `${base}${lwcType.directoryName}/${entity}/${entity}.html`,
+            `${base}${lwcType.directoryName}/${entity}/${entity}.js-meta.xml`,
+            `${base}${lwcType.directoryName}/myComponentForExperienceCloud/`,
+            `${base}${lwcType.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.js`,
+          ])
+          const sut = new InResourceHandler(line, lwcType, work, globalMetadata)
 
           // Act
           await sut.handle()
 
           // Assert
-          expect(work.diffs.package.get(type.xmlName)).toEqual(
-            new Set([entity])
-          )
-          expect(copyFiles).toHaveBeenCalledTimes(2)
+          expect(Array.from(work.diffs.package.get(lwcType.xmlName)!)).toEqual([
+            entity,
+          ])
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
-            `${base}${type.directoryName}/${path}`
+            `${base}${lwcType.directoryName}/${path}`
+          )
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${lwcType.directoryName}/${entity}/${entity}.js-meta.xml`
+          )
+          expect(copyFiles).not.toHaveBeenCalledWith(
+            work.config,
+            expect.stringContaining('myComponentForExperienceCloud')
+          )
+        })
+
+        it('should copy static resource file and its meta at same level', async () => {
+          // Arrange
+          const base = 'force-app/main/default/'
+          const entity = 'imageFile'
+          const path = `${entity}.png`
+          const line = `A       ${base}${staticResourceType.directoryName}/${path}`
+          mockedReadDirs.mockResolvedValue([
+            `${base}${staticResourceType.directoryName}/${entity}.resource-meta.xml`,
+            `${base}${staticResourceType.directoryName}/other.resource-meta.xml`,
+          ])
+          const sut = new InResourceHandler(
+            line,
+            staticResourceType,
+            work,
+            globalMetadata
+          )
+
+          // Act
+          await sut.handle()
+
+          // Assert
+          expect(
+            Array.from(work.diffs.package.get(staticResourceType.xmlName)!)
+          ).toEqual([entity])
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${staticResourceType.directoryName}/${path}`
+          )
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`
+          )
+        })
+
+        it('should copy static resource folder content and its meta', async () => {
+          // Arrange
+          const base = 'force-app/main/default/'
+          const entity = 'imageFolder'
+          const path = `${entity}/logo.png`
+          const line = `A       ${base}${staticResourceType.directoryName}/${path}`
+          mockedReadDirs.mockResolvedValue([
+            `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
+          ])
+          const sut = new InResourceHandler(
+            line,
+            staticResourceType,
+            work,
+            globalMetadata
+          )
+
+          // Act
+          await sut.handle()
+
+          // Assert
+          expect(
+            Array.from(work.diffs.package.get(staticResourceType.xmlName)!)
+          ).toEqual([entity])
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${staticResourceType.directoryName}/${path}`
+          )
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`
+          )
+        })
+
+        it('should copy experience bundle with site meta and contained files', async () => {
+          // Arrange
+          const base = 'force-app/main/default/'
+          const entity = 'my_experience_bundle'
+          const path = `${entity}/config/myexperiencebundle.json`
+          const line = `A       ${base}${experienceBundleType.directoryName}/${path}`
+          mockedReadDirs.mockResolvedValue([
+            `${base}${experienceBundleType.directoryName}/${entity}.site-meta.xml`,
+            `${base}${experienceBundleType.directoryName}/${entity}/config/myexperiencebundle.json`,
+            `${base}${experienceBundleType.directoryName}/other_experience_bundle.resource-meta.xml`,
+          ])
+          const sut = new InResourceHandler(
+            line,
+            experienceBundleType,
+            work,
+            globalMetadata
+          )
+
+          // Act
+          await sut.handle()
+
+          // Assert
+          expect(
+            Array.from(work.diffs.package.get(experienceBundleType.xmlName)!)
+          ).toEqual([entity])
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${experienceBundleType.directoryName}/${path}`
+          )
+          expect(copyFiles).toHaveBeenCalledWith(
+            work.config,
+            `${base}${experienceBundleType.directoryName}/${entity}.${experienceBundleType.suffix}${METAFILE_SUFFIX}`
           )
         })
       })

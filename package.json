@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@oclif/core": "^4.5.2",
-    "@salesforce/core": "^8.20.0",
+    "@salesforce/core": "^8.21.1",
     "@salesforce/sf-plugins-core": "^12.2.4",
     "async": "^3.2.6",
     "fast-equals": "^5.2.2",
@@ -81,7 +81,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.3.0",
     "benchmark": "^2.1.4",
-    "chai": "^5.3.1",
+    "chai": "^6.0.0",
     "husky": "^9.1.7",
     "jest": "^30.0.5",
     "jest-util": "^30.0.5",
