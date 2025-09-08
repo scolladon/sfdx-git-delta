@@ -1,12 +1,12 @@
-import { Logger as LoggerService } from '@salesforce/core'
+import { Logger as CoreLogger } from '@salesforce/core'
 import { PLUGIN_NAME } from '../constant/libConstant.js'
 
 export class LoggingService {
   private static logger: CoreLogger
 
-  public constructor() {
+  constructor() {
     if (!LoggingService.logger) {
-      LoggingService.logger = LoggerService.childFromRoot(PLUGIN_NAME)
+      LoggingService.logger = CoreLogger.childFromRoot(PLUGIN_NAME)
     }
   }
 
