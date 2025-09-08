@@ -13,7 +13,7 @@ const inFileMetadata = new Map<string, SharedFileMetadata>()
 const sharedFolderMetadata = new Map<string, string>()
 
 const earliestVersion: number = 46
-const latestVersion: number = 64
+const latestVersion: number = 65
 
 export const getLatestSupportedVersion = () => {
   return latestVersion - 1
