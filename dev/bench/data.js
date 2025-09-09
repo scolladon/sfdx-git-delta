@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1756106438868,
+  "lastUpdate": 1757399504667,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3284,6 +3284,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±0.52%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ff32c271ab482d0e0802c5b149c424c68680e8d4",
+          "message": "feat: add Winter '26 (v65) release preview support (#1124)",
+          "timestamp": "2025-09-09T08:28:24+02:00",
+          "tree_id": "21471c27c6d2cb0c43b826bf6dad0f8dfb0b240b",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/ff32c271ab482d0e0802c5b149c424c68680e8d4"
+        },
+        "date": 1757399504050,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.75%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
