@@ -1,7 +1,7 @@
 import { Logger as CoreLogger } from '@salesforce/core'
 import { PLUGIN_NAME } from '../constant/libConstant.js'
 
-export class LoggingService {
+class LoggingService {
   private static logger: CoreLogger
 
   constructor() {

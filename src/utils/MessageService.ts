@@ -1,5 +1,6 @@
 import { Messages } from '@salesforce/core'
 import { PLUGIN_NAME } from '../constant/libConstant.js'
+import { TraceSyncMethod } from './LoggingDecorator.js'
 
 export class MessageService {
   private static instance: Messages<string>
@@ -11,10 +12,12 @@ export class MessageService {
     }
   }
 
+  @TraceSyncMethod
   getMessage(key: string, tokens?: string[]): string {
     return MessageService.instance.getMessage(key, tokens)
   }
 
+  @TraceSyncMethod
   getMessages(key: string, tokens?: string[]): string[] {
     return MessageService.instance.getMessages(key, tokens)
   }

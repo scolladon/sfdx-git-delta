@@ -1,10 +1,11 @@
 'use strict'
 import { LABEL_DECOMPOSED_SUFFIX } from '../constant/metadataConstants.js'
-
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 import InFileHandler from './inFileHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomLabelHandler extends InFileHandler {
+  @TraceAsyncMethod
   public override async handleAddition() {
     if (this._isDecomposed()) {
       await StandardHandler.prototype.handleAddition.apply(this)

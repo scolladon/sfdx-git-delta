@@ -5,7 +5,7 @@ import { queue } from 'async'
 
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
-
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 import TypeHandlerFactory from './typeHandlerFactory.js'
 
@@ -15,6 +15,7 @@ export default class DiffLineInterpreter {
     protected readonly metadata: MetadataRepository
   ) {}
 
+  @TraceAsyncMethod
   public async process(lines: string[]) {
     const typeHandlerFactory = new TypeHandlerFactory(this.work, this.metadata)
     const MAX_PARALLELISM = this.getConcurrencyThreshold()
