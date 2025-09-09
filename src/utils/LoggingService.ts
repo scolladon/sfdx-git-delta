@@ -7,6 +7,7 @@ export class LoggingService {
   constructor() {
     if (!LoggingService.logger) {
       LoggingService.logger = CoreLogger.childFromRoot(PLUGIN_NAME)
+      LoggingService.logger.setLevel()
     }
   }
 
