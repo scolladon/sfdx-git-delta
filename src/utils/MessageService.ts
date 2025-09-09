@@ -1,4 +1,5 @@
 import { Messages } from '@salesforce/core'
+import { PLUGIN_NAME } from '../constant/libConstant.js'
 
 export class MessageService {
   private static instance: Messages<string>
@@ -6,7 +7,7 @@ export class MessageService {
   constructor() {
     if (!MessageService.instance) {
       Messages.importMessagesDirectoryFromMetaUrl(import.meta.url)
-      MessageService.instance = Messages.loadMessages('sfdx-git-delta', 'delta')
+      MessageService.instance = Messages.loadMessages(PLUGIN_NAME, 'delta')
     }
   }
 
