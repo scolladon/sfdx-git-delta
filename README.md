@@ -621,6 +621,16 @@ Example to delete the Flow `Set_Account_Description` :
 sf project deploy start -x package.xml --post-destructive-changes destructiveChangesPost.xml
 ```
 
+### Debugging
+
+SGD is using the [Salesforce CLI logging system](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_dev_cli_log_messages.htm) to log information. You can control the logging level by setting the `SFDX_LOG_LEVEL` environment variable. You can redirect the logging in the terminal using `DEBUG=sfdx-git-delta`.
+
+example:
+
+```sh
+DEBUG=sfdx-git-delta SFDX_LOG_LEVEL=trace sf sgd source delta --from "HEAD~1" --to "HEAD"
+```
+
 ## Complementary Plugins
 
 These plugins have been designed to work with SGD:
