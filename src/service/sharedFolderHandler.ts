@@ -11,6 +11,7 @@ import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class SharedFolderHandler extends StandardHandler {
+  /* jscpd:ignore-start */
   protected readonly sharedFolderMetadata: Map<string, string>
 
   constructor(
@@ -22,6 +23,7 @@ export default class SharedFolderHandler extends StandardHandler {
     super(line, metadataDef, work, metadata)
     this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
   }
+  /* jscpd:ignore-end */
 
   protected override _fillPackage(store: Manifest) {
     const type = this.sharedFolderMetadata.get(this.ext!) as string
