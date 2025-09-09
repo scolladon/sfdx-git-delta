@@ -4,12 +4,13 @@ import { join, parse } from 'node:path/posix'
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
-
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ResourceHandler extends StandardHandler {
   protected metadataName: string | undefined
 
+  @TraceAsyncMethod
   public override async handleAddition() {
     this.metadataName = this._getMetadataName()
     await super.handleAddition()
@@ -18,6 +19,7 @@ export default class ResourceHandler extends StandardHandler {
     await this._copyResourceFiles()
   }
 
+  @TraceAsyncMethod
   public override async handleDeletion() {
     const [, elementPath, elementName] = this._parseLine()!
     const exists = await pathExists(join(elementPath, elementName), this.config)

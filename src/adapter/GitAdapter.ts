@@ -17,6 +17,7 @@ import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 
 const EOL = new RegExp(/\r?\n/)
 
@@ -43,11 +44,13 @@ export default class GitAdapter {
     this.pathExistsCache = new Map<string, boolean>()
   }
 
+  @TraceAsyncMethod
   public async configureRepository() {
     await this.simpleGit.addConfig('core.longpaths', 'true')
     await this.simpleGit.addConfig('core.quotepath', 'off')
   }
 
+  @TraceAsyncMethod
   public async parseRev(ref: string) {
     return await this.simpleGit.revparse(['--verify', ref])
   }
@@ -66,6 +69,7 @@ export default class GitAdapter {
     return doesPathExists
   }
 
+  @TraceAsyncMethod
   public async pathExists(path: string) {
     if (this.pathExistsCache.has(path)) {
       return this.pathExistsCache.get(path)!
@@ -75,6 +79,7 @@ export default class GitAdapter {
     return doesPathExists
   }
 
+  @TraceAsyncMethod
   public async getFirstCommitRef() {
     return await this.simpleGit.raw(['rev-list', '--max-parents=0', HEAD])
   }
@@ -89,6 +94,7 @@ export default class GitAdapter {
     return content
   }
 
+  @TraceAsyncMethod
   public async getStringContent(forRef: FileGitRef): Promise<string> {
     const content = await this.getBufferContent(forRef)
     return content.toString(UTF8_ENCODING)
@@ -141,6 +147,7 @@ export default class GitAdapter {
     return filesPath
   }
 
+  @TraceAsyncMethod
   public async getFilesPath(paths: string | string[]): Promise<string[]> {
     if (typeof paths === 'string') {
       return this.getFilesPathCached(paths)
@@ -169,6 +176,7 @@ export default class GitAdapter {
     }
   }
 
+  @TraceAsyncMethod
   public async getDiffLines(): Promise<string[]> {
     let lines: string[] = []
     for (const changeType of [ADDITION, MODIFICATION, DELETION]) {

@@ -10,6 +10,7 @@ import {
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
 import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
+import { TraceAsyncMethod } from './LoggingDecorator.js'
 import { MessageService } from './MessageService.js'
 
 const TO: keyof Config = 'to'
@@ -52,6 +53,7 @@ export default class CLIHelper {
     return errors
   }
 
+  @TraceAsyncMethod
   public async validateConfig() {
     this._sanitizeConfig()
     await this._handleDefault()
