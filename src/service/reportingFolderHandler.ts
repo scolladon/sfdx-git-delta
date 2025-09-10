@@ -10,6 +10,7 @@ import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import InFolderHandler from './inFolderHandler.js'
 
 export default class ReportingFolderHandler extends InFolderHandler {
+  /* jscpd:ignore-start */
   protected readonly sharedFolderMetadata: Map<string, string>
 
   constructor(
@@ -21,6 +22,7 @@ export default class ReportingFolderHandler extends InFolderHandler {
     super(line, metadataDef, work, metadata)
     this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
   }
+  /* jscpd:ignore-end */
 
   protected override async _copyFolderMetaFile() {
     const [, folderPath, folderName] = this._parseLine()!

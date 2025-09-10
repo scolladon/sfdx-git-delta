@@ -18,8 +18,8 @@ import {
   xml2Json,
 } from '../utils/fxpHelper.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
-
 import BaseProcessor from './baseProcessor.js'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
@@ -46,6 +46,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     this.translations = new Map()
   }
 
+  @TraceAsyncMethod
   public override async process() {
     if (this._shouldProcess()) {
       await this._buildFlowDefinitionsMap()

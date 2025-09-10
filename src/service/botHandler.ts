@@ -2,8 +2,8 @@
 import { parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
-
 import ShareFolderHandler from './sharedFolderHandler.js'
 
 const BOT_TYPE = 'Bot'
@@ -18,6 +18,8 @@ export default class BotHandler extends ShareFolderHandler {
     ])
     return [...elementName].join(DOT)
   }
+
+  @TraceAsyncMethod
   public override async handleAddition() {
     await super.handleAddition()
     await this._addParentBot()

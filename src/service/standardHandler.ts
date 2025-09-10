@@ -14,6 +14,7 @@ import type { Config } from '../types/config.js'
 import type { Metadata } from '../types/metadata.js'
 import type { Manifest, Manifests, Work } from '../types/work.js'
 import { copyFiles } from '../utils/fsHelper.js'
+import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -55,6 +56,7 @@ export default class StandardHandler {
     this.parentFolder = this.parsedLine.dir.split(PATH_SEP).slice(-1)[0]
   }
 
+  @TraceAsyncMethod
   public async handle() {
     if (this._isProcessable()) {
       try {
@@ -78,6 +80,7 @@ export default class StandardHandler {
     }
   }
 
+  @TraceAsyncMethod
   public async handleAddition() {
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
@@ -85,10 +88,12 @@ export default class StandardHandler {
     await this._copyWithMetaFile(this.line)
   }
 
+  @TraceAsyncMethod
   public async handleDeletion() {
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
+  @TraceAsyncMethod
   public async handleModification() {
     await this.handleAddition()
   }
