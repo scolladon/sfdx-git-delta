@@ -1,39 +1,30 @@
 import { Logger as CoreLogger } from '@salesforce/core'
 import { PLUGIN_NAME } from '../constant/libConstant.js'
 
-class LoggingService {
-  private static logger: CoreLogger
+export class Logger {
+  private static coreLogger: CoreLogger = (() => {
+    const coreLogger = CoreLogger.childFromRoot(PLUGIN_NAME)
+    coreLogger.setLevel()
+    return coreLogger
+  })()
 
-  constructor() {
-    if (!LoggingService.logger) {
-      LoggingService.logger = CoreLogger.childFromRoot(PLUGIN_NAME)
-      LoggingService.logger.setLevel()
-    }
+  static debug(message: string, meta?: unknown): void {
+    Logger.coreLogger.debug(message, meta)
   }
 
-  debug(message: string, meta?: unknown): void {
-    LoggingService.logger.debug(message, meta)
+  static error(message: string, meta?: unknown): void {
+    Logger.coreLogger.error(message, meta)
   }
 
-  error(message: string, meta?: unknown): void {
-    LoggingService.logger.error(message, meta)
+  static info(message: string, meta?: unknown): void {
+    Logger.coreLogger.info(message, meta)
   }
 
-  fatal(message: string, meta?: unknown): void {
-    LoggingService.logger.fatal(message, meta)
+  static trace(message: string, meta?: unknown): void {
+    Logger.coreLogger.trace(message, meta)
   }
 
-  info(message: string, meta?: unknown): void {
-    LoggingService.logger.info(message, meta)
-  }
-
-  trace(message: string, meta?: unknown): void {
-    LoggingService.logger.trace(message, meta)
-  }
-
-  warn(message: string, meta?: unknown): void {
-    LoggingService.logger.warn(message, meta)
+  static warn(message: string, meta?: unknown): void {
+    Logger.coreLogger.warn(message, meta)
   }
 }
-
-export const Logger = new LoggingService()
