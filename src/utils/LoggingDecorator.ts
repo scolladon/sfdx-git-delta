@@ -1,14 +1,14 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: it is dynamic by definition */
 import { Logger, lazy } from './LoggingService.js'
 
-function stringify(value: unknown) {
+export function stringify(value: unknown): string {
   if (hasCustomToString(value)) {
     return value.toString()
   }
   return JSON.stringify(value, replacer)
 }
 
-function replacer(_key: string, value: unknown) {
+function replacer(_key: string, value: unknown): unknown {
   if (value instanceof Map) {
     return Array.from(value.entries())
   }
@@ -18,7 +18,9 @@ function replacer(_key: string, value: unknown) {
   return value
 }
 
-function hasCustomToString(obj: unknown): obj is { toString: () => string } {
+export function hasCustomToString(
+  obj: unknown
+): obj is { toString: () => string } {
   if (obj === null || typeof obj !== 'object') return false
 
   const toStringFn = (obj as any).toString
@@ -28,8 +30,6 @@ function hasCustomToString(obj: unknown): obj is { toString: () => string } {
     return toStringFn !== Object.prototype.toString
   }
   const proto = Object.getPrototypeOf(obj)
-  if (!proto) return false
-
   const protoToString = proto.toString
   return (
     typeof protoToString === 'function' &&
@@ -41,7 +41,7 @@ export function log(
   target: any,
   propertyKey: string,
   descriptor: PropertyDescriptor
-) {
+): void {
   const original = descriptor.value
 
   descriptor.value = function (...args: any[]) {
