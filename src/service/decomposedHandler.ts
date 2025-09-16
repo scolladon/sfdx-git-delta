@@ -3,11 +3,11 @@ import { join } from 'node:path/posix'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
+import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class DecomposedHandler extends StandardHandler {
-  @TraceAsyncMethod
+  @log
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return

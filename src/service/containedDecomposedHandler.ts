@@ -9,7 +9,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { Metadata } from '../types/metadata.js'
 import { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
-import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
+import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ContainedDecomposedHandler extends StandardHandler {
@@ -25,7 +25,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     this._setholderFolder()
   }
 
-  @TraceAsyncMethod
+  @log
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
@@ -36,7 +36,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     }
   }
 
-  @TraceAsyncMethod
+  @log
   public override async handleDeletion() {
     if (!this._isDecomposedFormat()) {
       await super.handleDeletion()

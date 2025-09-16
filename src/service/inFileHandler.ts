@@ -7,7 +7,7 @@ import { getInFileAttributes, isPackable } from '../metadata/metadataManager.js'
 import { Metadata } from '../types/metadata.js'
 import type { Manifest, Work } from '../types/work.js'
 import { writeFile } from '../utils/fsHelper.js'
-import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
+import { log } from '../utils/LoggingDecorator.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import StandardHandler from './standardHandler.js'
@@ -27,12 +27,12 @@ export default class InFileHandler extends StandardHandler {
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
-  @TraceAsyncMethod
+  @log
   public override async handleAddition() {
     await this._compareRevisionAndStoreComparison()
   }
 
-  @TraceAsyncMethod
+  @log
   public override async handleDeletion() {
     if (this._shouldTreatDeletionAsDeletion()) {
       await super.handleDeletion()

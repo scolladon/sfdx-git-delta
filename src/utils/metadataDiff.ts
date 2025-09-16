@@ -11,7 +11,7 @@ import {
   parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
 } from './fxpHelper.js'
-import { TraceAsyncMethod, TraceSyncMethod } from './LoggingDecorator.js'
+import { log } from './LoggingDecorator.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
 const ARRAY_SPECIAL_KEY = '<array>'
@@ -46,7 +46,7 @@ export default class MetadataDiff {
     this.extractor = new MetadataExtractor(attributes)
   }
 
-  @TraceAsyncMethod
+  @log
   async compare(path: string): Promise<DiffResult> {
     this.toContent = await parseXmlFileToJson(
       { path, oid: this.config.to },
@@ -69,7 +69,7 @@ export default class MetadataDiff {
     return { added, deleted }
   }
 
-  @TraceSyncMethod
+  @log
   prune(): PrunedContent {
     const transformer = new JsonTransformer(this.extractor)
     const { prunedContent, isEmpty } = transformer.generatePartialJson(

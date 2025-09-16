@@ -6,7 +6,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { Work } from '../types/work.js'
 import { buildIncludeHelper } from '../utils/ignoreHelper.js'
-import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
+import { log } from '../utils/LoggingDecorator.js'
 
 import BaseProcessor from './baseProcessor.js'
 
@@ -23,7 +23,7 @@ export default class IncludeProcessor extends BaseProcessor {
     return !!this.config.include || !!this.config.includeDestructive
   }
 
-  @TraceAsyncMethod
+  @log
   public override async process() {
     if (!this._shouldProcess()) {
       return

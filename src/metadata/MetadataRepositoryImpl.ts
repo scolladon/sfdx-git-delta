@@ -17,7 +17,7 @@ import {
   WORKFLOW_TYPE,
 } from '../constant/metadataConstants.js'
 import type { Metadata } from '../types/metadata.js'
-import { TraceSyncMethod } from '../utils/LoggingDecorator.js'
+import { log } from '../utils/LoggingDecorator.js'
 import { MetadataRepository } from './MetadataRepository.js'
 
 export class MetadataRepositoryImpl implements MetadataRepository {
@@ -116,7 +116,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     return this.metadataPerXmlName.get(xmlName)
   }
 
-  @TraceSyncMethod
+  @log
   public getFullyQualifiedName(path: string): string {
     let fullyQualifiedName = parse(path).base
     const type = this.get(path)

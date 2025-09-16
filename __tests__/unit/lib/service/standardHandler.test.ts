@@ -347,4 +347,24 @@ describe(`StandardHandler`, () => {
       }
     )
   })
+
+  describe('toString', () => {
+    it('should return a string representation of the handler', () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${ADDITION}       ${entityPath}`,
+        classType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      const result = sut.toString()
+
+      // Assert
+      expect(result).toBe(
+        `${sut.constructor.name}: ${sut['changeType']} -> ${sut['line']}`
+      )
+    })
+  })
 })

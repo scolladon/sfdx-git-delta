@@ -3,7 +3,7 @@
 import { join } from 'node:path/posix'
 
 import { outputFile } from 'fs-extra'
-import { TraceAsyncMethod } from '../utils/LoggingDecorator.js'
+import { log } from '../utils/LoggingDecorator.js'
 import PackageBuilder from '../utils/packageHelper.js'
 import BaseProcessor from './baseProcessor.js'
 
@@ -12,7 +12,7 @@ const PACKAGE_FILE_NAME = 'package'
 const XML_FILE_EXTENSION = 'xml'
 
 export default class PackageGenerator extends BaseProcessor {
-  @TraceAsyncMethod
+  @log
   public override async process() {
     this._cleanPackages()
     await this._buildPackages()
