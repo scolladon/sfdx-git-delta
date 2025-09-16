@@ -15,6 +15,7 @@ import type { Metadata } from '../types/metadata.js'
 import type { Manifest, Manifests, Work } from '../types/work.js'
 import { copyFiles } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -82,6 +83,9 @@ export default class StandardHandler {
 
   @log
   public async handleAddition() {
+    Logger.info(
+      lazy`${this.metadataDef.xmlName!}.${() => this._getElementName()} created`
+    )
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
@@ -90,11 +94,17 @@ export default class StandardHandler {
 
   @log
   public async handleDeletion() {
+    Logger.info(
+      lazy`${this.metadataDef.xmlName!}.${() => this._getElementName()} deleted`
+    )
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
   @log
   public async handleModification() {
+    Logger.info(
+      lazy`${this.metadataDef.xmlName!}.${() => this._getElementName()} modified`
+    )
     await this.handleAddition()
   }
 
