@@ -4,6 +4,7 @@ import { describe, expect, it } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import CustomField from '../../../../src/service/customFieldHandler'
+import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
@@ -27,12 +28,12 @@ describe('the type handler factory', () => {
     [CustomField, ['fields']],
     [ContainedDecomposedHandler, ['permissionsets']],
     [
-      Decomposed,
+      CustomObjectChildHandler,
       [
         'businessProcesses',
         'compactLayouts',
         'fieldSets',
-        'fields',
+        'indexes',
         'listViews',
         'recordTypes',
         'sharingReasons',
