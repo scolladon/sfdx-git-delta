@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757399504667,
+  "lastUpdate": 1758208427983,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3315,6 +3315,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±0.75%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "47b2e0591f5394f2229a30861b67495556b7fb6c",
+          "message": "feat: implement a handler for CustomObject child (#1131)",
+          "timestamp": "2025-09-18T17:10:31+02:00",
+          "tree_id": "d04cf4052c29e7b83a53e5723e970f4304ee21d2",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/47b2e0591f5394f2229a30861b67495556b7fb6c"
+        },
+        "date": 1758208427320,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.30%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
