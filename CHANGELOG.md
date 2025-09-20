@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.20.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.19.0...v6.20.0) (2025-09-20)
+
+
+### Features
+
+* create logger service ([#1123](https://github.com/scolladon/sfdx-git-delta/issues/1123)) ([45b58cd](https://github.com/scolladon/sfdx-git-delta/commit/45b58cdcbb23ddc4d4e941db1dc0257ff6887904))
+* implement a handler for CustomObject child ([#1131](https://github.com/scolladon/sfdx-git-delta/issues/1131)) ([47b2e05](https://github.com/scolladon/sfdx-git-delta/commit/47b2e0591f5394f2229a30861b67495556b7fb6c))
+
 ## [6.19.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.18.2...v6.19.0) (2025-09-09)
 
 
