@@ -2,6 +2,7 @@
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { Metadata } from '../types/metadata.js'
 import type { Work } from '../types/work.js'
+import { log } from '../utils/LoggingDecorator.js'
 
 import Bot from './botHandler.js'
 import ContainedDecomposed from './containedDecomposedHandler.js'
@@ -87,6 +88,7 @@ export default class TypeHandlerFactory {
     protected readonly metadata: MetadataRepository
   ) {}
 
+  @log
   public getTypeHandler(line: string) {
     const type: Metadata = this.metadata.get(line)!
     const xmlName = type.xmlName as keyof typeof handlerMap

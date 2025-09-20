@@ -9,6 +9,8 @@ import {
 import sgd from '../../../main.js'
 import type { Config } from '../../../types/config.js'
 import type { SgdResult } from '../../../types/sgdResult.js'
+import { log } from '../../../utils/LoggingDecorator.js'
+import { Logger } from '../../../utils/LoggingService.js'
 import { MessageService } from '../../../utils/MessageService.js'
 
 const messages = new MessageService()
@@ -97,6 +99,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     }),
   }
 
+  @log
   public async run(): Promise<SgdResult> {
     const { flags } = await this.parse(SourceDeltaGenerate)
 
@@ -127,9 +130,11 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     try {
       const jobResult = await sgd(config)
       for (const warning of jobResult.warnings) {
+        Logger.warn('run: warning', warning)
         this.warn(warning.message)
       }
       this.info(messages.getMessage('info.EncourageSponsorship'))
+      Logger.info('run: success')
     } catch (err) {
       if (err instanceof Error) {
         finalMessage = `${messages.getMessage('info.CommandFailure')}: ${
@@ -137,6 +142,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
         }`
         output.error = err.message
       }
+      Logger.error('run: error', err)
       process.exitCode = 1
     }
     this.spinner.stop(finalMessage)

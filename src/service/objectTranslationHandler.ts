@@ -5,12 +5,13 @@ import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
 import { getInFileAttributes } from '../metadata/metadataManager.js'
 import { writeFile } from '../utils/fsHelper.js'
+import { log } from '../utils/LoggingDecorator.js'
 import MetadataDiff from '../utils/metadataDiff.js'
-
 import ResourceHandler from './inResourceHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
+  @log
   public override async handleAddition() {
     await StandardHandler.prototype.handleAddition.apply(this)
     if (!this.config.generateDelta) return

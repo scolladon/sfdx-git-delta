@@ -8,12 +8,13 @@ import {
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
 import { readDirs } from '../utils/fsHelper.js'
-
+import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {
-  override async handleAddition() {
+  @log
+  public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._copyFolderMetaFile()

@@ -8,10 +8,11 @@ import {
 } from '../constant/metadataConstants.js'
 import asyncFilter from '../utils/asyncFilter.js'
 import { pathExists, readDirs, readPathFromGit } from '../utils/fsHelper.js'
-
+import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomObjectHandler extends StandardHandler {
+  @log
   public override async handleAddition() {
     await super.handleAddition()
     if (!this.config.generateDelta) return

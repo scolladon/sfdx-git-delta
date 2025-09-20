@@ -4,6 +4,7 @@ import { create } from 'xmlbuilder2'
 import { OBJECT_TYPE } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
 import type { Manifest } from '../types/work.js'
+import { log } from './LoggingDecorator.js'
 
 const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
@@ -11,6 +12,7 @@ const frLocale = 'fr'
 export default class PackageBuilder {
   constructor(protected readonly config: Config) {}
 
+  @log
   public buildPackage(strucDiffPerType: Manifest) {
     const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
       xmlns: 'http://soap.sforce.com/2006/04/metadata',

@@ -6,8 +6,8 @@ import {
   GIT_DIFF_TYPE_REGEX,
   MODIFICATION,
 } from '../constant/gitConstants.js'
-
 import { readFile } from './fsUtils.js'
+import { log } from './LoggingDecorator.js'
 
 // QUESTION: Why we should ignore recordTypes for destructive changes manifest ?
 // Because the operation is note enabled on the metadata API https://ideas.salesforce.com/s/idea/a0B8W00000GdeGKUAZ/allow-deletion-of-record-type-using-metadata-api
@@ -19,6 +19,7 @@ export class IgnoreHelper {
     protected readonly destructiveIgnore: Ignore
   ) {}
 
+  @log
   public keep(line: string): boolean {
     const changeType = line.charAt(0)
 

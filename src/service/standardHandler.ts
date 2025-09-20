@@ -14,6 +14,8 @@ import type { Config } from '../types/config.js'
 import type { Metadata } from '../types/metadata.js'
 import type { Manifest, Manifests, Work } from '../types/work.js'
 import { copyFiles } from '../utils/fsHelper.js'
+import { log } from '../utils/LoggingDecorator.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -55,6 +57,7 @@ export default class StandardHandler {
     this.parentFolder = this.parsedLine.dir.split(PATH_SEP).slice(-1)[0]
   }
 
+  @log
   public async handle() {
     if (this._isProcessable()) {
       try {
@@ -78,18 +81,30 @@ export default class StandardHandler {
     }
   }
 
+  @log
   public async handleAddition() {
+    Logger.info(
+      lazy`${this.metadataDef.xmlName!}.${() => this._getElementName()} created`
+    )
     this._fillPackage(this.diffs.package)
     if (!this.config.generateDelta) return
 
     await this._copyWithMetaFile(this.line)
   }
 
+  @log
   public async handleDeletion() {
+    Logger.info(
+      lazy`${this.metadataDef.xmlName!}.${() => this._getElementName()} deleted`
+    )
     this._fillPackage(this.diffs.destructiveChanges)
   }
 
+  @log
   public async handleModification() {
+    Logger.info(
+      lazy`${this.metadataDef.xmlName!}.${() => this._getElementName()} modified`
+    )
     await this.handleAddition()
   }
 
@@ -167,5 +182,9 @@ export default class StandardHandler {
 
   protected _parentFolderIsNotTheType() {
     return this.parentFolder !== this.metadataDef.directoryName
+  }
+
+  public toString() {
+    return `${this.constructor.name}: ${this.changeType} -> ${this.line}`
   }
 }
