@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758208427983,
+  "lastUpdate": 1758349321710,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3346,6 +3346,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.30%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "45b58cdcbb23ddc4d4e941db1dc0257ff6887904",
+          "message": "feat: create logger service (#1123)\n\nCo-authored-by: Marcos Boger <50413997+marcosboger@users.noreply.github.com>",
+          "timestamp": "2025-09-20T08:18:29+02:00",
+          "tree_id": "d06c0e08c77f7ac5b6553c723d7cf4c49376cac5",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/45b58cdcbb23ddc4d4e941db1dc0257ff6887904"
+        },
+        "date": 1758349321042,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.34,
+            "range": "±0.71%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
