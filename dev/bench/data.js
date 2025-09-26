@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758349321710,
+  "lastUpdate": 1758886987541,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3377,6 +3377,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.34,
             "range": "±0.71%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bfb739a83e9ab0f30bd127b257620526e145fb89",
+          "message": "feat: support PaymentGatewayProvider metadata (#1138)",
+          "timestamp": "2025-09-26T13:39:30+02:00",
+          "tree_id": "0e0ebb1319a94abdf22033ed0d140985ad0ea76b",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/bfb739a83e9ab0f30bd127b257620526e145fb89"
+        },
+        "date": 1758886986524,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±1.43%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
