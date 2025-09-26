@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'paymentGatewayProviders',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'paymentGatewayProvider',
+    xmlName: 'PaymentGatewayProvider',
+  },
+  {
     directoryName: 'objectSourceTargetMaps',
     inFolder: false,
     metaFile: false,
