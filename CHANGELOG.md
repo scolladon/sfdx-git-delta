@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.21.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.20.0...v6.21.0) (2025-09-26)
+
+
+### Features
+
+* support PaymentGatewayProvider metadata ([#1138](https://github.com/scolladon/sfdx-git-delta/issues/1138)) ([bfb739a](https://github.com/scolladon/sfdx-git-delta/commit/bfb739a83e9ab0f30bd127b257620526e145fb89))
+
 ## [6.20.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.19.0...v6.20.0) (2025-09-20)
 
 
