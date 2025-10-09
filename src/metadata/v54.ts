@@ -1,5 +1,19 @@
 export default [
   {
+      directoryName: 'serviceAISetupDescriptions',
+      inFolder: false,
+      metaFile: false,
+      suffix: 'serviceAISetupDescription',
+      xmlName: 'ServiceAISetupDefinition',
+  },
+  {
+      directoryName: 'serviceAISetupFields',
+      inFolder: false,
+      metaFile: false,
+      suffix: 'serviceAISetupField',
+      xmlName: 'ServiceAISetupField',
+  },
+  {
     directoryName: 'paymentGatewayProviders',
     inFolder: false,
     metaFile: false,
