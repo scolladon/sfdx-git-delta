@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758886987541,
+  "lastUpdate": 1760017524215,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3408,6 +3408,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±1.43%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "48595832+92SGupta@users.noreply.github.com",
+            "name": "Shubham Gupta",
+            "username": "92SGupta"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "26b95503afcd7b733f266289ad30dcb5cbefbe3d",
+          "message": "feat: add `ServiceAISetup*` metadata support (#1142)\n\nCo-authored-by: Shubham Gupta <sgupta3@sgupta3-ltmk4hf.internal.salesforce.com>",
+          "timestamp": "2025-10-09T15:38:36+02:00",
+          "tree_id": "151557e061e387f56aa8bd2640051270be779550",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/26b95503afcd7b733f266289ad30dcb5cbefbe3d"
+        },
+        "date": 1760017520905,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±1.17%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
