@@ -42,6 +42,7 @@ const handlerMap = {
   FieldSet: CustomObjectChildHandler,
   Flow: FlowHandler,
   GenAiFunction: Lwc,
+  GenAiPlannerBundle: InResource,
   GlobalValueSetTranslation: InFile,
   Index: CustomObjectChildHandler,
   LightningComponentBundle: Lwc,
