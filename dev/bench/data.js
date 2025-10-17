@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1760017524215,
+  "lastUpdate": 1760688496720,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3439,6 +3439,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±1.17%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5b502cda8f1f1c5b4eed48059b64dd5db881a9cb",
+          "message": "fix: use Resource handler for `GenAiPlannerBundle` (#1145)",
+          "timestamp": "2025-10-17T10:04:03+02:00",
+          "tree_id": "a9265a2a886e4ea50f96648d42f9dcac11fa1efe",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/5b502cda8f1f1c5b4eed48059b64dd5db881a9cb"
+        },
+        "date": 1760688496294,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.46%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
