@@ -787,6 +787,13 @@ export default [
     xmlName: 'Skill',
   },
   {
+    directoryName: 'skilltypes',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'skilltype',
+    xmlName: 'SkillType',
+  },
+  {
     directoryName: 'serviceChannels',
     inFolder: false,
     metaFile: false,
