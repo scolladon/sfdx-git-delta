@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1760954082971,
+  "lastUpdate": 1764754199164,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3501,6 +3501,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.34,
             "range": "±2.15%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "acb35d565915d0c81c5644476faf0cb9e59c6ea8",
+          "message": "feat: support `AccountRelationshipShareRule` metadata (#1157)",
+          "timestamp": "2025-12-03T10:26:21+01:00",
+          "tree_id": "d7094be79a0626fb62fd56790db614389c4ae627",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/acb35d565915d0c81c5644476faf0cb9e59c6ea8"
+        },
+        "date": 1764754198870,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.34,
+            "range": "±0.54%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
