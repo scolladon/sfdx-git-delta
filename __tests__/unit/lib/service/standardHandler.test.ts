@@ -256,29 +256,26 @@ describe(`StandardHandler`, () => {
     it.each([
       ['new', ADDITION],
       ['modified', MODIFICATION],
-    ])(
-      'should add %s element to package and copy file',
-      async (_, changeType) => {
-        // Arrange
-        const sut = new StandardHandler(
-          `${changeType}       ${entityPath}`,
-          classType,
-          work,
-          globalMetadata
-        )
+    ])('should add %s element to package and copy file', async (_, changeType) => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${changeType}       ${entityPath}`,
+        classType,
+        work,
+        globalMetadata
+      )
 
-        // Act
-        await sut.handle()
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(classType.xmlName)).toEqual(
-          new Set([entity])
-        )
-        expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
-      }
-    )
+      // Assert
+      expect(work.warnings).toEqual([])
+      expect(work.diffs.package.get(classType.xmlName)).toEqual(
+        new Set([entity])
+      )
+      expect(work.diffs.destructiveChanges.size).toEqual(0)
+      expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
+    })
     it('should add deleted element to destructiveChanges and do not copy file', async () => {
       // Arrange
       const sut = new StandardHandler(
@@ -302,50 +299,50 @@ describe(`StandardHandler`, () => {
   })
 
   describe('_parseLine', () => {
-    it.each(['.', '', 'other'])(
-      'should return path and name part of a line "%s"',
-      repoPath => {
-        // Arrange
-        work.config.repo = repoPath
-        const sut = new StandardHandler(
-          `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
-          classType,
-          work,
-          globalMetadata
-        )
+    it.each([
+      '.',
+      '',
+      'other',
+    ])('should return path and name part of a line "%s"', repoPath => {
+      // Arrange
+      work.config.repo = repoPath
+      const sut = new StandardHandler(
+        `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
+        classType,
+        work,
+        globalMetadata
+      )
 
-        // Act
-        const result: RegExpMatchArray = sut['_parseLine']()!
+      // Act
+      const result: RegExpMatchArray = sut['_parseLine']()!
 
-        // Assert
-        expect(result.length).toBe(3)
-        expect(result[0]).toBe(`${entityPath}`)
-        expect(result[1]).toBe(`${basePath}${classType.directoryName}`)
-        expect(result[2]).toBe(`${entity}.${classType.suffix}`)
-      }
-    )
+      // Assert
+      expect(result.length).toBe(3)
+      expect(result[0]).toBe(`${entityPath}`)
+      expect(result[1]).toBe(`${basePath}${classType.directoryName}`)
+      expect(result[2]).toBe(`${entity}.${classType.suffix}`)
+    })
   })
 
   describe('when the line should not be processed', () => {
-    it.each([`force-app/main/default/classes/folder/Random.file`])(
-      'does not handle the line',
-      async entityPath => {
-        // Arrange
-        const sut = new StandardHandler(
-          `A       ${entityPath}`,
-          classType,
-          work,
-          globalMetadata
-        )
+    it.each([
+      `force-app/main/default/classes/folder/Random.file`,
+    ])('does not handle the line', async entityPath => {
+      // Arrange
+      const sut = new StandardHandler(
+        `A       ${entityPath}`,
+        classType,
+        work,
+        globalMetadata
+      )
 
-        // Act
-        await sut.handle()
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.diffs.package.size).toBe(0)
-        expect(copyFiles).not.toHaveBeenCalled()
-      }
-    )
+      // Assert
+      expect(work.diffs.package.size).toBe(0)
+      expect(copyFiles).not.toHaveBeenCalled()
+    })
   })
 
   describe('toString', () => {
