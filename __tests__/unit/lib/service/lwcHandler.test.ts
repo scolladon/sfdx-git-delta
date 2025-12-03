@@ -36,47 +36,47 @@ describe('lwcHandler', () => {
     globalMetadata = await getGlobalMetadata()
   })
   describe('when the line should not be processed', () => {
-    it.each([`${basePath}/.eslintrc.json`, `${basePath}/jsconfig.json`])(
-      'does not handle the line',
-      async entityPath => {
-        // Arrange
-        const sut = new LwcHandler(
-          `${ADDITION}       ${entityPath}`,
-          objectType,
-          work,
-          globalMetadata
-        )
+    it.each([
+      `${basePath}/.eslintrc.json`,
+      `${basePath}/jsconfig.json`,
+    ])('does not handle the line', async entityPath => {
+      // Arrange
+      const sut = new LwcHandler(
+        `${ADDITION}       ${entityPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
 
-        // Act
-        await sut.handle()
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.diffs.package.size).toBe(0)
-        expect(copyFiles).not.toHaveBeenCalled()
-      }
-    )
+      // Assert
+      expect(work.diffs.package.size).toBe(0)
+      expect(copyFiles).not.toHaveBeenCalled()
+    })
   })
 
   describe('when the line should be processed', () => {
-    it.each([ADDITION, MODIFICATION])(
-      'handles the line for "%s" type change',
-      async changeType => {
-        // Arrange
-        const sut = new LwcHandler(
-          `${changeType}       ${entityPath}`,
-          objectType,
-          work,
-          globalMetadata
-        )
+    it.each([
+      ADDITION,
+      MODIFICATION,
+    ])('handles the line for "%s" type change', async changeType => {
+      // Arrange
+      const sut = new LwcHandler(
+        `${changeType}       ${entityPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
 
-        // Act
-        await sut.handle()
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.diffs.package.get(xmlName)).toEqual(new Set([element]))
-        expect(copyFiles).toHaveBeenCalled()
-      }
-    )
+      // Assert
+      expect(work.diffs.package.get(xmlName)).toEqual(new Set([element]))
+      expect(copyFiles).toHaveBeenCalled()
+    })
 
     it('handles the line for "D" type change', async () => {
       // Arrange

@@ -237,39 +237,40 @@ describe(`test if the application`, () => {
     })
     beforeEach(jest.resetAllMocks)
     describe('when apiVersion parameter is set with supported value', () => {
-      it.each([46, 52, 55])(
-        'config.apiVersion (%s) equals the parameter',
-        async version => {
-          // Arrange
-          work.config.apiVersion = version
-          const cliHelper = new CLIHelper(work)
+      it.each([
+        46, 52, 55,
+      ])('config.apiVersion (%s) equals the parameter', async version => {
+        // Arrange
+        work.config.apiVersion = version
+        const cliHelper = new CLIHelper(work)
 
-          // Act
-          await cliHelper['_handleDefault']()
+        // Act
+        await cliHelper['_handleDefault']()
 
-          // Assert
-          expect(work.config.apiVersion).toEqual(version)
-          expect(work.warnings.length).toEqual(0)
-        }
-      )
+        // Assert
+        expect(work.config.apiVersion).toEqual(version)
+        expect(work.warnings.length).toEqual(0)
+      })
     })
     describe('when apiVersion parameter is set with unsupported value', () => {
-      it.each([NaN, 40, 55.1, 0])(
-        `config.apiVersion (%s) equals the latest version `,
-        async version => {
-          // Arrange
-          mockedFileExists.mockImplementation(() => Promise.resolve(false))
-          work.config.apiVersion = version
-          const cliHelper = new CLIHelper(work)
+      it.each([
+        NaN,
+        40,
+        55.1,
+        0,
+      ])(`config.apiVersion (%s) equals the latest version `, async version => {
+        // Arrange
+        mockedFileExists.mockImplementation(() => Promise.resolve(false))
+        work.config.apiVersion = version
+        const cliHelper = new CLIHelper(work)
 
-          // Act
-          await cliHelper['_handleDefault']()
+        // Act
+        await cliHelper['_handleDefault']()
 
-          // Assert
-          expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-          expect(work.warnings.length).toEqual(1)
-        }
-      )
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings.length).toEqual(1)
+      })
     })
 
     describe('when apiVersion parameter is not set', () => {
@@ -278,46 +279,48 @@ describe(`test if the application`, () => {
           mockedFileExists.mockImplementation(() => Promise.resolve(true))
         })
         describe('when "sourceApiVersion" attribute is set with supported value', () => {
-          it.each([46, 52, 53, 46.0, 52.0, 55.0])(
-            'config.apiVersion (%s) equals the "sourceApiVersion" attribute',
-            async version => {
-              // Arrange
-              mockedReadFile.mockImplementation(() =>
-                Promise.resolve(`{"sourceApiVersion":"${version}"}`)
-              )
+          it.each([
+            46, 52, 53, 46.0, 52.0, 55.0,
+          ])('config.apiVersion (%s) equals the "sourceApiVersion" attribute', async version => {
+            // Arrange
+            mockedReadFile.mockImplementation(() =>
+              Promise.resolve(`{"sourceApiVersion":"${version}"}`)
+            )
 
-              work.config.apiVersion = -1
-              const cliHelper = new CLIHelper(work)
+            work.config.apiVersion = -1
+            const cliHelper = new CLIHelper(work)
 
-              // Act
-              await cliHelper['_handleDefault']()
+            // Act
+            await cliHelper['_handleDefault']()
 
-              // Assert
-              expect(work.config.apiVersion).toEqual(+version)
-              expect(work.warnings.length).toEqual(0)
-            }
-          )
+            // Assert
+            expect(work.config.apiVersion).toEqual(+version)
+            expect(work.warnings.length).toEqual(0)
+          })
         })
         describe('when "sourceApiVersion" attribute is set with unsupported value', () => {
-          it.each([NaN, '40', 'awesome', 1000000000, ''])(
-            'config.apiVersion (%s) equals the latest version',
-            async version => {
-              // Arrange
-              mockedReadFile.mockResolvedValue(
-                `{"sourceApiVersion":"${version}"}`
-              )
+          it.each([
+            NaN,
+            '40',
+            'awesome',
+            1000000000,
+            '',
+          ])('config.apiVersion (%s) equals the latest version', async version => {
+            // Arrange
+            mockedReadFile.mockResolvedValue(
+              `{"sourceApiVersion":"${version}"}`
+            )
 
-              work.config.apiVersion = -1
-              const cliHelper = new CLIHelper(work)
+            work.config.apiVersion = -1
+            const cliHelper = new CLIHelper(work)
 
-              // Act
-              await cliHelper['_handleDefault']()
+            // Act
+            await cliHelper['_handleDefault']()
 
-              // Assert
-              expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-              expect(work.warnings.length).toEqual(1)
-            }
-          )
+            // Assert
+            expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+            expect(work.warnings.length).toEqual(1)
+          })
         })
 
         it('when "sourceApiVersion" attribute is not set', async () => {

@@ -31,28 +31,29 @@ beforeEach(() => {
 })
 
 describe('DecomposedHandler', () => {
-  describe.each(['handleAddition', 'handleDeletion', 'handleModification'])(
-    'in %s case',
-    method => {
-      it('element name should have the parent metadata', async () => {
-        // Arrange
-        const sut = new DecomposedHandler(
-          line,
-          recordTypeType,
-          work,
-          globalMetadata
-        )
-        const expectSubject =
-          method === 'handleDeletion'
-            ? work.diffs.destructiveChanges
-            : work.diffs.package
+  describe.each([
+    'handleAddition',
+    'handleDeletion',
+    'handleModification',
+  ])('in %s case', method => {
+    it('element name should have the parent metadata', async () => {
+      // Arrange
+      const sut = new DecomposedHandler(
+        line,
+        recordTypeType,
+        work,
+        globalMetadata
+      )
+      const expectSubject =
+        method === 'handleDeletion'
+          ? work.diffs.destructiveChanges
+          : work.diffs.package
 
-        // Act
-        await sut[method as keyof DecomposedHandler]()
+      // Act
+      await sut[method as keyof DecomposedHandler]()
 
-        // Assert
-        expect(expectSubject.get('RecordType')).toContain('Account.Test')
-      })
-    }
-  )
+      // Assert
+      expect(expectSubject.get('RecordType')).toContain('Account.Test')
+    })
+  })
 })

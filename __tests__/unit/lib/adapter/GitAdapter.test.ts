@@ -128,25 +128,25 @@ describe('GitAdapter', () => {
         expect(mockedCatFile).toHaveBeenCalledTimes(1)
         expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
-      it.each(['test', 'other', null, undefined, -1])(
-        'returns false when type is not "blob" nor "tree"',
-        async type => {
-          // Arrange
-          const gitAdapter = GitAdapter.getInstance(config)
-          mockedCatFile.mockImplementation(() => Promise.resolve({ type }))
+      it.each([
+        'test',
+        'other',
+        null,
+        undefined,
+        -1,
+      ])('returns false when type is not "blob" nor "tree"', async type => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedCatFile.mockImplementation(() => Promise.resolve({ type }))
 
-          // Act
-          const result = await gitAdapter.pathExists('path')
+        // Act
+        const result = await gitAdapter.pathExists('path')
 
-          // Assert
-          expect(result).toBe(false)
-          expect(mockedCatFile).toHaveBeenCalledTimes(1)
-          expect(mockedCatFile).toHaveBeenCalledWith([
-            '-t',
-            `${config.to}:path`,
-          ])
-        }
-      )
+        // Assert
+        expect(result).toBe(false)
+        expect(mockedCatFile).toHaveBeenCalledTimes(1)
+        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
+      })
     })
     describe('when called multiple times with the same parameters', () => {
       it('returns cached value', async () => {

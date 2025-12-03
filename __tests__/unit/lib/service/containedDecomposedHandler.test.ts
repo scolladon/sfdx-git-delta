@@ -44,68 +44,69 @@ describe('ContainedDecomposedHandler', () => {
     })
   })
 
-  describe.each(['permissionsets', 'other', 'permissionsets/subFolder'])(
-    'when it is not decomposed',
-    folder => {
-      let line: string
-      beforeEach(() => {
-        line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
-      })
+  describe.each([
+    'permissionsets',
+    'other',
+    'permissionsets/subFolder',
+  ])('when it is not decomposed', folder => {
+    let line: string
+    beforeEach(() => {
+      line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
+    })
 
-      it('should add addition to the package.xml', async () => {
-        // Arrange
-        const sut = new ContainedDecomposedHandler(
-          `A       ${line}`,
-          globalMetadata.get('permissionsets')!,
-          work,
-          globalMetadata
-        )
-        // Act
-        await sut.handle()
+    it('should add addition to the package.xml', async () => {
+      // Arrange
+      const sut = new ContainedDecomposedHandler(
+        `A       ${line}`,
+        globalMetadata.get('permissionsets')!,
+        work,
+        globalMetadata
+      )
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
-        expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-      })
+      // Assert
+      expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
+      expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
+      expect(copyFiles).toHaveBeenCalledTimes(1)
+    })
 
-      it('should add modification to the package.xml', async () => {
-        // Arrange
-        const sut = new ContainedDecomposedHandler(
-          `M       ${line}`,
-          globalMetadata.get('permissionsets')!,
-          work,
-          globalMetadata
-        )
-        // Act
-        await sut.handle()
+    it('should add modification to the package.xml', async () => {
+      // Arrange
+      const sut = new ContainedDecomposedHandler(
+        `M       ${line}`,
+        globalMetadata.get('permissionsets')!,
+        work,
+        globalMetadata
+      )
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
-        expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-      })
+      // Assert
+      expect(work.diffs.package.get('PermissionSet')).toContain('Subject')
+      expect(work.diffs.destructiveChanges.has('PermissionSet')).toBe(false)
+      expect(copyFiles).toHaveBeenCalledTimes(1)
+    })
 
-      it('should add deletion to the package.xml', async () => {
-        // Arrange
-        const sut = new ContainedDecomposedHandler(
-          `D       ${line}`,
-          globalMetadata.get('permissionsets')!,
-          work,
-          globalMetadata
-        )
-        // Act
-        await sut.handle()
+    it('should add deletion to the package.xml', async () => {
+      // Arrange
+      const sut = new ContainedDecomposedHandler(
+        `D       ${line}`,
+        globalMetadata.get('permissionsets')!,
+        work,
+        globalMetadata
+      )
+      // Act
+      await sut.handle()
 
-        // Assert
-        expect(work.diffs.package.has('PermissionSet')).toBe(false)
-        expect(work.diffs.destructiveChanges.get('PermissionSet')).toContain(
-          'Subject'
-        )
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-    }
-  )
+      // Assert
+      expect(work.diffs.package.has('PermissionSet')).toBe(false)
+      expect(work.diffs.destructiveChanges.get('PermissionSet')).toContain(
+        'Subject'
+      )
+      expect(copyFiles).not.toHaveBeenCalled()
+    })
+  })
   describe.each([
     'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',
     'force-app/main/default/permissionsets/Admin/Admin.flowAccesses-meta.xml',

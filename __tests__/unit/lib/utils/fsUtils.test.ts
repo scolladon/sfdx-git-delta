@@ -60,18 +60,15 @@ describe('isSubDir', () => {
     ['C:\\Foo', 'C:\\Foo\\Bar', false],
     ['C:\\Foo', 'C:\\Bar', false],
     ['C:\\Foo', 'D:\\Foo\\Bar', false],
-  ])(
-    `should verify %s expect %s to be a subDir: %s`,
-    (parent, child, expected) => {
-      // Arrange
+  ])(`should verify %s expect %s to be a subDir: %s`, (parent, child, expected) => {
+    // Arrange
 
-      // Act
-      const actual = isSubDir(parent, child)
+    // Act
+    const actual = isSubDir(parent, child)
 
-      // Assert
-      expect(actual).toBe(expected)
-    }
-  )
+    // Assert
+    expect(actual).toBe(expected)
+  })
 })
 
 describe('dirExists', () => {

@@ -513,69 +513,62 @@ beforeEach(() => {
     return Promise.resolve(existingFiles.includes(path))
   })
 })
-describe.each(testContext)(
-  `integration test %s`,
-  (
-    changePath: string | Set<string>,
-    expected: string | Set<string>,
-    expectedType: string | Set<string>,
-    xmlTo: string | Set<string>,
-    xmlFrom: string | Set<string>
-  ) => {
-    it(`addition ${expectedType}`, async () => {
-      // Arrange
-      if (xmlTo && xmlFrom) {
-        mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
-        mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
-      }
-      const sut = handlerFactory.getTypeHandler(
-        `${ADDITION}       ${changePath}`
-      )
+describe.each(testContext)(`integration test %s`, (changePath:
+  | string
+  | Set<string>, expected: string | Set<string>, expectedType:
+  | string
+  | Set<string>, xmlTo: string | Set<string>, xmlFrom:
+  | string
+  | Set<string>) => {
+  it(`addition ${expectedType}`, async () => {
+    // Arrange
+    if (xmlTo && xmlFrom) {
+      mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
+      mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
+    }
+    const sut = handlerFactory.getTypeHandler(`${ADDITION}       ${changePath}`)
 
-      // Act
-      await sut.handle()
+    // Act
+    await sut.handle()
 
-      // Assert
-      expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
-    })
-    it(`deletion ${expectedType}`, async () => {
-      // Arrange
-      if (xmlTo && xmlFrom) {
-        mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
-        mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
-      }
+    // Assert
+    expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+  })
+  it(`deletion ${expectedType}`, async () => {
+    // Arrange
+    if (xmlTo && xmlFrom) {
+      mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
+      mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
+    }
 
-      mockedReadDirs.mockResolvedValue([])
-      mockedPathExists.mockResolvedValue(false)
+    mockedReadDirs.mockResolvedValue([])
+    mockedPathExists.mockResolvedValue(false)
 
-      const sut = handlerFactory.getTypeHandler(
-        `${DELETION}       ${changePath}`
-      )
+    const sut = handlerFactory.getTypeHandler(`${DELETION}       ${changePath}`)
 
-      // Act
-      await sut.handle()
+    // Act
+    await sut.handle()
 
-      // Assert
-      expect(work.diffs.destructiveChanges.get(expectedType as string)).toEqual(
-        expected as Set<string>
-      )
-    })
-    it(`modification ${expectedType}`, async () => {
-      // Arrange
-      if (xmlTo && xmlFrom) {
-        mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
-        mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
-      }
+    // Assert
+    expect(work.diffs.destructiveChanges.get(expectedType as string)).toEqual(
+      expected as Set<string>
+    )
+  })
+  it(`modification ${expectedType}`, async () => {
+    // Arrange
+    if (xmlTo && xmlFrom) {
+      mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
+      mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
+    }
 
-      const sut = handlerFactory.getTypeHandler(
-        `${MODIFICATION}       ${changePath}`
-      )
+    const sut = handlerFactory.getTypeHandler(
+      `${MODIFICATION}       ${changePath}`
+    )
 
-      // Act
-      await sut.handle()
+    // Act
+    await sut.handle()
 
-      // Assert
-      expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
-    })
-  }
-)
+    // Assert
+    expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+  })
+})

@@ -65,17 +65,45 @@ describe('InNestedFolderHandler', () => {
     globalMetadata = await getGlobalMetadata()
   })
 
-  describe.each(testContext)(
-    'when called with generateDelta false',
-    (
-      changePath: string | Set<string>,
-      expected: string | Set<string>,
-      expectedType: string | Set<string>
-    ) => {
-      beforeEach(() => {
-        work.config.generateDelta = false
-      })
-      it(`should not copy meta files nor copy special extension when adding ${expectedType}`, async () => {
+  describe.each(
+    testContext
+  )('when called with generateDelta false', (changePath:
+    | string
+    | Set<string>, expected: string | Set<string>, expectedType:
+    | string
+    | Set<string>) => {
+    beforeEach(() => {
+      work.config.generateDelta = false
+    })
+    it(`should not copy meta files nor copy special extension when adding ${expectedType}`, async () => {
+      // Arrange
+      const sut = new ReportingFolderHandler(
+        changePath as string,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+      expect(copyFiles).not.toHaveBeenCalled()
+    })
+  })
+
+  describe.each(testContext)('when called with generateDelta true', (changePath:
+    | string
+    | Set<string>, expected: string | Set<string>, expectedType:
+    | string
+    | Set<string>) => {
+    beforeEach(() => {
+      work.config.generateDelta = true
+    })
+
+    describe(`when readDirs does not return files`, () => {
+      it(`should not copy special extension and copy meta files in addition ${expectedType}`, async () => {
         // Arrange
         const sut = new ReportingFolderHandler(
           changePath as string,
@@ -83,81 +111,45 @@ describe('InNestedFolderHandler', () => {
           work,
           globalMetadata
         )
+        mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
         // Act
         await sut.handleAddition()
 
         // Assert
         expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
-        expect(copyFiles).not.toHaveBeenCalled()
+        expect(readDirs).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(3)
+        expect(copyFiles).toHaveBeenCalledWith(
+          work.config,
+          expect.stringContaining(METAFILE_SUFFIX)
+        )
       })
-    }
-  )
+    })
 
-  describe.each(testContext)(
-    'when called with generateDelta true',
-    (
-      changePath: string | Set<string>,
-      expected: string | Set<string>,
-      expectedType: string | Set<string>
-    ) => {
-      beforeEach(() => {
-        work.config.generateDelta = true
+    describe('when readDirs returns files', () => {
+      it('should copy special extension', async () => {
+        // Arrange
+        const sut = new ReportingFolderHandler(
+          changePath as string,
+          objectType,
+          work,
+          globalMetadata
+        )
+        mockedReadDirs.mockImplementationOnce(() =>
+          Promise.resolve([entity, 'not/matching'])
+        )
+
+        // Act
+        await sut.handleAddition()
+
+        // Assert
+        expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+        expect(readDirs).toHaveBeenCalledTimes(1)
+        expect(copyFiles).toHaveBeenCalledTimes(5)
       })
-
-      describe(`when readDirs does not return files`, () => {
-        it(`should not copy special extension and copy meta files in addition ${expectedType}`, async () => {
-          // Arrange
-          const sut = new ReportingFolderHandler(
-            changePath as string,
-            objectType,
-            work,
-            globalMetadata
-          )
-          mockedReadDirs.mockImplementation(() => Promise.resolve([]))
-
-          // Act
-          await sut.handleAddition()
-
-          // Assert
-          expect(work.diffs.package.get(expectedType as string)).toEqual(
-            expected
-          )
-          expect(readDirs).toHaveBeenCalledTimes(1)
-          expect(copyFiles).toHaveBeenCalledTimes(3)
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            expect.stringContaining(METAFILE_SUFFIX)
-          )
-        })
-      })
-
-      describe('when readDirs returns files', () => {
-        it('should copy special extension', async () => {
-          // Arrange
-          const sut = new ReportingFolderHandler(
-            changePath as string,
-            objectType,
-            work,
-            globalMetadata
-          )
-          mockedReadDirs.mockImplementationOnce(() =>
-            Promise.resolve([entity, 'not/matching'])
-          )
-
-          // Act
-          await sut.handleAddition()
-
-          // Assert
-          expect(work.diffs.package.get(expectedType as string)).toEqual(
-            expected
-          )
-          expect(readDirs).toHaveBeenCalledTimes(1)
-          expect(copyFiles).toHaveBeenCalledTimes(5)
-        })
-      })
-    }
-  )
+    })
+  })
 
   describe('when the line should not be processed', () => {
     it.each([
