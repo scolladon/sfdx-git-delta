@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'accountRelationshipShareRules',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'accountRelationshipShareRule',
+    xmlName: 'AccountRelationshipShareRule',
+  },
+  {
     directoryName: 'featureParameters',
     inFolder: false,
     metaFile: false,
