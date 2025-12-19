@@ -16,6 +16,15 @@ import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { Work } from '../../../../src/types/work'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
+jest.mock('../../../../src/utils/MessageService', () => {
+  return {
+    MessageService: jest.fn().mockImplementation(() => ({
+      getMessage: jest.fn(),
+      getMessages: jest.fn(),
+    })),
+  }
+})
+
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
   beforeAll(async () => {
