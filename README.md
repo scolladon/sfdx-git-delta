@@ -56,6 +56,7 @@
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
   - [Handle flow deletion](#handle-flow-deletion)
+  - [Debugging](#debugging)
 - [Complementary Plugins](#complementary-plugins)
 - [Changelog](#changelog)
 - [Built With](#built-with)
