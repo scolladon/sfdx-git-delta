@@ -1,5 +1,19 @@
 export default [
   {
+    directoryName: 'SearchCriteriaConfigurationSettings',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'SearchCriteriaConfigurationSetting',
+    xmlName: 'SearchCriteriaConfiguration',
+  },
+  {
+    directoryName: 'SearchableObjDataSyncInfoSettings',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'SearchableObjDataSyncInfoSetting',
+    xmlName: 'SearchableObjDataSyncInfo',
+  },
+  {
     directoryName: 'accountRelationshipShareRules',
     inFolder: false,
     metaFile: false,
