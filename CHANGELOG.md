@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.27.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.26.0...v6.27.0) (2026-01-14)
+
+
+### Features
+
+* support DecisionMatrixDefinitionVersion metadata ([#1170](https://github.com/scolladon/sfdx-git-delta/issues/1170)) ([c85e8a4](https://github.com/scolladon/sfdx-git-delta/commit/c85e8a45de280d65081375b8dc6ec03c2f238ba7))
+
 ## [6.26.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.25.0...v6.26.0) (2026-01-14)
 
 
