@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768404891019,
+  "lastUpdate": 1768422910367,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3594,6 +3594,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.34,
             "range": "±0.44%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c85e8a45de280d65081375b8dc6ec03c2f238ba7",
+          "message": "feat: support DecisionMatrixDefinitionVersion metadata (#1170)",
+          "timestamp": "2026-01-14T21:31:25+01:00",
+          "tree_id": "e1c2aae8ba3c2c9ec7437db880419ac3fe744f8b",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/c85e8a45de280d65081375b8dc6ec03c2f238ba7"
+        },
+        "date": 1768422909411,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±1.07%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
