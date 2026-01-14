@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1767973294741,
+  "lastUpdate": 1768404891019,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3563,6 +3563,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±1.00%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "67920e19700d3733a459d56595da929a2bc83b62",
+          "message": "feat: support Spring 26 (#1167)",
+          "timestamp": "2026-01-14T16:31:10+01:00",
+          "tree_id": "98ec062af9262821554379f0673db71219927650",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/67920e19700d3733a459d56595da929a2bc83b62"
+        },
+        "date": 1768404890184,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.34,
+            "range": "±0.44%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
