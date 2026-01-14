@@ -595,6 +595,13 @@ export default [
     xmlName: 'ForecastingTypeSource',
   },
   {
+    directoryName: 'decisionMatrixVersion',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'decisionMatrixVersion',
+    xmlName: 'DecisionMatrixDefinitionVersion',
+  },
+  {
     directoryName: 'decisionMatrixDefinition',
     inFolder: false,
     metaFile: false,
