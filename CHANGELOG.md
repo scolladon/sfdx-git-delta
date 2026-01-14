@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.26.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.25.0...v6.26.0) (2026-01-14)
+
+
+### Features
+
+* support Spring 26 ([#1167](https://github.com/scolladon/sfdx-git-delta/issues/1167)) ([67920e1](https://github.com/scolladon/sfdx-git-delta/commit/67920e19700d3733a459d56595da929a2bc83b62))
+
 ## [6.25.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.24.0...v6.25.0) (2026-01-09)
 
 
