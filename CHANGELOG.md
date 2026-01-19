@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.28.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.27.0...v6.28.0) (2026-01-19)
+
+
+### Features
+
+* support `PricingRecipe` metadata ([#1174](https://github.com/scolladon/sfdx-git-delta/issues/1174)) ([e88e447](https://github.com/scolladon/sfdx-git-delta/commit/e88e447506573ad456f545ae517092a94449c683))
+
 ## [6.27.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.26.0...v6.27.0) (2026-01-14)
 
 
