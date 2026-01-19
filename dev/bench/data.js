@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768422910367,
+  "lastUpdate": 1768848536562,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3625,6 +3625,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±1.07%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e88e447506573ad456f545ae517092a94449c683",
+          "message": "feat: support `PricingRecipe` metadata (#1174)\n\nCo-authored-by: Manu2pace <116733084+Manu2pace@users.noreply.github.com>",
+          "timestamp": "2026-01-19T19:45:24+01:00",
+          "tree_id": "364650f9a382815815eb8c09d1a09d192fb38770",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/e88e447506573ad456f545ae517092a94449c683"
+        },
+        "date": 1768848535621,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.33,
+            "range": "±0.79%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
