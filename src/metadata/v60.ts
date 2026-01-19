@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'pricingRecipe',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'pricingRecipe',
+    xmlName: 'PricingRecipe',
+  },
+  {
     directoryName: 'SearchResultActionConfigSettings',
     inFolder: false,
     metaFile: false,
