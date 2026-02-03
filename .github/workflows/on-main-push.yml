@@ -9,6 +9,10 @@ on:
       - "**.md"
       - "img/**"
 
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
 jobs:
   build:
     uses: ./.github/workflows/reusable-build.yml
@@ -47,8 +51,6 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --access public --tag latest-rc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   test-release:
     uses: ./.github/workflows/run-e2e-tests.yml
