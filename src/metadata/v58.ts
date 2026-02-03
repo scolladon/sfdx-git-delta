@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'serviceprocess',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'serviceprocess',
+    xmlName: 'ServiceProcess',
+  },
+  {
     directoryName: 'SearchCriteriaConfigurationSettings',
     inFolder: false,
     metaFile: false,
