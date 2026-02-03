@@ -244,3 +244,14 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
 1. locate the comment with the beta version published in the pull request
 2. install the beta version `sf plugins install sfdx-git-delta@<beta-channel>`
 3. test the plugin!
+
+## How to modify npm tags
+
+Allow to add / move tags to a version
+`npm dist-tag add "sf-git-merge-driver@<version-number>" <tag-name>`
+Ex: npm dist-tag add "sf-git-merge-driver@1.0.0" stable
+
+Used for :
+
+- Moving `stable` and `latest` tags to a version
+- Downgrade `latest-rc` tag to a previous version
