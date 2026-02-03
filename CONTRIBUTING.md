@@ -248,8 +248,8 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
 ## How to modify npm tags
 
 Allow to add / move tags to a version
-`npm dist-tag add "sf-git-merge-driver@<version-number>" <tag-name>`
-Ex: npm dist-tag add "sf-git-merge-driver@1.0.0" stable
+`npm dist-tag add "sfdx-git-delta@<version-number>" <tag-name>`
+Ex: npm dist-tag add "sfdx-git-delta@1.0.0" stable
 
 Used for :
 
