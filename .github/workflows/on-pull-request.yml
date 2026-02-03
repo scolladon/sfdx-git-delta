@@ -9,6 +9,9 @@ on:
       - "**.md"
       - "img/**"
 
+permissions:
+  contents: 'read'
+
 # Manage concurrency to stop running jobs and start new ones in case of new commit pushed
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -20,12 +23,12 @@ jobs:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
@@ -50,10 +53,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
@@ -74,13 +77,13 @@ jobs:
     steps:
       # Git Checkout
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # MegaLinter
       - name: MegaLinter
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/latest/flavors/
-        uses: oxsecurity/megalinter/flavors/javascript@v8
+        uses: oxsecurity/megalinter/flavors/javascript@v9
         env:
           # All available variables are described in documentation
           # https://megalinter.io/latest/config-file/
@@ -88,7 +91,7 @@ jobs:
           VALIDATE_ALL_CODEBASE: true
           # ADD CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: megalinter-reports
@@ -122,65 +125,4 @@ jobs:
 
   build:
     uses: ./.github/workflows/reusable-build.yml
-    secrets: inherit
-
-  publish-dev:
-    needs: [build]
-    runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request.merged != 'true' && github.actor != 'dependabot[bot]' }}
-    outputs:
-      devChannel: ${{ steps.define_dev_channel.outputs.DEV_CHANNEL }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup dependencies, cache and install
-        uses: ./.github/actions/install
-
-      - uses: jwalton/gh-find-current-pr@master
-        id: pr-number
-
-      - name: Set dev channel value
-        run: echo "DEV_CHANNEL=dev-${{ steps.pr-number.outputs.pr }}" >> "$GITHUB_ENV"
-
-      - name: Setup github user
-        run: |
-          git config --global user.email "${{ env.DEV_CHANNEL }}@github.com"
-          git config --global user.name "${{ env.DEV_CHANNEL }}"
-
-      - name: NPM Publish dev channel
-        run: |
-          CURRENT_VERSION=$(jq -r '.version' package.json)
-          DEV_TAG="${{ env.DEV_CHANNEL }}.${{ github.run_id }}-${{ github.run_attempt }}"
-          npm version "${CURRENT_VERSION}-${DEV_TAG}"
-          npm publish --access public --tag "${{ env.DEV_CHANNEL }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Comment PR dev channel
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          message: |
-            Published under `${{ env.DEV_CHANNEL }}` npm channel.
-            ```sh
-            $ sf plugins install sfdx-git-delta@${{ env.DEV_CHANNEL }}
-            ```
-          comment_tag: dev-publish
-          mode: recreate
-
-      - name: Set dev channel value
-        id: define_dev_channel
-        run: echo "DEV_CHANNEL=${{ env.DEV_CHANNEL }}" >> "$GITHUB_OUTPUT"
-
-  e2e-check:
-    uses: ./.github/workflows/run-e2e-tests.yml
-    needs: [publish-dev]
-    with:
-      channel: ${{ needs.publish-dev.outputs.devChannel }}
     secrets: inherit
