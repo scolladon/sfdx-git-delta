@@ -1,2 +1,3 @@
 exclude_mail = true
 exclude_path = ["CHANGELOG.md", "package-lock.json"]
+exclude = ["https?://(www\\.)?npmjs\\.(com|org)"]
