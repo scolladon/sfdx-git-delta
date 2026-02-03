@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.29.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.28.0...v6.29.0) (2026-02-03)
+
+
+### Features
+
+* support `ServiceProcess` metadata ([#1182](https://github.com/scolladon/sfdx-git-delta/issues/1182)) ([57e6e8d](https://github.com/scolladon/sfdx-git-delta/commit/57e6e8d8435dadba9d4c3c309928d32949009c62))
+
 ## [6.28.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.27.0...v6.28.0) (2026-01-19)
 
 
