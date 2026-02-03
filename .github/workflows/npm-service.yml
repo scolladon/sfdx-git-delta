@@ -99,4 +99,3 @@ jobs:
     uses: ./.github/workflows/run-e2e-tests.yml
     with:
       channel: ${{ needs.publish.outputs.channel }}
-
