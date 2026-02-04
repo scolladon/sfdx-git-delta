@@ -20,6 +20,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  filter-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      notOnlyDependencies: ${{ steps.filter.outputs.notOnlyDependencies }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            notOnlyDependencies:
+              - '**'
+              - '!package.json'
+              - '!package-lock.json'
+
   commit-lint:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
@@ -51,6 +65,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
   npm-lint:
+    needs: filter-changes
+    if: ${{ needs.filter-changes.outputs.notOnlyDependencies == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -74,6 +90,8 @@ jobs:
         run: npm audit
 
   megalinter:
+    needs: filter-changes
+    if: ${{ needs.filter-changes.outputs.notOnlyDependencies == 'true' }}
     runs-on: ubuntu-latest
     steps:
       # Git Checkout
@@ -101,6 +119,8 @@ jobs:
             mega-linter.log
 
   incremental-mutation-testing:
+    needs: filter-changes
+    if: ${{ needs.filter-changes.outputs.notOnlyDependencies == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
