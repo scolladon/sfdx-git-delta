@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.30.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.29.0...v6.30.0) (2026-02-04)
+
+
+### Features
+
+* support `StageManagement` metadatas ([#1185](https://github.com/scolladon/sfdx-git-delta/issues/1185)) ([3914242](https://github.com/scolladon/sfdx-git-delta/commit/3914242a6bfd48800b1766b4c1a2cf686ff637b9))
+
 ## [6.29.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.28.0...v6.29.0) (2026-02-03)
 
 
