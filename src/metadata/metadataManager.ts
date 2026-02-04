@@ -31,7 +31,8 @@ export const getDefinition = async (
   const merger = new MetadataDefinitionMerger(internalRegistry)
 
   // 2. Merge SDR Metadata (Priority 2)
-  const standardMetadata = merger.merge(SDRMetadataAdapter.toInternalMetadata())
+  const sdrAdapter = new SDRMetadataAdapter()
+  const standardMetadata = merger.merge(sdrAdapter.toInternalMetadata())
 
   // 3. Add entries that can't go through the merger due to xmlName collision.
   // CustomObjectTranslation needs two entries with different suffixes:

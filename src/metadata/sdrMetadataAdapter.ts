@@ -2,12 +2,13 @@
 
 import {
   getCurrentApiVersion,
-  registry,
+  registry as sdrRegistry,
 } from '@salesforce/source-deploy-retrieve'
 
 import type { Metadata, SharedFolderMetadata } from '../types/metadata.js'
 
-type SDRMetadataType = (typeof registry.types)[keyof typeof registry.types]
+type Registry = typeof sdrRegistry
+type SDRMetadataType = Registry['types'][keyof Registry['types']]
 type SDRChildType = SDRMetadataType & {
   uniqueIdElement?: string
   xmlElementName?: string
@@ -20,15 +21,6 @@ const CONTENT_FILE_ADAPTERS = new Set([
   'decomposed',
   'digitalExperience',
 ])
-
-// Folder type IDs that should be EXCLUDED from the output as standalone types.
-// They are instead included via the `content` array of their parent inFolder type.
-// Only includes folder types that belong to inFolder parent types.
-const FOLDER_TYPE_IDS = new Set(
-  Object.values(registry.types)
-    .filter(t => t.inFolder && t.folderType)
-    .map(t => t.folderType as string)
-)
 
 // Types that need content array (Dashboard, Report, EmailTemplate but NOT Document)
 // Document in v66.ts has just suffix, no content array
@@ -45,22 +37,58 @@ const EXCLUDED_PARENT_TYPES = new Set([
   'CustomObjectTranslation',
 ])
 
+interface RegistryCache {
+  folderTypeIds: Set<string>
+  metadata: Metadata[]
+}
+
 export class SDRMetadataAdapter {
+  // Static cache - computed once per registry instance
+  private static registryCache = new WeakMap<Registry, RegistryCache>()
+
+  constructor(private readonly registry: Registry = sdrRegistry) {}
+
   public static async getLatestApiVersion(): Promise<string> {
     const version = await getCurrentApiVersion()
     return version.toString()
   }
 
-  public static toInternalMetadata(): Metadata[] {
+  // For testing - clear cache
+  public static clearCache(): void {
+    SDRMetadataAdapter.registryCache = new WeakMap()
+  }
+
+  private getOrCreateCache(): RegistryCache {
+    let cache = SDRMetadataAdapter.registryCache.get(this.registry)
+    if (!cache) {
+      cache = {
+        folderTypeIds: new Set(
+          Object.values(this.registry.types)
+            .filter(t => t.inFolder && t.folderType)
+            .map(t => t.folderType as string)
+        ),
+        metadata: [],
+      }
+      SDRMetadataAdapter.registryCache.set(this.registry, cache)
+    }
+    return cache
+  }
+
+  public toInternalMetadata(): Metadata[] {
+    const cache = this.getOrCreateCache()
+    if (cache.metadata.length > 0) {
+      return cache.metadata
+    }
+
     const result: Metadata[] = []
 
-    for (const sdrType of Object.values(registry.types)) {
+    for (const sdrType of Object.values(this.registry.types)) {
       // Skip folder types - they're included via parent's content array
-      if (FOLDER_TYPE_IDS.has(sdrType.id)) {
+      if (cache.folderTypeIds.has(sdrType.id)) {
         continue
       }
 
-      result.push(SDRMetadataAdapter.convertType(sdrType))
+      result.push(this.convertType(sdrType))
 
       // Add child types if present
       if (sdrType.children?.types) {
@@ -70,7 +98,7 @@ export class SDRMetadataAdapter {
 
         for (const childType of Object.values(sdrType.children.types)) {
           const child = childType as SDRChildType
-          const childDirName = SDRMetadataAdapter.findChildDirectory(
+          const childDirName = this.findChildDirectory(
             child,
             childDirectoryNames
           )
@@ -84,7 +112,7 @@ export class SDRMetadataAdapter {
             child.suffix === sdrType.suffix && !hasDifferentDirectory
 
           result.push(
-            SDRMetadataAdapter.convertChildType(
+            this.convertChildType(
               child,
               sdrType.name,
               skipSuffix,
@@ -96,12 +124,13 @@ export class SDRMetadataAdapter {
       }
     }
 
+    cache.metadata = result
     return result
   }
 
   // Finds the child's directory name by matching its xmlElementName against
   // the keys in the parent's children.directories map.
-  private static findChildDirectory(
+  private findChildDirectory(
     child: SDRChildType,
     directoryNames: Set<string>
   ): string {
@@ -111,13 +140,13 @@ export class SDRMetadataAdapter {
     return child.directoryName ?? ''
   }
 
-  private static convertType(sdrType: SDRMetadataType): Metadata {
+  private convertType(sdrType: SDRMetadataType): Metadata {
     // Build content array for types that need it (Dashboard, Report, EmailTemplate)
     const needsContent = TYPES_WITH_CONTENT_ARRAY.has(sdrType.id)
     let content: SharedFolderMetadata[] | undefined
 
     if (needsContent && sdrType.folderType) {
-      const folderType = registry.types[sdrType.folderType]
+      const folderType = this.registry.types[sdrType.folderType]
       if (folderType) {
         content = [
           { suffix: sdrType.suffix!, xmlName: sdrType.name },
@@ -129,7 +158,7 @@ export class SDRMetadataAdapter {
     return {
       directoryName: sdrType.directoryName ?? '',
       inFolder: sdrType.inFolder ?? false,
-      metaFile: SDRMetadataAdapter.hasMetaFile(sdrType),
+      metaFile: this.hasMetaFile(sdrType),
       ...(sdrType.suffix && { suffix: sdrType.suffix }),
       xmlName: sdrType.name,
       ...(content && { content }),
@@ -141,7 +170,7 @@ export class SDRMetadataAdapter {
     } as Metadata
   }
 
-  private static convertChildType(
+  private convertChildType(
     childType: SDRChildType,
     parentXmlName: string,
     skipSuffix: boolean,
@@ -170,7 +199,7 @@ export class SDRMetadataAdapter {
     }
   }
 
-  private static hasMetaFile(sdrType: SDRMetadataType): boolean {
+  private hasMetaFile(sdrType: SDRMetadataType): boolean {
     const adapter = sdrType.strategies?.adapter
     return adapter ? CONTENT_FILE_ADAPTERS.has(adapter) : false
   }
