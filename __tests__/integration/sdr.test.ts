@@ -8,10 +8,10 @@ describe('SDRMetadataAdapter', () => {
   describe('toInternalMetadata', () => {
     it('should return an array of metadata from SDR registry', () => {
       // Arrange
-      // (No arrangement needed, static method)
+      const adapter = new SDRMetadataAdapter()
 
       // Act
-      const metadata = SDRMetadataAdapter.toInternalMetadata()
+      const metadata = adapter.toInternalMetadata()
 
       // Assert
       expect(metadata).toBeDefined()
@@ -21,10 +21,10 @@ describe('SDRMetadataAdapter', () => {
 
     it('should include ApexClass metadata', () => {
       // Arrange
-      // (No arrangement needed)
+      const adapter = new SDRMetadataAdapter()
 
       // Act
-      const metadata = SDRMetadataAdapter.toInternalMetadata()
+      const metadata = adapter.toInternalMetadata()
       const apexClass = metadata.find(
         (m: Metadata) => m.xmlName === 'ApexClass'
       )
@@ -37,10 +37,10 @@ describe('SDRMetadataAdapter', () => {
 
     it('should include CustomObject metadata with children', () => {
       // Arrange
-      // (No arrangement needed)
+      const adapter = new SDRMetadataAdapter()
 
       // Act
-      const metadata = SDRMetadataAdapter.toInternalMetadata()
+      const metadata = adapter.toInternalMetadata()
       const customObject = metadata.find(
         (m: Metadata) => m.xmlName === 'CustomObject'
       )
@@ -54,10 +54,10 @@ describe('SDRMetadataAdapter', () => {
 
     it('should convert child types with parentXmlName', () => {
       // Arrange
-      // (No arrangement needed)
+      const adapter = new SDRMetadataAdapter()
 
       // Act
-      const metadata = SDRMetadataAdapter.toInternalMetadata()
+      const metadata = adapter.toInternalMetadata()
       const customField = metadata.find(
         (m: Metadata) => m.xmlName === 'CustomField'
       )
@@ -69,10 +69,10 @@ describe('SDRMetadataAdapter', () => {
 
     it('should set inFolder correctly', () => {
       // Arrange
-      // (No arrangement needed)
+      const adapter = new SDRMetadataAdapter()
 
       // Act
-      const metadata = SDRMetadataAdapter.toInternalMetadata()
+      const metadata = adapter.toInternalMetadata()
       const report = metadata.find((m: Metadata) => m.xmlName === 'Report')
 
       // Assert
@@ -82,10 +82,10 @@ describe('SDRMetadataAdapter', () => {
 
     it('should set metaFile correctly for bundle types', () => {
       // Arrange
-      // (No arrangement needed)
+      const adapter = new SDRMetadataAdapter()
 
       // Act
-      const metadata = SDRMetadataAdapter.toInternalMetadata()
+      const metadata = adapter.toInternalMetadata()
       const lwc = metadata.find(
         (m: Metadata) => m.xmlName === 'LightningComponentBundle'
       )
