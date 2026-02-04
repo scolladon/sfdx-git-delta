@@ -494,39 +494,7 @@ describe('MetadataDiff', () => {
           // Assert
           expect(convertJsonToXml).toHaveBeenCalledWith({
             ...header,
-            ...{
-              Profile: {
-                '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-                layoutAssignments: [
-                  {
-                    layout: 'another-test-layout',
-                    recordType: 'test-recordType',
-                  },
-                ],
-                loginHours: [
-                  {
-                    mondayStart: '300',
-                    mondayEnd: '500',
-                  },
-                  {
-                    tuesdayStart: '400',
-                    tuesdayEnd: '500',
-                  },
-                ],
-                loginIpRanges: [
-                  {
-                    description: 'ip range description',
-                    endAddress: '168.0.0.0',
-                    startAddress: '168.0.0.255',
-                  },
-                  {
-                    description: 'complete ip range description',
-                    endAddress: '168.0.0.1',
-                    startAddress: '168.0.0.255',
-                  },
-                ],
-              },
-            },
+            ...profileAdded,
           })
           expect(isEmpty).toBe(false)
         })
@@ -549,7 +517,7 @@ describe('MetadataDiff', () => {
           // Assert
           expect(convertJsonToXml).toHaveBeenCalledWith({
             ...header,
-            ...emptyProfile,
+            ...profile,
           })
           expect(isEmpty).toBe(true)
         })
