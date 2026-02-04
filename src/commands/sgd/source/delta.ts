@@ -89,6 +89,13 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       aliases: ['include-destructive'],
       deprecateAliases: true,
     }),
+    'additional-metadata-registry': Flags.file({
+      char: 'M',
+      summary: messages.getMessage(
+        'flags.additional-metadata-registry.summary'
+      ),
+      exists: true,
+    }),
     'ignore-whitespace': Flags.boolean({
       char: 'W',
       summary: messages.getMessage('flags.ignore-whitespace.summary'),
@@ -105,6 +112,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
 
     const config: Config = {
       apiVersion: parseInt(flags['api-version']!) || undefined,
+      additionalMetadataRegistryPath: flags['additional-metadata-registry'],
       from: flags['from'],
       generateDelta: flags['generate-delta'],
       ignore: flags['ignore-file'],

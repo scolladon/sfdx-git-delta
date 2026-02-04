@@ -72,6 +72,10 @@ file listing paths to explicitly include for any diff actions
 
 file listing paths to explicitly include for any destructive actions
 
+# flags.additional-metadata-registry.summary
+
+file containing additional metadata definitions to add to the registry
+
 # error.ParameterIsNotGitSHA
 
 --%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
