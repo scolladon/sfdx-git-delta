@@ -11,6 +11,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import StandardHandler from '../../../../src/service/standardHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
+import { Logger } from '../../../../src/utils/LoggingService'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -70,6 +71,24 @@ describe(`StandardHandler`, () => {
     expect(work.diffs.package.get(classType.xmlName)).toEqual(new Set([entity]))
     expect(work.diffs.destructiveChanges.size).toEqual(0)
     expect(copyFiles).toHaveBeenCalled()
+  })
+
+  it('should ignore non-Error thrown values', async () => {
+    // Arrange
+    mockedCopyFiles.mockRejectedValueOnce('string error')
+    const sut = new StandardHandler(
+      `${ADDITION}       ${entityPath}`,
+      classType,
+      work,
+      globalMetadata
+    )
+
+    // Act
+    await sut.handle()
+
+    // Assert
+    expect(work.warnings.length).toEqual(0)
+    expect(work.diffs.package.get(classType.xmlName)).toEqual(new Set([entity]))
   })
 
   it('does not handle not ADM line, silently', async () => {
@@ -145,6 +164,60 @@ describe(`StandardHandler`, () => {
     beforeEach(() => {
       work.config.generateDelta = true
     })
+
+    describe('when file copy is not delegated', () => {
+      it('should not copy files when _copyWithMetaFile check fails', async () => {
+        // Arrange
+        const sut = new StandardHandler(
+          `${ADDITION}       ${entityPath}`,
+          classType,
+          work,
+          globalMetadata
+        )
+        jest
+          .spyOn(
+            sut as unknown as { _delegateFileCopy: () => boolean },
+            '_delegateFileCopy'
+          )
+          .mockReturnValue(false)
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.get(classType.xmlName)).toEqual(
+          new Set([entity])
+        )
+        expect(copyFiles).not.toHaveBeenCalled()
+      })
+
+      it('should not copy files when _copy check fails', async () => {
+        // Arrange
+        const sut = new StandardHandler(
+          `${ADDITION}       ${entityPath}`,
+          classType,
+          work,
+          globalMetadata
+        )
+        jest
+          .spyOn(
+            sut as unknown as { _delegateFileCopy: () => boolean },
+            '_delegateFileCopy'
+          )
+          .mockReturnValueOnce(true) // _copyWithMetaFile check passes
+          .mockReturnValue(false) // _copy checks fail
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(work.diffs.package.get(classType.xmlName)).toEqual(
+          new Set([entity])
+        )
+        expect(copyFiles).not.toHaveBeenCalled()
+      })
+    })
+
     describe('when element type definition has meta file', () => {
       it('should add element to package when meta file is modified', async () => {
         // Arrange
@@ -361,6 +434,86 @@ describe(`StandardHandler`, () => {
       // Assert
       expect(result).toBe(
         `${sut.constructor.name}: ${sut['changeType']} -> ${sut['line']}`
+      )
+    })
+  })
+
+  describe('when logging is enabled', () => {
+    let mockInfo: jest.Mock
+    let originalCoreLogger: (typeof Logger)['coreLogger']
+
+    beforeEach(() => {
+      originalCoreLogger = Logger['coreLogger']
+      mockInfo = jest.fn()
+      Logger['coreLogger'] = {
+        setLevel: jest.fn(),
+        shouldLog: jest.fn().mockReturnValue(true),
+        debug: jest.fn(),
+        error: jest.fn(),
+        info: mockInfo,
+        trace: jest.fn(),
+        warn: jest.fn(),
+      } as unknown as (typeof Logger)['coreLogger']
+    })
+
+    afterEach(() => {
+      Logger['coreLogger'] = originalCoreLogger
+    })
+
+    it('should log addition with lazy evaluated element name', async () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${ADDITION}       ${entityPath}`,
+        classType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(mockInfo).toHaveBeenCalledWith(
+        `${classType.xmlName}.${entity} created`,
+        undefined
+      )
+    })
+
+    it('should log deletion with lazy evaluated element name', async () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${DELETION}       ${entityPath}`,
+        classType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(mockInfo).toHaveBeenCalledWith(
+        `${classType.xmlName}.${entity} deleted`,
+        undefined
+      )
+    })
+
+    it('should log modification with lazy evaluated element name', async () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${MODIFICATION}       ${entityPath}`,
+        classType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handle()
+
+      // Assert
+      expect(mockInfo).toHaveBeenCalledWith(
+        `${classType.xmlName}.${entity} modified`,
+        undefined
       )
     })
   })

@@ -277,6 +277,17 @@ describe(`test if repoGitDiff`, () => {
     expect(work).toStrictEqual(output)
   })
 
+  it('can handle multiple files with the same change type', async () => {
+    const output: string[] = [
+      `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
+      `${ADDITION}${TAB}force-app/main/default/classes/Contact.cls`,
+    ]
+    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
+    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
+    const work = await repoGitDiff.getLines()
+    expect(work).toStrictEqual(output)
+  })
+
   it('can reject in case of error', async () => {
     mockGetDiffLines.mockImplementation(() => Promise.reject(new Error('test')))
     try {
