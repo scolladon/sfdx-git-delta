@@ -21,7 +21,7 @@ export default async (config: Config): Promise<Work> => {
   const cliHelper = new CLIHelper(work)
   await cliHelper.validateConfig()
 
-  const metadata: MetadataRepository = await getDefinition(config.apiVersion)
+  const metadata: MetadataRepository = await getDefinition(config)
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
   const lines = await repoGitDiffHelper.getLines()

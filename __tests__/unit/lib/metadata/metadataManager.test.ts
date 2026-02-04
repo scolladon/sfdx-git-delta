@@ -1,22 +1,24 @@
-'use strict'
-import { describe, expect, it } from '@jest/globals'
-
+import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import {
   getDefinition,
   getInFileAttributes,
   getLatestSupportedVersion,
   getSharedFolderMetadata,
-  isVersionSupported,
+  isPackable,
 } from '../../../../src/metadata/metadataManager'
+import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
+
 import type { Metadata } from '../../../../src/types/metadata'
+import * as fsUtils from '../../../../src/utils/fsUtils'
 
 describe(`test if metadata`, () => {
   it('provide latest when apiVersion is undefined', async () => {
-    let undefinedVariable
-    const metadata = await getDefinition(undefinedVariable)
-    const latestVersionSupported = getLatestSupportedVersion()
-    const latestMetadataDef = await getDefinition(latestVersionSupported)
+    const metadata = await getDefinition({ apiVersion: undefined })
+    const latestVersionSupported = await getLatestSupportedVersion()
+    const latestMetadataDef = await getDefinition({
+      apiVersion: latestVersionSupported,
+    })
 
     expect(metadata).toBeDefined()
     expect(metadata).toEqual(latestMetadataDef)
@@ -25,9 +27,11 @@ describe(`test if metadata`, () => {
   })
 
   it('provide latest when apiVersion does not exist', async () => {
-    const metadata = await getDefinition(0)
-    const latestVersionSupported = getLatestSupportedVersion()
-    const latestMetadataDef = await getDefinition(latestVersionSupported)
+    const metadata = await getDefinition({ apiVersion: 0 })
+    const latestVersionSupported = await getLatestSupportedVersion()
+    const latestMetadataDef = await getDefinition({
+      apiVersion: latestVersionSupported,
+    })
 
     expect(metadata).toBeDefined()
     expect(metadata).toEqual(latestMetadataDef)
@@ -36,51 +40,25 @@ describe(`test if metadata`, () => {
   })
 
   it('has classes', async () => {
-    const metadata = await getDefinition(58)
+    const metadata = await getDefinition({ apiVersion: 58 })
     expect(metadata.get('classes')).toBeDefined()
   })
 
   it('do not have do not exist', async () => {
-    let metadata = await getDefinition(48)
-    metadata = await getDefinition(46)
+    let metadata = await getDefinition({ apiVersion: 48 })
+    metadata = await getDefinition({ apiVersion: 46 })
     expect(metadata).toBeDefined()
     expect(metadata.get('do not exist')).toBeFalsy()
   })
 
-  it('getLatestSupportedVersion', () => {
-    const latestVersion = getLatestSupportedVersion()
+  it('getLatestSupportedVersion', async () => {
+    jest
+      .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+      .mockResolvedValue('58')
+    const latestVersion = await getLatestSupportedVersion()
+
     expect(latestVersion).toBeDefined()
-    expect(latestVersion).toEqual(expect.any(Number))
-  })
-
-  it('latest supported version is the second last version', () => {
-    // Arrange
-    let i = 45
-
-    // Act(s)
-    while (isVersionSupported(++i));
-    // Here latest version should not be supported because it is equal to last version + 1
-
-    // Assert
-    const defaultLatestSupportedVersion = getLatestSupportedVersion()
-    // defaultLatestSupportedVersion should be equal to i + 1 (latest) + 1 (iteration)
-    expect(i).toBe(defaultLatestSupportedVersion + 2)
-  })
-
-  it('isVersionSupported', () => {
-    // Arrange
-    const dataSet = [
-      [40, false],
-      [46, true],
-      [52, true],
-      [55, true],
-    ]
-
-    // Act & Assert
-    for (const data of dataSet) {
-      const result = isVersionSupported(data[0] as number)
-      expect(result).toEqual(data[1])
-    }
+    expect(latestVersion).toEqual(58)
   })
 
   it('getInFileAttributes', async () => {
@@ -109,6 +87,30 @@ describe(`test if metadata`, () => {
         key: 'other',
         excluded: true,
       },
+      {
+        directoryName: 'globalValueSetTranslations',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'GlobalValueSetTranslation',
+        xmlTag: 'globalValueSetTranslation',
+        key: 'fullName',
+      },
+      {
+        directoryName: 'none',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'ValueTranslation',
+        parentXmlName: 'GlobalValueSetTranslation',
+        xmlTag: 'valueTranslation',
+      },
+      {
+        directoryName: 'noXmlName',
+        inFolder: false,
+        metaFile: false,
+        // xmlName undefined
+        xmlTag: 'noXmlName',
+        key: 'fullName',
+      } as unknown as Metadata,
     ])
 
     // Act
@@ -128,12 +130,76 @@ describe(`test if metadata`, () => {
       key: 'other',
       excluded: true,
     })
+    expect(inFileAttributes.has('globalValueSetTranslation')).toBe(true)
+    expect(inFileAttributes.get('globalValueSetTranslation')).toEqual({
+      xmlName: 'GlobalValueSetTranslation',
+      key: 'fullName',
+      excluded: true,
+    })
+    expect(inFileAttributes.has('valueTranslation')).toBe(true)
+    expect(inFileAttributes.get('valueTranslation')).toEqual({
+      xmlName: 'ValueTranslation',
+      excluded: true,
+    })
+    expect(inFileAttributes.has('noXmlName')).toBe(true)
+    expect(inFileAttributes.get('noXmlName')).toEqual({
+      xmlName: undefined,
+      key: 'fullName',
+      excluded: false,
+    })
 
     // Act
     const otherInFileAttributes = getInFileAttributes(metadata)
 
     // Assert
     expect(otherInFileAttributes).toBe(inFileAttributes)
+  })
+
+  it('isPackable', () => {
+    // Relies on getInFileAttributes having been called above with 'WorkflowAlert' (not excluded) and 'Excluded' (excluded)
+    expect(isPackable('WorkflowAlert')).toBe(true)
+    expect(isPackable('Excluded')).toBe(false)
+    expect(isPackable('Unknown')).toBe(true)
+  })
+
+  it('getDefinition with additional registry', async () => {
+    const additionalRegistryContent = `[
+      {
+        "xmlName": "CustomThing",
+        "suffix": "thing",
+        "directoryName": "things",
+        "inFolder": false,
+        "metaFile": false
+      }
+    ]`
+    const readFileSpy = jest
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    const metadata = await getDefinition({
+      apiVersion: undefined,
+      additionalMetadataRegistryPath: 'path/to/registry.json',
+    })
+    expect(metadata.get('CustomThing')).toBeDefined()
+    expect(readFileSpy).toHaveBeenCalledWith('path/to/registry.json')
+    readFileSpy.mockRestore()
+  })
+
+  it('getDefinition with invalid additional registry', async () => {
+    const additionalRegistryContent = 'invalid json'
+    const readFileSpy = jest
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    await expect(
+      getDefinition({
+        apiVersion: undefined,
+        additionalMetadataRegistryPath: 'path/to/registry.json',
+      })
+    ).rejects.toThrow(
+      "Unable to parse the additional metadata registry file 'path/to/registry.json'. Caused by: SyntaxError: Unexpected token 'i', \"invalid json\" is not valid JSON"
+    )
+    readFileSpy.mockRestore()
   })
 
   it('getSharedFolderMetadata', async () => {
