@@ -61,8 +61,17 @@ export const getDefinition = async (
     const fullMerger = new MetadataDefinitionMerger(finalMetadata)
     const content = await readFile(additionalMetadataRegistryPath)
     try {
-      const additionalMetadata = JSON.parse(content) as Metadata[]
-      finalMetadata = fullMerger.merge(additionalMetadata)
+      const additionalMetadata = JSON.parse(content)
+      if (!Array.isArray(additionalMetadata)) {
+        throw new Error('Content must be a JSON array')
+      }
+      const invalidEntries = additionalMetadata.filter(
+        (entry: Metadata) => !entry.xmlName
+      )
+      if (invalidEntries.length > 0) {
+        throw new Error('Each metadata entry must have an xmlName property')
+      }
+      finalMetadata = fullMerger.merge(additionalMetadata as Metadata[])
     } catch (err) {
       throw new Error(
         `Unable to parse the additional metadata registry file '${additionalMetadataRegistryPath}'. Caused by: ${err}`
