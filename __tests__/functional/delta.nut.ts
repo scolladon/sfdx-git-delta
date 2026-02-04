@@ -32,6 +32,7 @@ describe('sgd source delta NUTS', () => {
       'e2e/expected/destructiveChanges/destructiveChanges.xml',
       'utf8'
     )
+    const version = await getLatestSupportedVersion()
     const expectedPackage = `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -39,7 +40,7 @@ describe('sgd source delta NUTS', () => {
         <members>ModifiedClass</members>
         <name>ApexClass</name>
     </types>
-    <version>${getLatestSupportedVersion()}.0</version>
+    <version>${version}.0</version>
 </Package>`
     const expectedDestructiveChanges = `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -47,7 +48,7 @@ describe('sgd source delta NUTS', () => {
         <members>DeletedClass</members>
         <name>ApexClass</name>
     </types>
-    <version>${getLatestSupportedVersion()}.0</version>
+    <version>${version}.0</version>
 </Package>`
     expect(packageFile).to.equal(expectedPackage)
     expect(destructiveChangesFile).to.equal(expectedDestructiveChanges)
