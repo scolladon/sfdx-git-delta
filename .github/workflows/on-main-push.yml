@@ -21,6 +21,9 @@ jobs:
   prepare-release:
     needs: [build]
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      prs_created: ${{ steps.release.outputs.prs_created }
     permissions:
       contents: write
       pull-requests: write
@@ -29,3 +32,63 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_PAT }}
           release-type: node
+
+  perf:
+    needs: [prepare-release]
+    runs-on: ubuntu-latest
+    if: ${{ needs.prepare-release.outputs.release_created != 'true' && needs.prepare-release.outputs.prs_created == 'true' }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: google/wireit@setup-github-actions-caching/v2
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Set environment variables
+        run: |
+          echo "SF_DISABLE_AUTOUPDATE=true" >> "$GITHUB_ENV"
+          echo "SF_DISABLE_TELEMETRY=true" >> "$GITHUB_ENV"
+
+      - name: Build plugin
+        run: npm pack
+
+      - name: Install salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Install plugin
+        run: |
+          sf plugins link .
+          sf plugins
+
+      - name: Checkout e2e test subject
+        uses: actions/checkout@v4
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
+
+      - name: Run benchmark
+        run: |
+          npm run test:perf
+          git reset --hard
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Benchmark.js Benchmark
+          tool: 'benchmarkjs'
+          output-file-path: ./perf-result.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '130%'
+          comment-on-alert: true
+          fail-on-alert: true
+          summary-always: true
+          alert-comment-cc-users: '@scolladon'
