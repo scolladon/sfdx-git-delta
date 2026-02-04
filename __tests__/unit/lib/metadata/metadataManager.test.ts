@@ -241,16 +241,15 @@ describe(`test if metadata`, () => {
         apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
-    ).rejects.toThrow('Content must be a JSON array')
+    ).rejects.toThrow(/expected array, received object/i)
     readFileSpy.mockRestore()
   })
 
-  it('Given additional registry entry without xmlName, When getDefinition, Then throws validation error', async () => {
+  it('Given additional registry entry without required fields, When getDefinition, Then throws validation error', async () => {
     // Arrange
     const additionalRegistryContent = `[
       {
-        "suffix": "thing",
-        "directoryName": "things"
+        "suffix": "thing"
       }
     ]`
     const readFileSpy = jest
@@ -263,7 +262,58 @@ describe(`test if metadata`, () => {
         apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
-    ).rejects.toThrow('Each metadata entry must have an xmlName property')
+    ).rejects.toThrow(
+      /Invalid additional metadata registry file.*xmlName.*directoryName.*inFolder.*metaFile/s
+    )
+    readFileSpy.mockRestore()
+  })
+
+  it('Given additional registry entry with wrong type, When getDefinition, Then throws validation error', async () => {
+    // Arrange
+    const additionalRegistryContent = `[
+      {
+        "xmlName": "CustomThing",
+        "directoryName": "things",
+        "inFolder": "not-a-boolean",
+        "metaFile": false
+      }
+    ]`
+    const readFileSpy = jest
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    // Act & Assert
+    await expect(
+      getDefinition({
+        apiVersion: undefined,
+        additionalMetadataRegistryPath: 'path/to/registry.json',
+      })
+    ).rejects.toThrow(/expected boolean, received string/i)
+    readFileSpy.mockRestore()
+  })
+
+  it('Given additional registry entry with unknown field, When getDefinition, Then throws validation error', async () => {
+    // Arrange
+    const additionalRegistryContent = `[
+      {
+        "xmlName": "CustomThing",
+        "directoryName": "things",
+        "inFolder": false,
+        "metaFile": false,
+        "unknownField": "value"
+      }
+    ]`
+    const readFileSpy = jest
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    // Act & Assert
+    await expect(
+      getDefinition({
+        apiVersion: undefined,
+        additionalMetadataRegistryPath: 'path/to/registry.json',
+      })
+    ).rejects.toThrow(/Unrecognized key.*unknownField/)
     readFileSpy.mockRestore()
   })
 
