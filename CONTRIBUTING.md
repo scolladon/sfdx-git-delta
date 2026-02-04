@@ -247,11 +247,15 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
 
 ## How to modify npm tags
 
-Allow to add / move tags to a version
-`npm dist-tag add "sfdx-git-delta@<version-number>" <tag-name>`
-Ex: npm dist-tag add "sfdx-git-delta@1.0.0" stable
+Execute the npm script `npm run devops:move-tag -- <version> <tag>`
+Ex: `npm run devops:move-tag -- 1.0.0 stable`
 
-Used for :
+Use it to move tags to a version, for example to move `stable` and `latest` tags to a new version.
+Or to downgrade `latest-rc` tag to a previous version.
 
-- Moving `stable` and `latest` tags to a version
-- Downgrade `latest-rc` tag to a previous version
+## How to cleanup dev tags
+
+Execute the npm script `npm run devops:cleanup-tag -- <dev-tag>`
+Ex: `npm run devops:cleanup-tag -- dev-101`
+
+It will remove the dev tag from npm registry and deprecate all versions related to this dev tag.
