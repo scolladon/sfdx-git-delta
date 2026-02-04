@@ -492,9 +492,43 @@ describe('MetadataDiff', () => {
           const { isEmpty } = metadataDiff.prune()
 
           // Assert
+          // With key-based comparison:
+          // - layoutAssignments (<object> key): only items not in from
+          // - loginHours (<array> key): entire array since different
+          // - loginIpRanges (<array> key): entire array since different
           expect(convertJsonToXml).toHaveBeenCalledWith({
             ...header,
-            ...profileAdded,
+            Profile: {
+              '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+              layoutAssignments: [
+                {
+                  layout: 'another-test-layout',
+                  recordType: 'test-recordType',
+                },
+              ],
+              loginHours: [
+                {
+                  mondayStart: '300',
+                  mondayEnd: '500',
+                },
+                {
+                  tuesdayStart: '400',
+                  tuesdayEnd: '500',
+                },
+              ],
+              loginIpRanges: [
+                {
+                  description: 'ip range description',
+                  endAddress: '168.0.0.0',
+                  startAddress: '168.0.0.255',
+                },
+                {
+                  description: 'complete ip range description',
+                  endAddress: '168.0.0.1',
+                  startAddress: '168.0.0.255',
+                },
+              ],
+            },
           })
           expect(isEmpty).toBe(false)
         })
@@ -515,9 +549,11 @@ describe('MetadataDiff', () => {
           const { isEmpty } = metadataDiff.prune()
 
           // Assert
+          // With key-based comparison, identical content produces empty arrays
+          // which are not included in the output
           expect(convertJsonToXml).toHaveBeenCalledWith({
             ...header,
-            ...profile,
+            ...emptyProfile,
           })
           expect(isEmpty).toBe(true)
         })

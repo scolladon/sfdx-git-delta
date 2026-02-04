@@ -80,19 +80,7 @@ export const getInFileAttributes = (metadata: MetadataRepository) =>
     ? inFileMetadata
     : metadata
         .values()
-        .filter((meta: Metadata) => {
-          if (!meta.xmlTag) return false
-          // Atomic types: Filter out completely to enforce Generic Diff (Full Content)
-          const atomicTypes = new Set([
-            'Profile',
-            'CustomObjectTranslation',
-            'Territory2Model',
-          ])
-          return (
-            !atomicTypes.has(meta.parentXmlName || '') &&
-            !atomicTypes.has(meta.xmlName || '')
-          )
-        })
+        .filter((meta: Metadata) => meta.xmlTag)
         .reduce((acc: Map<string, SharedFileMetadata>, meta: Metadata) => {
           // Granular Excluded: Include but mark excluded to prevent packing
           const granularExcludedTypes = new Set([
