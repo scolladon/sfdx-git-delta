@@ -37,6 +37,16 @@ describe('SDRMetadataAdapter', () => {
 
   describe('toInternalMetadata', () => {
     describe('basic type conversion', () => {
+      it('Given no registry argument, When constructing adapter, Then uses default SDR registry', () => {
+        // Arrange & Act
+        const adapter = new SDRMetadataAdapter()
+
+        // Assert
+        const metadata = adapter.toInternalMetadata()
+        // Should have many types from real SDR registry
+        expect(metadata.length).toBeGreaterThan(100)
+      })
+
       it('Given SDR type with all properties, When converting, Then maps to internal Metadata format', () => {
         // Arrange
         const mockRegistry: MockRegistry = {
@@ -437,6 +447,41 @@ describe('SDRMetadataAdapter', () => {
 
         // Assert
         const child = metadata.find(m => m.xmlName === 'Child')
+        expect(child?.directoryName).toBe('childDir')
+      })
+
+      it('Given parent without directoryName and with children, When converting, Then uses empty string for parentDirName', () => {
+        // Arrange
+        const mockRegistry: MockRegistry = {
+          types: {
+            parent: {
+              id: 'parent',
+              name: 'Parent',
+              // No directoryName property - forces `sdrType.directoryName ?? ''` fallback
+              suffix: 'parent',
+              children: {
+                types: {
+                  child: {
+                    id: 'child',
+                    name: 'Child',
+                    suffix: 'child',
+                    directoryName: 'childDir',
+                  },
+                },
+              },
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const parent = metadata.find(m => m.xmlName === 'Parent')
+        expect(parent?.directoryName).toBe('')
+        const child = metadata.find(m => m.xmlName === 'Child')
+        // Child keeps its own directoryName since parent's is empty (different)
         expect(child?.directoryName).toBe('childDir')
       })
     })
