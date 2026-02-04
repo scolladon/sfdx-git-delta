@@ -9,6 +9,7 @@ ls:
   .ts: camelCase | PascalCase
 
 ignore: 
+  - .claude
   - .git 
   - .github
   - .husky
