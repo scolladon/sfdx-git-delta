@@ -9,10 +9,6 @@ on:
       - "**.md"
       - "img/**"
 
-permissions:
-  contents: 'read'
-  id-token: 'write'
-
 jobs:
   build:
     uses: ./.github/workflows/reusable-build.yml
