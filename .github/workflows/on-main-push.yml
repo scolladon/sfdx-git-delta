@@ -18,8 +18,8 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      prs_created: ${{ steps.release.outputs.prs_created }}
+      release_created: ${{ steps.release.outputs.release_created }} #nolint:expression
+      prs_created: ${{ steps.release.outputs.prs_created }} #nolint:expression
     permissions:
       contents: write
       pull-requests: write
