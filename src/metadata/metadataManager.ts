@@ -1,4 +1,6 @@
 'use strict'
+import { z } from 'zod'
+
 import type {
   BaseMetadata,
   Metadata,
@@ -9,6 +11,33 @@ import { readFile } from '../utils/fsUtils.js'
 
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
+
+// Schema for validating additional metadata registry entries
+const BaseMetadataSchema = z.object({
+  suffix: z.string().optional(),
+  xmlName: z.string().optional(),
+})
+
+const MetadataSchema = z
+  .object({
+    // Required fields
+    xmlName: z.string().min(1, 'xmlName is required and cannot be empty'),
+    directoryName: z.string(),
+    inFolder: z.boolean(),
+    metaFile: z.boolean(),
+    // Optional fields
+    suffix: z.string().optional(),
+    content: z.array(BaseMetadataSchema).optional(),
+    parentXmlName: z.string().optional(),
+    xmlTag: z.string().optional(),
+    key: z.string().optional(),
+    excluded: z.boolean().optional(),
+    pruneOnly: z.boolean().optional(),
+    childXmlNames: z.array(z.string()).optional(),
+  })
+  .strict()
+
+const MetadataArraySchema = z.array(MetadataSchema)
 
 let inFileMetadata = new Map<string, SharedFileMetadata>()
 let sharedFolderMetadata = new Map<string, string>()
@@ -61,18 +90,18 @@ export const getDefinition = async (
     const fullMerger = new MetadataDefinitionMerger(finalMetadata)
     const content = await readFile(additionalMetadataRegistryPath)
     try {
-      const additionalMetadata = JSON.parse(content)
-      if (!Array.isArray(additionalMetadata)) {
-        throw new Error('Content must be a JSON array')
-      }
-      const invalidEntries = additionalMetadata.filter(
-        (entry: Metadata) => !entry.xmlName
-      )
-      if (invalidEntries.length > 0) {
-        throw new Error('Each metadata entry must have an xmlName property')
-      }
-      finalMetadata = fullMerger.merge(additionalMetadata as Metadata[])
+      const parsed = JSON.parse(content)
+      const additionalMetadata = MetadataArraySchema.parse(parsed) as Metadata[]
+      finalMetadata = fullMerger.merge(additionalMetadata)
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        const issues = err.issues
+          .map(issue => `  - ${issue.path.join('.')}: ${issue.message}`)
+          .join('\n')
+        throw new Error(
+          `Invalid additional metadata registry file '${additionalMetadataRegistryPath}':\n${issues}`
+        )
+      }
       throw new Error(
         `Unable to parse the additional metadata registry file '${additionalMetadataRegistryPath}'. Caused by: ${err}`
       )
