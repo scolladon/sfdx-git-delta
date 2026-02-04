@@ -1,11 +1,10 @@
-'use strict'
-import { access, readFile as fsReadFile, stat } from 'node:fs/promises'
 import { describe, expect, it, jest } from '@jest/globals'
-
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
+
 import {
   dirExists,
   fileExists,
+  fs,
   isSamePath,
   isSubDir,
   pathExists,
@@ -14,11 +13,9 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 
-jest.mock('node:fs/promises')
-
-const mockedStat = jest.mocked(stat)
-const mockedReadFile = jest.mocked(fsReadFile)
-const mockedAccess = jest.mocked(access)
+const mockedStat = jest.spyOn(fs, 'stat')
+const mockedReadFile = jest.spyOn(fs, 'readFile')
+const mockedAccess = jest.spyOn(fs, 'access')
 
 beforeEach(() => {
   jest.resetAllMocks()
@@ -74,10 +71,9 @@ describe('isSubDir', () => {
 describe('dirExists', () => {
   it('returns true when dir exist', async () => {
     // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isDirectory: () => true,
-      })) as unknown as typeof stat)
+    mockedStat.mockResolvedValue({
+      isDirectory: () => true,
+    } as any)
 
     // Act
     const exist = await dirExists('test')
@@ -88,10 +84,9 @@ describe('dirExists', () => {
 
   it('returns false when dir does not exist', async () => {
     // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isDirectory: () => false,
-      })) as unknown as typeof stat)
+    mockedStat.mockResolvedValue({
+      isDirectory: () => false,
+    } as any)
 
     // Act
     const exist = await dirExists('test')
@@ -102,8 +97,7 @@ describe('dirExists', () => {
 
   it('returns false when an exception occurs', async () => {
     // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.reject(new Error('test'))) as unknown as typeof stat)
+    mockedStat.mockRejectedValue(new Error('test'))
 
     // Act
     const exist = await dirExists('test')
@@ -116,10 +110,9 @@ describe('dirExists', () => {
 describe('fileExists', () => {
   it('returns true when file exist', async () => {
     // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isFile: () => true,
-      })) as unknown as typeof stat)
+    mockedStat.mockResolvedValue({
+      isFile: () => true,
+    } as any)
 
     // Act
     const exist = await fileExists('test')
@@ -130,10 +123,9 @@ describe('fileExists', () => {
 
   it('returns false when file does not exist', async () => {
     // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.resolve({
-        isFile: () => false,
-      })) as unknown as typeof stat)
+    mockedStat.mockResolvedValue({
+      isFile: () => false,
+    } as any)
 
     // Act
     const exist = await fileExists('test')
@@ -144,8 +136,7 @@ describe('fileExists', () => {
 
   it('returns false when an exception occurs', async () => {
     // Arrange
-    mockedStat.mockImplementation((() =>
-      Promise.reject(new Error('test'))) as unknown as typeof stat)
+    mockedStat.mockRejectedValue(new Error('test'))
 
     // Act
     const exist = await fileExists('test')
@@ -159,8 +150,7 @@ describe('readFile', () => {
   describe('when readfile succeed', () => {
     beforeEach(() => {
       // Arrange
-      mockedReadFile.mockImplementationOnce((() =>
-        Promise.resolve('content')) as unknown as typeof mockedReadFile)
+      mockedReadFile.mockResolvedValue('content')
     })
     it('should return the file', async () => {
       // Act
@@ -175,8 +165,7 @@ describe('readFile', () => {
   describe('when readfile throw', () => {
     beforeEach(() => {
       // Arrange
-      mockedReadFile.mockImplementationOnce((() =>
-        Promise.reject('Error')) as unknown as typeof mockedReadFile)
+      mockedReadFile.mockRejectedValue('Error')
     })
     it('should throw', async () => {
       // Act
