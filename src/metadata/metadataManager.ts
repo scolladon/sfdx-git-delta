@@ -5,6 +5,7 @@ import type {
   SharedFileMetadata,
   SharedFolderMetadata,
 } from '../types/metadata.js'
+import { readFile } from '../utils/fsUtils.js'
 
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
@@ -12,31 +13,58 @@ import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
 const inFileMetadata = new Map<string, SharedFileMetadata>()
 const sharedFolderMetadata = new Map<string, string>()
 
-const earliestVersion: number = 46
-const latestVersion: number = 66
-
-export const getLatestSupportedVersion = () => {
-  return latestVersion - 1
+export const getLatestSupportedVersion = async () => {
+  return parseInt(await SDRMetadataAdapter.getLatestApiVersion())
 }
 
-export const isVersionSupported = (version: number | undefined) => {
-  return (
-    Number.isInteger(version) &&
-    version! >= earliestVersion &&
-    version! <= latestVersion
-  )
-}
+import type { Config } from '../types/config.js'
+import internalRegistry from './internalRegistry.js'
+import { MetadataDefinitionMerger } from './metadataDefinitionMerger.js'
+import { SDRMetadataAdapter } from './sdrMetadataAdapter.js'
 
 export const getDefinition = async (
-  apiVersion: number | undefined
+  config: Pick<Config, 'apiVersion' | 'additionalMetadataRegistryPath'>
 ): Promise<MetadataRepository> => {
-  const version = isVersionSupported(apiVersion)
-    ? apiVersion
-    : getLatestSupportedVersion()
-  const { default: metadataVersion } = await import(`./v${version}.js`)
+  const { additionalMetadataRegistryPath } = config
+  // 1. Initialize with Internal Registry (Priority 1)
+  // We use Internal as base so it has highest priority in the merger logic (merger keeps existingXmlNames)
+  const merger = new MetadataDefinitionMerger(internalRegistry)
+
+  // 2. Merge SDR Metadata (Priority 2)
+  const standardMetadata = merger.merge(SDRMetadataAdapter.toInternalMetadata())
+
+  // 3. Add entries that can't go through the merger due to xmlName collision.
+  // CustomObjectTranslation needs two entries with different suffixes:
+  // - fieldTranslation (in internalRegistry) for child file handling
+  // - objectTranslation (below) for parent file with pruneOnly
+  const postMergeEntries: Metadata[] = [
+    {
+      directoryName: 'objectTranslations',
+      inFolder: false,
+      metaFile: false,
+      suffix: 'objectTranslation',
+      xmlName: 'CustomObjectTranslation',
+      pruneOnly: true,
+    },
+  ]
+
+  let finalMetadata = [...standardMetadata, ...postMergeEntries]
+
+  if (additionalMetadataRegistryPath) {
+    const fullMerger = new MetadataDefinitionMerger(finalMetadata)
+    const content = await readFile(additionalMetadataRegistryPath)
+    try {
+      const additionalMetadata = JSON.parse(content) as Metadata[]
+      finalMetadata = fullMerger.merge(additionalMetadata)
+    } catch (err) {
+      throw new Error(
+        `Unable to parse the additional metadata registry file '${additionalMetadataRegistryPath}'. Caused by: ${err}`
+      )
+    }
+  }
 
   const metadataRepository: MetadataRepository = new MetadataRepositoryImpl(
-    metadataVersion
+    finalMetadata
   )
   return metadataRepository
 }
@@ -51,16 +79,37 @@ export const getInFileAttributes = (metadata: MetadataRepository) =>
     ? inFileMetadata
     : metadata
         .values()
-        .filter((meta: Metadata) => meta.xmlTag)
-        .reduce(
-          (acc: Map<string, SharedFileMetadata>, meta: Metadata) =>
-            acc.set(meta.xmlTag!, {
-              xmlName: meta.xmlName,
-              key: meta.key,
-              excluded: !!meta.excluded,
-            } as SharedFileMetadata),
-          inFileMetadata
-        )
+        .filter((meta: Metadata) => {
+          if (!meta.xmlTag) return false
+          // Atomic types: Filter out completely to enforce Generic Diff (Full Content)
+          const atomicTypes = new Set([
+            'Profile',
+            'CustomObjectTranslation',
+            'Territory2Model',
+          ])
+          return (
+            !atomicTypes.has(meta.parentXmlName || '') &&
+            !atomicTypes.has(meta.xmlName || '')
+          )
+        })
+        .reduce((acc: Map<string, SharedFileMetadata>, meta: Metadata) => {
+          // Granular Excluded: Include but mark excluded to prevent packing
+          const granularExcludedTypes = new Set([
+            'Translations',
+            'StandardValueSetTranslation',
+            'GlobalValueSetTranslation',
+          ])
+          const isExcluded =
+            granularExcludedTypes.has(meta.parentXmlName || '') ||
+            granularExcludedTypes.has(meta.xmlName || '')
+
+          acc.set(meta.xmlTag!, {
+            xmlName: meta.xmlName,
+            key: meta.key,
+            excluded: isExcluded || !!meta.excluded,
+          } as SharedFileMetadata)
+          return acc
+        }, inFileMetadata)
 
 export const getSharedFolderMetadata = (metadata: MetadataRepository) =>
   sharedFolderMetadata.size
