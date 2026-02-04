@@ -3,10 +3,7 @@ import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
-import {
-  getLatestSupportedVersion,
-  isVersionSupported,
-} from '../metadata/metadataManager.js'
+import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
 import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
@@ -82,37 +79,23 @@ export default class CLIHelper {
   }
 
   protected async _getApiVersion() {
-    const isInputVersionSupported = isVersionSupported(this.config.apiVersion)
-    if (!isInputVersionSupported) {
+    if (this.config.apiVersion === undefined) {
       const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
       const exists = await fileExists(sfdxProjectPath)
       if (exists) {
         const sfdxProjectRaw = await readFile(sfdxProjectPath)
         const sfdxProject = JSON.parse(sfdxProjectRaw)
-        this.config.apiVersion =
-          parseInt(sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]) || -1
+        const projectApiVersion = sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]
+        if (projectApiVersion) {
+          this.config.apiVersion = parseInt(projectApiVersion)
+        }
       }
     }
   }
 
-  protected _apiVersionDefault() {
-    const isInputVersionSupported = isVersionSupported(this.config.apiVersion)
-
-    if (!isInputVersionSupported) {
-      const latestAPIVersionSupported = getLatestSupportedVersion()
-      if (
-        this.config.apiVersion !== undefined &&
-        this.config.apiVersion !== null
-      ) {
-        this.work.warnings.push(
-          new Error(
-            this.message.getMessage('warning.ApiVersionNotSupported', [
-              `${latestAPIVersionSupported}`,
-            ])
-          )
-        )
-      }
-      this.config.apiVersion = latestAPIVersionSupported
+  protected async _apiVersionDefault() {
+    if (this.config.apiVersion === undefined || isNaN(this.config.apiVersion)) {
+      this.config.apiVersion = await getLatestSupportedVersion()
     }
   }
 
@@ -125,6 +108,9 @@ export default class CLIHelper {
     this.config.include = sanitizePath(this.config.include)
     this.config.includeDestructive = sanitizePath(
       this.config.includeDestructive
+    )
+    this.config.additionalMetadataRegistryPath = sanitizePath(
+      this.config.additionalMetadataRegistryPath
     )
   }
 }
