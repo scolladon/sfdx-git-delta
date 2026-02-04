@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'stageDefinitions',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'stageDefinition',
+    xmlName: 'StageDefinition',
+  },
+  {
     directoryName: 'stageAssignments',
     inFolder: false,
     metaFile: false,
