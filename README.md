@@ -149,22 +149,23 @@ Generate incremental package manifest and source content
 ```
 USAGE
   $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
-    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-W] [-a <value>]
+    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-M <value>] [-W] [-a <value>]
 
 FLAGS
-  -D, --ignore-destructive-file=<value>   file listing paths to explicitly ignore for any destructive actions
-  -N, --include-destructive-file=<value>  file listing paths to explicitly include for any destructive actions
-  -W, --ignore-whitespace                 ignore git diff whitespace (space, tab, eol) changes
-  -a, --api-version=<value>               salesforce metadata API version, default to sfdx-project.json
-                                          "sourceApiVersion" attribute or latest version
-  -d, --generate-delta                    generate delta files in [--output-dir] folder
-  -f, --from=<value>                      (required) commit sha from where the diff is done
-  -i, --ignore-file=<value>               file listing paths to explicitly ignore for any diff actions
-  -n, --include-file=<value>              file listing paths to explicitly include for any diff actions
-  -o, --output-dir=<value>                [default: ./output] source package specific output
-  -r, --repo-dir=<value>                  [default: ./] git repository location
-  -s, --source-dir=<value>...             [default: ./] source folders focus location relative to --repo-dir
-  -t, --to=<value>                        [default: HEAD] commit sha to where the diff is done
+  -D, --ignore-destructive-file=<value>       file listing paths to explicitly ignore for any destructive actions
+  -M, --additional-metadata-registry=<value>  file containing additional metadata definitions to add to the registry
+  -N, --include-destructive-file=<value>      file listing paths to explicitly include for any destructive actions
+  -W, --ignore-whitespace                     ignore git diff whitespace (space, tab, eol) changes
+  -a, --api-version=<value>                   salesforce metadata API version, default to sfdx-project.json
+                                              "sourceApiVersion" attribute or latest version
+  -d, --generate-delta                        generate delta files in [--output-dir] folder
+  -f, --from=<value>                          (required) commit sha from where the diff is done
+  -i, --ignore-file=<value>                   file listing paths to explicitly ignore for any diff actions
+  -n, --include-file=<value>                  file listing paths to explicitly include for any diff actions
+  -o, --output-dir=<value>                    [default: ./output] source package specific output
+  -r, --repo-dir=<value>                      [default: ./] git repository location
+  -s, --source-dir=<value>...                 [default: ./] source folders focus location relative to --repo-dir
+  -t, --to=<value>                            [default: HEAD] commit sha to where the diff is done
 
 GLOBAL FLAGS
   --flags-dir=<value>  Import flag values from a directory.
@@ -620,6 +621,30 @@ Example to delete the Flow `Set_Account_Description` :
 ```sh
 # add `--ignore-warnings` parameter if you listed a deleted Flow version in the destructiveChangesPost.xml
 sf project deploy start -x package.xml --post-destructive-changes destructiveChangesPost.xml
+```
+
+### Add custom metadata types
+
+If you need to handle metadata types that are not (yet) supported by the standard registry, you can provide a JSON file containing the definitions using the `--additional-metadata-registry` flag.
+
+The file must contain an array of metadata definitions:
+
+```json
+[
+  {
+    "xmlName": "CustomThing",
+    "suffix": "thing",
+    "directoryName": "things",
+    "inFolder": false,
+    "metaFile": false
+  }
+]
+```
+
+Then run the command:
+
+```sh
+sf sgd source delta --from "HEAD~1" --additional-metadata-registry ./my-registry.json
 ```
 
 ### Debugging
