@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import {
   getDefinition,
@@ -6,6 +6,7 @@ import {
   getLatestSupportedVersion,
   getSharedFolderMetadata,
   isPackable,
+  resetMetadataCache,
 } from '../../../../src/metadata/metadataManager'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 
@@ -13,6 +14,9 @@ import type { Metadata } from '../../../../src/types/metadata'
 import * as fsUtils from '../../../../src/utils/fsUtils'
 
 describe(`test if metadata`, () => {
+  beforeEach(() => {
+    resetMetadataCache()
+  })
   it('provide latest when apiVersion is undefined', async () => {
     const metadata = await getDefinition({ apiVersion: undefined })
     const latestVersionSupported = await getLatestSupportedVersion()
@@ -156,7 +160,29 @@ describe(`test if metadata`, () => {
   })
 
   it('isPackable', () => {
-    // Relies on getInFileAttributes having been called above with 'WorkflowAlert' (not excluded) and 'Excluded' (excluded)
+    // Arrange - populate the cache with test metadata
+    const metadata = new MetadataRepositoryImpl([
+      {
+        directoryName: 'workflows.alerts',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'WorkflowAlert',
+        xmlTag: 'alerts',
+        key: 'fullName',
+      },
+      {
+        directoryName: 'excluded',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'Excluded',
+        xmlTag: 'excluded',
+        key: 'other',
+        excluded: true,
+      },
+    ])
+    getInFileAttributes(metadata)
+
+    // Act & Assert
     expect(isPackable('WorkflowAlert')).toBe(true)
     expect(isPackable('Excluded')).toBe(false)
     expect(isPackable('Unknown')).toBe(true)

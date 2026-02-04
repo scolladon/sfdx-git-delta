@@ -10,8 +10,14 @@ import { readFile } from '../utils/fsUtils.js'
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
 
-const inFileMetadata = new Map<string, SharedFileMetadata>()
-const sharedFolderMetadata = new Map<string, string>()
+let inFileMetadata = new Map<string, SharedFileMetadata>()
+let sharedFolderMetadata = new Map<string, string>()
+
+// For testing - clears the cached metadata maps
+export const resetMetadataCache = (): void => {
+  inFileMetadata = new Map()
+  sharedFolderMetadata = new Map()
+}
 
 export const getLatestSupportedVersion = async () => {
   return parseInt(await SDRMetadataAdapter.getLatestApiVersion())
