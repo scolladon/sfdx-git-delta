@@ -228,6 +228,45 @@ describe(`test if metadata`, () => {
     readFileSpy.mockRestore()
   })
 
+  it('Given additional registry is not an array, When getDefinition, Then throws validation error', async () => {
+    // Arrange
+    const additionalRegistryContent = '{"xmlName": "CustomThing"}'
+    const readFileSpy = jest
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    // Act & Assert
+    await expect(
+      getDefinition({
+        apiVersion: undefined,
+        additionalMetadataRegistryPath: 'path/to/registry.json',
+      })
+    ).rejects.toThrow('Content must be a JSON array')
+    readFileSpy.mockRestore()
+  })
+
+  it('Given additional registry entry without xmlName, When getDefinition, Then throws validation error', async () => {
+    // Arrange
+    const additionalRegistryContent = `[
+      {
+        "suffix": "thing",
+        "directoryName": "things"
+      }
+    ]`
+    const readFileSpy = jest
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    // Act & Assert
+    await expect(
+      getDefinition({
+        apiVersion: undefined,
+        additionalMetadataRegistryPath: 'path/to/registry.json',
+      })
+    ).rejects.toThrow('Each metadata entry must have an xmlName property')
+    readFileSpy.mockRestore()
+  })
+
   it('getSharedFolderMetadata', async () => {
     // Arrange
     const metadata = new MetadataRepositoryImpl([
