@@ -105,6 +105,69 @@ describe('IncludeProcessor', () => {
         expect(mockProcess).toHaveBeenCalled()
       })
     })
+
+    describe('when multiple files match the patterns', () => {
+      beforeEach(() => {
+        mockGetFilesPath.mockImplementation(() =>
+          Promise.resolve(['test1', 'test2'])
+        )
+        mockKeep.mockReturnValue(false)
+      })
+      it('process all matching files', async () => {
+        // Arrange
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).toHaveBeenCalledTimes(2)
+      })
+    })
+
+    describe('when only additions match the patterns', () => {
+      beforeEach(() => {
+        mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
+        // Keep deletion lines, reject addition lines
+        mockKeep.mockImplementation(((line: string) =>
+          line.startsWith('D')) as typeof mockKeep)
+      })
+      it('process only additions', async () => {
+        // Arrange
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    describe('when only deletions match the patterns', () => {
+      beforeEach(() => {
+        mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
+        // Keep addition lines, reject deletion lines
+        mockKeep.mockImplementation(((line: string) =>
+          line.startsWith('A')) as typeof mockKeep)
+      })
+      it('process only deletions', async () => {
+        // Arrange
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.process()
+
+        // Assert
+        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
+        expect(mockProcess).toHaveBeenCalledTimes(1)
+      })
+    })
   })
 
   describe('when includeDestructive is configured', () => {

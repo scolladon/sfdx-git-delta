@@ -39,6 +39,18 @@ describe('ignoreHelper', () => {
     jest.resetAllMocks()
   })
   describe('buildIgnoreHelper', () => {
+    it('returns cached instance on subsequent calls', async () => {
+      // Arrange
+      const firstCall = await buildIgnoreHelper(config)
+
+      // Act
+      const secondCall = await buildIgnoreHelper(config)
+
+      // Assert
+      expect(secondCall).toBe(firstCall)
+      resetIgnoreInstance()
+    })
+
     describe('when config does not have ignore neither destructive ignore', () => {
       beforeAll(async () => {
         // Arrange

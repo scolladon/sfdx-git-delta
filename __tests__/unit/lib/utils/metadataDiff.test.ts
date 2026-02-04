@@ -636,6 +636,77 @@ describe('MetadataDiff', () => {
     })
   })
 
+  describe('when metadata property has no key field defined', () => {
+    it('given identical content, isEmpty remains true', async () => {
+      // Arrange
+      const customAttributes = new Map<string, SharedFileMetadata>([
+        [
+          'customProperty',
+          {
+            xmlName: 'CustomProperty',
+            xmlTag: 'customProperty',
+            // no key field defined
+          } as SharedFileMetadata,
+        ],
+      ])
+      const customMetadataDiff = new MetadataDiff(work.config, customAttributes)
+      const content = {
+        ...xmlHeader,
+        CustomType: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          customProperty: [{ value: 'test' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(content)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(content)
+      await customMetadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = customMetadataDiff.prune()
+
+      // Assert
+      expect(isEmpty).toBe(true)
+    })
+
+    it('given different content, isEmpty becomes false', async () => {
+      // Arrange
+      const customAttributes = new Map<string, SharedFileMetadata>([
+        [
+          'customProperty',
+          {
+            xmlName: 'CustomProperty',
+            xmlTag: 'customProperty',
+            // no key field defined
+          } as SharedFileMetadata,
+        ],
+      ])
+      const customMetadataDiff = new MetadataDiff(work.config, customAttributes)
+      const fromContent = {
+        ...xmlHeader,
+        CustomType: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          customProperty: [{ value: 'original' }],
+        },
+      }
+      const toContent = {
+        ...xmlHeader,
+        CustomType: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          customProperty: [{ value: 'modified' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toContent)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromContent)
+      await customMetadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = customMetadataDiff.prune()
+
+      // Assert
+      expect(isEmpty).toBe(false)
+    })
+  })
+
   // Unskip me when checking for performance
   describe.skip('Performance tests', () => {
     const formatMemory = (bytes: number): string => {
