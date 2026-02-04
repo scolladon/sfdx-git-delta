@@ -1,6 +1,4 @@
-'use strict'
-
-import { access, readFile as fsReadFile, stat } from 'node:fs/promises'
+import * as fsImpl from 'node:fs/promises'
 import { isAbsolute, normalize, relative } from 'node:path/posix'
 
 import {
@@ -8,6 +6,12 @@ import {
   PATH_SEPARATOR_REGEX,
   UTF8_ENCODING,
 } from '../constant/fsConstants.js'
+
+export const fs = {
+  access: fsImpl.access,
+  readFile: fsImpl.readFile,
+  stat: fsImpl.stat,
+}
 
 export const treatPathSep = (data: string) =>
   data.replace(PATH_SEPARATOR_REGEX, PATH_SEP)
@@ -25,7 +29,7 @@ export const isSamePath = (pathA: string, pathB: string) =>
 
 export const dirExists = async (dir: string) => {
   try {
-    const st = await stat(dir)
+    const st = await fs.stat(dir)
     return st.isDirectory()
   } catch {
     return false
@@ -34,7 +38,7 @@ export const dirExists = async (dir: string) => {
 
 export const fileExists = async (file: string) => {
   try {
-    const st = await stat(file)
+    const st = await fs.stat(file)
     return st.isFile()
   } catch {
     return false
@@ -44,7 +48,7 @@ export const fileExists = async (file: string) => {
 export const pathExists = async (path: string) => {
   let pathIsAccessible = true
   try {
-    await access(path)
+    await fs.access(path)
   } catch {
     pathIsAccessible = false
   }
@@ -52,7 +56,7 @@ export const pathExists = async (path: string) => {
 }
 
 export const readFile = async (path: string) => {
-  const file = await fsReadFile(path, {
+  const file = await fs.readFile(path, {
     encoding: UTF8_ENCODING,
   })
   return file
