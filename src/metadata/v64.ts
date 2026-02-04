@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'stageAssignments',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'stageAssignment',
+    xmlName: 'StageAssignment',
+  },
+  {
     directoryName: 'serviceprocess',
     inFolder: false,
     metaFile: false,
