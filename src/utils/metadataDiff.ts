@@ -10,6 +10,7 @@ import {
   convertJsonToXml,
   parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
+  type XmlContent,
 } from './fxpHelper.js'
 import { log } from './LoggingDecorator.js'
 import { fillPackageWithParameter } from './packageHelper.js'
@@ -37,9 +38,6 @@ const ARRAY_SPECIAL_KEY = '<array>'
 const OBJECT_SPECIAL_KEY = '<object>'
 
 const isEmpty = (arr: unknown[]) => arr.length === 0
-
-// biome-ignore lint/suspicious/noExplicitAny: waiting for Salesforce metadata custom type
-type XmlContent = Record<string, any>
 
 type KeySelectorFn = (elem: XmlContent) => string | undefined
 
