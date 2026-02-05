@@ -73,7 +73,7 @@ describe(`StandardHandler`, () => {
     expect(copyFiles).toHaveBeenCalled()
   })
 
-  it('should ignore non-Error thrown values', async () => {
+  it('should handle non-Error thrown values', async () => {
     // Arrange
     mockedCopyFiles.mockRejectedValueOnce('string error')
     const sut = new StandardHandler(
@@ -87,7 +87,8 @@ describe(`StandardHandler`, () => {
     await sut.handle()
 
     // Assert
-    expect(work.warnings.length).toEqual(0)
+    expect(work.warnings.length).toEqual(1)
+    expect(work.warnings[0].message).toContain('string error')
     expect(work.diffs.package.get(classType.xmlName)).toEqual(new Set([entity]))
   })
 
