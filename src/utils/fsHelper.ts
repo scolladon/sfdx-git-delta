@@ -7,7 +7,9 @@ import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
+import { getErrorMessage } from './errorUtils.js'
 import { buildIgnoreHelper } from './ignoreHelper.js'
+import { Logger, lazy } from './LoggingService.js'
 
 const copiedFiles = new Set()
 const writtenFiles = new Set()
@@ -31,8 +33,8 @@ export const copyFiles = async (config: Config, src: string) => {
       await outputFile(dst, file.content)
       copiedFiles.add(dst)
     }
-  } catch {
-    /* empty */
+  } catch (error) {
+    Logger.debug(lazy`copyFiles failed for ${src}: ${getErrorMessage(error)}`)
   }
 }
 
@@ -41,8 +43,10 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   try {
     const gitAdapter = GitAdapter.getInstance(config)
     utf8Data = await gitAdapter.getStringContent(forRef)
-  } catch {
-    /* empty */
+  } catch (error) {
+    Logger.debug(
+      lazy`readPathFromGit failed for ${forRef.path}: ${getErrorMessage(error)}`
+    )
   }
   return utf8Data
 }
