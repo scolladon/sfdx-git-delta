@@ -8,7 +8,12 @@ import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
 
-const processors: Array<typeof BaseProcessor> = [
+type ProcessorConstructor = new (
+  work: Work,
+  metadata: MetadataRepository
+) => BaseProcessor
+
+const processors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
   IncludeProcessor,
 ]
