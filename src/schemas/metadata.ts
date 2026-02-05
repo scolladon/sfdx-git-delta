@@ -49,7 +49,7 @@ export const MetadataSchema = BaseMetadataSchema.merge(
  * Strict metadata schema for validating external input (additional registry)
  * Requires xmlName to be non-empty
  */
-export const StrictMetadataSchema = MetadataSchema.extend({
+const StrictMetadataSchema = MetadataSchema.extend({
   xmlName: z.string().min(1, 'xmlName is required and cannot be empty'),
 }).strict()
 
