@@ -340,10 +340,11 @@ describe('MetadataDiff', () => {
           ...header,
           ...alertTest,
         })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -356,10 +357,11 @@ describe('MetadataDiff', () => {
         // Arrange
         mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...wfBase })
         mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...alert })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({ ...header, ...wfBase })
@@ -391,10 +393,11 @@ describe('MetadataDiff', () => {
             },
           },
         })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -411,10 +414,11 @@ describe('MetadataDiff', () => {
         // Arrange
         mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...alert })
         mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...wfBase })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({ ...header, ...alert })
@@ -435,10 +439,11 @@ describe('MetadataDiff', () => {
             alerts: { ...alertOther.Workflow.alerts, description: 'amazing' },
           },
         })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -463,10 +468,11 @@ describe('MetadataDiff', () => {
             ...header,
             ...profile,
           })
-          await metadataDiff.compare('file/path')
+          const { toContent, fromContent } =
+            await metadataDiff.compare('file/path')
 
           // Act
-          const { isEmpty } = metadataDiff.prune()
+          const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
           // Assert
           expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -486,10 +492,11 @@ describe('MetadataDiff', () => {
             ...header,
             ...profile,
           })
-          await metadataDiff.compare('file/path')
+          const { toContent, fromContent } =
+            await metadataDiff.compare('file/path')
 
           // Act
-          const { isEmpty } = metadataDiff.prune()
+          const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
           // Assert
           // With key-based comparison:
@@ -543,10 +550,11 @@ describe('MetadataDiff', () => {
             ...header,
             ...profile,
           })
-          await metadataDiff.compare('file/path')
+          const { toContent, fromContent } =
+            await metadataDiff.compare('file/path')
 
           // Act
-          const { isEmpty } = metadataDiff.prune()
+          const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
           // Assert
           // With key-based comparison, identical content produces empty arrays
@@ -568,10 +576,11 @@ describe('MetadataDiff', () => {
             ...header,
             ...profile,
           })
-          await metadataDiff.compare('file/path')
+          const { toContent, fromContent } =
+            await metadataDiff.compare('file/path')
 
           // Act
-          const { isEmpty } = metadataDiff.prune()
+          const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
           // Assert
           expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -589,10 +598,11 @@ describe('MetadataDiff', () => {
           ...unTracked,
         })
         mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...wfBase })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -621,10 +631,11 @@ describe('MetadataDiff', () => {
             },
           },
         })
-        await metadataDiff.compare('file/path')
+        const { toContent, fromContent } =
+          await metadataDiff.compare('file/path')
 
         // Act
-        const { isEmpty } = metadataDiff.prune()
+        const { isEmpty } = metadataDiff.prune(toContent, fromContent)
 
         // Assert
         expect(convertJsonToXml).toHaveBeenCalledWith({
@@ -659,10 +670,11 @@ describe('MetadataDiff', () => {
       }
       mockedParseXmlFileToJson.mockResolvedValueOnce(content)
       mockedParseXmlFileToJson.mockResolvedValueOnce(content)
-      await customMetadataDiff.compare('file/path')
+      const { toContent, fromContent } =
+        await customMetadataDiff.compare('file/path')
 
       // Act
-      const { isEmpty } = customMetadataDiff.prune()
+      const { isEmpty } = customMetadataDiff.prune(toContent, fromContent)
 
       // Assert
       expect(isEmpty).toBe(true)
@@ -681,26 +693,27 @@ describe('MetadataDiff', () => {
         ],
       ])
       const customMetadataDiff = new MetadataDiff(work.config, customAttributes)
-      const fromContent = {
+      const fromContentData = {
         ...xmlHeader,
         CustomType: {
           '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
           customProperty: [{ value: 'original' }],
         },
       }
-      const toContent = {
+      const toContentData = {
         ...xmlHeader,
         CustomType: {
           '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
           customProperty: [{ value: 'modified' }],
         },
       }
-      mockedParseXmlFileToJson.mockResolvedValueOnce(toContent)
-      mockedParseXmlFileToJson.mockResolvedValueOnce(fromContent)
-      await customMetadataDiff.compare('file/path')
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toContentData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromContentData)
+      const { toContent, fromContent } =
+        await customMetadataDiff.compare('file/path')
 
       // Act
-      const { isEmpty } = customMetadataDiff.prune()
+      const { isEmpty } = customMetadataDiff.prune(toContent, fromContent)
 
       // Assert
       expect(isEmpty).toBe(false)
@@ -785,8 +798,8 @@ describe('MetadataDiff', () => {
 
       // Act
       const startTime = process.hrtime.bigint()
-      await metadataDiff.compare('file/path')
-      const { isEmpty } = metadataDiff.prune()
+      const { toContent, fromContent } = await metadataDiff.compare('file/path')
+      const { isEmpty } = metadataDiff.prune(toContent, fromContent)
       const endTime = process.hrtime.bigint()
 
       // Stop sampling
