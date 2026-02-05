@@ -23,7 +23,6 @@ const CONTENT_FILE_ADAPTERS = new Set([
 ])
 
 // Types that need content array (Dashboard, Report, EmailTemplate but NOT Document)
-// Document in v66.ts has just suffix, no content array
 const TYPES_WITH_CONTENT_ARRAY = new Set([
   'dashboard',
   'report',
