@@ -33,7 +33,7 @@ export default class RepoGitDiff {
       .filter((line: string) => ignoreHelper.keep(line))
   }
 
-  protected _getRenamedElements(lines: string[]) {
+  protected _getRenamedElements(lines: string[]): Set<string> {
     const linesPerDiffType: Map<string, string[]> =
       this._spreadLinePerDiffType(lines)
     const AfileNames: Set<string> = new Set(
@@ -41,14 +41,14 @@ export default class RepoGitDiff {
         .get(ADDITION)
         ?.map(line => this._extractComparisonName(line)) ?? []
     )
-    const deletedRenamed: string[] = [
-      ...(linesPerDiffType.get(DELETION) ?? []),
-    ].filter((line: string) => {
-      const dEl = this._extractComparisonName(line)
-      return AfileNames.has(dEl)
-    })
+    const deletedRenamed = (linesPerDiffType.get(DELETION) ?? []).filter(
+      (line: string) => {
+        const dEl = this._extractComparisonName(line)
+        return AfileNames.has(dEl)
+      }
+    )
 
-    return deletedRenamed
+    return new Set(deletedRenamed)
   }
   protected _spreadLinePerDiffType(lines: string[]) {
     return lines.reduce((acc: Map<string, string[]>, line: string) => {
@@ -61,8 +61,11 @@ export default class RepoGitDiff {
     }, new Map())
   }
 
-  protected _filterInternal(line: string, deletedRenamed: string[]): boolean {
-    return !deletedRenamed.includes(line) && this.metadata.has(line)
+  protected _filterInternal(
+    line: string,
+    deletedRenamed: Set<string>
+  ): boolean {
+    return !deletedRenamed.has(line) && this.metadata.has(line)
   }
 
   protected _extractComparisonName(line: string) {
