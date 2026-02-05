@@ -1,27 +1,10 @@
 'use strict'
 
-export type BaseMetadata = {
-  suffix?: string
-  xmlName?: string
-}
-
-export type SharedFolderMetadata = BaseMetadata & {
-  content?: BaseMetadata[]
-}
-
-export type SharedFileMetadata = BaseMetadata & {
-  parentXmlName?: string
-  xmlTag?: string
-  key?: string
-  excluded?: boolean
-  pruneOnly?: boolean
-}
-
-export type Metadata = BaseMetadata &
-  SharedFolderMetadata &
-  SharedFileMetadata & {
-    directoryName: string
-    inFolder: boolean
-    metaFile: boolean
-    childXmlNames?: string[]
-  }
+// Re-export types from schemas (single source of truth)
+// This file is kept for backward compatibility with existing imports
+export type {
+  BaseMetadata,
+  Metadata,
+  SharedFileMetadata,
+  SharedFolderMetadata,
+} from '../schemas/metadata.js'
