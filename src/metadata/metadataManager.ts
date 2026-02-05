@@ -1,43 +1,17 @@
 'use strict'
 import { z } from 'zod'
 
-import type {
-  BaseMetadata,
-  Metadata,
-  SharedFileMetadata,
-  SharedFolderMetadata,
-} from '../types/metadata.js'
+import {
+  type BaseMetadata,
+  type Metadata,
+  MetadataArraySchema,
+  type SharedFileMetadata,
+  type SharedFolderMetadata,
+} from '../schemas/metadata.js'
 import { readFile } from '../utils/fsUtils.js'
 
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
-
-// Schema for validating additional metadata registry entries
-const BaseMetadataSchema = z.object({
-  suffix: z.string().optional(),
-  xmlName: z.string().optional(),
-})
-
-const MetadataSchema = z
-  .object({
-    // Required fields
-    xmlName: z.string().min(1, 'xmlName is required and cannot be empty'),
-    directoryName: z.string(),
-    inFolder: z.boolean(),
-    metaFile: z.boolean(),
-    // Optional fields
-    suffix: z.string().optional(),
-    content: z.array(BaseMetadataSchema).optional(),
-    parentXmlName: z.string().optional(),
-    xmlTag: z.string().optional(),
-    key: z.string().optional(),
-    excluded: z.boolean().optional(),
-    pruneOnly: z.boolean().optional(),
-    childXmlNames: z.array(z.string()).optional(),
-  })
-  .strict()
-
-const MetadataArraySchema = z.array(MetadataSchema)
 
 let inFileMetadata = new Map<string, SharedFileMetadata>()
 let sharedFolderMetadata = new Map<string, string>()
