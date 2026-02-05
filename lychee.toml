@@ -3,5 +3,6 @@ exclude_path = ["CHANGELOG.md", "package-lock.json"]
 exclude = [
     "https?://(www\\.)?npmjs\\.(com|org)",
     "https://api\\.codeclimate\\.com",
-    "https://biomejs\\.dev/schemas"
+    "https://biomejs\\.dev/schemas",
+    "https://www\\.contributor-covenant\\.org/"
 ]
