@@ -3,7 +3,6 @@
 // Re-export types from schemas (single source of truth)
 // This file is kept for backward compatibility with existing imports
 export type {
-  BaseMetadata,
   Metadata,
   SharedFileMetadata,
   SharedFolderMetadata,
