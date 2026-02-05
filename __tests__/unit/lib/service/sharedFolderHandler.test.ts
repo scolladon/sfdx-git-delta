@@ -55,6 +55,25 @@ describe('SharedFolderHandler', () => {
     expect(work.diffs.package.get(entityType)!.size).toEqual(1)
     expect(work.diffs.package.get(entityType)).toEqual(new Set([entityName]))
   })
+
+  describe('when extension has no matching type', () => {
+    it('should not add to package', async () => {
+      // Arrange
+      const unknownExtLine = `A       ${basePath}${objectType}/Test.unknownext`
+      const sut = new SharedFolderHandler(
+        unknownExtLine,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.size).toEqual(0)
+    })
+  })
   describe('when it should generate output file', () => {
     beforeEach(() => {
       work.config.generateDelta = true
