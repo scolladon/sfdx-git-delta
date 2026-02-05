@@ -24,10 +24,24 @@ import BaseProcessor from './baseProcessor.js'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
 
+interface FlowDefinition {
+  fullName?: string
+  [key: string]: unknown
+}
+
+interface TranslationsContent {
+  '?xml'?: { '@_version': string; '@_encoding': string }
+  Translations?: {
+    '@_xmlns'?: string
+    flowDefinitions?: FlowDefinition | FlowDefinition[]
+    [key: string]: unknown
+  }
+}
+
 const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
 
-const getDefaultTranslation = () => ({
+const getDefaultTranslation = (): TranslationsContent => ({
   '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
   Translations: {
     '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
@@ -36,8 +50,7 @@ const getDefaultTranslation = () => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  protected readonly translations: Map<string, any>
+  protected readonly translations: Map<string, FlowDefinition[]>
   protected ignoreHelper: IgnoreHelper | undefined
   protected isOutputEqualsToRepo: boolean | undefined
 
@@ -96,7 +109,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
           await this._getTranslationAsJSON(translationPath)
         this._scrapTranslationFile(
           jsonTranslation,
-          this.translations.get(translationPath)
+          this.translations.get(translationPath)!
         )
         const scrappedTranslation = convertJsonToXml(jsonTranslation)
         await writeFile(translationPath, scrappedTranslation, this.config)
@@ -105,36 +118,32 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected _scrapTranslationFile(
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    jsonTranslation: any,
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    actualFlowDefinition: any
+    jsonTranslation: TranslationsContent,
+    actualFlowDefinition: FlowDefinition[]
   ) {
     const flowDefinitions = castArray(
       jsonTranslation.Translations?.flowDefinitions
-    )
+    ) as FlowDefinition[]
     const fullNames = new Set(
-      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-      flowDefinitions.map((flowDef: any) => flowDef?.fullName)
+      flowDefinitions.map((flowDef: FlowDefinition) => flowDef?.fullName)
     )
     const strippedActualFlowDefinition = actualFlowDefinition.filter(
-      // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-      (flowDef: any) => !fullNames.has(flowDef?.fullName)
+      (flowDef: FlowDefinition) => !fullNames.has(flowDef?.fullName)
     )
 
-    jsonTranslation.Translations.flowDefinitions = flowDefinitions.concat(
+    jsonTranslation.Translations!.flowDefinitions = flowDefinitions.concat(
       strippedActualFlowDefinition
     )
   }
 
   protected async _parseTranslationFile(translationPath: string) {
-    const translationJSON = await parseXmlFileToJson(
+    const translationJSON = (await parseXmlFileToJson(
       { path: translationPath, oid: this.config.to },
       this.config
-    )
+    )) as TranslationsContent
     const flowDefinitions = castArray(
       translationJSON?.Translations?.flowDefinitions
-    )
+    ) as FlowDefinition[]
     flowDefinitions.forEach(flowDefinition =>
       this._addFlowPerTranslation({
         translationPath,
@@ -148,29 +157,31 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     flowDefinition,
   }: {
     translationPath: string
-    // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-    flowDefinition: any
+    flowDefinition: FlowDefinition
   }) {
     const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
-    if (packagedElements?.has(flowDefinition?.fullName)) {
+    const fullName = flowDefinition?.fullName
+    if (fullName && packagedElements?.has(fullName)) {
       if (!this.translations.has(translationPath)) {
         this.translations.set(translationPath, [])
       }
-      this.translations.get(translationPath).push(flowDefinition)
+      this.translations.get(translationPath)!.push(flowDefinition)
     }
   }
 
-  protected async _getTranslationAsJSON(translationPath: string) {
+  protected async _getTranslationAsJSON(
+    translationPath: string
+  ): Promise<TranslationsContent> {
     const translationPathInOutputFolder = join(
       this.config.output,
       translationPath
     )
     const translationExist = await pathExists(translationPathInOutputFolder)
 
-    let jsonTranslation = getDefaultTranslation()
+    let jsonTranslation: TranslationsContent = getDefaultTranslation()
     if (translationExist) {
       const xmlTranslation = await readFile(translationPathInOutputFolder)
-      jsonTranslation = xml2Json(xmlTranslation)
+      jsonTranslation = xml2Json(xmlTranslation) as TranslationsContent
     }
 
     return jsonTranslation
