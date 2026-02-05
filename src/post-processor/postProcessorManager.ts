@@ -1,6 +1,7 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 
 import BaseProcessor from './baseProcessor.js'
 import FlowTranslationProcessor from './flowTranslationProcessor.js'
@@ -33,7 +34,12 @@ export default class PostProcessorManager {
         await postProcessor.process()
       } catch (error) {
         if (error instanceof Error) {
-          this.work.warnings.push(error)
+          Logger.warn(lazy`${postProcessor.constructor.name}: ${error.message}`)
+          this.work.warnings.push(
+            new Error(`${postProcessor.constructor.name}: ${error.message}`, {
+              cause: error,
+            })
+          )
         }
       }
     }
