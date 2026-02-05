@@ -31,6 +31,7 @@ export default class StandardHandler {
   protected readonly ext: string
   protected readonly parsedLine: ParsedPath
   protected readonly parentFolder: string
+  private lineRegex: RegExp | undefined
 
   constructor(
     protected readonly line: string,
@@ -162,14 +163,15 @@ export default class StandardHandler {
   }
 
   protected _parseLine() {
-    return this.line.match(
-      new RegExp(
+    if (!this.lineRegex) {
+      this.lineRegex = new RegExp(
         `(?<path>.*[/\\\\]?${RegExpEscape(
           this.metadataDef.directoryName
         )})[/\\\\](?<name>[^/\\\\]*)+`,
         'u'
       )
-    )
+    }
+    return this.line.match(this.lineRegex)
   }
 
   protected _isProcessable() {
