@@ -7,8 +7,8 @@ import type { Work } from '../../../../src/types/work'
 import { copyFiles, writeFile } from '../../../../src/utils/fsHelper'
 import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
 
-const mockCompare = jest.fn()
-const mockprune = jest.fn()
+const mockCompare = jest.fn<() => Promise<any>>()
+const mockprune = jest.fn<() => any>()
 jest.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: jest.fn().mockImplementation(() => {
@@ -32,11 +32,19 @@ const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
 const xmlContent = '<xmlContent>'
-mockprune.mockReturnValue({ xmlContent })
+const toContent = {}
+const fromContent = {}
 
 let work: Work
 beforeEach(() => {
   jest.clearAllMocks()
+  mockCompare.mockResolvedValue({
+    added: new Map(),
+    deleted: new Map(),
+    toContent,
+    fromContent,
+  })
+  mockprune.mockReturnValue({ xmlContent })
   work = getWork()
 })
 
