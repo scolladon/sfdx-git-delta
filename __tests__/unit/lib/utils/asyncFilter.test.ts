@@ -2,6 +2,7 @@
 import { describe, expect, it } from '@jest/globals'
 
 import asyncFilter from '../../../../src/utils/asyncFilter'
+import { getConcurrencyThreshold } from '../../../../src/utils/concurrencyUtils'
 
 describe('asyncFilter', () => {
   describe('Given an empty list', () => {
@@ -78,7 +79,7 @@ describe('asyncFilter', () => {
       expect(result).toContain('item-5')
       expect(result).toContain('item-50')
       expect(result).toContain('item-55')
-      expect(maxConcurrent).toBeLessThanOrEqual(50) // CONCURRENCY_LIMIT
+      expect(maxConcurrent).toBeLessThanOrEqual(getConcurrencyThreshold())
     })
   })
 

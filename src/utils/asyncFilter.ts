@@ -1,11 +1,11 @@
 import { filterLimit } from 'async'
 
-const CONCURRENCY_LIMIT = 50
+import { getConcurrencyThreshold } from './concurrencyUtils.js'
 
 const asyncFilter = async (
   list: string[],
   predicate: (t: string) => Promise<boolean>
 ): Promise<string[]> => {
-  return filterLimit(list, CONCURRENCY_LIMIT, predicate)
+  return filterLimit(list, getConcurrencyThreshold(), predicate)
 }
 export default asyncFilter
