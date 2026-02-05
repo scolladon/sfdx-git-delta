@@ -74,8 +74,10 @@ export default class StandardHandler {
         }
       } catch (error) {
         if (error instanceof Error) {
-          error.message = `${this.line}: ${error.message}`
-          this.warnings.push(error)
+          Logger.warn(lazy`${this.line}: ${error.message}`)
+          this.warnings.push(
+            new Error(`${this.line}: ${error.message}`, { cause: error })
+          )
         }
       }
     }
