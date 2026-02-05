@@ -77,20 +77,21 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     )
   }
 
+  protected _getHolderPath(): string {
+    return join(this.holderFolder?.dir ?? '', this.holderFolder?.base ?? '')
+  }
+
   protected async _hasRelatedContent(): Promise<boolean> {
-    const files = await readDirs(
-      join(this.holderFolder!.dir, this.holderFolder!.base),
-      this.config
-    )
+    const files = await readDirs(this._getHolderPath(), this.config)
     return files.length > 0
   }
 
   protected async _copyDecomposedFiles() {
-    await this._copy(join(this.holderFolder!.dir, this.holderFolder!.base))
+    await this._copy(this._getHolderPath())
   }
 
   protected override _getElementName() {
-    return this.holderFolder!.base
+    return this.holderFolder?.base ?? ''
   }
 
   protected override _isProcessable() {
