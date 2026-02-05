@@ -18,11 +18,3 @@ export const getErrorMessage = (error: unknown): string => {
 export const wrapError = (message: string, cause: unknown): Error => {
   return new Error(message, { cause })
 }
-
-/**
- * Type guard to check if a value is an Error instance.
- * Useful for narrowing types in catch blocks.
- */
-export const isError = (value: unknown): value is Error => {
-  return value instanceof Error
-}
