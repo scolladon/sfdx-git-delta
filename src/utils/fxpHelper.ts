@@ -7,6 +7,13 @@ import type { FileGitRef } from '../types/git.js'
 
 import { readPathFromGit } from './fsHelper.js'
 
+/**
+ * Represents parsed XML content as a JSON object.
+ * Used throughout the codebase for XML metadata manipulation.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: XML content has dynamic structure from Salesforce metadata
+export type XmlContent = Record<string, any>
+
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',
   ignoreAttributes: false,
@@ -25,9 +32,8 @@ const JSON_PARSER_OPTION = {
   suppressEmptyNode: false,
 }
 
-export const xml2Json = (xmlContent: string) => {
-  // biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-  let jsonContent: any = {}
+export const xml2Json = (xmlContent: string): XmlContent => {
+  let jsonContent: XmlContent = {}
   if (xmlContent) {
     const xmlParser = new XMLParser(XML_PARSER_OPTION)
     jsonContent = xmlParser.parse(xmlContent)
@@ -38,13 +44,12 @@ export const xml2Json = (xmlContent: string) => {
 export const parseXmlFileToJson = async (
   forRef: FileGitRef,
   config: Config
-) => {
+): Promise<XmlContent> => {
   const xmlContent = await readPathFromGit(forRef, config)
   return xml2Json(xmlContent)
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Any is expected here
-export const convertJsonToXml = (jsonContent: any) => {
+export const convertJsonToXml = (jsonContent: XmlContent | unknown): string => {
   const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
   return xmlBuilder.build(jsonContent)
 }

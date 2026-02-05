@@ -215,8 +215,8 @@ describe('MetadataDiff', () => {
     describe(`compare with ${JSON.stringify(header)} header`, () => {
       it('does not detect null file content', async () => {
         // Arrange
-        mockedParseXmlFileToJson.mockResolvedValueOnce('')
-        mockedParseXmlFileToJson.mockResolvedValueOnce('')
+        mockedParseXmlFileToJson.mockResolvedValueOnce({})
+        mockedParseXmlFileToJson.mockResolvedValueOnce({})
 
         // Act
         const { added, deleted } = await metadataDiff.compare('file/path')
@@ -296,7 +296,7 @@ describe('MetadataDiff', () => {
 
       it('detects deleted file', async () => {
         // Arrange
-        mockedParseXmlFileToJson.mockResolvedValueOnce('')
+        mockedParseXmlFileToJson.mockResolvedValueOnce({})
         mockedParseXmlFileToJson.mockResolvedValueOnce({ ...header, ...alert })
 
         // Act
