@@ -26,10 +26,12 @@ export default class SharedFolderHandler extends StandardHandler {
   /* jscpd:ignore-end */
 
   protected override _fillPackage(store: Manifest) {
-    const type = this.sharedFolderMetadata.get(this.ext!) as string
+    const type = this.sharedFolderMetadata.get(this.ext)
+    if (!type) return
+
     fillPackageWithParameter({
       store,
-      type: type,
+      type,
       member: this._getElementName(),
     })
   }
