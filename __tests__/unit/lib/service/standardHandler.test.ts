@@ -396,6 +396,24 @@ describe(`StandardHandler`, () => {
       expect(result[1]).toBe(`${basePath}${classType.directoryName}`)
       expect(result[2]).toBe(`${entity}.${classType.suffix}`)
     })
+
+    it('should cache and reuse regex on subsequent calls', () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
+        classType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      const firstResult = sut['_parseLine']()
+      const secondResult = sut['_parseLine']()
+
+      // Assert
+      expect(firstResult).toEqual(secondResult)
+      expect(sut['lineRegex']).toBeDefined()
+    })
   })
 
   describe('when the line should not be processed', () => {

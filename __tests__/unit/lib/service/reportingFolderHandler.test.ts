@@ -171,4 +171,26 @@ describe('InNestedFolderHandler', () => {
       expect(copyFiles).not.toHaveBeenCalled()
     })
   })
+
+  describe('when extension has no matching type in sharedFolderMetadata', () => {
+    it('should not add to package but still process the line', async () => {
+      // Arrange
+      // Using nested path makes _parentFolderIsNotTheType() return true
+      // so the line is processable, but unknown extension has no type mapping
+      const nestedPath = `force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
+      work.config.generateDelta = false
+      const sut = new ReportingFolderHandler(
+        `A       ${nestedPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.size).toBe(0)
+    })
+  })
 })
