@@ -1,6 +1,7 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
+import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 
 import BaseProcessor from './baseProcessor.js'
@@ -38,14 +39,9 @@ export default class PostProcessorManager {
       try {
         await postProcessor.process()
       } catch (error) {
-        if (error instanceof Error) {
-          Logger.warn(lazy`${postProcessor.constructor.name}: ${error.message}`)
-          this.work.warnings.push(
-            new Error(`${postProcessor.constructor.name}: ${error.message}`, {
-              cause: error,
-            })
-          )
-        }
+        const message = `${postProcessor.constructor.name}: ${getErrorMessage(error)}`
+        Logger.warn(lazy`${message}`)
+        this.work.warnings.push(wrapError(message, error))
       }
     }
   }

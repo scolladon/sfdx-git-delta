@@ -13,6 +13,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type { Metadata } from '../types/metadata.js'
 import type { Manifest, Manifests, Work } from '../types/work.js'
+import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { copyFiles } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -73,12 +74,9 @@ export default class StandardHandler {
             break
         }
       } catch (error) {
-        if (error instanceof Error) {
-          Logger.warn(lazy`${this.line}: ${error.message}`)
-          this.warnings.push(
-            new Error(`${this.line}: ${error.message}`, { cause: error })
-          )
-        }
+        const message = `${this.line}: ${getErrorMessage(error)}`
+        Logger.warn(lazy`${message}`)
+        this.warnings.push(wrapError(message, error))
       }
     }
   }
