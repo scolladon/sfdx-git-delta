@@ -1,5 +1,5 @@
 'use strict'
-import { join, parse } from 'node:path/posix'
+import { parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants.js'
@@ -12,7 +12,8 @@ export default class ResourceHandler extends StandardHandler {
 
   @log
   public override async handleAddition() {
-    this.metadataName = this._getMetadataName()
+    await this._resolveMetadata()
+    this.metadataName = await this._getMetadataName()
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
@@ -21,8 +22,10 @@ export default class ResourceHandler extends StandardHandler {
 
   @log
   public override async handleDeletion() {
-    const [, elementPath, elementName] = this._parseLine()!
-    const exists = await pathExists(join(elementPath, elementName), this.config)
+    await this._resolveMetadata()
+    this.metadataName = await this._getMetadataName()
+    const componentPath = this.metadataName!
+    const exists = await pathExists(componentPath, this.config)
     if (exists) {
       await this.handleModification()
     } else {
@@ -52,11 +55,21 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
+    // Use resolved metadata if available, otherwise fall back to path parsing
+    if (this.resolvedMetadata) {
+      return this.resolvedMetadata.componentName
+    }
     const parsedPath = this._getParsedPath()
     return parsedPath.name
   }
 
   protected override _getParsedPath() {
+    // Use resolved metadata boundaryIndex if available
+    if (this.resolvedMetadata) {
+      const base = this.splittedLine[this.resolvedMetadata.boundaryIndex]
+      return parse(base.replace(META_REGEX, ''))
+    }
+    // Fallback to original logic for cases where resolver doesn't find metadata
     const base =
       !this.metadataDef.excluded && this.ext === this.metadataDef.suffix
         ? this.splittedLine.at(-1)!
@@ -70,7 +83,19 @@ export default class ResourceHandler extends StandardHandler {
     return true
   }
 
-  protected _getMetadataName() {
+  protected async _getMetadataName(): Promise<string> {
+    // Use resolved metadata if available
+    if (this.resolvedMetadata) {
+      const metadataFullPath = this.splittedLine.slice(
+        0,
+        this.resolvedMetadata.boundaryIndex + 1
+      )
+      metadataFullPath[metadataFullPath.length - 1] =
+        this.resolvedMetadata.componentName
+      return metadataFullPath.join(PATH_SEP)
+    }
+
+    // Fallback to original logic
     const metadataDirIndex = this.splittedLine.lastIndexOf(
       this.metadataDef.directoryName
     )

@@ -9,6 +9,7 @@ import StandardHandler from './standardHandler.js'
 export default class DecomposedHandler extends StandardHandler {
   @log
   public override async handleAddition() {
+    await this._resolveMetadata()
     await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._copyParent()
@@ -16,7 +17,7 @@ export default class DecomposedHandler extends StandardHandler {
 
   protected async _copyParent() {
     const parentDirPath = this.splittedLine
-      .slice(0, this.splittedLine.indexOf(this.metadataDef.directoryName))
+      .slice(0, this._getDirectoryIndex())
       .join(PATH_SEP)
     const parentTypeName = this.getParentName()
 
@@ -39,8 +40,21 @@ export default class DecomposedHandler extends StandardHandler {
   }
 
   protected getParentName() {
-    return this.splittedLine[
-      this.splittedLine.indexOf(this.metadataDef.directoryName) - 1
-    ]
+    return this.splittedLine[this._getDirectoryIndex() - 1]
+  }
+
+  protected _getDirectoryIndex(): number {
+    // For decomposed types, boundaryIndex points to the file itself,
+    // the directory containing it is one level up
+    if (this.resolvedMetadata) {
+      // Find the directoryName in path for parent calculation
+      const dirIndex = this.splittedLine.indexOf(this.metadataDef.directoryName)
+      if (dirIndex >= 0) {
+        return dirIndex
+      }
+      // Fallback: directoryName is 2 levels up from the component
+      return this.resolvedMetadata.boundaryIndex - 1
+    }
+    return this.splittedLine.indexOf(this.metadataDef.directoryName)
   }
 }
