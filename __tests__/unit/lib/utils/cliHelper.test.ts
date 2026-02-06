@@ -8,7 +8,7 @@ import {
   readFile,
   sanitizePath,
 } from '../../../../src/utils/fsUtils'
-import { getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 const mockParseRev = jest.fn()
 const mockConfigureRepository = jest.fn()

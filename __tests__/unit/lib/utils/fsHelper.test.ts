@@ -16,7 +16,7 @@ import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('fs-extra')
 

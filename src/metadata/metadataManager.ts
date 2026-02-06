@@ -32,7 +32,7 @@ import { MetadataDefinitionMerger } from './metadataDefinitionMerger.js'
 import { SDRMetadataAdapter } from './sdrMetadataAdapter.js'
 
 export const getDefinition = async (
-  config: Pick<Config, 'apiVersion' | 'additionalMetadataRegistryPath'>
+  config: Pick<Config, 'additionalMetadataRegistryPath'>
 ): Promise<MetadataRepository> => {
   const { additionalMetadataRegistryPath } = config
   // 1. Initialize with Internal Registry (Priority 1)

@@ -17,42 +17,12 @@ describe(`test if metadata`, () => {
   beforeEach(() => {
     resetMetadataCache()
   })
-  it('provide latest when apiVersion is undefined', async () => {
-    const metadata = await getDefinition({ apiVersion: undefined })
-    const latestVersionSupported = await getLatestSupportedVersion()
-    const latestMetadataDef = await getDefinition({
-      apiVersion: latestVersionSupported,
-    })
+  it('Given no config, When getDefinition, Then returns metadata with known types', async () => {
+    const metadata = await getDefinition({})
 
     expect(metadata).toBeDefined()
-    expect(metadata).toEqual(latestMetadataDef)
-    expect(latestMetadataDef.get('classes')).toBeDefined()
-    expect(latestMetadataDef.get('do not exist')).toBeUndefined()
-  })
-
-  it('provide latest when apiVersion does not exist', async () => {
-    const metadata = await getDefinition({ apiVersion: 0 })
-    const latestVersionSupported = await getLatestSupportedVersion()
-    const latestMetadataDef = await getDefinition({
-      apiVersion: latestVersionSupported,
-    })
-
-    expect(metadata).toBeDefined()
-    expect(metadata).toEqual(latestMetadataDef)
-    expect(latestMetadataDef.get('classes')).toBeDefined()
-    expect(latestMetadataDef.get('do not exist')).toBeUndefined()
-  })
-
-  it('has classes', async () => {
-    const metadata = await getDefinition({ apiVersion: 58 })
     expect(metadata.get('classes')).toBeDefined()
-  })
-
-  it('do not have do not exist', async () => {
-    let metadata = await getDefinition({ apiVersion: 48 })
-    metadata = await getDefinition({ apiVersion: 46 })
-    expect(metadata).toBeDefined()
-    expect(metadata.get('do not exist')).toBeFalsy()
+    expect(metadata.get('do not exist')).toBeUndefined()
   })
 
   it('getLatestSupportedVersion', async () => {
@@ -203,7 +173,6 @@ describe(`test if metadata`, () => {
       .mockResolvedValue(additionalRegistryContent)
 
     const metadata = await getDefinition({
-      apiVersion: undefined,
       additionalMetadataRegistryPath: 'path/to/registry.json',
     })
     expect(metadata.get('CustomThing')).toBeDefined()
@@ -219,7 +188,6 @@ describe(`test if metadata`, () => {
 
     await expect(
       getDefinition({
-        apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
     ).rejects.toThrow(
@@ -238,7 +206,6 @@ describe(`test if metadata`, () => {
     // Act & Assert
     await expect(
       getDefinition({
-        apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
     ).rejects.toThrow(/expected array, received object/i)
@@ -259,7 +226,6 @@ describe(`test if metadata`, () => {
     // Act & Assert
     await expect(
       getDefinition({
-        apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
     ).rejects.toThrow(
@@ -285,7 +251,6 @@ describe(`test if metadata`, () => {
     // Act & Assert
     await expect(
       getDefinition({
-        apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
     ).rejects.toThrow(/expected boolean, received string/i)
@@ -310,7 +275,6 @@ describe(`test if metadata`, () => {
     // Act & Assert
     await expect(
       getDefinition({
-        apiVersion: undefined,
         additionalMetadataRegistryPath: 'path/to/registry.json',
       })
     ).rejects.toThrow(/Unrecognized key.*unknownField/)

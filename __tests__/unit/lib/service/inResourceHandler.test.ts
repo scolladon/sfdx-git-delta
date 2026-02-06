@@ -3,10 +3,11 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, pathExists, readDirs } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -50,7 +51,7 @@ beforeEach(() => {
 describe('InResourceHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   describe('When entity is added', () => {

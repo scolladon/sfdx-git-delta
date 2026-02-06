@@ -7,10 +7,11 @@ import {
   MODIFICATION,
 } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import LwcHandler from '../../../../src/service/lwcHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -33,7 +34,7 @@ beforeEach(() => {
 describe('lwcHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
   describe('when the line should not be processed', () => {
     it.each([

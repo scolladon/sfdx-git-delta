@@ -2,10 +2,11 @@
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -13,7 +14,7 @@ const mockedReadDirs = jest.mocked(readDirs)
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
-  globalMetadata = await getGlobalMetadata()
+  globalMetadata = await getDefinition({})
 })
 
 let work: Work

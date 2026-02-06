@@ -3,10 +3,11 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
@@ -62,7 +63,7 @@ beforeEach(() => {
 describe('InNestedFolderHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   describe.each(

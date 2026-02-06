@@ -7,9 +7,9 @@ import {
   MODIFICATION,
 } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Config } from '../../../../src/types/config'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
-import { getGlobalMetadata } from '../../../__utils__/globalTestHelper'
 
 const mockGetDiffLines = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => ({
@@ -36,7 +36,7 @@ describe(`test if repoGitDiff`, () => {
   let globalMetadata: MetadataRepository
   let config: Config
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   beforeEach(() => {

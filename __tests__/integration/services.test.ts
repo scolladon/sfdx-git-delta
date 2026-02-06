@@ -7,10 +7,10 @@ import {
   MODIFICATION,
 } from '../../src/constant/gitConstants'
 import { MetadataRepository } from '../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../src/metadata/metadataManager'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
 import type { Work } from '../../src/types/work'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
-import { getGlobalMetadata } from '../__utils__/globalTestHelper'
 
 jest.mock('../../src/utils/fsHelper')
 
@@ -482,7 +482,7 @@ const existingFiles = [
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
-  globalMetadata = await getGlobalMetadata()
+  globalMetadata = await getDefinition({})
 })
 let work: Work
 let handlerFactory: TypeHandlerFactory

@@ -10,7 +10,7 @@ import {
   getLFSObjectContentPath,
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
-import { getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 const mockedRaw = jest.fn()
 const mockedAddConfig = jest.fn()
