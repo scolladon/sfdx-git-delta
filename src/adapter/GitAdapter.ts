@@ -162,6 +162,28 @@ export default class GitAdapter {
     return result
   }
 
+  @log
+  public async listDirAtRevision(
+    dir: string,
+    revision: string
+  ): Promise<string[]> {
+    try {
+      const output = await this.simpleGit.raw([
+        'ls-tree',
+        '--name-only',
+        revision,
+        dir ? `${dir}/` : '.',
+      ])
+      return output
+        .split(EOL)
+        .filter(line => line && line.startsWith(dir))
+        .map(line => line.split(PATH_SEP).pop()!)
+        .filter(name => name)
+    } catch {
+      return []
+    }
+  }
+
   public async *getFilesFrom(path: string) {
     const filesPath = await this.getFilesPath(path)
     for (const filePath of filesPath) {
