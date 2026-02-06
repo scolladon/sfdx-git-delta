@@ -3,9 +3,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowHandler from '../../../../src/service/flowHandler'
 import type { Work } from '../../../../src/types/work'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/MessageService')
@@ -27,7 +28,7 @@ beforeEach(() => {
 describe('flowHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
   describe('when a flow is deleted', () => {
     it('warns the user not to', async () => {

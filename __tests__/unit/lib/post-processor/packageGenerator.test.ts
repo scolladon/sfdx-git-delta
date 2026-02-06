@@ -3,9 +3,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { outputFile } from 'fs-extra'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
 import type { Work } from '../../../../src/types/work'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('fs-extra')
 
@@ -23,7 +24,7 @@ describe('PackageGenerator', () => {
   let metadata: MetadataRepository
   beforeEach(async () => {
     work = getWork()
-    metadata = await getGlobalMetadata()
+    metadata = await getDefinition({})
   })
   describe('cleanPackages', () => {
     describe('when destructive contains element from additive', () => {

@@ -2,7 +2,10 @@
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import { getInFileAttributes } from '../../../../src/metadata/metadataManager'
+import {
+  getDefinition,
+  getInFileAttributes,
+} from '../../../../src/metadata/metadataManager'
 import { SharedFileMetadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
 import {
@@ -10,7 +13,7 @@ import {
   parseXmlFileToJson,
 } from '../../../../src/utils/fxpHelper'
 import MetadataDiff from '../../../../src/utils/metadataDiff'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fxpHelper', () => {
   const actualModule: any = jest.requireActual(
@@ -201,7 +204,7 @@ describe('MetadataDiff', () => {
   let inFileAttribute: Map<string, SharedFileMetadata>
   let work: Work
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
     inFileAttribute = getInFileAttributes(globalMetadata)
   })
   beforeEach(() => {

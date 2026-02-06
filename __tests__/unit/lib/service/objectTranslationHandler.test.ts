@@ -2,10 +2,11 @@
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, writeFile } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 const mockCompare = jest.fn<() => Promise<any>>()
 const mockprune = jest.fn<() => any>()
@@ -51,7 +52,7 @@ beforeEach(() => {
 describe('ObjectTranslation', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   describe('when called with generateDelta false', () => {

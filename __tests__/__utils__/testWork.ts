@@ -1,16 +1,5 @@
 'use strict'
-import { MetadataRepository } from '../../src/metadata/MetadataRepository'
-import {
-  getDefinition,
-  getLatestSupportedVersion,
-} from '../../src/metadata/metadataManager'
 import type { Work } from '../../src/types/work'
-
-export const getGlobalMetadata = async (): Promise<MetadataRepository> => {
-  const apiVersion: number = await getLatestSupportedVersion()
-  const metadata: MetadataRepository = await getDefinition({ apiVersion })
-  return metadata
-}
 
 export const getWork = (): Work => ({
   diffs: {

@@ -2,7 +2,26 @@
 
 import { Logger, lazy } from '../../../../src/utils/LoggingService.js'
 
-jest.mock('@salesforce/core')
+jest.mock('@salesforce/core', () => ({
+  Logger: {
+    childFromRoot: jest.fn(() => ({
+      setLevel: jest.fn(),
+      shouldLog: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+      info: jest.fn(),
+      trace: jest.fn(),
+      warn: jest.fn(),
+    })),
+  },
+  LoggerLevel: {
+    DEBUG: 10,
+    TRACE: 5,
+    INFO: 20,
+    WARN: 40,
+    ERROR: 50,
+  },
+}))
 
 describe('LoggingService', () => {
   let mockShouldLog: jest.Mock
