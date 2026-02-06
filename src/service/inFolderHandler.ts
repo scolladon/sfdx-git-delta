@@ -15,6 +15,7 @@ const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {
   @log
   public override async handleAddition() {
+    await this._resolveMetadata()
     await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._copyFolderMetaFile()
@@ -45,12 +46,26 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
+    const startIndex = this._getDirectoryStartIndex()
     return this.splittedLine
-      .slice(this.splittedLine.indexOf(this.metadataDef.directoryName) + 1)
+      .slice(startIndex)
       .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
+  }
+
+  protected _getDirectoryStartIndex(): number {
+    // Use resolver if available - find where content starts after directoryName
+    if (this.resolvedMetadata) {
+      const dirIndex = this.splittedLine.indexOf(this.metadataDef.directoryName)
+      if (dirIndex >= 0) {
+        return dirIndex + 1
+      }
+      // Fallback: content starts at boundaryIndex
+      return this.resolvedMetadata.boundaryIndex
+    }
+    return this.splittedLine.indexOf(this.metadataDef.directoryName) + 1
   }
 
   protected override _isProcessable() {
