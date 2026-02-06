@@ -7,10 +7,14 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const entity = 'folder/test'
 const extension = 'report'
@@ -82,7 +86,8 @@ describe('InNestedFolderHandler', () => {
         changePath as string,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -110,7 +115,8 @@ describe('InNestedFolderHandler', () => {
           changePath as string,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
         mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
@@ -135,7 +141,8 @@ describe('InNestedFolderHandler', () => {
           changePath as string,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
         mockedReadDirs.mockImplementationOnce(() =>
           Promise.resolve([entity, 'not/matching'])
@@ -161,7 +168,8 @@ describe('InNestedFolderHandler', () => {
         `A       ${entityPath}`,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -184,7 +192,8 @@ describe('InNestedFolderHandler', () => {
         `A       ${nestedPath}`,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act

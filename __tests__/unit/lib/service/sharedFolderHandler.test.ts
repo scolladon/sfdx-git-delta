@@ -7,9 +7,13 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const objectType = {
   directoryName: 'discovery',
@@ -47,7 +51,13 @@ describe('SharedFolderHandler', () => {
 
   it('should add the metadata component under the right type to the package', async () => {
     // Arrange
-    const sut = new SharedFolderHandler(line, objectType, work, globalMetadata)
+    const sut = new SharedFolderHandler(
+      line,
+      objectType,
+      work,
+      globalMetadata,
+      mockResolver
+    )
 
     // Act
     await sut.handleAddition()
@@ -65,7 +75,8 @@ describe('SharedFolderHandler', () => {
         unknownExtLine,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -80,11 +91,13 @@ describe('SharedFolderHandler', () => {
       work.config.generateDelta = true
     })
     it('should add and copy the metadata', async () => {
+      // Arrange
       const sut = new SharedFolderHandler(
         line,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act

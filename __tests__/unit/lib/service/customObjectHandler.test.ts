@@ -12,7 +12,12 @@ import {
   readDirs,
   readPathFromGit,
 } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
+
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -73,7 +78,8 @@ describe('CustomObjectHandler', () => {
         line,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -92,7 +98,8 @@ describe('CustomObjectHandler', () => {
           'A       force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
           territoryModelType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -113,7 +120,8 @@ describe('CustomObjectHandler', () => {
             line,
             objectType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
 
           // Act
@@ -133,7 +141,8 @@ describe('CustomObjectHandler', () => {
             line,
             objectType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
 
           // Act
@@ -153,7 +162,8 @@ describe('CustomObjectHandler', () => {
           line,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act

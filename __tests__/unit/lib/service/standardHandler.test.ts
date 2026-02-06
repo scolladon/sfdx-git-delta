@@ -13,10 +13,14 @@ import StandardHandler from '../../../../src/service/standardHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Logger } from '../../../../src/utils/LoggingService'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedCopyFiles = jest.mocked(copyFiles)
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const testSuitesType = {
   directoryName: 'testSuites',
@@ -61,7 +65,8 @@ describe(`StandardHandler`, () => {
       `${ADDITION}       ${entityPath}`,
       classType,
       work,
-      globalMetadata
+      globalMetadata,
+      mockResolver
     )
 
     // Act
@@ -81,7 +86,8 @@ describe(`StandardHandler`, () => {
       `${ADDITION}       ${entityPath}`,
       classType,
       work,
-      globalMetadata
+      globalMetadata,
+      mockResolver
     )
 
     // Act
@@ -99,7 +105,8 @@ describe(`StandardHandler`, () => {
       `Z       ${entityPath}`,
       classType,
       work,
-      globalMetadata
+      globalMetadata,
+      mockResolver
     )
 
     // Act
@@ -126,7 +133,8 @@ describe(`StandardHandler`, () => {
         `${changeType}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -146,7 +154,8 @@ describe(`StandardHandler`, () => {
         `${DELETION}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -174,7 +183,8 @@ describe(`StandardHandler`, () => {
           `${ADDITION}       ${entityPath}`,
           classType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
         jest
           .spyOn(
@@ -199,7 +209,8 @@ describe(`StandardHandler`, () => {
           `${ADDITION}       ${entityPath}`,
           classType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
         jest
           .spyOn(
@@ -227,7 +238,8 @@ describe(`StandardHandler`, () => {
           `${MODIFICATION}       ${entityPath}${METAFILE_SUFFIX}`,
           classType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -252,7 +264,8 @@ describe(`StandardHandler`, () => {
           `${MODIFICATION}       ${entityPath}`,
           classType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -280,7 +293,8 @@ describe(`StandardHandler`, () => {
           `${MODIFICATION}       ${entityPath}`,
           testSuitesType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -307,7 +321,8 @@ describe(`StandardHandler`, () => {
           `${MODIFICATION}       ${entityPath}`,
           testSuitesType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -337,7 +352,8 @@ describe(`StandardHandler`, () => {
         `${changeType}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -357,7 +373,8 @@ describe(`StandardHandler`, () => {
         `${DELETION}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -385,7 +402,8 @@ describe(`StandardHandler`, () => {
         `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -404,7 +422,8 @@ describe(`StandardHandler`, () => {
         `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -426,7 +445,8 @@ describe(`StandardHandler`, () => {
         `A       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -445,7 +465,8 @@ describe(`StandardHandler`, () => {
         `${ADDITION}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -486,7 +507,8 @@ describe(`StandardHandler`, () => {
         `${ADDITION}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -505,7 +527,8 @@ describe(`StandardHandler`, () => {
         `${DELETION}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -524,7 +547,8 @@ describe(`StandardHandler`, () => {
         `${MODIFICATION}       ${entityPath}`,
         classType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
