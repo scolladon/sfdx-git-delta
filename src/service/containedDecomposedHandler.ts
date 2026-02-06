@@ -10,6 +10,7 @@ import { Metadata } from '../types/metadata.js'
 import { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ContainedDecomposedHandler extends StandardHandler {
@@ -19,9 +20,10 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     line: string,
     metadataDef: Metadata,
     work: Work,
-    metadata: MetadataRepository
+    metadata: MetadataRepository,
+    resolver: MetadataBoundaryResolver
   ) {
-    super(line, metadataDef, work, metadata)
+    super(line, metadataDef, work, metadata, resolver)
     this._setholderFolder()
   }
 

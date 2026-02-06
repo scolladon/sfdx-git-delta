@@ -6,6 +6,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { getSharedFolderMetadata } from '../metadata/metadataManager.js'
 import { Metadata } from '../types/metadata.js'
 import type { Manifest, Work } from '../types/work.js'
+import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import InFolderHandler from './inFolderHandler.js'
 
@@ -17,9 +18,10 @@ export default class ReportingFolderHandler extends InFolderHandler {
     line: string,
     metadataDef: Metadata,
     work: Work,
-    metadata: MetadataRepository
+    metadata: MetadataRepository,
+    resolver: MetadataBoundaryResolver
   ) {
-    super(line, metadataDef, work, metadata)
+    super(line, metadataDef, work, metadata, resolver)
     this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
   }
   /* jscpd:ignore-end */

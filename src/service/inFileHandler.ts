@@ -8,6 +8,7 @@ import { Metadata } from '../types/metadata.js'
 import type { Manifest, Work } from '../types/work.js'
 import { writeFile } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import StandardHandler from './standardHandler.js'
@@ -20,9 +21,10 @@ export default class InFileHandler extends StandardHandler {
     line: string,
     metadataDef: Metadata,
     work: Work,
-    metadata: MetadataRepository
+    metadata: MetadataRepository,
+    resolver: MetadataBoundaryResolver
   ) {
-    super(line, metadataDef, work, metadata)
+    super(line, metadataDef, work, metadata, resolver)
     const inFileMetadata = getInFileAttributes(metadata)
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
