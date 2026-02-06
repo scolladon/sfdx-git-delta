@@ -11,7 +11,12 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import LwcHandler from '../../../../src/service/lwcHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
+
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -46,7 +51,8 @@ describe('lwcHandler', () => {
         `${ADDITION}       ${entityPath}`,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -68,7 +74,8 @@ describe('lwcHandler', () => {
         `${changeType}       ${entityPath}`,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -85,7 +92,8 @@ describe('lwcHandler', () => {
         `${DELETION}       ${entityPath}`,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act

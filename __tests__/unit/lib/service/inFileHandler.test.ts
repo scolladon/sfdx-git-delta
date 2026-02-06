@@ -6,8 +6,12 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFileHandler from '../../../../src/service/inFileHandler'
 import type { Work } from '../../../../src/types/work'
 import { writeFile } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 const mockCompare = jest.fn()
 const mockPrune = jest.fn()
 jest.mock('../../../../src/utils/metadataDiff', () => {
@@ -68,7 +72,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         workflowType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       mockCompare.mockImplementation(() =>
         Promise.resolve({
@@ -104,7 +109,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
           mockCompare.mockImplementation(() =>
             Promise.resolve({
@@ -140,7 +146,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
           mockCompare.mockImplementation(() =>
             Promise.resolve({
@@ -181,7 +188,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
           'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
           workflowType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
         mockCompare.mockImplementation(() =>
           Promise.resolve({
@@ -219,7 +227,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
           'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
           workflowType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
         mockCompare.mockImplementation(() =>
           Promise.resolve({
@@ -253,7 +262,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
             workflowType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
 
           mockCompare.mockImplementation(() =>
@@ -291,7 +301,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
             workflowType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
           mockCompare.mockImplementation(() =>
             Promise.resolve({
@@ -328,7 +339,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
           mockCompare.mockImplementation(() =>
             Promise.resolve({
@@ -368,7 +380,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
           mockCompare.mockImplementation(() =>
             Promise.resolve({
@@ -407,7 +420,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
         workflowType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       mockCompare.mockImplementation(() =>
         Promise.resolve({
@@ -438,7 +452,8 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
           'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
           globalValueSetTranslationsType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
       })
       it('should only store file name and not the metadata in file', async () => {

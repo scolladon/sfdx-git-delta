@@ -7,12 +7,16 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadDirs = jest.mocked(readDirs)
 const mockedPathExists = jest.mocked(pathExists)
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const lwcType = {
   directoryName: 'lwc',
@@ -65,7 +69,8 @@ describe('InResourceHandler', () => {
           line,
           staticResourceType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -87,7 +92,13 @@ describe('InResourceHandler', () => {
         }
         const nestedPath = `force-app/main/default/lwc/sub_folder1/lwc/${lwcType.element}/${lwcType.element}.js`
         const line = `A       ${nestedPath}`
-        const sut = new InResourceHandler(line, lwcType, work, globalMetadata)
+        const sut = new InResourceHandler(
+          line,
+          lwcType,
+          work,
+          globalMetadata,
+          mockResolver
+        )
 
         // Act
         await sut.handle()
@@ -119,7 +130,13 @@ describe('InResourceHandler', () => {
             `${base}${lwcType.directoryName}/myComponentForExperienceCloud/`,
             `${base}${lwcType.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.js`,
           ])
-          const sut = new InResourceHandler(line, lwcType, work, globalMetadata)
+          const sut = new InResourceHandler(
+            line,
+            lwcType,
+            work,
+            globalMetadata,
+            mockResolver
+          )
 
           // Act
           await sut.handle()
@@ -156,7 +173,8 @@ describe('InResourceHandler', () => {
             line,
             staticResourceType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
 
           // Act
@@ -189,7 +207,8 @@ describe('InResourceHandler', () => {
             line,
             staticResourceType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
 
           // Act
@@ -224,7 +243,8 @@ describe('InResourceHandler', () => {
             line,
             experienceBundleType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
 
           // Act
@@ -252,7 +272,8 @@ describe('InResourceHandler', () => {
             line,
             staticResourceType,
             work,
-            globalMetadata
+            globalMetadata,
+            mockResolver
           )
           mockedReadDirs.mockResolvedValueOnce([])
 
@@ -288,7 +309,8 @@ describe('InResourceHandler', () => {
           `D       ${entityPath}`,
           staticResourceType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -312,7 +334,8 @@ describe('InResourceHandler', () => {
           `D       ${entityPath}`,
           staticResourceType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act

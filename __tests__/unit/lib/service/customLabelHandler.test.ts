@@ -5,8 +5,12 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomLabelHandler from '../../../../src/service/customLabelHandler'
 import type { Work } from '../../../../src/types/work'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 const labelType = {
   directoryName: 'labels',
   inFolder: false,
@@ -35,7 +39,13 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(line, labelType, work, globalMetadata)
+      sut = new CustomLabelHandler(
+        line,
+        labelType,
+        work,
+        globalMetadata,
+        mockResolver
+      )
     })
     it('should add the element in the package', async () => {
       // Arrange
@@ -53,7 +63,13 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(line, labelType, work, globalMetadata)
+      sut = new CustomLabelHandler(
+        line,
+        labelType,
+        work,
+        globalMetadata,
+        mockResolver
+      )
     })
     it('should add the element in the package', async () => {
       // Arrange
@@ -71,7 +87,13 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(line, labelType, work, globalMetadata)
+      sut = new CustomLabelHandler(
+        line,
+        labelType,
+        work,
+        globalMetadata,
+        mockResolver
+      )
     })
     it('should add the element in the destructiveChanges', async () => {
       // Arrange

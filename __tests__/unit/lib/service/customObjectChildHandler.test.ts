@@ -4,11 +4,15 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readPathFromGit } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const objectType = {
   directoryName: 'recordTypes',
@@ -41,7 +45,8 @@ describe('CustomFieldHandler', () => {
         line,
         objectType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -63,7 +68,8 @@ describe('CustomFieldHandler', () => {
           line,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act

@@ -6,8 +6,12 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, writeFile } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 const mockCompare = jest.fn<() => Promise<any>>()
 const mockprune = jest.fn<() => any>()
 jest.mock('../../../../src/utils/metadataDiff', () => {
@@ -59,7 +63,13 @@ describe('ObjectTranslation', () => {
     it('should not copy files', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
+      const sut = new ObjectTranslation(
+        line,
+        objectType,
+        work,
+        globalMetadata,
+        mockResolver
+      )
 
       // Act
       await sut.handleAddition()
@@ -75,7 +85,13 @@ describe('ObjectTranslation', () => {
   describe('when called with generateDelta true', () => {
     it('should copy object translations files', async () => {
       // Arrange
-      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
+      const sut = new ObjectTranslation(
+        line,
+        objectType,
+        work,
+        globalMetadata,
+        mockResolver
+      )
 
       // Act
       await sut.handleAddition()
@@ -102,7 +118,8 @@ describe('ObjectTranslation', () => {
           fieldTranslationline,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act

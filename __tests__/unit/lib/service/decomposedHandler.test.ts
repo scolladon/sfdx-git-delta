@@ -5,9 +5,13 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DecomposedHandler from '../../../../src/service/decomposedHandler'
 import type { Work } from '../../../../src/types/work'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const recordTypeType = {
   directoryName: 'recordTypes',
@@ -43,7 +47,8 @@ describe('DecomposedHandler', () => {
         line,
         recordTypeType,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       const expectSubject =
         method === 'handleDeletion'

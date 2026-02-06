@@ -6,11 +6,15 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadDirs = jest.mocked(readDirs)
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
@@ -33,7 +37,8 @@ describe('ContainedDecomposedHandler', () => {
         `A       force-app/main/permissionsets/Subject.permissionset-meta.xml`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       // Act
       await sut.handle()
@@ -61,7 +66,8 @@ describe('ContainedDecomposedHandler', () => {
         `A       ${line}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       // Act
       await sut.handle()
@@ -78,7 +84,8 @@ describe('ContainedDecomposedHandler', () => {
         `M       ${line}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       // Act
       await sut.handle()
@@ -95,7 +102,8 @@ describe('ContainedDecomposedHandler', () => {
         `D       ${line}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
       // Act
       await sut.handle()
@@ -125,7 +133,8 @@ describe('ContainedDecomposedHandler', () => {
         `A       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -150,7 +159,8 @@ describe('ContainedDecomposedHandler', () => {
         `M       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -175,7 +185,8 @@ describe('ContainedDecomposedHandler', () => {
         `D       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act
@@ -195,7 +206,8 @@ describe('ContainedDecomposedHandler', () => {
         `D       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
         work,
-        globalMetadata
+        globalMetadata,
+        mockResolver
       )
 
       // Act

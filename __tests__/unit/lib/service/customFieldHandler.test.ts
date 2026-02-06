@@ -7,11 +7,15 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomFieldHandler from '../../../../src/service/customFieldHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readPathFromGit } from '../../../../src/utils/fsHelper'
+import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
+const mockResolver = {
+  resolve: async () => null,
+} as unknown as MetadataBoundaryResolver
 
 const objectType = {
   directoryName: 'fields',
@@ -40,7 +44,13 @@ describe('CustomFieldHandler', () => {
     it('should not handle master detail exception', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new CustomFieldHandler(line, objectType, work, globalMetadata)
+      const sut = new CustomFieldHandler(
+        line,
+        objectType,
+        work,
+        globalMetadata,
+        mockResolver
+      )
 
       // Act
       await sut.handleAddition()
@@ -58,7 +68,8 @@ describe('CustomFieldHandler', () => {
           line,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
@@ -77,7 +88,8 @@ describe('CustomFieldHandler', () => {
           line,
           objectType,
           work,
-          globalMetadata
+          globalMetadata,
+          mockResolver
         )
 
         // Act
