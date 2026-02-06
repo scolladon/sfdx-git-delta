@@ -17,6 +17,10 @@ import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { copyFiles } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import {
+  MetadataBoundaryResolver,
+  ResolvedMetadata,
+} from '../utils/metadataBoundaryResolver.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 const RegExpEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -31,13 +35,15 @@ export default class StandardHandler {
   protected readonly ext: string
   protected readonly parsedLine: ParsedPath
   protected readonly parentFolder: string
+  protected resolvedMetadata: ResolvedMetadata | null = null
   private lineRegex: RegExp
 
   constructor(
     protected readonly line: string,
     protected readonly metadataDef: Metadata,
     protected readonly work: Work,
-    protected readonly metadata: MetadataRepository
+    protected readonly metadata: MetadataRepository,
+    protected readonly resolver: MetadataBoundaryResolver
   ) {
     this.changeType = line.charAt(0) as string
     this.line = line.replace(GIT_DIFF_TYPE_REGEX, '')
@@ -63,6 +69,20 @@ export default class StandardHandler {
       .split(DOT)
       .pop() as string
     this.parentFolder = this.parsedLine.dir.split(PATH_SEP).slice(-1)[0]
+  }
+
+  protected _getRevision(): string {
+    return this.changeType === DELETION ? this.config.from : this.config.to
+  }
+
+  protected async _resolveMetadata(): Promise<ResolvedMetadata | null> {
+    if (this.resolvedMetadata === null) {
+      this.resolvedMetadata = await this.resolver.resolve(
+        this.line,
+        this._getRevision()
+      )
+    }
+    return this.resolvedMetadata
   }
 
   @log
