@@ -39,4 +39,13 @@ export default class ObjectTranslationHandler extends ResourceHandler {
   protected override _delegateFileCopy() {
     return !this.line.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
   }
+
+  protected override _getElementName() {
+    // For object translations, the element name is always the parent folder
+    // (e.g., Account-fr), not the individual translation file name
+    const directoryIndex = this.splittedLine.lastIndexOf(
+      this.metadataDef.directoryName
+    )
+    return this.splittedLine[directoryIndex + 1]
+  }
 }
