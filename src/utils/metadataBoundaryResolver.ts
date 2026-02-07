@@ -1,5 +1,5 @@
 'use strict'
-import { dirname } from 'node:path/posix'
+import { dirname, parse } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
 import { PATH_SEP } from '../constant/fsConstants.js'
@@ -46,7 +46,29 @@ export class MetadataBoundaryResolver {
       }
     }
 
-    // 2. Scan hierarchy to find sibling with ANY known suffix
+    // 2. FAST: Check if directoryName is in the path
+    if (currentMetadata?.directoryName) {
+      const dirIndex = parts.lastIndexOf(currentMetadata.directoryName)
+      if (dirIndex >= 0 && dirIndex + 1 < parts.length) {
+        const nextPart = parts[dirIndex + 1]
+        const isFolder = dirIndex + 1 < parts.length - 1
+
+        if (isFolder) {
+          return {
+            metadata: currentMetadata,
+            boundaryIndex: dirIndex + 1,
+            componentName: nextPart,
+          }
+        }
+        return {
+          metadata: currentMetadata,
+          boundaryIndex: dirIndex,
+          componentName: parse(nextPart.replace(METAFILE_SUFFIX, '')).name,
+        }
+      }
+    }
+
+    // 3. Scan hierarchy to find sibling with ANY known suffix
     return this.scanHierarchyFromGit(path, revision)
   }
 
