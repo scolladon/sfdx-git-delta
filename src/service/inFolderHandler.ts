@@ -9,19 +9,10 @@ import {
 } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { readDirs } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {
-  @log
-  public override async handleAddition() {
-    await super.handleAddition()
-    if (!this.config.generateDelta) return
-    await this._copyFolderMetaFile()
-    await this._copySpecialExtension()
-  }
-
   public override async collectAddition(): Promise<HandlerResult> {
     const result = await super.collectAddition()
     this._collectFolderMetaCopies(result.copies)
@@ -54,30 +45,6 @@ export default class InFolderHandler extends StandardHandler {
         this._collectCopyWithMetaFile(copies, file)
       }
     }
-  }
-
-  protected async _copyFolderMetaFile() {
-    const folderPath = this.element.typeDirectoryPath
-    const folderName = this.element.pathAfterType[0]
-
-    const suffix = folderName.endsWith(INFOLDER_SUFFIX)
-      ? ''
-      : `.${this.element.type.suffix!.toLowerCase()}`
-
-    const folderFileName = `${folderName}${suffix}${METAFILE_SUFFIX}`
-
-    await this._copyWithMetaFile(join(folderPath, folderFileName))
-  }
-
-  protected async _copySpecialExtension() {
-    const parsedLine = parse(this.element.basePath)
-    const dirContent = await readDirs(parsedLine.dir, this.config)
-
-    await Promise.all(
-      dirContent
-        .filter((file: string) => file.includes(parsedLine.name))
-        .map((file: string) => this._copyWithMetaFile(file))
-    )
   }
 
   protected override _getElementName() {

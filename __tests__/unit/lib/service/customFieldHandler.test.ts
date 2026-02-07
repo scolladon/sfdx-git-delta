@@ -10,7 +10,7 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, readPathFromGit } from '../../../../src/utils/fsHelper'
+import { readPathFromGit } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -39,65 +39,6 @@ describe('CustomFieldHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
-  })
-
-  describe('when called with generateDelta false', () => {
-    it('should not handle master detail exception', async () => {
-      // Arrange
-      work.config.generateDelta = false
-      const { changeType, element } = createElement(
-        line,
-        objectType,
-        globalMetadata
-      )
-      const sut = new CustomFieldHandler(changeType, element, work)
-
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(readPathFromGit).not.toHaveBeenCalled()
-    })
-  })
-  describe('when called with generateDelta true', () => {
-    describe(`when field is not master detail`, () => {
-      it('should not handle master detail exception', async () => {
-        // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce('')
-        const { changeType, element } = createElement(
-          line,
-          objectType,
-          globalMetadata
-        )
-        const sut = new CustomFieldHandler(changeType, element, work)
-
-        // Act
-        await sut.handleAddition()
-
-        // Assert
-        expect(readPathFromGit).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-      })
-    })
-    describe(`when field is master detail`, () => {
-      it('should copy the parent object', async () => {
-        // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
-        const { changeType, element } = createElement(
-          line,
-          objectType,
-          globalMetadata
-        )
-        const sut = new CustomFieldHandler(changeType, element, work)
-
-        // Act
-        await sut.handleAddition()
-
-        // Assert
-        expect(readPathFromGit).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledTimes(2)
-      })
-    })
   })
 
   describe('collect', () => {

@@ -7,13 +7,10 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, readPathFromGit } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
-
-const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 
 const objectType = {
   directoryName: 'recordTypes',
@@ -36,52 +33,6 @@ describe('CustomFieldHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
-  })
-
-  describe('when called with generateDelta false', () => {
-    it('should not handle master detail exception', async () => {
-      // Arrange
-      work.config.generateDelta = false
-      const { changeType, element } = createElement(
-        line,
-        objectType,
-        globalMetadata
-      )
-      const sut = new CustomObjectChildHandler(changeType, element, work)
-
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(copyFiles).not.toHaveBeenCalled()
-      expect(work.diffs.package.get('RecordType')).toEqual(
-        new Set(['Account.awesome'])
-      )
-    })
-  })
-
-  describe('when called with generateDelta true', () => {
-    describe(`when field is not master detail`, () => {
-      it('should not handle master detail exception', async () => {
-        // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce('')
-        const { changeType, element } = createElement(
-          line,
-          objectType,
-          globalMetadata
-        )
-        const sut = new CustomObjectChildHandler(changeType, element, work)
-
-        // Act
-        await sut.handleAddition()
-
-        // Assert
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-        expect(work.diffs.package.get('RecordType')).toEqual(
-          new Set(['Account.awesome'])
-        )
-      })
-    })
   })
 
   describe('collect', () => {

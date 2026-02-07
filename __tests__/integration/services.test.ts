@@ -9,6 +9,7 @@ import {
 import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../src/metadata/metadataManager'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
+import { ManifestTarget } from '../../src/types/handlerResult'
 import type { Work } from '../../src/types/work'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 
@@ -508,6 +509,7 @@ beforeEach(() => {
   }
   handlerFactory = new TypeHandlerFactory(work, globalMetadata)
 
+  mockedReadPathFromGit.mockResolvedValue('')
   mockedReadDirs.mockResolvedValue(existingFiles)
   mockedPathExists.mockImplementation(path => {
     return Promise.resolve(existingFiles.includes(path))
@@ -531,10 +533,17 @@ describe.each(testContext)(`integration test %s`, (changePath:
     )
 
     // Act
-    await sut.handle()
+    const result = await sut.collect()
 
     // Assert
-    expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+    const members = new Set(
+      result.manifests
+        .filter(
+          m => m.target === ManifestTarget.Package && m.type === expectedType
+        )
+        .map(m => m.member)
+    )
+    expect(members).toEqual(expected)
   })
   it(`deletion ${expectedType}`, async () => {
     // Arrange
@@ -551,12 +560,19 @@ describe.each(testContext)(`integration test %s`, (changePath:
     )
 
     // Act
-    await sut.handle()
+    const result = await sut.collect()
 
     // Assert
-    expect(work.diffs.destructiveChanges.get(expectedType as string)).toEqual(
-      expected as Set<string>
+    const members = new Set(
+      result.manifests
+        .filter(
+          m =>
+            m.target === ManifestTarget.DestructiveChanges &&
+            m.type === expectedType
+        )
+        .map(m => m.member)
     )
+    expect(members).toEqual(expected)
   })
   it(`modification ${expectedType}`, async () => {
     // Arrange
@@ -570,9 +586,16 @@ describe.each(testContext)(`integration test %s`, (changePath:
     )
 
     // Act
-    await sut.handle()
+    const result = await sut.collect()
 
     // Assert
-    expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+    const members = new Set(
+      result.manifests
+        .filter(
+          m => m.target === ManifestTarget.Package && m.type === expectedType
+        )
+        .map(m => m.member)
+    )
+    expect(members).toEqual(expected)
   })
 })

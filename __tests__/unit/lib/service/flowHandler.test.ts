@@ -32,27 +32,8 @@ describe('flowHandler', () => {
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
   })
-  describe('when a flow is deleted', () => {
-    it('warns the user not to', async () => {
-      // Arrange
-      const { changeType, element } = createElement(
-        `${DELETION}       ${basePath}/MyFlow.${objectType.suffix}-meta.xml`,
-        objectType,
-        globalMetadata
-      )
-      const sut = new FlowHandler(changeType, element, work)
-      expect(work.warnings.length).toBe(0)
-
-      // Act
-      await sut.handle()
-
-      // Assert
-      expect(work.warnings.length).toBe(1)
-    })
-  })
-
   describe('collect', () => {
-    it('Given flow deletion, When collectDeletion is called, Then returns destructive manifest with warning', async () => {
+    it('Given flow deletion, When collect, Then returns destructive manifest with warning', async () => {
       // Arrange
       const { changeType, element } = createElement(
         `${DELETION}       ${basePath}/MyFlow.${objectType.suffix}-meta.xml`,

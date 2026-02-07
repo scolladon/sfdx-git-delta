@@ -2,10 +2,14 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { ManifestElement, ManifestTarget } from '../types/handlerResult.js'
-import type { Manifest, Work } from '../types/work.js'
+import type {
+  HandlerResult,
+  ManifestElement,
+  ManifestTarget,
+} from '../types/handlerResult.js'
+import { emptyResult } from '../types/handlerResult.js'
+import type { Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
-import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import InFolderHandler from './inFolderHandler.js'
 
 export default class ReportingFolderHandler extends InFolderHandler {
@@ -16,11 +20,16 @@ export default class ReportingFolderHandler extends InFolderHandler {
     this.sharedFolderMetadata = element.getSharedFolderMetadata()
   }
 
-  protected override async _copyFolderMetaFile() {
-    const folderPath = this.element.typeDirectoryPath
-    const folderName = this.element.pathAfterType[0]
-    const folderFileName = `${folderName}${METAFILE_SUFFIX}`
-    await this._copyWithMetaFile(join(folderPath, folderFileName))
+  public override async collectAddition(): Promise<HandlerResult> {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    if (!type) return emptyResult()
+    return await super.collectAddition()
+  }
+
+  public override async collectDeletion(): Promise<HandlerResult> {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    if (!type) return emptyResult()
+    return await super.collectDeletion()
   }
 
   protected override _collectFolderMetaCopies(
@@ -30,17 +39,6 @@ export default class ReportingFolderHandler extends InFolderHandler {
     const folderName = this.element.pathAfterType[0]
     const folderFileName = `${folderName}${METAFILE_SUFFIX}`
     this._collectCopyWithMetaFile(copies, join(folderPath, folderFileName))
-  }
-
-  protected override _fillPackage(store: Manifest) {
-    const type = this.sharedFolderMetadata.get(this.element.extension)
-    if (!type) return
-
-    fillPackageWithParameter({
-      store,
-      type,
-      member: this._getElementName(),
-    })
   }
 
   protected override _collectManifestElement(

@@ -14,13 +14,6 @@ import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
-const recordTypeType = {
-  directoryName: 'recordTypes',
-  inFolder: false,
-  metaFile: false,
-  suffix: 'recordType',
-  xmlName: 'RecordType',
-}
 const line =
   'A       force-app/main/default/objects/Account/recordTypes/Test.recordType-meta.xml'
 
@@ -37,32 +30,6 @@ beforeEach(() => {
 })
 
 describe('DecomposedHandler', () => {
-  describe.each([
-    'handleAddition',
-    'handleDeletion',
-    'handleModification',
-  ])('in %s case', method => {
-    it('element name should have the parent metadata', async () => {
-      // Arrange
-      const { changeType, element } = createElement(
-        line,
-        recordTypeType,
-        globalMetadata
-      )
-      const sut = new DecomposedHandler(changeType, element, work)
-      const expectSubject =
-        method === 'handleDeletion'
-          ? work.diffs.destructiveChanges
-          : work.diffs.package
-
-      // Act
-      await sut[method as keyof DecomposedHandler]()
-
-      // Assert
-      expect(expectSubject.get('RecordType')).toContain('Account.Test')
-    })
-  })
-
   describe('collect', () => {
     const recordTypeWithParent = {
       directoryName: 'recordTypes',
@@ -72,6 +39,58 @@ describe('DecomposedHandler', () => {
       xmlName: 'RecordType',
       parentXmlName: 'CustomObject',
     }
+
+    it.each([
+      'collectAddition',
+      'collectModification',
+    ])('Given %s, When called, Then element name has the parent metadata', async method => {
+      // Arrange
+      const { changeType, element } = createElement(
+        line,
+        recordTypeWithParent,
+        globalMetadata
+      )
+      const sut = new DecomposedHandler(changeType, element, work)
+
+      // Act
+      const result =
+        await sut[method as 'collectAddition' | 'collectModification']()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'RecordType',
+            member: 'Account.Test',
+          }),
+        ])
+      )
+    })
+
+    it('Given collectDeletion, When called, Then element name has the parent metadata in destructiveChanges', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        'D       force-app/main/default/objects/Account/recordTypes/Test.recordType-meta.xml',
+        recordTypeWithParent,
+        globalMetadata
+      )
+      const sut = new DecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'RecordType',
+            member: 'Account.Test',
+          }),
+        ])
+      )
+    })
 
     it('Given addition, When collectAddition, Then returns manifest and parent meta copies', async () => {
       // Arrange

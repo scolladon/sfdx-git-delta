@@ -13,14 +13,12 @@ import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
 const mockCollect = jest.fn<() => Promise<HandlerResult>>()
-const mockHandle = jest.fn()
 
 jest.mock('../../../../src/service/typeHandlerFactory', () => {
   return {
     default: jest.fn().mockImplementation(() => {
       return {
         getTypeHandler: jest.fn().mockImplementation(async () => ({
-          handle: mockHandle,
           collect: mockCollect,
         })),
       }
@@ -34,14 +32,14 @@ beforeEach(() => {
   work = getWork()
 })
 
-describe('DiffLineInterpreter.processAndCollect', () => {
+describe('DiffLineInterpreter.process', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
   })
 
   describe('Given lines with handlers returning results', () => {
-    it('When processAndCollect is called, Then merges all handler results', async () => {
+    it('When process is called, Then merges all handler results', async () => {
       // Arrange
       mockCollect.mockResolvedValue({
         manifests: [
@@ -63,7 +61,7 @@ describe('DiffLineInterpreter.processAndCollect', () => {
       const sut = new DiffLineInterpreter(work, globalMetadata)
 
       // Act
-      const result = await sut.processAndCollect(['line1', 'line2'])
+      const result = await sut.process(['line1', 'line2'])
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(2)
@@ -74,12 +72,12 @@ describe('DiffLineInterpreter.processAndCollect', () => {
   })
 
   describe('Given empty lines', () => {
-    it('When processAndCollect is called, Then returns empty result', async () => {
+    it('When process is called, Then returns empty result', async () => {
       // Arrange
       const sut = new DiffLineInterpreter(work, globalMetadata)
 
       // Act
-      const result = await sut.processAndCollect([])
+      const result = await sut.process([])
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
@@ -90,7 +88,7 @@ describe('DiffLineInterpreter.processAndCollect', () => {
   })
 
   describe('Given revision overrides', () => {
-    it('When processAndCollect is called with revisions, Then uses override revisions', async () => {
+    it('When process is called with revisions, Then uses override revisions', async () => {
       // Arrange
       mockCollect.mockResolvedValue({
         manifests: [],
@@ -100,7 +98,7 @@ describe('DiffLineInterpreter.processAndCollect', () => {
       const sut = new DiffLineInterpreter(work, globalMetadata)
 
       // Act
-      const result = await sut.processAndCollect(['line1'], {
+      const result = await sut.process(['line1'], {
         from: 'override-from',
         to: 'override-to',
       })
@@ -112,7 +110,7 @@ describe('DiffLineInterpreter.processAndCollect', () => {
   })
 
   describe('Given handlers that return warnings', () => {
-    it('When processAndCollect is called, Then warnings are collected', async () => {
+    it('When process is called, Then warnings are collected', async () => {
       // Arrange
       mockCollect.mockResolvedValue({
         manifests: [],
@@ -122,7 +120,7 @@ describe('DiffLineInterpreter.processAndCollect', () => {
       const sut = new DiffLineInterpreter(work, globalMetadata)
 
       // Act
-      const result = await sut.processAndCollect(['line1'])
+      const result = await sut.process(['line1'])
 
       // Assert
       expect(result.warnings).toHaveLength(1)

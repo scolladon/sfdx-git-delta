@@ -4,17 +4,19 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
+import type { HandlerResult } from '../../../../src/types/handlerResult'
+import { emptyResult } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockHandle = jest.fn()
+const mockCollect = jest.fn<() => Promise<HandlerResult>>()
 jest.mock('../../../../src/service/typeHandlerFactory', () => {
   return {
     default: jest.fn().mockImplementation(() => {
       return {
         getTypeHandler: jest
           .fn()
-          .mockImplementation(async () => ({ handle: mockHandle })),
+          .mockImplementation(async () => ({ collect: mockCollect })),
       }
     }),
   }
@@ -23,6 +25,7 @@ jest.mock('../../../../src/service/typeHandlerFactory', () => {
 let work: Work
 beforeEach(() => {
   jest.clearAllMocks()
+  mockCollect.mockResolvedValue(emptyResult())
   work = getWork()
 })
 
@@ -46,7 +49,7 @@ describe('DiffLineInterpreter', () => {
       await sut.process(lines)
 
       // Assert
-      expect(mockHandle).toHaveBeenCalledTimes(lines.length)
+      expect(mockCollect).toHaveBeenCalledTimes(lines.length)
     })
   })
 
@@ -59,7 +62,7 @@ describe('DiffLineInterpreter', () => {
       await sut.process(lines)
 
       // Assert
-      expect(mockHandle).not.toHaveBeenCalled()
+      expect(mockCollect).not.toHaveBeenCalled()
     })
   })
 })

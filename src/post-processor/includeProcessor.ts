@@ -27,29 +27,7 @@ export default class IncludeProcessor extends BaseProcessor {
 
   @log
   public override async process() {
-    if (!this._shouldProcess()) {
-      return
-    }
-
-    const includeHelper = await buildIncludeHelper(this.config)
-    const includeLines = new Map<GitChange, string[]>()
-    const gitChanges: GitChange[] = [ADDITION, DELETION]
-    const lines: string[] = await this.gitAdapter.getFilesPath(
-      this.config.source
-    )
-    for (const line of lines) {
-      gitChanges.forEach((changeType: GitChange) => {
-        const changedLine = `${changeType}${TAB}${line}`
-        if (!includeHelper.keep(changedLine)) {
-          if (!includeLines.has(changeType)) {
-            includeLines.set(changeType, [])
-          }
-          includeLines.get(changeType)?.push(changedLine)
-        }
-      })
-    }
-
-    await this._processIncludes(includeLines)
+    // No-op: IncludeProcessor is handled via transformAndCollect()
   }
 
   public async transformAndCollect(): Promise<HandlerResult> {
@@ -57,6 +35,11 @@ export default class IncludeProcessor extends BaseProcessor {
       return emptyResult()
     }
 
+    const includeLines = await this._gatherIncludeLines()
+    return await this._collectIncludes(includeLines)
+  }
+
+  protected async _gatherIncludeLines(): Promise<Map<GitChange, string[]>> {
     const includeHelper = await buildIncludeHelper(this.config)
     const includeLines = new Map<GitChange, string[]>()
     const gitChanges: GitChange[] = [ADDITION, DELETION]
@@ -74,8 +57,7 @@ export default class IncludeProcessor extends BaseProcessor {
         }
       })
     }
-
-    return await this._collectIncludes(includeLines)
+    return includeLines
   }
 
   protected async _collectIncludes(
@@ -90,54 +72,21 @@ export default class IncludeProcessor extends BaseProcessor {
     const results: HandlerResult[] = []
 
     if (includeLines.has(ADDITION)) {
-      const result = await lineProcessor.processAndCollect(
-        includeLines.get(ADDITION)!,
-        { from: firstSHA, to: this.config.to }
-      )
+      const result = await lineProcessor.process(includeLines.get(ADDITION)!, {
+        from: firstSHA,
+        to: this.config.to,
+      })
       results.push(result)
     }
 
     if (includeLines.has(DELETION)) {
-      const result = await lineProcessor.processAndCollect(
-        includeLines.get(DELETION)!,
-        { from: this.config.to, to: firstSHA }
-      )
+      const result = await lineProcessor.process(includeLines.get(DELETION)!, {
+        from: this.config.to,
+        to: firstSHA,
+      })
       results.push(result)
     }
 
     return results.length > 0 ? mergeResults(...results) : emptyResult()
-  }
-
-  protected async _processIncludes(includeLines: Map<GitChange, string[]>) {
-    if (includeLines.size === 0) {
-      return
-    }
-
-    const fromBackup = this.work.config.from
-    const firsSHA = await this.gitAdapter.getFirstCommitRef()
-
-    // Compare with the whole history of the repository
-    // so it can get full file content for inFile metadata
-    // while reusing current way to do it on a minimal scope
-    if (includeLines.has(ADDITION)) {
-      this.work.config.from = firsSHA
-      await this._processLines(includeLines.get(ADDITION)!)
-    }
-
-    if (includeLines.has(DELETION)) {
-      // Need to invert the SHA pointer for DELETION
-      // so all the addition are interpreted has deletion by MetadataDiff
-      // for the lines of InFile metadata type
-      this.work.config.from = this.work.config.to
-      this.work.config.to = firsSHA
-      await this._processLines(includeLines.get(DELETION)!)
-      this.work.config.to = this.work.config.from
-    }
-    this.work.config.from = fromBackup
-  }
-
-  protected async _processLines(lines: string[]) {
-    const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
-    await lineProcessor.process(lines)
   }
 }

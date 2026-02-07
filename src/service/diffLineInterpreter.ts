@@ -17,27 +17,7 @@ export default class DiffLineInterpreter {
   ) {}
 
   @log
-  public async process(lines: string[]) {
-    const typeHandlerFactory = new TypeHandlerFactory(this.work, this.metadata)
-    const MAX_PARALLELISM = getConcurrencyThreshold()
-    const processor = queue(
-      async (handler: StandardHandler) => await handler.handle(),
-      MAX_PARALLELISM
-    )
-
-    for (const line of lines) {
-      const handler: StandardHandler =
-        await typeHandlerFactory.getTypeHandler(line)
-      processor.push(handler)
-    }
-
-    if (processor.length() > 0) {
-      await processor.drain()
-    }
-  }
-
-  @log
-  public async processAndCollect(
+  public async process(
     lines: string[],
     revisions?: { from: string; to: string }
   ): Promise<HandlerResult> {

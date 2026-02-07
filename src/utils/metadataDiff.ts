@@ -48,7 +48,7 @@ interface CompareResult {
   fromContent: XmlContent
 }
 
-interface PrunedContent {
+export interface PrunedContent {
   xmlContent: string
   isEmpty: boolean
 }
