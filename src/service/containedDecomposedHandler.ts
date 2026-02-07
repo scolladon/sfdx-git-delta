@@ -5,6 +5,8 @@ import {
   METAFILE_SUFFIX,
   PERMISSIONSET_OBJECTSETTINGS_FOLDER,
 } from '../constant/metadataConstants.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -41,6 +43,28 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     } else {
       await super.handleDeletion()
     }
+  }
+
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
+    if (this._isDecomposedFormat()) {
+      result.copies.push({
+        kind: CopyOperationKind.GitCopy,
+        path: this._getHolderPath(),
+        revision: this.config.to,
+      })
+    }
+    return result
+  }
+
+  public override async collectDeletion(): Promise<HandlerResult> {
+    if (!this._isDecomposedFormat()) {
+      return await super.collectDeletion()
+    }
+    if (await this._hasRelatedContent()) {
+      return await this.collectModification()
+    }
+    return await super.collectDeletion()
   }
 
   protected _setholderFolder() {

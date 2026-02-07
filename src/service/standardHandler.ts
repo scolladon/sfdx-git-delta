@@ -4,6 +4,12 @@ import { join, parse } from 'node:path/posix'
 import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+import {
+  CopyOperationKind,
+  emptyResult,
+  ManifestTarget,
+} from '../types/handlerResult.js'
 import type { Manifest, Manifests, Work } from '../types/work.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { copyFiles } from '../utils/fsHelper.js'
@@ -133,6 +139,81 @@ export default class StandardHandler {
 
   protected _parentFolderIsNotTheType() {
     return this.element.parentFolder !== this.element.type.directoryName
+  }
+
+  public async collect(): Promise<HandlerResult> {
+    if (!this._isProcessable()) {
+      return emptyResult()
+    }
+    try {
+      switch (this.changeType) {
+        case ADDITION:
+          return await this.collectAddition()
+        case DELETION:
+          return await this.collectDeletion()
+        case MODIFICATION:
+          return await this.collectModification()
+        default:
+          return emptyResult()
+      }
+    } catch (error) {
+      const message = `${this.element.basePath}: ${getErrorMessage(error)}`
+      Logger.warn(lazy`${message}`)
+      return {
+        manifests: [],
+        copies: [],
+        warnings: [wrapError(message, error)],
+      }
+    }
+  }
+
+  public async collectAddition(): Promise<HandlerResult> {
+    const result = emptyResult()
+    result.manifests.push(this._collectManifestElement(ManifestTarget.Package))
+    this._collectCopyWithMetaFile(result.copies, this.element.basePath)
+    return result
+  }
+
+  public async collectDeletion(): Promise<HandlerResult> {
+    const result = emptyResult()
+    result.manifests.push(
+      this._collectManifestElement(ManifestTarget.DestructiveChanges)
+    )
+    return result
+  }
+
+  public async collectModification(): Promise<HandlerResult> {
+    return await this.collectAddition()
+  }
+
+  protected _collectManifestElement(target: ManifestTarget) {
+    return {
+      target,
+      type: this.element.type.xmlName!,
+      member: this._getElementName(),
+    }
+  }
+
+  protected _collectCopyWithMetaFile(
+    copies: CopyOperation[],
+    src: string
+  ): void {
+    if (this._delegateFileCopy()) {
+      this._collectCopy(copies, src)
+      if (this._shouldCopyMetaFile(src)) {
+        this._collectCopy(copies, this._getMetaTypeFilePath(src))
+      }
+    }
+  }
+
+  protected _collectCopy(copies: CopyOperation[], path: string): void {
+    if (this._delegateFileCopy()) {
+      copies.push({
+        kind: CopyOperationKind.GitCopy,
+        path,
+        revision: this.config.to,
+      })
+    }
   }
 
   public toString() {

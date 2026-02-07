@@ -3,6 +3,8 @@ import { parse } from 'node:path/posix'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
 import { writeFile } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import MetadataDiff from '../utils/metadataDiff.js'
@@ -17,6 +19,27 @@ export default class ObjectTranslationHandler extends ResourceHandler {
 
     const objectTranslationPath = this._getObjectTranslationPath()
     await this._copyObjectTranslation(objectTranslationPath)
+  }
+
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await StandardHandler.prototype.collectAddition.call(this)
+    const objectTranslationPath = this._getObjectTranslationPath()
+    const { xmlContent } = await this._getObjectTranslationContent(
+      objectTranslationPath
+    )
+    result.copies.push({
+      kind: CopyOperationKind.ComputedContent,
+      path: objectTranslationPath,
+      content: xmlContent,
+    })
+    return result
+  }
+
+  protected async _getObjectTranslationContent(path: string) {
+    const inFileMetadata = this.element.getInFileAttributes()
+    const metadataDiff = new MetadataDiff(this.config, inFileMetadata)
+    const { toContent, fromContent } = await metadataDiff.compare(path)
+    return metadataDiff.prune(toContent, fromContent)
   }
 
   protected async _copyObjectTranslation(path: string) {

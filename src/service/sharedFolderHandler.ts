@@ -2,6 +2,12 @@
 import { join, parse } from 'node:path/posix'
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import type {
+  HandlerResult,
+  ManifestElement,
+  ManifestTarget,
+} from '../types/handlerResult.js'
+import { emptyResult } from '../types/handlerResult.js'
 import type { Manifest, Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
@@ -25,6 +31,29 @@ export default class SharedFolderHandler extends StandardHandler {
       type,
       member: this._getElementName(),
     })
+  }
+
+  protected override _collectManifestElement(
+    target: ManifestTarget
+  ): ManifestElement {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    return {
+      target,
+      type: type ?? this.element.type.xmlName!,
+      member: this._getElementName(),
+    }
+  }
+
+  public override async collectAddition(): Promise<HandlerResult> {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    if (!type) return emptyResult()
+    return await super.collectAddition()
+  }
+
+  public override async collectDeletion(): Promise<HandlerResult> {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    if (!type) return emptyResult()
+    return await super.collectDeletion()
   }
 
   protected override _isProcessable() {
