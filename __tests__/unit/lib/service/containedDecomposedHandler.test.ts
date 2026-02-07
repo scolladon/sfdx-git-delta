@@ -4,6 +4,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
@@ -208,6 +212,70 @@ describe('ContainedDecomposedHandler', () => {
         'Admin'
       )
       expect(copyFiles).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('collect', () => {
+    it('Given decomposed addition, When collect, Then includes holder folder GitCopy', async () => {
+      // Arrange
+      const decomposedLine =
+        'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
+      const { changeType, element } = createElement(
+        decomposedLine,
+        globalMetadata.get('permissionsets')!,
+        globalMetadata
+      )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'PermissionSet',
+            member: 'Admin',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('permissionsets/Admin')
+        )
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given non-decomposed addition, When collect, Then returns manifest and file copy without holder', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        'A       force-app/main/permissionsets/Subject.permissionset-meta.xml',
+        globalMetadata.get('permissionsets')!,
+        globalMetadata
+      )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'PermissionSet',
+            member: 'Subject',
+          }),
+        ])
+      )
+      expect(
+        result.copies.every(c => c.kind === CopyOperationKind.GitCopy)
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
     })
   })
 })

@@ -4,6 +4,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFileHandler from '../../../../src/service/inFileHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { writeFile } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
@@ -459,5 +463,112 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         expect(writeFile).not.toHaveBeenCalled()
       })
     })
+  })
+})
+
+describe('inFileHandler collect', () => {
+  let globalMetadata: MetadataRepository
+  beforeAll(async () => {
+    globalMetadata = await getDefinition({})
+  })
+
+  let work: Work
+  const workflowType = {
+    childXmlNames: [
+      'WorkflowFieldUpdate',
+      'WorkflowFlowAction',
+      'WorkflowKnowledgePublish',
+      'WorkflowTask',
+      'WorkflowAlert',
+      'WorkflowSend',
+      'WorkflowOutboundMessage',
+      'WorkflowRule',
+    ],
+    directoryName: 'workflows',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'workflow',
+    xmlName: 'Workflow',
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    work = getWork()
+    mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
+  })
+
+  it('Given added workflow with child elements, When collect, Then returns Package manifests and ComputedContent copy', async () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: new Map([['WorkflowFlowAction', new Set(['test'])]]),
+        deleted: new Map(),
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'Workflow',
+          member: 'Account',
+        }),
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'WorkflowFlowAction',
+          member: 'Account.test',
+        }),
+      ])
+    )
+    expect(
+      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+    ).toBe(true)
+    expect(result.warnings).toHaveLength(0)
+  })
+
+  it('Given modified workflow with added and deleted elements, When collect, Then returns both Package and DestructiveChanges manifests', async () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      'M       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: new Map([['WorkflowAlert', new Set(['added'])]]),
+        deleted: new Map([['WorkflowAlert', new Set(['removed'])]]),
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'WorkflowAlert',
+          member: 'Account.added',
+        }),
+        expect.objectContaining({
+          target: ManifestTarget.DestructiveChanges,
+          type: 'WorkflowAlert',
+          member: 'Account.removed',
+        }),
+      ])
+    )
+    expect(result.warnings).toHaveLength(0)
   })
 })

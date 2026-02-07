@@ -4,6 +4,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DecomposedHandler from '../../../../src/service/decomposedHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
@@ -56,6 +60,75 @@ describe('DecomposedHandler', () => {
 
       // Assert
       expect(expectSubject.get('RecordType')).toContain('Account.Test')
+    })
+  })
+
+  describe('collect', () => {
+    const recordTypeWithParent = {
+      directoryName: 'recordTypes',
+      inFolder: false,
+      metaFile: false,
+      suffix: 'recordType',
+      xmlName: 'RecordType',
+      parentXmlName: 'CustomObject',
+    }
+
+    it('Given addition, When collectAddition, Then returns manifest and parent meta copies', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        line,
+        recordTypeWithParent,
+        globalMetadata
+      )
+      const sut = new DecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'RecordType',
+            member: 'Account.Test',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('Account.object-meta.xml')
+        )
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given deletion, When collect, Then returns destructiveChanges manifest', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        'D       force-app/main/default/objects/Account/recordTypes/Test.recordType-meta.xml',
+        recordTypeWithParent,
+        globalMetadata
+      )
+      const sut = new DecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'RecordType',
+            member: 'Account.Test',
+          }),
+        ])
+      )
+      expect(result.copies).toHaveLength(0)
+      expect(result.warnings).toHaveLength(0)
     })
   })
 })

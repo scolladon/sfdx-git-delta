@@ -4,6 +4,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, writeFile } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
@@ -135,6 +139,73 @@ describe('ObjectTranslation', () => {
           'Account-es',
         ])
       })
+    })
+  })
+
+  describe('collect', () => {
+    it('Given objectTranslation addition, When collect, Then includes ComputedContent for pruned translation XML', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'CustomObjectTranslation',
+            member: 'Account-es',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.ComputedContent &&
+            c.path.includes('Account-es.objectTranslation')
+        )
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
+      // Arrange
+      const fieldTranslationLine =
+        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+      const { changeType, element } = createElement(
+        fieldTranslationLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'CustomObjectTranslation',
+            member: 'Account-es',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      ).toBe(true)
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.GitCopy)
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
     })
   })
 })

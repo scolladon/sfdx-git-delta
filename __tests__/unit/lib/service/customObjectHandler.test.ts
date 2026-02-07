@@ -5,6 +5,10 @@ import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectHandler from '../../../../src/service/customObjectHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import {
   copyFiles,
@@ -163,6 +167,66 @@ describe('CustomObjectHandler', () => {
         // Assert
         expect(readDirs).not.toHaveBeenCalled()
       })
+    })
+  })
+
+  describe('collect', () => {
+    it('Given object addition with no master detail, When collect, Then returns manifest and file copy', async () => {
+      // Arrange
+      mockedPathExist.mockResolvedValueOnce(false)
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomObjectHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'CustomObject',
+            member: 'Account',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.GitCopy)
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given territory2Model addition, When collect, Then returns manifest without master detail check', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        'A       force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
+        territoryModelType,
+        globalMetadata
+      )
+      const sut = new CustomObjectHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Territory2Model',
+            member: 'EU',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.GitCopy)
+      ).toBe(true)
+      expect(pathExists).not.toHaveBeenCalled()
+      expect(result.warnings).toHaveLength(0)
     })
   })
 })

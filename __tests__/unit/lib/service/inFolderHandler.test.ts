@@ -5,6 +5,10 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFolder from '../../../../src/service/inFolderHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
@@ -130,6 +134,68 @@ describe('InFolderHandler', () => {
       // Assert
       expect(work.diffs.package.size).toBe(0)
       expect(copyFiles).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('collect', () => {
+    it('Given document addition, When collect, Then returns manifest and folder meta copies', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([])
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Document',
+            member: entity,
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes(METAFILE_SUFFIX)
+        )
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given document addition with matching special extension files, When collect, Then includes special extension copies', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([entity, 'not/matching'])
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Document',
+            member: entity,
+          }),
+        ])
+      )
+      expect(result.copies.length).toBeGreaterThan(1)
+      expect(result.warnings).toHaveLength(0)
     })
   })
 })
