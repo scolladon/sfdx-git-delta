@@ -1,4 +1,6 @@
 'use strict'
+import { parse } from 'node:path/posix'
+
 import { GIT_DIFF_TYPE_REGEX } from '../../src/constant/gitConstants'
 import type { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import type { Metadata } from '../../src/types/metadata'
@@ -18,7 +20,7 @@ export const createElement = (
       path,
       metadataDef,
       globalMetadata,
-      path.split('/').length - 1
+      parse(path).name
     )
 
   return { changeType, element }
