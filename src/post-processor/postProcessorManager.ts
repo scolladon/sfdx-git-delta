@@ -48,6 +48,21 @@ export default class PostProcessorManager {
     }
   }
 
+  public async executeRemaining() {
+    for (const postProcessor of this.postProcessors) {
+      if (postProcessor instanceof IncludeProcessor) {
+        continue
+      }
+      try {
+        await postProcessor.process()
+      } catch (error) {
+        const message = `${postProcessor.constructor.name}: ${getErrorMessage(error)}`
+        Logger.warn(lazy`${message}`)
+        this.work.warnings.push(wrapError(message, error))
+      }
+    }
+  }
+
   public async collectAll(): Promise<HandlerResult> {
     const results: HandlerResult[] = []
 

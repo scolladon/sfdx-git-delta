@@ -3,6 +3,8 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
+import type { HandlerResult } from '../../src/types/handlerResult'
+import { emptyResult } from '../../src/types/handlerResult'
 
 const mockValidateConfig = jest.fn()
 jest.mock('../../src/utils/cliHelper', () => {
@@ -32,7 +34,8 @@ jest.mock('../../src/utils/repoGitDiff', () => {
   }
 })
 
-const mockProcess = jest.fn()
+const mockProcessAndCollect =
+  jest.fn<(lines: string[]) => Promise<HandlerResult>>()
 jest.mock('../../src/service/diffLineInterpreter', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual(
@@ -42,10 +45,40 @@ jest.mock('../../src/service/diffLineInterpreter', () => {
     default: jest.fn().mockImplementation(() => {
       return {
         ...actualModule,
-        process: mockProcess,
+        processAndCollect: mockProcessAndCollect,
       }
     }),
   }
+})
+
+const mockCollectAll = jest.fn<() => Promise<HandlerResult>>()
+const mockExecuteRemaining = jest.fn()
+jest.mock('../../src/post-processor/postProcessorManager', () => {
+  return {
+    getPostProcessors: jest.fn().mockImplementation(() => {
+      return {
+        collectAll: mockCollectAll,
+        executeRemaining: mockExecuteRemaining,
+      }
+    }),
+  }
+})
+
+const mockExecute = jest.fn()
+jest.mock('../../src/service/ioExecutor', () => {
+  return {
+    default: jest.fn().mockImplementation(() => {
+      return {
+        execute: mockExecute,
+      }
+    }),
+  }
+})
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockProcessAndCollect.mockResolvedValue(emptyResult())
+  mockCollectAll.mockResolvedValue(emptyResult())
 })
 
 describe('external library inclusion', () => {
@@ -81,7 +114,7 @@ describe('external library inclusion', () => {
       await sgd({} as Config)
 
       // Assert
-      expect(mockProcess).toHaveBeenCalledWith([])
+      expect(mockProcessAndCollect).toHaveBeenCalledWith([])
     })
   })
 
@@ -95,7 +128,7 @@ describe('external library inclusion', () => {
       await sgd({} as Config)
 
       // Assert
-      expect(mockProcess).toHaveBeenCalledWith(['line'])
+      expect(mockProcessAndCollect).toHaveBeenCalledWith(['line'])
     })
   })
 })
