@@ -47,78 +47,81 @@ beforeEach(() => {
 
 describe('Decomposed CustomLabel spec', () => {
   const line = 'force-app/main/default/labels/Test.label-meta.xml'
-  describe('when file is added', () => {
-    let sut: CustomLabelHandler
-    beforeEach(() => {
-      // Arrange
-      const { changeType, element } = createElement(
-        line,
-        labelType,
-        globalMetadata
-      )
-      sut = new CustomLabelHandler(changeType, element, work)
-    })
-    it('should add the element in the package', async () => {
-      // Arrange
-
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(work.diffs.package.get('CustomLabel')).toEqual(new Set(['Test']))
-    })
-  })
-
-  describe('when file is modified', () => {
-    let sut: CustomLabelHandler
-    beforeEach(() => {
-      // Arrange
-      const { changeType, element } = createElement(
-        line,
-        labelType,
-        globalMetadata
-      )
-      sut = new CustomLabelHandler(changeType, element, work)
-    })
-    it('should add the element in the package', async () => {
-      // Arrange
-
-      // Act
-      await sut.handleModification()
-
-      // Assert
-      expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(work.diffs.package.get('CustomLabel')).toEqual(new Set(['Test']))
-    })
-  })
-
-  describe('when file is deleted', () => {
-    let sut: CustomLabelHandler
-    beforeEach(() => {
-      // Arrange
-      const { changeType, element } = createElement(
-        line,
-        labelType,
-        globalMetadata
-      )
-      sut = new CustomLabelHandler(changeType, element, work)
-    })
-    it('should add the element in the destructiveChanges', async () => {
-      // Arrange
-
-      // Act
-      await sut.handleDeletion()
-
-      // Assert
-      expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get('CustomLabel')).toEqual(
-        new Set(['Test'])
-      )
-    })
-  })
 
   describe('collect', () => {
+    it('Given decomposed label addition, When collectAddition, Then returns Package manifest', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        `A       ${line}`,
+        labelType,
+        globalMetadata
+      )
+      const sut = new CustomLabelHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'CustomLabel',
+            member: 'Test',
+          }),
+        ])
+      )
+    })
+
+    it('Given decomposed label modification, When collectModification, Then returns Package manifest', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        `M       ${line}`,
+        labelType,
+        globalMetadata
+      )
+      const sut = new CustomLabelHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectModification()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'CustomLabel',
+            member: 'Test',
+          }),
+        ])
+      )
+    })
+
+    it('Given decomposed label deletion, When collectDeletion, Then returns DestructiveChanges manifest', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        `D       ${line}`,
+        labelType,
+        globalMetadata
+      )
+      const sut = new CustomLabelHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'CustomLabel',
+            member: 'Test',
+          }),
+        ])
+      )
+      expect(result.copies).toHaveLength(0)
+    })
+
     it('Given decomposed label addition, When collect, Then returns Package manifest with GitCopy', async () => {
       // Arrange
       const decomposedLine =

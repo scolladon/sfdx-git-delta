@@ -4,6 +4,10 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
+import {
+  emptyResult,
+  type HandlerResult,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import {
   buildIncludeHelper,
@@ -11,7 +15,7 @@ import {
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockProcess = jest.fn()
+const mockProcess = jest.fn<() => Promise<HandlerResult>>()
 jest.mock('../../../../src/service/diffLineInterpreter', () => {
   return {
     default: jest.fn().mockImplementation(() => {
@@ -51,6 +55,7 @@ describe('IncludeProcessor', () => {
   beforeEach(() => {
     work = getWork()
     jest.clearAllMocks()
+    mockProcess.mockResolvedValue(emptyResult())
   })
 
   describe('when no include is configured', () => {
@@ -59,9 +64,10 @@ describe('IncludeProcessor', () => {
       const sut = new IncludeProcessor(work, metadata)
 
       // Act
-      await sut.process()
+      const result = await sut.transformAndCollect()
 
       // Assert
+      expect(result.manifests).toEqual([])
       expect(mockedBuildIncludeHelper).not.toHaveBeenCalled()
     })
   })
@@ -81,7 +87,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()
@@ -99,7 +105,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()
@@ -120,7 +126,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()
@@ -141,7 +147,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()
@@ -162,7 +168,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()
@@ -185,7 +191,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()
@@ -203,7 +209,7 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.process()
+        await sut.transformAndCollect()
 
         // Assert
         expect(mockedBuildIncludeHelper).toHaveBeenCalled()

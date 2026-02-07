@@ -9,12 +9,15 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import LwcHandler from '../../../../src/service/lwcHandler'
+import { ManifestTarget } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles } from '../../../../src/utils/fsHelper'
+import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
+
+const mockedReadDirs = jest.mocked(readDirs)
 
 const objectType = {
   directoryName: 'lwc',
@@ -30,6 +33,7 @@ let work: Work
 beforeEach(() => {
   jest.clearAllMocks()
   work = getWork()
+  mockedReadDirs.mockResolvedValue([])
 })
 
 describe('lwcHandler', () => {
@@ -51,11 +55,11 @@ describe('lwcHandler', () => {
       const sut = new LwcHandler(changeType, el, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.diffs.package.size).toBe(0)
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
     })
   })
 
@@ -73,11 +77,18 @@ describe('lwcHandler', () => {
       const sut = new LwcHandler(ct, el, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.diffs.package.get(xmlName)).toEqual(new Set([element]))
-      expect(copyFiles).toHaveBeenCalled()
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: xmlName,
+            member: element,
+          }),
+        ])
+      )
     })
 
     it('handles the line for "D" type change', async () => {
@@ -90,13 +101,19 @@ describe('lwcHandler', () => {
       const sut = new LwcHandler(changeType, el, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.diffs.destructiveChanges.get(xmlName)).toEqual(
-        new Set([element])
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: xmlName,
+            member: element,
+          }),
+        ])
       )
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.copies).toEqual([])
     })
   })
 })

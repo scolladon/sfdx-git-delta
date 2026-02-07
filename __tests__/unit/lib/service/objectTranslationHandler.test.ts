@@ -9,7 +9,6 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, writeFile } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -33,7 +32,6 @@ const objectType = {
   xmlName: 'CustomObjectTranslation',
   pruneOnly: true,
 }
-const xmlName = 'CustomObjectTranslation'
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
@@ -58,88 +56,6 @@ describe('ObjectTranslation', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
-  })
-
-  describe('when called with generateDelta false', () => {
-    it('should not copy files', async () => {
-      // Arrange
-      work.config.generateDelta = false
-      const { changeType, element } = createElement(
-        line,
-        objectType,
-        globalMetadata
-      )
-      const sut = new ObjectTranslation(changeType, element, work)
-
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(writeFile).not.toHaveBeenCalled()
-      expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-        'Account-es',
-      ])
-    })
-  })
-
-  describe('when called with generateDelta true', () => {
-    it('should copy object translations files', async () => {
-      // Arrange
-      const { changeType, element } = createElement(
-        line,
-        objectType,
-        globalMetadata
-      )
-      const sut = new ObjectTranslation(changeType, element, work)
-
-      // Act
-      await sut.handleAddition()
-
-      // Assert
-      expect(copyFiles).not.toHaveBeenCalled()
-      expect(writeFile).toHaveBeenCalledTimes(1)
-      expect(writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('Account-es.objectTranslation'),
-        xmlContent,
-        work.config
-      )
-      expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-        'Account-es',
-      ])
-    })
-
-    describe('when called with fieldTranslation', () => {
-      const fieldTranslationline =
-        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
-      it('should copy object translations files and fieldTranslation', async () => {
-        // Arrange
-        const { changeType, element } = createElement(
-          fieldTranslationline,
-          objectType,
-          globalMetadata
-        )
-        const sut = new ObjectTranslation(changeType, element, work)
-
-        // Act
-        await sut.handleAddition()
-
-        // Assert
-        expect(copyFiles).toHaveBeenCalledTimes(2)
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          expect.stringContaining('BillingFloor__c.fieldTranslation')
-        )
-        expect(writeFile).toHaveBeenCalledTimes(1)
-        expect(writeFile).toHaveBeenCalledWith(
-          expect.stringContaining('Account-es.objectTranslation'),
-          xmlContent,
-          work.config
-        )
-        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-          'Account-es',
-        ])
-      })
-    })
   })
 
   describe('collect', () => {

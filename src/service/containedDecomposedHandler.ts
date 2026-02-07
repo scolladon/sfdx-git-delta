@@ -9,7 +9,6 @@ import type { HandlerResult } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 
@@ -19,30 +18,6 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   constructor(changeType: string, element: MetadataElement, work: Work) {
     super(changeType, element, work)
     this._setholderFolder()
-  }
-
-  @log
-  public override async handleAddition() {
-    await super.handleAddition()
-    if (!this.config.generateDelta) return
-
-    if (this._isDecomposedFormat()) {
-      await this._copyDecomposedFiles()
-    }
-  }
-
-  @log
-  public override async handleDeletion() {
-    if (!this._isDecomposedFormat()) {
-      await super.handleDeletion()
-      return
-    }
-
-    if (await this._hasRelatedContent()) {
-      await this.handleModification()
-    } else {
-      await super.handleDeletion()
-    }
   }
 
   public override async collectAddition(): Promise<HandlerResult> {
@@ -100,10 +75,6 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   protected async _hasRelatedContent(): Promise<boolean> {
     const files = await readDirs(this._getHolderPath(), this.config)
     return files.length > 0
-  }
-
-  protected async _copyDecomposedFiles() {
-    await this._copy(this._getHolderPath())
   }
 
   protected override _getElementName() {

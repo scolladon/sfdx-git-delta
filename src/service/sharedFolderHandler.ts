@@ -8,9 +8,8 @@ import type {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
-import type { Manifest, Work } from '../types/work.js'
+import type { Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
-import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 import StandardHandler from './standardHandler.js'
 
@@ -20,17 +19,6 @@ export default class SharedFolderHandler extends StandardHandler {
   constructor(changeType: string, element: MetadataElement, work: Work) {
     super(changeType, element, work)
     this.sharedFolderMetadata = element.getSharedFolderMetadata()
-  }
-
-  protected override _fillPackage(store: Manifest) {
-    const type = this.sharedFolderMetadata.get(this.element.extension)
-    if (!type) return
-
-    fillPackageWithParameter({
-      store,
-      type,
-      member: this._getElementName(),
-    })
   }
 
   protected override _collectManifestElement(

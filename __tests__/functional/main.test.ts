@@ -34,8 +34,7 @@ jest.mock('../../src/utils/repoGitDiff', () => {
   }
 })
 
-const mockProcessAndCollect =
-  jest.fn<(lines: string[]) => Promise<HandlerResult>>()
+const mockProcess = jest.fn<(lines: string[]) => Promise<HandlerResult>>()
 jest.mock('../../src/service/diffLineInterpreter', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const actualModule: any = jest.requireActual(
@@ -45,7 +44,7 @@ jest.mock('../../src/service/diffLineInterpreter', () => {
     default: jest.fn().mockImplementation(() => {
       return {
         ...actualModule,
-        processAndCollect: mockProcessAndCollect,
+        process: mockProcess,
       }
     }),
   }
@@ -77,7 +76,7 @@ jest.mock('../../src/service/ioExecutor', () => {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  mockProcessAndCollect.mockResolvedValue(emptyResult())
+  mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
 })
 
@@ -114,7 +113,7 @@ describe('external library inclusion', () => {
       await sgd({} as Config)
 
       // Assert
-      expect(mockProcessAndCollect).toHaveBeenCalledWith([])
+      expect(mockProcess).toHaveBeenCalledWith([])
     })
   })
 
@@ -128,7 +127,7 @@ describe('external library inclusion', () => {
       await sgd({} as Config)
 
       // Assert
-      expect(mockProcessAndCollect).toHaveBeenCalledWith(['line'])
+      expect(mockProcess).toHaveBeenCalledWith(['line'])
     })
   })
 })

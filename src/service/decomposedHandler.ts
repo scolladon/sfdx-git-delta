@@ -3,17 +3,9 @@ import { dirname, join } from 'node:path/posix'
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
-import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class DecomposedHandler extends StandardHandler {
-  @log
-  public override async handleAddition() {
-    await super.handleAddition()
-    if (!this.config.generateDelta) return
-    await this._copyParent()
-  }
-
   public override async collectAddition(): Promise<HandlerResult> {
     const result = await super.collectAddition()
     this._collectParentCopies(result.copies)
@@ -23,30 +15,17 @@ export default class DecomposedHandler extends StandardHandler {
   protected _collectParentCopies(
     copies: import('../types/handlerResult.js').CopyOperation[]
   ): void {
+    const parentType = this.element.getParentType()
+    if (!parentType?.suffix) return
+
     const parentDirPath = dirname(this.element.typeDirectoryPath)
     const parentTypeName = this.getParentName()
-    const parentType = this.element.getParentType()
-    const parentTypeSuffix = parentType!.suffix
+    const parentTypeSuffix = parentType.suffix
     const parentPath = join(
       parentDirPath,
       `${parentTypeName}.${parentTypeSuffix}${METAFILE_SUFFIX}`
     )
     this._collectCopyWithMetaFile(copies, parentPath)
-  }
-
-  protected async _copyParent() {
-    const parentDirPath = dirname(this.element.typeDirectoryPath)
-    const parentTypeName = this.getParentName()
-
-    const parentType = this.element.getParentType()
-    const parentTypeSuffix = parentType!.suffix
-
-    const parentPath = join(
-      parentDirPath,
-      `${parentTypeName}.${parentTypeSuffix}${METAFILE_SUFFIX}`
-    )
-
-    await this._copyWithMetaFile(parentPath)
   }
 
   protected override _getElementName() {

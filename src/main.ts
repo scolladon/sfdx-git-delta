@@ -31,7 +31,7 @@ export default async (config: Config): Promise<Work> => {
   const lineProcessor = new DiffLineInterpreter(work, metadata)
   const postProcessors = getPostProcessors(work, metadata)
 
-  const handlerResult = await lineProcessor.processAndCollect(lines)
+  const handlerResult = await lineProcessor.process(lines)
   const postResult = await postProcessors.collectAll()
   const combinedResult = mergeResults(handlerResult, postResult)
 
