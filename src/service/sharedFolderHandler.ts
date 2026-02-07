@@ -27,7 +27,7 @@ export default class SharedFolderHandler extends StandardHandler {
     const type = this.sharedFolderMetadata.get(this.element.extension)
     return {
       target,
-      type: type ?? this.element.type.xmlName!,
+      type: type!,
       member: this._getElementName(),
     }
   }

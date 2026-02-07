@@ -1,6 +1,6 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
-
+import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectHandler from '../../../../src/service/customObjectHandler'
@@ -9,15 +9,23 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { pathExists } from '../../../../src/utils/fsHelper'
+import {
+  pathExists,
+  readDirs,
+  readPathFromGit,
+} from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedPathExist = jest.mocked(pathExists)
+const mockedReadDirs = jest.mocked(readDirs)
+const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 
 mockedPathExist.mockResolvedValue(true)
+mockedReadDirs.mockResolvedValue([])
+mockedReadPathFromGit.mockResolvedValue('')
 
 const territoryModelType = {
   childXmlNames: ['Territory2Rule', 'Territory2'],
@@ -118,6 +126,55 @@ describe('CustomObjectHandler', () => {
         result.copies.some(c => c.kind === CopyOperationKind.GitCopy)
       ).toBe(true)
       expect(pathExists).not.toHaveBeenCalled()
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given object addition with master detail fields, When collect, Then returns copies for master detail fields', async () => {
+      // Arrange
+      const masterDetailFieldPath =
+        'force-app/main/default/objects/Account/fields/ParentId__c.field-meta.xml'
+      const nonMasterDetailFieldPath =
+        'force-app/main/default/objects/Account/fields/Description__c.field-meta.xml'
+      mockedReadDirs.mockResolvedValueOnce([
+        masterDetailFieldPath,
+        nonMasterDetailFieldPath,
+      ])
+      mockedReadPathFromGit
+        .mockResolvedValueOnce(
+          `<?xml version="1.0"?><CustomField><fullName>ParentId__c</fullName>${MASTER_DETAIL_TAG}</CustomField>`
+        )
+        .mockResolvedValueOnce(
+          `<?xml version="1.0"?><CustomField><fullName>Description__c</fullName><type>Text</type></CustomField>`
+        )
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomObjectHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(mockedReadDirs).toHaveBeenCalledWith(
+        'force-app/main/default/objects/Account/fields',
+        expect.anything()
+      )
+      expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
+      const gitCopies = result.copies.filter(
+        c => c.kind === CopyOperationKind.GitCopy
+      )
+      expect(gitCopies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: masterDetailFieldPath }),
+        ])
+      )
+      expect(gitCopies).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: nonMasterDetailFieldPath }),
+        ])
+      )
       expect(result.warnings).toHaveLength(0)
     })
   })

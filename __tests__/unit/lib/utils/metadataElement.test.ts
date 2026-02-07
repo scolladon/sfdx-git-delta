@@ -298,6 +298,57 @@ describe('MetadataElement', () => {
       // Assert
       expect(element.componentName).toBe('file')
     })
+
+    it('Given path without directoryName and anchorIndex >= 2, When accessing parentName, Then returns parent before anchor directory', () => {
+      // Arrange
+      const path = 'force-app/main/any/path/MyAsset/images/logo.png'
+
+      // Act
+      const element = MetadataElement.fromScan(
+        path,
+        staticResourceType,
+        globalMetadata,
+        'MyAsset'
+      )
+
+      // Assert
+      // anchorIndex = 4 (MyAsset), parts[4-2] = parts[2] = 'any'
+      expect(element.parentName).toBe('any')
+    })
+
+    it('Given short path without directoryName and anchorIndex < 2, When accessing parentName, Then returns empty string', () => {
+      // Arrange
+      const path = 'a/MyComponent.js'
+
+      // Act
+      const element = MetadataElement.fromScan(
+        path,
+        lwcType,
+        globalMetadata,
+        'MyComponent'
+      )
+
+      // Assert
+      // anchorIndex = 1 (MyComponent.js starts with 'MyComponent.'), which is < 2
+      expect(element.parentName).toBe('')
+    })
+
+    it('Given path without directoryName, When accessing typeDirectoryPath, Then returns path up to anchor', () => {
+      // Arrange
+      const path = 'force-app/main/any/path/MyAsset/images/logo.png'
+
+      // Act
+      const element = MetadataElement.fromScan(
+        path,
+        staticResourceType,
+        globalMetadata,
+        'MyAsset'
+      )
+
+      // Assert
+      // anchorIndex = 4 (MyAsset), slice(0, 4) = ['force-app', 'main', 'any', 'path']
+      expect(element.typeDirectoryPath).toBe('force-app/main/any/path')
+    })
   })
 
   describe('type', () => {

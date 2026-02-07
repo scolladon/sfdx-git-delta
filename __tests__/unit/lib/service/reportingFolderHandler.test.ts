@@ -217,4 +217,51 @@ describe('InNestedFolderHandler', () => {
       expect(result.manifests).toEqual([])
     })
   })
+
+  describe('collectDeletion', () => {
+    it('should return destructive manifest entry when extension matches', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const deletionPath = `D       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`
+      const { changeType, element } = createElement(
+        deletionPath,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ReportingFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'Report',
+            member: entity,
+          }),
+        ])
+      )
+    })
+
+    it('should return empty result when extension has no matching type', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const unknownPath = `D       force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
+      const { changeType, element } = createElement(
+        unknownPath,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ReportingFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+    })
+  })
 })

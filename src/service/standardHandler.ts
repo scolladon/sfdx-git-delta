@@ -96,13 +96,11 @@ export default class StandardHandler {
   }
 
   protected _collectCopy(copies: CopyOperation[], path: string): void {
-    if (this._delegateFileCopy()) {
-      copies.push({
-        kind: CopyOperationKind.GitCopy,
-        path,
-        revision: this.config.to,
-      })
-    }
+    copies.push({
+      kind: CopyOperationKind.GitCopy,
+      path,
+      revision: this.config.to,
+    })
   }
 
   protected _getMetaTypeFilePath(path: string) {
