@@ -7,7 +7,7 @@ import IOExecutor from './service/ioExecutor.js'
 import type { Config } from './types/config.js'
 import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
-import CLIHelper from './utils/cliHelper.js'
+import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import { aggregateManifests } from './utils/manifestAggregator.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
@@ -21,8 +21,8 @@ export default async (config: Config): Promise<Work> => {
     diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   }
-  const cliHelper = new CLIHelper(work)
-  await cliHelper.validateConfig()
+  const configValidator = new ConfigValidator(work)
+  await configValidator.validateConfig()
 
   const metadata: MetadataRepository = await getDefinition(config)
   const repoGitDiffHelper = new RepoGitDiff(config, metadata)

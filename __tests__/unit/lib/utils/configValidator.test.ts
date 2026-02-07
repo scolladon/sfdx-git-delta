@@ -1,6 +1,6 @@
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Work } from '../../../../src/types/work'
-import CLIHelper from '../../../../src/utils/cliHelper'
+import ConfigValidator from '../../../../src/utils/configValidator'
 import {
   dirExists,
   fileExists,
@@ -60,7 +60,7 @@ describe(`test if the application`, () => {
 
   it('resume nicely when everything is well configured', async () => {
     // Arrange
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -70,7 +70,7 @@ describe(`test if the application`, () => {
     })
 
     // Act
-    await cliHelper.validateConfig()
+    await configValidator.validateConfig()
 
     // Assert
     expect(1).toBe(1)
@@ -78,7 +78,7 @@ describe(`test if the application`, () => {
 
   it('add errors when repo is not a git repository', async () => {
     mockedPathExists.mockResolvedValue(false as never)
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -86,12 +86,12 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
+    await expect(configValidator.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when repo is not git repository', async () => {
     mockedPathExists.mockResolvedValue(false as never)
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -99,13 +99,13 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
+    await expect(configValidator.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" is not a git expression', async () => {
     mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -114,13 +114,13 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
+    await expect(configValidator.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-f" is not a git expression', async () => {
     mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -129,7 +129,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
+    await expect(configValidator.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" is not a valid sha pointer', async () => {
@@ -137,7 +137,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -146,7 +146,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
+    await expect(configValidator.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-f" is not a valid sha pointer', async () => {
@@ -155,7 +155,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -164,7 +164,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(cliHelper.validateConfig()).rejects.toThrow()
+    await expect(configValidator.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" and "-f" are not a valid sha pointer', async () => {
@@ -176,7 +176,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -187,7 +187,7 @@ describe(`test if the application`, () => {
     })
 
     try {
-      await cliHelper.validateConfig()
+      await configValidator.validateConfig()
     } catch (err) {
       expect(err).toBeDefined()
     }
@@ -197,7 +197,7 @@ describe(`test if the application`, () => {
     // Arrange
     const notHeadSHA = 'test'
 
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -207,7 +207,7 @@ describe(`test if the application`, () => {
     })
 
     // Act
-    await cliHelper.validateConfig()
+    await configValidator.validateConfig()
 
     // Assert
     expect(1).toBe(1)
@@ -215,26 +215,26 @@ describe(`test if the application`, () => {
 
   it('do not throw errors when repo contains submodule git file', async () => {
     expect.assertions(1)
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
         repo: 'submodule/',
       },
     })
-    await expect(cliHelper.validateConfig()).resolves.not.toBe({})
+    await expect(configValidator.validateConfig()).resolves.not.toBe({})
   })
 
   it('do not throw errors when repo submodule git folder', async () => {
     expect.assertions(1)
-    const cliHelper = new CLIHelper({
+    const configValidator = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
         repo: 'submodule/',
       },
     })
-    await expect(cliHelper.validateConfig()).resolves.not.toBe({})
+    await expect(configValidator.validateConfig()).resolves.not.toBe({})
   })
 
   describe('apiVersion parameter handling', () => {
@@ -251,10 +251,10 @@ describe(`test if the application`, () => {
       ])('config.apiVersion (%s) equals the parameter', async version => {
         // Arrange
         work.config.apiVersion = version
-        const cliHelper = new CLIHelper(work)
+        const configValidator = new ConfigValidator(work)
 
         // Act
-        await cliHelper['_handleDefault']()
+        await configValidator['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(version)
@@ -268,10 +268,10 @@ describe(`test if the application`, () => {
         // Arrange
         mockedFileExists.mockImplementation(() => Promise.resolve(false))
         work.config.apiVersion = version
-        const cliHelper = new CLIHelper(work)
+        const configValidator = new ConfigValidator(work)
 
         // Act
-        await cliHelper['_handleDefault']()
+        await configValidator['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(version)
@@ -294,10 +294,10 @@ describe(`test if the application`, () => {
             )
 
             work.config.apiVersion = undefined
-            const cliHelper = new CLIHelper(work)
+            const configValidator = new ConfigValidator(work)
 
             // Act
-            await cliHelper['_handleDefault']()
+            await configValidator['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(+version)
@@ -319,10 +319,10 @@ describe(`test if the application`, () => {
               .mockResolvedValue('58')
 
             work.config.apiVersion = undefined
-            const cliHelper = new CLIHelper(work)
+            const configValidator = new ConfigValidator(work)
 
             // Act
-            await cliHelper['_handleDefault']()
+            await configValidator['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -344,10 +344,10 @@ describe(`test if the application`, () => {
               .mockResolvedValue('58')
 
             work.config.apiVersion = undefined
-            const cliHelper = new CLIHelper(work)
+            const configValidator = new ConfigValidator(work)
 
             // Act
-            await cliHelper['_handleDefault']()
+            await configValidator['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(parseInt(version.toString()))
@@ -363,10 +363,10 @@ describe(`test if the application`, () => {
             .mockResolvedValue('58')
 
           work.config.apiVersion = undefined
-          const cliHelper = new CLIHelper(work)
+          const configValidator = new ConfigValidator(work)
 
           // Act
-          await cliHelper['_handleDefault']()
+          await configValidator['_handleDefault']()
 
           // Assert
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -382,10 +382,10 @@ describe(`test if the application`, () => {
           .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
           .mockResolvedValue('58')
         work.config.apiVersion = undefined
-        const cliHelper = new CLIHelper(work)
+        const configValidator = new ConfigValidator(work)
 
         // Act
-        await cliHelper['_handleDefault']()
+        await configValidator['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
