@@ -7,16 +7,13 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, pathExists, readDirs } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedReadDirs = jest.mocked(readDirs)
 const mockedPathExists = jest.mocked(pathExists)
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 const lwcType = {
   directoryName: 'lwc',
@@ -40,9 +37,9 @@ const experienceBundleType = {
   suffix: 'site',
   xmlName: 'ExperienceBundle',
 }
-const element = 'myResources'
+const elementName = 'myResources'
 const basePath = 'force-app/main/default/staticresources'
-const entityPath = `${basePath}/${element}.js`
+const entityPath = `${basePath}/${elementName}.js`
 const xmlName = 'StaticResource'
 const line = `A       ${entityPath}`
 const type = 'resource'
@@ -65,19 +62,40 @@ describe('InResourceHandler', () => {
       })
       it('should not copy matching files', async () => {
         // Arrange
-        const sut = new InResourceHandler(
+        const { changeType, element } = createElement(
           line,
           staticResourceType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InResourceHandler(changeType, element, work)
 
         // Act
         await sut.handle()
 
         // Assert
-        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([element])
+        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
+          elementName,
+        ])
+        expect(copyFiles).not.toHaveBeenCalled()
+      })
+
+      it('Given file extension matches metadata suffix, When entity is added, Then uses last path segment for element name', async () => {
+        // Arrange
+        const resourceLine = `A       ${basePath}/${elementName}.${type}`
+        const { changeType, element } = createElement(
+          resourceLine,
+          staticResourceType,
+          globalMetadata
+        )
+        const sut = new InResourceHandler(changeType, element, work)
+
+        // Act
+        await sut.handle()
+
+        // Assert
+        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
+          elementName,
+        ])
         expect(copyFiles).not.toHaveBeenCalled()
       })
 
@@ -92,13 +110,12 @@ describe('InResourceHandler', () => {
         }
         const nestedPath = `force-app/main/default/lwc/sub_folder1/lwc/${lwcType.element}/${lwcType.element}.js`
         const line = `A       ${nestedPath}`
-        const sut = new InResourceHandler(
+        const { changeType, element } = createElement(
           line,
           lwcType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InResourceHandler(changeType, element, work)
 
         // Act
         await sut.handle()
@@ -130,13 +147,12 @@ describe('InResourceHandler', () => {
             `${base}${lwcType.directoryName}/myComponentForExperienceCloud/`,
             `${base}${lwcType.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.js`,
           ])
-          const sut = new InResourceHandler(
+          const { changeType, element } = createElement(
             line,
             lwcType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new InResourceHandler(changeType, element, work)
 
           // Act
           await sut.handle()
@@ -169,13 +185,12 @@ describe('InResourceHandler', () => {
             `${base}${staticResourceType.directoryName}/${entity}.resource-meta.xml`,
             `${base}${staticResourceType.directoryName}/other.resource-meta.xml`,
           ])
-          const sut = new InResourceHandler(
+          const { changeType, element } = createElement(
             line,
             staticResourceType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new InResourceHandler(changeType, element, work)
 
           // Act
           await sut.handle()
@@ -203,13 +218,12 @@ describe('InResourceHandler', () => {
           mockedReadDirs.mockResolvedValue([
             `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
           ])
-          const sut = new InResourceHandler(
+          const { changeType, element } = createElement(
             line,
             staticResourceType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new InResourceHandler(changeType, element, work)
 
           // Act
           await sut.handle()
@@ -239,13 +253,12 @@ describe('InResourceHandler', () => {
             `${base}${experienceBundleType.directoryName}/${entity}/config/myexperiencebundle.json`,
             `${base}${experienceBundleType.directoryName}/other_experience_bundle.resource-meta.xml`,
           ])
-          const sut = new InResourceHandler(
+          const { changeType, element } = createElement(
             line,
             experienceBundleType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new InResourceHandler(changeType, element, work)
 
           // Act
           await sut.handle()
@@ -268,13 +281,12 @@ describe('InResourceHandler', () => {
       describe('when no matching resource exist', () => {
         it('should try copy resource files', async () => {
           // Arrange
-          const sut = new InResourceHandler(
+          const { changeType, element } = createElement(
             line,
             staticResourceType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new InResourceHandler(changeType, element, work)
           mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
@@ -282,13 +294,13 @@ describe('InResourceHandler', () => {
 
           // Assert
           expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-            element,
+            elementName,
           ])
           expect(copyFiles).toHaveBeenCalledTimes(2)
           expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
           expect(copyFiles).toHaveBeenCalledWith(
             work.config,
-            `${basePath}/${element}.${type}${METAFILE_SUFFIX}`
+            `${basePath}.${type}${METAFILE_SUFFIX}`
           )
         })
       })
@@ -305,19 +317,20 @@ describe('InResourceHandler', () => {
       })
       it('should treat it as a modification', async () => {
         // Arrange
-        const sut = new InResourceHandler(
+        const { changeType, element } = createElement(
           `D       ${entityPath}`,
           staticResourceType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InResourceHandler(changeType, element, work)
 
         // Act
         await sut.handle()
 
         // Assert
-        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([element])
+        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
+          elementName,
+        ])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
           work.config
@@ -330,13 +343,12 @@ describe('InResourceHandler', () => {
       })
       it('should treat it as a deletion', async () => {
         // Arrange
-        const sut = new InResourceHandler(
+        const { changeType, element } = createElement(
           `D       ${entityPath}`,
           staticResourceType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InResourceHandler(changeType, element, work)
 
         // Act
         await sut.handle()
@@ -344,10 +356,10 @@ describe('InResourceHandler', () => {
         // Assert
         expect(work.diffs.package.has(xmlName)).toBe(false)
         expect(Array.from(work.diffs.destructiveChanges.get(xmlName)!)).toEqual(
-          [element]
+          [elementName]
         )
         expect(pathExists).toHaveBeenCalledWith(
-          expect.stringContaining(element),
+          expect.stringContaining('staticresources'),
           work.config
         )
       })

@@ -7,14 +7,11 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 const entity = 'folder/test'
 const extension = 'report'
@@ -82,13 +79,12 @@ describe('InNestedFolderHandler', () => {
     })
     it(`should not copy meta files nor copy special extension when adding ${expectedType}`, async () => {
       // Arrange
-      const sut = new ReportingFolderHandler(
+      const { changeType, element } = createElement(
         changePath as string,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new ReportingFolderHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -111,13 +107,12 @@ describe('InNestedFolderHandler', () => {
     describe(`when readDirs does not return files`, () => {
       it(`should not copy special extension and copy meta files in addition ${expectedType}`, async () => {
         // Arrange
-        const sut = new ReportingFolderHandler(
+        const { changeType, element } = createElement(
           changePath as string,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new ReportingFolderHandler(changeType, element, work)
         mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
         // Act
@@ -137,13 +132,12 @@ describe('InNestedFolderHandler', () => {
     describe('when readDirs returns files', () => {
       it('should copy special extension', async () => {
         // Arrange
-        const sut = new ReportingFolderHandler(
+        const { changeType, element } = createElement(
           changePath as string,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new ReportingFolderHandler(changeType, element, work)
         mockedReadDirs.mockImplementationOnce(() =>
           Promise.resolve([entity, 'not/matching'])
         )
@@ -164,13 +158,12 @@ describe('InNestedFolderHandler', () => {
       `force-app/main/default/${objectType.directoryName}/test.otherExtension`,
     ])('does not handle the line', async entityPath => {
       // Arrange
-      const sut = new ReportingFolderHandler(
+      const { changeType, element } = createElement(
         `A       ${entityPath}`,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new ReportingFolderHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -184,17 +177,14 @@ describe('InNestedFolderHandler', () => {
   describe('when extension has no matching type in sharedFolderMetadata', () => {
     it('should not add to package but still process the line', async () => {
       // Arrange
-      // Using nested path makes _parentFolderIsNotTheType() return true
-      // so the line is processable, but unknown extension has no type mapping
       const nestedPath = `force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
       work.config.generateDelta = false
-      const sut = new ReportingFolderHandler(
+      const { changeType, element } = createElement(
         `A       ${nestedPath}`,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new ReportingFolderHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()

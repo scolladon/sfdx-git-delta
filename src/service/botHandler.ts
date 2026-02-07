@@ -11,11 +11,8 @@ const BOT_EXTENSION = 'bot'
 
 export default class BotHandler extends ShareFolderHandler {
   protected override _getElementName() {
-    const parsedPath = this._getParsedPath()
-    const elementName = new Set([
-      parsedPath.dir.split(PATH_SEP).pop(),
-      parsedPath.name,
-    ])
+    const fileName = parse(this.element.basePath).name
+    const elementName = new Set([this.element.pathAfterType[0], fileName])
     return [...elementName].join(DOT)
   }
 
@@ -26,7 +23,7 @@ export default class BotHandler extends ShareFolderHandler {
   }
 
   protected async _addParentBot() {
-    const botName = this.parentFolder.split(PATH_SEP).pop() as string
+    const botName = this.element.parentFolder.split(PATH_SEP).pop() as string
     fillPackageWithParameter({
       store: this.diffs.package,
       type: BOT_TYPE,
@@ -36,7 +33,7 @@ export default class BotHandler extends ShareFolderHandler {
     if (!this.config.generateDelta) return
 
     const botPath = `${
-      parse(this.line).dir
+      parse(this.element.basePath).dir
     }${PATH_SEP}${botName}.${BOT_EXTENSION}`
 
     await this._copyWithMetaFile(botPath)

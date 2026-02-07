@@ -2,38 +2,28 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import { getSharedFolderMetadata } from '../metadata/metadataManager.js'
-import { Metadata } from '../types/metadata.js'
 import type { Manifest, Work } from '../types/work.js'
-import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
+import type { MetadataElement } from '../utils/metadataElement.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import InFolderHandler from './inFolderHandler.js'
 
 export default class ReportingFolderHandler extends InFolderHandler {
-  /* jscpd:ignore-start */
   protected readonly sharedFolderMetadata: Map<string, string>
 
-  constructor(
-    line: string,
-    metadataDef: Metadata,
-    work: Work,
-    metadata: MetadataRepository,
-    resolver: MetadataBoundaryResolver
-  ) {
-    super(line, metadataDef, work, metadata, resolver)
-    this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
+  constructor(changeType: string, element: MetadataElement, work: Work) {
+    super(changeType, element, work)
+    this.sharedFolderMetadata = element.getSharedFolderMetadata()
   }
-  /* jscpd:ignore-end */
 
   protected override async _copyFolderMetaFile() {
-    const [, folderPath, folderName] = this._parseLine()!
+    const folderPath = this.element.typeDirectoryPath
+    const folderName = this.element.pathAfterType[0]
     const folderFileName = `${folderName}${METAFILE_SUFFIX}`
     await this._copyWithMetaFile(join(folderPath, folderFileName))
   }
 
   protected override _fillPackage(store: Manifest) {
-    const type = this.sharedFolderMetadata.get(this.ext)
+    const type = this.sharedFolderMetadata.get(this.element.extension)
     if (!type) return
 
     fillPackageWithParameter({

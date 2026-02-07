@@ -15,7 +15,6 @@ const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {
   @log
   public override async handleAddition() {
-    await this._resolveMetadata()
     await super.handleAddition()
     if (!this.config.generateDelta) return
     await this._copyFolderMetaFile()
@@ -23,11 +22,12 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected async _copyFolderMetaFile() {
-    const [, folderPath, folderName] = this._parseLine()!
+    const folderPath = this.element.typeDirectoryPath
+    const folderName = this.element.pathAfterType[0]
 
     const suffix = folderName.endsWith(INFOLDER_SUFFIX)
       ? ''
-      : `.${this.metadataDef.suffix!.toLowerCase()}`
+      : `.${this.element.type.suffix!.toLowerCase()}`
 
     const folderFileName = `${folderName}${suffix}${METAFILE_SUFFIX}`
 
@@ -35,7 +35,7 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected async _copySpecialExtension() {
-    const parsedLine = parse(this.line)
+    const parsedLine = parse(this.element.basePath)
     const dirContent = await readDirs(parsedLine.dir, this.config)
 
     await Promise.all(
@@ -46,33 +46,18 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
-    const startIndex = this._getDirectoryStartIndex()
-    return this.splittedLine
-      .slice(startIndex)
+    return this.element.pathAfterType
       .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
   }
 
-  protected _getDirectoryStartIndex(): number {
-    // Use resolver if available - find where content starts after directoryName
-    if (this.resolvedMetadata) {
-      const dirIndex = this.splittedLine.indexOf(this.metadataDef.directoryName)
-      if (dirIndex >= 0) {
-        return dirIndex + 1
-      }
-      // Fallback: content starts at boundaryIndex
-      return this.resolvedMetadata.boundaryIndex
-    }
-    return this.splittedLine.indexOf(this.metadataDef.directoryName) + 1
-  }
-
   protected override _isProcessable() {
     return (
       super._isProcessable() ||
       this._parentFolderIsNotTheType() ||
-      this.ext!.endsWith(INFOLDER_SUFFIX)
+      this.element.extension!.endsWith(INFOLDER_SUFFIX)
     )
   }
 }

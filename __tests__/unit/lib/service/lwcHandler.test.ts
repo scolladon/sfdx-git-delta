@@ -11,12 +11,8 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import LwcHandler from '../../../../src/service/lwcHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
-
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -47,13 +43,12 @@ describe('lwcHandler', () => {
       `${basePath}/jsconfig.json`,
     ])('does not handle the line', async entityPath => {
       // Arrange
-      const sut = new LwcHandler(
+      const { changeType, element: el } = createElement(
         `${ADDITION}       ${entityPath}`,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new LwcHandler(changeType, el, work)
 
       // Act
       await sut.handle()
@@ -70,13 +65,12 @@ describe('lwcHandler', () => {
       MODIFICATION,
     ])('handles the line for "%s" type change', async changeType => {
       // Arrange
-      const sut = new LwcHandler(
+      const { changeType: ct, element: el } = createElement(
         `${changeType}       ${entityPath}`,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new LwcHandler(ct, el, work)
 
       // Act
       await sut.handle()
@@ -88,13 +82,12 @@ describe('lwcHandler', () => {
 
     it('handles the line for "D" type change', async () => {
       // Arrange
-      const sut = new LwcHandler(
+      const { changeType, element: el } = createElement(
         `${DELETION}       ${entityPath}`,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new LwcHandler(changeType, el, work)
 
       // Act
       await sut.handle()
