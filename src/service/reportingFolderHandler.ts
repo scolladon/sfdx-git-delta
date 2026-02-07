@@ -47,7 +47,7 @@ export default class ReportingFolderHandler extends InFolderHandler {
     const type = this.sharedFolderMetadata.get(this.element.extension)
     return {
       target,
-      type: type ?? this.element.type.xmlName!,
+      type: type!,
       member: this._getElementName(),
     }
   }

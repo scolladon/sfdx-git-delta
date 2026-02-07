@@ -108,7 +108,7 @@ export class MetadataElement {
     }
     // Fallback for scan: parent is before the anchor's directory
     if (this.anchorIndex >= 2) {
-      return this.parts[this.anchorIndex - 2] ?? ''
+      return this.parts[this.anchorIndex - 2]
     }
     return ''
   }

@@ -1,6 +1,7 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
 
+import { DELETION } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -72,7 +73,7 @@ describe('SharedFolderHandler', () => {
   })
 
   describe('when extension has no matching type', () => {
-    it('should not add to package', async () => {
+    it('should not add to package on addition', async () => {
       // Arrange
       const unknownExtLine = `A       ${basePath}${objectType}/Test.unknownext`
       const { changeType, element } = createElement(
@@ -87,6 +88,52 @@ describe('SharedFolderHandler', () => {
 
       // Assert
       expect(result.manifests).toEqual([])
+    })
+
+    it('should not add to package on deletion', async () => {
+      // Arrange
+      const unknownExtLine = `${DELETION}       ${basePath}${objectType}/Test.unknownext`
+      const { changeType, element } = createElement(
+        unknownExtLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new SharedFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+    })
+  })
+
+  describe('collectDeletion', () => {
+    it('should add destructive manifest entry when extension matches', async () => {
+      // Arrange
+      const deletionLine = `${DELETION}       ${basePath}${objectType}/${entityName}.${entityExtension}`
+      const { changeType, element } = createElement(
+        deletionLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new SharedFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: entityType,
+            member: entityName,
+          }),
+        ])
+      )
+      expect(result.copies).toEqual([])
     })
   })
   describe('when it should generate output file', () => {

@@ -18,18 +18,20 @@ jest.mock('../../../../src/utils/ignoreHelper')
 const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 
 const mockGetFilesFrom = jest.fn()
+const mockGetInstance = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
-      getInstance: () => ({
-        getFilesFrom: mockGetFilesFrom,
-      }),
+      getInstance: (...args: unknown[]) => mockGetInstance(...args),
     },
   }
 })
 
 beforeEach(() => {
   jest.resetAllMocks()
+  mockGetInstance.mockReturnValue({
+    getFilesFrom: mockGetFilesFrom,
+  })
   mockBuildIgnoreHelper.mockResolvedValue({
     globalIgnore: {
       ignores: () => false,
@@ -200,6 +202,66 @@ describe('IOExecutor', () => {
 
       expect(mockGetFilesFrom).toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given a GitCopy operation with a different revision than config.to', () => {
+    it('When executed, Then calls GitAdapter.getInstance with modified config', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+      mockGetFilesFrom.mockImplementation(async function* () {
+        yield await {
+          path: 'classes/MyClass.cls',
+          content: Buffer.from('content'),
+        }
+      })
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'classes/MyClass.cls',
+          revision: 'different-sha',
+        },
+      ])
+
+      // Assert
+      expect(mockGetInstance).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'different-sha' })
+      )
+    })
+  })
+
+  describe('Given a GitCopy operation with same revision as config.to', () => {
+    it('When executed, Then calls GitAdapter.getInstance with original config', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+      mockGetFilesFrom.mockImplementation(async function* () {
+        yield await {
+          path: 'classes/MyClass.cls',
+          content: Buffer.from('content'),
+        }
+      })
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'classes/MyClass.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetInstance).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'abc123' })
+      )
     })
   })
 

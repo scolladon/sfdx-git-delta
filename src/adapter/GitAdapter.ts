@@ -55,10 +55,7 @@ export default class GitAdapter {
     return await this.simpleGit.revparse(['--verify', ref])
   }
 
-  protected async pathExistsImpl(
-    path: string,
-    revision: string = this.config.to
-  ) {
+  protected async pathExistsImpl(path: string, revision: string) {
     let doesPathExists = false
     try {
       const type = await this.simpleGit.catFile([
@@ -106,7 +103,7 @@ export default class GitAdapter {
 
   protected async getFilesPathImpl(
     path: string,
-    revision: string = this.config.to
+    revision: string
   ): Promise<string[]> {
     return (
       await this.simpleGit.raw([
@@ -124,7 +121,7 @@ export default class GitAdapter {
 
   protected async getFilesPathCached(
     path: string,
-    revision: string = this.config.to
+    revision: string
   ): Promise<string[]> {
     const cacheKey = `${revision}:${path}`
     if (this.getFilesPathCache.has(cacheKey)) {

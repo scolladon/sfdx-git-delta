@@ -119,6 +119,23 @@ describe('postProcessorManager', () => {
       // Assert
       expect(processSpy).toHaveBeenCalledTimes(2)
     })
+
+    it('Given processor that throws, When executeRemaining, Then appends error to warnings', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      processSpy.mockImplementationOnce(() =>
+        Promise.reject(new Error('executeRemaining error'))
+      )
+
+      // Act
+      await sut.executeRemaining()
+
+      // Assert
+      expect(localWork.warnings).toHaveLength(1)
+      expect(localWork.warnings[0].message).toContain('executeRemaining error')
+    })
   })
 
   describe('collectAll', () => {
@@ -135,6 +152,26 @@ describe('postProcessorManager', () => {
       expect(result.manifests).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
+    })
+
+    it('Given IncludeProcessor that throws, When collectAll, Then returns result with warnings', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      const includeProcessor = new IncludeProcessor(localWork, metadata)
+      jest
+        .spyOn(includeProcessor, 'transformAndCollect')
+        .mockRejectedValueOnce(new Error('collectAll error'))
+      sut.use(includeProcessor as BaseProcessor)
+
+      // Act
+      const result = await sut.collectAll()
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0].message).toContain('collectAll error')
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
     })
   })
 })

@@ -87,6 +87,6 @@ export default class IncludeProcessor extends BaseProcessor {
       results.push(result)
     }
 
-    return results.length > 0 ? mergeResults(...results) : emptyResult()
+    return mergeResults(...results)
   }
 }

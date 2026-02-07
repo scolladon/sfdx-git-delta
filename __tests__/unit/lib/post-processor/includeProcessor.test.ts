@@ -58,6 +58,16 @@ describe('IncludeProcessor', () => {
     mockProcess.mockResolvedValue(emptyResult())
   })
 
+  describe('process', () => {
+    it('Given IncludeProcessor, When process is called, Then it is a no-op', async () => {
+      // Arrange
+      const sut = new IncludeProcessor(work, metadata)
+
+      // Act & Assert
+      await expect(sut.process()).resolves.toBeUndefined()
+    })
+  })
+
   describe('when no include is configured', () => {
     it('does not process include', async () => {
       // Arrange

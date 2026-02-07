@@ -117,5 +117,34 @@ describe('InFolderHandler', () => {
       expect(result.copies.length).toBeGreaterThan(1)
       expect(result.warnings).toHaveLength(0)
     })
+
+    it('Given folder name ending with INFOLDER_SUFFIX, When collect, Then folder meta copy uses empty suffix', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([])
+      const folderSuffixLine = `A       force-app/main/default/${objectType.directoryName}/testFolder/test.${extension}${METAFILE_SUFFIX}`
+      const { changeType, element } = createElement(
+        folderSuffixLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Document',
+          }),
+        ])
+      )
+      const folderMetaCopy = result.copies.find(c =>
+        c.path.includes('testFolder' + METAFILE_SUFFIX)
+      )
+      expect(folderMetaCopy).toBeDefined()
+    })
   })
 })
