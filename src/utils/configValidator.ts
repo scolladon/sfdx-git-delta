@@ -16,7 +16,7 @@ const FROM: keyof Config = 'from'
 const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
 const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
-export default class CLIHelper {
+export default class ConfigValidator {
   protected readonly config: Config
   protected readonly gitAdapter: GitAdapter
   protected readonly message: MessageService
