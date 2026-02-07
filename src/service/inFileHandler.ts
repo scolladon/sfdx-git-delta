@@ -3,6 +3,12 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
+import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
+import {
+  CopyOperationKind,
+  emptyResult,
+  ManifestTarget,
+} from '../types/handlerResult.js'
 import type { Manifest, Work } from '../types/work.js'
 import { writeFile } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -40,6 +46,78 @@ export default class InFileHandler extends StandardHandler {
     await this.handleAddition()
   }
 
+  public override async collectAddition(): Promise<HandlerResult> {
+    return await this._collectCompareResult()
+  }
+
+  public override async collectDeletion(): Promise<HandlerResult> {
+    if (this._shouldTreatDeletionAsDeletion()) {
+      return await super.collectDeletion()
+    }
+    return await this.collectAddition()
+  }
+
+  public override async collectModification(): Promise<HandlerResult> {
+    return await this.collectAddition()
+  }
+
+  protected async _collectCompareResult(): Promise<HandlerResult> {
+    const result = emptyResult()
+    const { added, deleted, toContent, fromContent } =
+      await this.metadataDiff.compare(this.element.basePath)
+
+    this._collectManifestFromComparison(
+      result.manifests,
+      ManifestTarget.DestructiveChanges,
+      deleted
+    )
+    this._collectManifestFromComparison(
+      result.manifests,
+      ManifestTarget.Package,
+      added
+    )
+
+    const { xmlContent, isEmpty } = this.metadataDiff.prune(
+      toContent,
+      fromContent
+    )
+
+    if (this._shouldTreatContainerType(isEmpty)) {
+      const containerResult =
+        await StandardHandler.prototype.collectAddition.call(this)
+      result.manifests.push(...containerResult.manifests)
+      result.copies.push(...containerResult.copies)
+    }
+
+    if (!isEmpty) {
+      result.copies.push({
+        kind: CopyOperationKind.ComputedContent,
+        path: this.element.basePath,
+        content: xmlContent,
+      })
+    }
+
+    return result
+  }
+
+  protected _collectManifestFromComparison(
+    manifests: ManifestElement[],
+    target: ManifestTarget,
+    content: Manifest
+  ): void {
+    for (const [type, members] of content) {
+      if (isPackable(type)) {
+        for (const member of members) {
+          manifests.push({
+            target,
+            type,
+            member: `${this._getQualifiedName()}${member}`,
+          })
+        }
+      }
+    }
+  }
+
   protected async _compareRevisionAndStoreComparison() {
     const { added, deleted, toContent, fromContent } =
       await this.metadataDiff.compare(this.element.basePath)
@@ -50,7 +128,6 @@ export default class InFileHandler extends StandardHandler {
       fromContent
     )
     if (this._shouldTreatContainerType(isEmpty)) {
-      // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
       await super.handleAddition()
     }
     if (this.config.generateDelta && !isEmpty) {

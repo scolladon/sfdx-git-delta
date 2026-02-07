@@ -2,6 +2,7 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import type { ManifestElement, ManifestTarget } from '../types/handlerResult.js'
 import type { Manifest, Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
@@ -22,6 +23,15 @@ export default class ReportingFolderHandler extends InFolderHandler {
     await this._copyWithMetaFile(join(folderPath, folderFileName))
   }
 
+  protected override _collectFolderMetaCopies(
+    copies: import('../types/handlerResult.js').CopyOperation[]
+  ): void {
+    const folderPath = this.element.typeDirectoryPath
+    const folderName = this.element.pathAfterType[0]
+    const folderFileName = `${folderName}${METAFILE_SUFFIX}`
+    this._collectCopyWithMetaFile(copies, join(folderPath, folderFileName))
+  }
+
   protected override _fillPackage(store: Manifest) {
     const type = this.sharedFolderMetadata.get(this.element.extension)
     if (!type) return
@@ -31,5 +41,16 @@ export default class ReportingFolderHandler extends InFolderHandler {
       type,
       member: this._getElementName(),
     })
+  }
+
+  protected override _collectManifestElement(
+    target: ManifestTarget
+  ): ManifestElement {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    return {
+      target,
+      type: type ?? this.element.type.xmlName!,
+      member: this._getElementName(),
+    }
   }
 }
