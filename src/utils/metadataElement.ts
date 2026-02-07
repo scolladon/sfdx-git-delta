@@ -63,9 +63,32 @@ export class MetadataElement {
     path: string,
     metadataDef: Metadata,
     metadataRepo: MetadataRepository,
-    anchorIndex: number
+    componentName: string
   ): MetadataElement {
-    return new MetadataElement(path, metadataDef, metadataRepo, anchorIndex)
+    const parts = path.split(PATH_SEP)
+    const anchorIndex = this.findComponentIndex(parts, componentName)
+    return new MetadataElement(
+      path,
+      metadataDef,
+      metadataRepo,
+      anchorIndex >= 0 ? anchorIndex : parts.length - 1
+    )
+  }
+
+  private static findComponentIndex(
+    parts: readonly string[],
+    componentName: string
+  ): number {
+    const exactIndex = parts.lastIndexOf(componentName)
+    if (exactIndex >= 0) {
+      return exactIndex
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].startsWith(`${componentName}.`)) {
+        return i
+      }
+    }
+    return -1
   }
 
   get type(): Metadata {

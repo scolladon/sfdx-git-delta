@@ -1,5 +1,5 @@
 'use strict'
-import { dirname } from 'node:path/posix'
+import { dirname, parse } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
 import { PATH_SEP } from '../constant/fsConstants.js'
@@ -60,26 +60,14 @@ export class MetadataBoundaryResolver {
         this.dirCache.set(cacheKey, siblings)
       }
 
-      for (const sibling of siblings) {
-        const siblingMetadata = this.metadataRepo.get(sibling)
-        if (
-          siblingMetadata?.suffix &&
-          sibling.includes(`.${siblingMetadata.suffix}`)
-        ) {
-          const componentName = this.extractName(
-            sibling,
-            siblingMetadata.suffix
-          )
-          const anchorIndex = this.findComponentIndex(parts, componentName)
-          if (anchorIndex >= 0) {
-            return MetadataElement.fromScan(
-              path,
-              metadataDef,
-              this.metadataRepo,
-              anchorIndex
-            )
-          }
-        }
+      const componentName = this.findComponentName(siblings)
+      if (componentName && this.isNameInPath(parts, componentName)) {
+        return MetadataElement.fromScan(
+          path,
+          metadataDef,
+          this.metadataRepo,
+          componentName
+        )
       }
 
       currentDir = dirname(currentDir)
@@ -89,21 +77,27 @@ export class MetadataBoundaryResolver {
       path,
       metadataDef,
       this.metadataRepo,
-      parts.length - 1
+      parse(path).name
     )
   }
 
-  protected findComponentIndex(parts: string[], componentName: string): number {
-    const exactIndex = parts.lastIndexOf(componentName)
-    if (exactIndex >= 0) {
-      return exactIndex
-    }
-    for (let i = parts.length - 1; i >= 0; i--) {
-      if (parts[i].startsWith(`${componentName}.`)) {
-        return i
+  protected isNameInPath(parts: string[], componentName: string): boolean {
+    return parts.some(
+      part => part === componentName || part.startsWith(`${componentName}.`)
+    )
+  }
+
+  protected findComponentName(siblings: string[]): string | null {
+    for (const sibling of siblings) {
+      const siblingMetadata = this.metadataRepo.get(sibling)
+      if (
+        siblingMetadata?.suffix &&
+        sibling.includes(`.${siblingMetadata.suffix}`)
+      ) {
+        return this.extractName(sibling, siblingMetadata.suffix)
       }
     }
-    return -1
+    return null
   }
 
   protected extractName(fileName: string, suffix: string): string {

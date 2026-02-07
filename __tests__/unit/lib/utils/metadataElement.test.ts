@@ -249,23 +249,54 @@ describe('MetadataElement', () => {
   })
 
   describe('fromScan', () => {
-    it('Given scan result with anchor index, When fromScan, Then creates element with correct properties', () => {
+    it('Given component name matching a folder, When fromScan, Then resolves anchor from name', () => {
       // Arrange
       const path = 'force-app/main/any/path/MyAsset/images/logo.png'
-      const anchorIndex = 4
 
       // Act
       const element = MetadataElement.fromScan(
         path,
         staticResourceType,
         globalMetadata,
-        anchorIndex
+        'MyAsset'
       )
 
       // Assert
-      expect(element).not.toBeNull()
       expect(element.componentName).toBe('logo')
       expect(element.componentBasePath).toBe('force-app/main/any/path/MyAsset')
+      expect(element.pathAfterType[0]).toBe('MyAsset')
+    })
+
+    it('Given component name matching a file with suffix, When fromScan, Then resolves anchor from prefix match', () => {
+      // Arrange
+      const path = 'force-app/main/any/path/MyResource.resource-meta.xml'
+
+      // Act
+      const element = MetadataElement.fromScan(
+        path,
+        staticResourceType,
+        globalMetadata,
+        'MyResource'
+      )
+
+      // Assert
+      expect(element.componentName).toBe('MyResource')
+    })
+
+    it('Given component name not in path, When fromScan, Then falls back to last segment', () => {
+      // Arrange
+      const path = 'force-app/main/any/path/file.txt'
+
+      // Act
+      const element = MetadataElement.fromScan(
+        path,
+        staticResourceType,
+        globalMetadata,
+        'NonExistent'
+      )
+
+      // Assert
+      expect(element.componentName).toBe('file')
     })
   })
 
