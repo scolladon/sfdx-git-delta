@@ -1,10 +1,9 @@
 'use strict'
-import { parse } from 'node:path/posix'
 
 import { eachLimit } from 'async'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
-import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -15,8 +14,7 @@ export default class ResourceHandler extends StandardHandler {
 
   @log
   public override async handleAddition() {
-    await this._resolveMetadata()
-    this.metadataName = await this._getMetadataName()
+    this.metadataName = this._getMetadataName()
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
@@ -25,8 +23,7 @@ export default class ResourceHandler extends StandardHandler {
 
   @log
   public override async handleDeletion() {
-    await this._resolveMetadata()
-    this.metadataName = await this._getMetadataName()
+    this.metadataName = this._getMetadataName()
     const componentPath = this.metadataName!
     const exists = await pathExists(componentPath, this.config)
     if (exists) {
@@ -60,61 +57,21 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
-    // Use resolved metadata if available, otherwise fall back to path parsing
-    if (this.resolvedMetadata) {
-      return this.resolvedMetadata.componentName
-    }
-    const parsedPath = this._getParsedPath()
-    return parsedPath.name
-  }
-
-  protected override _getParsedPath() {
-    const base =
-      !this.metadataDef.excluded && this.ext === this.metadataDef.suffix
-        ? this.splittedLine.at(-1)!
-        : this.splittedLine[
-            this.splittedLine.lastIndexOf(this.metadataDef.directoryName) + 1
-          ]
-    return parse(base.replace(META_REGEX, ''))
+    return this.element.pathAfterType.length > 1
+      ? this.element.pathAfterType[0]
+      : this.element.componentName
   }
 
   protected override _isProcessable() {
     return true
   }
 
-  protected async _getMetadataName(): Promise<string> {
-    // Use resolved metadata if available
-    if (this.resolvedMetadata) {
-      const metadataFullPath = this.splittedLine.slice(
-        0,
-        this.resolvedMetadata.boundaryIndex + 1
-      )
-      metadataFullPath[metadataFullPath.length - 1] =
-        this.resolvedMetadata.componentName
-      return metadataFullPath.join(PATH_SEP)
-    }
-
-    // Fallback to original logic
-    const metadataDirIndex = this.splittedLine.lastIndexOf(
-      this.metadataDef.directoryName
-    )
-
-    const metadataFullPath = this.splittedLine.slice(0, metadataDirIndex + 2)
-    const componentNameIndex = metadataFullPath.length - 1
-    const componentNameParts = metadataFullPath[componentNameIndex]
-      .replace(METAFILE_SUFFIX, '')
-      .split(DOT)
-
-    if (componentNameParts.length > 1) {
-      componentNameParts.pop()
-    }
-
-    metadataFullPath[componentNameIndex] = componentNameParts.join(DOT)
-    return metadataFullPath.join(PATH_SEP)
+  protected _getMetadataName(): string {
+    return this.element.componentBasePath
   }
 
   protected override _getMetaTypeFilePath() {
-    return `${this.metadataName}.${this.metadataDef.suffix}${METAFILE_SUFFIX}`
+    return `${this.metadataName}.${this.element.type.suffix}${METAFILE_SUFFIX}`
   }
 
   protected override _shouldCopyMetaFile(): boolean {

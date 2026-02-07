@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import GitAdapter from '../../../../src/adapter/GitAdapter'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
+import type { Metadata } from '../../../../src/types/metadata'
 import { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 
 const mockListDirAtRevision =
@@ -17,6 +18,22 @@ beforeAll(async () => {
   globalMetadata = await getDefinition({})
 })
 
+const staticResourceType: Metadata = {
+  directoryName: 'staticresources',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'resource',
+  xmlName: 'StaticResource',
+}
+
+const lwcType: Metadata = {
+  directoryName: 'lwc',
+  inFolder: false,
+  metaFile: false,
+  suffix: '',
+  xmlName: 'LightningComponentBundle',
+}
+
 describe('MetadataBoundaryResolver', () => {
   let sut: MetadataBoundaryResolver
 
@@ -25,94 +42,19 @@ describe('MetadataBoundaryResolver', () => {
     sut = new MetadataBoundaryResolver(globalMetadata, mockGitAdapter)
   })
 
-  describe('resolve', () => {
-    describe('when file has known suffix (fast path)', () => {
-      it('should return metadata for static resource with suffix in file name', async () => {
-        // Arrange
-        const path =
-          'force-app/main/default/staticresources/MyResource.resource-meta.xml'
-        const revision = 'HEAD'
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('StaticResource')
-        expect(result!.componentName).toBe('MyResource')
-        // parts = ['force-app', 'main', 'default', 'staticresources', 'MyResource.resource-meta.xml']
-        // boundaryIndex = parts.length - 2 = 5 - 2 = 3
-        expect(result!.boundaryIndex).toBe(3)
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-
-      it('should return metadata for Apex class', async () => {
-        // Arrange
-        const path = 'force-app/main/default/classes/MyClass.cls'
-        const revision = 'HEAD'
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('ApexClass')
-        expect(result!.componentName).toBe('MyClass')
-        // parts = ['force-app', 'main', 'default', 'classes', 'MyClass.cls']
-        // boundaryIndex = 5 - 2 = 3
-        expect(result!.boundaryIndex).toBe(3)
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-
-      it('should return metadata for Apex trigger', async () => {
-        // Arrange
-        const path = 'force-app/main/default/triggers/MyTrigger.trigger'
-        const revision = 'HEAD'
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('ApexTrigger')
-        expect(result!.componentName).toBe('MyTrigger')
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when directoryName is in path (directoryName fast path)', () => {
-      it('should resolve LWC component file without git calls', async () => {
+  describe('createElement', () => {
+    describe('when directoryName is in path (sync path)', () => {
+      it('should resolve LWC component without git calls', async () => {
         // Arrange
         const path = 'force-app/main/default/lwc/myComponent/myComponent.js'
         const revision = 'HEAD'
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(path, lwcType, revision)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('LightningComponentBundle')
-        expect(result!.componentName).toBe('myComponent')
-        // parts = ['force-app', 'main', 'default', 'lwc', 'myComponent', 'myComponent.js']
-        // lwc at index 3, nextPart = myComponent at index 4, isFolder = true
-        expect(result!.boundaryIndex).toBe(4)
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-
-      it('should resolve Aura component file without git calls', async () => {
-        // Arrange
-        const path =
-          'force-app/main/default/aura/myComponent/myComponentHelper.js'
-        const revision = 'HEAD'
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('AuraDefinitionBundle')
-        expect(result!.componentName).toBe('myComponent')
-        expect(result!.boundaryIndex).toBe(4)
+        expect(element.componentName).toBe('myComponent')
+        expect(element.type.xmlName).toBe('LightningComponentBundle')
         expect(mockListDirAtRevision).not.toHaveBeenCalled()
       })
 
@@ -123,47 +65,33 @@ describe('MetadataBoundaryResolver', () => {
         const revision = 'HEAD'
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('StaticResource')
-        expect(result!.componentName).toBe('MyResource')
-        expect(result!.boundaryIndex).toBe(4)
+        expect(element.componentName).toBe('logo')
+        expect(element.type.xmlName).toBe('StaticResource')
+        expect(element.pathAfterType[0]).toBe('MyResource')
         expect(mockListDirAtRevision).not.toHaveBeenCalled()
       })
 
-      it('should resolve ExperienceBundle nested file without git calls', async () => {
-        // Arrange
-        const path =
-          'force-app/main/default/experiences/my_bundle/config/file.json'
-        const revision = 'HEAD'
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('ExperienceBundle')
-        expect(result!.componentName).toBe('my_bundle')
-        expect(result!.boundaryIndex).toBe(4)
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-
-      it('should resolve file directly in directoryName folder (non-folder case)', async () => {
+      it('should resolve file directly in directoryName folder', async () => {
         // Arrange
         const path = 'force-app/main/default/staticresources/MyResource.png'
         const revision = 'HEAD'
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('StaticResource')
-        expect(result!.componentName).toBe('MyResource')
-        // boundaryIndex = dirIndex (staticresources at 3)
-        expect(result!.boundaryIndex).toBe(3)
+        expect(element.componentName).toBe('MyResource')
         expect(mockListDirAtRevision).not.toHaveBeenCalled()
       })
 
@@ -174,18 +102,66 @@ describe('MetadataBoundaryResolver', () => {
         const revision = 'HEAD'
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(path, lwcType, revision)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('LightningComponentBundle')
-        expect(result!.componentName).toBe('deeplyNestedComponent')
-        // lastIndexOf('lwc') = 5, nextPart at 6
-        expect(result!.boundaryIndex).toBe(6)
+        expect(element.componentName).toBe('deeplyNestedComponent')
         expect(mockListDirAtRevision).not.toHaveBeenCalled()
       })
 
-      it('should fall through to hierarchy scan when directoryName is not in path', async () => {
+      it('should resolve ExperienceBundle nested file without git calls', async () => {
+        // Arrange
+        const experienceBundleType: Metadata = {
+          directoryName: 'experiences',
+          inFolder: false,
+          metaFile: true,
+          suffix: 'site',
+          xmlName: 'ExperienceBundle',
+        }
+        const path =
+          'force-app/main/default/experiences/my_bundle/config/file.json'
+        const revision = 'HEAD'
+
+        // Act
+        const element = await sut.createElement(
+          path,
+          experienceBundleType,
+          revision
+        )
+
+        // Assert
+        expect(element.componentName).toBe('file')
+        expect(element.pathAfterType[0]).toBe('my_bundle')
+        expect(element.type.xmlName).toBe('ExperienceBundle')
+        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+      })
+
+      it('should resolve Aura component file without git calls', async () => {
+        // Arrange
+        const auraType: Metadata = {
+          directoryName: 'aura',
+          inFolder: false,
+          metaFile: false,
+          suffix: '',
+          xmlName: 'AuraDefinitionBundle',
+        }
+        const path =
+          'force-app/main/default/aura/myComponent/myComponentHelper.js'
+        const revision = 'HEAD'
+
+        // Act
+        const element = await sut.createElement(path, auraType, revision)
+
+        // Assert
+        expect(element.componentName).toBe('myComponentHelper')
+        expect(element.pathAfterType[0]).toBe('myComponent')
+        expect(element.type.xmlName).toBe('AuraDefinitionBundle')
+        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('when directoryName is NOT in path (git scan fallback)', () => {
+      it('should find metadata boundary from sibling with known suffix', async () => {
         // Arrange
         const path = 'force-app/main/any/path/here/MyAsset/images/logo.png'
         const revision = 'HEAD'
@@ -197,39 +173,40 @@ describe('MetadataBoundaryResolver', () => {
         ])
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('StaticResource')
-        expect(result!.componentName).toBe('MyAsset')
+        expect(element.componentName).toBe('logo')
+        expect(element.pathAfterType[0]).toBe('MyAsset')
         expect(mockListDirAtRevision).toHaveBeenCalled()
       })
-    })
 
-    describe('when file does not have known suffix (hierarchy scan)', () => {
-      it('should find metadata boundary from sibling with known suffix', async () => {
+      it('should resolve document in non-standard location', async () => {
         // Arrange
-        const path =
-          'force-app/main/default/staticresources/MyResource/images/logo.png'
+        const documentType: Metadata = {
+          directoryName: 'documents',
+          inFolder: true,
+          metaFile: true,
+          suffix: 'document',
+          xmlName: 'Document',
+        }
+        const path = 'custom/docs/MyDoc/file.txt'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValueOnce(['logo.png', 'icon.svg'])
-        mockListDirAtRevision.mockResolvedValueOnce(['images', 'styles'])
+        mockListDirAtRevision.mockResolvedValueOnce(['file.txt'])
         mockListDirAtRevision.mockResolvedValueOnce([
-          'MyResource',
-          'MyResource.resource-meta.xml',
+          'MyDoc',
+          'MyDoc.document-meta.xml',
         ])
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(path, documentType, revision)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('StaticResource')
-        expect(result!.componentName).toBe('MyResource')
-        // parts = ['force-app', 'main', 'default', 'staticresources', 'MyResource', 'images', 'logo.png']
-        // MyResource is at index 4
-        expect(result!.boundaryIndex).toBe(4)
+        expect(element.componentName).toBe('file')
       })
 
       it('should cache directory listings', async () => {
@@ -245,83 +222,42 @@ describe('MetadataBoundaryResolver', () => {
         ])
 
         // Act
-        await sut.resolve(path1, revision)
-        await sut.resolve(path2, revision)
+        await sut.createElement(path1, staticResourceType, revision)
+        await sut.createElement(path2, staticResourceType, revision)
 
         // Assert - second call should use cache, so only 3 calls total
         expect(mockListDirAtRevision).toHaveBeenCalledTimes(3)
       })
 
-      it('should return null when no metadata boundary found within depth limit', async () => {
+      it('should fallback to last segment when no metadata boundary found', async () => {
         // Arrange
         const path = 'force-app/main/default/unknown/deep/nested/file.txt'
         const revision = 'HEAD'
         mockListDirAtRevision.mockResolvedValue(['file.txt'])
 
         // Act
-        const result = await sut.resolve(path, revision)
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
 
-        // Assert
-        expect(result).toBeNull()
-      })
-    })
-
-    describe('when staticresource is in non-standard location', () => {
-      it('should resolve staticresource outside standard folder', async () => {
-        // Arrange
-        const path = 'force-app/main/any/path/here/MyAsset/images/logo.png'
-        const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValueOnce(['logo.png'])
-        mockListDirAtRevision.mockResolvedValueOnce(['images', 'data'])
-        mockListDirAtRevision.mockResolvedValueOnce([
-          'MyAsset',
-          'MyAsset.resource-meta.xml',
-        ])
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('StaticResource')
-        expect(result!.componentName).toBe('MyAsset')
+        // Assert - falls back to last segment
+        expect(element.componentName).toBe('file')
       })
 
-      it('should resolve document in non-standard location', async () => {
-        // Arrange
-        const path = 'custom/docs/MyDoc/file.txt'
-        const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValueOnce(['file.txt'])
-        mockListDirAtRevision.mockResolvedValueOnce([
-          'MyDoc',
-          'MyDoc.document-meta.xml',
-        ])
-
-        // Act
-        const result = await sut.resolve(path, revision)
-
-        // Assert
-        expect(result).not.toBeNull()
-        expect(result!.metadata.xmlName).toBe('Document')
-        expect(result!.componentName).toBe('MyDoc')
-      })
-    })
-
-    describe('when different revisions are used', () => {
       it('should separate cache by revision', async () => {
         // Arrange
         const path = 'force-app/main/any/path/MyResource/data.json'
         const revision1 = 'HEAD'
         const revision2 = 'feature-branch'
 
-        // HEAD has the meta file
         mockListDirAtRevision.mockResolvedValueOnce(['data.json'])
         mockListDirAtRevision.mockResolvedValueOnce([
           'MyResource',
           'MyResource.resource-meta.xml',
         ])
 
-        // feature-branch also needs its own lookup
         mockListDirAtRevision.mockResolvedValueOnce(['data.json'])
         mockListDirAtRevision.mockResolvedValueOnce([
           'MyResource',
@@ -329,8 +265,8 @@ describe('MetadataBoundaryResolver', () => {
         ])
 
         // Act
-        await sut.resolve(path, revision1)
-        await sut.resolve(path, revision2)
+        await sut.createElement(path, staticResourceType, revision1)
+        await sut.createElement(path, staticResourceType, revision2)
 
         // Assert - should be called 4 times (2 for each revision)
         expect(mockListDirAtRevision).toHaveBeenCalledTimes(4)
@@ -344,182 +280,55 @@ describe('MetadataBoundaryResolver', () => {
         )
       })
     })
-  })
 
-  describe('extractName', () => {
-    it('should extract name from file with -meta.xml suffix', async () => {
-      // Arrange
-      const path =
-        'force-app/main/default/staticresources/Test.resource-meta.xml'
-      const revision = 'HEAD'
+    describe('edge cases', () => {
+      it('should handle empty directory listings', async () => {
+        // Arrange
+        const path = 'force-app/main/default/unknown/nested/file.txt'
+        const revision = 'HEAD'
+        mockListDirAtRevision.mockResolvedValue([])
 
-      // Act
-      const result = await sut.resolve(path, revision)
+        // Act
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
 
-      // Assert
-      expect(result!.componentName).toBe('Test')
-    })
+        // Assert - falls back to last segment
+        expect(element.componentName).toBe('file')
+      })
 
-    it('should extract name from file without -meta.xml suffix', async () => {
-      // Arrange
-      const path = 'force-app/main/default/classes/MyClass.cls'
-      const revision = 'HEAD'
+      it('should stop at MAX_HIERARCHY_DEPTH', async () => {
+        // Arrange
+        const deepPath = 'a/b/c/d/e/f/g/h/i/j/k/l/file.txt'
+        const revision = 'HEAD'
+        mockListDirAtRevision.mockResolvedValue(['file.txt'])
 
-      // Act
-      const result = await sut.resolve(path, revision)
+        // Act
+        await sut.createElement(deepPath, staticResourceType, revision)
 
-      // Assert
-      expect(result!.componentName).toBe('MyClass')
-    })
+        // Assert - should only call up to MAX_HIERARCHY_DEPTH (10) times
+        expect(mockListDirAtRevision).toHaveBeenCalledTimes(10)
+      })
 
-    it('should handle complex names with dots', async () => {
-      // Arrange
-      const path = 'force-app/main/default/classes/My.Class.Name.cls'
-      const revision = 'HEAD'
+      it('should handle path ending at root directory', async () => {
+        // Arrange
+        const path = 'file.txt'
+        const revision = 'HEAD'
+        mockListDirAtRevision.mockResolvedValue(['file.txt'])
 
-      // Act
-      const result = await sut.resolve(path, revision)
+        // Act
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
 
-      // Assert
-      expect(result!.componentName).toBe('My.Class.Name')
-    })
-  })
-
-  describe('findComponentIndex', () => {
-    it('should find folder-based component by exact match', async () => {
-      // Arrange
-      const path = 'force-app/main/default/staticresources/MyResource/data.json'
-      const revision = 'HEAD'
-      mockListDirAtRevision.mockResolvedValueOnce(['data.json'])
-      mockListDirAtRevision.mockResolvedValueOnce([
-        'MyResource',
-        'MyResource.resource-meta.xml',
-      ])
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      expect(result).not.toBeNull()
-      // parts = ['force-app', 'main', 'default', 'staticresources', 'MyResource', 'data.json']
-      // MyResource is at index 4
-      expect(result!.boundaryIndex).toBe(4)
-    })
-
-    it('should find file-based component by prefix match', async () => {
-      // Arrange
-      const path =
-        'force-app/main/default/staticresources/MyResource.resource-meta.xml'
-      const revision = 'HEAD'
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      expect(result).not.toBeNull()
-      // parts = ['force-app', 'main', 'default', 'staticresources', 'MyResource.resource-meta.xml']
-      // boundaryIndex = parts.length - 2 = 3
-      expect(result!.boundaryIndex).toBe(3)
-    })
-
-    it('Given sibling with known suffix and component name matching path part as prefix, When resolve, Then finds component by prefix match', async () => {
-      // Arrange
-      // The file has no known suffix, so it enters hierarchy scan.
-      // The sibling 'Other.cls' has suffix 'cls',
-      // extracting componentName = 'Other'.
-      // 'Other' is not an exact match in parts, but 'Other.txt' starts with 'Other.'
-      const path = 'force-app/main/any/custom/Other.txt'
-      const revision = 'HEAD'
-      mockListDirAtRevision.mockResolvedValueOnce(['Other.txt', 'Other.cls'])
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      expect(result).not.toBeNull()
-      expect(result!.metadata.xmlName).toBe('ApexClass')
-      expect(result!.componentName).toBe('Other')
-      // parts = ['force-app', 'main', 'any', 'custom', 'Other.txt']
-      // 'Other' is not an exact match, but 'Other.txt'.startsWith('Other.') -> prefix match at index 4
-      expect(result!.boundaryIndex).toBe(4)
-    })
-
-    it('Given sibling with known suffix but component name not matching any path part, When resolve, Then continues scanning and returns null', async () => {
-      // Arrange
-      // The file has no known suffix, so it enters hierarchy scan.
-      // The sibling 'Unrelated.resource-meta.xml' has suffix 'resource',
-      // extracting componentName = 'Unrelated'.
-      // 'Unrelated' does not match any part (neither exact nor prefix),
-      // so findComponentIndex returns -1 and scanning continues.
-      const path = 'force-app/main/default/custom/data.json'
-      const revision = 'HEAD'
-      mockListDirAtRevision.mockResolvedValue([
-        'data.json',
-        'Unrelated.resource-meta.xml',
-      ])
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      expect(result).toBeNull()
-    })
-  })
-
-  describe('edge cases', () => {
-    it('should handle root-level paths', async () => {
-      // Arrange
-      const path = 'MyClass.cls'
-      const revision = 'HEAD'
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      expect(result).not.toBeNull()
-      expect(result!.componentName).toBe('MyClass')
-    })
-
-    it('should handle empty directory listings', async () => {
-      // Arrange
-      const path = 'force-app/main/default/unknown/nested/file.txt'
-      const revision = 'HEAD'
-      mockListDirAtRevision.mockResolvedValue([])
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      expect(result).toBeNull()
-    })
-
-    it('should stop at MAX_HIERARCHY_DEPTH', async () => {
-      // Arrange
-      const deepPath = 'a/b/c/d/e/f/g/h/i/j/k/l/file.txt'
-      const revision = 'HEAD'
-      mockListDirAtRevision.mockResolvedValue(['file.txt'])
-
-      // Act
-      const result = await sut.resolve(deepPath, revision)
-
-      // Assert
-      expect(result).toBeNull()
-      // Should only call up to MAX_HIERARCHY_DEPTH (10) times
-      expect(mockListDirAtRevision).toHaveBeenCalledTimes(10)
-    })
-
-    it('should handle path ending at root directory', async () => {
-      // Arrange
-      const path = 'file.txt'
-      const revision = 'HEAD'
-      mockListDirAtRevision.mockResolvedValue(['file.txt'])
-
-      // Act
-      const result = await sut.resolve(path, revision)
-
-      // Assert
-      // Path 'file.txt' without known suffix, parent dir is '.' which should stop
-      expect(result).toBeNull()
+        // Assert - parent dir is '.' which stops, falls back to last segment
+        expect(element.componentName).toBe('file')
+        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+      })
     })
   })
 })

@@ -48,42 +48,42 @@ describe('the type handler factory', () => {
     [Standard, ['classes']],
     [SharedFolder, ['moderation', 'wave', 'discovery']],
   ])('give %p handler', (handler, types) => {
-    it.each(types)('for %s folder', type => {
+    it.each(types)('for %s folder', async type => {
       expect(
-        typeHandlerFactory.getTypeHandler(
+        await typeHandlerFactory.getTypeHandler(
           `Z       force-app/main/default/${type}/folder/file`
         )
       ).toBeInstanceOf(handler)
     })
   })
 
-  it('can handle Decomposed', () => {
+  it('can handle Decomposed', async () => {
     expect(
-      typeHandlerFactory.getTypeHandler(
+      await typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/objects/Account/fields/Test__c`
       )
     ).toBeInstanceOf(Decomposed)
   })
 
-  it('can handle sub folder with Decomposed', () => {
+  it('can handle sub folder with Decomposed', async () => {
     expect(
-      typeHandlerFactory.getTypeHandler(
+      await typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/objects/folder/Account/fields/Test__c.field-meta.xml`
       )
     ).toBeInstanceOf(Decomposed)
   })
 
-  it('can handle sub folder with non Decomposed', () => {
+  it('can handle sub folder with non Decomposed', async () => {
     expect(
-      typeHandlerFactory.getTypeHandler(
+      await typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/documents/classes/TestDocument`
       )
     ).toBeInstanceOf(InFolder)
   })
 
-  it('can handle Flow', () => {
+  it('can handle Flow', async () => {
     expect(
-      typeHandlerFactory.getTypeHandler(
+      await typeHandlerFactory.getTypeHandler(
         `Z       force-app/main/default/flows/MyFlow.flow-meta.xml`
       )
     ).toBeInstanceOf(FlowHandler)
@@ -94,9 +94,9 @@ describe('the type handler factory', () => {
     'force-app/main/default/TestClass.cls-meta.xml',
     'force-app/main/default/admin.profile-meta.xml',
     'force-app/main/default/admin.permissionset-meta.xml',
-  ])('can handle metadata outside its folder', line => {
-    expect(typeHandlerFactory.getTypeHandler(`Z       ${line}`)).toBeInstanceOf(
-      Standard
-    )
+  ])('can handle metadata outside its folder', async line => {
+    expect(
+      await typeHandlerFactory.getTypeHandler(`Z       ${line}`)
+    ).toBeInstanceOf(Standard)
   })
 })

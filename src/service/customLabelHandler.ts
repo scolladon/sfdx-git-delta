@@ -31,11 +31,10 @@ export default class CustomLabelHandler extends InFileHandler {
   }
 
   protected override _shouldTreatContainerType() {
-    // There is no container / parent type for Contained CustomLabels
     return false
   }
 
   protected _isDecomposed() {
-    return this.ext === LABEL_DECOMPOSED_SUFFIX
+    return this.element.extension === LABEL_DECOMPOSED_SUFFIX
   }
 }

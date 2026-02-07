@@ -7,14 +7,11 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFolder from '../../../../src/service/inFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 const entity = 'folder/test'
 const extension = 'document'
@@ -46,13 +43,12 @@ describe('InFolderHandler', () => {
     })
     it('should not copy meta files nor copy special extension', async () => {
       // Arrange
-      const sut = new InFolder(
+      const { changeType, element } = createElement(
         line,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new InFolder(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -70,13 +66,12 @@ describe('InFolderHandler', () => {
     describe('when readDirs does not return files', () => {
       it('should not copy special extension and copy meta files', async () => {
         // Arrange
-        const sut = new InFolder(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InFolder(changeType, element, work)
         mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
         // Act
@@ -96,13 +91,12 @@ describe('InFolderHandler', () => {
     describe('when readDirs returns files', () => {
       it('should copy special extension', async () => {
         // Arrange
-        const sut = new InFolder(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InFolder(changeType, element, work)
         mockedReadDirs.mockImplementationOnce(() =>
           Promise.resolve([entity, 'not/matching'])
         )
@@ -117,18 +111,18 @@ describe('InFolderHandler', () => {
       })
     })
   })
+
   describe('when the line should not be processed', () => {
     it.each([
       `force-app/main/default/${objectType.directoryName}/test.otherExtension`,
     ])('does not handle the line', async entityPath => {
       // Arrange
-      const sut = new InFolder(
+      const { changeType, element } = createElement(
         `A       ${entityPath}`,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new InFolder(changeType, element, work)
 
       // Act
       await sut.handle()

@@ -5,12 +5,9 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomLabelHandler from '../../../../src/service/customLabelHandler'
 import type { Work } from '../../../../src/types/work'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 const labelType = {
   directoryName: 'labels',
   inFolder: false,
@@ -39,13 +36,12 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(
+      const { changeType, element } = createElement(
         line,
         labelType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      sut = new CustomLabelHandler(changeType, element, work)
     })
     it('should add the element in the package', async () => {
       // Arrange
@@ -63,13 +59,12 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(
+      const { changeType, element } = createElement(
         line,
         labelType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      sut = new CustomLabelHandler(changeType, element, work)
     })
     it('should add the element in the package', async () => {
       // Arrange
@@ -87,13 +82,12 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(
+      const { changeType, element } = createElement(
         line,
         labelType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      sut = new CustomLabelHandler(changeType, element, work)
     })
     it('should add the element in the destructiveChanges', async () => {
       // Arrange

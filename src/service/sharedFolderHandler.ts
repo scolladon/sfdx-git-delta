@@ -2,33 +2,22 @@
 import { join, parse } from 'node:path/posix'
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import { getSharedFolderMetadata } from '../metadata/metadataManager.js'
-import { Metadata } from '../types/metadata.js'
 import type { Manifest, Work } from '../types/work.js'
-import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
+import type { MetadataElement } from '../utils/metadataElement.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 
 import StandardHandler from './standardHandler.js'
 
 export default class SharedFolderHandler extends StandardHandler {
-  /* jscpd:ignore-start */
   protected readonly sharedFolderMetadata: Map<string, string>
 
-  constructor(
-    line: string,
-    metadataDef: Metadata,
-    work: Work,
-    metadata: MetadataRepository,
-    resolver: MetadataBoundaryResolver
-  ) {
-    super(line, metadataDef, work, metadata, resolver)
-    this.sharedFolderMetadata = getSharedFolderMetadata(this.metadata)
+  constructor(changeType: string, element: MetadataElement, work: Work) {
+    super(changeType, element, work)
+    this.sharedFolderMetadata = element.getSharedFolderMetadata()
   }
-  /* jscpd:ignore-end */
 
   protected override _fillPackage(store: Manifest) {
-    const type = this.sharedFolderMetadata.get(this.ext)
+    const type = this.sharedFolderMetadata.get(this.element.extension)
     if (!type) return
 
     fillPackageWithParameter({
@@ -39,7 +28,10 @@ export default class SharedFolderHandler extends StandardHandler {
   }
 
   protected override _isProcessable() {
-    return super._isProcessable() || this.sharedFolderMetadata.has(this.ext)
+    return (
+      super._isProcessable() ||
+      this.sharedFolderMetadata.has(this.element.extension)
+    )
   }
 
   protected override _getMetaTypeFilePath(path: string) {

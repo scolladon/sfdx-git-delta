@@ -7,13 +7,10 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 const objectType = {
   directoryName: 'discovery',
@@ -51,13 +48,12 @@ describe('SharedFolderHandler', () => {
 
   it('should add the metadata component under the right type to the package', async () => {
     // Arrange
-    const sut = new SharedFolderHandler(
+    const { changeType, element } = createElement(
       line,
       objectType,
-      work,
-      globalMetadata,
-      mockResolver
+      globalMetadata
     )
+    const sut = new SharedFolderHandler(changeType, element, work)
 
     // Act
     await sut.handleAddition()
@@ -71,13 +67,12 @@ describe('SharedFolderHandler', () => {
     it('should not add to package', async () => {
       // Arrange
       const unknownExtLine = `A       ${basePath}${objectType}/Test.unknownext`
-      const sut = new SharedFolderHandler(
+      const { changeType, element } = createElement(
         unknownExtLine,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new SharedFolderHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -92,13 +87,12 @@ describe('SharedFolderHandler', () => {
     })
     it('should add and copy the metadata', async () => {
       // Arrange
-      const sut = new SharedFolderHandler(
+      const { changeType, element } = createElement(
         line,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new SharedFolderHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()

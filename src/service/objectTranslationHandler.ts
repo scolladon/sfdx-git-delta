@@ -3,7 +3,6 @@ import { parse } from 'node:path/posix'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
-import { getInFileAttributes } from '../metadata/metadataManager.js'
 import { writeFile } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import MetadataDiff from '../utils/metadataDiff.js'
@@ -21,7 +20,7 @@ export default class ObjectTranslationHandler extends ResourceHandler {
   }
 
   protected async _copyObjectTranslation(path: string) {
-    const inFileMetadata = getInFileAttributes(this.metadata)
+    const inFileMetadata = this.element.getInFileAttributes()
     const metadataDiff = new MetadataDiff(this.config, inFileMetadata)
     const { toContent, fromContent } = await metadataDiff.compare(path)
     const { xmlContent } = metadataDiff.prune(toContent, fromContent)
@@ -29,23 +28,16 @@ export default class ObjectTranslationHandler extends ResourceHandler {
   }
 
   protected _getObjectTranslationPath() {
-    // Return Object Translation Path for both objectTranslation and fieldTranslation
-    // QUESTION: Why fieldTranslation element are not deployable when objectTranslation element is not in the deployed sources (even if objectTranslation file is empty) ?
-    return `${parse(this.line).dir}${PATH_SEP}${
-      this.splittedLine[this.splittedLine.length - 2]
+    return `${parse(this.element.basePath).dir}${PATH_SEP}${
+      this.element.parts[this.element.parts.length - 2]
     }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
   }
 
   protected override _delegateFileCopy() {
-    return !this.line.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
+    return !this.element.fullPath.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
   }
 
   protected override _getElementName() {
-    // For object translations, the element name is always the parent folder
-    // (e.g., Account-fr), not the individual translation file name
-    const directoryIndex = this.splittedLine.lastIndexOf(
-      this.metadataDef.directoryName
-    )
-    return this.splittedLine[directoryIndex + 1]
+    return this.element.pathAfterType[0]
   }
 }

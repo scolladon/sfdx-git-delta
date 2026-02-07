@@ -2,14 +2,12 @@
 import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import { getInFileAttributes, isPackable } from '../metadata/metadataManager.js'
-import { Metadata } from '../types/metadata.js'
+import { isPackable } from '../metadata/metadataManager.js'
 import type { Manifest, Work } from '../types/work.js'
 import { writeFile } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
-import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 import MetadataDiff from '../utils/metadataDiff.js'
+import type { MetadataElement } from '../utils/metadataElement.js'
 import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import StandardHandler from './standardHandler.js'
 
@@ -17,15 +15,10 @@ const getRootType = (line: string) => basename(line).split(DOT)[0]
 
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
-  constructor(
-    line: string,
-    metadataDef: Metadata,
-    work: Work,
-    metadata: MetadataRepository,
-    resolver: MetadataBoundaryResolver
-  ) {
-    super(line, metadataDef, work, metadata, resolver)
-    const inFileMetadata = getInFileAttributes(metadata)
+
+  constructor(changeType: string, element: MetadataElement, work: Work) {
+    super(changeType, element, work)
+    const inFileMetadata = element.getInFileAttributes()
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
@@ -49,7 +42,7 @@ export default class InFileHandler extends StandardHandler {
 
   protected async _compareRevisionAndStoreComparison() {
     const { added, deleted, toContent, fromContent } =
-      await this.metadataDiff.compare(this.line)
+      await this.metadataDiff.compare(this.element.basePath)
     this._storeComparison(this.diffs.destructiveChanges, deleted)
     this._storeComparison(this.diffs.package, added)
     const { xmlContent, isEmpty } = this.metadataDiff.prune(
@@ -57,12 +50,11 @@ export default class InFileHandler extends StandardHandler {
       fromContent
     )
     if (this._shouldTreatContainerType(isEmpty)) {
-      // Call from super.handleAddition to add the Root Type
       // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
       await super.handleAddition()
     }
     if (this.config.generateDelta && !isEmpty) {
-      await writeFile(this.line, xmlContent, this.config)
+      await writeFile(this.element.basePath, xmlContent, this.config)
     }
   }
 
@@ -91,7 +83,7 @@ export default class InFileHandler extends StandardHandler {
   }
 
   protected _getQualifiedName() {
-    return `${getRootType(this.line)}${DOT}`
+    return `${getRootType(this.element.basePath)}${DOT}`
   }
 
   protected override _delegateFileCopy() {
@@ -99,10 +91,10 @@ export default class InFileHandler extends StandardHandler {
   }
 
   protected _shouldTreatDeletionAsDeletion() {
-    return this.metadataDef.pruneOnly
+    return this.element.type.pruneOnly
   }
 
-  protected _shouldTreatContainerType(fileIsEmpty: boolean) {
+  protected _shouldTreatContainerType(fileIsEmpty?: boolean): boolean {
     return !fileIsEmpty
   }
 }

@@ -12,12 +12,8 @@ import {
   readDirs,
   readPathFromGit,
 } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
-
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -74,13 +70,12 @@ describe('CustomObjectHandler', () => {
     it('should not handle master detail exception', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new CustomObjectHandler(
+      const { changeType, element } = createElement(
         line,
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new CustomObjectHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -94,13 +89,12 @@ describe('CustomObjectHandler', () => {
     describe(`when called with not 'objects' type`, () => {
       it('should not handle try to find master details fields', async () => {
         // Arrange
-        const sut = new CustomObjectHandler(
+        const { changeType, element } = createElement(
           'A       force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
           territoryModelType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new CustomObjectHandler(changeType, element, work)
 
         // Act
         await sut.handleAddition()
@@ -116,13 +110,12 @@ describe('CustomObjectHandler', () => {
           // Arrange
           mockedReadDirs.mockResolvedValueOnce(['Name.field-meta.xml'])
           mockedReadPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
-          const sut = new CustomObjectHandler(
+          const { changeType, element } = createElement(
             line,
             objectType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new CustomObjectHandler(changeType, element, work)
 
           // Act
           await sut.handleAddition()
@@ -137,13 +130,12 @@ describe('CustomObjectHandler', () => {
           // Arrange
           mockedReadDirs.mockResolvedValue([])
           mockedReadPathFromGit.mockResolvedValueOnce('')
-          const sut = new CustomObjectHandler(
+          const { changeType, element } = createElement(
             line,
             objectType,
-            work,
-            globalMetadata,
-            mockResolver
+            globalMetadata
           )
+          const sut = new CustomObjectHandler(changeType, element, work)
 
           // Act
           await sut.handleAddition()
@@ -158,13 +150,12 @@ describe('CustomObjectHandler', () => {
       it('should not look into the field folder', async () => {
         // Arrange
         mockedPathExist.mockResolvedValueOnce(false)
-        const sut = new CustomObjectHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new CustomObjectHandler(changeType, element, work)
 
         // Act
         await sut.handleAddition()

@@ -7,13 +7,10 @@ import BotHandler from '../../../../src/service/botHandler'
 import { Metadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 const objectType: Metadata = {
   directoryName: 'bots',
@@ -49,13 +46,12 @@ describe('BotHandler', () => {
     it('should add the bot', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new BotHandler(
+      const { changeType, element } = createElement(
         'A       force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
         objectType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new BotHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -72,13 +68,12 @@ describe('BotHandler', () => {
       it('should add the related bot', async () => {
         // Arrange
         work.config.generateDelta = false
-        const sut = new BotHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new BotHandler(changeType, element, work)
 
         // Act
         await sut.handleAddition()
@@ -94,13 +89,12 @@ describe('BotHandler', () => {
 
     describe('when called with generateDelta true', () => {
       it('should add and copy the related parent bot', async () => {
-        const sut = new BotHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new BotHandler(changeType, element, work)
 
         // Act
         await sut.handleAddition()

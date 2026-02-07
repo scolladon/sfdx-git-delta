@@ -5,12 +5,9 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
 import type { Work } from '../../../../src/types/work'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 const objectType = {
   directoryName: 'digitalExperiences',
   inFolder: false,
@@ -38,13 +35,12 @@ describe('InBundleHandler', () => {
     describe('when called with meta file', () => {
       it('returns <site workspace>/<workspace name>', () => {
         // Arrange
-        const sut = new InBundleHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InBundleHandler(changeType, element, work)
 
         // Act
         const result = sut['_getElementName']()
@@ -60,13 +56,12 @@ describe('InBundleHandler', () => {
         const entityPath =
           'force-app/main/default/digitalExperiences/site/component/workspace/file.json'
         const line = `A       ${entityPath}`
-        const sut = new InBundleHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
-          globalMetadata,
-          mockResolver
+          globalMetadata
         )
+        const sut = new InBundleHandler(changeType, element, work)
 
         // Act
         const result = sut['_getElementName']()

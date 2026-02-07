@@ -5,13 +5,10 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DecomposedHandler from '../../../../src/service/decomposedHandler'
 import type { Work } from '../../../../src/types/work'
-import type { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
-const mockResolver = {
-  resolve: async () => null,
-} as unknown as MetadataBoundaryResolver
 
 const recordTypeType = {
   directoryName: 'recordTypes',
@@ -43,13 +40,12 @@ describe('DecomposedHandler', () => {
   ])('in %s case', method => {
     it('element name should have the parent metadata', async () => {
       // Arrange
-      const sut = new DecomposedHandler(
+      const { changeType, element } = createElement(
         line,
         recordTypeType,
-        work,
-        globalMetadata,
-        mockResolver
+        globalMetadata
       )
+      const sut = new DecomposedHandler(changeType, element, work)
       const expectSubject =
         method === 'handleDeletion'
           ? work.diffs.destructiveChanges

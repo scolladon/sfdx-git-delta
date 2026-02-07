@@ -24,7 +24,8 @@ export default class DiffLineInterpreter {
     )
 
     for (const line of lines) {
-      const handler: StandardHandler = typeHandlerFactory.getTypeHandler(line)
+      const handler: StandardHandler =
+        await typeHandlerFactory.getTypeHandler(line)
       processor.push(handler)
     }
 
