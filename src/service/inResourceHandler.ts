@@ -1,8 +1,11 @@
 'use strict'
 import { parse } from 'node:path/posix'
 
+import { eachLimit } from 'async'
+
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { META_REGEX, METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
@@ -49,9 +52,11 @@ export default class ResourceHandler extends StandardHandler {
     const resourceFiles = allStaticResources.filter((file: string) =>
       startsWithMetadataName.test(file)
     )
-    for (const resourceFile of resourceFiles) {
-      await this._copy(resourceFile)
-    }
+    await eachLimit(
+      resourceFiles,
+      getConcurrencyThreshold(),
+      async (resourceFile: string) => this._copy(resourceFile)
+    )
   }
 
   protected override _getElementName() {
@@ -64,12 +69,6 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected override _getParsedPath() {
-    // Use resolved metadata boundaryIndex if available
-    if (this.resolvedMetadata) {
-      const base = this.splittedLine[this.resolvedMetadata.boundaryIndex]
-      return parse(base.replace(META_REGEX, ''))
-    }
-    // Fallback to original logic for cases where resolver doesn't find metadata
     const base =
       !this.metadataDef.excluded && this.ext === this.metadataDef.suffix
         ? this.splittedLine.at(-1)!
