@@ -1,5 +1,12 @@
 export default [
   {
+    directoryName: 'fieldServiceMobileConfigs',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'fieldServiceMobileConfig',
+    xmlName: 'FieldServiceMobileConfig',
+  },
+  {
     directoryName: 'stageDefinitions',
     inFolder: false,
     metaFile: false,
