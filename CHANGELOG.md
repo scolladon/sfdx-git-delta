@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.31.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.30.0...v6.31.0) (2026-02-12)
+
+
+### Features
+
+* support `FieldServiceMobileConfig` metadata ([#1201](https://github.com/scolladon/sfdx-git-delta/issues/1201)) ([e6d51a5](https://github.com/scolladon/sfdx-git-delta/commit/e6d51a592ab5a034c00e3b5d78289d35eced3de4))
+
 ## [6.30.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.29.0...v6.30.0) (2026-02-04)
 
 
