@@ -354,6 +354,16 @@ export default [
     excluded: true,
   },
 
+  // MarketingAppExtActivity - child type with special handling
+  {
+    inFolder: false,
+    metaFile: false,
+    parentXmlName: 'MarketingAppExtension',
+    xmlName: 'MarketingAppExtActivity',
+    xmlTag: 'marketingAppExtActivities',
+    key: 'fullName',
+  },
+
   {
     directoryName: 'bots',
     inFolder: false,
@@ -455,5 +465,49 @@ export default [
         xmlName: 'WaveXmd',
       },
     ],
+  },
+  // SDR gap-fillers: types not yet in SDR registry.
+  // Automatically removed by tooling/syncInternalRegistry.ts when SDR adds them.
+  {
+    directoryName: 'activationPlatformFields',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'activationPlatformField',
+    xmlName: 'ActivationPlatformField',
+  },
+  {
+    directoryName: 'actvPfrmDataConnectorS3s',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'actvPfrmDataConnectorS3',
+    xmlName: 'ActvPfrmDataConnectorS3',
+  },
+  {
+    directoryName: 'actvPlatformAdncIdentifiers',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'actvPlatformAdncIdentifier',
+    xmlName: 'ActvPlatformAdncIdentifier',
+  },
+  {
+    directoryName: 'actvPlatformFieldValues',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'actvPlatformFieldValue',
+    xmlName: 'ActvPlatformFieldValue',
+  },
+  {
+    directoryName: 'dataSourceFields',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'dataSourceField',
+    xmlName: 'DataSourceField',
+  },
+  {
+    directoryName: 'SearchResultActionConfigSettings',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'SearchResultActionConfigSetting',
+    xmlName: 'SearchResultActionConfig',
   },
 ] as Metadata[]
