@@ -166,7 +166,7 @@ export default [
     inFolder: false,
     metaFile: false,
     parentXmlName: 'Profile',
-    xmlName: 'ProfileLoginFlow',
+    xmlName: 'LoginFlow',
     xmlTag: 'loginFlows',
     key: 'friendlyname',
     excluded: true,
