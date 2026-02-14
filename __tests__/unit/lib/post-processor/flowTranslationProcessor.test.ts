@@ -17,7 +17,7 @@ import {
   readFile,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
-import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
+import { parseXmlFileToJson } from '../../../../src/utils/xmlHelper'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -39,10 +39,10 @@ jest.mock('../../../../src/utils/ignoreHelper', () => ({
     },
   })),
 }))
-jest.mock('../../../../src/utils/fxpHelper', () => {
+jest.mock('../../../../src/utils/xmlHelper', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
   const originalModule: any = jest.requireActual(
-    '../../../../src/utils/fxpHelper'
+    '../../../../src/utils/xmlHelper'
   )
 
   return {

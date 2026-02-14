@@ -5,15 +5,15 @@ import { isUndefined } from 'lodash-es'
 import type { Config } from '../types/config.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
 import type { Manifest } from '../types/work.js'
+import { log } from './LoggingDecorator.js'
+import { fillPackageWithParameter } from './packageHelper.js'
 import {
   ATTRIBUTE_PREFIX,
   convertJsonToXml,
   parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
   type XmlContent,
-} from './fxpHelper.js'
-import { log } from './LoggingDecorator.js'
-import { fillPackageWithParameter } from './packageHelper.js'
+} from './xmlHelper.js'
 
 /**
  * Special key markers for metadata comparison strategies.

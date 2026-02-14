@@ -8,16 +8,16 @@ import {
 } from '../../../../src/metadata/metadataManager'
 import { SharedFileMetadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
+import MetadataDiff from '../../../../src/utils/metadataDiff'
 import {
   convertJsonToXml,
   parseXmlFileToJson,
-} from '../../../../src/utils/fxpHelper'
-import MetadataDiff from '../../../../src/utils/metadataDiff'
+} from '../../../../src/utils/xmlHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fxpHelper', () => {
+jest.mock('../../../../src/utils/xmlHelper', () => {
   const actualModule: any = jest.requireActual(
-    '../../../../src/utils/fxpHelper'
+    '../../../../src/utils/xmlHelper'
   )
   return {
     ...actualModule,

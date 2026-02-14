@@ -12,14 +12,14 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
 import { readDirs, writeFile } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
+import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
+import { log } from '../utils/LoggingDecorator.js'
+import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import {
   convertJsonToXml,
   parseXmlFileToJson,
   xml2Json,
-} from '../utils/fxpHelper.js'
-import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
-import { fillPackageWithParameter } from '../utils/packageHelper.js'
+} from '../utils/xmlHelper.js'
 import BaseProcessor from './baseProcessor.js'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
