@@ -69,11 +69,8 @@ describe(`test if the application`, () => {
       },
     })
 
-    // Act
-    await configValidator.validateConfig()
-
-    // Assert
-    expect(1).toBe(1)
+    // Act & Assert
+    await expect(configValidator.validateConfig()).resolves.not.toThrow()
   })
 
   it('add errors when repo is not a git repository', async () => {
@@ -206,11 +203,8 @@ describe(`test if the application`, () => {
       },
     })
 
-    // Act
-    await configValidator.validateConfig()
-
-    // Assert
-    expect(1).toBe(1)
+    // Act & Assert
+    await expect(configValidator.validateConfig()).resolves.not.toThrow()
   })
 
   it('do not throw errors when repo contains submodule git file', async () => {
