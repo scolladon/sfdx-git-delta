@@ -15,9 +15,11 @@ import {
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
+import { getErrorMessage } from '../utils/errorUtils.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 
 const EOL = new RegExp(/\r?\n/)
 
@@ -63,7 +65,10 @@ export default class GitAdapter {
         revPath({ path, oid: revision }),
       ])
       doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
-    } catch {
+    } catch (error) {
+      Logger.debug(
+        lazy`pathExistsImpl: path '${path}' at revision '${revision}' not found: ${() => getErrorMessage(error)}`
+      )
       doesPathExists = false
     }
     return doesPathExists
@@ -190,7 +195,10 @@ export default class GitAdapter {
         .filter(line => line && line.startsWith(dir))
         .map(line => line.split(PATH_SEP).pop()!)
         .filter(name => name)
-    } catch {
+    } catch (error) {
+      Logger.debug(
+        lazy`listDirAtRevision: failed to list '${dir}' at '${revision}': ${() => getErrorMessage(error)}`
+      )
       return []
     }
   }

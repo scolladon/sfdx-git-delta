@@ -6,6 +6,8 @@ import {
   PATH_SEPARATOR_REGEX,
   UTF8_ENCODING,
 } from '../constant/fsConstants.js'
+import { getErrorMessage } from './errorUtils.js'
+import { Logger, lazy } from './LoggingService.js'
 
 export const fs = {
   access: fsImpl.access,
@@ -31,7 +33,10 @@ export const dirExists = async (dir: string) => {
   try {
     const st = await fs.stat(dir)
     return st.isDirectory()
-  } catch {
+  } catch (error) {
+    Logger.debug(
+      lazy`dirExists: '${dir}' not found: ${() => getErrorMessage(error)}`
+    )
     return false
   }
 }
@@ -40,7 +45,10 @@ export const fileExists = async (file: string) => {
   try {
     const st = await fs.stat(file)
     return st.isFile()
-  } catch {
+  } catch (error) {
+    Logger.debug(
+      lazy`fileExists: '${file}' not found: ${() => getErrorMessage(error)}`
+    )
     return false
   }
 }
@@ -49,7 +57,10 @@ export const pathExists = async (path: string) => {
   let pathIsAccessible = true
   try {
     await fs.access(path)
-  } catch {
+  } catch (error) {
+    Logger.debug(
+      lazy`pathExists: '${path}' not accessible: ${() => getErrorMessage(error)}`
+    )
     pathIsAccessible = false
   }
   return pathIsAccessible
