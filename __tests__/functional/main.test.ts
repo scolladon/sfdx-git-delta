@@ -4,7 +4,11 @@ import { describe, expect, it, jest } from '@jest/globals'
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
-import { emptyResult } from '../../src/types/handlerResult'
+import {
+  CopyOperationKind,
+  emptyResult,
+  ManifestTarget,
+} from '../../src/types/handlerResult'
 
 const mockValidateConfig = jest.fn()
 jest.mock('../../src/utils/configValidator', () => {
@@ -80,6 +84,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
+  mockGetLines.mockResolvedValue([] as never)
 })
 
 describe('external library inclusion', () => {
@@ -130,6 +135,87 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(mockProcess).toHaveBeenCalledWith(['line'])
+    })
+  })
+
+  describe('orchestration flow', () => {
+    it('Given valid config, When sgd runs, Then returns work with diffs and empty warnings', async () => {
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert
+      expect(result.diffs).toBeDefined()
+      expect(result.diffs.package).toBeInstanceOf(Map)
+      expect(result.diffs.destructiveChanges).toBeInstanceOf(Map)
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given handler produces copies, When sgd runs, Then IOExecutor receives combined copies', async () => {
+      // Arrange
+      const handlerCopy = {
+        kind: CopyOperationKind.GitCopy as const,
+        path: 'test/path',
+        revision: 'HEAD',
+      }
+      mockProcess.mockResolvedValueOnce({
+        manifests: [],
+        copies: [handlerCopy],
+        warnings: [],
+      })
+
+      // Act
+      await sgd({} as Config)
+
+      // Assert
+      expect(mockExecute).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ path: 'test/path' })])
+      )
+    })
+
+    it('Given post-processor produces results, When sgd runs, Then results are merged into work', async () => {
+      // Arrange
+      mockCollectAll.mockResolvedValueOnce({
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'TestClass',
+          },
+        ],
+        copies: [],
+        warnings: [],
+      })
+
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert
+      expect(result.diffs.package.has('ApexClass')).toBe(true)
+      expect(mockExecuteRemaining).toHaveBeenCalledTimes(1)
+    })
+
+    it('Given handler and post-processor produce warnings, When sgd runs, Then warnings are collected in work', async () => {
+      // Arrange
+      const handlerWarning = new Error('handler warning')
+      const postWarning = new Error('post-processor warning')
+      mockProcess.mockResolvedValueOnce({
+        manifests: [],
+        copies: [],
+        warnings: [handlerWarning],
+      })
+      mockCollectAll.mockResolvedValueOnce({
+        manifests: [],
+        copies: [],
+        warnings: [postWarning],
+      })
+
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert
+      expect(result.warnings).toHaveLength(2)
+      expect(result.warnings).toContain(handlerWarning)
+      expect(result.warnings).toContain(postWarning)
     })
   })
 })
