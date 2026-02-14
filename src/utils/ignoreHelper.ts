@@ -14,6 +14,9 @@ import { log } from './LoggingDecorator.js'
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {
+  private static ignoreInstance: IgnoreHelper | null = null
+  private static includeInstance: IgnoreHelper | null = null
+
   constructor(
     public readonly globalIgnore: Ignore,
     protected readonly destructiveIgnore: Ignore
@@ -34,28 +37,39 @@ export class IgnoreHelper {
 
     return !ignInstance?.ignores(filePath)
   }
+
+  static resetIgnoreInstance() {
+    IgnoreHelper.ignoreInstance = null
+  }
+
+  static resetIncludeInstance() {
+    IgnoreHelper.includeInstance = null
+  }
 }
 
-let ignoreInstance: IgnoreHelper | null
 export const buildIgnoreHelper = async ({
-  ignore,
+  ignore: ignorePath,
   ignoreDestructive,
 }: {
   ignore?: string | undefined
   ignoreDestructive?: string | undefined
 }) => {
-  if (!ignoreInstance) {
-    const globalIgnore = await _buildIgnore(ignore)
-    const destructiveIgnore = await _buildIgnore(ignoreDestructive || ignore)
+  if (!IgnoreHelper['ignoreInstance']) {
+    const globalIgnore = await _buildIgnore(ignorePath)
+    const destructiveIgnore = await _buildIgnore(
+      ignoreDestructive || ignorePath
+    )
 
     destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
 
-    ignoreInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
+    IgnoreHelper['ignoreInstance'] = new IgnoreHelper(
+      globalIgnore,
+      destructiveIgnore
+    )
   }
-  return ignoreInstance
+  return IgnoreHelper['ignoreInstance']
 }
 
-let includeInstance: IgnoreHelper | null
 export const buildIncludeHelper = async ({
   include,
   includeDestructive,
@@ -63,13 +77,16 @@ export const buildIncludeHelper = async ({
   include?: string | undefined
   includeDestructive?: string | undefined
 }) => {
-  if (!includeInstance) {
+  if (!IgnoreHelper['includeInstance']) {
     const globalIgnore = await _buildIgnore(include)
     const destructiveIgnore = await _buildIgnore(includeDestructive)
 
-    includeInstance = new IgnoreHelper(globalIgnore, destructiveIgnore)
+    IgnoreHelper['includeInstance'] = new IgnoreHelper(
+      globalIgnore,
+      destructiveIgnore
+    )
   }
-  return includeInstance
+  return IgnoreHelper['includeInstance']
 }
 
 const _buildIgnore = async (ignorePath: string | undefined) => {
@@ -79,12 +96,4 @@ const _buildIgnore = async (ignorePath: string | undefined) => {
     ign.add(content.toString())
   }
   return ign
-}
-
-export const resetIgnoreInstance = () => {
-  ignoreInstance = null
-}
-
-export const resetIncludeInstance = () => {
-  includeInstance = null
 }
