@@ -20,13 +20,13 @@ jobs:
 
       - name: Checkout PR branch
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 

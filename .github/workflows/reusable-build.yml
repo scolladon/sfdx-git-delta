@@ -36,7 +36,7 @@ jobs:
         continue-on-error: true
 
       - name: Checkout e2e sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: 'e2e/head'
           fetch-depth: 0
