@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { SimpleGit, simpleGit } from 'simple-git'
-import { TAB } from '../constant/cliConstants.js'
 import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
@@ -10,7 +9,6 @@ import {
   HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
-  NUM_STAT_CHANGE_INFORMATION,
   TREE_TYPE,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
@@ -243,31 +241,17 @@ export default class GitAdapter {
 
   @log
   public async getDiffLines(): Promise<string[]> {
-    let lines: string[] = []
-    for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
-      const linesOfType = await this.getDiffForType(changeType)
-      lines = lines.concat(
-        linesOfType.map(line =>
-          line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}${TAB}`)
-        )
-      )
-    }
-    return lines.map(treatPathSep)
-  }
-
-  protected async getDiffForType(changeType: string): Promise<string[]> {
-    return (
-      await this.simpleGit.raw([
-        'diff',
-        '--numstat',
-        '--no-renames',
-        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-        `--diff-filter=${changeType}`,
-        this.config.from,
-        this.config.to,
-        '--',
-        ...this.config.source,
-      ])
-    ).split(EOL)
+    const output = await this.simpleGit.raw([
+      'diff',
+      '--name-status',
+      '--no-renames',
+      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+      `--diff-filter=${ADDITION}${MODIFICATION}${DELETION}`,
+      this.config.from,
+      this.config.to,
+      '--',
+      ...this.config.source,
+    ])
+    return output.split(EOL).filter(Boolean).map(treatPathSep)
   }
 }

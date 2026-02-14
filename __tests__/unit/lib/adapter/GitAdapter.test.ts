@@ -610,21 +610,19 @@ describe('GitAdapter', () => {
   })
 
   describe('getDiffLines', () => {
-    it('calls diff numstats', async () => {
+    it('calls diff name-status', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue(
-        `1\t11\ttest\n1\t11\tfile\n1\t1\tanotherfile` as never
-      )
+      mockedRaw.mockResolvedValue(`A\ttest\nM\tfile\nD\tanotherfile` as never)
 
       // Act
       const result = await gitAdapter.getDiffLines()
 
       // Assert
-      expect(result.length).toBe(9)
-      expect(mockedRaw).toHaveBeenCalledTimes(3)
+      expect(result).toEqual(['A\ttest', 'M\tfile', 'D\tanotherfile'])
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
       expect(mockedRaw).toHaveBeenCalledWith(
-        expect.arrayContaining(['diff', '--numstat', '--no-renames'])
+        expect.arrayContaining(['diff', '--name-status', '--no-renames'])
       )
     })
 
@@ -633,20 +631,18 @@ describe('GitAdapter', () => {
         // Arrange
         config.ignoreWhitespace = true
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw.mockResolvedValue(
-          `1\t11\ttest\n1\t11\tfile\n1\t1\tanotherfile` as never
-        )
+        mockedRaw.mockResolvedValue(`A\ttest\nM\tfile\nD\tanotherfile` as never)
 
         // Act
         const result = await gitAdapter.getDiffLines()
 
         // Assert
-        expect(result.length).toBe(9)
-        expect(mockedRaw).toHaveBeenCalledTimes(3)
+        expect(result).toEqual(['A\ttest', 'M\tfile', 'D\tanotherfile'])
+        expect(mockedRaw).toHaveBeenCalledTimes(1)
         expect(mockedRaw).toHaveBeenCalledWith(
           expect.arrayContaining([
             'diff',
-            '--numstat',
+            '--name-status',
             '--no-renames',
             ...IGNORE_WHITESPACE_PARAMS,
           ])
