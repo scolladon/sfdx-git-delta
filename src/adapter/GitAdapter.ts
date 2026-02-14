@@ -218,6 +218,30 @@ export default class GitAdapter {
   }
 
   @log
+  public async gitGrep(
+    pattern: string,
+    path: string,
+    revision: string = this.config.to
+  ): Promise<string[]> {
+    try {
+      const result = await this.simpleGit.raw([
+        'grep',
+        '-l',
+        pattern,
+        revision,
+        '--',
+        path,
+      ])
+      return result
+        .split(EOL)
+        .filter(line => line)
+        .map(line => treatPathSep(line))
+    } catch {
+      return []
+    }
+  }
+
+  @log
   public async getDiffLines(): Promise<string[]> {
     let lines: string[] = []
     for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
