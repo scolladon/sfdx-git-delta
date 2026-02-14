@@ -1,7 +1,13 @@
 'use strict'
 import { describe, expect, it } from '@jest/globals'
 
-import { getErrorMessage, wrapError } from '../../../../src/utils/errorUtils'
+import {
+  ConfigError,
+  getErrorMessage,
+  MetadataRegistryError,
+  SgdError,
+  wrapError,
+} from '../../../../src/utils/errorUtils'
 
 describe('getErrorMessage', () => {
   describe('Given an Error instance', () => {
@@ -83,9 +89,59 @@ describe('getErrorMessage', () => {
   })
 })
 
+describe('SgdError', () => {
+  it('Given a message, When constructed, Then is an instance of Error with name SgdError', () => {
+    // Act
+    const error = new SgdError('test')
+
+    // Assert
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(SgdError)
+    expect(error.name).toBe('SgdError')
+    expect(error.message).toBe('test')
+  })
+
+  it('Given a cause, When constructed, Then preserves the cause', () => {
+    // Arrange
+    const cause = new Error('root')
+
+    // Act
+    const error = new SgdError('wrapped', { cause })
+
+    // Assert
+    expect(error.cause).toBe(cause)
+  })
+})
+
+describe('ConfigError', () => {
+  it('Given a message, When constructed, Then is an instance of SgdError', () => {
+    // Act
+    const error = new ConfigError('bad config')
+
+    // Assert
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(SgdError)
+    expect(error).toBeInstanceOf(ConfigError)
+    expect(error.name).toBe('ConfigError')
+  })
+})
+
+describe('MetadataRegistryError', () => {
+  it('Given a message, When constructed, Then is an instance of SgdError', () => {
+    // Act
+    const error = new MetadataRegistryError('bad registry')
+
+    // Assert
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(SgdError)
+    expect(error).toBeInstanceOf(MetadataRegistryError)
+    expect(error.name).toBe('MetadataRegistryError')
+  })
+})
+
 describe('wrapError', () => {
   describe('Given a message and Error cause', () => {
-    it('When called, Then creates Error with message and cause', () => {
+    it('When called, Then creates SgdError with message and cause', () => {
       // Arrange
       const message = 'wrapped error message'
       const cause = new Error('original error')
@@ -94,7 +150,7 @@ describe('wrapError', () => {
       const result = wrapError(message, cause)
 
       // Assert
-      expect(result).toBeInstanceOf(Error)
+      expect(result).toBeInstanceOf(SgdError)
       expect(result.message).toBe('wrapped error message')
       expect(result.cause).toBe(cause)
     })
@@ -110,7 +166,7 @@ describe('wrapError', () => {
       const result = wrapError(message, cause)
 
       // Assert
-      expect(result).toBeInstanceOf(Error)
+      expect(result).toBeInstanceOf(SgdError)
       expect(result.message).toBe('wrapped error')
       expect(result.cause).toBe('string cause')
     })
@@ -126,7 +182,7 @@ describe('wrapError', () => {
       const result = wrapError(message, cause)
 
       // Assert
-      expect(result).toBeInstanceOf(Error)
+      expect(result).toBeInstanceOf(SgdError)
       expect(result.message).toBe('wrapped error')
       expect(result.cause).toBe(null)
     })

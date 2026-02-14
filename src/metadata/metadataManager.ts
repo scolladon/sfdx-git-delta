@@ -8,6 +8,7 @@ import {
   type SharedFileMetadata,
   type SharedFolderMetadata,
 } from '../schemas/metadata.js'
+import { MetadataRegistryError } from '../utils/errorUtils.js'
 import { readFile } from '../utils/fsUtils.js'
 
 import { MetadataRepository } from './MetadataRepository.js'
@@ -72,11 +73,11 @@ export const getDefinition = async (
         const issues = err.issues
           .map(issue => `  - ${issue.path.join('.')}: ${issue.message}`)
           .join('\n')
-        throw new Error(
+        throw new MetadataRegistryError(
           `Invalid additional metadata registry file '${additionalMetadataRegistryPath}':\n${issues}`
         )
       }
-      throw new Error(
+      throw new MetadataRegistryError(
         `Unable to parse the additional metadata registry file '${additionalMetadataRegistryPath}'. Caused by: ${err}`
       )
     }

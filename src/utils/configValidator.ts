@@ -6,6 +6,7 @@ import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
+import { ConfigError } from './errorUtils.js'
 import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { MessageService } from './MessageService.js'
@@ -67,7 +68,7 @@ export default class ConfigValidator {
     errors.push(...gitErrors)
 
     if (errors.length > 0) {
-      throw new Error(errors.join(', '))
+      throw new ConfigError(errors.join(', '))
     }
 
     await this.gitAdapter.configureRepository()
