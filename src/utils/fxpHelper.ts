@@ -11,8 +11,7 @@ import { readPathFromGit } from './fsHelper.js'
  * Represents parsed XML content as a JSON object.
  * Used throughout the codebase for XML metadata manipulation.
  */
-// biome-ignore lint/suspicious/noExplicitAny: XML content has dynamic structure from Salesforce metadata
-export type XmlContent = Record<string, any>
+export type XmlContent = Record<string, unknown>
 
 const XML_PARSER_OPTION = {
   commentPropName: '#comment',

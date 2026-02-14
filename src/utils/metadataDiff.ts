@@ -135,8 +135,7 @@ class MetadataExtractor {
   }
 
   extractForSubType(root: XmlContent, subType: string): XmlContent[] {
-    const content = root[subType]
-    // Only cast to array if it's not already an array
+    const content = root[subType] as XmlContent | XmlContent[] | undefined
     return Array.isArray(content) ? content : content ? [content] : []
   }
 
@@ -258,8 +257,8 @@ class JsonTransformer {
       base[XML_HEADER_ATTRIBUTE_KEY] = toContent[XML_HEADER_ATTRIBUTE_KEY]
     }
     const rootKey = this.extractor.extractRootKey(toContent)
-    base[rootKey] = {}
-    const root = base[rootKey]
+    const root: XmlContent = {}
+    base[rootKey] = root
     const subKeys = this.extractor.getSubKeys(to)
 
     let hasAnyChanges = false
@@ -343,7 +342,8 @@ class JsonTransformer {
     toMeta: XmlContent[],
     keyField: string
   ): PartialResult {
-    const keySelector = (item: XmlContent[0]) => item[keyField]
+    const keySelector = (item: XmlContent) =>
+      item[keyField] as string | undefined
     const fromMap = new Map(fromMeta.map(item => [keySelector(item), item]))
     const content = toMeta.filter(item => {
       const key = keySelector(item)
