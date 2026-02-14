@@ -21,6 +21,10 @@ export default class IncludeProcessor extends BaseProcessor {
     this.gitAdapter = GitAdapter.getInstance(this.config)
   }
 
+  override get isCollector(): boolean {
+    return true
+  }
+
   protected _shouldProcess() {
     return !!this.config.include || !!this.config.includeDestructive
   }

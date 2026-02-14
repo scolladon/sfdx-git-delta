@@ -14,5 +14,9 @@ export default abstract class BaseProcessor {
     this.config = work.config
   }
 
+  get isCollector(): boolean {
+    return false
+  }
+
   public abstract process(): Promise<void>
 }
