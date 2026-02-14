@@ -46,6 +46,33 @@ jobs:
           npm run build
           npm run lint:fix
 
+      - name: Update e2e expected files API version
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        run: |
+          # Extract new API version from the updated SDR
+          NEW_VERSION=$(node -e "import('@salesforce/source-deploy-retrieve').then(m => m.getCurrentApiVersion()).then(v => process.stdout.write(v + '.0'))")
+
+          # Fetch and checkout e2e/head in a worktree
+          git fetch origin e2e/head
+          git worktree add /tmp/e2e-head origin/e2e/head
+
+          # Update <version> tags in expected XML package manifests
+          cd /tmp/e2e-head
+          find expected/package expected/destructiveChanges -name "*.xml" -exec sed -i "s|<version>[0-9.]*</version>|<version>${NEW_VERSION}</version>|g" {} +
+
+          # Amend the last commit if version changed
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add expected/package expected/destructiveChanges
+            git commit --amend --no-edit
+            git push --force-with-lease origin HEAD:e2e/head
+          fi
+
+          # Clean up worktree
+          cd -
+          git worktree remove /tmp/e2e-head
+
       - name: Commit and push if changed
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
         run: |
