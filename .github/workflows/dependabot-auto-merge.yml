@@ -18,6 +18,42 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Checkout PR branch
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        run: HUSKY=0 npm ci
+
+      - name: Build
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        run: npm run build
+
+      - name: Sync internal registry with SDR
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        run: |
+          npm run sync:internal-registry
+          npm run build
+          npm run lint:fix
+
+      - name: Commit and push if changed
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/metadata/internalRegistry.ts
+          git diff --staged --quiet || git commit -m "build(deps): sync internal registry with SDR update"
+          git push
+
       - name: Enable auto-merge for Dependabot PRs
         # Only for SDR updates in npm ecosystem
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')

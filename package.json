@@ -127,7 +127,8 @@
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit": "wireit",
-    "test": "wireit"
+    "test": "wireit",
+    "sync:internal-registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts"
   },
   "funding": {
     "type": "github",
