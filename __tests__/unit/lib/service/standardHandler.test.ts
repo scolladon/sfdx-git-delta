@@ -8,11 +8,12 @@ import {
 } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import StandardHandler from '../../../../src/service/standardHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Logger } from '../../../../src/utils/LoggingService'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedCopyFiles = jest.mocked(copyFiles)
@@ -44,7 +45,7 @@ beforeEach(() => {
 describe(`StandardHandler`, () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   beforeEach(() => {
@@ -395,6 +396,24 @@ describe(`StandardHandler`, () => {
       expect(result[0]).toBe(`${entityPath}`)
       expect(result[1]).toBe(`${basePath}${classType.directoryName}`)
       expect(result[2]).toBe(`${entity}.${classType.suffix}`)
+    })
+
+    it('should cache and reuse regex on subsequent calls', () => {
+      // Arrange
+      const sut = new StandardHandler(
+        `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
+        classType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      const firstResult = sut['_parseLine']()
+      const secondResult = sut['_parseLine']()
+
+      // Assert
+      expect(firstResult).toEqual(secondResult)
+      expect(sut['lineRegex']).toBeDefined()
     })
   })
 

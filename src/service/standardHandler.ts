@@ -31,6 +31,7 @@ export default class StandardHandler {
   protected readonly ext: string
   protected readonly parsedLine: ParsedPath
   protected readonly parentFolder: string
+  private lineRegex: RegExp
 
   constructor(
     protected readonly line: string,
@@ -50,6 +51,12 @@ export default class StandardHandler {
     }
 
     this.suffixRegex = new RegExp(`\\.${this.metadataDef.suffix}$`)
+    this.lineRegex = new RegExp(
+      `(?<path>.*[/\\\\]?${RegExpEscape(
+        this.metadataDef.directoryName
+      )})[/\\\\](?<name>[^/\\\\]*)+`,
+      'u'
+    )
     this.parsedLine = parse(this.line)
     this.ext = this.parsedLine.base
       .replace(METAFILE_SUFFIX, '')
@@ -162,14 +169,7 @@ export default class StandardHandler {
   }
 
   protected _parseLine() {
-    return this.line.match(
-      new RegExp(
-        `(?<path>.*[/\\\\]?${RegExpEscape(
-          this.metadataDef.directoryName
-        )})[/\\\\](?<name>[^/\\\\]*)+`,
-        'u'
-      )
-    )
+    return this.line.match(this.lineRegex)
   }
 
   protected _isProcessable() {

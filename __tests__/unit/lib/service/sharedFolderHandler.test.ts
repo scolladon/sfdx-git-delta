@@ -3,10 +3,11 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
@@ -41,7 +42,7 @@ beforeEach(() => {
 describe('SharedFolderHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   it('should add the metadata component under the right type to the package', async () => {
@@ -54,6 +55,25 @@ describe('SharedFolderHandler', () => {
     // Assert
     expect(work.diffs.package.get(entityType)!.size).toEqual(1)
     expect(work.diffs.package.get(entityType)).toEqual(new Set([entityName]))
+  })
+
+  describe('when extension has no matching type', () => {
+    it('should not add to package', async () => {
+      // Arrange
+      const unknownExtLine = `A       ${basePath}${objectType}/Test.unknownext`
+      const sut = new SharedFolderHandler(
+        unknownExtLine,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.size).toEqual(0)
+    })
   })
   describe('when it should generate output file', () => {
     beforeEach(() => {

@@ -2,6 +2,7 @@
 import { describe, expect, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import CustomField from '../../../../src/service/customFieldHandler'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
@@ -14,12 +15,12 @@ import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { Work } from '../../../../src/types/work'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
   beforeAll(async () => {
-    const globalMetadata: MetadataRepository = await getGlobalMetadata()
+    const globalMetadata: MetadataRepository = await getDefinition({})
     const work: Work = getWork()
     work.config.apiVersion = 46
     typeHandlerFactory = new TypeHandlerFactory(work, globalMetadata)

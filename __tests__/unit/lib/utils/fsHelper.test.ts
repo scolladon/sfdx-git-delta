@@ -16,7 +16,7 @@ import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('fs-extra')
 
@@ -86,6 +86,26 @@ describe('readPathFromGit', () => {
 
       // Assert
       expect(content).toBe(value)
+    })
+  })
+
+  describe('when git adapter throws an error', () => {
+    beforeEach(() => {
+      // Arrange
+      mockGetStringContent.mockImplementation(() =>
+        Promise.reject(new Error('git error'))
+      )
+    })
+
+    it('returns empty string and logs the error', async () => {
+      // Act
+      const content = await readPathFromGit(
+        { path: 'path/file', oid: work.config.to },
+        work.config
+      )
+
+      // Assert
+      expect(content).toBe('')
     })
   })
 })

@@ -13,6 +13,14 @@ jest.mock('@salesforce/core', () => {
         getMessages: mockedMessages,
       })),
     },
+    Logger: {
+      childFromRoot: jest.fn(() => ({
+        setLevel: jest.fn(),
+        shouldLog: jest.fn(),
+        trace: jest.fn(),
+      })),
+    },
+    LoggerLevel: {},
   }
 })
 

@@ -2,12 +2,13 @@
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BaseProcessor from '../../../../src/post-processor/baseProcessor'
 import PostProcessorManager, {
   getPostProcessors,
 } from '../../../../src/post-processor/postProcessorManager'
 import type { Work } from '../../../../src/types/work'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 const processSpy = jest.fn()
 
@@ -24,7 +25,7 @@ describe('postProcessorManager', () => {
   const work: Work = getWork()
   let metadata: MetadataRepository
   beforeAll(async () => {
-    metadata = await getGlobalMetadata()
+    metadata = await getDefinition({})
   })
 
   describe('getPostProcessors', () => {

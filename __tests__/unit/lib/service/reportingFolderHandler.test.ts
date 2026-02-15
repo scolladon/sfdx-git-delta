@@ -3,10 +3,11 @@ import { describe, expect, it, jest } from '@jest/globals'
 
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = jest.mocked(readDirs)
@@ -62,7 +63,7 @@ beforeEach(() => {
 describe('InNestedFolderHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    globalMetadata = await getGlobalMetadata()
+    globalMetadata = await getDefinition({})
   })
 
   describe.each(
@@ -169,6 +170,28 @@ describe('InNestedFolderHandler', () => {
       // Assert
       expect(work.diffs.package.size).toBe(0)
       expect(copyFiles).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('when extension has no matching type in sharedFolderMetadata', () => {
+    it('should not add to package but still process the line', async () => {
+      // Arrange
+      // Using nested path makes _parentFolderIsNotTheType() return true
+      // so the line is processable, but unknown extension has no type mapping
+      const nestedPath = `force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
+      work.config.generateDelta = false
+      const sut = new ReportingFolderHandler(
+        `A       ${nestedPath}`,
+        objectType,
+        work,
+        globalMetadata
+      )
+
+      // Act
+      await sut.handleAddition()
+
+      // Assert
+      expect(work.diffs.package.size).toBe(0)
     })
   })
 })

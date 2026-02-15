@@ -78,7 +78,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   }
 
   protected _getHolderPath(): string {
-    return join(this.holderFolder?.dir ?? '', this.holderFolder?.base ?? '')
+    return join(this.holderFolder!.dir, this.holderFolder!.base)
   }
 
   protected async _hasRelatedContent(): Promise<boolean> {
@@ -91,7 +91,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
-    return this.holderFolder?.base ?? ''
+    return this.holderFolder!.base
   }
 
   protected override _isProcessable() {

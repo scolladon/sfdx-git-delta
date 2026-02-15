@@ -2,13 +2,14 @@
 import { describe, expect, it, jest } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import type { Work } from '../../../../src/types/work'
 import {
   buildIncludeHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 const mockProcess = jest.fn()
 jest.mock('../../../../src/service/diffLineInterpreter', () => {
@@ -44,7 +45,7 @@ describe('IncludeProcessor', () => {
   let metadata: MetadataRepository
 
   beforeAll(async () => {
-    metadata = await getGlobalMetadata()
+    metadata = await getDefinition({})
   })
 
   beforeEach(() => {

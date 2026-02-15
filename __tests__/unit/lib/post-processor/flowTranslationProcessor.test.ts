@@ -7,6 +7,7 @@ import {
   TRANSLATION_TYPE,
 } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
+import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import type { Work } from '../../../../src/types/work'
 import { readDirs, writeFile } from '../../../../src/utils/fsHelper'
@@ -17,7 +18,7 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 import { parseXmlFileToJson } from '../../../../src/utils/fxpHelper'
-import { getGlobalMetadata, getWork } from '../../../__utils__/globalTestHelper'
+import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsUtils')
@@ -61,7 +62,7 @@ describe('FlowTranslationProcessor', () => {
   let metadata: MetadataRepository
 
   beforeAll(async () => {
-    metadata = await getGlobalMetadata()
+    metadata = await getDefinition({})
   })
 
   describe.each(
