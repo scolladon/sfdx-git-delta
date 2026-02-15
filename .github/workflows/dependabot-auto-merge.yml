@@ -41,8 +41,7 @@ jobs:
       - name: Sync internal registry with SDR
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
         run: |
-          TS_NODE_COMPILER_OPTIONS='{"rootDir":"."}' node --loader ts-node/esm tooling/checkSdrMetadataCoverage.ts > coverage-result.json
-          TS_NODE_COMPILER_OPTIONS='{"rootDir":"."}' node --loader ts-node/esm tooling/syncInternalRegistry.ts coverage-result.json
+          npm run sync:registry
           npm run build
           npm run lint:fix
 

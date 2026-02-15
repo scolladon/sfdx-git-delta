@@ -46,30 +46,16 @@ for (const sdrType of Object.values(registry.types)) {
   }
 }
 
-// Find redundant internal types (present in both SDR and internal registry)
-const redundantInternalTypes = internalRegistry
-  .filter(entry => entry.xmlName && sdrXmlNames.has(entry.xmlName))
-  .map(entry => ({
-    xmlName: entry.xmlName!,
-    isAutoRemovable: isSimpleGapFiller(entry),
-  }))
-
-// Report coverage
-console.log(
-  JSON.stringify(
-    {
-      sdrTypeCount: sdrXmlNames.size,
-      internalTypeCount: internalRegistry.length,
-      redundantInternalTypes,
-    },
-    null,
-    2
-  )
-)
-
-// Determine what to remove
+// Find auto-removable redundant types (simple gap-fillers now covered by SDR)
 const toRemove = new Set(
-  redundantInternalTypes.filter(t => t.isAutoRemovable).map(t => t.xmlName)
+  internalRegistry
+    .filter(
+      entry =>
+        entry.xmlName &&
+        sdrXmlNames.has(entry.xmlName) &&
+        isSimpleGapFiller(entry)
+    )
+    .map(entry => entry.xmlName!)
 )
 
 if (toRemove.size === 0) {
