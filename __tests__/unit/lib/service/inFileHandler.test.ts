@@ -682,6 +682,37 @@ describe('inFileHandler collect', () => {
     expect(result.warnings).toHaveLength(0)
   })
 
+  it('Given compare throws an error, When collect, Then returns warning with meaningful message', async () => {
+    // Arrange
+    work.config.from = 'commitA'
+    work.config.to = 'commitB'
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.reject(
+        new Error("Cannot read properties of undefined (reading 'addChild')")
+      )
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toHaveLength(0)
+    expect(result.copies).toHaveLength(0)
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0].message).toContain(
+      'force-app/main/default/workflows/Account.workflow-meta.xml'
+    )
+    expect(result.warnings[0].message).toContain('commitA')
+    expect(result.warnings[0].message).toContain('commitB')
+    expect(result.warnings[0].cause).toBeInstanceOf(Error)
+  })
+
   it('Given modified workflow with added and deleted elements, When collect, Then returns both Package and DestructiveChanges manifests', async () => {
     // Arrange
     const { changeType, element } = createElement(
