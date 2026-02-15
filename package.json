@@ -128,8 +128,7 @@
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit": "wireit",
     "test": "wireit",
-    "check:metadata-coverage": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/checkSdrMetadataCoverage.ts",
-    "sync:internal-registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistry.ts"
+    "sync:internal-registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts"
   },
   "funding": {
     "type": "github",

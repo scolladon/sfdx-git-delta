@@ -1,21 +1,12 @@
 #!/usr/bin/env node
-// Reads coverage-result.json from the check script, removes auto-removable
-// redundant types from the internal registry, and rewrites the file.
+// Compares internal registry against SDR and removes auto-removable
+// gap-filler types that SDR now covers natively.
+// If nothing to remove, the registry file is left untouched.
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { registry } from '@salesforce/source-deploy-retrieve'
 import internalRegistry from '../src/metadata/internalRegistry.js'
-
-interface RedundantType {
-  xmlName: string
-  isAutoRemovable: boolean
-}
-
-interface CoverageResult {
-  sdrTypeCount: number
-  internalTypeCount: number
-  redundantInternalTypes: RedundantType[]
-}
 
 const SPECIAL_FIELDS = [
   'xmlTag',
@@ -34,6 +25,69 @@ function isSimpleGapFiller(entry: (typeof internalRegistry)[number]): boolean {
   )
 }
 
+// Collect all xmlNames from SDR
+const sdrXmlNames = new Set<string>()
+
+for (const sdrType of Object.values(registry.types)) {
+  sdrXmlNames.add(sdrType.name)
+
+  if (sdrType.children?.types) {
+    for (const child of Object.values(sdrType.children.types)) {
+      sdrXmlNames.add(child.name)
+    }
+  }
+
+  if (sdrType.folderType) {
+    const folderType =
+      registry.types[sdrType.folderType as keyof typeof registry.types]
+    if (folderType) {
+      sdrXmlNames.add(folderType.name)
+    }
+  }
+}
+
+// Find redundant internal types (present in both SDR and internal registry)
+const redundantInternalTypes = internalRegistry
+  .filter(entry => entry.xmlName && sdrXmlNames.has(entry.xmlName))
+  .map(entry => ({
+    xmlName: entry.xmlName!,
+    isAutoRemovable: isSimpleGapFiller(entry),
+  }))
+
+// Report coverage
+console.log(
+  JSON.stringify(
+    {
+      sdrTypeCount: sdrXmlNames.size,
+      internalTypeCount: internalRegistry.length,
+      redundantInternalTypes,
+    },
+    null,
+    2
+  )
+)
+
+// Determine what to remove
+const toRemove = new Set(
+  redundantInternalTypes.filter(t => t.isAutoRemovable).map(t => t.xmlName)
+)
+
+if (toRemove.size === 0) {
+  console.log('No auto-removable redundant types found. Registry is clean.')
+  process.exit(0)
+}
+
+console.log(`\nRemoving ${toRemove.size} auto-removable gap-filler(s):`)
+for (const name of toRemove) {
+  console.log(`  - ${name}`)
+}
+
+// Filter out removable entries
+const remaining = internalRegistry.filter(
+  entry => !entry.xmlName || !toRemove.has(entry.xmlName)
+)
+
+// Group by category for organized output
 function categorize(entry: (typeof internalRegistry)[number]): string {
   if (entry.xmlName?.startsWith('Virtual')) return 'virtual'
   if (entry.content) return 'virtual'
@@ -93,34 +147,6 @@ function serializeEntry(entry: (typeof internalRegistry)[number]): string {
   return lines.join('\n')
 }
 
-// Read coverage result
-const coveragePath = resolve(process.argv[2] ?? 'coverage-result.json')
-const coverageData: CoverageResult = JSON.parse(
-  readFileSync(coveragePath, 'utf-8')
-)
-
-const toRemove = new Set(
-  coverageData.redundantInternalTypes
-    .filter(t => t.isAutoRemovable)
-    .map(t => t.xmlName)
-)
-
-if (toRemove.size === 0) {
-  console.log('No auto-removable redundant types found. Registry is clean.')
-  process.exit(0)
-}
-
-console.log(`Removing ${toRemove.size} auto-removable gap-filler(s):`)
-for (const name of toRemove) {
-  console.log(`  - ${name}`)
-}
-
-// Filter out removable entries
-const remaining = internalRegistry.filter(
-  entry => !entry.xmlName || !toRemove.has(entry.xmlName)
-)
-
-// Group by category
 const groups: Record<string, typeof internalRegistry> = {}
 for (const entry of remaining) {
   const cat = categorize(entry)
@@ -155,7 +181,7 @@ const sectionOrder: [string, string][] = [
   ['virtual', ''],
   [
     'gapFiller',
-    `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/sync-internal-registry.ts when SDR adds them.`,
+    `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.`,
   ],
 ]
 
@@ -186,4 +212,4 @@ const registryPath = resolve(
   '../src/metadata/internalRegistry.ts'
 )
 writeFileSync(registryPath, output)
-console.log(`Updated ${registryPath}`)
+console.log(`\nUpdated ${registryPath}`)

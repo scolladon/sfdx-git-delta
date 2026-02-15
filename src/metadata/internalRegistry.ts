@@ -467,7 +467,7 @@ export default [
     ],
   },
   // SDR gap-fillers: types not yet in SDR registry.
-  // Automatically removed by tooling/syncInternalRegistry.ts when SDR adds them.
+  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.
   {
     directoryName: 'activationPlatformFields',
     inFolder: false,
