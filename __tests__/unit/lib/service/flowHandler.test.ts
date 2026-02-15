@@ -5,6 +5,7 @@ import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowHandler from '../../../../src/service/flowHandler'
+import { ManifestTarget } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
@@ -31,8 +32,8 @@ describe('flowHandler', () => {
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
   })
-  describe('when a flow is deleted', () => {
-    it('warns the user not to', async () => {
+  describe('collect', () => {
+    it('Given flow deletion, When collect, Then returns destructive manifest with warning', async () => {
       // Arrange
       const { changeType, element } = createElement(
         `${DELETION}       ${basePath}/MyFlow.${objectType.suffix}-meta.xml`,
@@ -40,13 +41,15 @@ describe('flowHandler', () => {
         globalMetadata
       )
       const sut = new FlowHandler(changeType, element, work)
-      expect(work.warnings.length).toBe(0)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.warnings.length).toBe(1)
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].target).toBe(ManifestTarget.DestructiveChanges)
+      expect(result.manifests[0].type).toBe('Flow')
+      expect(result.warnings).toHaveLength(1)
     })
   })
 })

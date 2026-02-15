@@ -1,17 +1,15 @@
 'use strict'
 import { LABEL_DECOMPOSED_SUFFIX } from '../constant/metadataConstants.js'
-import { log } from '../utils/LoggingDecorator.js'
+import type { HandlerResult } from '../types/handlerResult.js'
 import InFileHandler from './inFileHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomLabelHandler extends InFileHandler {
-  @log
-  public override async handleAddition() {
+  public override async collectAddition(): Promise<HandlerResult> {
     if (this._isDecomposed()) {
-      await StandardHandler.prototype.handleAddition.apply(this)
-    } else {
-      await super.handleAddition()
+      return await StandardHandler.prototype.collectAddition.call(this)
     }
+    return await super.collectAddition()
   }
 
   protected override _shouldTreatDeletionAsDeletion() {

@@ -2,9 +2,14 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { Manifest, Work } from '../types/work.js'
+import type {
+  HandlerResult,
+  ManifestElement,
+  ManifestTarget,
+} from '../types/handlerResult.js'
+import { emptyResult } from '../types/handlerResult.js'
+import type { Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
-import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import InFolderHandler from './inFolderHandler.js'
 
 export default class ReportingFolderHandler extends InFolderHandler {
@@ -15,21 +20,35 @@ export default class ReportingFolderHandler extends InFolderHandler {
     this.sharedFolderMetadata = element.getSharedFolderMetadata()
   }
 
-  protected override async _copyFolderMetaFile() {
+  public override async collectAddition(): Promise<HandlerResult> {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    if (!type) return emptyResult()
+    return await super.collectAddition()
+  }
+
+  public override async collectDeletion(): Promise<HandlerResult> {
+    const type = this.sharedFolderMetadata.get(this.element.extension)
+    if (!type) return emptyResult()
+    return await super.collectDeletion()
+  }
+
+  protected override _collectFolderMetaCopies(
+    copies: import('../types/handlerResult.js').CopyOperation[]
+  ): void {
     const folderPath = this.element.typeDirectoryPath
     const folderName = this.element.pathAfterType[0]
     const folderFileName = `${folderName}${METAFILE_SUFFIX}`
-    await this._copyWithMetaFile(join(folderPath, folderFileName))
+    this._collectCopyWithMetaFile(copies, join(folderPath, folderFileName))
   }
 
-  protected override _fillPackage(store: Manifest) {
+  protected override _collectManifestElement(
+    target: ManifestTarget
+  ): ManifestElement {
     const type = this.sharedFolderMetadata.get(this.element.extension)
-    if (!type) return
-
-    fillPackageWithParameter({
-      store,
-      type,
+    return {
+      target,
+      type: type!,
       member: this._getElementName(),
-    })
+    }
   }
 }

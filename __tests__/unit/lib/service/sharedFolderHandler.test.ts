@@ -1,16 +1,18 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
 
+import { DELETION } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
-
-jest.mock('../../../../src/utils/fsHelper')
 
 const objectType = {
   directoryName: 'discovery',
@@ -56,15 +58,22 @@ describe('SharedFolderHandler', () => {
     const sut = new SharedFolderHandler(changeType, element, work)
 
     // Act
-    await sut.handleAddition()
+    const result = await sut.collectAddition()
 
     // Assert
-    expect(work.diffs.package.get(entityType)!.size).toEqual(1)
-    expect(work.diffs.package.get(entityType)).toEqual(new Set([entityName]))
+    expect(result.manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: entityType,
+          member: entityName,
+        }),
+      ])
+    )
   })
 
   describe('when extension has no matching type', () => {
-    it('should not add to package', async () => {
+    it('should not add to package on addition', async () => {
       // Arrange
       const unknownExtLine = `A       ${basePath}${objectType}/Test.unknownext`
       const { changeType, element } = createElement(
@@ -75,10 +84,56 @@ describe('SharedFolderHandler', () => {
       const sut = new SharedFolderHandler(changeType, element, work)
 
       // Act
-      await sut.handleAddition()
+      const result = await sut.collectAddition()
 
       // Assert
-      expect(work.diffs.package.size).toEqual(0)
+      expect(result.manifests).toEqual([])
+    })
+
+    it('should not add to package on deletion', async () => {
+      // Arrange
+      const unknownExtLine = `${DELETION}       ${basePath}${objectType}/Test.unknownext`
+      const { changeType, element } = createElement(
+        unknownExtLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new SharedFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+    })
+  })
+
+  describe('collectDeletion', () => {
+    it('should add destructive manifest entry when extension matches', async () => {
+      // Arrange
+      const deletionLine = `${DELETION}       ${basePath}${objectType}/${entityName}.${entityExtension}`
+      const { changeType, element } = createElement(
+        deletionLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new SharedFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: entityType,
+            member: entityName,
+          }),
+        ])
+      )
+      expect(result.copies).toEqual([])
     })
   })
   describe('when it should generate output file', () => {
@@ -95,20 +150,31 @@ describe('SharedFolderHandler', () => {
       const sut = new SharedFolderHandler(changeType, element, work)
 
       // Act
-      await sut.handleAddition()
+      const result = await sut.collectAddition()
 
       // Assert
-      expect(work.diffs.package.get(entityType)!.size).toEqual(1)
-      expect(work.diffs.package.get(entityType)).toEqual(new Set([entityName]))
-      expect(copyFiles).toHaveBeenCalledTimes(2)
-      expect(copyFiles).toHaveBeenCalledWith(
-        work.config,
-        `${basePath}${objectType}/${entityName}.${entityExtension}`
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: entityType,
+            member: entityName,
+          }),
+        ])
       )
-      expect(copyFiles).toHaveBeenCalledWith(
-        work.config,
-        `${basePath}${objectType}/${entityName}.${entityExtension}${METAFILE_SUFFIX}`
+      expect(result.copies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: CopyOperationKind.GitCopy,
+            path: `${basePath}${objectType}/${entityName}.${entityExtension}`,
+          }),
+          expect.objectContaining({
+            kind: CopyOperationKind.GitCopy,
+            path: `${basePath}${objectType}/${entityName}.${entityExtension}${METAFILE_SUFFIX}`,
+          }),
+        ])
       )
+      expect(result.copies).toHaveLength(2)
     })
   })
 })

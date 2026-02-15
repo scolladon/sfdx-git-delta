@@ -13,14 +13,17 @@ jest.mock('node:os', () => ({
   availableParallelism: null,
 }))
 
-const mockHandle = jest.fn()
+import type { HandlerResult } from '../../../../src/types/handlerResult'
+import { emptyResult } from '../../../../src/types/handlerResult'
+
+const mockCollect = jest.fn<() => Promise<HandlerResult>>()
 jest.mock('../../../../src/service/typeHandlerFactory', () => {
   return {
     default: jest.fn().mockImplementation(() => {
       return {
         getTypeHandler: jest
           .fn()
-          .mockImplementation(async () => ({ handle: mockHandle })),
+          .mockImplementation(async () => ({ collect: mockCollect })),
       }
     }),
   }
@@ -29,6 +32,7 @@ jest.mock('../../../../src/service/typeHandlerFactory', () => {
 let work: Work
 beforeEach(() => {
   jest.clearAllMocks()
+  mockCollect.mockResolvedValue(emptyResult())
   work = getWork()
 })
 
@@ -52,7 +56,7 @@ describe('DiffLineInterpreter', () => {
         await sut.process(lines)
 
         // Assert
-        expect(mockHandle).toHaveBeenCalledTimes(lines.length)
+        expect(mockCollect).toHaveBeenCalledTimes(lines.length)
       })
     })
   })

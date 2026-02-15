@@ -6,7 +6,6 @@ import { Ignore } from 'ignore'
 import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
-  copyFiles,
   pathExists,
   readDirs,
   readPathFromGit,
@@ -25,7 +24,6 @@ jest.mock('../../../../src/utils/ignoreHelper')
 const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 
 const mockGetStringContent = jest.fn()
-const mockGetFilesFrom = jest.fn()
 const mockGetFilesPath = jest.fn()
 const mockPathExists = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => {
@@ -33,7 +31,6 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
     default: {
       getInstance: () => ({
         getStringContent: mockGetStringContent,
-        getFilesFrom: mockGetFilesFrom,
         getFilesPath: mockGetFilesPath,
         pathExists: mockPathExists,
       }),
@@ -106,179 +103,6 @@ describe('readPathFromGit', () => {
 
       // Assert
       expect(content).toBe('')
-    })
-  })
-})
-
-describe('copyFile', () => {
-  beforeEach(() => {
-    mockBuildIgnoreHelper.mockResolvedValue({
-      globalIgnore: {
-        ignores: () => false,
-      } as unknown as Ignore,
-    } as unknown as IgnoreHelper)
-  })
-  describe('when file is already copied', () => {
-    it('should not copy file', async () => {
-      await copyFiles(work.config, 'source/file')
-      jest.resetAllMocks()
-
-      // Act
-      await copyFiles(work.config, 'source/file')
-
-      // Assert
-      expect(mockGetStringContent).not.toHaveBeenCalled()
-      expect(outputFile).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('when file is already written', () => {
-    it('should not copy file', async () => {
-      // Arrange
-      await writeFile('source/file', 'content', work.config)
-      jest.resetAllMocks()
-
-      // Act
-      await copyFiles(work.config, 'source/file')
-
-      // Assert
-      expect(outputFile).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('when source location is empty', () => {
-    it('should copy file', async () => {
-      // Arrange
-      const sourcePath = 'source/copyFile'
-      mockGetFilesFrom.mockImplementation(async function* () {
-        yield await {
-          path: sourcePath,
-          content: Buffer.from(''),
-        }
-      })
-
-      // Act
-      await copyFiles(work.config, sourcePath)
-
-      // Assert
-      expect(mockGetFilesFrom).toHaveBeenCalled()
-      expect(outputFile).toHaveBeenCalledWith(
-        `output/${sourcePath}`,
-        Buffer.from('')
-      )
-    })
-  })
-
-  describe('when path is ignored', () => {
-    it('should not copy this path', async () => {
-      // Arrange
-      mockBuildIgnoreHelper.mockResolvedValue({
-        globalIgnore: {
-          ignores: () => true,
-        } as unknown as Ignore,
-      } as unknown as IgnoreHelper)
-
-      // Act
-      await copyFiles(work.config, 'source/ignored')
-
-      // Assert
-      expect(mockGetFilesFrom).not.toHaveBeenCalled()
-      expect(outputFile).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('when content should be copied', () => {
-    describe('when source location is empty', () => {
-      it('should copy file', async () => {
-        // Arrange
-        mockGetFilesFrom.mockImplementation(async function* () {
-          yield await {
-            path: 'source/emptyFile',
-            content: Buffer.from(''),
-          }
-          yield await {
-            path: 'source/anotherEmptyFile',
-            content: Buffer.from(''),
-          }
-        })
-
-        // Act
-        await copyFiles(work.config, 'source/emptyFile')
-
-        // Assert
-        expect(mockGetFilesFrom).toHaveBeenCalled()
-        expect(outputFile).toHaveBeenCalledTimes(2)
-        expect(outputFile).toHaveBeenCalledWith(
-          'output/source/emptyFile',
-          Buffer.from('')
-        )
-        expect(outputFile).toHaveBeenCalledWith(
-          'output/source/anotherEmptyFile',
-          Buffer.from('')
-        )
-      })
-    })
-
-    describe('when source location is not empty', () => {
-      describe('when content is a folder', () => {
-        it('should copy the folder', async () => {
-          // Arrange
-          mockGetFilesFrom.mockImplementation(async function* () {
-            yield await {
-              path: 'copyDir/copyFile',
-              content: Buffer.from('content'),
-            }
-          })
-
-          // Act
-          await copyFiles(work.config, 'source/copyDir')
-
-          // Assert
-          expect(mockGetFilesFrom).toHaveBeenCalledTimes(1)
-          expect(outputFile).toHaveBeenCalledTimes(1)
-          expect(outputFile).toHaveBeenCalledWith(
-            'output/copyDir/copyFile',
-            Buffer.from('content')
-          )
-        })
-      })
-
-      describe('when content is not a git location', () => {
-        it('should ignore this path', async () => {
-          // Arrange
-          mockGetFilesFrom.mockImplementation(async function* () {})
-
-          // Act
-          await copyFiles(work.config, 'source/warning')
-
-          // Assert
-          expect(mockGetFilesFrom).toHaveBeenCalled()
-          expect(outputFile).not.toHaveBeenCalled()
-        })
-      })
-      describe('when content is a file', () => {
-        beforeEach(async () => {
-          // Arrange
-          mockGetFilesFrom.mockImplementation(async function* () {
-            yield await {
-              path: 'source/copyFile',
-              content: Buffer.from('content'),
-            }
-          })
-        })
-        it('should copy the file', async () => {
-          // Act
-          await copyFiles(work.config, 'source/copyfile')
-
-          // Assert
-          expect(mockGetFilesFrom).toHaveBeenCalled()
-          expect(outputFile).toHaveBeenCalledTimes(1)
-          expect(outputFile).toHaveBeenCalledWith(
-            'output/source/copyFile',
-            Buffer.from('content')
-          )
-        })
-      })
     })
   })
 })

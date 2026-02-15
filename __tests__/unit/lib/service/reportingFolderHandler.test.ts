@@ -1,12 +1,15 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
 
-import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
+import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -35,22 +38,22 @@ const objectType = {
 const testContext = [
   [
     `A       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`,
-    new Set([entity]),
+    entity,
     'Report',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/${entity}.reportFolder-meta.xml`,
-    new Set([entity]),
+    entity,
     'ReportFolder',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/folder/${entity}.reportFolder-meta.xml`,
-    new Set([`folder/${entity}`]),
+    `folder/${entity}`,
     'ReportFolder',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/folder/folder/${entity}.reportFolder-meta.xml`,
-    new Set([`folder/folder/${entity}`]),
+    `folder/folder/${entity}`,
     'ReportFolder',
   ],
 ]
@@ -59,6 +62,7 @@ let work: Work
 beforeEach(() => {
   jest.clearAllMocks()
   work = getWork()
+  mockedReadDirs.mockResolvedValue([])
 })
 
 describe('InNestedFolderHandler', () => {
@@ -69,46 +73,47 @@ describe('InNestedFolderHandler', () => {
 
   describe.each(
     testContext
-  )('when called with generateDelta false', (changePath:
-    | string
-    | Set<string>, expected: string | Set<string>, expectedType:
-    | string
-    | Set<string>) => {
+  )('when called with generateDelta false', (changePath: string, expectedMember: string, expectedType: string) => {
     beforeEach(() => {
       work.config.generateDelta = false
     })
-    it(`should not copy meta files nor copy special extension when adding ${expectedType}`, async () => {
+    it(`should add manifest entry when adding ${expectedType}`, async () => {
       // Arrange
       const { changeType, element } = createElement(
-        changePath as string,
+        changePath,
         objectType,
         globalMetadata
       )
       const sut = new ReportingFolderHandler(changeType, element, work)
 
       // Act
-      await sut.handleAddition()
+      const result = await sut.collectAddition()
 
       // Assert
-      expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: expectedType,
+            member: expectedMember,
+          }),
+        ])
+      )
     })
   })
 
-  describe.each(testContext)('when called with generateDelta true', (changePath:
-    | string
-    | Set<string>, expected: string | Set<string>, expectedType:
-    | string
-    | Set<string>) => {
+  describe.each(
+    testContext
+  )('when called with generateDelta true', (changePath: string, expectedMember: string, expectedType: string) => {
     beforeEach(() => {
       work.config.generateDelta = true
     })
 
     describe(`when readDirs does not return files`, () => {
-      it(`should not copy special extension and copy meta files in addition ${expectedType}`, async () => {
+      it(`should return manifest and copy entries for ${expectedType}`, async () => {
         // Arrange
         const { changeType, element } = createElement(
-          changePath as string,
+          changePath,
           objectType,
           globalMetadata
         )
@@ -116,24 +121,35 @@ describe('InNestedFolderHandler', () => {
         mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
         // Act
-        await sut.handleAddition()
+        const result = await sut.collectAddition()
 
         // Assert
-        expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: expectedType,
+              member: expectedMember,
+            }),
+          ])
+        )
         expect(readDirs).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledTimes(3)
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          expect.stringContaining(METAFILE_SUFFIX)
+        expect(result.copies).toHaveLength(3)
+        expect(result.copies).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: CopyOperationKind.GitCopy,
+            }),
+          ])
         )
       })
     })
 
     describe('when readDirs returns files', () => {
-      it('should copy special extension', async () => {
+      it('should include special extension copies', async () => {
         // Arrange
         const { changeType, element } = createElement(
-          changePath as string,
+          changePath,
           objectType,
           globalMetadata
         )
@@ -143,12 +159,20 @@ describe('InNestedFolderHandler', () => {
         )
 
         // Act
-        await sut.handleAddition()
+        const result = await sut.collectAddition()
 
         // Assert
-        expect(work.diffs.package.get(expectedType as string)).toEqual(expected)
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: expectedType,
+              member: expectedMember,
+            }),
+          ])
+        )
         expect(readDirs).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledTimes(5)
+        expect(result.copies).toHaveLength(5)
       })
     })
   })
@@ -166,11 +190,11 @@ describe('InNestedFolderHandler', () => {
       const sut = new ReportingFolderHandler(changeType, element, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.diffs.package.size).toBe(0)
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
     })
   })
 
@@ -187,10 +211,57 @@ describe('InNestedFolderHandler', () => {
       const sut = new ReportingFolderHandler(changeType, element, work)
 
       // Act
-      await sut.handleAddition()
+      const result = await sut.collectAddition()
 
       // Assert
-      expect(work.diffs.package.size).toBe(0)
+      expect(result.manifests).toEqual([])
+    })
+  })
+
+  describe('collectDeletion', () => {
+    it('should return destructive manifest entry when extension matches', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const deletionPath = `D       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`
+      const { changeType, element } = createElement(
+        deletionPath,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ReportingFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'Report',
+            member: entity,
+          }),
+        ])
+      )
+    })
+
+    it('should return empty result when extension has no matching type', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const unknownPath = `D       force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
+      const { changeType, element } = createElement(
+        unknownPath,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ReportingFolderHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
     })
   })
 })

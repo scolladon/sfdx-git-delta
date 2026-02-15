@@ -3,28 +3,32 @@ import { parse } from 'node:path/posix'
 
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
-import { writeFile } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import ResourceHandler from './inResourceHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
-  @log
-  public override async handleAddition() {
-    await StandardHandler.prototype.handleAddition.apply(this)
-    if (!this.config.generateDelta) return
-
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await StandardHandler.prototype.collectAddition.call(this)
     const objectTranslationPath = this._getObjectTranslationPath()
-    await this._copyObjectTranslation(objectTranslationPath)
+    const { xmlContent } = await this._getObjectTranslationContent(
+      objectTranslationPath
+    )
+    result.copies.push({
+      kind: CopyOperationKind.ComputedContent,
+      path: objectTranslationPath,
+      content: xmlContent,
+    })
+    return result
   }
 
-  protected async _copyObjectTranslation(path: string) {
+  protected async _getObjectTranslationContent(path: string) {
     const inFileMetadata = this.element.getInFileAttributes()
     const metadataDiff = new MetadataDiff(this.config, inFileMetadata)
     const { toContent, fromContent } = await metadataDiff.compare(path)
-    const { xmlContent } = metadataDiff.prune(toContent, fromContent)
-    await writeFile(path, xmlContent, this.config)
+    return metadataDiff.prune(toContent, fromContent)
   }
 
   protected _getObjectTranslationPath() {

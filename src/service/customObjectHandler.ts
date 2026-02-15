@@ -6,20 +6,21 @@ import {
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
 } from '../constant/metadataConstants.js'
+import type { HandlerResult } from '../types/handlerResult.js'
 import asyncFilter from '../utils/asyncFilter.js'
 import { pathExists, readDirs, readPathFromGit } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomObjectHandler extends StandardHandler {
-  @log
-  public override async handleAddition() {
-    await super.handleAddition()
-    if (!this.config.generateDelta) return
-    await this._handleMasterDetailException()
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
+    await this._collectMasterDetailCopies(result)
+    return result
   }
 
-  protected async _handleMasterDetailException() {
+  protected async _collectMasterDetailCopies(
+    result: HandlerResult
+  ): Promise<void> {
     if (this.element.type.xmlName !== OBJECT_TYPE) return
 
     const fieldsFolder = join(
@@ -29,7 +30,6 @@ export default class CustomObjectHandler extends StandardHandler {
     const exists = await pathExists(fieldsFolder, this.config)
     if (!exists) return
 
-    // QUESTION: Why we need to add parent object for Master Detail field ? https://help.salesforce.com/s/articleView?id=000386883&type=1
     const fields = await readDirs(fieldsFolder, this.config)
     const masterDetailsFields = await asyncFilter(
       fields,
@@ -42,7 +42,7 @@ export default class CustomObjectHandler extends StandardHandler {
       }
     )
     for (const masterDetailField of masterDetailsFields) {
-      await this._copyWithMetaFile(masterDetailField)
+      this._collectCopyWithMetaFile(result.copies, masterDetailField)
     }
   }
 }

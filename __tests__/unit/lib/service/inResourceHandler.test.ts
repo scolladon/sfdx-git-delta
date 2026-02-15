@@ -5,8 +5,12 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles, pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -59,8 +63,9 @@ describe('InResourceHandler', () => {
     describe('when not generating delta', () => {
       beforeEach(() => {
         work.config.generateDelta = false
+        mockedReadDirs.mockResolvedValue([])
       })
-      it('should not copy matching files', async () => {
+      it('should add manifest entry', async () => {
         // Arrange
         const { changeType, element } = createElement(
           line,
@@ -70,13 +75,18 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(changeType, element, work)
 
         // Act
-        await sut.handle()
+        const result = await sut.collect()
 
         // Assert
-        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-          elementName,
-        ])
-        expect(copyFiles).not.toHaveBeenCalled()
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: xmlName,
+              member: elementName,
+            }),
+          ])
+        )
       })
 
       it('Given file extension matches metadata suffix, When entity is added, Then uses last path segment for element name', async () => {
@@ -90,13 +100,18 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(changeType, element, work)
 
         // Act
-        await sut.handle()
+        const result = await sut.collect()
 
         // Assert
-        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-          elementName,
-        ])
-        expect(copyFiles).not.toHaveBeenCalled()
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: xmlName,
+              member: elementName,
+            }),
+          ])
+        )
       })
 
       it('should correctly identify component name in deeply nested metadata kind folder structure', async () => {
@@ -118,13 +133,18 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(changeType, element, work)
 
         // Act
-        await sut.handle()
+        const result = await sut.collect()
 
         // Assert
-        expect(Array.from(work.diffs.package.get(lwcType.xmlName)!)).toEqual([
-          lwcType.element,
-        ])
-        expect(copyFiles).not.toHaveBeenCalled()
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: lwcType.xmlName,
+              member: lwcType.element,
+            }),
+          ])
+        )
       })
     })
 
@@ -155,23 +175,36 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(changeType, element, work)
 
           // Act
-          await sut.handle()
+          const result = await sut.collect()
 
           // Assert
-          expect(Array.from(work.diffs.package.get(lwcType.xmlName)!)).toEqual([
-            entity,
-          ])
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${lwcType.directoryName}/${path}`
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: lwcType.xmlName,
+                member: entity,
+              }),
+            ])
           )
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${lwcType.directoryName}/${entity}/${entity}.js-meta.xml`
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${lwcType.directoryName}/${path}`,
+              }),
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${lwcType.directoryName}/${entity}/${entity}.js-meta.xml`,
+              }),
+            ])
           )
-          expect(copyFiles).not.toHaveBeenCalledWith(
-            work.config,
-            expect.stringContaining('myComponentForExperienceCloud')
+          expect(result.copies).not.toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                path: expect.stringContaining('myComponentForExperienceCloud'),
+              }),
+            ])
           )
         })
 
@@ -193,19 +226,29 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(changeType, element, work)
 
           // Act
-          await sut.handle()
+          const result = await sut.collect()
 
           // Assert
-          expect(
-            Array.from(work.diffs.package.get(staticResourceType.xmlName)!)
-          ).toEqual([entity])
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${staticResourceType.directoryName}/${path}`
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: staticResourceType.xmlName,
+                member: entity,
+              }),
+            ])
           )
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${staticResourceType.directoryName}/${path}`,
+              }),
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
+              }),
+            ])
           )
         })
 
@@ -226,19 +269,29 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(changeType, element, work)
 
           // Act
-          await sut.handle()
+          const result = await sut.collect()
 
           // Assert
-          expect(
-            Array.from(work.diffs.package.get(staticResourceType.xmlName)!)
-          ).toEqual([entity])
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${staticResourceType.directoryName}/${path}`
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: staticResourceType.xmlName,
+                member: entity,
+              }),
+            ])
           )
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${staticResourceType.directoryName}/${path}`,
+              }),
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
+              }),
+            ])
           )
         })
 
@@ -261,19 +314,29 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(changeType, element, work)
 
           // Act
-          await sut.handle()
+          const result = await sut.collect()
 
           // Assert
-          expect(
-            Array.from(work.diffs.package.get(experienceBundleType.xmlName)!)
-          ).toEqual([entity])
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${experienceBundleType.directoryName}/${path}`
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: experienceBundleType.xmlName,
+                member: entity,
+              }),
+            ])
           )
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${base}${experienceBundleType.directoryName}/${entity}.${experienceBundleType.suffix}${METAFILE_SUFFIX}`
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${experienceBundleType.directoryName}/${path}`,
+              }),
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${base}${experienceBundleType.directoryName}/${entity}.${experienceBundleType.suffix}${METAFILE_SUFFIX}`,
+              }),
+            ])
           )
         })
       })
@@ -290,17 +353,29 @@ describe('InResourceHandler', () => {
           mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
-          await sut.handle()
+          const result = await sut.collect()
 
           // Assert
-          expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-            elementName,
-          ])
-          expect(copyFiles).toHaveBeenCalledTimes(2)
-          expect(copyFiles).toHaveBeenCalledWith(work.config, `${entityPath}`)
-          expect(copyFiles).toHaveBeenCalledWith(
-            work.config,
-            `${basePath}.${type}${METAFILE_SUFFIX}`
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: xmlName,
+                member: elementName,
+              }),
+            ])
+          )
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: entityPath,
+              }),
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+                path: `${basePath}.${type}${METAFILE_SUFFIX}`,
+              }),
+            ])
           )
         })
       })
@@ -325,12 +400,18 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(changeType, element, work)
 
         // Act
-        await sut.handle()
+        const result = await sut.collect()
 
         // Assert
-        expect(Array.from(work.diffs.package.get(xmlName)!)).toEqual([
-          elementName,
-        ])
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: xmlName,
+              member: elementName,
+            }),
+          ])
+        )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
           work.config
@@ -351,13 +432,19 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(changeType, element, work)
 
         // Act
-        await sut.handle()
+        const result = await sut.collect()
 
         // Assert
-        expect(work.diffs.package.has(xmlName)).toBe(false)
-        expect(Array.from(work.diffs.destructiveChanges.get(xmlName)!)).toEqual(
-          [elementName]
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.DestructiveChanges,
+              type: xmlName,
+              member: elementName,
+            }),
+          ])
         )
+        expect(result.copies).toEqual([])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('staticresources'),
           work.config

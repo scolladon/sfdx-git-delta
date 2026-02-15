@@ -4,8 +4,11 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFileHandler from '../../../../src/service/inFileHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { writeFile } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -18,7 +21,6 @@ jest.mock('../../../../src/utils/metadataDiff', () => {
     }),
   }
 })
-jest.mock('../../../../src/utils/fsHelper')
 
 const workflowType = {
   childXmlNames: [
@@ -57,10 +59,8 @@ beforeEach(() => {
 
   mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
 })
-describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
-  beforeEach(() => {
-    work.config.generateDelta = generateDelta
-  })
+
+describe('inFileHandler', () => {
   describe('when file is added', () => {
     let sut: InFileHandler
     beforeEach(() => {
@@ -80,21 +80,32 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     })
     it('should store the added metadata in the package', async () => {
       // Act
-      await sut.handleAddition()
+      const result = await sut.collectAddition()
 
       // Assert
-      expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
-      expect(work.diffs.package.get('WorkflowFlowAction')).toEqual(
-        new Set(['Account.test'])
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Workflow',
+            member: 'Account',
+          }),
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'WorkflowFlowAction',
+            member: 'Account.test',
+          }),
+        ])
       )
-
+      expect(
+        result.manifests.some(
+          m => m.target === ManifestTarget.DestructiveChanges
+        )
+      ).toBe(false)
       expect(mockPrune).toHaveBeenCalled()
-      if (generateDelta) {
-        expect(writeFile).toHaveBeenCalled()
-      } else {
-        expect(writeFile).not.toHaveBeenCalled()
-      }
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      ).toBe(true)
     })
 
     describe('when metadata in file is not packable', () => {
@@ -116,21 +127,33 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         })
         it('should only store file name and not the metadata in file', async () => {
           // Act
-          await sut.handleAddition()
+          const result = await sut.collectAddition()
 
           // Assert
-          expect(work.diffs.destructiveChanges.size).toEqual(0)
-          expect(work.diffs.package.get('GlobalValueSetTranslation')).toEqual(
-            new Set(['Numbers-fr'])
+          expect(
+            result.manifests.some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
+          ).toBe(false)
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: 'GlobalValueSetTranslation',
+                member: 'Numbers-fr',
+              }),
+            ])
           )
-          expect(work.diffs.package.size).toEqual(1)
-
+          const packageManifests = result.manifests.filter(
+            m => m.target === ManifestTarget.Package
+          )
+          expect(packageManifests).toHaveLength(1)
           expect(mockPrune).toHaveBeenCalled()
-          if (generateDelta) {
-            expect(writeFile).toHaveBeenCalled()
-          } else {
-            expect(writeFile).not.toHaveBeenCalled()
-          }
+          expect(
+            result.copies.some(
+              c => c.kind === CopyOperationKind.ComputedContent
+            )
+          ).toBe(true)
         })
       })
 
@@ -152,21 +175,33 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         })
         it('should only store file name and not the metadata in file', async () => {
           // Act
-          await sut.handleAddition()
+          const result = await sut.collectAddition()
 
           // Assert
-          expect(work.diffs.destructiveChanges.size).toEqual(0)
-          expect(work.diffs.package.get('GlobalValueSetTranslation')).toEqual(
-            new Set(['Numbers-fr'])
+          expect(
+            result.manifests.some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
+          ).toBe(false)
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: 'GlobalValueSetTranslation',
+                member: 'Numbers-fr',
+              }),
+            ])
           )
-          expect(work.diffs.package.size).toEqual(1)
-
+          const packageManifests = result.manifests.filter(
+            m => m.target === ManifestTarget.Package
+          )
+          expect(packageManifests).toHaveLength(1)
           expect(mockPrune).toHaveBeenCalled()
-          if (generateDelta) {
-            expect(writeFile).toHaveBeenCalled()
-          } else {
-            expect(writeFile).not.toHaveBeenCalled()
-          }
+          expect(
+            result.copies.some(
+              c => c.kind === CopyOperationKind.ComputedContent
+            )
+          ).toBe(true)
         })
       })
     })
@@ -175,7 +210,7 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
   describe('when file is modified', () => {
     let sut: InFileHandler
 
-    describe('when element are added and deleted', () => {
+    describe('when elements are added and deleted', () => {
       beforeEach(() => {
         // Arrange
         const { changeType, element } = createElement(
@@ -193,27 +228,43 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       })
       it('should store the added metadata in the package and deleted in the destructiveChanges', async () => {
         // Act
-        await sut.handleModification()
+        const result = await sut.collectModification()
 
         // Assert
-        expect(work.diffs.package.get('Workflow')).toEqual(new Set(['Account']))
-        expect(work.diffs.package.get('WorkflowAlert')).toEqual(
-          new Set(['Account.test'])
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: 'Workflow',
+              member: 'Account',
+            }),
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: 'WorkflowAlert',
+              member: 'Account.test',
+            }),
+            expect.objectContaining({
+              target: ManifestTarget.DestructiveChanges,
+              type: 'WorkflowAlert',
+              member: 'Account.deleted',
+            }),
+          ])
         )
-        expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
-          new Set(['Account.deleted'])
-        )
-        expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
+        expect(
+          result.manifests.some(
+            m =>
+              m.target === ManifestTarget.DestructiveChanges &&
+              m.type === 'Workflow'
+          )
+        ).toBe(false)
         expect(mockPrune).toHaveBeenCalled()
-        if (generateDelta) {
-          expect(writeFile).toHaveBeenCalled()
-        } else {
-          expect(writeFile).not.toHaveBeenCalled()
-        }
+        expect(
+          result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        ).toBe(true)
       })
     })
 
-    describe('when element are deleted and nothing is added', () => {
+    describe('when elements are deleted and nothing is added', () => {
       beforeEach(() => {
         // Arrange
         const { changeType, element } = createElement(
@@ -233,21 +284,38 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
           isEmpty: true,
         })
       })
-      it('should store the deleted in the destructiveChanges and not copy the file', async () => {
+      it('should store the deleted in the destructiveChanges and not produce a copy', async () => {
         // Act
-        await sut.handleModification()
+        const result = await sut.collectModification()
 
         // Assert
-        expect(work.diffs.package.size).toBe(0)
-        expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
-          new Set(['Account.deleted'])
+        const packageManifests = result.manifests.filter(
+          m => m.target === ManifestTarget.Package
         )
-        expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
+        expect(packageManifests).toHaveLength(0)
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.DestructiveChanges,
+              type: 'WorkflowAlert',
+              member: 'Account.deleted',
+            }),
+          ])
+        )
+        expect(
+          result.manifests.some(
+            m =>
+              m.target === ManifestTarget.DestructiveChanges &&
+              m.type === 'Workflow'
+          )
+        ).toBe(false)
         expect(mockPrune).toHaveBeenCalled()
-        expect(writeFile).not.toHaveBeenCalled()
+        expect(
+          result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        ).toBe(false)
       })
 
-      describe('when no metadata element are added/deleted and the file does not contains attributes', () => {
+      describe('when no metadata elements are added/deleted and the file does not contain attributes', () => {
         beforeEach(() => {
           // Arrange
           const { changeType, element } = createElement(
@@ -269,23 +337,18 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             isEmpty: true,
           })
         })
-        it('nothing should be stored and the file should not be copied', async () => {
+        it('nothing should be stored and no copy should be produced', async () => {
           // Act
-          await sut.handleModification()
+          const result = await sut.collectModification()
 
           // Assert
-          expect(work.diffs.package.size).toEqual(0)
-          expect(work.diffs.destructiveChanges.size).toEqual(0)
+          expect(result.manifests).toHaveLength(0)
+          expect(result.copies).toHaveLength(0)
           expect(mockPrune).toHaveBeenCalled()
-          if (generateDelta) {
-            expect(writeFile).not.toHaveBeenCalled()
-          } else {
-            expect(writeFile).not.toHaveBeenCalled()
-          }
         })
       })
 
-      describe('when no metadata element are added, some are deleted but the file contains attributes', () => {
+      describe('when no metadata elements are added, some are deleted but the file contains attributes', () => {
         beforeEach(() => {
           // Arrange
           const { changeType, element } = createElement(
@@ -305,18 +368,30 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
             isEmpty: true,
           })
         })
-        it('should store the added metadata in the package and the file should be copied', async () => {
+        it('should store the deleted metadata in destructiveChanges and not produce a copy', async () => {
           // Act
-          await sut.handleModification()
+          const result = await sut.collectModification()
 
           // Assert
-          expect(work.diffs.package.size).toEqual(0)
-          expect(work.diffs.destructiveChanges.size).toEqual(1)
-          expect(work.diffs.destructiveChanges.get('Workflow')).toEqual(
-            new Set(['Account.Deleted'])
+          const packageManifests = result.manifests.filter(
+            m => m.target === ManifestTarget.Package
+          )
+          expect(packageManifests).toHaveLength(0)
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.DestructiveChanges,
+                type: 'Workflow',
+                member: 'Account.Deleted',
+              }),
+            ])
           )
           expect(mockPrune).toHaveBeenCalled()
-          expect(writeFile).not.toHaveBeenCalled()
+          expect(
+            result.copies.some(
+              c => c.kind === CopyOperationKind.ComputedContent
+            )
+          ).toBe(false)
         })
       })
     })
@@ -344,21 +419,33 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         })
         it('should only store file name and not the metadata in file', async () => {
           // Act
-          await sut.handleModification()
+          const result = await sut.collectModification()
 
           // Assert
-          expect(work.diffs.destructiveChanges.size).toEqual(0)
-          expect(work.diffs.package.get('GlobalValueSetTranslation')).toEqual(
-            new Set(['Numbers-fr'])
+          expect(
+            result.manifests.some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
+          ).toBe(false)
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: 'GlobalValueSetTranslation',
+                member: 'Numbers-fr',
+              }),
+            ])
           )
-          expect(work.diffs.package.size).toEqual(1)
-
+          const packageManifests = result.manifests.filter(
+            m => m.target === ManifestTarget.Package
+          )
+          expect(packageManifests).toHaveLength(1)
           expect(mockPrune).toHaveBeenCalled()
-          if (generateDelta) {
-            expect(writeFile).toHaveBeenCalled()
-          } else {
-            expect(writeFile).not.toHaveBeenCalled()
-          }
+          expect(
+            result.copies.some(
+              c => c.kind === CopyOperationKind.ComputedContent
+            )
+          ).toBe(true)
         })
       })
 
@@ -380,21 +467,33 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
         })
         it('should only store file name and not the metadata in file', async () => {
           // Act
-          await sut.handleModification()
+          const result = await sut.collectModification()
 
           // Assert
-          expect(work.diffs.destructiveChanges.size).toEqual(0)
-          expect(work.diffs.package.get('GlobalValueSetTranslation')).toEqual(
-            new Set(['Numbers-fr'])
+          expect(
+            result.manifests.some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
+          ).toBe(false)
+          expect(result.manifests).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: 'GlobalValueSetTranslation',
+                member: 'Numbers-fr',
+              }),
+            ])
           )
-          expect(work.diffs.package.size).toEqual(1)
-
+          const packageManifests = result.manifests.filter(
+            m => m.target === ManifestTarget.Package
+          )
+          expect(packageManifests).toHaveLength(1)
           expect(mockPrune).toHaveBeenCalled()
-          if (generateDelta) {
-            expect(writeFile).toHaveBeenCalled()
-          } else {
-            expect(writeFile).not.toHaveBeenCalled()
-          }
+          expect(
+            result.copies.some(
+              c => c.kind === CopyOperationKind.ComputedContent
+            )
+          ).toBe(true)
         })
       })
     })
@@ -420,17 +519,34 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     })
     it('should store the deleted metadata in the destructiveChanges', async () => {
       // Act
-      await sut.handleDeletion()
+      const result = await sut.collectDeletion()
 
       // Assert
-      expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.has('Workflow')).toBe(false)
-      expect(work.diffs.destructiveChanges.get('WorkflowAlert')).toEqual(
-        new Set(['Account.test'])
+      const packageManifests = result.manifests.filter(
+        m => m.target === ManifestTarget.Package
       )
+      expect(packageManifests).toHaveLength(0)
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'WorkflowAlert',
+            member: 'Account.test',
+          }),
+        ])
+      )
+      expect(
+        result.manifests.some(
+          m =>
+            m.target === ManifestTarget.DestructiveChanges &&
+            m.type === 'Workflow'
+        )
+      ).toBe(false)
       expect(mockCompare).toHaveBeenCalled()
       expect(mockPrune).toHaveBeenCalled()
-      expect(writeFile).not.toHaveBeenCalled()
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      ).toBe(false)
     })
     describe('when metadata in file is prune Only', () => {
       beforeEach(() => {
@@ -444,20 +560,136 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       })
       it('should only store file name and not the metadata in file', async () => {
         // Act
-        await sut.handleDeletion()
+        const result = await sut.collectDeletion()
 
         // Assert
-        expect(work.diffs.package.size).toEqual(0)
-        expect(work.diffs.destructiveChanges.has('ValueTranslation')).toBe(
+        const packageManifests = result.manifests.filter(
+          m => m.target === ManifestTarget.Package
+        )
+        expect(packageManifests).toHaveLength(0)
+        expect(result.manifests).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.DestructiveChanges,
+              type: 'GlobalValueSetTranslation',
+              member: 'Numbers-fr',
+            }),
+          ])
+        )
+        expect(result.manifests.some(m => m.type === 'ValueTranslation')).toBe(
           false
         )
-        expect(
-          work.diffs.destructiveChanges.get('GlobalValueSetTranslation')
-        ).toEqual(new Set(['Numbers-fr']))
         expect(mockCompare).not.toHaveBeenCalled()
         expect(mockPrune).not.toHaveBeenCalled()
-        expect(writeFile).not.toHaveBeenCalled()
+        expect(result.copies).toHaveLength(0)
       })
     })
+  })
+})
+
+describe('inFileHandler collect', () => {
+  let globalMetadata: MetadataRepository
+  beforeAll(async () => {
+    globalMetadata = await getDefinition({})
+  })
+
+  let work: Work
+  const workflowType = {
+    childXmlNames: [
+      'WorkflowFieldUpdate',
+      'WorkflowFlowAction',
+      'WorkflowKnowledgePublish',
+      'WorkflowTask',
+      'WorkflowAlert',
+      'WorkflowSend',
+      'WorkflowOutboundMessage',
+      'WorkflowRule',
+    ],
+    directoryName: 'workflows',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'workflow',
+    xmlName: 'Workflow',
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    work = getWork()
+    mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
+  })
+
+  it('Given added workflow with child elements, When collect, Then returns Package manifests and ComputedContent copy', async () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: new Map([['WorkflowFlowAction', new Set(['test'])]]),
+        deleted: new Map(),
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'Workflow',
+          member: 'Account',
+        }),
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'WorkflowFlowAction',
+          member: 'Account.test',
+        }),
+      ])
+    )
+    expect(
+      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+    ).toBe(true)
+    expect(result.warnings).toHaveLength(0)
+  })
+
+  it('Given modified workflow with added and deleted elements, When collect, Then returns both Package and DestructiveChanges manifests', async () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      'M       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: new Map([['WorkflowAlert', new Set(['added'])]]),
+        deleted: new Map([['WorkflowAlert', new Set(['removed'])]]),
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'WorkflowAlert',
+          member: 'Account.added',
+        }),
+        expect.objectContaining({
+          target: ManifestTarget.DestructiveChanges,
+          type: 'WorkflowAlert',
+          member: 'Account.removed',
+        }),
+      ])
+    )
+    expect(result.warnings).toHaveLength(0)
   })
 })

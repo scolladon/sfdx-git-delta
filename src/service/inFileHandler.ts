@@ -3,12 +3,15 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
+import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
+import {
+  CopyOperationKind,
+  emptyResult,
+  ManifestTarget,
+} from '../types/handlerResult.js'
 import type { Manifest, Work } from '../types/work.js'
-import { writeFile } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
-import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import StandardHandler from './standardHandler.js'
 
 const getRootType = (line: string) => basename(line).split(DOT)[0]
@@ -22,63 +25,75 @@ export default class InFileHandler extends StandardHandler {
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
-  @log
-  public override async handleAddition() {
-    await this._compareRevisionAndStoreComparison()
+  public override async collectAddition(): Promise<HandlerResult> {
+    return await this._collectCompareResult()
   }
 
-  @log
-  public override async handleDeletion() {
+  public override async collectDeletion(): Promise<HandlerResult> {
     if (this._shouldTreatDeletionAsDeletion()) {
-      await super.handleDeletion()
-    } else {
-      await this.handleAddition()
+      return await super.collectDeletion()
     }
+    return await this.collectAddition()
   }
 
-  public override async handleModification() {
-    await this.handleAddition()
+  public override async collectModification(): Promise<HandlerResult> {
+    return await this.collectAddition()
   }
 
-  protected async _compareRevisionAndStoreComparison() {
+  protected async _collectCompareResult(): Promise<HandlerResult> {
+    const result = emptyResult()
     const { added, deleted, toContent, fromContent } =
       await this.metadataDiff.compare(this.element.basePath)
-    this._storeComparison(this.diffs.destructiveChanges, deleted)
-    this._storeComparison(this.diffs.package, added)
+
+    this._collectManifestFromComparison(
+      result.manifests,
+      ManifestTarget.DestructiveChanges,
+      deleted
+    )
+    this._collectManifestFromComparison(
+      result.manifests,
+      ManifestTarget.Package,
+      added
+    )
+
     const { xmlContent, isEmpty } = this.metadataDiff.prune(
       toContent,
       fromContent
     )
+
     if (this._shouldTreatContainerType(isEmpty)) {
-      // QUESTION: Why InFile element are not deployable when root component is not listed in package.xml ?
-      await super.handleAddition()
+      const containerResult =
+        await StandardHandler.prototype.collectAddition.call(this)
+      result.manifests.push(...containerResult.manifests)
+      result.copies.push(...containerResult.copies)
     }
-    if (this.config.generateDelta && !isEmpty) {
-      await writeFile(this.element.basePath, xmlContent, this.config)
-    }
-  }
 
-  protected _storeComparison(store: Manifest, content: Manifest) {
-    for (const [type, members] of content) {
-      for (const member of members) {
-        this._fillPackageForInfileMetadata(store, type, member)
-      }
-    }
-  }
-
-  protected _fillPackageForInfileMetadata(
-    store: Manifest,
-    subType: string,
-    member: string
-  ) {
-    if (isPackable(subType)) {
-      const cleanedMember = `${this._getQualifiedName()}${member}`
-
-      fillPackageWithParameter({
-        store,
-        type: subType,
-        member: cleanedMember,
+    if (!isEmpty) {
+      result.copies.push({
+        kind: CopyOperationKind.ComputedContent,
+        path: this.element.basePath,
+        content: xmlContent,
       })
+    }
+
+    return result
+  }
+
+  protected _collectManifestFromComparison(
+    manifests: ManifestElement[],
+    target: ManifestTarget,
+    content: Manifest
+  ): void {
+    for (const [type, members] of content) {
+      if (isPackable(type)) {
+        for (const member of members) {
+          manifests.push({
+            target,
+            type,
+            member: `${this._getQualifiedName()}${member}`,
+          })
+        }
+      }
     }
   }
 

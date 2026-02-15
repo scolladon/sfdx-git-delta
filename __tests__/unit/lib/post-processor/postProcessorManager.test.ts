@@ -4,11 +4,14 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BaseProcessor from '../../../../src/post-processor/baseProcessor'
+import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import PostProcessorManager, {
   getPostProcessors,
 } from '../../../../src/post-processor/postProcessorManager'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
+
+jest.mock('../../../../src/adapter/GitAdapter')
 
 const processSpy = jest.fn()
 
@@ -98,6 +101,77 @@ describe('postProcessorManager', () => {
       // Act
       await sut.execute()
       expect(work.warnings.length).toBe(1)
+    })
+  })
+
+  describe('executeRemaining', () => {
+    it('Given processors including IncludeProcessor, When executeRemaining, Then skips IncludeProcessor', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      sut.use(new IncludeProcessor(localWork, metadata) as BaseProcessor)
+      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+
+      // Act
+      await sut.executeRemaining()
+
+      // Assert
+      expect(processSpy).toHaveBeenCalledTimes(2)
+    })
+
+    it('Given processor that throws, When executeRemaining, Then appends error to warnings', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      processSpy.mockImplementationOnce(() =>
+        Promise.reject(new Error('executeRemaining error'))
+      )
+
+      // Act
+      await sut.executeRemaining()
+
+      // Assert
+      expect(localWork.warnings).toHaveLength(1)
+      expect(localWork.warnings[0].message).toContain('executeRemaining error')
+    })
+  })
+
+  describe('collectAll', () => {
+    it('Given no IncludeProcessor, When collectAll, Then returns empty result', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+
+      // Act
+      const result = await sut.collectAll()
+
+      // Assert
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given IncludeProcessor that throws, When collectAll, Then returns result with warnings', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      const includeProcessor = new IncludeProcessor(localWork, metadata)
+      jest
+        .spyOn(includeProcessor, 'transformAndCollect')
+        .mockRejectedValueOnce(new Error('collectAll error'))
+      sut.use(includeProcessor as BaseProcessor)
+
+      // Act
+      const result = await sut.collectAll()
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0].message).toContain('collectAll error')
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
     })
   })
 })

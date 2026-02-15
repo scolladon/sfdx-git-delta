@@ -10,14 +10,13 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import StandardHandler from '../../../../src/service/standardHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles } from '../../../../src/utils/fsHelper'
-import { Logger } from '../../../../src/utils/LoggingService'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
-
-jest.mock('../../../../src/utils/fsHelper')
-const mockedCopyFiles = jest.mocked(copyFiles)
 
 const testSuitesType = {
   directoryName: 'testSuites',
@@ -53,80 +52,11 @@ describe(`StandardHandler`, () => {
     jest.clearAllMocks()
   })
 
-  it('should catch errors silently and store them', async () => {
-    // Arrange
-    mockedCopyFiles.mockRejectedValueOnce(
-      new Error('fatal: not a git repository')
-    )
-    const line = `${ADDITION}       ${entityPath}`
-    const { changeType, element } = createElement(
-      line,
-      classType,
-      globalMetadata
-    )
-    const sut = new StandardHandler(changeType, element, work)
-
-    // Act
-    await sut.handle()
-
-    // Assert
-    expect(work.warnings.length).toEqual(1)
-    expect(work.diffs.package.get(classType.xmlName)).toEqual(new Set([entity]))
-    expect(work.diffs.destructiveChanges.size).toEqual(0)
-    expect(copyFiles).toHaveBeenCalled()
-  })
-
-  it('should handle non-Error thrown values', async () => {
-    // Arrange
-    mockedCopyFiles.mockRejectedValueOnce('string error')
-    const line = `${ADDITION}       ${entityPath}`
-    const { changeType, element } = createElement(
-      line,
-      classType,
-      globalMetadata
-    )
-    const sut = new StandardHandler(changeType, element, work)
-
-    // Act
-    await sut.handle()
-
-    // Assert
-    expect(work.warnings.length).toEqual(1)
-    expect(work.warnings[0].message).toContain('string error')
-    expect(work.diffs.package.get(classType.xmlName)).toEqual(new Set([entity]))
-  })
-
-  it('does not handle not ADM line, silently', async () => {
-    // Arrange
-    const line = `Z       ${entityPath}`
-    const { changeType, element } = createElement(
-      line,
-      classType,
-      globalMetadata
-    )
-    const sut = new StandardHandler(changeType, element, work)
-
-    // Act
-    await sut.handle()
-
-    // Assert
-    expect(work.warnings).toEqual([])
-    expect(work.diffs.package.size).toEqual(0)
-    expect(work.diffs.destructiveChanges.size).toEqual(0)
-    expect(copyFiles).not.toHaveBeenCalled()
-  })
-
-  describe('when not generating delta', () => {
-    beforeEach(() => {
-      work.config.generateDelta = false
-    })
-
-    it.each([
-      ['new', ADDITION],
-      ['modified', MODIFICATION],
-    ])('should add %s element to package', async (_, ct) => {
+  describe('collect', () => {
+    it('Given addition, When collect is called, Then returns manifest element and copy operations', async () => {
       // Arrange
-      const line = `${ct}       ${entityPath}`
+      work.config.to = 'sha123'
+      const line = `${ADDITION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
@@ -135,17 +65,48 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(changeType, element, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.warnings).toEqual([])
-      expect(work.diffs.package.get(classType.xmlName)).toEqual(
-        new Set([entity])
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0]).toEqual({
+        target: ManifestTarget.Package,
+        type: classType.xmlName,
+        member: entity,
+      })
+      expect(result.copies).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: CopyOperationKind.GitCopy,
+            path: entityPath,
+            revision: 'sha123',
+          }),
+        ])
       )
-      expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.warnings).toEqual([])
     })
-    it('should add deleted element to destructiveChanges', async () => {
+
+    it('Given addition with metaFile type, When collect is called, Then includes meta file copy', async () => {
+      // Arrange
+      work.config.to = 'sha123'
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
+        classType,
+        globalMetadata
+      )
+      const sut = new StandardHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const metaCopy = result.copies.find(c => c.path.endsWith(METAFILE_SUFFIX))
+      expect(metaCopy).toBeDefined()
+      expect(metaCopy!.kind).toBe(CopyOperationKind.GitCopy)
+    })
+
+    it('Given deletion, When collect is called, Then returns destructive manifest element only', async () => {
       // Arrange
       const line = `${DELETION}       ${entityPath}`
       const { changeType, element } = createElement(
@@ -156,196 +117,23 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(changeType, element, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.warnings).toEqual([])
-      expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get(classType.xmlName)).toEqual(
-        new Set([entity])
-      )
-      expect(copyFiles).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('when generating delta', () => {
-    beforeEach(() => {
-      work.config.generateDelta = true
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0]).toEqual({
+        target: ManifestTarget.DestructiveChanges,
+        type: classType.xmlName,
+        member: entity,
+      })
+      expect(result.copies).toEqual([])
+      expect(result.warnings).toEqual([])
     })
 
-    describe('when file copy is not delegated', () => {
-      it('should not copy files when _copyWithMetaFile check fails', async () => {
-        // Arrange
-        const line = `${ADDITION}       ${entityPath}`
-        const { changeType, element } = createElement(
-          line,
-          classType,
-          globalMetadata
-        )
-        const sut = new StandardHandler(changeType, element, work)
-        jest
-          .spyOn(
-            sut as unknown as { _delegateFileCopy: () => boolean },
-            '_delegateFileCopy'
-          )
-          .mockReturnValue(false)
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.diffs.package.get(classType.xmlName)).toEqual(
-          new Set([entity])
-        )
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-
-      it('should not copy files when _copy check fails', async () => {
-        // Arrange
-        const line = `${ADDITION}       ${entityPath}`
-        const { changeType, element } = createElement(
-          line,
-          classType,
-          globalMetadata
-        )
-        const sut = new StandardHandler(changeType, element, work)
-        jest
-          .spyOn(
-            sut as unknown as { _delegateFileCopy: () => boolean },
-            '_delegateFileCopy'
-          )
-          .mockReturnValueOnce(true) // _copyWithMetaFile check passes
-          .mockReturnValue(false) // _copy checks fail
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.diffs.package.get(classType.xmlName)).toEqual(
-          new Set([entity])
-        )
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when element type definition has meta file', () => {
-      it('should add element to package when meta file is modified', async () => {
-        // Arrange
-        const line = `${MODIFICATION}       ${entityPath}${METAFILE_SUFFIX}`
-        const { changeType, element } = createElement(
-          line,
-          classType,
-          globalMetadata
-        )
-        const sut = new StandardHandler(changeType, element, work)
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(classType.xmlName)).toEqual(
-          new Set([entity])
-        )
-        expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          entityPath.replace(METAFILE_SUFFIX, '')
-        )
-      })
-
-      it('should copy meta file when element is modified', async () => {
-        // Arrange
-        const line = `${MODIFICATION}       ${entityPath}`
-        const { changeType, element } = createElement(
-          line,
-          classType,
-          globalMetadata
-        )
-        const sut = new StandardHandler(changeType, element, work)
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(classType.xmlName)).toEqual(
-          new Set([entity])
-        )
-        expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          entityPath.replace(METAFILE_SUFFIX, '')
-        )
-      })
-    })
-
-    describe('when element type definition does not have side meta file (but can end by the meta suffix)', () => {
-      it('should add element to package when meta file is modified', async () => {
-        // Arrange
-        const entityPath = `${basePath}testSuites/suite.testSuite${METAFILE_SUFFIX}`
-        const line = `${MODIFICATION}       ${entityPath}`
-        const { changeType, element } = createElement(
-          line,
-          testSuitesType,
-          globalMetadata
-        )
-        const sut = new StandardHandler(changeType, element, work)
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get(testSuitesType.xmlName)).toEqual(
-          new Set(['suite'])
-        )
-        expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          expect.stringContaining(METAFILE_SUFFIX)
-        )
-      })
-
-      it('should not copy meta file when element is modified', async () => {
-        // Arrange
-        const entityPath = `${basePath}testSuites/suite.testSuite`
-        const line = `${MODIFICATION}       ${entityPath}`
-        const { changeType, element } = createElement(
-          line,
-          testSuitesType,
-          globalMetadata
-        )
-        const sut = new StandardHandler(changeType, element, work)
-
-        // Act
-        await sut.handle()
-
-        // Assert
-        expect(work.warnings).toEqual([])
-        expect(work.diffs.package.get('ApexTestSuite')).toEqual(
-          new Set(['suite'])
-        )
-        expect(work.diffs.destructiveChanges.size).toEqual(0)
-        expect(copyFiles).toHaveBeenCalledTimes(1)
-        expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
-        expect(copyFiles).not.toHaveBeenCalledWith(
-          work.config,
-          expect.stringContaining(METAFILE_SUFFIX)
-        )
-      })
-    })
-
-    it.each([
-      ['new', ADDITION],
-      ['modified', MODIFICATION],
-    ])('should add %s element to package and copy file', async (_, ct) => {
+    it('Given modification, When collect is called, Then returns same result as addition', async () => {
       // Arrange
-      const line = `${ct}       ${entityPath}`
+      work.config.to = 'sha123'
+      const line = `${MODIFICATION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
@@ -354,19 +142,17 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(changeType, element, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.warnings).toEqual([])
-      expect(work.diffs.package.get(classType.xmlName)).toEqual(
-        new Set([entity])
-      )
-      expect(work.diffs.destructiveChanges.size).toEqual(0)
-      expect(copyFiles).toHaveBeenCalledWith(work.config, entityPath)
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.copies.length).toBeGreaterThan(0)
     })
-    it('should add deleted element to destructiveChanges and do not copy file', async () => {
+
+    it('Given unprocessable line, When collect is called, Then returns empty result', async () => {
       // Arrange
-      const line = `${DELETION}       ${entityPath}`
+      const line = `${ADDITION}       force-app/main/default/classes/folder/Random.file`
       const { changeType, element } = createElement(
         line,
         classType,
@@ -375,24 +161,17 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(changeType, element, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.warnings).toEqual([])
-      expect(work.diffs.package.size).toEqual(0)
-      expect(work.diffs.destructiveChanges.get(classType.xmlName)).toEqual(
-        new Set([entity])
-      )
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+      expect(result.warnings).toEqual([])
     })
-  })
 
-  describe('when the line should not be processed', () => {
-    it.each([
-      `force-app/main/default/classes/folder/Random.file`,
-    ])('does not handle the line', async entityPath => {
+    it('Given unknown change type, When collect is called, Then returns empty result', async () => {
       // Arrange
-      const line = `A       ${entityPath}`
+      const line = `Z       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
@@ -401,11 +180,56 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(changeType, element, work)
 
       // Act
-      await sut.handle()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.diffs.package.size).toBe(0)
-      expect(copyFiles).not.toHaveBeenCalled()
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given error during collect, When collect is called, Then returns error in warnings', async () => {
+      // Arrange
+      work.config.to = 'sha123'
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
+        classType,
+        globalMetadata
+      )
+      const sut = new StandardHandler(changeType, element, work)
+      jest
+        .spyOn(sut, 'collectAddition')
+        .mockRejectedValueOnce(new Error('test error'))
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0].message).toContain('test error')
+    })
+
+    it('Given type without metaFile, When collectAddition is called, Then does not include meta copy', async () => {
+      // Arrange
+      work.config.to = 'sha123'
+      const entityPath = `${basePath}testSuites/suite.testSuite`
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
+        testSuitesType,
+        globalMetadata
+      )
+      const sut = new StandardHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.copies).toHaveLength(1)
+      expect(result.copies[0].path).toBe(entityPath)
     })
   })
 
@@ -426,89 +250,6 @@ describe(`StandardHandler`, () => {
       // Assert
       expect(result).toBe(
         `${sut.constructor.name}: ${sut['changeType']} -> ${sut['element'].basePath}`
-      )
-    })
-  })
-
-  describe('when logging is enabled', () => {
-    let mockInfo: jest.Mock
-    let originalCoreLogger: (typeof Logger)['coreLogger']
-
-    beforeEach(() => {
-      originalCoreLogger = Logger['coreLogger']
-      mockInfo = jest.fn()
-      Logger['coreLogger'] = {
-        setLevel: jest.fn(),
-        shouldLog: jest.fn().mockReturnValue(true),
-        debug: jest.fn(),
-        error: jest.fn(),
-        info: mockInfo,
-        trace: jest.fn(),
-        warn: jest.fn(),
-      } as unknown as (typeof Logger)['coreLogger']
-    })
-
-    afterEach(() => {
-      Logger['coreLogger'] = originalCoreLogger
-    })
-
-    it('should log addition with lazy evaluated element name', async () => {
-      // Arrange
-      const line = `${ADDITION}       ${entityPath}`
-      const { changeType, element } = createElement(
-        line,
-        classType,
-        globalMetadata
-      )
-      const sut = new StandardHandler(changeType, element, work)
-
-      // Act
-      await sut.handle()
-
-      // Assert
-      expect(mockInfo).toHaveBeenCalledWith(
-        `${classType.xmlName}.${entity} created`,
-        undefined
-      )
-    })
-
-    it('should log deletion with lazy evaluated element name', async () => {
-      // Arrange
-      const line = `${DELETION}       ${entityPath}`
-      const { changeType, element } = createElement(
-        line,
-        classType,
-        globalMetadata
-      )
-      const sut = new StandardHandler(changeType, element, work)
-
-      // Act
-      await sut.handle()
-
-      // Assert
-      expect(mockInfo).toHaveBeenCalledWith(
-        `${classType.xmlName}.${entity} deleted`,
-        undefined
-      )
-    })
-
-    it('should log modification with lazy evaluated element name', async () => {
-      // Arrange
-      const line = `${MODIFICATION}       ${entityPath}`
-      const { changeType, element } = createElement(
-        line,
-        classType,
-        globalMetadata
-      )
-      const sut = new StandardHandler(changeType, element, work)
-
-      // Act
-      await sut.handle()
-
-      // Assert
-      expect(mockInfo).toHaveBeenCalledWith(
-        `${classType.xmlName}.${entity} modified`,
-        undefined
       )
     })
   })

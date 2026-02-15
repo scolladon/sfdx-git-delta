@@ -5,9 +5,10 @@ import {
   METAFILE_SUFFIX,
   PERMISSIONSET_OBJECTSETTINGS_FOLDER,
 } from '../constant/metadataConstants.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 
@@ -19,28 +20,26 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     this._setholderFolder()
   }
 
-  @log
-  public override async handleAddition() {
-    await super.handleAddition()
-    if (!this.config.generateDelta) return
-
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
     if (this._isDecomposedFormat()) {
-      await this._copyDecomposedFiles()
+      result.copies.push({
+        kind: CopyOperationKind.GitCopy,
+        path: this._getHolderPath(),
+        revision: this.config.to,
+      })
     }
+    return result
   }
 
-  @log
-  public override async handleDeletion() {
+  public override async collectDeletion(): Promise<HandlerResult> {
     if (!this._isDecomposedFormat()) {
-      await super.handleDeletion()
-      return
+      return await super.collectDeletion()
     }
-
     if (await this._hasRelatedContent()) {
-      await this.handleModification()
-    } else {
-      await super.handleDeletion()
+      return await this.collectModification()
     }
+    return await super.collectDeletion()
   }
 
   protected _setholderFolder() {
@@ -76,10 +75,6 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   protected async _hasRelatedContent(): Promise<boolean> {
     const files = await readDirs(this._getHolderPath(), this.config)
     return files.length > 0
-  }
-
-  protected async _copyDecomposedFiles() {
-    await this._copy(this._getHolderPath())
   }
 
   protected override _getElementName() {

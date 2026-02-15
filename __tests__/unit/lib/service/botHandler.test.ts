@@ -4,9 +4,12 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BotHandler from '../../../../src/service/botHandler'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import { Metadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
-import { copyFiles } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -42,10 +45,46 @@ describe('BotHandler', () => {
     globalMetadata = await getDefinition({})
   })
 
-  describe('when called for a bot', () => {
-    it('should add the bot', async () => {
+  describe('collect', () => {
+    it('Given bot version addition, When collect, Then returns BotVersion and parent Bot manifests', async () => {
       // Arrange
-      work.config.generateDelta = false
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new BotHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'BotVersion',
+            member: 'TestBot.v1',
+          }),
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Bot',
+            member: 'TestBot',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('TestBot.bot')
+        )
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given bot file addition, When collect, Then returns only Bot manifest', async () => {
+      // Arrange
       const { changeType, element } = createElement(
         'A       force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
         objectType,
@@ -54,74 +93,19 @@ describe('BotHandler', () => {
       const sut = new BotHandler(changeType, element, work)
 
       // Act
-      await sut.handleAddition()
+      const result = await sut.collect()
 
       // Assert
-      expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
-      expect(work.diffs.package.get('BotVersion')).toBeUndefined()
-      expect(copyFiles).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('when called for a bot version', () => {
-    describe('when called with generateDelta false', () => {
-      it('should add the related bot', async () => {
-        // Arrange
-        work.config.generateDelta = false
-        const { changeType, element } = createElement(
-          line,
-          objectType,
-          globalMetadata
-        )
-        const sut = new BotHandler(changeType, element, work)
-
-        // Act
-        await sut.handleAddition()
-
-        // Assert
-        expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
-        expect(work.diffs.package.get('BotVersion')).toEqual(
-          new Set(['TestBot.v1'])
-        )
-        expect(copyFiles).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when called with generateDelta true', () => {
-      it('should add and copy the related parent bot', async () => {
-        const { changeType, element } = createElement(
-          line,
-          objectType,
-          globalMetadata
-        )
-        const sut = new BotHandler(changeType, element, work)
-
-        // Act
-        await sut.handleAddition()
-
-        // Assert
-        expect(work.diffs.package.get('Bot')).toEqual(new Set(['TestBot']))
-        expect(work.diffs.package.get('BotVersion')).toEqual(
-          new Set(['TestBot.v1'])
-        )
-        expect(copyFiles).toHaveBeenCalledTimes(4)
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          `force-app/main/default/bots/TestBot/v1.botVersion-meta.xml`
-        )
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          `force-app/main/default/bots/TestBot/v1.botVersion`
-        )
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          `force-app/main/default/bots/TestBot/TestBot.bot`
-        )
-        expect(copyFiles).toHaveBeenCalledWith(
-          work.config,
-          `force-app/main/default/bots/TestBot/TestBot.bot-meta.xml`
-        )
-      })
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Bot',
+            member: 'TestBot',
+          }),
+        ])
+      )
+      expect(result.warnings).toHaveLength(0)
     })
   })
 })

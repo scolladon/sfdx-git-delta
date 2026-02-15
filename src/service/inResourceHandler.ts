@@ -1,47 +1,40 @@
 'use strict'
 
-import { eachLimit } from 'async'
-
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
-import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ResourceHandler extends StandardHandler {
   protected metadataName: string | undefined
 
-  @log
-  public override async handleAddition() {
+  public override async collectAddition(): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
-    await super.handleAddition()
-    if (!this.config.generateDelta) return
-
-    await this._copyResourceFiles()
+    const result = await super.collectAddition()
+    await this._collectResourceCopies(result.copies)
+    return result
   }
 
-  @log
-  public override async handleDeletion() {
+  public override async collectDeletion(): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
     const componentPath = this.metadataName!
     const exists = await pathExists(componentPath, this.config)
     if (exists) {
-      await this.handleModification()
-    } else {
-      await super.handleDeletion()
+      return await this.collectModification()
     }
+    return await super.collectDeletion()
   }
 
-  protected async _copyResourceFiles() {
+  protected async _collectResourceCopies(
+    copies: import('../types/handlerResult.js').CopyOperation[]
+  ): Promise<void> {
     const staticResourcePath = this.metadataName!.substring(
       0,
       this.metadataName!.lastIndexOf(PATH_SEP)
     )
-    const allStaticResources = await readDirs(
-      staticResourcePath,
-      this.work.config
-    )
+    const allStaticResources = await readDirs(staticResourcePath, this.config)
 
     const startsWithMetadataName = new RegExp(
       `${this.metadataName!}[${PATH_SEP}${DOT}]`
@@ -49,11 +42,13 @@ export default class ResourceHandler extends StandardHandler {
     const resourceFiles = allStaticResources.filter((file: string) =>
       startsWithMetadataName.test(file)
     )
-    await eachLimit(
-      resourceFiles,
-      getConcurrencyThreshold(),
-      async (resourceFile: string) => this._copy(resourceFile)
-    )
+    for (const resourceFile of resourceFiles) {
+      copies.push({
+        kind: CopyOperationKind.GitCopy,
+        path: resourceFile,
+        revision: this.config.to,
+      })
+    }
   }
 
   protected override _getElementName() {
