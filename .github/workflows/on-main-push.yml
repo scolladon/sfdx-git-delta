@@ -38,7 +38,7 @@ jobs:
     if: ${{ needs.prepare-release.outputs.release_created != 'true' && needs.prepare-release.outputs.prs_created == 'true' }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup node
         uses: actions/setup-node@v4
@@ -67,7 +67,7 @@ jobs:
           sf plugins
 
       - name: Checkout e2e test subject
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: 'e2e/head'
           fetch-depth: 0
