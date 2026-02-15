@@ -115,7 +115,7 @@
     "lint:fs": "wireit",
     "lint": "wireit",
     "lint:fix": "wireit",
-    "postpack": "shx rm -f oclif.manifest.json",
+    "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
     "prepack": "wireit",
     "prepare": "husky",
     "prepublishOnly": "npm shrinkwrap",
