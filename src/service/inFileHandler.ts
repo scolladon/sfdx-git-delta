@@ -8,6 +8,7 @@ import { emptyResult, ManifestTarget } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import { MessageService } from '../utils/MessageService.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
@@ -81,7 +82,12 @@ export default class InFileHandler extends StandardHandler {
 
       return result
     } catch (error) {
-      const message = `could not process ${this.element.basePath}, please ensure it is properly formatted xml in both ${this.config.from} and ${this.config.to} revision`
+      const messageService = new MessageService()
+      const message = messageService.getMessage('warning.MalformedXML', [
+        this.element.basePath,
+        this.config.from,
+        this.config.to,
+      ])
       Logger.warn(lazy`${message}`)
       return {
         manifests: [],

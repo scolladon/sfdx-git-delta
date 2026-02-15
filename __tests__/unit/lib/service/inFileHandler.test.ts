@@ -12,6 +12,18 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
+const mockGetMessage = jest.fn(
+  (_key: string, tokens?: string[]) =>
+    `could not process '${tokens?.[0]}', please ensure it is properly formatted xml in both '${tokens?.[1]}' and '${tokens?.[2]}' revision`
+)
+jest.mock('../../../../src/utils/MessageService', () => {
+  return {
+    MessageService: jest.fn().mockImplementation(() => ({
+      getMessage: mockGetMessage,
+    })),
+  }
+})
+
 const mockCompare = jest.fn()
 const mockPrune = jest.fn()
 jest.mock('../../../../src/utils/metadataDiff', () => {
@@ -705,6 +717,11 @@ describe('inFileHandler collect', () => {
     expect(result.manifests).toHaveLength(0)
     expect(result.copies).toHaveLength(0)
     expect(result.warnings).toHaveLength(1)
+    expect(mockGetMessage).toHaveBeenCalledWith('warning.MalformedXML', [
+      'force-app/main/default/workflows/Account.workflow-meta.xml',
+      'commitA',
+      'commitB',
+    ])
     expect(result.warnings[0].message).toContain(
       'force-app/main/default/workflows/Account.workflow-meta.xml'
     )
