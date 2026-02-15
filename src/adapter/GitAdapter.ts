@@ -233,7 +233,7 @@ export default class GitAdapter {
       return result
         .split(EOL)
         .filter(line => line)
-        .map(line => treatPathSep(line))
+        .map(line => treatPathSep(line.slice(line.indexOf(':') + 1)))
     } catch {
       return []
     }
