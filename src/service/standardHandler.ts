@@ -12,6 +12,7 @@ import {
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
+import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 
@@ -35,6 +36,7 @@ export default class StandardHandler {
     this.config = work.config
   }
 
+  @log
   public async collect(): Promise<HandlerResult> {
     if (!this._isProcessable()) {
       return emptyResult()
