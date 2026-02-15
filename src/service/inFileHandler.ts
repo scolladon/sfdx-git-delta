@@ -71,7 +71,7 @@ export default class InFileHandler extends StandardHandler {
       result.copies.push(...containerResult.copies)
     }
 
-    if (!isEmpty) {
+    if (!isEmpty && this.config.generateDelta) {
       result.copies.push({
         kind: CopyOperationKind.ComputedContent,
         path: this.element.basePath,

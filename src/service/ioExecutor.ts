@@ -20,9 +20,6 @@ export default class IOExecutor {
   constructor(protected readonly config: Config) {}
 
   public async execute(copies: CopyOperation[]): Promise<void> {
-    if (!this.config.generateDelta) {
-      return
-    }
     this.ignoreHelper = await buildIgnoreHelper(this.config)
     await eachLimit(
       copies,

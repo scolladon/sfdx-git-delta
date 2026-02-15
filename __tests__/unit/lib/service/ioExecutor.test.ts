@@ -41,11 +41,19 @@ beforeEach(() => {
 
 describe('IOExecutor', () => {
   describe('Given generateDelta is false', () => {
-    it('When execute is called, Then no I/O is performed', async () => {
+    it('When execute is called with copies, Then still processes them', async () => {
       // Arrange
       const work = getWork()
       work.config.generateDelta = false
+      work.config.to = 'abc123'
+      work.config.output = 'output'
       const executor = new IOExecutor(work.config)
+      mockGetFilesFrom.mockImplementation(async function* () {
+        yield await {
+          path: 'classes/MyClass.cls',
+          content: Buffer.from('content'),
+        }
+      })
       const copies: CopyOperation[] = [
         {
           kind: CopyOperationKind.GitCopy,
@@ -58,8 +66,8 @@ describe('IOExecutor', () => {
       await executor.execute(copies)
 
       // Assert
-      expect(mockGetFilesFrom).not.toHaveBeenCalled()
-      expect(outputFile).not.toHaveBeenCalled()
+      expect(mockGetFilesFrom).toHaveBeenCalledWith('classes/MyClass.cls')
+      expect(outputFile).toHaveBeenCalled()
     })
   })
 

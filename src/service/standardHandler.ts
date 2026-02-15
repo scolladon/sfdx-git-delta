@@ -98,7 +98,7 @@ export default class StandardHandler {
     copies: CopyOperation[],
     src: string
   ): void {
-    if (this._delegateFileCopy()) {
+    if (this.config.generateDelta && this._delegateFileCopy()) {
       this._collectCopy(copies, src)
       if (this._shouldCopyMetaFile(src)) {
         this._collectCopy(copies, this._getMetaTypeFilePath(src))

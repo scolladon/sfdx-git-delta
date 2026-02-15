@@ -19,11 +19,13 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     // RATIONALE: Why include objectTranslation file even when pruned content is empty?
     // fieldTranslation elements are not deployable without their parent objectTranslation.
     // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#object-translations
-    result.copies.push({
-      kind: CopyOperationKind.ComputedContent,
-      path: objectTranslationPath,
-      content: xmlContent,
-    })
+    if (this.config.generateDelta) {
+      result.copies.push({
+        kind: CopyOperationKind.ComputedContent,
+        path: objectTranslationPath,
+        content: xmlContent,
+      })
+    }
     return result
   }
 

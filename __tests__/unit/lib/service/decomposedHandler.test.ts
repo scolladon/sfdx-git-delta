@@ -94,6 +94,7 @@ describe('DecomposedHandler', () => {
 
     it('Given addition, When collectAddition, Then returns manifest and parent meta copies', async () => {
       // Arrange
+      work.config.generateDelta = true
       const { changeType, element } = createElement(
         line,
         recordTypeWithParent,
