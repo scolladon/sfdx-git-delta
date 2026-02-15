@@ -4,11 +4,7 @@ import { basename } from 'node:path/posix'
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
 import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
-import {
-  CopyOperationKind,
-  emptyResult,
-  ManifestTarget,
-} from '../types/handlerResult.js'
+import { emptyResult, ManifestTarget } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
@@ -68,15 +64,16 @@ export default class InFileHandler extends StandardHandler {
       const containerResult =
         await StandardHandler.prototype.collectAddition.call(this)
       result.manifests.push(...containerResult.manifests)
-      result.copies.push(...containerResult.copies)
     }
 
-    if (!isEmpty && this.config.generateDelta) {
-      result.copies.push({
-        kind: CopyOperationKind.ComputedContent,
-        path: this.element.basePath,
-        content: xmlContent,
-      })
+    // Separate from _shouldTreatContainerType: subclasses (e.g. CustomLabelHandler)
+    // may disable container manifests while still needing computed content
+    if (!isEmpty) {
+      this._collectComputedContent(
+        result.copies,
+        this.element.basePath,
+        xmlContent
+      )
     }
 
     return result

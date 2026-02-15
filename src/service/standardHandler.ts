@@ -98,7 +98,7 @@ export default class StandardHandler {
     copies: CopyOperation[],
     src: string
   ): void {
-    if (this.config.generateDelta && this._delegateFileCopy()) {
+    if (this._delegateFileCopy()) {
       this._collectCopy(copies, src)
       if (this._shouldCopyMetaFile(src)) {
         this._collectCopy(copies, this._getMetaTypeFilePath(src))
@@ -107,11 +107,25 @@ export default class StandardHandler {
   }
 
   protected _collectCopy(copies: CopyOperation[], path: string): void {
+    if (!this._shouldCollectCopies()) return
     copies.push({
       kind: CopyOperationKind.GitCopy,
       path,
       revision: this.config.to,
     })
+  }
+
+  protected _collectComputedContent(
+    copies: CopyOperation[],
+    path: string,
+    content: string
+  ): void {
+    if (!this._shouldCollectCopies()) return
+    copies.push({ kind: CopyOperationKind.ComputedContent, path, content })
+  }
+
+  protected _shouldCollectCopies(): boolean {
+    return this.config.generateDelta
   }
 
   protected _getMetaTypeFilePath(path: string) {

@@ -3,7 +3,6 @@
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
-import { CopyOperationKind } from '../types/handlerResult.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
@@ -30,6 +29,8 @@ export default class ResourceHandler extends StandardHandler {
   protected async _collectResourceCopies(
     copies: import('../types/handlerResult.js').CopyOperation[]
   ): Promise<void> {
+    if (!this._shouldCollectCopies()) return
+
     const staticResourcePath = this.metadataName!.substring(
       0,
       this.metadataName!.lastIndexOf(PATH_SEP)
@@ -43,11 +44,7 @@ export default class ResourceHandler extends StandardHandler {
       startsWithMetadataName.test(file)
     )
     for (const resourceFile of resourceFiles) {
-      copies.push({
-        kind: CopyOperationKind.GitCopy,
-        path: resourceFile,
-        revision: this.config.to,
-      })
+      this._collectCopy(copies, resourceFile)
     }
   }
 

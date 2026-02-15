@@ -23,6 +23,7 @@ export default class CustomObjectHandler extends StandardHandler {
   protected async _collectMasterDetailCopies(
     result: HandlerResult
   ): Promise<void> {
+    if (!this._shouldCollectCopies()) return
     if (this.element.type.xmlName !== OBJECT_TYPE) return
 
     const fieldsFolder = join(
