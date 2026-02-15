@@ -14,41 +14,35 @@ import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 
 export default class SharedFolderHandler extends StandardHandler {
-  protected readonly sharedFolderMetadata: Map<string, string>
+  protected readonly resolvedType: string | undefined
 
   constructor(changeType: string, element: MetadataElement, work: Work) {
     super(changeType, element, work)
-    this.sharedFolderMetadata = element.getSharedFolderMetadata()
+    this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 
   protected override _collectManifestElement(
     target: ManifestTarget
   ): ManifestElement {
-    const type = this.sharedFolderMetadata.get(this.element.extension)
     return {
       target,
-      type: type!,
+      type: this.resolvedType!,
       member: this._getElementName(),
     }
   }
 
   public override async collectAddition(): Promise<HandlerResult> {
-    const type = this.sharedFolderMetadata.get(this.element.extension)
-    if (!type) return emptyResult()
+    if (!this.resolvedType) return emptyResult()
     return await super.collectAddition()
   }
 
   public override async collectDeletion(): Promise<HandlerResult> {
-    const type = this.sharedFolderMetadata.get(this.element.extension)
-    if (!type) return emptyResult()
+    if (!this.resolvedType) return emptyResult()
     return await super.collectDeletion()
   }
 
   protected override _isProcessable() {
-    return (
-      super._isProcessable() ||
-      this.sharedFolderMetadata.has(this.element.extension)
-    )
+    return super._isProcessable() || !!this.resolvedType
   }
 
   protected override _getMetaTypeFilePath(path: string) {
