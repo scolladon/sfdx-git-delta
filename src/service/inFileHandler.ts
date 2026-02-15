@@ -61,6 +61,9 @@ export default class InFileHandler extends StandardHandler {
       fromContent
     )
 
+    // RATIONALE: Why include root component in package.xml for InFile sub-elements?
+    // InFile elements are not independently deployable; the root component must be listed.
+    // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
     if (this._shouldTreatContainerType(isEmpty)) {
       const containerResult =
         await StandardHandler.prototype.collectAddition.call(this)

@@ -34,7 +34,9 @@ export default class PackageBuilder {
   }
 
   _sortTypesWithMetadata = (x: string, y: string) => {
-    // QUESTION: Why Object needs to be ordered first in package.xml so it can be deployed ?
+    // RATIONALE: Why must CustomObject be ordered first in package.xml?
+    // Deployments fail if dependent objects aren't deployed before their children.
+    // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#customobject-ordering
     if (x === OBJECT_TYPE) return -1 // @deprecated To remove when the order will not impact the result of the deployment
     return new Intl.Collator(frLocale).compare(x, y)
   }

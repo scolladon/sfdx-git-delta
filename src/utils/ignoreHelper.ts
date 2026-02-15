@@ -9,8 +9,9 @@ import {
 import { readFile } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 
-// QUESTION: Why we should ignore recordTypes for destructive changes manifest ?
-// Because the operation is note enabled on the metadata API https://ideas.salesforce.com/s/idea/a0B8W00000GdeGKUAZ/allow-deletion-of-record-type-using-metadata-api
+// RATIONALE: Why are recordTypes excluded from destructive changes?
+// The Metadata API does not support deleting RecordType via destructiveChanges.xml.
+// See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#recordtype-destructive-changes
 const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
 
 export class IgnoreHelper {

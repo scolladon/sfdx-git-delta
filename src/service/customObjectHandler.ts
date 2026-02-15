@@ -17,6 +17,9 @@ export default class CustomObjectHandler extends StandardHandler {
     return result
   }
 
+  // RATIONALE: Why copy Master Detail fields when deploying CustomObject?
+  // Master Detail fields must be included with their parent object for deployment to succeed.
+  // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#master-detail-fields
   protected async _collectMasterDetailCopies(
     result: HandlerResult
   ): Promise<void> {
