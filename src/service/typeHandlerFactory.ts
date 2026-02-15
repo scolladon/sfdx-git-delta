@@ -1,8 +1,11 @@
 'use strict'
+import GitAdapter from '../adapter/GitAdapter.js'
+import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { Metadata } from '../types/metadata.js'
 import type { Work } from '../types/work.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 
 import Bot from './botHandler.js'
 import ContainedDecomposed from './containedDecomposedHandler.js'
@@ -84,17 +87,27 @@ const handlerMap = {
 }
 
 export default class TypeHandlerFactory {
+  protected readonly resolver: MetadataBoundaryResolver
+
   constructor(
     protected readonly work: Work,
     protected readonly metadata: MetadataRepository
-  ) {}
+  ) {
+    const gitAdapter = GitAdapter.getInstance(work.config)
+    this.resolver = new MetadataBoundaryResolver(metadata, gitAdapter)
+  }
 
   @log
-  public getTypeHandler(line: string) {
-    const type: Metadata = this.metadata.get(line)!
+  public async getTypeHandler(line: string) {
+    const changeType = line.charAt(0)
+    const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
+    const type: Metadata = this.metadata.get(path)!
+    const revision =
+      changeType === DELETION ? this.work.config.from : this.work.config.to
+    const element = await this.resolver.createElement(path, type, revision)
     const xmlName = type.xmlName as keyof typeof handlerMap
     return xmlName in handlerMap
-      ? new handlerMap[xmlName](line, type, this.work, this.metadata)
-      : new Standard(line, type, this.work, this.metadata)
+      ? new handlerMap[xmlName](changeType, element, this.work)
+      : new Standard(changeType, element, this.work)
   }
 }

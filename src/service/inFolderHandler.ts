@@ -22,11 +22,12 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected async _copyFolderMetaFile() {
-    const [, folderPath, folderName] = this._parseLine()!
+    const folderPath = this.element.typeDirectoryPath
+    const folderName = this.element.pathAfterType[0]
 
     const suffix = folderName.endsWith(INFOLDER_SUFFIX)
       ? ''
-      : `.${this.metadataDef.suffix!.toLowerCase()}`
+      : `.${this.element.type.suffix!.toLowerCase()}`
 
     const folderFileName = `${folderName}${suffix}${METAFILE_SUFFIX}`
 
@@ -34,7 +35,7 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected async _copySpecialExtension() {
-    const parsedLine = parse(this.line)
+    const parsedLine = parse(this.element.basePath)
     const dirContent = await readDirs(parsedLine.dir, this.config)
 
     await Promise.all(
@@ -45,8 +46,7 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected override _getElementName() {
-    return this.splittedLine
-      .slice(this.splittedLine.indexOf(this.metadataDef.directoryName) + 1)
+    return this.element.pathAfterType
       .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(INFOLDER_SUFFIX_REGEX, '')
@@ -57,7 +57,7 @@ export default class InFolderHandler extends StandardHandler {
     return (
       super._isProcessable() ||
       this._parentFolderIsNotTheType() ||
-      this.ext!.endsWith(INFOLDER_SUFFIX)
+      this.element.extension!.endsWith(INFOLDER_SUFFIX)
     )
   }
 }

@@ -6,6 +6,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readDirs } from '../../../../src/utils/fsHelper'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -29,12 +30,12 @@ describe('ContainedDecomposedHandler', () => {
     it('addition does not copy files', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `A       force-app/main/permissionsets/Subject.permissionset-meta.xml`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
       // Act
       await sut.handle()
 
@@ -57,12 +58,12 @@ describe('ContainedDecomposedHandler', () => {
 
     it('should add addition to the package.xml', async () => {
       // Arrange
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `A       ${line}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
       // Act
       await sut.handle()
 
@@ -74,12 +75,12 @@ describe('ContainedDecomposedHandler', () => {
 
     it('should add modification to the package.xml', async () => {
       // Arrange
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `M       ${line}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
       // Act
       await sut.handle()
 
@@ -91,12 +92,12 @@ describe('ContainedDecomposedHandler', () => {
 
     it('should add deletion to the package.xml', async () => {
       // Arrange
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `D       ${line}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
       // Act
       await sut.handle()
 
@@ -121,12 +122,12 @@ describe('ContainedDecomposedHandler', () => {
       ]
       mockedReadDirs.mockResolvedValue(existingFiles)
 
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `A       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -146,12 +147,12 @@ describe('ContainedDecomposedHandler', () => {
       ]
       mockedReadDirs.mockResolvedValue(existingFiles)
 
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `M       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -171,12 +172,12 @@ describe('ContainedDecomposedHandler', () => {
       ]
       mockedReadDirs.mockResolvedValue(existingFiles)
 
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `D       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -191,12 +192,12 @@ describe('ContainedDecomposedHandler', () => {
       // Arrange
       mockedReadDirs.mockResolvedValue([])
 
-      const sut = new ContainedDecomposedHandler(
+      const { changeType, element } = createElement(
         `D       ${decomposedLine}`,
         globalMetadata.get('permissionsets')!,
-        work,
         globalMetadata
       )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
 
       // Act
       await sut.handle()

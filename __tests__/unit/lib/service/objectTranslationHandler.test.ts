@@ -6,6 +6,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, writeFile } from '../../../../src/utils/fsHelper'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 const mockCompare = jest.fn<() => Promise<any>>()
@@ -59,7 +60,12 @@ describe('ObjectTranslation', () => {
     it('should not copy files', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -75,7 +81,12 @@ describe('ObjectTranslation', () => {
   describe('when called with generateDelta true', () => {
     it('should copy object translations files', async () => {
       // Arrange
-      const sut = new ObjectTranslation(line, objectType, work, globalMetadata)
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -98,12 +109,12 @@ describe('ObjectTranslation', () => {
         'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
       it('should copy object translations files and fieldTranslation', async () => {
         // Arrange
-        const sut = new ObjectTranslation(
+        const { changeType, element } = createElement(
           fieldTranslationline,
           objectType,
-          work,
           globalMetadata
         )
+        const sut = new ObjectTranslation(changeType, element, work)
 
         // Act
         await sut.handleAddition()

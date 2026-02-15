@@ -55,12 +55,15 @@ export default class GitAdapter {
     return await this.simpleGit.revparse(['--verify', ref])
   }
 
-  protected async pathExistsImpl(path: string) {
+  protected async pathExistsImpl(
+    path: string,
+    revision: string = this.config.to
+  ) {
     let doesPathExists = false
     try {
       const type = await this.simpleGit.catFile([
         '-t',
-        revPath({ path, oid: this.config.to }),
+        revPath({ path, oid: revision }),
       ])
       doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
     } catch {
@@ -70,12 +73,13 @@ export default class GitAdapter {
   }
 
   @log
-  public async pathExists(path: string) {
-    if (this.pathExistsCache.has(path)) {
-      return this.pathExistsCache.get(path)!
+  public async pathExists(path: string, revision: string = this.config.to) {
+    const cacheKey = `${revision}:${path}`
+    if (this.pathExistsCache.has(cacheKey)) {
+      return this.pathExistsCache.get(cacheKey)!
     }
-    const doesPathExists = await this.pathExistsImpl(path)
-    this.pathExistsCache.set(path, doesPathExists)
+    const doesPathExists = await this.pathExistsImpl(path, revision)
+    this.pathExistsCache.set(cacheKey, doesPathExists)
     return doesPathExists
   }
 
@@ -100,13 +104,16 @@ export default class GitAdapter {
     return content.toString(UTF8_ENCODING)
   }
 
-  protected async getFilesPathImpl(path: string): Promise<string[]> {
+  protected async getFilesPathImpl(
+    path: string,
+    revision: string = this.config.to
+  ): Promise<string[]> {
     return (
       await this.simpleGit.raw([
         'ls-tree',
         '--name-only',
         '-r',
-        this.config.to,
+        revision,
         path || '.',
       ])
     )
@@ -115,12 +122,16 @@ export default class GitAdapter {
       .map(line => treatPathSep(line))
   }
 
-  protected async getFilesPathCached(path: string): Promise<string[]> {
-    if (this.getFilesPathCache.has(path)) {
-      return Array.from(this.getFilesPathCache.get(path)!)
+  protected async getFilesPathCached(
+    path: string,
+    revision: string = this.config.to
+  ): Promise<string[]> {
+    const cacheKey = `${revision}:${path}`
+    if (this.getFilesPathCache.has(cacheKey)) {
+      return Array.from(this.getFilesPathCache.get(cacheKey)!)
     }
 
-    const filesPath = await this.getFilesPathImpl(path)
+    const filesPath = await this.getFilesPathImpl(path, revision)
     const pathSegmentsLength = path.split(PATH_SEP).length
 
     // Start iterating over each filePath
@@ -133,7 +144,7 @@ export default class GitAdapter {
       const subPathSegments = [path]
       for (const segment of relevantSegments) {
         subPathSegments.push(segment)
-        const currentPath = subPathSegments.join(PATH_SEP)
+        const currentPath = `${revision}:${subPathSegments.join(PATH_SEP)}`
         if (!this.getFilesPathCache.has(currentPath)) {
           this.getFilesPathCache.set(currentPath, new Set())
         }
@@ -142,24 +153,49 @@ export default class GitAdapter {
     }
 
     // Store the full set of file paths for the given path in cache
-    this.getFilesPathCache.set(path, new Set(filesPath))
+    this.getFilesPathCache.set(cacheKey, new Set(filesPath))
 
     return filesPath
   }
 
   @log
-  public async getFilesPath(paths: string | string[]): Promise<string[]> {
+  public async getFilesPath(
+    paths: string | string[],
+    revision: string = this.config.to
+  ): Promise<string[]> {
     if (typeof paths === 'string') {
-      return this.getFilesPathCached(paths)
+      return this.getFilesPathCached(paths, revision)
     }
 
     const result: string[] = []
     for (const path of paths) {
-      const filesPath = await this.getFilesPathCached(path)
+      const filesPath = await this.getFilesPathCached(path, revision)
       result.push(...filesPath)
     }
 
     return result
+  }
+
+  @log
+  public async listDirAtRevision(
+    dir: string,
+    revision: string
+  ): Promise<string[]> {
+    try {
+      const output = await this.simpleGit.raw([
+        'ls-tree',
+        '--name-only',
+        revision,
+        dir ? `${dir}/` : '.',
+      ])
+      return output
+        .split(EOL)
+        .filter(line => line && line.startsWith(dir))
+        .map(line => line.split(PATH_SEP).pop()!)
+        .filter(name => name)
+    } catch {
+      return []
+    }
   }
 
   public async *getFilesFrom(path: string) {

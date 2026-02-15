@@ -14,7 +14,7 @@ jest.mock('../../../../src/service/typeHandlerFactory', () => {
       return {
         getTypeHandler: jest
           .fn()
-          .mockImplementation(() => ({ handle: mockHandle })),
+          .mockImplementation(async () => ({ handle: mockHandle })),
       }
     }),
   }

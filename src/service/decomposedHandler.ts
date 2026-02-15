@@ -1,7 +1,6 @@
 'use strict'
-import { join } from 'node:path/posix'
+import { dirname, join } from 'node:path/posix'
 
-import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
@@ -15,14 +14,11 @@ export default class DecomposedHandler extends StandardHandler {
   }
 
   protected async _copyParent() {
-    const parentDirPath = this.splittedLine
-      .slice(0, this.splittedLine.indexOf(this.metadataDef.directoryName))
-      .join(PATH_SEP)
+    const parentDirPath = dirname(this.element.typeDirectoryPath)
     const parentTypeName = this.getParentName()
 
-    const parentTypeSuffix = this.metadata.get(
-      this.metadataDef.parentXmlName!
-    )!.suffix
+    const parentType = this.element.getParentType()
+    const parentTypeSuffix = parentType!.suffix
 
     const parentPath = join(
       parentDirPath,
@@ -39,8 +35,6 @@ export default class DecomposedHandler extends StandardHandler {
   }
 
   protected getParentName() {
-    return this.splittedLine[
-      this.splittedLine.indexOf(this.metadataDef.directoryName) - 1
-    ]
+    return this.element.parentName
   }
 }

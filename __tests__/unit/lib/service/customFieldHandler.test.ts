@@ -7,6 +7,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomFieldHandler from '../../../../src/service/customFieldHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles, readPathFromGit } from '../../../../src/utils/fsHelper'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -40,7 +41,12 @@ describe('CustomFieldHandler', () => {
     it('should not handle master detail exception', async () => {
       // Arrange
       work.config.generateDelta = false
-      const sut = new CustomFieldHandler(line, objectType, work, globalMetadata)
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomFieldHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -54,12 +60,12 @@ describe('CustomFieldHandler', () => {
       it('should not handle master detail exception', async () => {
         // Arrange
         mockedReadPathFromGit.mockResolvedValueOnce('')
-        const sut = new CustomFieldHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
           globalMetadata
         )
+        const sut = new CustomFieldHandler(changeType, element, work)
 
         // Act
         await sut.handleAddition()
@@ -73,12 +79,12 @@ describe('CustomFieldHandler', () => {
       it('should copy the parent object', async () => {
         // Arrange
         mockedReadPathFromGit.mockResolvedValueOnce(MASTER_DETAIL_TAG)
-        const sut = new CustomFieldHandler(
+        const { changeType, element } = createElement(
           line,
           objectType,
-          work,
           globalMetadata
         )
+        const sut = new CustomFieldHandler(changeType, element, work)
 
         // Act
         await sut.handleAddition()

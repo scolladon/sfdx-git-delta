@@ -6,6 +6,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFileHandler from '../../../../src/service/inFileHandler'
 import type { Work } from '../../../../src/types/work'
 import { writeFile } from '../../../../src/utils/fsHelper'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 const mockCompare = jest.fn()
@@ -64,12 +65,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     let sut: InFileHandler
     beforeEach(() => {
       // Arrange
-      sut = new InFileHandler(
-        'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+      const { changeType, element } = createElement(
+        'force-app/main/default/workflows/Account.workflow-meta.xml',
         workflowType,
-        work,
         globalMetadata
       )
+      sut = new InFileHandler(changeType, element, work)
       mockCompare.mockImplementation(() =>
         Promise.resolve({
           added: new Map([['WorkflowFlowAction', new Set(['test'])]]),
@@ -100,12 +101,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when file have comparable metadata', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFileHandler(
+          const { changeType, element } = createElement(
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
-            work,
             globalMetadata
           )
+          sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: new Map([['ValueTranslation', new Set(['Three'])]]),
@@ -136,12 +137,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when file does not have comparable metadata but is not empty', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFileHandler(
+          const { changeType, element } = createElement(
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
-            work,
             globalMetadata
           )
+          sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: new Map(),
@@ -177,12 +178,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when element are added and deleted', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFileHandler(
-          'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+        const { changeType, element } = createElement(
+          'force-app/main/default/workflows/Account.workflow-meta.xml',
           workflowType,
-          work,
           globalMetadata
         )
+        sut = new InFileHandler(changeType, element, work)
         mockCompare.mockImplementation(() =>
           Promise.resolve({
             added: new Map([['WorkflowAlert', new Set(['test'])]]),
@@ -215,12 +216,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when element are deleted and nothing is added', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFileHandler(
-          'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+        const { changeType, element } = createElement(
+          'force-app/main/default/workflows/Account.workflow-meta.xml',
           workflowType,
-          work,
           globalMetadata
         )
+        sut = new InFileHandler(changeType, element, work)
         mockCompare.mockImplementation(() =>
           Promise.resolve({
             added: new Map(),
@@ -249,12 +250,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when no metadata element are added/deleted and the file does not contains attributes', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFileHandler(
-            'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+          const { changeType, element } = createElement(
+            'force-app/main/default/workflows/Account.workflow-meta.xml',
             workflowType,
-            work,
             globalMetadata
           )
+          sut = new InFileHandler(changeType, element, work)
 
           mockCompare.mockImplementation(() =>
             Promise.resolve({
@@ -287,12 +288,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when no metadata element are added, some are deleted but the file contains attributes', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFileHandler(
-            'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+          const { changeType, element } = createElement(
+            'force-app/main/default/workflows/Account.workflow-meta.xml',
             workflowType,
-            work,
             globalMetadata
           )
+          sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: new Map(),
@@ -324,12 +325,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when file have comparable metadata', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFileHandler(
+          const { changeType, element } = createElement(
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
-            work,
             globalMetadata
           )
+          sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: new Map([['ValueTranslation', new Set(['Three'])]]),
@@ -364,12 +365,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
       describe('when file does not have comparable metadata but is not empty', () => {
         beforeEach(() => {
           // Arrange
-          sut = new InFileHandler(
+          const { changeType, element } = createElement(
             'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
             globalValueSetTranslationsType,
-            work,
             globalMetadata
           )
+          sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: new Map(),
@@ -403,12 +404,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     let sut: InFileHandler
     beforeEach(() => {
       // Arrange
-      sut = new InFileHandler(
-        'force-app/main/default/workflows/Test/Account.workflow-meta.xml',
+      const { changeType, element } = createElement(
+        'force-app/main/default/workflows/Account.workflow-meta.xml',
         workflowType,
-        work,
         globalMetadata
       )
+      sut = new InFileHandler(changeType, element, work)
       mockCompare.mockImplementation(() =>
         Promise.resolve({
           added: new Map(),
@@ -434,12 +435,12 @@ describe.each([true, false])(`inFileHandler -d: %s`, generateDelta => {
     describe('when metadata in file is prune Only', () => {
       beforeEach(() => {
         // Arrange
-        sut = new InFileHandler(
+        const { changeType, element } = createElement(
           'force-app/main/default/globalValueSetTranslations/Numbers-fr.globalValueSetTranslation-meta.xml',
           globalValueSetTranslationsType,
-          work,
           globalMetadata
         )
+        sut = new InFileHandler(changeType, element, work)
       })
       it('should only store file name and not the metadata in file', async () => {
         // Act

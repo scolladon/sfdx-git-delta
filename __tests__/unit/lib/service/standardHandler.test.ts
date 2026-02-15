@@ -13,6 +13,7 @@ import StandardHandler from '../../../../src/service/standardHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
 import { Logger } from '../../../../src/utils/LoggingService'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -57,12 +58,13 @@ describe(`StandardHandler`, () => {
     mockedCopyFiles.mockRejectedValueOnce(
       new Error('fatal: not a git repository')
     )
-    const sut = new StandardHandler(
-      `${ADDITION}       ${entityPath}`,
+    const line = `${ADDITION}       ${entityPath}`
+    const { changeType, element } = createElement(
+      line,
       classType,
-      work,
       globalMetadata
     )
+    const sut = new StandardHandler(changeType, element, work)
 
     // Act
     await sut.handle()
@@ -77,12 +79,13 @@ describe(`StandardHandler`, () => {
   it('should handle non-Error thrown values', async () => {
     // Arrange
     mockedCopyFiles.mockRejectedValueOnce('string error')
-    const sut = new StandardHandler(
-      `${ADDITION}       ${entityPath}`,
+    const line = `${ADDITION}       ${entityPath}`
+    const { changeType, element } = createElement(
+      line,
       classType,
-      work,
       globalMetadata
     )
+    const sut = new StandardHandler(changeType, element, work)
 
     // Act
     await sut.handle()
@@ -95,12 +98,13 @@ describe(`StandardHandler`, () => {
 
   it('does not handle not ADM line, silently', async () => {
     // Arrange
-    const sut = new StandardHandler(
-      `Z       ${entityPath}`,
+    const line = `Z       ${entityPath}`
+    const { changeType, element } = createElement(
+      line,
       classType,
-      work,
       globalMetadata
     )
+    const sut = new StandardHandler(changeType, element, work)
 
     // Act
     await sut.handle()
@@ -120,14 +124,15 @@ describe(`StandardHandler`, () => {
     it.each([
       ['new', ADDITION],
       ['modified', MODIFICATION],
-    ])('should add %s element to package', async (_, changeType) => {
+    ])('should add %s element to package', async (_, ct) => {
       // Arrange
-      const sut = new StandardHandler(
-        `${changeType}       ${entityPath}`,
+      const line = `${ct}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -142,12 +147,13 @@ describe(`StandardHandler`, () => {
     })
     it('should add deleted element to destructiveChanges', async () => {
       // Arrange
-      const sut = new StandardHandler(
-        `${DELETION}       ${entityPath}`,
+      const line = `${DELETION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -170,12 +176,13 @@ describe(`StandardHandler`, () => {
     describe('when file copy is not delegated', () => {
       it('should not copy files when _copyWithMetaFile check fails', async () => {
         // Arrange
-        const sut = new StandardHandler(
-          `${ADDITION}       ${entityPath}`,
+        const line = `${ADDITION}       ${entityPath}`
+        const { changeType, element } = createElement(
+          line,
           classType,
-          work,
           globalMetadata
         )
+        const sut = new StandardHandler(changeType, element, work)
         jest
           .spyOn(
             sut as unknown as { _delegateFileCopy: () => boolean },
@@ -195,12 +202,13 @@ describe(`StandardHandler`, () => {
 
       it('should not copy files when _copy check fails', async () => {
         // Arrange
-        const sut = new StandardHandler(
-          `${ADDITION}       ${entityPath}`,
+        const line = `${ADDITION}       ${entityPath}`
+        const { changeType, element } = createElement(
+          line,
           classType,
-          work,
           globalMetadata
         )
+        const sut = new StandardHandler(changeType, element, work)
         jest
           .spyOn(
             sut as unknown as { _delegateFileCopy: () => boolean },
@@ -223,12 +231,13 @@ describe(`StandardHandler`, () => {
     describe('when element type definition has meta file', () => {
       it('should add element to package when meta file is modified', async () => {
         // Arrange
-        const sut = new StandardHandler(
-          `${MODIFICATION}       ${entityPath}${METAFILE_SUFFIX}`,
+        const line = `${MODIFICATION}       ${entityPath}${METAFILE_SUFFIX}`
+        const { changeType, element } = createElement(
+          line,
           classType,
-          work,
           globalMetadata
         )
+        const sut = new StandardHandler(changeType, element, work)
 
         // Act
         await sut.handle()
@@ -248,12 +257,13 @@ describe(`StandardHandler`, () => {
 
       it('should copy meta file when element is modified', async () => {
         // Arrange
-        const sut = new StandardHandler(
-          `${MODIFICATION}       ${entityPath}`,
+        const line = `${MODIFICATION}       ${entityPath}`
+        const { changeType, element } = createElement(
+          line,
           classType,
-          work,
           globalMetadata
         )
+        const sut = new StandardHandler(changeType, element, work)
 
         // Act
         await sut.handle()
@@ -276,12 +286,13 @@ describe(`StandardHandler`, () => {
       it('should add element to package when meta file is modified', async () => {
         // Arrange
         const entityPath = `${basePath}testSuites/suite.testSuite${METAFILE_SUFFIX}`
-        const sut = new StandardHandler(
-          `${MODIFICATION}       ${entityPath}`,
+        const line = `${MODIFICATION}       ${entityPath}`
+        const { changeType, element } = createElement(
+          line,
           testSuitesType,
-          work,
           globalMetadata
         )
+        const sut = new StandardHandler(changeType, element, work)
 
         // Act
         await sut.handle()
@@ -303,12 +314,13 @@ describe(`StandardHandler`, () => {
       it('should not copy meta file when element is modified', async () => {
         // Arrange
         const entityPath = `${basePath}testSuites/suite.testSuite`
-        const sut = new StandardHandler(
-          `${MODIFICATION}       ${entityPath}`,
+        const line = `${MODIFICATION}       ${entityPath}`
+        const { changeType, element } = createElement(
+          line,
           testSuitesType,
-          work,
           globalMetadata
         )
+        const sut = new StandardHandler(changeType, element, work)
 
         // Act
         await sut.handle()
@@ -331,14 +343,15 @@ describe(`StandardHandler`, () => {
     it.each([
       ['new', ADDITION],
       ['modified', MODIFICATION],
-    ])('should add %s element to package and copy file', async (_, changeType) => {
+    ])('should add %s element to package and copy file', async (_, ct) => {
       // Arrange
-      const sut = new StandardHandler(
-        `${changeType}       ${entityPath}`,
+      const line = `${ct}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -353,12 +366,13 @@ describe(`StandardHandler`, () => {
     })
     it('should add deleted element to destructiveChanges and do not copy file', async () => {
       // Arrange
-      const sut = new StandardHandler(
-        `${DELETION}       ${entityPath}`,
+      const line = `${DELETION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -373,61 +387,18 @@ describe(`StandardHandler`, () => {
     })
   })
 
-  describe('_parseLine', () => {
-    it.each([
-      '.',
-      '',
-      'other',
-    ])('should return path and name part of a line "%s"', repoPath => {
-      // Arrange
-      work.config.repo = repoPath
-      const sut = new StandardHandler(
-        `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
-        classType,
-        work,
-        globalMetadata
-      )
-
-      // Act
-      const result: RegExpMatchArray = sut['_parseLine']()!
-
-      // Assert
-      expect(result.length).toBe(3)
-      expect(result[0]).toBe(`${entityPath}`)
-      expect(result[1]).toBe(`${basePath}${classType.directoryName}`)
-      expect(result[2]).toBe(`${entity}.${classType.suffix}`)
-    })
-
-    it('should cache and reuse regex on subsequent calls', () => {
-      // Arrange
-      const sut = new StandardHandler(
-        `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`,
-        classType,
-        work,
-        globalMetadata
-      )
-
-      // Act
-      const firstResult = sut['_parseLine']()
-      const secondResult = sut['_parseLine']()
-
-      // Assert
-      expect(firstResult).toEqual(secondResult)
-      expect(sut['lineRegex']).toBeDefined()
-    })
-  })
-
   describe('when the line should not be processed', () => {
     it.each([
       `force-app/main/default/classes/folder/Random.file`,
     ])('does not handle the line', async entityPath => {
       // Arrange
-      const sut = new StandardHandler(
-        `A       ${entityPath}`,
+      const line = `A       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -441,19 +412,20 @@ describe(`StandardHandler`, () => {
   describe('toString', () => {
     it('should return a string representation of the handler', () => {
       // Arrange
-      const sut = new StandardHandler(
-        `${ADDITION}       ${entityPath}`,
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       const result = sut.toString()
 
       // Assert
       expect(result).toBe(
-        `${sut.constructor.name}: ${sut['changeType']} -> ${sut['line']}`
+        `${sut.constructor.name}: ${sut['changeType']} -> ${sut['element'].basePath}`
       )
     })
   })
@@ -482,12 +454,13 @@ describe(`StandardHandler`, () => {
 
     it('should log addition with lazy evaluated element name', async () => {
       // Arrange
-      const sut = new StandardHandler(
-        `${ADDITION}       ${entityPath}`,
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -501,12 +474,13 @@ describe(`StandardHandler`, () => {
 
     it('should log deletion with lazy evaluated element name', async () => {
       // Arrange
-      const sut = new StandardHandler(
-        `${DELETION}       ${entityPath}`,
+      const line = `${DELETION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()
@@ -520,12 +494,13 @@ describe(`StandardHandler`, () => {
 
     it('should log modification with lazy evaluated element name', async () => {
       // Arrange
-      const sut = new StandardHandler(
-        `${MODIFICATION}       ${entityPath}`,
+      const line = `${MODIFICATION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
         classType,
-        work,
         globalMetadata
       )
+      const sut = new StandardHandler(changeType, element, work)
 
       // Act
       await sut.handle()

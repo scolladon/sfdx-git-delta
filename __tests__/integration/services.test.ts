@@ -526,7 +526,9 @@ describe.each(testContext)(`integration test %s`, (changePath:
       mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
       mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
     }
-    const sut = handlerFactory.getTypeHandler(`${ADDITION}       ${changePath}`)
+    const sut = await handlerFactory.getTypeHandler(
+      `${ADDITION}       ${changePath}`
+    )
 
     // Act
     await sut.handle()
@@ -544,7 +546,9 @@ describe.each(testContext)(`integration test %s`, (changePath:
     mockedReadDirs.mockResolvedValue([])
     mockedPathExists.mockResolvedValue(false)
 
-    const sut = handlerFactory.getTypeHandler(`${DELETION}       ${changePath}`)
+    const sut = await handlerFactory.getTypeHandler(
+      `${DELETION}       ${changePath}`
+    )
 
     // Act
     await sut.handle()
@@ -561,7 +565,7 @@ describe.each(testContext)(`integration test %s`, (changePath:
       mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
     }
 
-    const sut = handlerFactory.getTypeHandler(
+    const sut = await handlerFactory.getTypeHandler(
       `${MODIFICATION}       ${changePath}`
     )
 

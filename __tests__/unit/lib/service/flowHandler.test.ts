@@ -6,6 +6,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowHandler from '../../../../src/service/flowHandler'
 import type { Work } from '../../../../src/types/work'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -33,12 +34,12 @@ describe('flowHandler', () => {
   describe('when a flow is deleted', () => {
     it('warns the user not to', async () => {
       // Arrange
-      const sut = new FlowHandler(
+      const { changeType, element } = createElement(
         `${DELETION}       ${basePath}/MyFlow.${objectType.suffix}-meta.xml`,
         objectType,
-        work,
         globalMetadata
       )
+      const sut = new FlowHandler(changeType, element, work)
       expect(work.warnings.length).toBe(0)
 
       // Act

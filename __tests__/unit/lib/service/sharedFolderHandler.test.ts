@@ -7,6 +7,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
 import type { Work } from '../../../../src/types/work'
 import { copyFiles } from '../../../../src/utils/fsHelper'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
@@ -47,7 +48,12 @@ describe('SharedFolderHandler', () => {
 
   it('should add the metadata component under the right type to the package', async () => {
     // Arrange
-    const sut = new SharedFolderHandler(line, objectType, work, globalMetadata)
+    const { changeType, element } = createElement(
+      line,
+      objectType,
+      globalMetadata
+    )
+    const sut = new SharedFolderHandler(changeType, element, work)
 
     // Act
     await sut.handleAddition()
@@ -61,12 +67,12 @@ describe('SharedFolderHandler', () => {
     it('should not add to package', async () => {
       // Arrange
       const unknownExtLine = `A       ${basePath}${objectType}/Test.unknownext`
-      const sut = new SharedFolderHandler(
+      const { changeType, element } = createElement(
         unknownExtLine,
         objectType,
-        work,
         globalMetadata
       )
+      const sut = new SharedFolderHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()
@@ -80,12 +86,13 @@ describe('SharedFolderHandler', () => {
       work.config.generateDelta = true
     })
     it('should add and copy the metadata', async () => {
-      const sut = new SharedFolderHandler(
+      // Arrange
+      const { changeType, element } = createElement(
         line,
         objectType,
-        work,
         globalMetadata
       )
+      const sut = new SharedFolderHandler(changeType, element, work)
 
       // Act
       await sut.handleAddition()

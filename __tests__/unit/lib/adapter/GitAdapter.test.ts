@@ -180,6 +180,43 @@ describe('GitAdapter', () => {
         expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
     })
+    describe('when custom revision is provided', () => {
+      it('uses the custom revision in git command', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        const customRevision = 'feature-branch'
+        mockedCatFile.mockResolvedValue('blob' as never)
+
+        // Act
+        const result = await gitAdapter.pathExists('path', customRevision)
+
+        // Assert
+        expect(result).toBe(true)
+        expect(mockedCatFile).toHaveBeenCalledWith([
+          '-t',
+          `${customRevision}:path`,
+        ])
+      })
+
+      it('caches separately per revision', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedCatFile
+          .mockResolvedValueOnce('blob' as never)
+          .mockResolvedValueOnce('tree' as never)
+
+        // Act
+        const result1 = await gitAdapter.pathExists('path', 'rev1')
+        const result2 = await gitAdapter.pathExists('path', 'rev2')
+        const cached1 = await gitAdapter.pathExists('path', 'rev1')
+
+        // Assert
+        expect(result1).toBe(true)
+        expect(result2).toBe(true)
+        expect(cached1).toBe(true)
+        expect(mockedCatFile).toHaveBeenCalledTimes(2)
+      })
+    })
   })
 
   describe('getFirstCommitRef', () => {
@@ -441,6 +478,66 @@ describe('GitAdapter', () => {
       expect(resultAtPath).toEqual(rawOutput)
       expect(mockedRaw).toHaveBeenCalledTimes(2)
     })
+
+    it('uses custom revision in git command', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const customRevision = 'feature-branch'
+      mockedRaw.mockResolvedValue('' as never)
+
+      // Act
+      await gitAdapter.getFilesPath('path', customRevision)
+
+      // Assert
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        customRevision,
+        'path',
+      ])
+    })
+
+    it('caches separately per revision', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const rev1Output = ['path/file1']
+      const rev2Output = ['path/file2']
+      mockedRaw
+        .mockResolvedValueOnce(rev1Output.join(EOL) as never)
+        .mockResolvedValueOnce(rev2Output.join(EOL) as never)
+
+      // Act
+      const result1 = await gitAdapter.getFilesPath('path', 'rev1')
+      const result2 = await gitAdapter.getFilesPath('path', 'rev2')
+      const cached1 = await gitAdapter.getFilesPath('path', 'rev1')
+
+      // Assert
+      expect(result1).toEqual(rev1Output)
+      expect(result2).toEqual(rev2Output)
+      expect(cached1).toEqual(rev1Output)
+      expect(mockedRaw).toHaveBeenCalledTimes(2)
+    })
+
+    it('memoize sub call with custom revision', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const customRevision = 'feature-branch'
+      const rawOutput = ['path/to/file', 'path/to/another/file']
+      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+
+      // Act
+      const result = await gitAdapter.getFilesPath('path', customRevision)
+      const subCachedResult = await gitAdapter.getFilesPath(
+        'path/to',
+        customRevision
+      )
+
+      // Assert
+      expect(result).toEqual(rawOutput)
+      expect(subCachedResult).toEqual(rawOutput)
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('getFilesFrom', () => {
@@ -555,6 +652,57 @@ describe('GitAdapter', () => {
           ])
         )
       })
+    })
+  })
+
+  describe('listDirAtRevision', () => {
+    it('Given valid directory and revision, When listDirAtRevision, Then returns file names from the directory', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue(
+        ['myDir/file1.txt', 'myDir/file2.cls', ''].join(EOL) as never
+      )
+
+      // Act
+      const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
+
+      // Assert
+      expect(result).toEqual(['file1.txt', 'file2.cls'])
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        'HEAD',
+        'myDir/',
+      ])
+    })
+
+    it('Given empty directory string, When listDirAtRevision, Then calls with current directory', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue('' as never)
+
+      // Act
+      await gitAdapter.listDirAtRevision('', 'HEAD')
+
+      // Assert
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        'HEAD',
+        '.',
+      ])
+    })
+
+    it('Given git command throws, When listDirAtRevision, Then returns empty array', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockRejectedValue(new Error('git error') as never)
+
+      // Act
+      const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
+
+      // Assert
+      expect(result).toEqual([])
     })
   })
 })

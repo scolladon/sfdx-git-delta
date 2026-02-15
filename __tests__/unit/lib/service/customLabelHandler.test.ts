@@ -5,6 +5,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomLabelHandler from '../../../../src/service/customLabelHandler'
 import type { Work } from '../../../../src/types/work'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 const labelType = {
@@ -35,7 +36,12 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(line, labelType, work, globalMetadata)
+      const { changeType, element } = createElement(
+        line,
+        labelType,
+        globalMetadata
+      )
+      sut = new CustomLabelHandler(changeType, element, work)
     })
     it('should add the element in the package', async () => {
       // Arrange
@@ -53,7 +59,12 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(line, labelType, work, globalMetadata)
+      const { changeType, element } = createElement(
+        line,
+        labelType,
+        globalMetadata
+      )
+      sut = new CustomLabelHandler(changeType, element, work)
     })
     it('should add the element in the package', async () => {
       // Arrange
@@ -71,7 +82,12 @@ describe('Decomposed CustomLabel spec', () => {
     let sut: CustomLabelHandler
     beforeEach(() => {
       // Arrange
-      sut = new CustomLabelHandler(line, labelType, work, globalMetadata)
+      const { changeType, element } = createElement(
+        line,
+        labelType,
+        globalMetadata
+      )
+      sut = new CustomLabelHandler(changeType, element, work)
     })
     it('should add the element in the destructiveChanges', async () => {
       // Arrange

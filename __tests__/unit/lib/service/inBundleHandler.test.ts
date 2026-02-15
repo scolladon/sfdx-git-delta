@@ -5,6 +5,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
 import type { Work } from '../../../../src/types/work'
+import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 const objectType = {
@@ -34,7 +35,12 @@ describe('InBundleHandler', () => {
     describe('when called with meta file', () => {
       it('returns <site workspace>/<workspace name>', () => {
         // Arrange
-        const sut = new InBundleHandler(line, objectType, work, globalMetadata)
+        const { changeType, element } = createElement(
+          line,
+          objectType,
+          globalMetadata
+        )
+        const sut = new InBundleHandler(changeType, element, work)
 
         // Act
         const result = sut['_getElementName']()
@@ -50,7 +56,12 @@ describe('InBundleHandler', () => {
         const entityPath =
           'force-app/main/default/digitalExperiences/site/component/workspace/file.json'
         const line = `A       ${entityPath}`
-        const sut = new InBundleHandler(line, objectType, work, globalMetadata)
+        const { changeType, element } = createElement(
+          line,
+          objectType,
+          globalMetadata
+        )
+        const sut = new InBundleHandler(changeType, element, work)
 
         // Act
         const result = sut['_getElementName']()

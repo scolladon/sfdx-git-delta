@@ -5,23 +5,17 @@ import {
   METAFILE_SUFFIX,
   PERMISSIONSET_OBJECTSETTINGS_FOLDER,
 } from '../constant/metadataConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import { Metadata } from '../types/metadata.js'
-import { Work } from '../types/work.js'
+import type { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ContainedDecomposedHandler extends StandardHandler {
   protected holderFolder: ParsedPath | undefined
 
-  constructor(
-    line: string,
-    metadataDef: Metadata,
-    work: Work,
-    metadata: MetadataRepository
-  ) {
-    super(line, metadataDef, work, metadata)
+  constructor(changeType: string, element: MetadataElement, work: Work) {
+    super(changeType, element, work)
     this._setholderFolder()
   }
 
@@ -30,7 +24,6 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     await super.handleAddition()
     if (!this.config.generateDelta) return
 
-    // For decomposed format, copy all related files
     if (this._isDecomposedFormat()) {
       await this._copyDecomposedFiles()
     }
@@ -53,27 +46,26 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   protected _setholderFolder() {
     if (!this._isDecomposedFormat()) {
       this.holderFolder = parse(
-        this.line
+        this.element.basePath
           .replace(METAFILE_SUFFIX, '')
-          .replace(`.${this.metadataDef.suffix}`, '')
+          .replace(`.${this.element.type.suffix}`, '')
       )
       return
     }
-    // Get the parent folder name from the path
-    const parentFolderName = this.splittedLine.at(-2)
+    const parts = this.element.fullPath.split(PATH_SEP)
+    const parentFolderName = parts.at(-2)
 
-    // If parent folder is objectSettings, use the grandparent folder name
-    // Otherwise use the parent folder name
     const index =
       parentFolderName === PERMISSIONSET_OBJECTSETTINGS_FOLDER ? -2 : -1
 
-    this.holderFolder = parse(this.splittedLine.slice(0, index).join(PATH_SEP))
+    this.holderFolder = parse(parts.slice(0, index).join(PATH_SEP))
   }
 
   protected _isDecomposedFormat() {
+    const parsed = parse(this.element.basePath)
     return (
-      !this.parsedLine.base.includes(`.${this.metadataDef.suffix}`) ||
-      this.parsedLine.dir.split(PATH_SEP).pop() === this.parsedLine.name
+      !parsed.base.includes(`.${this.element.type.suffix}`) ||
+      parsed.dir.split(PATH_SEP).pop() === parsed.name
     )
   }
 
