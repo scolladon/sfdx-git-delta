@@ -1,8 +1,4 @@
-'use strict'
-
-import { describe, expect, it, jest } from '@jest/globals'
-
-import { getLatestSupportedVersion } from '../../../../src/metadata/metadataManager'
+import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Work } from '../../../../src/types/work'
 import CLIHelper from '../../../../src/utils/cliHelper'
 import {
@@ -16,6 +12,17 @@ import { getWork } from '../../../__utils__/globalTestHelper'
 
 const mockParseRev = jest.fn()
 const mockConfigureRepository = jest.fn()
+
+jest.mock('@salesforce/source-deploy-retrieve', () => {
+  return {
+    getCurrentApiVersion: jest.fn().mockReturnValue({ toString: () => '58.0' }),
+    registry: {
+      getCurrentApiVersion: jest
+        .fn()
+        .mockReturnValue({ toString: () => '58.0' }),
+    },
+  }
+})
 
 jest.mock('../../../../src/adapter/GitAdapter', () => {
   return {
@@ -233,9 +240,11 @@ describe(`test if the application`, () => {
   describe('apiVersion parameter handling', () => {
     let latestAPIVersionSupported: number
     beforeAll(() => {
-      latestAPIVersionSupported = getLatestSupportedVersion()
+      latestAPIVersionSupported = 58
     })
-    beforeEach(jest.resetAllMocks)
+    beforeEach(() => {
+      jest.resetAllMocks()
+    })
     describe('when apiVersion parameter is set with supported value', () => {
       it.each([
         46, 52, 55,
@@ -254,11 +263,8 @@ describe(`test if the application`, () => {
     })
     describe('when apiVersion parameter is set with unsupported value', () => {
       it.each([
-        NaN,
-        40,
-        55.1,
-        0,
-      ])(`config.apiVersion (%s) equals the latest version `, async version => {
+        40, 55.1, 0,
+      ])(`config.apiVersion (%s) equals the parameter `, async version => {
         // Arrange
         mockedFileExists.mockImplementation(() => Promise.resolve(false))
         work.config.apiVersion = version
@@ -268,8 +274,8 @@ describe(`test if the application`, () => {
         await cliHelper['_handleDefault']()
 
         // Assert
-        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings.length).toEqual(1)
+        expect(work.config.apiVersion).toEqual(version)
+        expect(work.warnings.length).toEqual(0)
       })
     })
 
@@ -287,7 +293,7 @@ describe(`test if the application`, () => {
               Promise.resolve(`{"sourceApiVersion":"${version}"}`)
             )
 
-            work.config.apiVersion = -1
+            work.config.apiVersion = undefined
             const cliHelper = new CLIHelper(work)
 
             // Act
@@ -298,20 +304,21 @@ describe(`test if the application`, () => {
             expect(work.warnings.length).toEqual(0)
           })
         })
-        describe('when "sourceApiVersion" attribute is set with unsupported value', () => {
+        describe('when "sourceApiVersion" attribute is set with invalid value', () => {
           it.each([
             NaN,
-            '40',
             'awesome',
-            1000000000,
             '',
           ])('config.apiVersion (%s) equals the latest version', async version => {
             // Arrange
             mockedReadFile.mockResolvedValue(
               `{"sourceApiVersion":"${version}"}`
             )
+            jest
+              .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+              .mockResolvedValue('58')
 
-            work.config.apiVersion = -1
+            work.config.apiVersion = undefined
             const cliHelper = new CLIHelper(work)
 
             // Act
@@ -319,15 +326,43 @@ describe(`test if the application`, () => {
 
             // Assert
             expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-            expect(work.warnings.length).toEqual(1)
+            expect(work.warnings.length).toEqual(0)
+          })
+        })
+
+        describe('when "sourceApiVersion" attribute is set with valid but unusual value', () => {
+          it.each([
+            '40',
+            1000000000,
+          ])('config.apiVersion (%s) is trusted', async version => {
+            // Arrange
+            mockedReadFile.mockResolvedValue(
+              `{"sourceApiVersion":"${version}"}`
+            )
+            jest
+              .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+              .mockResolvedValue('58')
+
+            work.config.apiVersion = undefined
+            const cliHelper = new CLIHelper(work)
+
+            // Act
+            await cliHelper['_handleDefault']()
+
+            // Assert
+            expect(work.config.apiVersion).toEqual(parseInt(version.toString()))
+            expect(work.warnings.length).toEqual(0)
           })
         })
 
         it('when "sourceApiVersion" attribute is not set', async () => {
           // Arrange
           mockedReadFile.mockResolvedValue('{}')
+          jest
+            .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+            .mockResolvedValue('58')
 
-          work.config.apiVersion = -1
+          work.config.apiVersion = undefined
           const cliHelper = new CLIHelper(work)
 
           // Act
@@ -335,7 +370,7 @@ describe(`test if the application`, () => {
 
           // Assert
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-          expect(work.warnings.length).toEqual(1)
+          expect(work.warnings.length).toEqual(0)
         })
       })
     })
@@ -343,7 +378,10 @@ describe(`test if the application`, () => {
       it('config.apiVersion equals the latest version', async () => {
         // Arrange
         mockedFileExists.mockImplementation(() => Promise.resolve(false))
-        work.config.apiVersion = -1
+        jest
+          .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+          .mockResolvedValue('58')
+        work.config.apiVersion = undefined
         const cliHelper = new CLIHelper(work)
 
         // Act
@@ -351,7 +389,7 @@ describe(`test if the application`, () => {
 
         // Assert
         expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings.length).toEqual(1)
+        expect(work.warnings.length).toEqual(0)
       })
     })
   })

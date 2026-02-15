@@ -51,6 +51,7 @@
     "@oclif/core": "^4.8.0",
     "@salesforce/core": "^8.25.1",
     "@salesforce/sf-plugins-core": "^12.2.6",
+    "@salesforce/source-deploy-retrieve": "^12.22.3",
     "async": "^3.2.6",
     "fast-equals": "^6.0.0",
     "fast-xml-parser": "^5.3.4",
@@ -58,7 +59,8 @@
     "ignore": "^7.0.5",
     "lodash-es": "^4.17.23",
     "simple-git": "^3.30.0",
-    "xmlbuilder2": "^4.0.3"
+    "xmlbuilder2": "^4.0.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.14",
@@ -109,7 +111,6 @@
     "dependencies:upgrade": "npx npm-check-updates -u ; npm install ; npm audit fix",
     "devops:cleanup:dev-tag": "./tooling/devops-cleanup.sh",
     "devops:move-tag": "./tooling/devops-movetag.sh",
-    "increment:apiversion": "bash ./tooling/incrementApiVersion.sh",
     "lint:dependencies": "wireit",
     "lint:fs": "wireit",
     "lint": "wireit",

@@ -492,40 +492,42 @@ describe('MetadataDiff', () => {
           const { isEmpty } = metadataDiff.prune()
 
           // Assert
+          // With key-based comparison:
+          // - layoutAssignments (<object> key): only items not in from
+          // - loginHours (<array> key): entire array since different
+          // - loginIpRanges (<array> key): entire array since different
           expect(convertJsonToXml).toHaveBeenCalledWith({
             ...header,
-            ...{
-              Profile: {
-                '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-                layoutAssignments: [
-                  {
-                    layout: 'another-test-layout',
-                    recordType: 'test-recordType',
-                  },
-                ],
-                loginHours: [
-                  {
-                    mondayStart: '300',
-                    mondayEnd: '500',
-                  },
-                  {
-                    tuesdayStart: '400',
-                    tuesdayEnd: '500',
-                  },
-                ],
-                loginIpRanges: [
-                  {
-                    description: 'ip range description',
-                    endAddress: '168.0.0.0',
-                    startAddress: '168.0.0.255',
-                  },
-                  {
-                    description: 'complete ip range description',
-                    endAddress: '168.0.0.1',
-                    startAddress: '168.0.0.255',
-                  },
-                ],
-              },
+            Profile: {
+              '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+              layoutAssignments: [
+                {
+                  layout: 'another-test-layout',
+                  recordType: 'test-recordType',
+                },
+              ],
+              loginHours: [
+                {
+                  mondayStart: '300',
+                  mondayEnd: '500',
+                },
+                {
+                  tuesdayStart: '400',
+                  tuesdayEnd: '500',
+                },
+              ],
+              loginIpRanges: [
+                {
+                  description: 'ip range description',
+                  endAddress: '168.0.0.0',
+                  startAddress: '168.0.0.255',
+                },
+                {
+                  description: 'complete ip range description',
+                  endAddress: '168.0.0.1',
+                  startAddress: '168.0.0.255',
+                },
+              ],
             },
           })
           expect(isEmpty).toBe(false)
@@ -547,6 +549,8 @@ describe('MetadataDiff', () => {
           const { isEmpty } = metadataDiff.prune()
 
           // Assert
+          // With key-based comparison, identical content produces empty arrays
+          // which are not included in the output
           expect(convertJsonToXml).toHaveBeenCalledWith({
             ...header,
             ...emptyProfile,
@@ -629,6 +633,77 @@ describe('MetadataDiff', () => {
         })
         expect(isEmpty).toBe(false)
       })
+    })
+  })
+
+  describe('when metadata property has no key field defined', () => {
+    it('given identical content, isEmpty remains true', async () => {
+      // Arrange
+      const customAttributes = new Map<string, SharedFileMetadata>([
+        [
+          'customProperty',
+          {
+            xmlName: 'CustomProperty',
+            xmlTag: 'customProperty',
+            // no key field defined
+          } as SharedFileMetadata,
+        ],
+      ])
+      const customMetadataDiff = new MetadataDiff(work.config, customAttributes)
+      const content = {
+        ...xmlHeader,
+        CustomType: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          customProperty: [{ value: 'test' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(content)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(content)
+      await customMetadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = customMetadataDiff.prune()
+
+      // Assert
+      expect(isEmpty).toBe(true)
+    })
+
+    it('given different content, isEmpty becomes false', async () => {
+      // Arrange
+      const customAttributes = new Map<string, SharedFileMetadata>([
+        [
+          'customProperty',
+          {
+            xmlName: 'CustomProperty',
+            xmlTag: 'customProperty',
+            // no key field defined
+          } as SharedFileMetadata,
+        ],
+      ])
+      const customMetadataDiff = new MetadataDiff(work.config, customAttributes)
+      const fromContent = {
+        ...xmlHeader,
+        CustomType: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          customProperty: [{ value: 'original' }],
+        },
+      }
+      const toContent = {
+        ...xmlHeader,
+        CustomType: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          customProperty: [{ value: 'modified' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toContent)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromContent)
+      await customMetadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = customMetadataDiff.prune()
+
+      // Assert
+      expect(isEmpty).toBe(false)
     })
   })
 

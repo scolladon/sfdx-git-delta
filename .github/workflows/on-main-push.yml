@@ -18,7 +18,9 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     outputs:
+      # actionlint: ignore=expression
       release_created: ${{ steps.release.outputs.release_created }}
+      # actionlint: ignore=expression
       prs_created: ${{ steps.release.outputs.prs_created }}
     permissions:
       contents: write
