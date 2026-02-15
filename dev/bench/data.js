@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768848536562,
+  "lastUpdate": 1771145809691,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3656,6 +3656,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.33,
             "range": "±0.79%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9e2ed07b40c6a57779e0b20530d5672551e37e73",
+          "message": "feat: metadata repository based on SDR (#1195)",
+          "timestamp": "2026-02-15T09:53:13+01:00",
+          "tree_id": "52dd000eebf943c90ad967edd5953b6f2a386597",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/9e2ed07b40c6a57779e0b20530d5672551e37e73"
+        },
+        "date": 1771145809135,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.68%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
