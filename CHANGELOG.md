@@ -4,6 +4,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.32.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.31.0...v6.32.0) (2026-02-15)
+
+
+### Features
+
+* metadata repository based on SDR ([#1195](https://github.com/scolladon/sfdx-git-delta/issues/1195)) ([9e2ed07](https://github.com/scolladon/sfdx-git-delta/commit/9e2ed07b40c6a57779e0b20530d5672551e37e73))
+
+
+### Bug Fixes
+
+* meaningful error for malformed XML in InFile processing ([#1212](https://github.com/scolladon/sfdx-git-delta/issues/1212)) ([2d5aa20](https://github.com/scolladon/sfdx-git-delta/commit/2d5aa20726c92b61cd2c7adbb2affd652f3364c6))
+* support resource metadata detection in non-standard paths ([#1198](https://github.com/scolladon/sfdx-git-delta/issues/1198)) ([014faef](https://github.com/scolladon/sfdx-git-delta/commit/014faef4e19613aef0a7e6bcb036681a54960f5d))
+
 ## [6.31.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.30.0...v6.31.0) (2026-02-12)
 
 
