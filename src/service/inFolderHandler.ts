@@ -37,6 +37,7 @@ export default class InFolderHandler extends StandardHandler {
   protected async _collectSpecialExtensionCopies(
     copies: import('../types/handlerResult.js').CopyOperation[]
   ): Promise<void> {
+    if (!this._shouldCollectCopies()) return
     const parsedLine = parse(this.element.basePath)
     const dirContent = await readDirs(parsedLine.dir, this.config)
 

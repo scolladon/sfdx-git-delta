@@ -212,6 +212,26 @@ describe(`StandardHandler`, () => {
       expect(result.warnings[0].message).toContain('test error')
     })
 
+    it('Given addition with generateDelta false, When collect, Then returns manifest without copies', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
+        classType,
+        globalMetadata
+      )
+      const sut = new StandardHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.copies).toHaveLength(0)
+    })
+
     it('Given type without metaFile, When collectAddition is called, Then does not include meta copy', async () => {
       // Arrange
       work.config.to = 'sha123'

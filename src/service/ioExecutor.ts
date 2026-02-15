@@ -10,18 +10,17 @@ import type { CopyOperation } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
-import { buildIgnoreHelper } from '../utils/ignoreHelper.js'
+import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
+  protected ignoreHelper!: IgnoreHelper
 
   constructor(protected readonly config: Config) {}
 
   public async execute(copies: CopyOperation[]): Promise<void> {
-    if (!this.config.generateDelta) {
-      return
-    }
+    this.ignoreHelper = await buildIgnoreHelper(this.config)
     await eachLimit(
       copies,
       getConcurrencyThreshold(),
@@ -37,8 +36,7 @@ export default class IOExecutor {
     }
     this.processedPaths.add(op.path)
 
-    const ignoreHelper = await buildIgnoreHelper(this.config)
-    if (ignoreHelper.globalIgnore.ignores(op.path)) {
+    if (this.ignoreHelper.globalIgnore.ignores(op.path)) {
       return
     }
 

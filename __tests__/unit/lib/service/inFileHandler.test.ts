@@ -73,8 +73,8 @@ describe('inFileHandler', () => {
       sut = new InFileHandler(changeType, element, work)
       mockCompare.mockImplementation(() =>
         Promise.resolve({
-          added: new Map([['WorkflowFlowAction', new Set(['test'])]]),
-          deleted: new Map(),
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          deleted: [],
         })
       )
     })
@@ -120,8 +120,8 @@ describe('inFileHandler', () => {
           sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
-              added: new Map([['ValueTranslation', new Set(['Three'])]]),
-              deleted: new Map(),
+              added: [{ type: 'ValueTranslation', member: 'Three' }],
+              deleted: [],
             })
           )
         })
@@ -168,8 +168,8 @@ describe('inFileHandler', () => {
           sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
-              added: new Map(),
-              deleted: new Map(),
+              added: [],
+              deleted: [],
             })
           )
         })
@@ -221,8 +221,8 @@ describe('inFileHandler', () => {
         sut = new InFileHandler(changeType, element, work)
         mockCompare.mockImplementation(() =>
           Promise.resolve({
-            added: new Map([['WorkflowAlert', new Set(['test'])]]),
-            deleted: new Map([['WorkflowAlert', new Set(['deleted'])]]),
+            added: [{ type: 'WorkflowAlert', member: 'test' }],
+            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
           })
         )
       })
@@ -275,8 +275,8 @@ describe('inFileHandler', () => {
         sut = new InFileHandler(changeType, element, work)
         mockCompare.mockImplementation(() =>
           Promise.resolve({
-            added: new Map(),
-            deleted: new Map([['WorkflowAlert', new Set(['deleted'])]]),
+            added: [],
+            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
           })
         )
         mockPrune.mockReturnValue({
@@ -327,8 +327,8 @@ describe('inFileHandler', () => {
 
           mockCompare.mockImplementation(() =>
             Promise.resolve({
-              added: new Map(),
-              deleted: new Map(),
+              added: [],
+              deleted: [],
             })
           )
 
@@ -359,8 +359,8 @@ describe('inFileHandler', () => {
           sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
-              added: new Map(),
-              deleted: new Map([['Workflow', new Set(['Deleted'])]]),
+              added: [],
+              deleted: [{ type: 'Workflow', member: 'Deleted' }],
             })
           )
           mockPrune.mockReturnValue({
@@ -408,8 +408,8 @@ describe('inFileHandler', () => {
           sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
-              added: new Map([['ValueTranslation', new Set(['Three'])]]),
-              deleted: new Map(),
+              added: [{ type: 'ValueTranslation', member: 'Three' }],
+              deleted: [],
             })
           )
           mockPrune.mockReturnValue({
@@ -460,8 +460,8 @@ describe('inFileHandler', () => {
           sut = new InFileHandler(changeType, element, work)
           mockCompare.mockImplementation(() =>
             Promise.resolve({
-              added: new Map(),
-              deleted: new Map(),
+              added: [],
+              deleted: [],
             })
           )
         })
@@ -511,8 +511,8 @@ describe('inFileHandler', () => {
       sut = new InFileHandler(changeType, element, work)
       mockCompare.mockImplementation(() =>
         Promise.resolve({
-          added: new Map(),
-          deleted: new Map([['WorkflowAlert', new Set(['test'])]]),
+          added: [],
+          deleted: [{ type: 'WorkflowAlert', member: 'test' }],
         })
       )
       mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: true })
@@ -628,8 +628,8 @@ describe('inFileHandler collect', () => {
     const sut = new InFileHandler(changeType, element, work)
     mockCompare.mockImplementation(() =>
       Promise.resolve({
-        added: new Map([['WorkflowFlowAction', new Set(['test'])]]),
-        deleted: new Map(),
+        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        deleted: [],
       })
     )
 
@@ -657,6 +657,31 @@ describe('inFileHandler collect', () => {
     expect(result.warnings).toHaveLength(0)
   })
 
+  it('Given added workflow with generateDelta false, When collect, Then returns manifests without copies', async () => {
+    // Arrange
+    work.config.generateDelta = false
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        deleted: [],
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests.length).toBeGreaterThan(0)
+    expect(result.copies).toHaveLength(0)
+    expect(result.warnings).toHaveLength(0)
+  })
+
   it('Given modified workflow with added and deleted elements, When collect, Then returns both Package and DestructiveChanges manifests', async () => {
     // Arrange
     const { changeType, element } = createElement(
@@ -667,8 +692,8 @@ describe('inFileHandler collect', () => {
     const sut = new InFileHandler(changeType, element, work)
     mockCompare.mockImplementation(() =>
       Promise.resolve({
-        added: new Map([['WorkflowAlert', new Set(['added'])]]),
-        deleted: new Map([['WorkflowAlert', new Set(['removed'])]]),
+        added: [{ type: 'WorkflowAlert', member: 'added' }],
+        deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
       })
     )
 

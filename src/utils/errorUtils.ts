@@ -1,9 +1,26 @@
 'use strict'
 
-/**
- * Extracts a message from an unknown error value.
- * Safe to call with any caught value.
- */
+export class SgdError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'SgdError'
+  }
+}
+
+export class ConfigError extends SgdError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ConfigError'
+  }
+}
+
+export class MetadataRegistryError extends SgdError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'MetadataRegistryError'
+  }
+}
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message
@@ -11,10 +28,6 @@ export const getErrorMessage = (error: unknown): string => {
   return String(error)
 }
 
-/**
- * Creates a new Error with the original error as cause for stack trace preservation.
- * Use this when wrapping errors to maintain the full error chain.
- */
-export const wrapError = (message: string, cause: unknown): Error => {
-  return new Error(message, { cause })
+export const wrapError = (message: string, cause: unknown): SgdError => {
+  return new SgdError(message, { cause })
 }

@@ -32,6 +32,8 @@ export default async (config: Config): Promise<Work> => {
   const postProcessors = getPostProcessors(work, metadata)
 
   const handlerResult = await lineProcessor.process(lines)
+  work.diffs = aggregateManifests(handlerResult)
+
   const postResult = await postProcessors.collectAll()
   const combinedResult = mergeResults(handlerResult, postResult)
 

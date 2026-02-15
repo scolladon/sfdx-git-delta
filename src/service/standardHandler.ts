@@ -12,9 +12,19 @@ import {
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
+import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 
+/**
+ * Strategy pattern base for metadata type handlers.
+ * Each Salesforce metadata type may need unique diff-collection behavior
+ * (e.g. custom element naming, parent object detection, deletion warnings).
+ * Subclasses override specific hooks (_getElementName, _isProcessable,
+ * collectAddition, collectDeletion, etc.) — even thin subclasses that override
+ * a single method justify their existence because they are selected at runtime
+ * by TypeHandlerFactory based on metadata type definitions.
+ */
 export default class StandardHandler {
   protected readonly config: Config
 
@@ -26,6 +36,7 @@ export default class StandardHandler {
     this.config = work.config
   }
 
+  @log
   public async collect(): Promise<HandlerResult> {
     if (!this._isProcessable()) {
       return emptyResult()
@@ -96,11 +107,25 @@ export default class StandardHandler {
   }
 
   protected _collectCopy(copies: CopyOperation[], path: string): void {
+    if (!this._shouldCollectCopies()) return
     copies.push({
       kind: CopyOperationKind.GitCopy,
       path,
       revision: this.config.to,
     })
+  }
+
+  protected _collectComputedContent(
+    copies: CopyOperation[],
+    path: string,
+    content: string
+  ): void {
+    if (!this._shouldCollectCopies()) return
+    copies.push({ kind: CopyOperationKind.ComputedContent, path, content })
+  }
+
+  protected _shouldCollectCopies(): boolean {
+    return this.config.generateDelta
   }
 
   protected _getMetaTypeFilePath(path: string) {

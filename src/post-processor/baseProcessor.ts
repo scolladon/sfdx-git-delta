@@ -2,6 +2,8 @@
 
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import { emptyResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 
 export default abstract class BaseProcessor {
@@ -14,5 +16,13 @@ export default abstract class BaseProcessor {
     this.config = work.config
   }
 
+  get isCollector(): boolean {
+    return false
+  }
+
   public abstract process(): Promise<void>
+
+  public async transformAndCollect(): Promise<HandlerResult> {
+    return emptyResult()
+  }
 }

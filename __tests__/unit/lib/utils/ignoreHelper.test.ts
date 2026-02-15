@@ -12,8 +12,6 @@ import {
   buildIgnoreHelper,
   buildIncludeHelper,
   IgnoreHelper,
-  resetIgnoreInstance,
-  resetIncludeInstance,
 } from '../../../../src/utils/ignoreHelper'
 
 jest.mock('../../../../src/utils/fsUtils')
@@ -48,7 +46,7 @@ describe('ignoreHelper', () => {
 
       // Assert
       expect(secondCall).toBe(firstCall)
-      resetIgnoreInstance()
+      IgnoreHelper.resetIgnoreInstance()
     })
 
     describe('when config does not have ignore neither destructive ignore', () => {
@@ -57,7 +55,7 @@ describe('ignoreHelper', () => {
         sut = await buildIgnoreHelper(config)
       })
       afterAll(() => {
-        resetIgnoreInstance()
+        IgnoreHelper.resetIgnoreInstance()
       })
 
       it('global helper should be defined', () => {
@@ -92,7 +90,7 @@ describe('ignoreHelper', () => {
       })
 
       afterAll(() => {
-        resetIgnoreInstance()
+        IgnoreHelper.resetIgnoreInstance()
       })
 
       it('global helper should be defined', () => {
@@ -157,7 +155,7 @@ describe('ignoreHelper', () => {
       })
 
       afterAll(() => {
-        resetIgnoreInstance()
+        IgnoreHelper.resetIgnoreInstance()
       })
 
       it('helper should have globalInstance', () => {
@@ -236,7 +234,7 @@ describe('ignoreHelper', () => {
       })
 
       afterAll(() => {
-        resetIgnoreInstance()
+        IgnoreHelper.resetIgnoreInstance()
       })
 
       it('helper should have globalInstance', () => {
@@ -325,7 +323,7 @@ describe('ignoreHelper', () => {
         sut = await buildIncludeHelper(config)
       })
       afterAll(() => {
-        resetIncludeInstance()
+        IgnoreHelper.resetIncludeInstance()
       })
 
       it('global helper should be defined', () => {
@@ -360,7 +358,7 @@ describe('ignoreHelper', () => {
       })
 
       afterAll(() => {
-        resetIncludeInstance()
+        IgnoreHelper.resetIncludeInstance()
       })
 
       it('global helper should be defined', () => {
@@ -416,7 +414,7 @@ describe('ignoreHelper', () => {
       })
 
       afterAll(() => {
-        resetIncludeInstance()
+        IgnoreHelper.resetIncludeInstance()
       })
 
       it('helper should have globalInstance', () => {
@@ -486,7 +484,7 @@ describe('ignoreHelper', () => {
       })
 
       afterAll(() => {
-        resetIncludeInstance()
+        IgnoreHelper.resetIncludeInstance()
       })
 
       it('helper should have globalInstance', () => {

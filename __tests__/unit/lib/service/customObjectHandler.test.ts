@@ -9,23 +9,17 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import {
-  pathExists,
-  readDirs,
-  readPathFromGit,
-} from '../../../../src/utils/fsHelper'
+import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 jest.mock('../../../../src/utils/fsHelper')
 
 const mockedPathExist = jest.mocked(pathExists)
-const mockedReadDirs = jest.mocked(readDirs)
-const mockedReadPathFromGit = jest.mocked(readPathFromGit)
+const mockedGrepContent = jest.mocked(grepContent)
 
 mockedPathExist.mockResolvedValue(true)
-mockedReadDirs.mockResolvedValue([])
-mockedReadPathFromGit.mockResolvedValue('')
+mockedGrepContent.mockResolvedValue([])
 
 const territoryModelType = {
   childXmlNames: ['Territory2Rule', 'Territory2'],
@@ -100,6 +94,27 @@ describe('CustomObjectHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given object addition with generateDelta false, When collect, Then returns manifest without master detail copies', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomObjectHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.copies).toHaveLength(0)
+      expect(mockedPathExist).not.toHaveBeenCalled()
+      expect(mockedGrepContent).not.toHaveBeenCalled()
+    })
+
     it('Given territory2Model addition, When collect, Then returns manifest without master detail check', async () => {
       // Arrange
       const { changeType, element } = createElement(
@@ -133,19 +148,7 @@ describe('CustomObjectHandler', () => {
       // Arrange
       const masterDetailFieldPath =
         'force-app/main/default/objects/Account/fields/ParentId__c.field-meta.xml'
-      const nonMasterDetailFieldPath =
-        'force-app/main/default/objects/Account/fields/Description__c.field-meta.xml'
-      mockedReadDirs.mockResolvedValueOnce([
-        masterDetailFieldPath,
-        nonMasterDetailFieldPath,
-      ])
-      mockedReadPathFromGit
-        .mockResolvedValueOnce(
-          `<?xml version="1.0"?><CustomField><fullName>ParentId__c</fullName>${MASTER_DETAIL_TAG}</CustomField>`
-        )
-        .mockResolvedValueOnce(
-          `<?xml version="1.0"?><CustomField><fullName>Description__c</fullName><type>Text</type></CustomField>`
-        )
+      mockedGrepContent.mockResolvedValueOnce([masterDetailFieldPath])
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -157,22 +160,17 @@ describe('CustomObjectHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(mockedReadDirs).toHaveBeenCalledWith(
+      expect(mockedGrepContent).toHaveBeenCalledWith(
+        MASTER_DETAIL_TAG,
         'force-app/main/default/objects/Account/fields',
         expect.anything()
       )
-      expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
       const gitCopies = result.copies.filter(
         c => c.kind === CopyOperationKind.GitCopy
       )
       expect(gitCopies).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ path: masterDetailFieldPath }),
-        ])
-      )
-      expect(gitCopies).not.toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ path: nonMasterDetailFieldPath }),
         ])
       )
       expect(result.warnings).toHaveLength(0)

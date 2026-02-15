@@ -20,13 +20,13 @@ jobs:
 
       - name: Checkout PR branch
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
@@ -41,9 +41,37 @@ jobs:
       - name: Sync internal registry with SDR
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
         run: |
-          npm run sync:internal-registry
+          TS_NODE_COMPILER_OPTIONS='{"rootDir":"."}' node --loader ts-node/esm tooling/checkSdrMetadataCoverage.ts > coverage-result.json
+          TS_NODE_COMPILER_OPTIONS='{"rootDir":"."}' node --loader ts-node/esm tooling/syncInternalRegistry.ts coverage-result.json
           npm run build
           npm run lint:fix
+
+      - name: Update e2e expected files API version
+        if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        run: |
+          # Extract new API version from the updated SDR
+          NEW_VERSION=$(node -e "import('@salesforce/source-deploy-retrieve').then(m => m.getCurrentApiVersion()).then(v => process.stdout.write(v + '.0'))")
+
+          # Fetch and checkout e2e/head in a worktree
+          git fetch origin e2e/head
+          git worktree add /tmp/e2e-head origin/e2e/head
+
+          # Update <version> tags in expected XML package manifests
+          cd /tmp/e2e-head
+          find expected/package expected/destructiveChanges -name "*.xml" -exec sed -i "s|<version>[0-9.]*</version>|<version>${NEW_VERSION}</version>|g" {} +
+
+          # Amend the last commit if version changed
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add expected/package expected/destructiveChanges
+            git commit --amend --no-edit
+            git push --force-with-lease origin HEAD:e2e/head
+          fi
+
+          # Clean up worktree
+          cd -
+          git worktree remove /tmp/e2e-head
 
       - name: Commit and push if changed
         if: steps.metadata.outputs.package-ecosystem == 'npm' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')

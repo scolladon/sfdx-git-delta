@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { SimpleGit, simpleGit } from 'simple-git'
-import { TAB } from '../constant/cliConstants.js'
 import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
@@ -10,14 +9,15 @@ import {
   HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
-  NUM_STAT_CHANGE_INFORMATION,
   TREE_TYPE,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
+import { getErrorMessage } from '../utils/errorUtils.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 
 const EOL = new RegExp(/\r?\n/)
 
@@ -63,7 +63,10 @@ export default class GitAdapter {
         revPath({ path, oid: revision }),
       ])
       doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
-    } catch {
+    } catch (error) {
+      Logger.debug(
+        lazy`pathExistsImpl: path '${path}' at revision '${revision}' not found: ${() => getErrorMessage(error)}`
+      )
       doesPathExists = false
     }
     return doesPathExists
@@ -190,7 +193,10 @@ export default class GitAdapter {
         .filter(line => line && line.startsWith(dir))
         .map(line => line.split(PATH_SEP).pop()!)
         .filter(name => name)
-    } catch {
+    } catch (error) {
+      Logger.debug(
+        lazy`listDirAtRevision: failed to list '${dir}' at '${revision}': ${() => getErrorMessage(error)}`
+      )
       return []
     }
   }
@@ -210,32 +216,42 @@ export default class GitAdapter {
   }
 
   @log
-  public async getDiffLines(): Promise<string[]> {
-    let lines: string[] = []
-    for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
-      const linesOfType = await this.getDiffForType(changeType)
-      lines = lines.concat(
-        linesOfType.map(line =>
-          line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}${TAB}`)
-        )
-      )
+  public async gitGrep(
+    pattern: string,
+    path: string,
+    revision: string = this.config.to
+  ): Promise<string[]> {
+    try {
+      const result = await this.simpleGit.raw([
+        'grep',
+        '-l',
+        pattern,
+        revision,
+        '--',
+        path,
+      ])
+      return result
+        .split(EOL)
+        .filter(line => line)
+        .map(line => treatPathSep(line.slice(line.indexOf(':') + 1)))
+    } catch {
+      return []
     }
-    return lines.map(treatPathSep)
   }
 
-  protected async getDiffForType(changeType: string): Promise<string[]> {
-    return (
-      await this.simpleGit.raw([
-        'diff',
-        '--numstat',
-        '--no-renames',
-        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-        `--diff-filter=${changeType}`,
-        this.config.from,
-        this.config.to,
-        '--',
-        ...this.config.source,
-      ])
-    ).split(EOL)
+  @log
+  public async getDiffLines(): Promise<string[]> {
+    const output = await this.simpleGit.raw([
+      'diff',
+      '--name-status',
+      '--no-renames',
+      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+      `--diff-filter=${ADDITION}${MODIFICATION}${DELETION}`,
+      this.config.from,
+      this.config.to,
+      '--',
+      ...this.config.source,
+    ])
+    return output.split(EOL).filter(Boolean).map(treatPathSep)
   }
 }

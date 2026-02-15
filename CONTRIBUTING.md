@@ -251,13 +251,17 @@ Some metadata types exist in Salesforce but are not yet covered by SDR. These ar
 
 Gap-fillers are automatically removable: when SDR adds native support for a type, tooling detects the overlap and removes the gap-filler entry.
 
-### Sync tooling
+### Coverage check and sync tooling
 
-A script in `tooling/` keeps the internal registry clean:
+Two scripts in `tooling/` keep the internal registry clean:
 
 ```bash
-# Compare internal registry against SDR and remove auto-removable gap-fillers
-npm run sync:internal-registry
+# Check which internal registry types overlap with SDR
+npm run check:metadata-coverage
+
+# Remove auto-removable gap-fillers that SDR now covers
+npm run check:metadata-coverage > coverage-result.json
+npm run sync:internal-registry -- coverage-result.json
 ```
 
 The sync runs automatically via CI when dependabot upgrades the SDR dependency.

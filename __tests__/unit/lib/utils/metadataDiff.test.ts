@@ -8,16 +8,16 @@ import {
 } from '../../../../src/metadata/metadataManager'
 import { SharedFileMetadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
+import MetadataDiff from '../../../../src/utils/metadataDiff'
 import {
   convertJsonToXml,
   parseXmlFileToJson,
-} from '../../../../src/utils/fxpHelper'
-import MetadataDiff from '../../../../src/utils/metadataDiff'
+} from '../../../../src/utils/xmlHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fxpHelper', () => {
+jest.mock('../../../../src/utils/xmlHelper', () => {
   const actualModule: any = jest.requireActual(
-    '../../../../src/utils/fxpHelper'
+    '../../../../src/utils/xmlHelper'
   )
   return {
     ...actualModule,
@@ -225,8 +225,8 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(deleted.size).toBe(0)
-        expect(added.size).toBe(0)
+        expect(deleted).toHaveLength(0)
+        expect(added).toHaveLength(0)
       })
 
       it('do not detect not tracked elements', async () => {
@@ -241,8 +241,8 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(deleted.size).toBe(0)
-        expect(added.size).toBe(0)
+        expect(deleted).toHaveLength(0)
+        expect(added).toHaveLength(0)
       })
 
       it('detects added elements', async () => {
@@ -254,10 +254,14 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(deleted.size).toBe(0)
-        expect(added.get('WorkflowAlert')).toEqual(
-          new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
+        expect(deleted).toHaveLength(0)
+        expect(added).toEqual(
+          expect.arrayContaining([
+            { type: 'WorkflowAlert', member: 'OtherTestEmailAlert' },
+            { type: 'WorkflowAlert', member: 'TestEmailAlert' },
+          ])
         )
+        expect(added).toHaveLength(2)
       })
       it('detects removed elements', async () => {
         // Arrange
@@ -268,10 +272,14 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(added.size).toBe(0)
-        expect(deleted.get('WorkflowAlert')).toEqual(
-          new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
+        expect(added).toHaveLength(0)
+        expect(deleted).toEqual(
+          expect.arrayContaining([
+            { type: 'WorkflowAlert', member: 'OtherTestEmailAlert' },
+            { type: 'WorkflowAlert', member: 'TestEmailAlert' },
+          ])
         )
+        expect(deleted).toHaveLength(2)
       })
 
       it('detects parsed empty elements', async () => {
@@ -291,10 +299,14 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(added.size).toBe(0)
-        expect(deleted.get('WorkflowAlert')).toEqual(
-          new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
+        expect(added).toHaveLength(0)
+        expect(deleted).toEqual(
+          expect.arrayContaining([
+            { type: 'WorkflowAlert', member: 'OtherTestEmailAlert' },
+            { type: 'WorkflowAlert', member: 'TestEmailAlert' },
+          ])
         )
+        expect(deleted).toHaveLength(2)
       })
 
       it('detects deleted file', async () => {
@@ -306,10 +318,14 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(added.size).toBe(0)
-        expect(deleted.get('WorkflowAlert')).toEqual(
-          new Set(['OtherTestEmailAlert', 'TestEmailAlert'])
+        expect(added).toHaveLength(0)
+        expect(deleted).toEqual(
+          expect.arrayContaining([
+            { type: 'WorkflowAlert', member: 'OtherTestEmailAlert' },
+            { type: 'WorkflowAlert', member: 'TestEmailAlert' },
+          ])
         )
+        expect(deleted).toHaveLength(2)
       })
 
       it('detects modified elements', async () => {
@@ -331,8 +347,10 @@ describe('MetadataDiff', () => {
         const { added, deleted } = await metadataDiff.compare('file/path')
 
         // Assert
-        expect(deleted.size).toBe(0)
-        expect(added.get('WorkflowAlert')).toEqual(new Set(['TestEmailAlert']))
+        expect(deleted).toHaveLength(0)
+        expect(added).toEqual([
+          { type: 'WorkflowAlert', member: 'TestEmailAlert' },
+        ])
       })
     })
     describe(`prune with ${JSON.stringify(header)} header`, () => {

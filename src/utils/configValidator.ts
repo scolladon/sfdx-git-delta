@@ -1,20 +1,21 @@
 'use strict'
 import { join } from 'node:path/posix'
 
+import { SfProject } from '@salesforce/core'
+
 import GitAdapter from '../adapter/GitAdapter.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
-import { fileExists, pathExists, readFile, sanitizePath } from './fsUtils.js'
+import { ConfigError } from './errorUtils.js'
+import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
+import { Logger, lazy } from './LoggingService.js'
 import { MessageService } from './MessageService.js'
 
 const TO: keyof Config = 'to'
 const FROM: keyof Config = 'from'
-
-const SOURCE_API_VERSION_ATTRIBUTE = 'sourceApiVersion'
-const SFDX_PROJECT_FILE_NAME = 'sfdx-project.json'
 
 export default class ConfigValidator {
   protected readonly config: Config
@@ -67,7 +68,7 @@ export default class ConfigValidator {
     errors.push(...gitErrors)
 
     if (errors.length > 0) {
-      throw new Error(errors.join(', '))
+      throw new ConfigError(errors.join(', '))
     }
 
     await this.gitAdapter.configureRepository()
@@ -79,23 +80,51 @@ export default class ConfigValidator {
   }
 
   protected async _getApiVersion() {
-    if (this.config.apiVersion === undefined) {
-      const sfdxProjectPath = join(this.config.repo, SFDX_PROJECT_FILE_NAME)
-      const exists = await fileExists(sfdxProjectPath)
-      if (exists) {
-        const sfdxProjectRaw = await readFile(sfdxProjectPath)
-        const sfdxProject = JSON.parse(sfdxProjectRaw)
-        const projectApiVersion = sfdxProject[SOURCE_API_VERSION_ATTRIBUTE]
-        if (projectApiVersion) {
-          this.config.apiVersion = parseInt(projectApiVersion)
-        }
+    if (this.config.apiVersion !== undefined) return
+
+    try {
+      const sfProject = await SfProject.resolve(this.config.repo)
+      const projectApiVersion = sfProject
+        .getSfProjectJson()
+        .getContents().sourceApiVersion
+      if (projectApiVersion) {
+        this.config.apiVersion = parseInt(projectApiVersion)
       }
+    } catch (ex) {
+      Logger.debug(
+        lazy`_getApiVersion: no sfdx-project.json found at '${this.config.repo}': ${ex}`
+      )
     }
   }
 
   protected async _apiVersionDefault() {
+    const latestVersion = await getLatestSupportedVersion()
+
+    if (
+      this.config.apiVersion !== undefined &&
+      !isNaN(this.config.apiVersion) &&
+      this.config.apiVersion > latestVersion
+    ) {
+      this.work.warnings.push(
+        new Error(
+          this.message.getMessage('warning.ApiVersionOverridden', [
+            String(this.config.apiVersion),
+            String(latestVersion),
+          ])
+        )
+      )
+      this.config.apiVersion = latestVersion
+    }
+
     if (this.config.apiVersion === undefined || isNaN(this.config.apiVersion)) {
-      this.config.apiVersion = await getLatestSupportedVersion()
+      this.config.apiVersion = latestVersion
+      this.work.warnings.push(
+        new Error(
+          this.message.getMessage('warning.ApiVersionDefaulted', [
+            String(latestVersion),
+          ])
+        )
+      )
     }
   }
 

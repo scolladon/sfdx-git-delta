@@ -4,12 +4,8 @@ import { basename } from 'node:path/posix'
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
 import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
-import {
-  CopyOperationKind,
-  emptyResult,
-  ManifestTarget,
-} from '../types/handlerResult.js'
-import type { Manifest, Work } from '../types/work.js'
+import { emptyResult, ManifestTarget } from '../types/handlerResult.js'
+import type { Work } from '../types/work.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
@@ -61,19 +57,23 @@ export default class InFileHandler extends StandardHandler {
       fromContent
     )
 
+    // RATIONALE: Why include root component in package.xml for InFile sub-elements?
+    // InFile elements are not independently deployable; the root component must be listed.
+    // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
     if (this._shouldTreatContainerType(isEmpty)) {
       const containerResult =
         await StandardHandler.prototype.collectAddition.call(this)
       result.manifests.push(...containerResult.manifests)
-      result.copies.push(...containerResult.copies)
     }
 
+    // Separate from _shouldTreatContainerType: subclasses (e.g. CustomLabelHandler)
+    // may disable container manifests while still needing computed content
     if (!isEmpty) {
-      result.copies.push({
-        kind: CopyOperationKind.ComputedContent,
-        path: this.element.basePath,
-        content: xmlContent,
-      })
+      this._collectComputedContent(
+        result.copies,
+        this.element.basePath,
+        xmlContent
+      )
     }
 
     return result
@@ -82,17 +82,15 @@ export default class InFileHandler extends StandardHandler {
   protected _collectManifestFromComparison(
     manifests: ManifestElement[],
     target: ManifestTarget,
-    content: Manifest
+    entries: { type: string; member: string }[]
   ): void {
-    for (const [type, members] of content) {
+    for (const { type, member } of entries) {
       if (isPackable(type)) {
-        for (const member of members) {
-          manifests.push({
-            target,
-            type,
-            member: `${this._getQualifiedName()}${member}`,
-          })
-        }
+        manifests.push({
+          target,
+          type,
+          member: `${this._getQualifiedName()}${member}`,
+        })
       }
     }
   }

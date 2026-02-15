@@ -39,6 +39,24 @@ export const readDirs = async (
   return await gitAdapter.getFilesPath(paths)
 }
 
+export const grepContent = async (
+  pattern: string,
+  path: string,
+  config: Config
+): Promise<string[]> => {
+  const gitAdapter = GitAdapter.getInstance(config)
+  return await gitAdapter.gitGrep(pattern, path)
+}
+
+export const contentIncludes = async (
+  pattern: string,
+  path: string,
+  config: Config
+): Promise<boolean> => {
+  const results = await grepContent(pattern, path, config)
+  return results.length > 0
+}
+
 export const writeFile = async (
   path: string,
   content: string,

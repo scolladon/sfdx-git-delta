@@ -3,17 +3,16 @@ import { deepEqual } from 'fast-equals'
 import { isUndefined } from 'lodash-es'
 
 import type { Config } from '../types/config.js'
+import type { ManifestElement } from '../types/handlerResult.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
-import type { Manifest } from '../types/work.js'
+import { log } from './LoggingDecorator.js'
 import {
   ATTRIBUTE_PREFIX,
   convertJsonToXml,
   parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
   type XmlContent,
-} from './fxpHelper.js'
-import { log } from './LoggingDecorator.js'
-import { fillPackageWithParameter } from './packageHelper.js'
+} from './xmlHelper.js'
 
 /**
  * Special key markers for metadata comparison strategies.
@@ -41,9 +40,11 @@ const isEmpty = (arr: unknown[]) => arr.length === 0
 
 type KeySelectorFn = (elem: XmlContent) => string | undefined
 
+type CompareEntry = Pick<ManifestElement, 'type' | 'member'>
+
 interface CompareResult {
-  added: Manifest
-  deleted: Manifest
+  added: CompareEntry[]
+  deleted: CompareEntry[]
   toContent: XmlContent
   fromContent: XmlContent
 }
@@ -135,8 +136,7 @@ class MetadataExtractor {
   }
 
   extractForSubType(root: XmlContent, subType: string): XmlContent[] {
-    const content = root[subType]
-    // Only cast to array if it's not already an array
+    const content = root[subType] as XmlContent | XmlContent[] | undefined
     return Array.isArray(content) ? content : content ? [content] : []
   }
 
@@ -176,10 +176,10 @@ class MetadataComparator {
       keySelector: KeySelectorFn,
       elem: XmlContent
     ) => boolean
-  ): Manifest {
+  ): CompareEntry[] {
     const base = this.extractor.extractRootElement(baseContent)
     const target = this.extractor.extractRootElement(targetContent)
-    const manifest = new Map()
+    const entries: CompareEntry[] = []
 
     const subTypes = this.extractor.getSubTypes(base)
     for (const subType of subTypes) {
@@ -203,16 +203,12 @@ class MetadataComparator {
 
       for (const elem of baseMeta) {
         if (elementMatcher(targetLookup, keySelector, elem)) {
-          fillPackageWithParameter({
-            store: manifest,
-            type: xmlName,
-            member: keySelector(elem)!,
-          })
+          entries.push({ type: xmlName, member: keySelector(elem)! })
         }
       }
     }
 
-    return manifest
+    return entries
   }
 
   // O(1) lookup instead of O(n) find()
@@ -258,8 +254,8 @@ class JsonTransformer {
       base[XML_HEADER_ATTRIBUTE_KEY] = toContent[XML_HEADER_ATTRIBUTE_KEY]
     }
     const rootKey = this.extractor.extractRootKey(toContent)
-    base[rootKey] = {}
-    const root = base[rootKey]
+    const root: XmlContent = {}
+    base[rootKey] = root
     const subKeys = this.extractor.getSubKeys(to)
 
     let hasAnyChanges = false
@@ -343,7 +339,8 @@ class JsonTransformer {
     toMeta: XmlContent[],
     keyField: string
   ): PartialResult {
-    const keySelector = (item: XmlContent[0]) => item[keyField]
+    const keySelector = (item: XmlContent) =>
+      item[keyField] as string | undefined
     const fromMap = new Map(fromMeta.map(item => [keySelector(item), item]))
     const content = toMeta.filter(item => {
       const key = keySelector(item)

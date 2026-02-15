@@ -1,9 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals'
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
-
 import {
-  dirExists,
-  fileExists,
   fs,
   isSamePath,
   isSubDir,
@@ -12,8 +9,8 @@ import {
   sanitizePath,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
+import { Logger } from '../../../../src/utils/LoggingService'
 
-const mockedStat = jest.spyOn(fs, 'stat')
 const mockedReadFile = jest.spyOn(fs, 'readFile')
 const mockedAccess = jest.spyOn(fs, 'access')
 
@@ -65,84 +62,6 @@ describe('isSubDir', () => {
 
     // Assert
     expect(actual).toBe(expected)
-  })
-})
-
-describe('dirExists', () => {
-  it('returns true when dir exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isDirectory: () => true,
-    } as any)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(true)
-  })
-
-  it('returns false when dir does not exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isDirectory: () => false,
-    } as any)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-
-  it('returns false when an exception occurs', async () => {
-    // Arrange
-    mockedStat.mockRejectedValue(new Error('test'))
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-})
-
-describe('fileExists', () => {
-  it('returns true when file exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isFile: () => true,
-    } as any)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(true)
-  })
-
-  it('returns false when file does not exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isFile: () => false,
-    } as any)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-
-  it('returns false when an exception occurs', async () => {
-    // Arrange
-    mockedStat.mockRejectedValue(new Error('test'))
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
   })
 })
 
@@ -298,12 +217,18 @@ describe('pathExists', () => {
   it('returns false when path is not accessible', async () => {
     // Arrange
     mockedAccess.mockRejectedValue(new Error('not accessible'))
-    const sut = pathExists
+    const debugSpy = jest
+      .spyOn(Logger, 'debug')
+      .mockImplementation((msg: unknown) => {
+        if (typeof msg === 'function') (msg as () => void)()
+      })
 
     // Act
-    const result = await sut('not/accessible/path')
+    const result = await pathExists('not/accessible/path')
 
     // Assert
     expect(result).toBe(false)
+    expect(debugSpy).toHaveBeenCalled()
+    debugSpy.mockRestore()
   })
 })

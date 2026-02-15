@@ -3,9 +3,7 @@ import { describe, expect, it } from '@jest/globals'
 
 import type { Config } from '../../../../src/types/config'
 import type { Manifest } from '../../../../src/types/work'
-import PackageBuilder, {
-  fillPackageWithParameter,
-} from '../../../../src/utils/packageHelper'
+import PackageBuilder from '../../../../src/utils/packageHelper'
 
 const config: Config = {
   apiVersion: 46,
@@ -126,36 +124,5 @@ describe(`test if package builder`, () => {
 
   it.each(tests)('can build %s manifest', (_, diff, expected) => {
     expect(packageConstructor.buildPackage(diff as Manifest)).toBe(expected)
-  })
-})
-
-describe('fillPackageWithParameter', () => {
-  describe('when called with proper params', () => {
-    const type = 'test-type'
-    const member = 'test-name'
-    describe.each([
-      [new Map(), 'is empty'],
-      [new Map([['other-type', new Set(['other-name'])]]), 'is not empty'],
-      [new Map([[type, new Set()]]), 'contains the type'],
-      [
-        new Map([[type, new Set([member])]]),
-        'contains the type and the element',
-      ],
-    ])('when the package %o  %s', store => {
-      it('adds the element name under the type in the package', () => {
-        // Arrange
-        const params = {
-          store,
-          type: type,
-          member,
-        }
-
-        // Act
-        fillPackageWithParameter(params)
-
-        // Assert
-        expect(store.get(type).has(member)).toBeTruthy()
-      })
-    })
   })
 })

@@ -7,13 +7,13 @@ import {
   convertJsonToXml,
   parseXmlFileToJson,
   xml2Json,
-} from '../../../../src/utils/fxpHelper'
+} from '../../../../src/utils/xmlHelper'
 
 const mockedReadPathFromGit = jest.mocked(readPathFromGit)
 
 jest.mock('../../../../src/utils/fsHelper')
 
-describe('fxpHelper', () => {
+describe('xmlHelper', () => {
   describe('parseXmlFileToJson', () => {
     const config: Config = {
       from: '',

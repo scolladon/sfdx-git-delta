@@ -6,7 +6,6 @@ import {
   PERMISSIONSET_OBJECTSETTINGS_FOLDER,
 } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
-import { CopyOperationKind } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
@@ -23,11 +22,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   public override async collectAddition(): Promise<HandlerResult> {
     const result = await super.collectAddition()
     if (this._isDecomposedFormat()) {
-      result.copies.push({
-        kind: CopyOperationKind.GitCopy,
-        path: this._getHolderPath(),
-        revision: this.config.to,
-      })
+      this._collectCopy(result.copies, this._getHolderPath())
     }
     return result
   }
