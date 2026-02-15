@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771151580547,
+  "lastUpdate": 1771172870083,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3718,6 +3718,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.24,
             "range": "±0.54%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2d5aa20726c92b61cd2c7adbb2affd652f3364c6",
+          "message": "fix: meaningful error for malformed XML in InFile processing (#1212)",
+          "timestamp": "2026-02-15T17:24:14+01:00",
+          "tree_id": "5c77929418bfcc5a517aff0c7f8aefc5f2148017",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2d5aa20726c92b61cd2c7adbb2affd652f3364c6"
+        },
+        "date": 1771172869755,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.24,
+            "range": "±2.38%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
