@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals'
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
-
 import {
   fs,
   isSamePath,
@@ -10,6 +9,7 @@ import {
   sanitizePath,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
+import { Logger } from '../../../../src/utils/LoggingService'
 
 const mockedReadFile = jest.spyOn(fs, 'readFile')
 const mockedAccess = jest.spyOn(fs, 'access')
@@ -217,12 +217,18 @@ describe('pathExists', () => {
   it('returns false when path is not accessible', async () => {
     // Arrange
     mockedAccess.mockRejectedValue(new Error('not accessible'))
-    const sut = pathExists
+    const debugSpy = jest
+      .spyOn(Logger, 'debug')
+      .mockImplementation((msg: unknown) => {
+        if (typeof msg === 'function') (msg as () => void)()
+      })
 
     // Act
-    const result = await sut('not/accessible/path')
+    const result = await pathExists('not/accessible/path')
 
     // Assert
     expect(result).toBe(false)
+    expect(debugSpy).toHaveBeenCalled()
+    debugSpy.mockRestore()
   })
 })

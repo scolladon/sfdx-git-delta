@@ -91,6 +91,25 @@ describe('ObjectTranslation', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given objectTranslation addition with generateDelta false, When collect, Then returns manifest without copies', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.copies).toHaveLength(0)
+    })
+
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
       // Arrange
       const fieldTranslationLine =

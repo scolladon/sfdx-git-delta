@@ -94,6 +94,27 @@ describe('CustomObjectHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given object addition with generateDelta false, When collect, Then returns manifest without master detail copies', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomObjectHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.copies).toHaveLength(0)
+      expect(mockedPathExist).not.toHaveBeenCalled()
+      expect(mockedGrepContent).not.toHaveBeenCalled()
+    })
+
     it('Given territory2Model addition, When collect, Then returns manifest without master detail check', async () => {
       // Arrange
       const { changeType, element } = createElement(

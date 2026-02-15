@@ -32,6 +32,25 @@ jest.mock('simple-git', () => {
 
 jest.mock('../../../../src/utils/gitLfsHelper')
 jest.mock('node:fs/promises')
+jest.mock('../../../../src/utils/LoggingService', () => {
+  const actual = jest.requireActual<
+    typeof import('../../../../src/utils/LoggingService')
+  >('../../../../src/utils/LoggingService')
+  return {
+    ...actual,
+    Logger: {
+      debug: jest.fn((msg: unknown) => {
+        if (typeof msg === 'function') (msg as () => void)()
+      }),
+      warn: jest.fn((msg: unknown) => {
+        if (typeof msg === 'function') (msg as () => void)()
+      }),
+      info: jest.fn(),
+      error: jest.fn(),
+      trace: jest.fn(),
+    },
+  }
+})
 
 const isLFSmocked = jest.mocked(isLFS)
 const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)
@@ -696,6 +715,78 @@ describe('GitAdapter', () => {
 
       // Act
       const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
+
+      // Assert
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('gitGrep', () => {
+    it('Given matching pattern, When gitGrep, Then returns matching file paths', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const grepOutput = [
+        `${config.to}:force-app/fields/Account.field`,
+        `${config.to}:force-app/fields/Contact.field`,
+        '',
+      ].join(EOL)
+      mockedRaw.mockResolvedValue(grepOutput as never)
+
+      // Act
+      const result = await gitAdapter.gitGrep(
+        'MasterDetail',
+        'force-app/fields'
+      )
+
+      // Assert
+      expect(result).toEqual([
+        'force-app/fields/Account.field',
+        'force-app/fields/Contact.field',
+      ])
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'grep',
+        '-l',
+        'MasterDetail',
+        config.to,
+        '--',
+        'force-app/fields',
+      ])
+    })
+
+    it('Given custom revision, When gitGrep, Then uses the custom revision', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const customRevision = 'feature-branch'
+      mockedRaw.mockResolvedValue(
+        `${customRevision}:force-app/file.xml` as never
+      )
+
+      // Act
+      const result = await gitAdapter.gitGrep(
+        'pattern',
+        'force-app',
+        customRevision
+      )
+
+      // Assert
+      expect(result).toEqual(['force-app/file.xml'])
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'grep',
+        '-l',
+        'pattern',
+        customRevision,
+        '--',
+        'force-app',
+      ])
+    })
+
+    it('Given no matches, When gitGrep throws, Then returns empty array', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedRaw.mockRejectedValue(new Error('no matches') as never)
+
+      // Act
+      const result = await gitAdapter.gitGrep('nonexistent', 'force-app/fields')
 
       // Assert
       expect(result).toEqual([])

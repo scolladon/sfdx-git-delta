@@ -657,6 +657,31 @@ describe('inFileHandler collect', () => {
     expect(result.warnings).toHaveLength(0)
   })
 
+  it('Given added workflow with generateDelta false, When collect, Then returns manifests without copies', async () => {
+    // Arrange
+    work.config.generateDelta = false
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        deleted: [],
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests.length).toBeGreaterThan(0)
+    expect(result.copies).toHaveLength(0)
+    expect(result.warnings).toHaveLength(0)
+  })
+
   it('Given modified workflow with added and deleted elements, When collect, Then returns both Package and DestructiveChanges manifests', async () => {
     // Arrange
     const { changeType, element } = createElement(

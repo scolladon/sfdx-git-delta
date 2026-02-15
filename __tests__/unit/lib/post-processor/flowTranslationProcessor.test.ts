@@ -72,6 +72,28 @@ describe('FlowTranslationProcessor', () => {
     metadata = await getDefinition({})
   })
 
+  describe('process', () => {
+    it('Given flowTranslationProcessor, When process, Then completes without error', async () => {
+      // Arrange
+      const work = getWork()
+      const sut = new FlowTranslationProcessor(work, metadata)
+
+      // Act & Assert
+      await expect(sut.process()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('isCollector', () => {
+    it('Given flowTranslationProcessor, When isCollector, Then returns true', () => {
+      // Arrange
+      const work = getWork()
+      const sut = new FlowTranslationProcessor(work, metadata)
+
+      // Act & Assert
+      expect(sut.isCollector).toBe(true)
+    })
+  })
+
   describe.each(
     cardinalProduct(
       [`${FR}.translation${METAFILE_SUFFIX}`, `${FR}.translation`],

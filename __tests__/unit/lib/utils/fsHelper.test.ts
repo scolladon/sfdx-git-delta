@@ -6,6 +6,8 @@ import { Ignore } from 'ignore'
 import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
+  contentIncludes,
+  grepContent,
   pathExists,
   readDirs,
   readPathFromGit,
@@ -26,6 +28,7 @@ const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 const mockGetStringContent = jest.fn()
 const mockGetFilesPath = jest.fn()
 const mockPathExists = jest.fn()
+const mockGitGrep = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
@@ -33,6 +36,7 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
         getStringContent: mockGetStringContent,
         getFilesPath: mockGetFilesPath,
         pathExists: mockPathExists,
+        gitGrep: mockGitGrep,
       }),
     },
   }
@@ -191,6 +195,58 @@ describe('pathExists', () => {
 
     // Act
     const result = await pathExists('not/existing/path', work.config)
+
+    // Assert
+    expect(result).toBe(false)
+  })
+})
+
+describe('grepContent', () => {
+  it('Given matching pattern, When grepContent, Then returns matching paths', async () => {
+    // Arrange
+    const matchingFiles = ['fields/Account.field', 'fields/Contact.field']
+    mockGitGrep.mockImplementation(() => Promise.resolve(matchingFiles))
+
+    // Act
+    const result = await grepContent('MasterDetail', 'fields', work.config)
+
+    // Assert
+    expect(result).toEqual(matchingFiles)
+    expect(mockGitGrep).toHaveBeenCalledWith('MasterDetail', 'fields')
+  })
+
+  it('Given no matches, When grepContent, Then returns empty array', async () => {
+    // Arrange
+    mockGitGrep.mockImplementation(() => Promise.resolve([]))
+
+    // Act
+    const result = await grepContent('nonexistent', 'fields', work.config)
+
+    // Assert
+    expect(result).toEqual([])
+  })
+})
+
+describe('contentIncludes', () => {
+  it('Given matching pattern, When contentIncludes, Then returns true', async () => {
+    // Arrange
+    mockGitGrep.mockImplementation(() =>
+      Promise.resolve(['fields/Account.field'])
+    )
+
+    // Act
+    const result = await contentIncludes('MasterDetail', 'fields', work.config)
+
+    // Assert
+    expect(result).toBe(true)
+  })
+
+  it('Given no matches, When contentIncludes, Then returns false', async () => {
+    // Arrange
+    mockGitGrep.mockImplementation(() => Promise.resolve([]))
+
+    // Act
+    const result = await contentIncludes('nonexistent', 'fields', work.config)
 
     // Assert
     expect(result).toBe(false)
