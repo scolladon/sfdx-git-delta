@@ -3,10 +3,9 @@ import { deepEqual } from 'fast-equals'
 import { isUndefined } from 'lodash-es'
 
 import type { Config } from '../types/config.js'
+import type { ManifestElement } from '../types/handlerResult.js'
 import type { SharedFileMetadata } from '../types/metadata.js'
-import type { Manifest } from '../types/work.js'
 import { log } from './LoggingDecorator.js'
-import { fillPackageWithParameter } from './packageHelper.js'
 import {
   ATTRIBUTE_PREFIX,
   convertJsonToXml,
@@ -41,9 +40,11 @@ const isEmpty = (arr: unknown[]) => arr.length === 0
 
 type KeySelectorFn = (elem: XmlContent) => string | undefined
 
+type CompareEntry = Pick<ManifestElement, 'type' | 'member'>
+
 interface CompareResult {
-  added: Manifest
-  deleted: Manifest
+  added: CompareEntry[]
+  deleted: CompareEntry[]
   toContent: XmlContent
   fromContent: XmlContent
 }
@@ -175,10 +176,10 @@ class MetadataComparator {
       keySelector: KeySelectorFn,
       elem: XmlContent
     ) => boolean
-  ): Manifest {
+  ): CompareEntry[] {
     const base = this.extractor.extractRootElement(baseContent)
     const target = this.extractor.extractRootElement(targetContent)
-    const manifest = new Map()
+    const entries: CompareEntry[] = []
 
     const subTypes = this.extractor.getSubTypes(base)
     for (const subType of subTypes) {
@@ -202,16 +203,12 @@ class MetadataComparator {
 
       for (const elem of baseMeta) {
         if (elementMatcher(targetLookup, keySelector, elem)) {
-          fillPackageWithParameter({
-            store: manifest,
-            type: xmlName,
-            member: keySelector(elem)!,
-          })
+          entries.push({ type: xmlName, member: keySelector(elem)! })
         }
       }
     }
 
-    return manifest
+    return entries
   }
 
   // O(1) lookup instead of O(n) find()

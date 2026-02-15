@@ -39,18 +39,3 @@ export default class PackageBuilder {
     return new Intl.Collator(frLocale).compare(x, y)
   }
 }
-
-export const fillPackageWithParameter = ({
-  store,
-  type,
-  member,
-}: {
-  store: Manifest
-  type: string
-  member: string
-}) => {
-  if (!store.has(type)) {
-    store.set(type, new Set())
-  }
-  store.get(type)?.add(member)
-}

@@ -9,8 +9,12 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { readDirs, writeFile } from '../../../../src/utils/fsHelper'
+import { readDirs } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
@@ -57,6 +61,9 @@ const flowFullName = 'test-flow'
 const cardinalProduct = (a: string[], b: string[]): string[][] =>
   a.reduce((acc, x) => [...acc, ...b.map(y => [x, y])], [] as string[][])
 
+const hasTranslationManifest = (result: { manifests: { type: string }[] }) =>
+  result.manifests.some(m => m.type === TRANSLATION_TYPE)
+
 describe('FlowTranslationProcessor', () => {
   let work: Work
   let metadata: MetadataRepository
@@ -85,11 +92,11 @@ describe('FlowTranslationProcessor', () => {
     describe('when no flow have been modified', () => {
       it('should not even look for translation files', async () => {
         // Act
-        await sut.process()
+        const result = await sut.transformAndCollect()
 
         // Assert
         expect(mockedReadDirs).not.toHaveBeenCalled()
-        expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+        expect(hasTranslationManifest(result)).toBeFalsy()
       })
     })
 
@@ -109,7 +116,7 @@ describe('FlowTranslationProcessor', () => {
         })
         it('should not add translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
@@ -118,8 +125,8 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(writeFile).not.toHaveBeenCalled()
-          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBeFalsy()
+          expect(result.copies).toHaveLength(0)
         })
       })
 
@@ -130,17 +137,17 @@ describe('FlowTranslationProcessor', () => {
         })
         it('should not add translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
-          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBeFalsy()
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
           expect(mockedReadDirs).toHaveBeenCalledWith(
             work.config.source,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(writeFile).not.toHaveBeenCalled()
+          expect(result.copies).toHaveLength(0)
         })
       })
 
@@ -153,7 +160,7 @@ describe('FlowTranslationProcessor', () => {
         })
         it('should add translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
@@ -162,8 +169,9 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(writeFile).toHaveBeenCalled()
-          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+          expect(hasTranslationManifest(result)).toBeTruthy()
+          expect(result.copies).toHaveLength(1)
+          expect(result.copies[0].kind).toBe(CopyOperationKind.ComputedContent)
         })
       })
 
@@ -181,7 +189,7 @@ describe('FlowTranslationProcessor', () => {
         })
         it('the flowDefinitions translations should be added to the translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
@@ -190,22 +198,15 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalled()
-          expect(writeFile).toHaveBeenCalledTimes(1)
-          expect(writeFile).toHaveBeenCalledWith(
-            translationPath,
-            expect.stringContaining('test-flow'),
-            work.config
-          )
-          expect(writeFile).toHaveBeenCalledWith(
-            translationPath,
-            expect.stringContaining('TestA'),
-            work.config
-          )
-          expect(writeFile).toHaveBeenCalledWith(
-            translationPath,
-            expect.stringContaining('TestB'),
-            work.config
-          )
+          expect(result.copies).toHaveLength(1)
+          const copy = result.copies[0]
+          expect(copy.kind).toBe(CopyOperationKind.ComputedContent)
+          expect(copy.path).toBe(translationPath)
+          if (copy.kind === CopyOperationKind.ComputedContent) {
+            expect(copy.content).toContain('test-flow')
+            expect(copy.content).toContain('TestA')
+            expect(copy.content).toContain('TestB')
+          }
         })
       })
 
@@ -223,7 +224,7 @@ describe('FlowTranslationProcessor', () => {
         })
         it('the flowDefinitions translations should be added to the translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
@@ -232,12 +233,13 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalled()
-          expect(writeFile).toHaveBeenCalledTimes(1)
-          expect(writeFile).toHaveBeenCalledWith(
-            translationPath,
-            expect.stringContaining('test-flow'),
-            work.config
-          )
+          expect(result.copies).toHaveLength(1)
+          const copy = result.copies[0]
+          expect(copy.kind).toBe(CopyOperationKind.ComputedContent)
+          expect(copy.path).toBe(translationPath)
+          if (copy.kind === CopyOperationKind.ComputedContent) {
+            expect(copy.content).toContain('test-flow')
+          }
         })
       })
 
@@ -259,17 +261,17 @@ describe('FlowTranslationProcessor', () => {
             // Arrange
 
             // Act
-            await sut.process()
+            const result = await sut.transformAndCollect()
 
             // Assert
-            expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+            expect(hasTranslationManifest(result)).toBeFalsy()
             expect(mockedReadDirs).toHaveBeenCalledTimes(1)
             expect(mockedReadDirs).toHaveBeenCalledWith(
               work.config.source,
               work.config
             )
             expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
-            expect(writeFile).not.toHaveBeenCalled()
+            expect(result.copies).toHaveLength(0)
           })
         })
 
@@ -296,18 +298,26 @@ describe('FlowTranslationProcessor', () => {
               // Arrange
 
               // Act
-              await sut.process()
+              const result = await sut.transformAndCollect()
 
               // Assert
-              expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+              expect(hasTranslationManifest(result)).toBeTruthy()
+              expect(result.manifests).toEqual(
+                expect.arrayContaining([
+                  expect.objectContaining({
+                    target: ManifestTarget.Package,
+                    type: TRANSLATION_TYPE,
+                  }),
+                ])
+              )
               expect(mockedReadDirs).toHaveBeenCalledTimes(1)
               expect(mockedReadDirs).toHaveBeenCalledWith(
                 work.config.source,
                 work.config
               )
               expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
-              if (generateDelta) expect(writeFile).toHaveBeenCalledTimes(2)
-              else expect(writeFile).not.toHaveBeenCalled()
+              if (generateDelta) expect(result.copies).toHaveLength(2)
+              else expect(result.copies).toHaveLength(0)
             })
           })
         })
@@ -321,17 +331,17 @@ describe('FlowTranslationProcessor', () => {
         })
         it('should not add translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
-          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBeFalsy()
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
           expect(mockedReadDirs).toHaveBeenCalledWith(
             work.config.source,
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(writeFile).not.toHaveBeenCalled()
+          expect(result.copies).toHaveLength(0)
         })
       })
 
@@ -346,17 +356,17 @@ describe('FlowTranslationProcessor', () => {
         })
         it('should add translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
-          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeTruthy()
+          expect(hasTranslationManifest(result)).toBeTruthy()
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
           expect(mockedReadDirs).toHaveBeenCalledWith(
             work.config.source,
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(writeFile).toHaveBeenCalledTimes(1)
+          expect(result.copies).toHaveLength(1)
         })
       })
 
@@ -370,17 +380,17 @@ describe('FlowTranslationProcessor', () => {
         })
         it('should not add translation file', async () => {
           // Act
-          await sut.process()
+          const result = await sut.transformAndCollect()
 
           // Assert
-          expect(work.diffs.package.has(TRANSLATION_TYPE)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBeFalsy()
           expect(mockedReadDirs).toHaveBeenCalledTimes(1)
           expect(mockedReadDirs).toHaveBeenCalledWith(
             work.config.source,
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(writeFile).not.toHaveBeenCalled()
+          expect(result.copies).toHaveLength(0)
         })
       })
     })

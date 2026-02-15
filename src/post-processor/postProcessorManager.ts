@@ -53,9 +53,7 @@ export default class PostProcessorManager {
 
     for (const collector of this.collectors) {
       try {
-        results.push(
-          await (collector as IncludeProcessor).transformAndCollect()
-        )
+        results.push(await collector.transformAndCollect())
       } catch (error) {
         const message = `${collector.constructor.name}: ${getErrorMessage(error)}`
         Logger.warn(lazy`${message}`)

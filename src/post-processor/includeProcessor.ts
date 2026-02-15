@@ -34,7 +34,7 @@ export default class IncludeProcessor extends BaseProcessor {
     // No-op: IncludeProcessor is handled via transformAndCollect()
   }
 
-  public async transformAndCollect(): Promise<HandlerResult> {
+  public override async transformAndCollect(): Promise<HandlerResult> {
     if (!this._shouldProcess()) {
       return emptyResult()
     }

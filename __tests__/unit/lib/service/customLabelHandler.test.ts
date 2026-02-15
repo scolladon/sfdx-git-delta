@@ -164,8 +164,8 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(changeType, element, work)
       mockCompare.mockImplementation(() =>
         Promise.resolve({
-          added: new Map([['CustomLabel', new Set(['MyLabel'])]]),
-          deleted: new Map(),
+          added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+          deleted: [],
         })
       )
       mockPrune.mockReturnValue({

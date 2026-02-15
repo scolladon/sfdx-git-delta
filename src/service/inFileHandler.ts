@@ -9,7 +9,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
-import type { Manifest, Work } from '../types/work.js'
+import type { Work } from '../types/work.js'
 import MetadataDiff from '../utils/metadataDiff.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
@@ -82,17 +82,15 @@ export default class InFileHandler extends StandardHandler {
   protected _collectManifestFromComparison(
     manifests: ManifestElement[],
     target: ManifestTarget,
-    content: Manifest
+    entries: { type: string; member: string }[]
   ): void {
-    for (const [type, members] of content) {
+    for (const { type, member } of entries) {
       if (isPackable(type)) {
-        for (const member of members) {
-          manifests.push({
-            target,
-            type,
-            member: `${this._getQualifiedName()}${member}`,
-          })
-        }
+        manifests.push({
+          target,
+          type,
+          member: `${this._getQualifiedName()}${member}`,
+        })
       }
     }
   }

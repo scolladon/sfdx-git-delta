@@ -9,12 +9,17 @@ import {
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { HandlerResult } from '../types/handlerResult.js'
+import {
+  CopyOperationKind,
+  emptyResult,
+  ManifestTarget,
+} from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
-import { readDirs, writeFile } from '../utils/fsHelper.js'
+import { readDirs } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
-import { fillPackageWithParameter } from '../utils/packageHelper.js'
 import {
   convertJsonToXml,
   parseXmlFileToJson,
@@ -59,12 +64,22 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     this.translations = new Map()
   }
 
+  override get isCollector(): boolean {
+    return true
+  }
+
   @log
   public override async process() {
-    if (this._shouldProcess()) {
-      await this._buildFlowDefinitionsMap()
-      await this._handleFlowTranslation()
+    // No-op: FlowTranslationProcessor is handled via transformAndCollect()
+  }
+
+  public override async transformAndCollect(): Promise<HandlerResult> {
+    if (!this._shouldProcess()) {
+      return emptyResult()
     }
+
+    await this._buildFlowDefinitionsMap()
+    return await this._collectFlowTranslations()
   }
 
   async _buildFlowDefinitionsMap() {
@@ -97,10 +112,12 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
-  protected async _handleFlowTranslation() {
+  protected async _collectFlowTranslations(): Promise<HandlerResult> {
+    const result = emptyResult()
+
     for (const translationPath of this.translations.keys()) {
-      fillPackageWithParameter({
-        store: this.work.diffs.package,
+      result.manifests.push({
+        target: ManifestTarget.Package,
         type: TRANSLATION_TYPE,
         member: getTranslationName(translationPath),
       })
@@ -111,10 +128,15 @@ export default class FlowTranslationProcessor extends BaseProcessor {
           jsonTranslation,
           this.translations.get(translationPath)!
         )
-        const scrappedTranslation = convertJsonToXml(jsonTranslation)
-        await writeFile(translationPath, scrappedTranslation, this.config)
+        result.copies.push({
+          kind: CopyOperationKind.ComputedContent,
+          path: translationPath,
+          content: convertJsonToXml(jsonTranslation),
+        })
       }
     }
+
+    return result
   }
 
   protected _scrapTranslationFile(
