@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771145809691,
+  "lastUpdate": 1771151580547,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3687,6 +3687,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.68%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "014faef4e19613aef0a7e6bcb036681a54960f5d",
+          "message": "fix: support resource metadata detection in non-standard paths (#1198)",
+          "timestamp": "2026-02-15T11:29:17+01:00",
+          "tree_id": "ded1621a49bf0700a44c9d9f4c5f8ed89fa457d4",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/014faef4e19613aef0a7e6bcb036681a54960f5d"
+        },
+        "date": 1771151580075,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.24,
+            "range": "±0.54%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
