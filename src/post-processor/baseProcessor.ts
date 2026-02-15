@@ -4,7 +4,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
 
-export default class BaseProcessor {
+export default abstract class BaseProcessor {
   protected readonly config: Config
 
   constructor(
@@ -14,7 +14,5 @@ export default class BaseProcessor {
     this.config = work.config
   }
 
-  public async process() {
-    throw new Error('this class should be derived')
-  }
+  public abstract process(): Promise<void>
 }

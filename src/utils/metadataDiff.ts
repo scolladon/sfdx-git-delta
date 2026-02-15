@@ -10,23 +10,42 @@ import {
   convertJsonToXml,
   parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
+  type XmlContent,
 } from './fxpHelper.js'
 import { log } from './LoggingDecorator.js'
 import { fillPackageWithParameter } from './packageHelper.js'
 
+/**
+ * Special key markers for metadata comparison strategies.
+ * These are used in the internalRegistry to define how metadata elements
+ * should be compared when they lack a natural unique key field.
+ *
+ * ARRAY_SPECIAL_KEY ('<array>'): Compare arrays as a whole.
+ *   If arrays differ at all, include the entire 'to' array in the output.
+ *   Used for metadata where order matters or elements can't be individually identified.
+ *   Example: loginHours, loginIpRanges in Profile metadata.
+ *
+ * OBJECT_SPECIAL_KEY ('<object>'): Compare objects by their serialized form.
+ *   Uses JSON.stringify to create a key for each element, then includes
+ *   only elements from 'to' that don't exist in 'from'.
+ *   Used for metadata where each element is unique but has no key field.
+ *   Example: layoutAssignments in Profile metadata.
+ *
+ * When neither marker is used and no key field is defined, the comparison
+ * falls back to deep equality of the entire array, returning 'to' if different.
+ */
 const ARRAY_SPECIAL_KEY = '<array>'
 const OBJECT_SPECIAL_KEY = '<object>'
 
 const isEmpty = (arr: unknown[]) => arr.length === 0
 
-// biome-ignore lint/suspicious/noExplicitAny: waiting for Salesforce metadata custom type
-type XmlContent = Record<string, any>
-
 type KeySelectorFn = (elem: XmlContent) => string | undefined
 
-interface DiffResult {
+interface CompareResult {
   added: Manifest
   deleted: Manifest
+  toContent: XmlContent
+  fromContent: XmlContent
 }
 
 interface PrunedContent {
@@ -35,8 +54,6 @@ interface PrunedContent {
 }
 
 export default class MetadataDiff {
-  private toContent!: XmlContent
-  private fromContent!: XmlContent
   private extractor: MetadataExtractor
 
   constructor(
@@ -47,34 +64,34 @@ export default class MetadataDiff {
   }
 
   @log
-  async compare(path: string): Promise<DiffResult> {
-    this.toContent = await parseXmlFileToJson(
+  async compare(path: string): Promise<CompareResult> {
+    const toContent = await parseXmlFileToJson(
       { path, oid: this.config.to },
       this.config
     )
-    this.fromContent = await parseXmlFileToJson(
+    const fromContent = await parseXmlFileToJson(
       { path, oid: this.config.from },
       this.config
     )
 
     const comparator = new MetadataComparator(
       this.extractor,
-      this.fromContent,
-      this.toContent
+      fromContent,
+      toContent
     )
 
     const added = comparator.getChanges()
     const deleted = comparator.getDeletion()
 
-    return { added, deleted }
+    return { added, deleted, toContent, fromContent }
   }
 
   @log
-  prune(): PrunedContent {
+  prune(toContent: XmlContent, fromContent: XmlContent): PrunedContent {
     const transformer = new JsonTransformer(this.extractor)
     const { prunedContent, isEmpty } = transformer.generatePartialJson(
-      this.fromContent,
-      this.toContent
+      fromContent,
+      toContent
     )
 
     return {
@@ -144,18 +161,18 @@ class MetadataComparator {
   ) {}
 
   getChanges() {
-    return this.compare(this.toContent, this.fromContent, this.compareAdded)
+    return this.compare(this.toContent, this.fromContent, this.matchAdded)
   }
 
   getDeletion() {
-    return this.compare(this.fromContent, this.toContent, this.compareDeleted)
+    return this.compare(this.fromContent, this.toContent, this.matchDeleted)
   }
 
   private compare(
     baseContent: XmlContent,
     targetContent: XmlContent,
     elementMatcher: (
-      meta: XmlContent[],
+      targetLookup: Map<string, XmlContent>,
       keySelector: KeySelectorFn,
       elem: XmlContent
     ) => boolean
@@ -164,7 +181,6 @@ class MetadataComparator {
     const target = this.extractor.extractRootElement(targetContent)
     const manifest = new Map()
 
-    // Get all subtypes once
     const subTypes = this.extractor.getSubTypes(base)
     for (const subType of subTypes) {
       if (!this.extractor.isTypePackageable(subType)) continue
@@ -176,8 +192,17 @@ class MetadataComparator {
       const keySelector = this.extractor.getKeyValueSelector(subType)
       const xmlName = this.extractor.getXmlName(subType)
 
+      // Pre-compute lookup map: O(n) instead of O(n) per element
+      const targetLookup = new Map<string, XmlContent>()
+      for (const el of targetMeta) {
+        const key = keySelector(el)
+        if (key !== undefined) {
+          targetLookup.set(key, el)
+        }
+      }
+
       for (const elem of baseMeta) {
-        if (elementMatcher(targetMeta, keySelector, elem)) {
+        if (elementMatcher(targetLookup, keySelector, elem)) {
           fillPackageWithParameter({
             store: manifest,
             type: xmlName,
@@ -190,29 +215,36 @@ class MetadataComparator {
     return manifest
   }
 
-  private compareAdded = (
-    meta: XmlContent[],
+  // O(1) lookup instead of O(n) find()
+  private matchAdded = (
+    targetLookup: Map<string, XmlContent>,
     keySelector: KeySelectorFn,
     elem: XmlContent
   ) => {
     const elemKey = keySelector(elem)
-    const match = meta.find(el => keySelector(el) === elemKey)
+    if (elemKey === undefined) return true
+    const match = targetLookup.get(elemKey)
     return !match || !deepEqual(match, elem)
   }
 
-  private compareDeleted = (
-    meta: XmlContent[],
+  // O(1) lookup instead of O(n) some()
+  private matchDeleted = (
+    targetLookup: Map<string, XmlContent>,
     keySelector: KeySelectorFn,
     elem: XmlContent
   ) => {
     const elemKey = keySelector(elem)
-    return !meta.some(el => keySelector(el) === elemKey)
+    if (elemKey === undefined) return true
+    return !targetLookup.has(elemKey)
   }
 }
 
-class JsonTransformer {
-  private isEmpty: boolean = true
+interface PartialResult {
+  content: XmlContent[]
+  hasChanges: boolean
+}
 
+class JsonTransformer {
   constructor(private extractor: MetadataExtractor) {}
 
   generatePartialJson(
@@ -229,6 +261,8 @@ class JsonTransformer {
     base[rootKey] = {}
     const root = base[rootKey]
     const subKeys = this.extractor.getSubKeys(to)
+
+    let hasAnyChanges = false
     for (const key of subKeys) {
       if (key.startsWith(ATTRIBUTE_PREFIX)) {
         root[key] = to[key]
@@ -237,92 +271,85 @@ class JsonTransformer {
       const fromMeta = this.extractor.extractForSubType(from, key)
       const toMeta = this.extractor.extractForSubType(to, key)
       const keyField = this.extractor.getKeyFieldDefinition(key)
-      const partialContent = this.getPartialContent(fromMeta, toMeta, keyField)
-      if (!isEmpty(partialContent)) {
-        root[key] = partialContent
+      const { content, hasChanges } = this.getPartialContent(
+        fromMeta,
+        toMeta,
+        keyField
+      )
+      if (hasChanges) {
+        hasAnyChanges = true
+      }
+      if (!isEmpty(content)) {
+        root[key] = content
       }
     }
-    return { prunedContent: base, isEmpty: this.isEmpty }
+    return { prunedContent: base, isEmpty: !hasAnyChanges }
   }
 
   private getPartialContent(
     fromMeta: XmlContent[],
     toMeta: XmlContent[],
     keyField: string | undefined
-  ): XmlContent[] {
+  ): PartialResult {
     // Early return for empty arrays
     if (isEmpty(toMeta)) {
-      return []
+      return { content: [], hasChanges: false }
     }
     if (isEmpty(fromMeta)) {
-      this.isEmpty = false
-      return toMeta
+      return { content: toMeta, hasChanges: true }
     }
 
-    let result: XmlContent[]
     if (isUndefined(keyField)) {
-      result = this.getPartialContentWithoutKey(fromMeta, toMeta)
-    } else if (keyField === ARRAY_SPECIAL_KEY) {
-      result = this.getPartialContentForArray(fromMeta, toMeta)
-    } else if (keyField === OBJECT_SPECIAL_KEY) {
-      result = this.getPartialContentForObject(fromMeta, toMeta)
-    } else {
-      result = this.getPartialContentWithKey(fromMeta, toMeta, keyField)
+      return this.getPartialContentWithoutKey(fromMeta, toMeta)
     }
-    return result
+    if (keyField === ARRAY_SPECIAL_KEY) {
+      return this.getPartialContentForArray(fromMeta, toMeta)
+    }
+    if (keyField === OBJECT_SPECIAL_KEY) {
+      return this.getPartialContentForObject(fromMeta, toMeta)
+    }
+    return this.getPartialContentWithKey(fromMeta, toMeta, keyField)
   }
 
   private getPartialContentWithoutKey(
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
-  ): XmlContent[] {
-    if (!deepEqual(fromMeta, toMeta)) {
-      this.isEmpty = false
-    }
-    return toMeta
+  ): PartialResult {
+    const hasChanges = !deepEqual(fromMeta, toMeta)
+    return { content: toMeta, hasChanges }
   }
 
   private getPartialContentForArray(
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
-  ): XmlContent[] {
-    const diff = deepEqual(fromMeta, toMeta) ? [] : toMeta
-    this.checkEmpty(diff)
-    return diff
+  ): PartialResult {
+    const hasChanges = !deepEqual(fromMeta, toMeta)
+    const content = hasChanges ? toMeta : []
+    return { content, hasChanges }
   }
 
   private getPartialContentForObject(
     fromMeta: XmlContent[],
     toMeta: XmlContent[]
-  ): XmlContent[] {
+  ): PartialResult {
     const keySelector = (item: XmlContent[0]) => JSON.stringify(item)
     const fromSet = new Set<string>(fromMeta.map(keySelector))
-    const diff = toMeta.filter(item => !fromSet.has(keySelector(item)))
-
-    this.checkEmpty(diff)
-    return diff
+    const content = toMeta.filter(item => !fromSet.has(keySelector(item)))
+    return { content, hasChanges: !isEmpty(content) }
   }
 
   private getPartialContentWithKey(
     fromMeta: XmlContent[],
     toMeta: XmlContent[],
     keyField: string
-  ): XmlContent[] {
+  ): PartialResult {
     const keySelector = (item: XmlContent[0]) => item[keyField]
     const fromMap = new Map(fromMeta.map(item => [keySelector(item), item]))
-    const diff = toMeta.filter(item => {
+    const content = toMeta.filter(item => {
       const key = keySelector(item)
       const fromItem = fromMap.get(key)
       return isUndefined(fromItem) || !deepEqual(item, fromItem)
     })
-
-    this.checkEmpty(diff)
-    return diff
-  }
-
-  private checkEmpty(diff: XmlContent[]) {
-    if (this.isEmpty) {
-      this.isEmpty = isEmpty(diff)
-    }
+    return { content, hasChanges: !isEmpty(content) }
   }
 }

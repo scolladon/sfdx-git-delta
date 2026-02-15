@@ -1,13 +1,20 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Work } from '../types/work.js'
+import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 
 import BaseProcessor from './baseProcessor.js'
 import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
 
-const processors: Array<typeof BaseProcessor> = [
+type ProcessorConstructor = new (
+  work: Work,
+  metadata: MetadataRepository
+) => BaseProcessor
+
+const processors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
   IncludeProcessor,
 ]
@@ -32,9 +39,9 @@ export default class PostProcessorManager {
       try {
         await postProcessor.process()
       } catch (error) {
-        if (error instanceof Error) {
-          this.work.warnings.push(error)
-        }
+        const message = `${postProcessor.constructor.name}: ${getErrorMessage(error)}`
+        Logger.warn(lazy`${message}`)
+        this.work.warnings.push(wrapError(message, error))
       }
     }
   }
