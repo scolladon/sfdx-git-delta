@@ -12,7 +12,6 @@ import { Logger, lazy } from './LoggingService.js'
 export const fs = {
   access: fsImpl.access,
   readFile: fsImpl.readFile,
-  stat: fsImpl.stat,
 }
 
 export const treatPathSep = (data: string) =>
@@ -28,30 +27,6 @@ export const isSubDir = (parent: string, dir: string) => {
 
 export const isSamePath = (pathA: string, pathB: string) =>
   !relative(pathA, pathB)
-
-export const dirExists = async (dir: string) => {
-  try {
-    const st = await fs.stat(dir)
-    return st.isDirectory()
-  } catch (error) {
-    Logger.debug(
-      lazy`dirExists: '${dir}' not found: ${() => getErrorMessage(error)}`
-    )
-    return false
-  }
-}
-
-export const fileExists = async (file: string) => {
-  try {
-    const st = await fs.stat(file)
-    return st.isFile()
-  } catch (error) {
-    Logger.debug(
-      lazy`fileExists: '${file}' not found: ${() => getErrorMessage(error)}`
-    )
-    return false
-  }
-}
 
 export const pathExists = async (path: string) => {
   let pathIsAccessible = true

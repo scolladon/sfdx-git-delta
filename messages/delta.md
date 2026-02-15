@@ -84,9 +84,13 @@ file containing additional metadata definitions to add to the registry
 
 '%s' is not a git repository
 
-# warning.ApiVersionNotSupported
+# warning.ApiVersionOverridden
 
-API version not found or not supported, using '%s' instead
+API version '%s' is not supported, using '%s' instead
+
+# warning.ApiVersionDefaulted
+
+No API version found (no --api-version flag, no sourceApiVersion in sfdx-project.json), using '%s'
 
 # warning.FlowDeleted
 

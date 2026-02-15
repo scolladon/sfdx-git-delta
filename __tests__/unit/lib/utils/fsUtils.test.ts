@@ -2,8 +2,6 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
 
 import {
-  dirExists,
-  fileExists,
   fs,
   isSamePath,
   isSubDir,
@@ -13,7 +11,6 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 
-const mockedStat = jest.spyOn(fs, 'stat')
 const mockedReadFile = jest.spyOn(fs, 'readFile')
 const mockedAccess = jest.spyOn(fs, 'access')
 
@@ -65,84 +62,6 @@ describe('isSubDir', () => {
 
     // Assert
     expect(actual).toBe(expected)
-  })
-})
-
-describe('dirExists', () => {
-  it('returns true when dir exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isDirectory: () => true,
-    } as any)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(true)
-  })
-
-  it('returns false when dir does not exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isDirectory: () => false,
-    } as any)
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-
-  it('returns false when an exception occurs', async () => {
-    // Arrange
-    mockedStat.mockRejectedValue(new Error('test'))
-
-    // Act
-    const exist = await dirExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-})
-
-describe('fileExists', () => {
-  it('returns true when file exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isFile: () => true,
-    } as any)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(true)
-  })
-
-  it('returns false when file does not exist', async () => {
-    // Arrange
-    mockedStat.mockResolvedValue({
-      isFile: () => false,
-    } as any)
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
-  })
-
-  it('returns false when an exception occurs', async () => {
-    // Arrange
-    mockedStat.mockRejectedValue(new Error('test'))
-
-    // Act
-    const exist = await fileExists('test')
-
-    // Assert
-    expect(exist).toBe(false)
   })
 })
 

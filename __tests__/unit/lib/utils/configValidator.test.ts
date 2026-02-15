@@ -1,13 +1,7 @@
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Work } from '../../../../src/types/work'
 import ConfigValidator from '../../../../src/utils/configValidator'
-import {
-  dirExists,
-  fileExists,
-  pathExists,
-  readFile,
-  sanitizePath,
-} from '../../../../src/utils/fsUtils'
+import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/testWork'
 
 const mockParseRev = jest.fn()
@@ -35,13 +29,35 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
   }
 })
 
+const mockSfProjectResolve = jest.fn()
+jest.mock('@salesforce/core', () => ({
+  SfProject: {
+    resolve: (...args: unknown[]) => mockSfProjectResolve(...args),
+  },
+  Logger: {
+    childFromRoot: () => ({
+      setLevel: jest.fn(),
+      shouldLog: () => false,
+      debug: jest.fn(),
+      error: jest.fn(),
+      info: jest.fn(),
+      trace: jest.fn(),
+      warn: jest.fn(),
+    }),
+  },
+  LoggerLevel: {
+    DEBUG: 20,
+    ERROR: 50,
+    INFO: 30,
+    TRACE: 10,
+    WARN: 40,
+  },
+}))
+
 jest.mock('../../../../src/utils/MessageService')
 jest.mock('../../../../src/utils/fsUtils')
 const mockedPathExists = jest.mocked(pathExists)
-const mockedReadFile = jest.mocked(readFile)
 const mockedSanitizePath = jest.mocked(sanitizePath)
-const mockedDirExists = jest.mocked(dirExists)
-const mockedFileExists = jest.mocked(fileExists)
 
 mockedSanitizePath.mockImplementation(data => data)
 
@@ -52,8 +68,6 @@ describe(`test if the application`, () => {
     work.config.repo = '.'
     work.config.to = 'test'
     work.config.apiVersion = 46
-    mockedFileExists.mockImplementation(() => Promise.resolve(true))
-    mockedDirExists.mockImplementation(() => Promise.resolve(true))
     mockedPathExists.mockResolvedValue(true as never)
     mockParseRev.mockImplementation(() => Promise.resolve('ref'))
   })
@@ -238,6 +252,9 @@ describe(`test if the application`, () => {
     })
     beforeEach(() => {
       jest.resetAllMocks()
+      jest
+        .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+        .mockResolvedValue('58')
     })
     describe('when apiVersion parameter is set with supported value', () => {
       it.each([
@@ -260,7 +277,6 @@ describe(`test if the application`, () => {
         40, 55.1, 0,
       ])(`config.apiVersion (%s) equals the parameter `, async version => {
         // Arrange
-        mockedFileExists.mockImplementation(() => Promise.resolve(false))
         work.config.apiVersion = version
         const configValidator = new ConfigValidator(work)
 
@@ -275,18 +291,21 @@ describe(`test if the application`, () => {
 
     describe('when apiVersion parameter is not set', () => {
       describe('when sfdx-project.json file exist', () => {
-        beforeEach(() => {
-          mockedFileExists.mockImplementation(() => Promise.resolve(true))
-        })
+        const mockSfProject = (sourceApiVersion?: string) => {
+          mockSfProjectResolve.mockResolvedValue({
+            getSfProjectJson: () => ({
+              getContents: () =>
+                sourceApiVersion !== undefined ? { sourceApiVersion } : {},
+            }),
+          })
+        }
+
         describe('when "sourceApiVersion" attribute is set with supported value', () => {
           it.each([
             46, 52, 53, 46.0, 52.0, 55.0,
           ])('config.apiVersion (%s) equals the "sourceApiVersion" attribute', async version => {
             // Arrange
-            mockedReadFile.mockImplementation(() =>
-              Promise.resolve(`{"sourceApiVersion":"${version}"}`)
-            )
-
+            mockSfProject(String(version))
             work.config.apiVersion = undefined
             const configValidator = new ConfigValidator(work)
 
@@ -300,18 +319,12 @@ describe(`test if the application`, () => {
         })
         describe('when "sourceApiVersion" attribute is set with invalid value', () => {
           it.each([
-            NaN,
+            'NaN',
             'awesome',
             '',
-          ])('config.apiVersion (%s) equals the latest version', async version => {
+          ])('config.apiVersion (%s) defaults to latest version with warning', async version => {
             // Arrange
-            mockedReadFile.mockResolvedValue(
-              `{"sourceApiVersion":"${version}"}`
-            )
-            jest
-              .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-              .mockResolvedValue('58')
-
+            mockSfProject(version)
             work.config.apiVersion = undefined
             const configValidator = new ConfigValidator(work)
 
@@ -320,23 +333,14 @@ describe(`test if the application`, () => {
 
             // Assert
             expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-            expect(work.warnings.length).toEqual(0)
+            expect(work.warnings.length).toEqual(1)
           })
         })
 
-        describe('when "sourceApiVersion" attribute is set with valid but unusual value', () => {
-          it.each([
-            '40',
-            1000000000,
-          ])('config.apiVersion (%s) is trusted', async version => {
+        describe('when "sourceApiVersion" attribute is set with valid low value', () => {
+          it('config.apiVersion equals the sourceApiVersion', async () => {
             // Arrange
-            mockedReadFile.mockResolvedValue(
-              `{"sourceApiVersion":"${version}"}`
-            )
-            jest
-              .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-              .mockResolvedValue('58')
-
+            mockSfProject('40')
             work.config.apiVersion = undefined
             const configValidator = new ConfigValidator(work)
 
@@ -344,18 +348,30 @@ describe(`test if the application`, () => {
             await configValidator['_handleDefault']()
 
             // Assert
-            expect(work.config.apiVersion).toEqual(parseInt(version.toString()))
+            expect(work.config.apiVersion).toEqual(40)
             expect(work.warnings.length).toEqual(0)
           })
         })
 
-        it('when "sourceApiVersion" attribute is not set', async () => {
-          // Arrange
-          mockedReadFile.mockResolvedValue('{}')
-          jest
-            .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-            .mockResolvedValue('58')
+        describe('when "sourceApiVersion" attribute exceeds latest version', () => {
+          it('config.apiVersion is overridden to latest with warning', async () => {
+            // Arrange
+            mockSfProject('1000000000')
+            work.config.apiVersion = undefined
+            const configValidator = new ConfigValidator(work)
 
+            // Act
+            await configValidator['_handleDefault']()
+
+            // Assert
+            expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+            expect(work.warnings.length).toEqual(1)
+          })
+        })
+
+        it('when "sourceApiVersion" attribute is not set, defaults to latest with warning', async () => {
+          // Arrange
+          mockSfProject()
           work.config.apiVersion = undefined
           const configValidator = new ConfigValidator(work)
 
@@ -364,17 +380,16 @@ describe(`test if the application`, () => {
 
           // Assert
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-          expect(work.warnings.length).toEqual(0)
+          expect(work.warnings.length).toEqual(1)
         })
       })
     })
     describe('when sfdx-project.json file does not exist', () => {
-      it('config.apiVersion equals the latest version', async () => {
+      it('config.apiVersion defaults to latest version with warning', async () => {
         // Arrange
-        mockedFileExists.mockImplementation(() => Promise.resolve(false))
-        jest
-          .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-          .mockResolvedValue('58')
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
         work.config.apiVersion = undefined
         const configValidator = new ConfigValidator(work)
 
@@ -383,7 +398,7 @@ describe(`test if the application`, () => {
 
         // Assert
         expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings.length).toEqual(0)
+        expect(work.warnings.length).toEqual(1)
       })
     })
   })
