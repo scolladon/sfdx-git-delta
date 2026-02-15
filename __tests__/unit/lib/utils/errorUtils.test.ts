@@ -10,82 +10,26 @@ import {
 } from '../../../../src/utils/errorUtils'
 
 describe('getErrorMessage', () => {
-  describe('Given an Error instance', () => {
-    it('When called, Then returns the error message', () => {
-      // Arrange
-      const error = new Error('test error message')
+  it.each([
+    {
+      input: new Error('test error message'),
+      expected: 'test error message',
+      desc: 'Error instance',
+    },
+    { input: 'string error', expected: 'string error', desc: 'string' },
+    { input: 42, expected: '42', desc: 'number' },
+    { input: null, expected: 'null', desc: 'null' },
+    { input: undefined, expected: 'undefined', desc: 'undefined' },
+    { input: { code: 'ERR_001' }, expected: '[object Object]', desc: 'object' },
+  ])('Given $desc, When called, Then returns "$expected"', ({
+    input,
+    expected,
+  }) => {
+    // Act
+    const result = getErrorMessage(input)
 
-      // Act
-      const result = getErrorMessage(error)
-
-      // Assert
-      expect(result).toBe('test error message')
-    })
-  })
-
-  describe('Given a string', () => {
-    it('When called, Then returns the string', () => {
-      // Arrange
-      const error = 'string error'
-
-      // Act
-      const result = getErrorMessage(error)
-
-      // Assert
-      expect(result).toBe('string error')
-    })
-  })
-
-  describe('Given a number', () => {
-    it('When called, Then returns string representation', () => {
-      // Arrange
-      const error = 42
-
-      // Act
-      const result = getErrorMessage(error)
-
-      // Assert
-      expect(result).toBe('42')
-    })
-  })
-
-  describe('Given null', () => {
-    it('When called, Then returns string representation', () => {
-      // Arrange
-      const error = null
-
-      // Act
-      const result = getErrorMessage(error)
-
-      // Assert
-      expect(result).toBe('null')
-    })
-  })
-
-  describe('Given undefined', () => {
-    it('When called, Then returns string representation', () => {
-      // Arrange
-      const error = undefined
-
-      // Act
-      const result = getErrorMessage(error)
-
-      // Assert
-      expect(result).toBe('undefined')
-    })
-  })
-
-  describe('Given an object', () => {
-    it('When called, Then returns string representation', () => {
-      // Arrange
-      const error = { code: 'ERR_001', details: 'some details' }
-
-      // Act
-      const result = getErrorMessage(error)
-
-      // Assert
-      expect(result).toBe('[object Object]')
-    })
+    // Assert
+    expect(result).toBe(expected)
   })
 })
 
