@@ -8,6 +8,8 @@ on:
     paths-ignore:
       - "**.md"
       - "img/**"
+      - "package.json"
+      - "package-lock.json"
 
 permissions:
   contents: 'read'
@@ -48,7 +50,6 @@ jobs:
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
   npm-lint:
     runs-on: ubuntu-latest
     steps:

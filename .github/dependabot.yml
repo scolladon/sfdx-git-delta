@@ -6,14 +6,14 @@ updates:
     schedule:
       interval: "monthly"
     commit-message:
-      prefix: "build"
+      prefix: "build(github-actions)"
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     versioning-strategy: increase
     commit-message:
-      prefix: "build"
+      prefix: "build(deps)"
     allow:
-      - dependency-type: "all"
+      - dependency-name: "@salesforce/source-deploy-retrieve"
