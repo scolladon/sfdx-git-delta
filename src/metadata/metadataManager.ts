@@ -8,11 +8,14 @@ import {
   type SharedFileMetadata,
   type SharedFolderMetadata,
 } from '../schemas/metadata.js'
+import type { Config } from '../types/config.js'
 import { MetadataRegistryError } from '../utils/errorUtils.js'
 import { readFile } from '../utils/fsUtils.js'
-
+import internalRegistry from './internalRegistry.js'
 import { MetadataRepository } from './MetadataRepository.js'
 import { MetadataRepositoryImpl } from './MetadataRepositoryImpl.js'
+import { MetadataDefinitionMerger } from './metadataDefinitionMerger.js'
+import { SDRMetadataAdapter } from './sdrMetadataAdapter.js'
 
 let inFileMetadata = new Map<string, SharedFileMetadata>()
 let sharedFolderMetadata = new Map<string, string>()
@@ -26,11 +29,6 @@ export const resetMetadataCache = (): void => {
 export const getLatestSupportedVersion = async () => {
   return parseInt(await SDRMetadataAdapter.getLatestApiVersion())
 }
-
-import type { Config } from '../types/config.js'
-import internalRegistry from './internalRegistry.js'
-import { MetadataDefinitionMerger } from './metadataDefinitionMerger.js'
-import { SDRMetadataAdapter } from './sdrMetadataAdapter.js'
 
 export const getDefinition = async (
   config: Pick<Config, 'additionalMetadataRegistryPath'>
@@ -94,6 +92,12 @@ export const isPackable = (type: string) =>
     (inFileDef: SharedFileMetadata) => inFileDef.xmlName === type
   )?.excluded !== true
 
+const granularExcludedTypes = new Set([
+  'Translations',
+  'StandardValueSetTranslation',
+  'GlobalValueSetTranslation',
+])
+
 export const getInFileAttributes = (metadata: MetadataRepository) =>
   inFileMetadata.size
     ? inFileMetadata
@@ -101,12 +105,6 @@ export const getInFileAttributes = (metadata: MetadataRepository) =>
         .values()
         .filter((meta: Metadata) => meta.xmlTag)
         .reduce((acc: Map<string, SharedFileMetadata>, meta: Metadata) => {
-          // Granular Excluded: Include but mark excluded to prevent packing
-          const granularExcludedTypes = new Set([
-            'Translations',
-            'StandardValueSetTranslation',
-            'GlobalValueSetTranslation',
-          ])
           const isExcluded =
             granularExcludedTypes.has(meta.parentXmlName || '') ||
             granularExcludedTypes.has(meta.xmlName || '')
