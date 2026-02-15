@@ -92,6 +92,10 @@ API version '%s' is not supported, using '%s' instead
 
 No API version found (no --api-version flag, no sourceApiVersion in sfdx-project.json), using '%s'
 
+# warning.MalformedXML
+
+could not process '%s', please ensure it is properly formatted xml in both '%s' and '%s' revision
+
 # warning.FlowDeleted
 
 Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expected (see https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)

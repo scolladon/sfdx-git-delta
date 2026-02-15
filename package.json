@@ -115,10 +115,11 @@
     "lint:fs": "wireit",
     "lint": "wireit",
     "lint:fix": "wireit",
-    "postpack": "shx rm -f oclif.manifest.json",
+    "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
     "prepack": "wireit",
     "prepare": "husky",
     "prepublishOnly": "npm shrinkwrap",
+    "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
     "test:build": "wireit",
     "test:mutation": "wireit",
     "test:mutation:incremental": "wireit",
@@ -127,9 +128,7 @@
     "test:unit:debug:break": "node --inspect-brk node_modules/.bin/jest",
     "test:unit:debug": "node --inspect node_modules/.bin/jest",
     "test:unit": "wireit",
-    "test": "wireit",
-    "check:metadata-coverage": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/checkSdrMetadataCoverage.ts",
-    "sync:internal-registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistry.ts"
+    "test": "wireit"
   },
   "funding": {
     "type": "github",

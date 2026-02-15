@@ -253,15 +253,11 @@ Gap-fillers are automatically removable: when SDR adds native support for a type
 
 ### Coverage check and sync tooling
 
-Two scripts in `tooling/` keep the internal registry clean:
+A script in `tooling/` keeps the internal registry clean:
 
 ```bash
-# Check which internal registry types overlap with SDR
-npm run check:metadata-coverage
-
-# Remove auto-removable gap-fillers that SDR now covers
-npm run check:metadata-coverage > coverage-result.json
-npm run sync:internal-registry -- coverage-result.json
+# Sync internal registry: removes auto-removable gap-fillers that SDR now covers
+npm run sync:registry
 ```
 
 The sync runs automatically via CI when dependabot upgrades the SDR dependency.
