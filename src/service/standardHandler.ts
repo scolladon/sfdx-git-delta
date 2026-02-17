@@ -55,6 +55,9 @@ export default class StandardHandler {
     } catch (error) {
       const message = `${this.element.basePath}: ${getErrorMessage(error)}`
       Logger.warn(lazy`${message}`)
+      Logger.debug(
+        lazy`${this.constructor.name}.collect: ${this.changeType} ${this.element.type.xmlName} '${this.element.basePath}' failed: ${() => getErrorMessage(error)}`
+      )
       return {
         manifests: [],
         copies: [],

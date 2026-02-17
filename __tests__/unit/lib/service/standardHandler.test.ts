@@ -1,6 +1,8 @@
 'use strict'
 import { describe, expect, it, jest } from '@jest/globals'
 
+jest.mock('../../../../src/utils/LoggingService')
+
 import {
   ADDITION,
   DELETION,

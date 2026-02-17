@@ -2,24 +2,12 @@
 
 import { describe, expect, it, jest } from '@jest/globals'
 
-const mockedTrace = jest.fn()
-jest.mock('../../../../src/utils/LoggingService', () => {
-  const actual = jest.requireActual<
-    typeof import('../../../../src/utils/LoggingService')
-  >('../../../../src/utils/LoggingService')
-  return {
-    ...actual,
-    Logger: {
-      trace: mockedTrace,
-      debug: jest.fn(),
-      warn: jest.fn(),
-      info: jest.fn(),
-      error: jest.fn(),
-    },
-  }
-})
+jest.mock('../../../../src/utils/LoggingService')
 
 import { log } from '../../../../src/utils/LoggingDecorator.js'
+import { Logger } from '../../../../src/utils/LoggingService.js'
+
+const mockedTrace = Logger.trace as jest.Mock
 
 describe('LoggingDecorator', () => {
   describe('log', () => {
