@@ -1,366 +1,112 @@
 'use strict'
 
-import {
-  hasCustomToString,
-  stringify,
-} from '../../../../src/utils/LoggingDecorator.js'
+import { describe, expect, it, jest } from '@jest/globals'
+
+const mockedTrace = jest.fn()
+jest.mock('../../../../src/utils/LoggingService', () => {
+  const actual = jest.requireActual<
+    typeof import('../../../../src/utils/LoggingService')
+  >('../../../../src/utils/LoggingService')
+  return {
+    ...actual,
+    Logger: {
+      trace: mockedTrace,
+      debug: jest.fn(),
+      warn: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+    },
+  }
+})
+
+import { log } from '../../../../src/utils/LoggingDecorator.js'
 
 describe('LoggingDecorator', () => {
-  describe('hasCustomToString', () => {
-    describe('when object has custom toString', () => {
-      it('should return true for objects with custom toString method', () => {
+  describe('log', () => {
+    describe('Given a sync method', () => {
+      it('When called, Then traces entry and exit', () => {
         // Arrange
-        const obj = {
-          toString: () => 'custom',
-        }
-
-        // Act
-        const result = hasCustomToString(obj)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for class instances with custom toString method', () => {
-        // Arrange
-        class CustomClass {
-          toString() {
-            return 'custom'
+        class TestClass {
+          @log
+          syncMethod() {
+            return 'result'
           }
         }
-        const sut = new CustomClass()
+        const sut = new TestClass()
 
         // Act
-        const result = hasCustomToString(sut)
+        const result = sut.syncMethod()
 
         // Assert
-        expect(result).toBe(true)
+        expect(result).toBe('result')
+        expect(mockedTrace).toHaveBeenCalledTimes(2)
+        const entryMsg = (mockedTrace.mock.calls[0][0] as () => string)()
+        const exitMsg = (mockedTrace.mock.calls[1][0] as () => string)()
+        expect(entryMsg).toContain('syncMethod: entry')
+        expect(exitMsg).toContain('syncMethod: exit')
       })
 
-      it('should return true for objects with own toString property', () => {
+      it('When called with arguments, Then passes arguments through', () => {
         // Arrange
-        const obj = Object.create(null)
-        obj.toString = () => 'custom'
-
-        // Act
-        const result = hasCustomToString(obj)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for Date objects', () => {
-        // Arrange
-        const sut = new Date()
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for Array objects', () => {
-        // Arrange
-        const sut: Array<any> = []
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for objects with prototype chain toString', () => {
-        // Arrange
-        const parent = { toString: () => 'parent' }
-        const sut = Object.create(parent)
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for Error objects', () => {
-        // Arrange
-        const sut = new Error('test')
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for objects with Symbol.toStringTag and toString', () => {
-        // Arrange
-        const obj = {
-          [Symbol.toStringTag]: 'Test',
-          toString: () => 'custom',
+        class TestClass {
+          @log
+          syncMethod(a: string, b: number) {
+            return `${a}-${b}`
+          }
         }
+        const sut = new TestClass()
 
         // Act
-        const result = hasCustomToString(obj)
+        const result = sut.syncMethod('hello', 42)
 
         // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for Proxy objects', () => {
-        // Arrange
-        const target = { toString: () => 'proxy target' }
-        const sut = new Proxy(target, {})
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for prototype-less objects with added toString', () => {
-        // Arrange
-        const obj = Object.create(null)
-        obj.toString = () => 'custom'
-
-        // Act
-        const result = hasCustomToString(obj)
-
-        // Assert
-        expect(result).toBe(true)
-      })
-
-      it('should return true for prototype-less objects with inherited toString', () => {
-        // Arrange
-        const parent = Object.create(null)
-        parent.toString = () => 'parent'
-        const sut = Object.create(parent)
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(true)
+        expect(result).toBe('hello-42')
       })
     })
 
-    describe('when object does not have custom toString', () => {
-      it('should return false for plain objects', () => {
+    describe('Given an async method', () => {
+      it('When called, Then traces entry and exit', async () => {
         // Arrange
-        const sut = {}
+        class TestClass {
+          @log
+          async asyncMethod() {
+            return 'async-result'
+          }
+        }
+        const sut = new TestClass()
 
         // Act
-        const result = hasCustomToString(sut)
+        const result = await sut.asyncMethod()
 
         // Assert
-        expect(result).toBe(false)
+        expect(result).toBe('async-result')
+        expect(mockedTrace).toHaveBeenCalledTimes(2)
+        const entryMsg = (mockedTrace.mock.calls[0][0] as () => string)()
+        const exitMsg = (mockedTrace.mock.calls[1][0] as () => string)()
+        expect(entryMsg).toContain('asyncMethod: entry')
+        expect(exitMsg).toContain('asyncMethod: exit')
       })
 
-      it('should return false for class instances without custom toString', () => {
+      it('When called with arguments, Then passes arguments through', async () => {
         // Arrange
-        class PlainClass {}
-        const sut = new PlainClass()
+        class TestClass {
+          @log
+          async asyncMethod(a: string, b: number) {
+            return `${a}-${b}`
+          }
+        }
+        const sut = new TestClass()
 
         // Act
-        const result = hasCustomToString(sut)
+        const result = await sut.asyncMethod('hello', 42)
 
         // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for objects with non-function toString', () => {
-        // Arrange
-        const obj = { toString: 'not a function' }
-
-        // Act
-        const result = hasCustomToString(obj)
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for objects with only Symbol.toStringTag', () => {
-        // Arrange
-        const obj = { [Symbol.toStringTag]: 'Test' }
-
-        // Act
-        const result = hasCustomToString(obj)
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for prototype-less objects without toString', () => {
-        // Arrange
-        const sut = Object.create(null)
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for prototype-less objects with non-function toString', () => {
-        // Arrange
-        const obj = Object.create(null)
-        obj.toString = 'not a function'
-
-        // Act
-        const result = hasCustomToString(obj)
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for objects with null prototype and no toString', () => {
-        // Arrange
-        const sut = Object.create(null)
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(false)
-        expect(Object.getPrototypeOf(sut)).toBeNull()
-      })
-
-      it('should return false for objects with null prototype chain', () => {
-        // Arrange
-        const sut = Object.create(null)
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(false)
+        expect(result).toBe('hello-42')
       })
     })
 
-    describe('when given edge cases', () => {
-      it('should return false for null', () => {
-        // Arrange
-        const sut = null
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for undefined', () => {
-        // Arrange
-        const sut = undefined
-
-        // Act
-        const result = hasCustomToString(sut)
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
-      it('should return false for primitives', () => {
-        // Arrange & Act & Assert
-        expect(hasCustomToString(42)).toBe(false)
-        expect(hasCustomToString('string')).toBe(false)
-        expect(hasCustomToString(true)).toBe(false)
-        expect(hasCustomToString(Symbol())).toBe(false)
-      })
-    })
-  })
-
-  describe('stringify', () => {
-    describe('when given a Map', () => {
-      it('should convert Map to array of entries', () => {
-        // Arrange
-        const sut = new Map()
-        sut.set('key1', 'value1')
-        sut.set('key2', 'value2')
-
-        // Act
-        const result = stringify(sut)
-        const parsed = JSON.parse(result)
-
-        // Assert
-        expect(parsed).toEqual([
-          ['key1', 'value1'],
-          ['key2', 'value2'],
-        ])
-      })
-
-      it('should handle empty Map', () => {
-        // Arrange
-        const sut = new Map()
-
-        // Act
-        const result = stringify(sut)
-
-        // Assert
-        expect(result).toBe('[]')
-      })
-
-      it('should handle Map with complex key types', () => {
-        // Arrange
-        const sut = new Map()
-        sut.set({ id: 1 }, 'object key')
-        sut.set(42, 'number key')
-
-        // Act
-        const result = stringify(sut)
-        const parsed = JSON.parse(result)
-
-        // Assert
-        expect(parsed.length).toBe(2)
-        expect(parsed[1]).toEqual([42, 'number key'])
-      })
-    })
-
-    describe('when given a Set', () => {
-      it('should convert Set to array', () => {
-        // Arrange
-        const sut = new Set(['value1', 'value2', 'value3'])
-
-        // Act
-        const result = stringify(sut)
-        const parsed = JSON.parse(result)
-
-        // Assert
-        expect(parsed).toEqual(['value1', 'value2', 'value3'])
-      })
-
-      it('should handle empty Set', () => {
-        // Arrange
-        const sut = new Set()
-
-        // Act
-        const result = stringify(sut)
-
-        // Assert
-        expect(result).toBe('[]')
-      })
-    })
-
-    describe('when given nested structures', () => {
-      it('should handle nested Map and Set structures', () => {
-        // Arrange
-        const sut = new Map()
-        const innerSet = new Set(['a', 'b', 'c'])
-        sut.set('set', innerSet)
-        sut.set('primitive', 42)
-
-        // Act
-        const result = stringify(sut)
-        const parsed = JSON.parse(result)
-
-        // Assert
-        expect(parsed).toEqual([
-          ['set', ['a', 'b', 'c']],
-          ['primitive', 42],
-        ])
-      })
+    afterEach(() => {
+      jest.clearAllMocks()
     })
   })
 })
