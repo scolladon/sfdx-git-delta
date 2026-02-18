@@ -49,9 +49,9 @@
   },
   "dependencies": {
     "@oclif/core": "^4.8.0",
-    "@salesforce/core": "^8.26.0",
+    "@salesforce/core": "^8.26.2",
     "@salesforce/sf-plugins-core": "^12.2.6",
-    "@salesforce/source-deploy-retrieve": "^12.31.11",
+    "@salesforce/source-deploy-retrieve": "^12.31.12",
     "async": "^3.2.6",
     "fast-equals": "^6.0.0",
     "fast-xml-parser": "^5.3.6",
@@ -64,7 +64,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.15",
+    "@biomejs/biome": "2.4.2",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@jest/globals": "^30.2.0",
