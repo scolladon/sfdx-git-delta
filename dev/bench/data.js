@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771172870083,
+  "lastUpdate": 1771397008734,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3749,6 +3749,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.24,
             "range": "±2.38%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "181a27dbdbdc10412ebc10b67529f619f908799c",
+          "message": "fix: reduce @log decorator volume to prevent thread-stream flush timeout (#1215)",
+          "timestamp": "2026-02-18T07:39:42+01:00",
+          "tree_id": "356078f19ba10c64ce0d64b8181cb7a004031ca6",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/181a27dbdbdc10412ebc10b67529f619f908799c"
+        },
+        "date": 1771397008436,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.36%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
