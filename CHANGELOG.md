@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.32.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.0...v6.32.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* reduce [@log](https://github.com/log) decorator volume to prevent thread-stream flush timeout ([#1215](https://github.com/scolladon/sfdx-git-delta/issues/1215)) ([181a27d](https://github.com/scolladon/sfdx-git-delta/commit/181a27dbdbdc10412ebc10b67529f619f908799c))
+
 ## [6.32.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.31.0...v6.32.0) (2026-02-15)
 
 
