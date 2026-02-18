@@ -32,25 +32,7 @@ jest.mock('simple-git', () => {
 
 jest.mock('../../../../src/utils/gitLfsHelper')
 jest.mock('node:fs/promises')
-jest.mock('../../../../src/utils/LoggingService', () => {
-  const actual = jest.requireActual<
-    typeof import('../../../../src/utils/LoggingService')
-  >('../../../../src/utils/LoggingService')
-  return {
-    ...actual,
-    Logger: {
-      debug: jest.fn((msg: unknown) => {
-        if (typeof msg === 'function') (msg as () => void)()
-      }),
-      warn: jest.fn((msg: unknown) => {
-        if (typeof msg === 'function') (msg as () => void)()
-      }),
-      info: jest.fn(),
-      error: jest.fn(),
-      trace: jest.fn(),
-    },
-  }
-})
+jest.mock('../../../../src/utils/LoggingService')
 
 const isLFSmocked = jest.mocked(isLFS)
 const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)

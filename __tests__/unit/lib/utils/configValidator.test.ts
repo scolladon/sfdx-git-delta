@@ -54,6 +54,7 @@ jest.mock('@salesforce/core', () => ({
   },
 }))
 
+jest.mock('../../../../src/utils/LoggingService')
 jest.mock('../../../../src/utils/MessageService')
 jest.mock('../../../../src/utils/fsUtils')
 const mockedPathExists = jest.mocked(pathExists)

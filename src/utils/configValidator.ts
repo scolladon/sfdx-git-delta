@@ -8,7 +8,7 @@ import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
-import { ConfigError } from './errorUtils.js'
+import { ConfigError, getErrorMessage } from './errorUtils.js'
 import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
@@ -37,7 +37,10 @@ export default class ConfigValidator {
         try {
           const ref: string = await this.gitAdapter.parseRev(shaValue)
           ;(this.config[shaParameter] as string) = ref
-        } catch {
+        } catch (error) {
+          Logger.debug(
+            lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' is not a valid git SHA: ${() => getErrorMessage(error)}`
+          )
           errors.push(
             this.message.getMessage('error.ParameterIsNotGitSHA', [
               shaParameter,

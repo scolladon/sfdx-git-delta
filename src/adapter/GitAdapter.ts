@@ -234,7 +234,10 @@ export default class GitAdapter {
         .split(EOL)
         .filter(line => line)
         .map(line => treatPathSep(line.slice(line.indexOf(':') + 1)))
-    } catch {
+    } catch (error) {
+      Logger.debug(
+        lazy`gitGrep: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
+      )
       return []
     }
   }
