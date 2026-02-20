@@ -105,8 +105,9 @@
   },
   "scripts": {
     "build": "wireit",
-    "clean:package-manager": "wireit",
     "clean": "wireit",
+    "clean:build": "wireit",
+    "clean:package-manager": "wireit",
     "dependencies:reinstall": "npm install",
     "dependencies:upgrade": "npx npm-check-updates -u ; npm install ; npm audit fix",
     "devops:cleanup:dev-tag": "./tooling/devops-cleanup.sh",
@@ -152,29 +153,30 @@
     "clean": {
       "command": "shx rm -rf 'reports/*' .nyc_output oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
       "files": [
-        "lib",
-        "reports/*",
         ".nyc_output",
+        ".stryker-tmp/*",
+        "lib",
         "oclif.manifest.json",
         "package.tgz",
+        "perf-result.txt",
+        "reports/*",
         "sfdx-git-delta-v*.tgz",
         "stderr*.txt",
-        "stdout*.txt",
-        ".stryker-tmp/*",
-        "perf-result.txt"
+        "stdout*.txt"
       ],
       "dependencies": [
         "clean:build"
       ]
     },
     "clean:build": {
-      "command": "shx rm -rf lib",
+      "command": "shx rm -rf lib .wireit",
       "files": [
+        ".wireit/*",
         "lib/*"
       ]
     },
     "clean:package-manager": {
-      "command": "shx rm -rf node_modules tsconfig.tsbuildinfo .wireit",
+      "command": "shx rm -rf node_modules tsconfig.tsbuildinfo",
       "files": [
         "node_modules/*"
       ]
