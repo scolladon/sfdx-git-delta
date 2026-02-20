@@ -100,9 +100,7 @@ export class MetadataElement {
   }
 
   get parentName(): string {
-    const dirIndex = (this.parts as string[]).lastIndexOf(
-      this.metadataDef.directoryName
-    )
+    const dirIndex = this.parts.lastIndexOf(this.metadataDef.directoryName)
     if (dirIndex >= 1) {
       return this.parts[dirIndex - 1]
     }
@@ -114,34 +112,28 @@ export class MetadataElement {
   }
 
   get componentPath(): string {
-    if ((this.pathAfterType as string[]).length > 1) {
-      return (this.parts as string[])
-        .slice(0, this.anchorIndex + 1)
-        .join(PATH_SEP)
+    if (this.pathAfterType.length > 1) {
+      return this.parts.slice(0, this.anchorIndex + 1).join(PATH_SEP)
     }
     return `${this.typeDirectoryPath}${PATH_SEP}${this.componentName}`
   }
 
   get typeDirectoryPath(): string {
-    const dirIndex = (this.parts as string[]).lastIndexOf(
-      this.metadataDef.directoryName
-    )
+    const dirIndex = this.parts.lastIndexOf(this.metadataDef.directoryName)
     if (dirIndex >= 0) {
-      return (this.parts as string[]).slice(0, dirIndex + 1).join(PATH_SEP)
+      return this.parts.slice(0, dirIndex + 1).join(PATH_SEP)
     }
     // Fallback for scan: go up one from anchor
-    return (this.parts as string[]).slice(0, this.anchorIndex).join(PATH_SEP)
+    return this.parts.slice(0, this.anchorIndex).join(PATH_SEP)
   }
 
   get pathAfterType(): string[] {
-    const dirIndex = (this.parts as string[]).lastIndexOf(
-      this.metadataDef.directoryName
-    )
+    const dirIndex = this.parts.lastIndexOf(this.metadataDef.directoryName)
     if (dirIndex >= 0) {
-      return (this.parts as string[]).slice(dirIndex + 1)
+      return this.parts.slice(dirIndex + 1)
     }
     // Fallback for scan
-    return (this.parts as string[]).slice(this.anchorIndex)
+    return this.parts.slice(this.anchorIndex)
   }
 
   getParentType(): Metadata | undefined {
