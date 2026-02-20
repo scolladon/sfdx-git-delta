@@ -113,10 +113,13 @@ export class MetadataElement {
     return ''
   }
 
-  get componentBasePath(): string {
-    return (this.parts as string[])
-      .slice(0, this.anchorIndex + 1)
-      .join(PATH_SEP)
+  get componentPath(): string {
+    if ((this.pathAfterType as string[]).length > 1) {
+      return (this.parts as string[])
+        .slice(0, this.anchorIndex + 1)
+        .join(PATH_SEP)
+    }
+    return `${this.typeDirectoryPath}${PATH_SEP}${this.componentName}`
   }
 
   get typeDirectoryPath(): string {
