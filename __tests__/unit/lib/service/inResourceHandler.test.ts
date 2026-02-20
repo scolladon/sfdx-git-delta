@@ -252,6 +252,72 @@ describe('InResourceHandler', () => {
           )
         })
 
+        it('Given single-file static resource added, When collecting, Then should only copy that resource and its meta', async () => {
+          // Arrange
+          const base = 'force-app/main/default/'
+          const entity = 'singleFile'
+          const path = `${entity}.xlsx`
+          const singleFileLine = `A       ${base}${staticResourceType.directoryName}/${path}`
+          mockedReadDirs.mockResolvedValue([
+            `${base}${staticResourceType.directoryName}/${entity}.xlsx`,
+            `${base}${staticResourceType.directoryName}/${entity}.resource-meta.xml`,
+            `${base}${staticResourceType.directoryName}/otherResource.png`,
+            `${base}${staticResourceType.directoryName}/otherResource.resource-meta.xml`,
+          ])
+          const { changeType, element } = createElement(
+            singleFileLine,
+            staticResourceType,
+            globalMetadata
+          )
+          const sut = new InResourceHandler(changeType, element, work)
+
+          // Act
+          const result = await sut.collect()
+
+          // Assert
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                path: `${base}${staticResourceType.directoryName}/${path}`,
+              }),
+              expect.objectContaining({
+                path: `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
+              }),
+            ])
+          )
+          expect(result.copies).not.toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                path: expect.stringContaining('otherResource'),
+              }),
+            ])
+          )
+        })
+
+        it('Given single-file static resource added, When collecting, Then readDirs scans the type directory', async () => {
+          // Arrange
+          const base = 'force-app/main/default/'
+          const entity = 'myFile'
+          const path = `${entity}.png`
+          const singleFileLine = `A       ${base}${staticResourceType.directoryName}/${path}`
+          mockedReadDirs.mockResolvedValue([])
+          const { changeType, element } = createElement(
+            singleFileLine,
+            staticResourceType,
+            globalMetadata
+          )
+          const sut = new InResourceHandler(changeType, element, work)
+
+          // Act
+          await sut.collect()
+
+          // Assert
+          expect(readDirs).toHaveBeenCalledWith(
+            `${base}${staticResourceType.directoryName}`,
+            work.config
+          )
+        })
+
         it('should copy static resource folder content and its meta', async () => {
           // Arrange
           const base = 'force-app/main/default/'
@@ -373,7 +439,7 @@ describe('InResourceHandler', () => {
               }),
               expect.objectContaining({
                 kind: CopyOperationKind.GitCopy,
-                path: `${basePath}.${type}${METAFILE_SUFFIX}`,
+                path: `${basePath}/${elementName}.${type}${METAFILE_SUFFIX}`,
               }),
             ])
           )
@@ -447,6 +513,31 @@ describe('InResourceHandler', () => {
         expect(result.copies).toEqual([])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('staticresources'),
+          work.config
+        )
+      })
+    })
+    describe('When single-file resource is deleted', () => {
+      it('Given single-file static resource deleted, When collecting, Then pathExists checks the component path', async () => {
+        // Arrange
+        const base = 'force-app/main/default/'
+        const entity = 'myFile'
+        const path = `${entity}.png`
+        const deleteLine = `D       ${base}${staticResourceType.directoryName}/${path}`
+        mockedPathExists.mockResolvedValue(false)
+        const { changeType, element } = createElement(
+          deleteLine,
+          staticResourceType,
+          globalMetadata
+        )
+        const sut = new InResourceHandler(changeType, element, work)
+
+        // Act
+        await sut.collect()
+
+        // Assert
+        expect(pathExists).toHaveBeenCalledWith(
+          `${base}${staticResourceType.directoryName}/${entity}`,
           work.config
         )
       })
