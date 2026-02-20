@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771397008734,
+  "lastUpdate": 1771583977306,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3780,6 +3780,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.36%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d5cda8609bef1d2a2939082ebdae73db7f4822e9",
+          "message": "fix: use numstat to filter whitespace-only changes with `-W` flag (#1217)",
+          "timestamp": "2026-02-20T11:35:30+01:00",
+          "tree_id": "db827b229301e18592d3af8f8ccd71a3e818316f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/d5cda8609bef1d2a2939082ebdae73db7f4822e9"
+        },
+        "date": 1771583976375,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.76%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
