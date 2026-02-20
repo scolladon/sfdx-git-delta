@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.32.2](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.1...v6.32.2) (2026-02-20)
+
+
+### Bug Fixes
+
+* single-file static resources include all resources in delta ([#1219](https://github.com/scolladon/sfdx-git-delta/issues/1219)) ([50c9dcf](https://github.com/scolladon/sfdx-git-delta/commit/50c9dcfdfdae236d238e1e23674dcad41b2c1722))
+* use numstat to filter whitespace-only changes with `-W` flag ([#1217](https://github.com/scolladon/sfdx-git-delta/issues/1217)) ([d5cda86](https://github.com/scolladon/sfdx-git-delta/commit/d5cda8609bef1d2a2939082ebdae73db7f4822e9))
+
 ## [6.32.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.0...v6.32.1) (2026-02-18)
 
 
