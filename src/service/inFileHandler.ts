@@ -6,6 +6,7 @@ import { isPackable } from '../metadata/metadataManager.js'
 import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
 import { emptyResult, ManifestTarget } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
@@ -67,7 +68,7 @@ export default class InFileHandler extends StandardHandler {
       if (this._shouldTreatContainerType(isEmpty)) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this)
-        result.manifests.push(...containerResult.manifests)
+        pushAll(result.manifests, containerResult.manifests)
       }
 
       // Separate from _shouldTreatContainerType: subclasses (e.g. CustomLabelHandler)

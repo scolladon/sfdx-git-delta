@@ -8,6 +8,7 @@ import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import type { Work } from '../types/work.js'
+import { pushAll } from './arrayUtils.js'
 import { ConfigError, getErrorMessage } from './errorUtils.js'
 import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
@@ -68,7 +69,7 @@ export default class ConfigValidator {
     }
 
     const gitErrors = await this._validateGitSha()
-    errors.push(...gitErrors)
+    pushAll(errors, gitErrors)
 
     if (errors.length > 0) {
       throw new ConfigError(errors.join(', '))

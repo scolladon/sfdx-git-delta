@@ -14,6 +14,5 @@ export default {
     'sinon',
     'ts-jest-mock-import-meta',
   ],
-  ignore: ['tooling/**'],
   ignoreBinaries: ['npm-check-updates'],
 }

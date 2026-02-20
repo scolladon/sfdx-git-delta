@@ -58,7 +58,7 @@ describe('sgd source delta NUTS', () => {
   it('run `e2e` tests', async () => {
     // Act
     const result = execCmd(
-      'sgd source delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --include e2e/.sgdinclude --include-destructive e2e/.sgdincludeDestructive --ignore e2e/.sgdignore --ignore-destructive e2e/.sgdignoreDestructive --json',
+      'sgd source delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --include e2e/.sgdinclude --include-destructive e2e/.sgdincludeDestructive --ignore e2e/.sgdignore --ignore-destructive e2e/.sgdignoreDestructive --ignore-whitespace --json',
       {
         ensureExitCode: 0,
       }

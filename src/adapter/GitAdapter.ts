@@ -9,10 +9,12 @@ import {
   HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
+  NUM_STAT_CHANGE_INFORMATION,
   TREE_TYPE,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
+import { pushAll } from '../utils/arrayUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
@@ -170,7 +172,7 @@ export default class GitAdapter {
     const result: string[] = []
     for (const path of paths) {
       const filesPath = await this.getFilesPathCached(path, revision)
-      result.push(...filesPath)
+      pushAll(result, filesPath)
     }
 
     return result
@@ -244,17 +246,29 @@ export default class GitAdapter {
 
   @log
   public async getDiffLines(): Promise<string[]> {
-    const output = await this.simpleGit.raw([
-      'diff',
-      '--name-status',
-      '--no-renames',
-      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-      `--diff-filter=${ADDITION}${MODIFICATION}${DELETION}`,
-      this.config.from,
-      this.config.to,
-      '--',
-      ...this.config.source,
-    ])
-    return output.split(EOL).filter(Boolean).map(treatPathSep)
+    const lines: string[] = []
+    for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
+      const output = await this.simpleGit.raw([
+        'diff',
+        '--numstat',
+        '--no-renames',
+        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+        `--diff-filter=${changeType}`,
+        this.config.from,
+        this.config.to,
+        '--',
+        ...this.config.source,
+      ])
+      const linesOfType = output
+        .split(EOL)
+        .filter(Boolean)
+        .map(line =>
+          treatPathSep(
+            line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+          )
+        )
+      pushAll(lines, linesOfType)
+    }
+    return lines
   }
 }
