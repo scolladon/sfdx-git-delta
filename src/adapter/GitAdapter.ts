@@ -14,6 +14,7 @@ import {
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
+import { pushAll } from '../utils/arrayUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
@@ -171,7 +172,7 @@ export default class GitAdapter {
     const result: string[] = []
     for (const path of paths) {
       const filesPath = await this.getFilesPathCached(path, revision)
-      result.push(...filesPath)
+      pushAll(result, filesPath)
     }
 
     return result
@@ -266,7 +267,7 @@ export default class GitAdapter {
             line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
           )
         )
-      lines.push(...linesOfType)
+      pushAll(lines, linesOfType)
     }
     return lines
   }

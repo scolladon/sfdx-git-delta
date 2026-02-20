@@ -7,6 +7,7 @@ import IOExecutor from './service/ioExecutor.js'
 import type { Config } from './types/config.js'
 import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
+import { pushAll } from './utils/arrayUtils.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import { aggregateManifests } from './utils/manifestAggregator.js'
@@ -38,7 +39,7 @@ export default async (config: Config): Promise<Work> => {
   const combinedResult = mergeResults(handlerResult, postResult)
 
   work.diffs = aggregateManifests(combinedResult)
-  work.warnings.push(...combinedResult.warnings)
+  pushAll(work.warnings, combinedResult.warnings)
 
   await new IOExecutor(config).execute(combinedResult.copies)
   await postProcessors.executeRemaining()
