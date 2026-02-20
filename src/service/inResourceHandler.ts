@@ -59,7 +59,7 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected _getMetadataName(): string {
-    return this.element.componentBasePath
+    return this.element.componentPath
   }
 
   protected override _getMetaTypeFilePath() {

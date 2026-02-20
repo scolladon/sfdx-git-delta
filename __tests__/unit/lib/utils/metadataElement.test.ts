@@ -131,7 +131,7 @@ describe('MetadataElement', () => {
       expect(element!.componentName).toBe('deeplyNestedComponent')
     })
 
-    it('Given static resource folder path, When fromPath, Then returns file-based component name and correct componentBasePath', () => {
+    it('Given static resource folder path, When fromPath, Then returns file-based component name and correct componentPath', () => {
       // Arrange
       const path =
         'force-app/main/default/staticresources/MyResource/images/logo.png'
@@ -146,7 +146,7 @@ describe('MetadataElement', () => {
       // Assert
       expect(element).not.toBeNull()
       expect(element!.componentName).toBe('logo')
-      expect(element!.componentBasePath).toBe(
+      expect(element!.componentPath).toBe(
         'force-app/main/default/staticresources/MyResource'
       )
       expect(element!.pathAfterType[0]).toBe('MyResource')
@@ -226,7 +226,7 @@ describe('MetadataElement', () => {
       // Assert
       expect(element).not.toBeNull()
       expect(element!.componentName).toBe('file')
-      expect(element!.componentBasePath).toBe(
+      expect(element!.componentPath).toBe(
         'force-app/main/default/experiences/my_bundle'
       )
       expect(element!.pathAfterType[0]).toBe('my_bundle')
@@ -263,7 +263,7 @@ describe('MetadataElement', () => {
 
       // Assert
       expect(element.componentName).toBe('logo')
-      expect(element.componentBasePath).toBe('force-app/main/any/path/MyAsset')
+      expect(element.componentPath).toBe('force-app/main/any/path/MyAsset')
       expect(element.pathAfterType[0]).toBe('MyAsset')
     })
 
@@ -472,7 +472,7 @@ describe('MetadataElement', () => {
   })
 
   describe('edge cases', () => {
-    it('Given static resource single file (not folder), When fromPath, Then componentBasePath includes directory', () => {
+    it('Given static resource single file, When fromPath, Then componentPath returns component boundary', () => {
       // Arrange
       const path = 'force-app/main/default/staticresources/MyResource.png'
 
@@ -486,6 +486,28 @@ describe('MetadataElement', () => {
       // Assert
       expect(element).not.toBeNull()
       expect(element!.componentName).toBe('MyResource')
+      expect(element!.componentPath).toBe(
+        'force-app/main/default/staticresources/MyResource'
+      )
+    })
+
+    it('Given static resource meta file (single-file resource), When fromPath, Then componentPath returns component boundary', () => {
+      // Arrange
+      const path =
+        'force-app/main/default/staticresources/MyResource.resource-meta.xml'
+
+      // Act
+      const element = MetadataElement.fromPath(
+        path,
+        staticResourceType,
+        globalMetadata
+      )
+
+      // Assert
+      expect(element).not.toBeNull()
+      expect(element!.componentPath).toBe(
+        'force-app/main/default/staticresources/MyResource'
+      )
     })
 
     it('Given file with dots in name, When fromPath, Then extracts correct extension', () => {
@@ -502,6 +524,42 @@ describe('MetadataElement', () => {
       // Assert
       expect(element).not.toBeNull()
       expect(element!.extension).toBe('cls')
+    })
+  })
+
+  describe('getSharedFolderMetadata', () => {
+    it('Given element, When getSharedFolderMetadata, Then returns a Map', () => {
+      // Arrange
+      const path = 'force-app/main/default/classes/MyClass.cls'
+      const element = MetadataElement.fromPath(
+        path,
+        apexClassType,
+        globalMetadata
+      )!
+
+      // Act
+      const result = element.getSharedFolderMetadata()
+
+      // Assert
+      expect(result).toBeInstanceOf(Map)
+    })
+  })
+
+  describe('getInFileAttributes', () => {
+    it('Given element, When getInFileAttributes, Then returns a Map', () => {
+      // Arrange
+      const path = 'force-app/main/default/classes/MyClass.cls'
+      const element = MetadataElement.fromPath(
+        path,
+        apexClassType,
+        globalMetadata
+      )!
+
+      // Act
+      const result = element.getInFileAttributes()
+
+      // Assert
+      expect(result).toBeInstanceOf(Map)
     })
   })
 })
