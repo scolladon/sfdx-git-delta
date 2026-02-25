@@ -2,6 +2,7 @@
 
 We encourage the developer community to contribute to this repository. This guide has instructions to install, build, test and contribute to the framework.
 
+- [Architecture](#architecture)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Testing](#testing)
@@ -13,6 +14,10 @@ We encourage the developer community to contribute to this repository. This guid
 - [Testing the plugin from a pull request](#testing-the-plugin-from-a-pull-request)
 - [How to modify npm tags](#how-to-modify-npm-tags)
 - [How to cleanup dev tags](#how-to-cleanup-dev-tags)
+
+## Architecture
+
+Before diving into the code, read [DESIGN.md](DESIGN.md) for a full architecture reference covering the pipeline stages, handler hierarchy, post-processor chain, error handling strategy, and extensibility points.
 
 ## Requirements
 
