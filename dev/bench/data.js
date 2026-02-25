@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771608247396,
+  "lastUpdate": 1772027128631,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3842,6 +3842,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.40%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "da6ea2ae5424ac3befe806139c8bd3fe827a01c1",
+          "message": "fix: filter aliased folder types in SDRMetadataAdapter (#1222)",
+          "timestamp": "2026-02-25T14:41:12+01:00",
+          "tree_id": "98dcae59442d4e0d7b6632d66318fe16f3035c3c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/da6ea2ae5424ac3befe806139c8bd3fe827a01c1"
+        },
+        "date": 1772027127727,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.25,
+            "range": "±14.87%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
