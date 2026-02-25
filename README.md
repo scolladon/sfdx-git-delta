@@ -89,7 +89,7 @@ sf project deploy start -x package/package.xml --post-destructive-changes destru
 
 - **Automate destructive deployments**: build the destructiveChanges.xml from the deleted (or renamed) metadata
 
-Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool.html).
+Have a look at this post on the Salesforce Developers Blog to dive into it: [Optimizing Unpackaged Deployments Using a Delta Generation Tool](https://developer.salesforce.com/blogs/2021/01/optimizing-unpackaged-deployments-using-a-delta-generation-tool).
 
 ![delta_principle](img/delta_principles.png)
 
