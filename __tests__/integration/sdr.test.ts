@@ -94,5 +94,24 @@ describe('SDRMetadataAdapter', () => {
       expect(lwc).toBeDefined()
       expect(lwc?.metaFile).toBe(true)
     })
+
+    it('Given real SDR registry with EmailTemplateFolder alias, When converting, Then EmailTemplate is present and EmailTemplateFolder is excluded', () => {
+      // Arrange
+      const adapter = new SDRMetadataAdapter()
+
+      // Act
+      const metadata = adapter.toInternalMetadata()
+      const emailTemplate = metadata.find(
+        (m: Metadata) => m.xmlName === 'EmailTemplate'
+      )
+      const emailTemplateFolder = metadata.find(
+        (m: Metadata) => m.xmlName === 'EmailTemplateFolder'
+      )
+
+      // Assert
+      expect(emailTemplate).toBeDefined()
+      expect(emailTemplate?.directoryName).toBe('email')
+      expect(emailTemplateFolder).toBeUndefined()
+    })
   })
 })

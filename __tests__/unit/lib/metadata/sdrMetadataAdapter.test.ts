@@ -154,6 +154,93 @@ describe('SDRMetadataAdapter', () => {
         const report = metadata.find(m => m.xmlName === 'Report')
         expect(report).toBeDefined()
       })
+
+      it('Given SDR type with aliasFor pointing to a known folder type, When converting, Then it is excluded', () => {
+        // Arrange
+        const mockRegistry: MockRegistry = {
+          types: {
+            emailtemplate: {
+              id: 'emailtemplate',
+              name: 'EmailTemplate',
+              directoryName: 'email',
+              inFolder: true,
+              folderType: 'emailfolder',
+              suffix: 'email',
+            },
+            emailfolder: {
+              id: 'emailfolder',
+              name: 'EmailFolder',
+              directoryName: 'email',
+              suffix: 'emailFolder',
+            },
+            emailtemplatefolder: {
+              id: 'emailtemplatefolder',
+              name: 'EmailTemplateFolder',
+              directoryName: 'email',
+              suffix: 'emailTemplateFolder',
+              aliasFor: 'emailfolder',
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const emailTemplateFolder = metadata.find(
+          m => m.xmlName === 'EmailTemplateFolder'
+        )
+        expect(emailTemplateFolder).toBeUndefined()
+        const emailTemplate = metadata.find(m => m.xmlName === 'EmailTemplate')
+        expect(emailTemplate).toBeDefined()
+      })
+
+      it('Given SDR type with aliasFor pointing to a non-folder type, When converting, Then it is NOT excluded', () => {
+        // Arrange
+        const mockRegistry: MockRegistry = {
+          types: {
+            sometype: {
+              id: 'sometype',
+              name: 'SomeType',
+              directoryName: 'some',
+              suffix: 'some',
+            },
+            aliastype: {
+              id: 'aliastype',
+              name: 'AliasType',
+              directoryName: 'some',
+              suffix: 'alias',
+              aliasFor: 'sometype',
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const aliasType = metadata.find(m => m.xmlName === 'AliasType')
+        expect(aliasType).toBeDefined()
+      })
+
+      it('Given real SDR registry, When converting, Then EmailTemplate is present and EmailTemplateFolder is absent', () => {
+        // Arrange
+        const adapter = new SDRMetadataAdapter()
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const emailTemplate = metadata.find(m => m.xmlName === 'EmailTemplate')
+        expect(emailTemplate).toBeDefined()
+        expect(emailTemplate?.directoryName).toBe('email')
+        const emailTemplateFolder = metadata.find(
+          m => m.xmlName === 'EmailTemplateFolder'
+        )
+        expect(emailTemplateFolder).toBeUndefined()
+      })
     })
 
     describe('content array for inFolder types', () => {
