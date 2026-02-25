@@ -476,6 +476,21 @@ const testContext = [
     new Set(['FeatureParameterDateTest']),
     'FeatureParameterDate',
   ],
+  [
+    'force-app/main/default/email/TestFolder/TestEmail.email',
+    new Set(['TestFolder/TestEmail']),
+    'EmailTemplate',
+  ],
+  [
+    'force-app/main/default/email/TestFolder/TestEmail.email-meta.xml',
+    new Set(['TestFolder/TestEmail']),
+    'EmailTemplate',
+  ],
+  [
+    'force-app/main/default/email/TestFolder.emailFolder-meta.xml',
+    new Set(['TestFolder']),
+    'EmailTemplate',
+  ],
 ]
 const existingFiles = [
   'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml',
