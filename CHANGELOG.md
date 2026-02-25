@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.32.3](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.2...v6.32.3) (2026-02-25)
+
+
+### Bug Fixes
+
+* filter aliased folder types in SDRMetadataAdapter ([#1222](https://github.com/scolladon/sfdx-git-delta/issues/1222)) ([da6ea2a](https://github.com/scolladon/sfdx-git-delta/commit/da6ea2ae5424ac3befe806139c8bd3fe827a01c1))
+
 ## [6.32.2](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.1...v6.32.2) (2026-02-20)
 
 
