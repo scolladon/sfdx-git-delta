@@ -8,7 +8,9 @@ import {
 import type { Metadata, SharedFolderMetadata } from '../types/metadata.js'
 
 type Registry = typeof sdrRegistry
-type SDRMetadataType = Registry['types'][keyof Registry['types']]
+type SDRMetadataType = Registry['types'][keyof Registry['types']] & {
+  aliasFor?: string
+}
 type SDRChildType = SDRMetadataType & {
   uniqueIdElement?: string
   xmlElementName?: string
@@ -60,12 +62,20 @@ export class SDRMetadataAdapter {
   private getOrCreateCache(): RegistryCache {
     let cache = SDRMetadataAdapter.registryCache.get(this.registry)
     if (!cache) {
+      const types = Object.values(this.registry.types) as SDRMetadataType[]
+      const baseFolderTypeIds = new Set(
+        types
+          .filter(t => t.inFolder && t.folderType)
+          .map(t => t.folderType as string)
+      )
+      const folderTypeIds = new Set(baseFolderTypeIds)
+      for (const t of types) {
+        if (t.aliasFor && baseFolderTypeIds.has(t.aliasFor)) {
+          folderTypeIds.add(t.id)
+        }
+      }
       cache = {
-        folderTypeIds: new Set(
-          Object.values(this.registry.types)
-            .filter(t => t.inFolder && t.folderType)
-            .map(t => t.folderType as string)
-        ),
+        folderTypeIds,
         metadata: [],
       }
       SDRMetadataAdapter.registryCache.set(this.registry, cache)
