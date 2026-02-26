@@ -31,9 +31,29 @@ const testContext = [
     'PermissionSet',
   ],
   [
+    'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermission-meta.xml',
+    new Set(['Admin']),
+    'PermissionSet',
+  ],
+  [
+    'force-app/main/default/permissionsets/Admin/classAccesses/MyClass.classAccess-meta.xml',
+    new Set(['Admin']),
+    'PermissionSet',
+  ],
+  [
     'force-app/main/default/sharingRules/Account/sharingCriteriaRules/TestSharingCriteria.sharingCriteriaRule-meta.xml',
     new Set(['Account.TestSharingCriteria']),
     'SharingCriteriaRule',
+  ],
+  [
+    'force-app/main/default/sharingRules/Account/sharingOwnerRules/TestOwnerRule.sharingOwnerRule-meta.xml',
+    new Set(['Account.TestOwnerRule']),
+    'SharingOwnerRule',
+  ],
+  [
+    'force-app/main/default/sharingRules/Account/sharingGuestRules/TestGuestRule.sharingGuestRule-meta.xml',
+    new Set(['Account.TestGuestRule']),
+    'SharingGuestRule',
   ],
   [
     'force-app/main/default/workflows/Account/workflowAlerts/TestWFAlert.workflowAlert-meta.xml',
@@ -44,6 +64,21 @@ const testContext = [
     'force-app/main/default/workflows/Account/workflowFlowActions/TestFlowAction.workflowFlowAction-meta.xml',
     new Set(['Account.TestFlowAction']),
     'WorkflowFlowAction',
+  ],
+  [
+    'force-app/main/default/workflows/Account/workflowFieldUpdates/TestFieldUpdate.workflowFieldUpdate-meta.xml',
+    new Set(['Account.TestFieldUpdate']),
+    'WorkflowFieldUpdate',
+  ],
+  [
+    'force-app/main/default/workflows/Account/workflowRules/TestRule.workflowRule-meta.xml',
+    new Set(['Account.TestRule']),
+    'WorkflowRule',
+  ],
+  [
+    'force-app/main/default/workflows/Account/workflowTasks/TestTask.workflowTask-meta.xml',
+    new Set(['Account.TestTask']),
+    'WorkflowTask',
   ],
   [
     'force-app/main/default/bots/TestBot/TestBot.bot-meta.xml',
@@ -125,6 +160,11 @@ const testContext = [
     'CustomLabel',
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata"><labels><fullName>Label</fullName></labels></CustomLabels>`,
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata"></CustomLabels>`,
+  ],
+  [
+    'force-app/main/default/labels/TestLabel.label-meta.xml',
+    new Set(['TestLabel']),
+    'CustomLabel',
   ],
   [
     'force-app/main/default/assignmentRules/Account.assignmentRules-meta.xml',
