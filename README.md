@@ -56,6 +56,7 @@
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
   - [Handle flow deletion](#handle-flow-deletion)
+  - [Decomposed Metadata Types](#decomposed-metadata-types)
   - [Debugging](#debugging)
 - [Complementary Plugins](#complementary-plugins)
 - [Changelog](#changelog)
@@ -646,6 +647,24 @@ Then run the command:
 ```sh
 sf sgd source delta --from "HEAD~1" --additional-metadata-registry ./my-registry.json
 ```
+
+### Decomposed Metadata Types
+
+SGD supports Salesforce [decomposed metadata source format](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_decomposed_md_types.htm) beta features. When these features are enabled in your `sfdx-project.json`, metadata types are split into individual files instead of a single monolithic file. SGD detects the file layout automatically and generates the correct `package.xml` entries.
+
+Supported decomposed presets:
+
+| Preset | Parent Type | Notes |
+|--------|-------------|-------|
+| `decomposePermissionSetBeta` | PermissionSet | Each child (field permissions, class accesses, etc.) in its own subdirectory |
+| `decomposePermissionSetBeta2` | PermissionSet | Flat files + `objectSettings/` subdirectory |
+| `decomposeCustomLabelsBeta` | CustomLabels | Individual `.label` files |
+| `decomposeCustomLabelsBeta2` | CustomLabels | Individual `.label` files (flat layout) |
+| `decomposeWorkflowBeta` | Workflow | Each child (alerts, field updates, rules, etc.) in its own subdirectory |
+| `decomposeSharingRulesBeta` | SharingRules | Each child (criteria, owner, guest rules) in its own subdirectory |
+| `decomposeExternalServiceRegistrationBeta` | ExternalServiceRegistration | Decomposed YAML definitions |
+
+No additional configuration is needed — SGD reads the file structure from the git diff and resolves the metadata types accordingly.
 
 ### Debugging
 
