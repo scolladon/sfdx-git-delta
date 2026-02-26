@@ -12,7 +12,6 @@ export const META_REGEX = new RegExp(`${METAFILE_SUFFIX}$`)
 export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_SUFFIX}`
 export const OBJECT_TRANSLATION_TYPE = 'CustomObjectTranslation'
 export const OBJECT_TYPE = 'CustomObject'
-export const PERMISSIONSET_OBJECTSETTINGS_FOLDER = 'objectSettings'
 export const PERMISSIONSET_TYPE = 'PermissionSet'
 export const SHARING_RULE_TYPE = 'SharingRules'
 export const SUB_OBJECT_TYPES = [

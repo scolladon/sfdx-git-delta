@@ -26,6 +26,11 @@ const testContext = [
     'PermissionSet',
   ],
   [
+    'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Test__c.fieldPermission-meta.xml',
+    new Set(['Admin']),
+    'PermissionSet',
+  ],
+  [
     'force-app/main/default/sharingRules/Account/sharingCriteriaRules/TestSharingCriteria.sharingCriteriaRule-meta.xml',
     new Set(['Account.TestSharingCriteria']),
     'SharingCriteriaRule',
