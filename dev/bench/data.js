@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772027128631,
+  "lastUpdate": 1772141140773,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3873,6 +3873,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.25,
             "range": "±14.87%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "191c1ea7ba8220ddcbf2fa05b23e2931693651d6",
+          "message": "fix: resolve holder folder for decomposePermissionSetBeta (#1227)",
+          "timestamp": "2026-02-26T22:21:57+01:00",
+          "tree_id": "1159f6895bf50acd3d0e78cea7a77e10de547610",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/191c1ea7ba8220ddcbf2fa05b23e2931693651d6"
+        },
+        "date": 1772141140430,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±1.00%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
