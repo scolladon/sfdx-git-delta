@@ -286,6 +286,20 @@ describe('MetadataRepositoryImpl', () => {
             expect.objectContaining({ directoryName: 'experiences' })
           )
         })
+        it('should match `ExperienceBundle` under non-default path', () => {
+          // Act - path outside main/default (e.g. main/portals)
+          const result = sut.get(
+            'pkg-main/main/portals/experiences/Acme_Customer_Self_Service1/config/file.json'
+          )
+
+          // Assert
+          expect(result).toStrictEqual(
+            expect.objectContaining({
+              directoryName: 'experiences',
+              xmlName: 'ExperienceBundle',
+            })
+          )
+        })
       })
     })
 

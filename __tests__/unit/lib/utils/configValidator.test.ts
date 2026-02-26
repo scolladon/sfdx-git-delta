@@ -383,6 +383,53 @@ describe(`test if the application`, () => {
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
           expect(work.warnings.length).toEqual(1)
         })
+
+        it('when source is default, expands to packageDirectories from sfdx-project.json', async () => {
+          // Arrange
+          mockSfProjectResolve.mockResolvedValue({
+            getSfProjectJson: () => ({
+              getContents: () => ({
+                sourceApiVersion: '58',
+                packageDirectories: [
+                  { path: 'force-app' },
+                  { path: 'pkg-main/main/portals' },
+                ],
+              }),
+            }),
+          })
+          work.config.source = ['./']
+          work.config.apiVersion = 58
+          const configValidator = new ConfigValidator(work)
+
+          // Act
+          await configValidator['_expandSourceFromPackageDirectories']()
+
+          // Assert
+          expect(work.config.source).toEqual([
+            'force-app',
+            'pkg-main/main/portals',
+          ])
+        })
+
+        it('when source is not default, does not expand packageDirectories', async () => {
+          // Arrange
+          mockSfProjectResolve.mockResolvedValue({
+            getSfProjectJson: () => ({
+              getContents: () => ({
+                sourceApiVersion: '58',
+                packageDirectories: [{ path: 'force-app' }],
+              }),
+            }),
+          })
+          work.config.source = ['pkg-main/main/portals']
+          const configValidator = new ConfigValidator(work)
+
+          // Act
+          await configValidator['_expandSourceFromPackageDirectories']()
+
+          // Assert
+          expect(work.config.source).toEqual(['pkg-main/main/portals'])
+        })
       })
     })
     describe('when sfdx-project.json file does not exist', () => {

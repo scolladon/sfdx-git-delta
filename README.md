@@ -511,6 +511,8 @@ $ sf sgd source delta --from commit --source-dir force-app/unpackaged/admin --so
 > The ignored patterns specified using `--ignore-file [-i]` and `--ignore-destructive-file [-D]` still apply.
 > The `--source-dir` path must be relative to the `--repo-dir` path
 
+**ExperienceBundle and DigitalExperienceBundle**: Both metadata types are supported when located under any `packageDirectories` path (e.g. `main/default`, `main/portals`). When using the default `--source-dir`, SGD expands to all `packageDirectories` from `sfdx-project.json` to discover experiences across your project.
+
 ### Generate a comma-separated list of the added and modified Apex classes
 
 Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sf project deploy start --testlevel RunSpecifiedTests` command, for example.

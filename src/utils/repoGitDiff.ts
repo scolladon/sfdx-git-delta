@@ -5,6 +5,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 
 import { buildIgnoreHelper } from './ignoreHelper.js'
+import { extractPathFromDiffLine } from './pathNormalizer.js'
 
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
@@ -65,10 +66,12 @@ export default class RepoGitDiff {
     line: string,
     deletedRenamed: Set<string>
   ): boolean {
-    return !deletedRenamed.has(line) && this.metadata.has(line)
+    const path = extractPathFromDiffLine(line)
+    return !deletedRenamed.has(line) && this.metadata.has(path)
   }
 
   protected _extractComparisonName(line: string) {
-    return this.metadata.getFullyQualifiedName(line).toLocaleLowerCase()
+    const path = extractPathFromDiffLine(line)
+    return this.metadata.getFullyQualifiedName(path).toLocaleLowerCase()
   }
 }

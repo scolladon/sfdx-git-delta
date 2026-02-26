@@ -1,11 +1,12 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
-import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
+import { DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { Metadata } from '../types/metadata.js'
 import type { Work } from '../types/work.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
+import { extractPathFromDiffLine } from '../utils/pathNormalizer.js'
 
 import Bot from './botHandler.js'
 import ContainedDecomposed from './containedDecomposedHandler.js'
@@ -100,7 +101,7 @@ export default class TypeHandlerFactory {
   @log
   public async getTypeHandler(line: string) {
     const changeType = line.charAt(0)
-    const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
+    const path = extractPathFromDiffLine(line)
     const type: Metadata = this.metadata.get(path)!
     const revision =
       changeType === DELETION ? this.work.config.from : this.work.config.to

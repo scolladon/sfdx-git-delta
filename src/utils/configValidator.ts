@@ -4,6 +4,7 @@ import { join } from 'node:path/posix'
 import { SfProject } from '@salesforce/core'
 
 import GitAdapter from '../adapter/GitAdapter.js'
+import { SOURCE_DEFAULT_VALUE } from '../constant/cliConstants.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
@@ -80,7 +81,38 @@ export default class ConfigValidator {
 
   protected async _handleDefault() {
     await this._getApiVersion()
+    await this._expandSourceFromPackageDirectories()
     await this._apiVersionDefault()
+  }
+
+  /**
+   * When source is the default (./), expand to packageDirectories from sfdx-project.json
+   * so that ExperienceBundle and other metadata under non-default paths are discovered.
+   */
+  protected async _expandSourceFromPackageDirectories() {
+    const isDefaultSource =
+      this.config.source.length === 1 &&
+      (this.config.source[0] === SOURCE_DEFAULT_VALUE ||
+        this.config.source[0] === '')
+
+    if (!isDefaultSource) return
+
+    try {
+      const sfProject = await SfProject.resolve(this.config.repo)
+      const contents = sfProject.getSfProjectJson().getContents()
+      const pkgDirs = (contents as { packageDirectories?: { path: string }[] })
+        ?.packageDirectories
+      if (pkgDirs?.length) {
+        this.config.source = pkgDirs.map(d => d.path)
+        Logger.debug(
+          lazy`_expandSourceFromPackageDirectories: expanded to ${this.config.source}`
+        )
+      }
+    } catch (ex) {
+      Logger.debug(
+        lazy`_expandSourceFromPackageDirectories: no sfdx-project.json or packageDirectories: ${ex}`
+      )
+    }
   }
 
   protected async _getApiVersion() {

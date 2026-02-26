@@ -68,6 +68,15 @@ export default [
     xmlTag: undefined,
     pruneOnly: true,
   },
+  // ExperienceBundle: ensure directoryName 'experiences' for path-agnostic lookup.
+  // Supports experiences under any package directory (e.g. main/default, main/portals).
+  {
+    directoryName: 'experiences',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'site',
+    xmlName: 'ExperienceBundle',
+  },
   // NOTE: CustomObjectTranslation pruneOnly entry is added in metadataManager
   // after the merge to avoid xmlName collision with the fieldTranslation entry above.
   {
