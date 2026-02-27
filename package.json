@@ -111,6 +111,7 @@
     "dependencies:reinstall": "npm install",
     "dependencies:upgrade": "npx npm-check-updates -u ; npm install ; npm audit fix",
     "devops:cleanup:dev-tag": "./tooling/devops-cleanup.sh",
+    "devops:cleanup:dev-tag:all": "./tooling/devops-cleanup-all.sh",
     "devops:move-tag": "./tooling/devops-movetag.sh",
     "lint:dependencies": "wireit",
     "lint:fs": "wireit",

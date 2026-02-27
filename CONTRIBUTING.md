@@ -298,7 +298,9 @@ Or to downgrade `latest-rc` tag to a previous version.
 
 ## How to cleanup dev tags
 
-Execute the npm script `npm run devops:cleanup-tag -- <dev-tag>`
-Ex: `npm run devops:cleanup-tag -- dev-101`
+Execute the npm script `npm run devops:cleanup:dev-tag -- <dev-tag> <otp>` to clean up a single dev tag.
+Ex: `npm run devops:cleanup:dev-tag -- dev-101 123456`
 
-It will remove the dev tag from npm registry and deprecate all versions related to this dev tag.
+To clean up **all** dev tags at once: `npm run devops:cleanup:dev-tag:all -- <otp>`
+
+Both will deprecate all versions related to the dev tag(s) and remove the dist-tag(s) from the npm registry.
