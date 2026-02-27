@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@oclif/core": "^4.8.1",
-    "@salesforce/core": "^8.26.2",
+    "@salesforce/core": "^8.26.3",
     "@salesforce/sf-plugins-core": "^12.2.6",
     "@salesforce/source-deploy-retrieve": "^12.31.14",
     "async": "^3.2.6",
@@ -58,7 +58,7 @@
     "fs-extra": "^11.3.3",
     "ignore": "^7.0.5",
     "lodash-es": "^4.17.23",
-    "simple-git": "^3.32.2",
+    "simple-git": "^3.32.3",
     "xmlbuilder2": "^4.0.3",
     "tslib": "^2.8.1",
     "zod": "^4.3.6"
@@ -82,7 +82,7 @@
     "@types/lodash": "^4.17.24",
     "@types/lodash-es": "^4.17.12",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.3.2",
     "benchmark": "^2.1.4",
     "chai": "^6.2.2",
     "husky": "^9.1.7",

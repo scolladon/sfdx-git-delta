@@ -13,7 +13,6 @@ import {
   PERMISSIONSET_TYPE,
   SHARING_RULE_TYPE,
   SUB_OBJECT_TYPES,
-  TERRITORY_MODEL_TYPE,
   WORKFLOW_TYPE,
 } from '../constant/metadataConstants.js'
 import type { Metadata } from '../types/metadata.js'
@@ -101,12 +100,10 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   protected searchByDirectory(parts: string[]): Metadata | undefined {
     let metadata: Metadata | undefined
     for (const part of parts) {
-      metadata = this.metadataPerDir.get(part) ?? metadata
-      if (
-        metadata &&
-        !MetadataRepositoryImpl.TYPES_WITH_SUB_TYPES.has(metadata.xmlName!)
-      ) {
-        break
+      const found = this.metadataPerDir.get(part)
+      if (found) {
+        metadata = found
+        if (found.inFolder) break
       }
     }
     return metadata
@@ -134,14 +131,6 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   public values(): Metadata[] {
     return this.metadatas
   }
-
-  private static TYPES_WITH_SUB_TYPES = new Set([
-    OBJECT_TYPE,
-    TERRITORY_MODEL_TYPE,
-    WORKFLOW_TYPE,
-    SHARING_RULE_TYPE,
-    '',
-  ])
 
   private static UNSAFE_EXTENSION = new Set([
     CUSTOM_APPLICATION_SUFFIX,

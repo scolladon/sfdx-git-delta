@@ -67,7 +67,7 @@ flowchart LR
 | Index | Key | Use case |
 |-------|-----|----------|
 | `extIndex` | File extension (`.cls`, `.trigger`) | Primary lookup for most types |
-| `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous |
+| `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous — picks deepest match, stops at `inFolder` types |
 | `xmlNameIndex` | XML name (`ApexClass`, `ApexTrigger`) | Direct lookup by type name |
 
 ### Key Metadata Fields

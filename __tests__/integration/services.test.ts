@@ -312,6 +312,11 @@ const testContext = [
     'ExperienceBundle',
   ],
   [
+    'portals/experiences/component/subfolder/file.json',
+    new Set(['component']),
+    'ExperienceBundle',
+  ],
+  [
     'force-app/main/default/experiences/component-meta.xml',
     new Set(['component']),
     'ExperienceBundle',

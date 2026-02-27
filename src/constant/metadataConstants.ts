@@ -39,7 +39,6 @@ export const SUB_OBJECT_TYPES = [
   'WorkflowSend',
   'WorkflowTask',
 ]
-export const TERRITORY_MODEL_TYPE = 'Territory2Model'
 export const TRANSLATION_EXTENSION = 'translation'
 export const TRANSLATION_TYPE = 'Translations'
 export const WORKFLOW_TYPE = 'Workflow'

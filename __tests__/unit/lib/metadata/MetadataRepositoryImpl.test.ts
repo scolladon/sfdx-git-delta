@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it } from '@jest/globals'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
@@ -132,6 +132,13 @@ describe('MetadataRepositoryImpl', () => {
         suffix: 'site',
         xmlName: 'ExperienceBundle',
       },
+      {
+        directoryName: 'portals',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'portal',
+        xmlName: 'Portal',
+      },
     ])
   })
   describe('has', () => {
@@ -203,7 +210,7 @@ describe('MetadataRepositoryImpl', () => {
       it('matches sub folder metadata', () => {
         // Act
         const result = sut.get(
-          'Z force-app/main/objects/Account/fields/CustomField'
+          'Z force-app/main/objects/Account/fields/CustomField.field-meta.xml'
         )
 
         // Assert
@@ -214,7 +221,9 @@ describe('MetadataRepositoryImpl', () => {
 
       it('matches parent folder metadata', () => {
         // Act
-        const result = sut.get('Z force-app/main/objects/Account/Account')
+        const result = sut.get(
+          'Z force-app/main/objects/Account/Account.object-meta.xml'
+        )
 
         // Assert
         expect(result).toStrictEqual(
@@ -231,6 +240,28 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(result).toStrictEqual(
           expect.objectContaining({ directoryName: 'moderation' })
+        )
+      })
+
+      it('matches deeper metadata when project folder matches a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z portals/experiences/Component/routes/file.json'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'experiences' })
+        )
+      })
+
+      it('matches deepest valid metadata when multiple metadata dirs exist', () => {
+        // Act
+        const result = sut.get('Z classes/experiences/Component/file.json')
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'experiences' })
         )
       })
 
