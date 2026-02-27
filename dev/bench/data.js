@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772141140773,
+  "lastUpdate": 1772175987120,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3904,6 +3904,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±1.00%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7f0122abccf4163677e73d23f81876ee46fe913a",
+          "message": "fix: use deepest directory match in metadata lookup (#1229)",
+          "timestamp": "2026-02-27T08:02:19+01:00",
+          "tree_id": "969a01e6d55987e5ccd8cbb17086cc8f195efb1d",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/7f0122abccf4163677e73d23f81876ee46fe913a"
+        },
+        "date": 1772175986751,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.31,
+            "range": "±0.51%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
