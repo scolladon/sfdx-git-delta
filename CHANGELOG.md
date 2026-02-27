@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.32.4](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.3...v6.32.4) (2026-02-27)
+
+
+### Bug Fixes
+
+* resolve holder folder for decomposePermissionSetBeta ([#1227](https://github.com/scolladon/sfdx-git-delta/issues/1227)) ([191c1ea](https://github.com/scolladon/sfdx-git-delta/commit/191c1ea7ba8220ddcbf2fa05b23e2931693651d6))
+* use deepest directory match in metadata lookup ([#1229](https://github.com/scolladon/sfdx-git-delta/issues/1229)) ([7f0122a](https://github.com/scolladon/sfdx-git-delta/commit/7f0122abccf4163677e73d23f81876ee46fe913a))
+
 ## [6.32.3](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.2...v6.32.3) (2026-02-25)
 
 
