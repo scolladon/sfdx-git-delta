@@ -92,7 +92,7 @@ jobs:
           VALIDATE_ALL_CODEBASE: true
           # ADD CUSTOM ENV VARIABLES HERE TO OVERRIDE VALUES OF .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: megalinter-reports
@@ -119,7 +119,7 @@ jobs:
       - name: Incremental Mutation testing
         run: npm run test:mutation:incremental
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: mutation-testing-reports
           path: reports/mutation
