@@ -26,6 +26,7 @@ import SharedFolder from './sharedFolderHandler.js'
 import Standard from './standardHandler.js'
 
 const handlerMap = {
+  AiAuthoringBundle: InResource,
   AssignmentRules: InFile,
   AuraDefinitionBundle: Lwc,
   AutoResponseRules: InFile,
