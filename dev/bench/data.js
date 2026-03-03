@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772175987120,
+  "lastUpdate": 1772573588140,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3935,6 +3935,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.31,
             "range": "±0.51%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "de82ee40d81f8983dae77de64c181d19510e85bf",
+          "message": "fix: use `idle()` instead of `length()` to guard queue drain (#1236)",
+          "timestamp": "2026-03-03T22:29:24+01:00",
+          "tree_id": "f7f52c292cf8328e3a1123c41daa76db50f38b0e",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/de82ee40d81f8983dae77de64c181d19510e85bf"
+        },
+        "date": 1772573587589,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±0.39%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
