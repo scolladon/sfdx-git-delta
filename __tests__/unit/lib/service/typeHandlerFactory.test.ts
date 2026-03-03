@@ -8,6 +8,8 @@ import CustomField from '../../../../src/service/customFieldHandler'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
+import InBundleHandler from '../../../../src/service/inBundleHandler'
+import InFileHandler from '../../../../src/service/inFileHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
@@ -98,5 +100,55 @@ describe('the type handler factory', () => {
     expect(
       await typeHandlerFactory.getTypeHandler(`Z       ${line}`)
     ).toBeInstanceOf(Standard)
+  })
+
+  describe('dynamic resolution', () => {
+    describe('adapter-based resolution', () => {
+      it('Given bundle adapter type, When resolving handler, Then returns InResource', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/aiAuthoringBundles/MyBundle/file.txt`
+        )
+        expect(sut).toBeInstanceOf(InResource)
+      })
+
+      it('Given mixedContent adapter type, When resolving handler, Then returns InResource', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/staticresources/MyResource/file.txt`
+        )
+        expect(sut).toBeInstanceOf(InResource)
+      })
+
+      it('Given digitalExperience adapter type, When resolving handler, Then returns InBundle', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/digitalExperiences/site/home/file.json`
+        )
+        expect(sut).toBeInstanceOf(InBundleHandler)
+      })
+    })
+
+    describe('child type resolution', () => {
+      it('Given child with xmlTag and key of non-decomposed parent, When resolving handler, Then returns Decomposed', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/workflows/Account/workflowAlerts/MyAlert.workflowAlert-meta.xml`
+        )
+        expect(sut).toBeInstanceOf(Decomposed)
+      })
+
+      it('Given child without xmlTag of folderPerType parent, When resolving handler, Then returns CustomObjectChildHandler', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/objects/Account/listViews/MyView.listView-meta.xml`
+        )
+        expect(sut).toBeInstanceOf(CustomObjectChildHandler)
+      })
+    })
+
+    describe('InFile parent resolution', () => {
+      it('Given parent type with children having xmlTag, When resolving handler, Then returns InFile', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
+        )
+        expect(sut).toBeInstanceOf(InFileHandler)
+      })
+    })
   })
 })
