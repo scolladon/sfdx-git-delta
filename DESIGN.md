@@ -81,6 +81,8 @@ flowchart LR
 | `inFolder` | Whether the type uses folder-based organization |
 | `content[]` | Sub-types sharing the same directory (Dashboard → DashboardFolder) |
 | `xmlTag` + `key` | In-file diff semantics for sub-element types |
+| `adapter` | SDR `strategies.adapter` value (e.g. `bundle`, `mixedContent`, `digitalExperience`) — drives dynamic handler resolution |
+| `decomposition` | SDR `strategies.decomposition` value (e.g. `folderPerType`) — used for child type handler heuristics |
 | `pruneOnly` | Type is only ever added to destructiveChanges, never package |
 | `excluded` | Sub-element type is not independently packageable |
 
@@ -112,7 +114,7 @@ When `--ignore-whitespace` is enabled, `--word-diff-regex` and related flags are
 
 **Entry**: `DiffLineInterpreter.process(lines)` (`src/service/diffLineInterpreter.ts`)
 
-Each diff line is dispatched to a type-specific handler via an async queue capped at `getConcurrencyThreshold()`. The `TypeHandlerFactory` selects the handler class based on the metadata type's `xmlName`.
+Each diff line is dispatched to a type-specific handler via an async queue capped at `getConcurrencyThreshold()`. The `TypeHandlerFactory` selects the handler class using a multi-tier resolution chain that combines explicit overrides with dynamic resolution from SDR registry attributes.
 
 ### Dispatch Flow
 
@@ -120,13 +122,41 @@ Each diff line is dispatched to a type-specific handler via an async queue cappe
 flowchart TD
     Line["Diff line<br/>'A force-app/main/.../MyClass.cls'"] --> TF["TypeHandlerFactory"]
     TF --> ME["MetadataBoundaryResolver<br/>creates MetadataElement"]
-    TF --> HM{"xmlName in<br/>handlerMap?"}
-    HM -->|Yes| SH["Specialized Handler"]
-    HM -->|No| DH["StandardHandler"]
-    SH --> C["handler.collect()"]
+    TF --> T1{"xmlName in<br/>handlerMap?"}
+    T1 -->|Yes| SH["Explicit Handler Override"]
+    T1 -->|No| T2{"inFolder?"}
+    T2 -->|Yes| IF["InFolderHandler"]
+    T2 -->|No| T3{"adapter in<br/>adapterHandlerMap?"}
+    T3 -->|Yes| AH["Adapter-Based Handler"]
+    T3 -->|No| T4{"has parentXmlName?"}
+    T4 -->|Yes| CH["Child Type Heuristics"]
+    T4 -->|No| T5{"parent of<br/>InFile children?"}
+    T5 -->|Yes| IFH["InFileHandler"]
+    T5 -->|No| DH["StandardHandler"]
+    CH --> C["handler.collect()"]
+    SH --> C
+    IF --> C
+    AH --> C
+    IFH --> C
     DH --> C
     C --> HR["HandlerResult<br/>{manifests, copies, warnings}"]
 ```
+
+### Handler Resolution Tiers
+
+The `resolveHandler()` method applies these tiers in order, returning the first match:
+
+| Tier | Signal | Handler | Example |
+|------|--------|---------|---------|
+| 1. Explicit override | `xmlName` in `handlerMap` | Varies | `Flow` → `FlowHandler` |
+| 2. Folder-based | `inFolder: true` | `InFolderHandler` | `Document`, `EmailTemplate` |
+| 3. Adapter-based | `adapter` from SDR strategies | `InResourceHandler` / `InBundleHandler` | `bundle` → `InResource` |
+| 4. Child heuristics | `xmlTag` + `key` + non-adapter parent | `DecomposedHandler` | `WorkflowAlert` |
+| 4b. Child heuristics | no `xmlTag` + `folderPerType` parent | `CustomObjectChildHandler` | `ListView` |
+| 5. InFile parent | has children with `xmlTag`+`key` | `InFileHandler` | `Workflow` |
+| 6. Fallback | none of the above | `StandardHandler` | `ApexClass` |
+
+This design means most new SDR metadata types are handled automatically without code changes. Only types requiring specialized behavior need explicit overrides in `handlerMap`.
 
 `MetadataBoundaryResolver` creates a `MetadataElement` — a value object capturing the parsed identity of the diff line: base path, extension, parent folder, component name, and path segments after the type directory. It may scan the git tree to find the component root when the directory name isn't present in the path.
 
@@ -201,7 +231,7 @@ Detects the format by file extension and routes accordingly.
 #### InFolderHandler
 
 **Extends**: StandardHandler
-**Used by**: Document, EmailTemplate
+**Used by**: Document, EmailTemplate (and any type with `inFolder: true` not explicitly overridden)
 
 Handles metadata stored in named folders. When a file changes, the handler also copies the folder's `-meta.xml` descriptor and any companion files sharing the same base name (e.g. thumbnails). Element names use the `Folder/MemberName` format.
 
@@ -229,7 +259,7 @@ Extends shared folder behavior: changing any sub-file also forces inclusion of t
 #### InResourceHandler
 
 **Extends**: StandardHandler
-**Used by**: ExperienceBundle, GenAiPlannerBundle, LightningTypeBundle, StaticResource, WaveTemplateBundle
+**Used by**: ExperienceBundle, GenAiPlannerBundle, LightningTypeBundle, StaticResource, WaveTemplateBundle (and any type with `adapter: "bundle"` or `adapter: "mixedContent"` not explicitly overridden)
 
 Handles bundle-like resources where changing any file within the bundle triggers the entire bundle to be redeployed. On deletion, checks if the bundle root still has content — if yes, treats as modification instead of deletion (the bundle still exists with remaining files).
 
@@ -257,7 +287,7 @@ Field translation files are not independently deployable. The handler produces a
 #### DecomposedHandler
 
 **Extends**: StandardHandler
-**Used by**: SharingCriteriaRule, SharingGuestRule, SharingOwnerRule, Territory2, Territory2Rule, WorkflowAlert, WorkflowFieldUpdate, WorkflowFlowAction, WorkflowKnowledgePublish, WorkflowOutboundMessage, WorkflowRule, WorkflowSend, WorkflowTask
+**Used by**: SharingCriteriaRule, SharingGuestRule, SharingOwnerRule, Territory2, Territory2Rule, WorkflowAlert, WorkflowFieldUpdate, WorkflowFlowAction, WorkflowKnowledgePublish, WorkflowOutboundMessage, WorkflowRule, WorkflowSend, WorkflowTask (and any child type with `xmlTag` + `key` whose parent has no adapter)
 
 Handles metadata stored as individual files in sub-folders of a parent type. Element names are qualified as `ParentName.ChildName`. On addition, also copies the parent type's `-meta.xml`.
 
@@ -285,7 +315,7 @@ On addition, scans the object's `fields/` subfolder for Master Detail fields and
 #### CustomObjectChildHandler
 
 **Extends**: StandardHandler
-**Used by**: BusinessProcess, CompactLayout, FieldSet, Index, ListView, RecordType, SharingReason, ValidationRule, WebLink
+**Used by**: BusinessProcess, CompactLayout, FieldSet, Index, ListView, RecordType, SharingReason, ValidationRule, WebLink (and any child type without `xmlTag` whose parent has `decomposition: "folderPerType"`)
 
 Handles child types living in CustomObject sub-folders. Element names are qualified as `ObjectName.ChildName`.
 
@@ -416,7 +446,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 | Extension point | How to extend |
 |-----------------|---------------|
-| New metadata type handler | Add entry to `handlerMap` in `TypeHandlerFactory` mapping `xmlName → HandlerClass` |
+| New metadata type handler | Most types are auto-resolved via SDR registry attributes (`adapter`, `decomposition`, `inFolder`, `xmlTag`+`key`). Only add an explicit entry to `handlerMap` in `TypeHandlerFactory` when a type needs behavior that differs from what SDR signals would select. |
 | New post-processor | Add a `BaseProcessor` subclass to `registeredProcessors` in `postProcessorManager.ts` |
 | Metadata type override | Add definition to `internalRegistry.ts` with special flags (`pruneOnly`, `excluded`, `xmlTag`, etc.) |
 | Programmatic API | `import sgd from 'sfdx-git-delta'` — call `await sgd(config)` directly, receiving the `Work` object |
@@ -474,5 +504,7 @@ Metadata type definition (Zod-validated):
 | `inFolder` | `boolean` | Folder-based organization |
 | `content` | `Metadata[]` | Sub-types sharing the directory |
 | `xmlTag` + `key` | `string` | In-file diff semantics |
+| `adapter` | `string` | SDR `strategies.adapter` — drives handler auto-resolution |
+| `decomposition` | `string` | SDR `strategies.decomposition` — child type heuristics |
 | `pruneOnly` | `boolean` | Only in destructiveChanges |
 | `excluded` | `boolean` | Not independently packageable |
