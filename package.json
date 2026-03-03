@@ -48,13 +48,13 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "^4.8.2",
+    "@oclif/core": "^4.8.3",
     "@salesforce/core": "^8.26.3",
     "@salesforce/sf-plugins-core": "^12.2.6",
     "@salesforce/source-deploy-retrieve": "^12.31.14",
     "async": "^3.2.6",
     "fast-equals": "^6.0.0",
-    "fast-xml-parser": "^5.4.1",
+    "fast-xml-parser": "^5.4.2",
     "fs-extra": "^11.3.3",
     "ignore": "^7.0.5",
     "lodash-es": "^4.17.23",
