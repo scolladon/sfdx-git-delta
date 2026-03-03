@@ -42,7 +42,7 @@ export default class DiffLineInterpreter {
       processor.push(handler)
     }
 
-    if (processor.length() > 0) {
+    if (!processor.idle()) {
       await processor.drain()
     }
 

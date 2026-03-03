@@ -5,7 +5,10 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
-import { emptyResult } from '../../../../src/types/handlerResult'
+import {
+  emptyResult,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -50,6 +53,33 @@ describe('DiffLineInterpreter', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(lines.length)
+    })
+
+    it('Given slow handlers, When queue workers finish after enqueuing, Then all results are collected', async () => {
+      // Arrange
+      const lines = ['a', 'b', 'c']
+      const expectedResult: HandlerResult = {
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'CustomLabel',
+            member: 'test',
+          },
+        ],
+        copies: [],
+        warnings: [],
+      }
+      mockCollect.mockImplementation(
+        () =>
+          new Promise(resolve => setTimeout(() => resolve(expectedResult), 50))
+      )
+
+      // Act
+      const result = await sut.process(lines)
+
+      // Assert
+      expect(mockCollect).toHaveBeenCalledTimes(3)
+      expect(result.manifests).toHaveLength(3)
     })
   })
 
