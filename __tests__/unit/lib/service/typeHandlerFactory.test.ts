@@ -102,6 +102,13 @@ describe('the type handler factory', () => {
     ).toBeInstanceOf(Standard)
   })
 
+  it('Given deletion change type, When resolving handler, Then uses from revision', async () => {
+    const sut = await typeHandlerFactory.getTypeHandler(
+      `D       force-app/main/default/classes/folder/file`
+    )
+    expect(sut).toBeInstanceOf(Standard)
+  })
+
   describe('dynamic resolution', () => {
     describe('adapter-based resolution', () => {
       it('Given bundle adapter type, When resolving handler, Then returns InResource', async () => {
@@ -139,6 +146,13 @@ describe('the type handler factory', () => {
           `Z       force-app/main/default/objects/Account/listViews/MyView.listView-meta.xml`
         )
         expect(sut).toBeInstanceOf(CustomObjectChildHandler)
+      })
+
+      it('Given child with parentXmlName not matching any child heuristic, When resolving handler, Then returns Standard', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          `Z       force-app/main/default/workSkillRoutingAttributes/MyRouting/MyAttribute.workSkillRoutingAttribute-meta.xml`
+        )
+        expect(sut).toBeInstanceOf(Standard)
       })
     })
 

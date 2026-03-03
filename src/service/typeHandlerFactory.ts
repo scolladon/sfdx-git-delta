@@ -89,6 +89,7 @@ export default class TypeHandlerFactory {
 
   private buildIndex(): void {
     for (const m of this.metadata.values()) {
+      // istanbul ignore next -- xmlName is always set in practice (SDR and internal registry always provide it)
       if (m.xmlName) {
         this.metadataByXmlName.set(m.xmlName, m)
       }
