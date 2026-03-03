@@ -176,6 +176,12 @@ export class SDRMetadataAdapter {
           (child: unknown) => (child as SDRMetadataType).name
         ),
       }),
+      ...(sdrType.strategies?.adapter && {
+        adapter: sdrType.strategies.adapter,
+      }),
+      ...(sdrType.strategies?.decomposition && {
+        decomposition: sdrType.strategies.decomposition,
+      }),
     } as Metadata
   }
 

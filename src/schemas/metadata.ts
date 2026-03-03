@@ -43,6 +43,8 @@ export const MetadataSchema = BaseMetadataSchema.merge(
     inFolder: z.boolean(),
     metaFile: z.boolean(),
     childXmlNames: z.array(z.string()).optional(),
+    adapter: z.string().optional(),
+    decomposition: z.string().optional(),
   })
 
 /**
