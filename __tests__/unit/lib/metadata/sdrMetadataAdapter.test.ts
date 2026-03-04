@@ -69,12 +69,64 @@ describe('SDRMetadataAdapter', () => {
         // Assert
         const apexClass = metadata.find(m => m.xmlName === 'ApexClass')
         expect(apexClass).toEqual({
+          adapter: 'default',
           directoryName: 'classes',
           inFolder: false,
           metaFile: false,
           suffix: 'cls',
           xmlName: 'ApexClass',
         })
+      })
+
+      it('Given SDR type with strategies, When converting, Then stores adapter and decomposition', () => {
+        // Arrange
+        const mockRegistry: MockRegistry = {
+          types: {
+            customobject: {
+              id: 'customobject',
+              name: 'CustomObject',
+              directoryName: 'objects',
+              suffix: 'object',
+              strategies: {
+                adapter: 'decomposed',
+                decomposition: 'folderPerType',
+                transformer: 'decomposed',
+              },
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const sut = metadata.find(m => m.xmlName === 'CustomObject')
+        expect(sut?.adapter).toBe('decomposed')
+        expect(sut?.decomposition).toBe('folderPerType')
+      })
+
+      it('Given SDR type without strategies, When converting, Then adapter and decomposition are absent', () => {
+        // Arrange
+        const mockRegistry: MockRegistry = {
+          types: {
+            flow: {
+              id: 'flow',
+              name: 'Flow',
+              directoryName: 'flows',
+              suffix: 'flow',
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const sut = metadata.find(m => m.xmlName === 'Flow')
+        expect(sut?.adapter).toBeUndefined()
+        expect(sut?.decomposition).toBeUndefined()
       })
 
       it('Given SDR type with bundle adapter, When converting, Then metaFile is true', () => {
