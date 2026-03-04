@@ -132,12 +132,15 @@ flowchart TD
     T4 -->|Yes| CH["Child Type Heuristics"]
     T4 -->|No| T5{"parent of<br/>InFile children?"}
     T5 -->|Yes| IFH["InFileHandler"]
-    T5 -->|No| DH["StandardHandler"]
+    T5 -->|No| T6{"under<br/>permissionsets/?"}
+    T6 -->|Yes| PSH["PermissionSetChildHandler"]
+    T6 -->|No| DH["StandardHandler"]
     CH --> C["handler.collect()"]
     SH --> C
     IF --> C
     AH --> C
     IFH --> C
+    PSH --> C
     DH --> C
     C --> HR["HandlerResult<br/>{manifests, copies, warnings}"]
 ```
@@ -153,7 +156,9 @@ The `resolveHandler()` method applies these tiers in order, returning the first 
 | 3. Adapter-based | `adapter` from SDR strategies | `InResourceHandler` / `InBundleHandler` | `bundle` → `InResource` |
 | 4. Child heuristics | `xmlTag` + `key` + non-adapter parent | `DecomposedHandler` | `WorkflowAlert` |
 | 4b. Child heuristics | no `xmlTag` + `folderPerType` parent | `CustomObjectChildHandler` | `ListView` |
+| 4c. Child heuristics | no `xmlTag` + `containedDecomposed` parent | `PermissionSetChildHandler` | `FieldPermission` |
 | 5. InFile parent | has children with `xmlTag`+`key` | `InFileHandler` | `Workflow` |
+| 5b. Path-context override | standalone type under `permissionsets/` dir | `PermissionSetChildHandler` | `CustomPermission` under permissionsets |
 | 6. Fallback | none of the above | `StandardHandler` | `ApexClass` |
 
 This design means most new SDR metadata types are handled automatically without code changes. Only types requiring specialized behavior need explicit overrides in `handlerMap`.
@@ -179,7 +184,7 @@ classDiagram
     StandardHandler <|-- InResourceHandler
     StandardHandler <|-- SharedFolderHandler
     StandardHandler <|-- DecomposedHandler
-    StandardHandler <|-- ContainedDecomposedHandler
+    StandardHandler <|-- PermissionSetChildHandler
     StandardHandler <|-- CustomObjectHandler
     StandardHandler <|-- CustomObjectChildHandler
     StandardHandler <|-- FlowHandler
@@ -298,12 +303,12 @@ Handles metadata stored as individual files in sub-folders of a parent type. Ele
 
 Like DecomposedHandler but the parent copy is conditional: only copies the parent `CustomObject` when the field contains `<type>MasterDetail</type>`, because Master Detail fields require the parent object in the same deployment.
 
-#### ContainedDecomposedHandler
+#### PermissionSetChildHandler
 
 **Extends**: StandardHandler
-**Used by**: PermissionSet
+**Used by**: ApplicationVisibility, ClassAccess, CustomMetadataTypeAccess, CustomSettingAccess, ExternalCredentialPrincipalAccess, ExternalDataSourceAccess, FieldPermission, FlowAccess, ObjectPermission, ObjectSettings, PageAccess, RecordTypeVisibility, TabSetting, UserPermission (and standalone CustomPermission when found under `permissionsets/` via path-context override)
 
-Handles types that can exist in either monolithic format (single file) or decomposed format (folder with sub-files). Detects the format at construction time. On deletion in decomposed format, checks if the holder folder still has content before treating as a true deletion.
+Handles decomposed PermissionSet child types. Element names are qualified as `PSName.ChildName`, detected by counting path segments after the parent directory: 1 segment means Beta2 flat format (componentName already contains the PS name), 2+ segments means Beta or objectSettings format (PS name is prepended from the first segment after the parent directory). Monolithic `.permissionset-meta.xml` files are not handled here — they fall to `StandardHandler`.
 
 #### CustomObjectHandler
 
