@@ -22,23 +22,23 @@ const mockedPathExists = jest.mocked(pathExists)
 const testContext = [
   [
     'force-app/main/default/permissionsets/Admin/objectSettings/Account.Test__c.objectSettings-meta.xml',
-    new Set(['Admin']),
-    'PermissionSet',
+    new Set(['Admin.Account.Test__c']),
+    'ObjectSettings',
   ],
   [
     'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Test__c.fieldPermission-meta.xml',
-    new Set(['Admin']),
-    'PermissionSet',
+    new Set(['Admin.Account.Test__c']),
+    'FieldPermission',
   ],
   [
     'force-app/main/default/permissionsets/Admin/objectPermissions/Account.objectPermission-meta.xml',
-    new Set(['Admin']),
-    'PermissionSet',
+    new Set(['Admin.Account']),
+    'ObjectPermission',
   ],
   [
     'force-app/main/default/permissionsets/Admin/classAccesses/MyClass.classAccess-meta.xml',
-    new Set(['Admin']),
-    'PermissionSet',
+    new Set(['Admin.MyClass']),
+    'ClassAccess',
   ],
   [
     'force-app/main/default/sharingRules/Account/sharingCriteriaRules/TestSharingCriteria.sharingCriteriaRule-meta.xml',
