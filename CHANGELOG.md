@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.33.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.4...v6.33.0) (2026-03-04)
+
+
+### Features
+
+* support `AiAuthoringBundle` metadata with dynamic handler resolution ([#1234](https://github.com/scolladon/sfdx-git-delta/issues/1234)) ([a57f8fb](https://github.com/scolladon/sfdx-git-delta/commit/a57f8fbf8e6cb5c31139d43d31dc6027914f0078))
+
+
+### Bug Fixes
+
+* use `idle()` instead of `length()` to guard queue drain ([#1236](https://github.com/scolladon/sfdx-git-delta/issues/1236)) ([de82ee4](https://github.com/scolladon/sfdx-git-delta/commit/de82ee40d81f8983dae77de64c181d19510e85bf))
+
 ## [6.32.4](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.3...v6.32.4) (2026-02-27)
 
 
