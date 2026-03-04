@@ -38,6 +38,22 @@ export const SUB_OBJECT_TYPES = [
   'WorkflowRule',
   'WorkflowSend',
   'WorkflowTask',
+  // PermissionSet children
+  'ApplicationVisibility',
+  'ClassAccess',
+  'CustomMetadataTypeAccess',
+  'CustomPermission',
+  'CustomSettingAccess',
+  'ExternalCredentialPrincipalAccess',
+  'ExternalDataSourceAccess',
+  'FieldPermission',
+  'FlowAccess',
+  'ObjectPermission',
+  'ObjectSettings',
+  'PageAccess',
+  'RecordTypeVisibility',
+  'TabSetting',
+  'UserPermission',
 ]
 export const TRANSLATION_EXTENSION = 'translation'
 export const TRANSLATION_TYPE = 'Translations'
