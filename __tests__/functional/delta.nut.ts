@@ -71,8 +71,8 @@ describe('sgd source delta NUTS', () => {
     const destructiveChangesLineCount = await getFileLineNumber(
       'e2e/expected/destructiveChanges/destructiveChanges.xml'
     )
-    expect(packageLineCount).to.equal(240)
-    expect(destructiveChangesLineCount).to.equal(141)
+    expect(packageLineCount).to.equal(239)
+    expect(destructiveChangesLineCount).to.equal(142)
     expect(result).to.include('"status": 0')
   })
 })
