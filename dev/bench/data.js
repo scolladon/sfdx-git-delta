@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772573588140,
+  "lastUpdate": 1772615003036,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3966,6 +3966,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±0.39%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a57f8fbf8e6cb5c31139d43d31dc6027914f0078",
+          "message": "feat: support `AiAuthoringBundle` metadata with dynamic handler resolution (#1234)",
+          "timestamp": "2026-03-04T09:59:29+01:00",
+          "tree_id": "5bf5f74056b7d4da2df8b8c3e8104762d1d9b866",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/a57f8fbf8e6cb5c31139d43d31dc6027914f0078"
+        },
+        "date": 1772615002096,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±1.04%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
