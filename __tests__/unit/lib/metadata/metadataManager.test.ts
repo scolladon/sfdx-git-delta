@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
+import type { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import {
   getDefinition,
@@ -279,6 +280,56 @@ describe(`test if metadata`, () => {
       })
     ).rejects.toThrow(/Unrecognized key.*unknownField/)
     readFileSpy.mockRestore()
+  })
+
+  describe('Given PermissionSet child types', () => {
+    it.each([
+      ['fieldPermission', 'FieldPermission'],
+      ['objectPermission', 'ObjectPermission'],
+      ['classAccess', 'ClassAccess'],
+      ['userPermission', 'UserPermission'],
+      ['applicationVisibility', 'ApplicationVisibility'],
+      ['customMetadataTypeAccess', 'CustomMetadataTypeAccess'],
+      ['customSettingAccess', 'CustomSettingAccess'],
+      [
+        'externalCredentialPrincipalAccess',
+        'ExternalCredentialPrincipalAccess',
+      ],
+      ['externalDataSourceAccess', 'ExternalDataSourceAccess'],
+      ['flowAccess', 'FlowAccess'],
+      ['objectSettings', 'ObjectSettings'],
+      ['pageAccess', 'PageAccess'],
+      ['recordTypeVisibility', 'RecordTypeVisibility'],
+      ['tabSetting', 'TabSetting'],
+    ])('When resolving %s extension, Then returns %s type with PermissionSet parent', async (suffix, expectedXmlName) => {
+      // Arrange
+      const sut: MetadataRepository = await getDefinition({})
+
+      // Act
+      const result = sut.get(
+        `force-app/main/default/permissionsets/Admin/${suffix}s/Component.${suffix}-meta.xml`
+      )
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(result!.xmlName).toBe(expectedXmlName)
+      expect(result!.parentXmlName).toBe('PermissionSet')
+    })
+
+    it('When resolving PermissionSet type, Then has containedDecomposed decomposition', async () => {
+      // Arrange
+      const sut: MetadataRepository = await getDefinition({})
+
+      // Act
+      const result = sut.get(
+        'force-app/main/default/permissionsets/Admin.permissionset-meta.xml'
+      )
+
+      // Assert
+      expect(result).toBeDefined()
+      expect(result!.xmlName).toBe('PermissionSet')
+      expect(result!.decomposition).toBe('containedDecomposed')
+    })
   })
 
   it('getSharedFolderMetadata', async () => {
