@@ -3,7 +3,6 @@ import { describe, expect, it } from '@jest/globals'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
-import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import CustomField from '../../../../src/service/customFieldHandler'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
@@ -12,6 +11,7 @@ import InBundleHandler from '../../../../src/service/inBundleHandler'
 import InFileHandler from '../../../../src/service/inFileHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
+import PermissionSetChildHandler from '../../../../src/service/permissionSetChildHandler'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
@@ -29,7 +29,6 @@ describe('the type handler factory', () => {
   })
   describe.each([
     [CustomField, ['fields']],
-    [ContainedDecomposedHandler, ['permissionsets']],
     [
       CustomObjectChildHandler,
       [
@@ -102,6 +101,13 @@ describe('the type handler factory', () => {
     ).toBeInstanceOf(Standard)
   })
 
+  it('Given monolithic PermissionSet, When resolving handler, Then returns Standard', async () => {
+    const sut = await typeHandlerFactory.getTypeHandler(
+      'Z       force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml'
+    )
+    expect(sut).toBeInstanceOf(Standard)
+  })
+
   it('Given deletion change type, When resolving handler, Then uses from revision', async () => {
     const sut = await typeHandlerFactory.getTypeHandler(
       `D       force-app/main/default/classes/folder/file`
@@ -162,6 +168,43 @@ describe('the type handler factory', () => {
           `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
         )
         expect(sut).toBeInstanceOf(InFileHandler)
+      })
+    })
+
+    describe('PermissionSet child resolution', () => {
+      it('Given Beta FieldPermission, When resolving handler, Then returns PermissionSetChildHandler', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          'Z       force-app/main/default/permissionsets/Admin/fieldPermissions/Account.MyField__c.fieldPermission-meta.xml'
+        )
+        expect(sut).toBeInstanceOf(PermissionSetChildHandler)
+      })
+
+      it('Given Beta2 flat FieldPermission, When resolving handler, Then returns PermissionSetChildHandler', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          'Z       force-app/main/default/permissionsets/Admin.Account.MyField__c.fieldPermission-meta.xml'
+        )
+        expect(sut).toBeInstanceOf(PermissionSetChildHandler)
+      })
+
+      it('Given Beta2 ObjectSettings, When resolving handler, Then returns PermissionSetChildHandler', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          'Z       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
+        )
+        expect(sut).toBeInstanceOf(PermissionSetChildHandler)
+      })
+
+      it('Given CustomPermission under permissionsets, When resolving handler, Then returns PermissionSetChildHandler', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          'Z       force-app/main/default/permissionsets/Admin/customPermissions/MyPerm.customPermission-meta.xml'
+        )
+        expect(sut).toBeInstanceOf(PermissionSetChildHandler)
+      })
+
+      it('Given standalone CustomPermission outside permissionsets, When resolving handler, Then returns Standard', async () => {
+        const sut = await typeHandlerFactory.getTypeHandler(
+          'Z       force-app/main/default/customPermissions/MyPerm.customPermission-meta.xml'
+        )
+        expect(sut).toBeInstanceOf(Standard)
       })
     })
   })

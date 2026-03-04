@@ -1,5 +1,6 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
+import { PATH_SEP } from '../constant/fsConstants.js'
 import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { Metadata } from '../types/metadata.js'
@@ -8,7 +9,6 @@ import { log } from '../utils/LoggingDecorator.js'
 import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 
 import Bot from './botHandler.js'
-import ContainedDecomposed from './containedDecomposedHandler.js'
 import CustomFieldHandler from './customFieldHandler.js'
 import CustomLabel from './customLabelHandler.js'
 import CustomObjectChildHandler from './customObjectChildHandler.js'
@@ -21,11 +21,13 @@ import InFolder from './inFolderHandler.js'
 import InResource from './inResourceHandler.js'
 import Lwc from './lwcHandler.js'
 import ObjectTranslation from './objectTranslationHandler.js'
+import PermissionSetChildHandler from './permissionSetChildHandler.js'
 import ReportingFolderHandler from './reportingFolderHandler.js'
 import SharedFolder from './sharedFolderHandler.js'
 import Standard from './standardHandler.js'
 
 const FOLDER_PER_TYPE = 'folderPerType'
+const CONTAINED_DECOMPOSED = 'containedDecomposed'
 
 // Explicit overrides for types that deviate from SDR-derived defaults
 const handlerMap: Record<string, typeof Standard> = {
@@ -40,7 +42,6 @@ const handlerMap: Record<string, typeof Standard> = {
   GenAiFunction: Lwc,
   GlobalValueSetTranslation: InFile,
   LightningComponentBundle: Lwc,
-  PermissionSet: ContainedDecomposed,
   Report: ReportingFolderHandler,
   StandardValueSetTranslation: InFile,
   Territory2: Decomposed,
@@ -83,7 +84,7 @@ export default class TypeHandlerFactory {
     const revision =
       changeType === DELETION ? this.work.config.from : this.work.config.to
     const element = await this.resolver.createElement(path, type, revision)
-    const Handler = this.resolveHandler(type)
+    const Handler = this.resolveHandler(type, path.split(PATH_SEP))
     return new Handler(changeType, element, this.work)
   }
 
@@ -101,7 +102,7 @@ export default class TypeHandlerFactory {
     }
   }
 
-  private resolveHandler(type: Metadata): typeof Standard {
+  private resolveHandler(type: Metadata, parts: string[]): typeof Standard {
     const xmlName = type.xmlName!
 
     if (xmlName in handlerMap) {
@@ -124,10 +125,24 @@ export default class TypeHandlerFactory {
       if (!type.xmlTag && parent?.decomposition === FOLDER_PER_TYPE) {
         return CustomObjectChildHandler
       }
+      if (!type.xmlTag && parent?.decomposition === CONTAINED_DECOMPOSED) {
+        return PermissionSetChildHandler
+      }
     }
 
     if (this.inFileParentXmlNames.has(xmlName)) {
       return InFile
+    }
+
+    // Standalone type under a decomposed parent directory
+    // (e.g., CustomPermission under permissionsets/)
+    const psType = this.metadataByXmlName.get('PermissionSet')
+    if (
+      psType?.decomposition === CONTAINED_DECOMPOSED &&
+      psType.directoryName &&
+      parts.includes(psType.directoryName)
+    ) {
+      return PermissionSetChildHandler
     }
 
     return Standard
