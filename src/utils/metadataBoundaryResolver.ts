@@ -38,13 +38,18 @@ export class MetadataBoundaryResolver {
     if (element && element.pathAfterType.length === 2) {
       const fileName = element.pathAfterType[1]
       if (fileName.includes(`.${metadataDef.suffix}`)) {
+        const componentName = this.extractName(fileName, metadataDef.suffix!)
+        if (componentName === element.pathAfterType[0]) {
+          return element
+        }
         return MetadataElement.fromScan(
           path,
           metadataDef,
           this.metadataRepo,
-          this.extractName(fileName, metadataDef.suffix!)
+          componentName
         )
       }
+      return element
     }
 
     return this.scanAndCreateElement(path, metadataDef, revision)

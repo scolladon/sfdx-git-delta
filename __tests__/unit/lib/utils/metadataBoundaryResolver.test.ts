@@ -156,20 +156,11 @@ describe('MetadataBoundaryResolver', () => {
           expect(mockListDirAtRevision).not.toHaveBeenCalled()
         })
 
-        it('Given StaticResource content file at depth 2, When creating element, Then should scan because file lacks suffix', async () => {
+        it('Given StaticResource content file at depth 2, When creating element, Then should use fromPath without scan', async () => {
           // Arrange
           const path =
             'force-app/main/default/staticresources/MyResource/logo.png'
           const revision = 'HEAD'
-          mockListDirAtRevision.mockImplementation(dir => {
-            if (dir === 'force-app/main/default/staticresources/MyResource') {
-              return Promise.resolve([
-                'logo.png',
-                'MyResource.resource-meta.xml',
-              ])
-            }
-            return Promise.resolve([])
-          })
 
           // Act
           const element = await sut.createElement(
@@ -183,7 +174,28 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentPath).toBe(
             'force-app/main/default/staticresources/MyResource'
           )
-          expect(mockListDirAtRevision).toHaveBeenCalledTimes(1)
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        })
+
+        it('Given standard depth-2 suffix match, When folder matches component name, Then should use fromPath without scan', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml'
+          const revision = 'HEAD'
+
+          // Act
+          const element = await sut.createElement(
+            path,
+            permissionSetType,
+            revision
+          )
+
+          // Assert
+          expect(element.componentName).toBe('Admin')
+          expect(element.componentPath).toBe(
+            'force-app/main/default/permissionsets/Admin'
+          )
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
         })
 
         it('Given ExperienceBundle nested file, When creating element, Then should scan and find component root', async () => {
