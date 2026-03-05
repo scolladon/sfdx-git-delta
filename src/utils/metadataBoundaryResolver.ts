@@ -9,8 +9,6 @@ import type { Metadata } from '../types/metadata.js'
 import { log } from './LoggingDecorator.js'
 import { MetadataElement } from './metadataElement.js'
 
-const MAX_HIERARCHY_DEPTH = 10
-
 export class MetadataBoundaryResolver {
   protected readonly dirCache: Map<string, string[]>
 
@@ -62,17 +60,47 @@ export class MetadataBoundaryResolver {
   ): Promise<MetadataElement> {
     const parts = path.split(PATH_SEP)
     const dirIndex = parts.lastIndexOf(metadataDef.directoryName)
-    const typeDir =
-      dirIndex >= 0 ? parts.slice(0, dirIndex + 1).join(PATH_SEP) : undefined
-    let currentDir = dirname(path)
-    let depthCount = 0
 
-    while (
-      currentDir &&
-      currentDir !== '.' &&
-      depthCount < MAX_HIERARCHY_DEPTH
-    ) {
-      depthCount++
+    if (dirIndex >= 0 && metadataDef.suffix) {
+      const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
+      let allFiles: string[]
+      try {
+        allFiles = await this.gitAdapter.getFilesPath(typeDir, revision)
+      } catch {
+        allFiles = []
+      }
+      const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
+
+      const componentNames = new Set<string>()
+      for (const file of allFiles) {
+        if (file.endsWith(metaSuffix)) {
+          const fileName = file.split(PATH_SEP).pop()!
+          componentNames.add(this.extractName(fileName, metadataDef.suffix))
+        }
+      }
+
+      const pathAfterType = parts.slice(dirIndex + 1)
+      for (let i = pathAfterType.length - 2; i >= 0; i--) {
+        if (componentNames.has(pathAfterType[i])) {
+          return MetadataElement.fromScan(
+            path,
+            metadataDef,
+            this.metadataRepo,
+            pathAfterType[i]
+          )
+        }
+      }
+
+      return MetadataElement.fromScan(
+        path,
+        metadataDef,
+        this.metadataRepo,
+        parse(path).name
+      )
+    }
+
+    let currentDir = dirname(path)
+    while (currentDir && currentDir !== '.') {
       const cacheKey = `${revision}:${currentDir}`
 
       let siblings = this.dirCache.get(cacheKey)
@@ -90,8 +118,6 @@ export class MetadataBoundaryResolver {
           componentName
         )
       }
-
-      if (typeDir && currentDir === typeDir) break
 
       currentDir = dirname(currentDir)
     }
