@@ -62,38 +62,11 @@ export class MetadataBoundaryResolver {
   ): Promise<MetadataElement> {
     const parts = path.split(PATH_SEP)
     const dirIndex = parts.lastIndexOf(metadataDef.directoryName)
-
-    if (dirIndex >= 0 && metadataDef.suffix) {
-      const pathAfterType = parts.slice(dirIndex + 1)
-      for (let i = pathAfterType.length - 2; i >= 0; i--) {
-        const dirName = pathAfterType[i]
-        const candidateDir = parts.slice(0, dirIndex + 1 + i + 1).join(PATH_SEP)
-        const parentDir = parts.slice(0, dirIndex + 1 + i).join(PATH_SEP)
-        const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
-        const insidePath = `${candidateDir}${PATH_SEP}${dirName}${metaSuffix}`
-        const besidePath = `${parentDir}${PATH_SEP}${dirName}${metaSuffix}`
-        if (
-          (await this.gitAdapter.pathExists(insidePath, revision)) ||
-          (await this.gitAdapter.pathExists(besidePath, revision))
-        ) {
-          return MetadataElement.fromScan(
-            path,
-            metadataDef,
-            this.metadataRepo,
-            dirName
-          )
-        }
-      }
-      return MetadataElement.fromScan(
-        path,
-        metadataDef,
-        this.metadataRepo,
-        parse(path).name
-      )
-    }
-
+    const typeDir =
+      dirIndex >= 0 ? parts.slice(0, dirIndex + 1).join(PATH_SEP) : undefined
     let currentDir = dirname(path)
     let depthCount = 0
+
     while (
       currentDir &&
       currentDir !== '.' &&
@@ -117,6 +90,8 @@ export class MetadataBoundaryResolver {
           componentName
         )
       }
+
+      if (typeDir && currentDir === typeDir) break
 
       currentDir = dirname(currentDir)
     }
