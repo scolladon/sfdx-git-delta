@@ -34,6 +34,46 @@ const lwcType: Metadata = {
   xmlName: 'LightningComponentBundle',
 }
 
+const auraType: Metadata = {
+  directoryName: 'aura',
+  inFolder: false,
+  metaFile: false,
+  suffix: '',
+  xmlName: 'AuraDefinitionBundle',
+}
+
+const permissionSetType: Metadata = {
+  directoryName: 'permissionsets',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'permissionset',
+  xmlName: 'PermissionSet',
+}
+
+const objectTranslationType: Metadata = {
+  directoryName: 'objectTranslations',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'objectTranslation',
+  xmlName: 'CustomObjectTranslation',
+}
+
+const botType: Metadata = {
+  directoryName: 'bots',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'bot',
+  xmlName: 'Bot',
+}
+
+const experienceBundleType: Metadata = {
+  directoryName: 'experiences',
+  inFolder: false,
+  metaFile: true,
+  suffix: 'site',
+  xmlName: 'ExperienceBundle',
+}
+
 describe('MetadataBoundaryResolver', () => {
   let sut: MetadataBoundaryResolver
 
@@ -43,125 +83,298 @@ describe('MetadataBoundaryResolver', () => {
   })
 
   describe('createElement', () => {
-    describe('when directoryName is in path (sync path)', () => {
-      it('should resolve LWC component without git calls', async () => {
-        // Arrange
-        const path = 'force-app/main/default/lwc/myComponent/myComponent.js'
-        const revision = 'HEAD'
-
-        // Act
-        const element = await sut.createElement(path, lwcType, revision)
-
-        // Assert
-        expect(element.componentName).toBe('myComponent')
-        expect(element.type.xmlName).toBe('LightningComponentBundle')
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-
-      it('should resolve nested StaticResource file without git calls', async () => {
-        // Arrange
-        const path =
-          'force-app/main/default/staticresources/MyResource/images/logo.png'
-        const revision = 'HEAD'
-
-        // Act
-        const element = await sut.createElement(
-          path,
-          staticResourceType,
-          revision
-        )
-
-        // Assert
-        expect(element.componentName).toBe('logo')
-        expect(element.type.xmlName).toBe('StaticResource')
-        expect(element.pathAfterType[0]).toBe('MyResource')
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
-
-      it('should resolve file directly in directoryName folder', async () => {
+    describe('Given flat path (pathAfterType.length <= 1)', () => {
+      it('Given flat file, When creating element, Then should use fromPath without scan', async () => {
         // Arrange
         const path = 'force-app/main/default/staticresources/MyResource.png'
         const revision = 'HEAD'
 
         // Act
-        const element = await sut.createElement(
-          path,
-          staticResourceType,
-          revision
-        )
+        const element = await new MetadataBoundaryResolver(
+          globalMetadata,
+          mockGitAdapter
+        ).createElement(path, staticResourceType, revision)
 
         // Assert
         expect(element.componentName).toBe('MyResource')
         expect(mockListDirAtRevision).not.toHaveBeenCalled()
       })
+    })
 
-      it('should use lastIndexOf for nested directoryName paths', async () => {
-        // Arrange
-        const path =
-          'force-app/main/default/lwc/sub_folder1/lwc/deeplyNestedComponent/deeplyNestedComponent.js'
-        const revision = 'HEAD'
+    describe('Given deep path (pathAfterType.length >= 2)', () => {
+      describe('When type directory is in path without intermediate folders', () => {
+        it('Given LWC component, When creating element, Then should use fromPath without scan', async () => {
+          // Arrange
+          const path = 'force-app/main/default/lwc/myComponent/myComponent.js'
+          const revision = 'HEAD'
 
-        // Act
-        const element = await sut.createElement(path, lwcType, revision)
+          // Act
+          const element = await sut.createElement(path, lwcType, revision)
 
-        // Assert
-        expect(element.componentName).toBe('deeplyNestedComponent')
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          // Assert
+          expect(element.componentName).toBe('myComponent')
+          expect(element.type.xmlName).toBe('LightningComponentBundle')
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        })
+
+        it('Given StaticResource nested file, When creating element, Then should scan and find component root', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/staticresources/MyResource/images/logo.png'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockImplementation(dir => {
+            if (dir === 'force-app/main/default/staticresources/MyResource') {
+              return Promise.resolve(['images', 'MyResource.resource-meta.xml'])
+            }
+            return Promise.resolve([])
+          })
+
+          // Act
+          const element = await sut.createElement(
+            path,
+            staticResourceType,
+            revision
+          )
+
+          // Assert
+          expect(element.componentName).toBe('logo')
+          expect(element.type.xmlName).toBe('StaticResource')
+          expect(mockListDirAtRevision).toHaveBeenCalled()
+        })
+
+        it('Given nested directoryName paths, When creating element, Then should use lastIndexOf without scan', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/lwc/sub_folder1/lwc/deeplyNestedComponent/deeplyNestedComponent.js'
+          const revision = 'HEAD'
+
+          // Act
+          const element = await sut.createElement(path, lwcType, revision)
+
+          // Assert
+          expect(element.componentName).toBe('deeplyNestedComponent')
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        })
+
+        it('Given StaticResource content file at depth 2, When creating element, Then should scan because file lacks suffix', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/staticresources/MyResource/logo.png'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockImplementation(dir => {
+            if (dir === 'force-app/main/default/staticresources/MyResource') {
+              return Promise.resolve([
+                'logo.png',
+                'MyResource.resource-meta.xml',
+              ])
+            }
+            return Promise.resolve([])
+          })
+
+          // Act
+          const element = await sut.createElement(
+            path,
+            staticResourceType,
+            revision
+          )
+
+          // Assert
+          expect(element.componentName).toBe('logo')
+          expect(element.componentPath).toBe(
+            'force-app/main/default/staticresources/MyResource'
+          )
+          expect(mockListDirAtRevision).toHaveBeenCalledTimes(1)
+        })
+
+        it('Given ExperienceBundle nested file, When creating element, Then should scan and find component root', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/experiences/my_bundle/config/file.json'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockImplementation(dir => {
+            if (dir === 'force-app/main/default/experiences/my_bundle') {
+              return Promise.resolve(['config', 'my_bundle.site-meta.xml'])
+            }
+            return Promise.resolve([])
+          })
+
+          // Act
+          const element = await sut.createElement(
+            path,
+            experienceBundleType,
+            revision
+          )
+
+          // Assert
+          expect(element.componentName).toBe('file')
+          expect(element.type.xmlName).toBe('ExperienceBundle')
+          expect(mockListDirAtRevision).toHaveBeenCalled()
+        })
+
+        it('Given Aura component file, When creating element, Then should use fromPath without scan', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/aura/myComponent/myComponentHelper.js'
+          const revision = 'HEAD'
+
+          // Act
+          const element = await sut.createElement(path, auraType, revision)
+
+          // Assert
+          expect(element.componentName).toBe('myComponentHelper')
+          expect(element.type.xmlName).toBe('AuraDefinitionBundle')
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        })
       })
 
-      it('should resolve ExperienceBundle nested file without git calls', async () => {
-        // Arrange
-        const experienceBundleType: Metadata = {
-          directoryName: 'experiences',
-          inFolder: false,
-          metaFile: true,
-          suffix: 'site',
-          xmlName: 'ExperienceBundle',
-        }
-        const path =
-          'force-app/main/default/experiences/my_bundle/config/file.json'
-        const revision = 'HEAD'
+      describe('When intermediate folders exist between type dir and component', () => {
+        it('Given PermissionSet flat file with nesting, When creating element, Then should extract component from file name without scan', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/permissionsets/marketing/Admin.permissionset-meta.xml'
+          const revision = 'HEAD'
 
-        // Act
-        const element = await sut.createElement(
-          path,
-          experienceBundleType,
-          revision
-        )
+          // Act
+          const element = await sut.createElement(
+            path,
+            permissionSetType,
+            revision
+          )
 
-        // Assert
-        expect(element.componentName).toBe('file')
-        expect(element.pathAfterType[0]).toBe('my_bundle')
-        expect(element.type.xmlName).toBe('ExperienceBundle')
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
-      })
+          // Assert
+          expect(element.componentName).toBe('Admin')
+          expect(element.type.xmlName).toBe('PermissionSet')
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        })
 
-      it('should resolve Aura component file without git calls', async () => {
-        // Arrange
-        const auraType: Metadata = {
-          directoryName: 'aura',
-          inFolder: false,
-          metaFile: false,
-          suffix: '',
-          xmlName: 'AuraDefinitionBundle',
-        }
-        const path =
-          'force-app/main/default/aura/myComponent/myComponentHelper.js'
-        const revision = 'HEAD'
+        it('Given PermissionSet decomposed file with nesting, When creating element, Then should find correct component root', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/permissionsets/marketing/Admin/fieldPermissions/Account.fieldPermission-meta.xml'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockImplementation(dir => {
+            if (
+              dir === 'force-app/main/default/permissionsets/marketing/Admin'
+            ) {
+              return Promise.resolve([
+                'fieldPermissions',
+                'Admin.permissionset-meta.xml',
+              ])
+            }
+            return Promise.resolve([])
+          })
 
-        // Act
-        const element = await sut.createElement(path, auraType, revision)
+          // Act
+          const element = await sut.createElement(
+            path,
+            permissionSetType,
+            revision
+          )
 
-        // Assert
-        expect(element.componentName).toBe('myComponentHelper')
-        expect(element.pathAfterType[0]).toBe('myComponent')
-        expect(element.type.xmlName).toBe('AuraDefinitionBundle')
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          // Assert
+          expect(element.componentName).toBe('Account')
+          expect(element.componentPath).toBe(
+            'force-app/main/default/permissionsets/marketing/Admin'
+          )
+          expect(mockListDirAtRevision).toHaveBeenCalled()
+        })
+
+        it('Given StaticResource with nesting, When creating element, Then should find correct component root', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/staticresources/nested/MyResource/images/logo.png'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockImplementation(dir => {
+            if (
+              dir === 'force-app/main/default/staticresources/nested/MyResource'
+            ) {
+              return Promise.resolve(['images', 'MyResource.resource-meta.xml'])
+            }
+            return Promise.resolve([])
+          })
+
+          // Act
+          const element = await sut.createElement(
+            path,
+            staticResourceType,
+            revision
+          )
+
+          // Assert
+          expect(element.componentName).toBe('logo')
+          expect(element.componentPath).toBe(
+            'force-app/main/default/staticresources/nested/MyResource'
+          )
+          expect(mockListDirAtRevision).toHaveBeenCalled()
+        })
+
+        it('Given LWC with nesting, When creating element, Then should use fromPath without scan', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/lwc/nested/myComponent/myComponent.js'
+          const revision = 'HEAD'
+
+          // Act
+          const element = await sut.createElement(path, lwcType, revision)
+
+          // Assert
+          expect(element.componentName).toBe('myComponent')
+          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        })
+
+        it('Given ObjectTranslation with nesting, When creating element, Then should find correct component root', async () => {
+          // Arrange
+          const path =
+            'force-app/main/default/objectTranslations/nested/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockImplementation(dir => {
+            if (dir === 'force-app/main/default/objectTranslations/nested') {
+              return Promise.resolve([
+                'Account-es',
+                'Account-es.objectTranslation-meta.xml',
+              ])
+            }
+            return Promise.resolve([])
+          })
+
+          // Act
+          const element = await sut.createElement(
+            path,
+            objectTranslationType,
+            revision
+          )
+
+          // Assert
+          expect(element.componentName).toBe('BillingFloor__c')
+          expect(element.componentPath).toBe(
+            'force-app/main/default/objectTranslations/nested/Account-es'
+          )
+          expect(mockListDirAtRevision).toHaveBeenCalled()
+        })
+
+        it('Given Bot with nesting, When creating element, Then should scan up to type directory and fallback to file name', async () => {
+          // Arrange
+          // Bot suffix is in UNSAFE_EXTENSION (registered both as standalone
+          // and as VirtualBot content child), so findComponentName cannot
+          // match it. The scan falls back to parse(path).name.
+          const path =
+            'force-app/main/default/bots/nested/TestBot/v1.botVersion-meta.xml'
+          const revision = 'HEAD'
+          mockListDirAtRevision.mockResolvedValue([])
+
+          // Act
+          const element = await sut.createElement(path, botType, revision)
+
+          // Assert
+          expect(element.componentName).toBe('v1')
+          // Scans: TestBot → nested → bots (type dir boundary), stops there
+          expect(mockListDirAtRevision).toHaveBeenCalledTimes(3)
+        })
       })
     })
 
-    describe('when directoryName is NOT in path (git scan fallback)', () => {
-      it('should find metadata boundary from sibling with known suffix', async () => {
+    describe('When directoryName is NOT in path (git scan fallback)', () => {
+      it('Given sibling with known suffix, When creating element, Then should find metadata boundary', async () => {
         // Arrange
         const path = 'force-app/main/any/path/here/MyAsset/images/logo.png'
         const revision = 'HEAD'
@@ -185,7 +398,7 @@ describe('MetadataBoundaryResolver', () => {
         expect(mockListDirAtRevision).toHaveBeenCalled()
       })
 
-      it('should resolve document in non-standard location', async () => {
+      it('Given document in non-standard location, When creating element, Then should resolve component', async () => {
         // Arrange
         const documentType: Metadata = {
           directoryName: 'documents',
@@ -209,7 +422,7 @@ describe('MetadataBoundaryResolver', () => {
         expect(element.componentName).toBe('file')
       })
 
-      it('should cache directory listings', async () => {
+      it('Given two files in same directory, When creating elements, Then should cache directory listings', async () => {
         // Arrange
         const path1 = 'force-app/main/any/path/MyResource/images/logo.png'
         const path2 = 'force-app/main/any/path/MyResource/images/icon.svg'
@@ -229,7 +442,7 @@ describe('MetadataBoundaryResolver', () => {
         expect(mockListDirAtRevision).toHaveBeenCalledTimes(3)
       })
 
-      it('should fallback to last segment when no metadata boundary found', async () => {
+      it('Given no metadata boundary found, When creating element, Then should fallback to last segment', async () => {
         // Arrange
         const path = 'force-app/main/default/unknown/deep/nested/file.txt'
         const revision = 'HEAD'
@@ -246,7 +459,7 @@ describe('MetadataBoundaryResolver', () => {
         expect(element.componentName).toBe('file')
       })
 
-      it('should separate cache by revision', async () => {
+      it('Given different revisions, When creating elements, Then should separate cache by revision', async () => {
         // Arrange
         const path = 'force-app/main/any/path/MyResource/data.json'
         const revision1 = 'HEAD'
@@ -281,8 +494,41 @@ describe('MetadataBoundaryResolver', () => {
       })
     })
 
+    describe('When multiple metadata siblings exist at same directory level', () => {
+      it('Given first sibling name not in path, When creating element, Then should skip it and find correct component', async () => {
+        // Arrange
+        const path =
+          'force-app/main/default/staticresources/UpdateStaticResourceFile/resource/resource-file.txt'
+        const revision = 'HEAD'
+        mockListDirAtRevision.mockImplementation(dir => {
+          if (dir === 'force-app/main/default/staticresources') {
+            return Promise.resolve([
+              'Ignored',
+              'Ignored.resource-meta.xml',
+              'UpdateStaticResourceFile',
+              'UpdateStaticResourceFile.resource-meta.xml',
+            ])
+          }
+          return Promise.resolve([])
+        })
+
+        // Act
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          revision
+        )
+
+        // Assert
+        expect(element.componentName).toBe('resource-file')
+        expect(element.componentPath).toBe(
+          'force-app/main/default/staticresources/UpdateStaticResourceFile'
+        )
+      })
+    })
+
     describe('edge cases', () => {
-      it('should handle empty directory listings', async () => {
+      it('Given empty directory listings, When creating element, Then should fallback to last segment', async () => {
         // Arrange
         const path = 'force-app/main/default/unknown/nested/file.txt'
         const revision = 'HEAD'
@@ -299,7 +545,7 @@ describe('MetadataBoundaryResolver', () => {
         expect(element.componentName).toBe('file')
       })
 
-      it('should stop at MAX_HIERARCHY_DEPTH', async () => {
+      it('Given very deep path, When creating element, Then should stop at MAX_HIERARCHY_DEPTH', async () => {
         // Arrange
         const deepPath = 'a/b/c/d/e/f/g/h/i/j/k/l/file.txt'
         const revision = 'HEAD'
@@ -312,7 +558,7 @@ describe('MetadataBoundaryResolver', () => {
         expect(mockListDirAtRevision).toHaveBeenCalledTimes(10)
       })
 
-      it('should handle path ending at root directory', async () => {
+      it('Given path at root directory, When creating element, Then should resolve without scan', async () => {
         // Arrange
         const path = 'file.txt'
         const revision = 'HEAD'

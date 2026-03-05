@@ -158,7 +158,7 @@ The `resolveHandler()` method applies these tiers in order, returning the first 
 
 This design means most new SDR metadata types are handled automatically without code changes. Only types requiring specialized behavior need explicit overrides in `handlerMap`.
 
-`MetadataBoundaryResolver` creates a `MetadataElement` — a value object capturing the parsed identity of the diff line: base path, extension, parent folder, component name, and path segments after the type directory. It may scan the git tree to find the component root when the directory name isn't present in the path.
+`MetadataBoundaryResolver` creates a `MetadataElement` — a value object capturing the parsed identity of the diff line: base path, extension, parent folder, component name, and path segments after the type directory. Resolution follows a tiered strategy to minimize git I/O: (1) flat paths (single segment after the type directory) use `MetadataElement.fromPath()` directly; (2) types with no suffix (LWC, Aura) use `fromPath()` since the scan cannot identify them; (3) depth-2 paths where the file contains the metadata suffix extract the component name directly from the file name without git I/O; (4) deeper paths delegate to `scanAndCreateElement()` which walks up the git tree — bounded by the type directory — to find the component root by matching sibling files against known metadata suffixes. This handles intermediate folders between the type directory and the component (e.g., `permissionsets/marketing/Admin/...` where `marketing` is an organizational folder, not the component). Directory listings are cached per revision via `dirCache` to avoid redundant I/O across diff lines in the same component.
 
 ### Handler Hierarchy
 

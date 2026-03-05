@@ -12,7 +12,7 @@ const BOT_EXTENSION = 'bot'
 export default class BotHandler extends ShareFolderHandler {
   protected override _getElementName() {
     const fileName = parse(this.element.basePath).name
-    const elementName = new Set([this.element.pathAfterType[0], fileName])
+    const elementName = new Set([this.element.parentFolder, fileName])
     return [...elementName].join(DOT)
   }
 
