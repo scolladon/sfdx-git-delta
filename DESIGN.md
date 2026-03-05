@@ -303,7 +303,7 @@ Like DecomposedHandler but the parent copy is conditional: only copies the paren
 **Extends**: StandardHandler
 **Used by**: PermissionSet
 
-Handles types that can exist in either monolithic format (single file) or decomposed format (folder with sub-files). Detects the format at construction time. On deletion in decomposed format, checks if the holder folder still has content before treating as a true deletion.
+Handles types that can exist in either monolithic format (single file) or decomposed format (folder with sub-files). Detects the format at construction time. Locates the PermissionSet directory using a fixed offset from the file path's end, supporting arbitrary nesting depth (e.g., `permissionsets/marketing/Admin/fieldPermissions/...`). On deletion in decomposed format, checks if the holder folder still has content — if yes, treats as modification (redeploy the PS); if no, treats as true deletion.
 
 #### CustomObjectHandler
 

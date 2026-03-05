@@ -8,6 +8,11 @@ import { readDirs } from '../utils/fsHelper.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 
+// In .../PSName/childTypeDir/file, the PS name is 3 segments before the end
+const PS_DIR_OFFSET_IN_SUBDIR = 3
+// In .../PSName/file, the PS name is 2 segments before the end
+const PS_DIR_OFFSET_FLAT = 2
+
 export default class ContainedDecomposedHandler extends StandardHandler {
   protected holderFolder: ParsedPath | undefined
 
@@ -43,8 +48,11 @@ export default class ContainedDecomposedHandler extends StandardHandler {
       )
       return
     }
+    const isFlat = this.element.componentName === this.element.parentFolder
+    const offset = isFlat ? PS_DIR_OFFSET_FLAT : PS_DIR_OFFSET_IN_SUBDIR
+    const psDirIndex = this.element.parts.length - offset
     this.holderFolder = parse(
-      join(this.element.typeDirectoryPath, this.element.pathAfterType[0])
+      this.element.parts.slice(0, psDirIndex + 1).join(PATH_SEP)
     )
   }
 
