@@ -6,7 +6,7 @@ labels: enhancement
 assignees: scolladon
 ---
 
-### Is your proposal related to a problem?
+## Is your proposal related to a problem?
 
 ---
 
@@ -15,7 +15,7 @@ assignees: scolladon
   For example, "I'm always frustrated when..."
 -->
 
-### Describe a solution you propose
+## Describe a solution you propose
 
 ---
 
@@ -23,7 +23,7 @@ assignees: scolladon
   Provide a clear and concise description of what you want to happen.
 -->
 
-### Describe alternatives you've considered
+## Describe alternatives you've considered
 
 ---
 
@@ -31,7 +31,7 @@ assignees: scolladon
   Let us know about other solutions you've tried or researched.
 -->
 
-### Additional context
+## Additional context
 
 ---
 

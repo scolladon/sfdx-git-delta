@@ -65,7 +65,7 @@ flowchart LR
 `MetadataRepositoryImpl` maintains three lookup indexes for fast path resolution:
 
 | Index | Key | Use case |
-|-------|-----|----------|
+| ----- | --- | -------- |
 | `extIndex` | File extension (`.cls`, `.trigger`) | Primary lookup for most types |
 | `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous — picks deepest match, stops at `inFolder` types |
 | `xmlNameIndex` | XML name (`ApexClass`, `ApexTrigger`) | Direct lookup by type name |
@@ -73,7 +73,7 @@ flowchart LR
 ### Key Metadata Fields
 
 | Field | Purpose |
-|-------|---------|
+| ----- | ------- |
 | `xmlName` | Salesforce API type name |
 | `suffix` | File extension without dot |
 | `directoryName` | Expected parent directory |
@@ -147,7 +147,7 @@ flowchart TD
 The `resolveHandler()` method applies these tiers in order, returning the first match:
 
 | Tier | Signal | Handler | Example |
-|------|--------|---------|---------|
+| ---- | ------ | ------- | ------- |
 | 1. Explicit override | `xmlName` in `handlerMap` | Varies | `Flow` → `FlowHandler` |
 | 2. Folder-based | `inFolder: true` | `InFolderHandler` | `Document`, `EmailTemplate` |
 | 3. Adapter-based | `adapter` from SDR strategies | `InResourceHandler` / `InBundleHandler` | `bundle` → `InResource` |
@@ -377,10 +377,10 @@ Each processor is wrapped in error isolation — failures produce warnings rathe
 
 Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Two operation kinds:
 
-| Kind | Description |
-|------|-------------|
-| `GitCopy` | Reads a file from a specific git revision via `git show <rev>:<path>` and writes it to the output directory |
-| `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory |
+| Kind              | Description                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GitCopy`         | Reads a file from a specific git revision via `git show <rev>:<path>` and writes it to the output directory        |
+| `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory      |
 
 `GitAdapter.getBufferContent()` handles LFS detection: if the buffer starts with an LFS pointer signature, it reads the actual object from the local LFS cache instead.
 
@@ -393,7 +393,7 @@ Executes the accumulated copy operations with concurrency bounded by `getConcurr
 SGD follows a **warnings-not-exceptions** philosophy for per-file errors:
 
 | Layer | Strategy |
-|-------|----------|
+| ----- | -------- |
 | Config validation | Fatal: throws `ConfigError` / `MetadataRegistryError` → propagates to CLI |
 | Handlers (`collect()`) | Catches all errors → converts to warnings in `HandlerResult` |
 | Post-processors | Each wrapped in `_safeProcess` → failures become warnings |
@@ -436,7 +436,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 ### For Users
 
 | Mechanism | Purpose |
-|-----------|---------|
+| --------- | ------- |
 | `--additional-metadata-registry` | JSON file defining custom metadata types (Zod-validated) |
 | `--ignore-file` / `--ignore-destructive-file` | Gitignore-format exclusion patterns |
 | `--include-file` / `--include-destructive-file` | Force-include paths regardless of diff |
@@ -445,7 +445,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 ### For Developers
 
 | Extension point | How to extend |
-|-----------------|---------------|
+| --------------- | ------------- |
 | New metadata type handler | Most types are auto-resolved via SDR registry attributes (`adapter`, `decomposition`, `inFolder`, `xmlTag`+`key`). Only add an explicit entry to `handlerMap` in `TypeHandlerFactory` when a type needs behavior that differs from what SDR signals would select. |
 | New post-processor | Add a `BaseProcessor` subclass to `registeredProcessors` in `postProcessorManager.ts` |
 | Metadata type override | Add definition to `internalRegistry.ts` with special flags (`pruneOnly`, `excluded`, `xmlTag`, etc.) |
@@ -460,7 +460,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 All user inputs flowing through the pipeline:
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `from` / `to` | `string` | Git commit SHAs (the diff range) |
 | `output` | `string` | Directory for generated manifests |
 | `source` | `string[]` | Source paths to scan |
@@ -476,7 +476,7 @@ All user inputs flowing through the pipeline:
 Mutable context accumulating outputs:
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `config` | `Config` | The configuration |
 | `diffs` | `{ package: Map, destructiveChanges: Map }` | Accumulated manifest maps (`type → Set<member>`) |
 | `warnings` | `Error[]` | Non-fatal warnings |
@@ -486,7 +486,7 @@ Mutable context accumulating outputs:
 Universal handler/processor output:
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `manifests` | `ManifestElement[]` | Entries for package.xml or destructiveChanges.xml |
 | `copies` | `CopyOperation[]` | `GitCopy` or `ComputedContent` operations |
 | `warnings` | `Error[]` | Non-fatal warnings |
@@ -496,7 +496,7 @@ Universal handler/processor output:
 Metadata type definition (Zod-validated):
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `xmlName` | `string` | Salesforce API type name |
 | `suffix` | `string` | File extension without dot |
 | `directoryName` | `string` | Expected parent directory |
