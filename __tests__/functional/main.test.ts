@@ -10,6 +10,24 @@ import {
   ManifestTarget,
 } from '../../src/types/handlerResult'
 
+jest.mock('../../src/utils/LoggingService')
+
+const mockPreBuildTreeIndex = jest.fn()
+jest.mock('../../src/adapter/GitAdapter', () => ({
+  default: {
+    getInstance: jest.fn(() => ({
+      preBuildTreeIndex: mockPreBuildTreeIndex,
+    })),
+    closeAll: jest.fn(),
+  },
+}))
+
+const mockComputeTreeIndexScope = jest.fn()
+jest.mock('../../src/utils/treeIndexScope', () => ({
+  computeTreeIndexScope: (...args: unknown[]) =>
+    mockComputeTreeIndexScope(...args),
+}))
+
 const mockValidateConfig = jest.fn()
 jest.mock('../../src/utils/configValidator', () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
@@ -85,6 +103,7 @@ beforeEach(() => {
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
   mockGetLines.mockResolvedValue([] as never)
+  mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
 
 describe('external library inclusion', () => {
@@ -216,6 +235,98 @@ describe('external library inclusion', () => {
       expect(result.warnings).toHaveLength(2)
       expect(result.warnings).toContain(handlerWarning)
       expect(result.warnings).toContain(postWarning)
+    })
+  })
+
+  describe('tree index scoping', () => {
+    it('Given generateDelta is false, When sgd runs, Then preBuildTreeIndex is not called', async () => {
+      // Act
+      await sgd({ generateDelta: false } as Config)
+
+      // Assert
+      expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given generateDelta is true with include set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
+      // Arrange
+      const sut = {
+        generateDelta: true,
+        include: 'include.txt',
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', [
+        'force-app',
+      ])
+      expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
+    })
+
+    it('Given generateDelta is true with includeDestructive set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
+      // Arrange
+      const sut = {
+        generateDelta: true,
+        includeDestructive: 'destructive.txt',
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['src'],
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['src'])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['src'])
+    })
+
+    it('Given generateDelta is true with computed scope paths, When sgd runs, Then preBuildTreeIndex is called with scope paths', async () => {
+      // Arrange
+      mockComputeTreeIndexScope.mockReturnValueOnce(
+        new Set(['force-app/main/default/classes'])
+      )
+      const sut = {
+        generateDelta: true,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockComputeTreeIndexScope).toHaveBeenCalled()
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', [
+        'force-app/main/default/classes',
+      ])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', [
+        'force-app/main/default/classes',
+      ])
+    })
+
+    it('Given generateDelta is true with empty scope paths, When sgd runs, Then preBuildTreeIndex is not called', async () => {
+      // Arrange
+      mockComputeTreeIndexScope.mockReturnValueOnce(new Set())
+      const sut = {
+        generateDelta: true,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockComputeTreeIndexScope).toHaveBeenCalled()
+      expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
     })
   })
 })
