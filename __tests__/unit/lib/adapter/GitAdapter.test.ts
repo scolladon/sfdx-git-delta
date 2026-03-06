@@ -955,6 +955,31 @@ describe('GitAdapter', () => {
       ])
     })
 
+    it('Given multiple paths, When gitGrep is called, Then passes all paths to git grep', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue(
+        `${config.to}:dir1/file1.txt\n${config.to}:dir2/file2.txt` as never
+      )
+
+      // Act
+      const result = await sut.gitGrep('pattern', ['dir1/', 'dir2/'])
+
+      // Assert
+      expect(result).toEqual(['dir1/file1.txt', 'dir2/file2.txt'])
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'grep',
+        '-l',
+        'pattern',
+        config.to,
+        '--',
+        'dir1/',
+        'dir2/',
+      ])
+    })
+
     it('Given no matches, When gitGrep throws, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)

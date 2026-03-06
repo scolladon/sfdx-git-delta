@@ -215,17 +215,18 @@ export default class GitAdapter {
   @log
   public async gitGrep(
     pattern: string,
-    path: string,
+    path: string | string[],
     revision: string = this.config.to
   ): Promise<string[]> {
     try {
+      const paths = Array.isArray(path) ? path : [path]
       const result = await this.simpleGit.raw([
         'grep',
         '-l',
         pattern,
         revision,
         '--',
-        path,
+        ...paths,
       ])
       return result
         .split(EOL)
