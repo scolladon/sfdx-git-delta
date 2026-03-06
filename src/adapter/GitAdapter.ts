@@ -118,7 +118,7 @@ export default class GitAdapter {
     return await this.simpleGit.raw(['rev-list', '--max-parents=0', HEAD])
   }
 
-  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
+  public async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
     let content = await this.getBatchCatFile().getContent(
       forRef.oid,
       forRef.path
@@ -197,20 +197,6 @@ export default class GitAdapter {
         lazy`listDirAtRevision: failed to list '${dir}' at '${revision}': ${() => getErrorMessage(error)}`
       )
       return []
-    }
-  }
-
-  public async *getFilesFrom(path: string) {
-    const filesPath = await this.getFilesPath(path)
-    for (const filePath of filesPath) {
-      const fileContent = await this.getBufferContent({
-        path: filePath,
-        oid: this.config.to,
-      })
-      yield {
-        path: filePath,
-        content: fileContent,
-      }
     }
   }
 

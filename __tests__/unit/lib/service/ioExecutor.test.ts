@@ -17,7 +17,9 @@ jest.mock('../../../../src/utils/ignoreHelper')
 
 const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 
-const mockGetFilesFrom = jest.fn()
+const mockGetFilesPath = jest.fn<(path: string) => Promise<string[]>>()
+const mockGetBufferContent =
+  jest.fn<(forRef: { path: string; oid: string }) => Promise<Buffer>>()
 const mockCloseBatchProcess = jest.fn()
 const mockGetInstance = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => {
@@ -31,7 +33,8 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
 beforeEach(() => {
   jest.resetAllMocks()
   mockGetInstance.mockReturnValue({
-    getFilesFrom: mockGetFilesFrom,
+    getFilesPath: mockGetFilesPath,
+    getBufferContent: mockGetBufferContent,
     closeBatchProcess: mockCloseBatchProcess,
   })
   mockBuildIgnoreHelper.mockResolvedValue({
@@ -50,12 +53,8 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetFilesFrom.mockImplementation(async function* () {
-        yield await {
-          path: 'classes/MyClass.cls',
-          content: Buffer.from('content'),
-        }
-      })
+      mockGetFilesPath.mockResolvedValue(['classes/MyClass.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
           kind: CopyOperationKind.GitCopy,
@@ -68,7 +67,7 @@ describe('IOExecutor', () => {
       await executor.execute(copies)
 
       // Assert
-      expect(mockGetFilesFrom).toHaveBeenCalledWith('classes/MyClass.cls')
+      expect(mockGetFilesPath).toHaveBeenCalledWith('classes/MyClass.cls')
       expect(outputFile).toHaveBeenCalled()
     })
   })
@@ -80,12 +79,8 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetFilesFrom.mockImplementation(async function* () {
-        yield await {
-          path: 'classes/MyClass.cls',
-          content: Buffer.from('class content'),
-        }
-      })
+      mockGetFilesPath.mockResolvedValue(['classes/MyClass.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('class content'))
 
       // Act
       await executor.execute([
@@ -97,7 +92,11 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetFilesFrom).toHaveBeenCalledWith('classes/MyClass.cls')
+      expect(mockGetFilesPath).toHaveBeenCalledWith('classes/MyClass.cls')
+      expect(mockGetBufferContent).toHaveBeenCalledWith({
+        path: 'classes/MyClass.cls',
+        oid: 'abc123',
+      })
       expect(outputFile).toHaveBeenCalledWith(
         'output/classes/MyClass.cls',
         Buffer.from('class content')
@@ -136,12 +135,8 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetFilesFrom.mockImplementation(async function* () {
-        yield await {
-          path: 'classes/MyClass.cls',
-          content: Buffer.from('content'),
-        }
-      })
+      mockGetFilesPath.mockResolvedValue(['classes/MyClass.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
           kind: CopyOperationKind.GitCopy,
@@ -159,7 +154,7 @@ describe('IOExecutor', () => {
       await executor.execute(copies)
 
       // Assert
-      expect(mockGetFilesFrom).toHaveBeenCalledTimes(1)
+      expect(mockGetFilesPath).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -185,7 +180,7 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetFilesFrom).not.toHaveBeenCalled()
+      expect(mockGetFilesPath).not.toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
@@ -197,9 +192,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetFilesFrom.mockImplementation(async function* () {
-        throw new Error('git error')
-      })
+      mockGetFilesPath.mockRejectedValue(new Error('git error'))
 
       // Act & Assert (should not throw)
       await executor.execute([
@@ -210,7 +203,7 @@ describe('IOExecutor', () => {
         },
       ])
 
-      expect(mockGetFilesFrom).toHaveBeenCalled()
+      expect(mockGetFilesPath).toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
@@ -222,12 +215,8 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetFilesFrom.mockImplementation(async function* () {
-        yield await {
-          path: 'classes/MyClass.cls',
-          content: Buffer.from('content'),
-        }
-      })
+      mockGetFilesPath.mockResolvedValue(['classes/MyClass.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
 
       // Act
       await executor.execute([
@@ -252,12 +241,8 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetFilesFrom.mockImplementation(async function* () {
-        yield await {
-          path: 'classes/MyClass.cls',
-          content: Buffer.from('content'),
-        }
-      })
+      mockGetFilesPath.mockResolvedValue(['classes/MyClass.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
 
       // Act
       await executor.execute([
@@ -285,7 +270,7 @@ describe('IOExecutor', () => {
       await executor.execute([])
 
       // Assert
-      expect(mockGetFilesFrom).not.toHaveBeenCalled()
+      expect(mockGetFilesPath).not.toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })

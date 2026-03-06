@@ -61,11 +61,20 @@ export default class IOExecutor {
           ? { ...this.config, to: op.revision }
           : this.config
       const gitAdapter = GitAdapter.getInstance(config)
-      for await (const file of gitAdapter.getFilesFrom(op.path)) {
-        const dst = join(this.config.output, file.path)
-        await outputFile(dst, file.content)
-        this.processedPaths.add(file.path)
-      }
+      const filePaths = await gitAdapter.getFilesPath(op.path)
+      await eachLimit(
+        filePaths,
+        getConcurrencyThreshold(),
+        async (filePath: string) => {
+          const content = await gitAdapter.getBufferContent({
+            path: filePath,
+            oid: config.to,
+          })
+          const dst = join(this.config.output, filePath)
+          await outputFile(dst, content)
+          this.processedPaths.add(filePath)
+        }
+      )
     } catch (error) {
       Logger.debug(
         lazy`IOExecutor gitCopy failed for ${op.path}: ${getErrorMessage(error)}`
