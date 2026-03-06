@@ -14,7 +14,7 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { readDirs } from '../../../../src/utils/fsHelper'
+import { grepContent } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
@@ -27,7 +27,7 @@ import { getWork } from '../../../__utils__/testWork'
 jest.mock('../../../../src/utils/fsHelper')
 jest.mock('../../../../src/utils/fsUtils')
 
-const mockedReadDirs = jest.mocked(readDirs)
+const mockedGrepContent = jest.mocked(grepContent)
 const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
 const mockedIsSubDir = jest.mocked(isSubDir)
 const mockedPathExists = jest.mocked(pathExists)
@@ -108,7 +108,7 @@ describe('FlowTranslationProcessor', () => {
       work.config.repo = './'
       work.config.output = outputPath
       sut = new FlowTranslationProcessor(work, metadata)
-      mockedReadDirs.mockResolvedValue([translationPath])
+      mockedGrepContent.mockResolvedValue([translationPath])
     })
 
     describe('when no flow have been modified', () => {
@@ -117,7 +117,7 @@ describe('FlowTranslationProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedReadDirs).not.toHaveBeenCalled()
+        expect(mockedGrepContent).not.toHaveBeenCalled()
         expect(hasTranslationManifest(result)).toBeFalsy()
       })
     })
@@ -134,16 +134,19 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is no translation file', () => {
         beforeEach(() => {
           // Arrange
-          mockedReadDirs.mockResolvedValue([])
+          mockedGrepContent.mockResolvedValue([])
         })
         it('should not add translation file', async () => {
           // Act
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
@@ -163,9 +166,12 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(hasTranslationManifest(result)).toBeFalsy()
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
@@ -185,9 +191,12 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
@@ -214,9 +223,12 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalled()
@@ -249,9 +261,12 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalled()
@@ -268,7 +283,7 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is multiple translation file with multiple flow def', () => {
         beforeEach(() => {
           // Arrange
-          mockedReadDirs.mockResolvedValue([
+          mockedGrepContent.mockResolvedValue([
             translationPath,
             `fr_${translationPath}`,
           ])
@@ -287,9 +302,12 @@ describe('FlowTranslationProcessor', () => {
 
             // Assert
             expect(hasTranslationManifest(result)).toBeFalsy()
-            expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-            expect(mockedReadDirs).toHaveBeenCalledWith(
-              work.config.source,
+            expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+            expect(mockedGrepContent).toHaveBeenCalledWith(
+              'flowDefinitions',
+              work.config.source.map(
+                (s: string) => `${s}/*.translation-meta.xml`
+              ),
               work.config
             )
             expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
@@ -332,9 +350,12 @@ describe('FlowTranslationProcessor', () => {
                   }),
                 ])
               )
-              expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-              expect(mockedReadDirs).toHaveBeenCalledWith(
-                work.config.source,
+              expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+              expect(mockedGrepContent).toHaveBeenCalledWith(
+                'flowDefinitions',
+                work.config.source.map(
+                  (s: string) => `${s}/*.translation-meta.xml`
+                ),
                 work.config
               )
               expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
@@ -357,9 +378,12 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(hasTranslationManifest(result)).toBeFalsy()
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
@@ -382,9 +406,12 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(hasTranslationManifest(result)).toBeTruthy()
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
@@ -406,9 +433,12 @@ describe('FlowTranslationProcessor', () => {
 
           // Assert
           expect(hasTranslationManifest(result)).toBeFalsy()
-          expect(mockedReadDirs).toHaveBeenCalledTimes(1)
-          expect(mockedReadDirs).toHaveBeenCalledWith(
-            work.config.source,
+          expect(mockedGrepContent).toHaveBeenCalledTimes(1)
+          expect(mockedGrepContent).toHaveBeenCalledWith(
+            'flowDefinitions',
+            work.config.source.map(
+              (s: string) => `${s}/*.translation-meta.xml`
+            ),
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
