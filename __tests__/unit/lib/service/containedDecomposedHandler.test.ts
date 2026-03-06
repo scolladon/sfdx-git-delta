@@ -275,7 +275,28 @@ describe('ContainedDecomposedHandler', () => {
       })
     })
 
-    it('Given decomposed addition, When collect, Then includes holder folder GitCopy', async () => {
+    it('Given decomposed addition with generateDelta false, When collect, Then no GitDirCopy in copies', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const decomposedLine =
+        'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
+      const { changeType, element } = createElement(
+        decomposedLine,
+        globalMetadata.get('permissionsets')!,
+        globalMetadata
+      )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(
+        result.copies.every(c => c.kind !== CopyOperationKind.GitDirCopy)
+      ).toBe(true)
+    })
+
+    it('Given decomposed addition, When collect, Then includes holder folder GitDirCopy', async () => {
       // Arrange
       const decomposedLine =
         'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
@@ -302,7 +323,7 @@ describe('ContainedDecomposedHandler', () => {
       expect(
         result.copies.some(
           c =>
-            c.kind === CopyOperationKind.GitCopy &&
+            c.kind === CopyOperationKind.GitDirCopy &&
             c.path.includes('permissionsets/Admin')
         )
       ).toBe(true)

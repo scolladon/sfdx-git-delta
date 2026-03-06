@@ -42,7 +42,10 @@ export default class IOExecutor {
 
     switch (op.kind) {
       case CopyOperationKind.GitCopy:
-        await this._executeGitCopy(op)
+        await this._executeGitFileCopy(op)
+        break
+      case CopyOperationKind.GitDirCopy:
+        await this._executeGitDirCopy(op)
         break
       case CopyOperationKind.ComputedContent:
         await this._executeComputedContent(op)
@@ -50,7 +53,30 @@ export default class IOExecutor {
     }
   }
 
-  protected async _executeGitCopy(op: {
+  protected async _executeGitFileCopy(op: {
+    path: string
+    revision: string
+  }): Promise<void> {
+    try {
+      const config =
+        op.revision !== this.config.to
+          ? { ...this.config, to: op.revision }
+          : this.config
+      const gitAdapter = GitAdapter.getInstance(config)
+      const content = await gitAdapter.getBufferContent({
+        path: op.path,
+        oid: config.to,
+      })
+      const dst = join(this.config.output, op.path)
+      await outputFile(dst, content)
+    } catch (error) {
+      Logger.debug(
+        lazy`IOExecutor gitFileCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
+      )
+    }
+  }
+
+  protected async _executeGitDirCopy(op: {
     path: string
     revision: string
   }): Promise<void> {
@@ -61,22 +87,18 @@ export default class IOExecutor {
           : this.config
       const gitAdapter = GitAdapter.getInstance(config)
       const filePaths = await gitAdapter.getFilesPath(op.path)
-      await eachLimit(
-        filePaths,
-        getConcurrencyThreshold(),
-        async (filePath: string) => {
-          const content = await gitAdapter.getBufferContent({
-            path: filePath,
-            oid: config.to,
-          })
-          const dst = join(this.config.output, filePath)
-          await outputFile(dst, content)
-          this.processedPaths.add(filePath)
-        }
-      )
+      for (const filePath of filePaths) {
+        const content = await gitAdapter.getBufferContent({
+          path: filePath,
+          oid: config.to,
+        })
+        const dst = join(this.config.output, filePath)
+        await outputFile(dst, content)
+        this.processedPaths.add(filePath)
+      }
     } catch (error) {
       Logger.debug(
-        lazy`IOExecutor gitCopy failed for ${op.path}: ${getErrorMessage(error)}`
+        lazy`IOExecutor gitDirCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
       )
     }
   }

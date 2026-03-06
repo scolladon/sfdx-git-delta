@@ -2,7 +2,8 @@
 import { join, ParsedPath, parse } from 'node:path/posix'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { HandlerResult } from '../types/handlerResult.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { readDirs } from '../utils/fsHelper.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
@@ -24,7 +25,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   public override async collectAddition(): Promise<HandlerResult> {
     const result = await super.collectAddition()
     if (this._isDecomposedFormat()) {
-      this._collectCopy(result.copies, this._getHolderPath())
+      this._collectDirCopy(result.copies, this._getHolderPath())
     }
     return result
   }
@@ -62,6 +63,15 @@ export default class ContainedDecomposedHandler extends StandardHandler {
       !parsed.base.includes(`.${this.element.type.suffix}`) ||
       parsed.dir.split(PATH_SEP).pop() === parsed.name
     )
+  }
+
+  protected _collectDirCopy(copies: CopyOperation[], path: string): void {
+    if (!this._shouldCollectCopies()) return
+    copies.push({
+      kind: CopyOperationKind.GitDirCopy,
+      path,
+      revision: this.config.to,
+    })
   }
 
   protected _getHolderPath(): string {
