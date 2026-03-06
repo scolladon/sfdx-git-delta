@@ -290,6 +290,24 @@ describe('GitAdapter', () => {
         expect(result).toBe(false)
       })
     })
+
+    describe('Given root path, When pathExists, Then returns true if tree has files', () => {
+      it.each([
+        '',
+        '.',
+        './',
+      ])('returns true for root path "%s"', async rootPath => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        setupTreeIndex(['src/file.ts'])
+
+        // Act
+        const result = await gitAdapter.pathExists(rootPath)
+
+        // Assert
+        expect(result).toBe(true)
+      })
+    })
   })
 
   describe('getFirstCommitRef', () => {
@@ -604,6 +622,24 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([])
+    })
+
+    it.each([
+      '',
+      '.',
+      './',
+    ])('Given root path "%s", When getFilesPath, Then returns all files', async rootPath => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const allFiles = ['src/a.ts', 'src/b.ts', 'lib/c.js']
+      setupTreeIndex(allFiles)
+
+      // Act
+      const result = await gitAdapter.getFilesPath(rootPath)
+
+      // Assert
+      expect(result).toEqual(expect.arrayContaining(allFiles))
+      expect(result).toHaveLength(allFiles.length)
     })
   })
 

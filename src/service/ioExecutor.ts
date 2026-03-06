@@ -28,7 +28,6 @@ export default class IOExecutor {
         await this._executeOperation(op)
       }
     )
-    GitAdapter.getInstance(this.config).closeBatchProcess()
   }
 
   protected async _executeOperation(op: CopyOperation): Promise<void> {

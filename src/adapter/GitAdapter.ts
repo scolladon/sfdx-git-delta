@@ -21,6 +21,7 @@ import { Logger, lazy } from '../utils/LoggingService.js'
 import { GitBatchCatFile } from './gitBatchCatFile.js'
 
 const EOL = new RegExp(/\r?\n/)
+const ROOT_PATHS = new Set(['', '.', './'])
 
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
@@ -53,6 +54,12 @@ export default class GitAdapter {
   public closeBatchProcess(): void {
     this.batchCatFile?.close()
     this.batchCatFile = null
+  }
+
+  public static closeAll(): void {
+    for (const instance of GitAdapter.instances.values()) {
+      instance.closeBatchProcess()
+    }
   }
 
   @log
@@ -90,6 +97,9 @@ export default class GitAdapter {
   protected async pathExistsImpl(path: string, revision: string) {
     try {
       const index = await this.buildTreeIndex(revision)
+      if (ROOT_PATHS.has(path)) {
+        return index.size > 0
+      }
       if (index.has(path)) {
         return true
       }
@@ -142,6 +152,9 @@ export default class GitAdapter {
     revision: string
   ): Promise<string[]> {
     const index = await this.buildTreeIndex(revision)
+    if (ROOT_PATHS.has(path)) {
+      return Array.from(index)
+    }
     if (index.has(path)) {
       return [path]
     }

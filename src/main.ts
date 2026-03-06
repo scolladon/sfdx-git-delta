@@ -1,4 +1,5 @@
 'use strict'
+import GitAdapter from './adapter/GitAdapter.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
@@ -43,6 +44,7 @@ export default async (config: Config): Promise<Work> => {
 
   await new IOExecutor(config).execute(combinedResult.copies)
   await postProcessors.executeRemaining()
+  GitAdapter.closeAll()
 
   Logger.debug(lazy`main: return ${work}`)
   Logger.trace('main: exit')
