@@ -243,29 +243,29 @@ export default class GitAdapter {
 
   @log
   public async getDiffLines(): Promise<string[]> {
-    const lines: string[] = []
-    for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
-      const output = await this.simpleGit.raw([
-        'diff',
-        '--numstat',
-        '--no-renames',
-        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-        `--diff-filter=${changeType}`,
-        this.config.from,
-        this.config.to,
-        '--',
-        ...this.config.source,
-      ])
-      const linesOfType = output
-        .split(EOL)
-        .filter(Boolean)
-        .map(line =>
-          treatPathSep(
-            line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+    const results = await Promise.all(
+      [ADDITION, MODIFICATION, DELETION].map(async changeType => {
+        const output = await this.simpleGit.raw([
+          'diff',
+          '--numstat',
+          '--no-renames',
+          ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+          `--diff-filter=${changeType}`,
+          this.config.from,
+          this.config.to,
+          '--',
+          ...this.config.source,
+        ])
+        return output
+          .split(EOL)
+          .filter(Boolean)
+          .map(line =>
+            treatPathSep(
+              line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+            )
           )
-        )
-      pushAll(lines, linesOfType)
-    }
-    return lines
+      })
+    )
+    return results.flat()
   }
 }
