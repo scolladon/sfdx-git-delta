@@ -58,17 +58,19 @@ export default class ConfigValidator {
   @log
   public async validateConfig() {
     this._sanitizeConfig()
-    await this._handleDefault()
-    const errors: string[] = []
 
-    const repoExists = await pathExists(join(this.config.repo, GIT_FOLDER))
+    const [, repoExists, gitErrors] = await Promise.all([
+      this._handleDefault(),
+      pathExists(join(this.config.repo, GIT_FOLDER)),
+      this._validateGitSha(),
+    ])
+
+    const errors: string[] = []
     if (!repoExists) {
       errors.push(
         this.message.getMessage('error.PathIsNotGit', [this.config.repo])
       )
     }
-
-    const gitErrors = await this._validateGitSha()
     pushAll(errors, gitErrors)
 
     if (errors.length > 0) {
