@@ -95,6 +95,35 @@ export default class GitAdapter {
     return files
   }
 
+  @log
+  public async preBuildTreeIndex(
+    revision: string,
+    scopePaths: string[]
+  ): Promise<void> {
+    if (this.treeIndex.has(revision)) {
+      return
+    }
+
+    try {
+      const args = ['ls-tree', '--name-only', '-r', revision]
+      if (scopePaths.length > 0) {
+        args.push('--', ...scopePaths)
+      }
+      const output = await this.simpleGit.raw(args)
+      const files = new Set(
+        output
+          .split(EOL)
+          .filter(line => line)
+          .map(line => treatPathSep(line))
+      )
+      this.treeIndex.set(revision, files)
+    } catch (error) {
+      Logger.debug(
+        lazy`preBuildTreeIndex: scoped ls-tree for '${revision}' failed: ${() => getErrorMessage(error)}`
+      )
+    }
+  }
+
   protected async pathExistsImpl(path: string, revision: string) {
     try {
       const index = await this.buildTreeIndex(revision)

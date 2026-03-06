@@ -993,6 +993,96 @@ describe('GitAdapter', () => {
     })
   })
 
+  describe('preBuildTreeIndex', () => {
+    it('Given scope paths, When preBuildTreeIndex is called, Then ls-tree is scoped', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      setupTreeIndex(['dir1/file1.cls', 'dir1/file2.cls'])
+
+      // Act
+      await sut.preBuildTreeIndex(config.to, ['dir1/'])
+
+      // Assert
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        '--',
+        'dir1/',
+      ])
+    })
+
+    it('Given pre-built index, When pathExists is called, Then uses cached index', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      setupTreeIndex(['dir1/file1.cls'])
+
+      await sut.preBuildTreeIndex(config.to, ['dir1/'])
+      mockedRaw.mockClear()
+
+      // Act
+      const exists = await sut.pathExists('dir1/file1.cls')
+
+      // Assert
+      expect(exists).toBe(true)
+      expect(mockedRaw).not.toHaveBeenCalled()
+    })
+
+    it('Given empty scope paths, When preBuildTreeIndex is called, Then ls-tree has no path args', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      setupTreeIndex([])
+
+      // Act
+      await sut.preBuildTreeIndex(config.to, [])
+
+      // Assert
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+      ])
+    })
+
+    it('Given git command throws, When preBuildTreeIndex is called, Then does not throw', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockRejectedValue(new Error('git error') as never)
+
+      // Act & Assert
+      await expect(
+        sut.preBuildTreeIndex(config.to, ['dir1/'])
+      ).resolves.toBeUndefined()
+    })
+
+    it('Given already-cached revision, When preBuildTreeIndex is called, Then skips ls-tree', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      setupTreeIndex(['dir1/file1.cls'])
+
+      await sut.preBuildTreeIndex(config.to, ['dir1/'])
+      mockedRaw.mockClear()
+
+      // Act
+      await sut.preBuildTreeIndex(config.to, ['dir2/'])
+
+      // Assert
+      expect(mockedRaw).not.toHaveBeenCalled()
+    })
+  })
+
   describe('closeBatchProcess', () => {
     it('Given batch process was created, When closeBatchProcess, Then calls close', async () => {
       // Arrange
