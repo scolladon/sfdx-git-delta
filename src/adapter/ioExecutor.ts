@@ -88,6 +88,9 @@ export default class IOExecutor {
       const gitAdapter = GitAdapter.getInstance(config)
       const filePaths = await gitAdapter.getFilesPath(op.path)
       for (const filePath of filePaths) {
+        if (this.ignoreHelper.globalIgnore.ignores(filePath)) {
+          continue
+        }
         const content = await gitAdapter.getBufferContent({
           path: filePath,
           oid: config.to,

@@ -51,6 +51,7 @@ const setupTreeIndex = (files: string[]) => {
 describe('GitAdapter', () => {
   let config: Config
   beforeEach(() => {
+    GitAdapter.closeAll()
     const work = getWork()
     config = work.config
   })

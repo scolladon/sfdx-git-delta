@@ -332,6 +332,43 @@ describe('IOExecutor', () => {
     })
   })
 
+  describe('Given a GitDirCopy operation with ignored child files', () => {
+    it('When executed, Then skips ignored child files', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+      mockGetFilesPath.mockResolvedValue([
+        'permissionsets/MyPS/kept.xml',
+        'permissionsets/MyPS/ignored.xml',
+      ])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: (path: string) => path.includes('ignored'),
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'permissionsets/MyPS',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContent).toHaveBeenCalledTimes(1)
+      expect(outputFile).toHaveBeenCalledTimes(1)
+      expect(outputFile).toHaveBeenCalledWith(
+        'output/permissionsets/MyPS/kept.xml',
+        Buffer.from('content')
+      )
+    })
+  })
+
   describe('Given an empty copies array', () => {
     it('When executed, Then does nothing', async () => {
       // Arrange
