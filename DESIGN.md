@@ -373,7 +373,7 @@ Each processor is wrapped in error isolation — failures produce warnings rathe
 
 ## Stage 6: I/O Execution
 
-**Entry**: `IOExecutor.execute(copies)` (`src/service/ioExecutor.ts`)
+**Entry**: `IOExecutor.execute(copies)` (`src/adapter/ioExecutor.ts`)
 
 Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Three operation kinds:
 

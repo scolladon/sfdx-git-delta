@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import { outputFile } from 'fs-extra'
 import type { Ignore } from 'ignore'
-import IOExecutor from '../../../../src/service/ioExecutor'
+import IOExecutor from '../../../../src/adapter/ioExecutor'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
 import {

@@ -4,7 +4,6 @@ import { join } from 'node:path/posix'
 import { eachLimit } from 'async'
 import { outputFile } from 'fs-extra'
 
-import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { CopyOperation } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
@@ -12,6 +11,7 @@ import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import GitAdapter from './GitAdapter.js'
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()

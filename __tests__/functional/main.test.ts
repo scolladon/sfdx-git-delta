@@ -88,7 +88,7 @@ jest.mock('../../src/post-processor/postProcessorManager', () => {
 })
 
 const mockExecute = jest.fn()
-jest.mock('../../src/service/ioExecutor', () => {
+jest.mock('../../src/adapter/ioExecutor', () => {
   return {
     default: jest.fn().mockImplementation(() => {
       return {
