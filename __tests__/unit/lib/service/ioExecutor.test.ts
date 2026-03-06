@@ -18,6 +18,7 @@ jest.mock('../../../../src/utils/ignoreHelper')
 const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 
 const mockGetFilesFrom = jest.fn()
+const mockCloseBatchProcess = jest.fn()
 const mockGetInstance = jest.fn()
 jest.mock('../../../../src/adapter/GitAdapter', () => {
   return {
@@ -31,6 +32,7 @@ beforeEach(() => {
   jest.resetAllMocks()
   mockGetInstance.mockReturnValue({
     getFilesFrom: mockGetFilesFrom,
+    closeBatchProcess: mockCloseBatchProcess,
   })
   mockBuildIgnoreHelper.mockResolvedValue({
     globalIgnore: {
@@ -285,6 +287,20 @@ describe('IOExecutor', () => {
       // Assert
       expect(mockGetFilesFrom).not.toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given execute completes', () => {
+    it('When executed, Then closes the batch process', async () => {
+      // Arrange
+      const work = getWork()
+      const executor = new IOExecutor(work.config)
+
+      // Act
+      await executor.execute([])
+
+      // Assert
+      expect(mockCloseBatchProcess).toHaveBeenCalledTimes(1)
     })
   })
 })

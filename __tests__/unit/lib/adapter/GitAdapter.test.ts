@@ -15,8 +15,6 @@ import { getWork } from '../../../__utils__/testWork'
 const mockedRaw = jest.fn()
 const mockedAddConfig = jest.fn()
 const mockedRevParse = jest.fn()
-const mockedCatFile = jest.fn()
-const mockedShowBuffer = jest.fn()
 
 jest.mock('simple-git', () => {
   return {
@@ -24,11 +22,18 @@ jest.mock('simple-git', () => {
       raw: mockedRaw,
       revparse: mockedRevParse,
       addConfig: mockedAddConfig,
-      catFile: mockedCatFile,
-      showBuffer: mockedShowBuffer,
     })),
   }
 })
+
+const mockedGetContent = jest.fn()
+const mockedClose = jest.fn()
+jest.mock('../../../../src/adapter/gitBatchCatFile', () => ({
+  GitBatchCatFile: jest.fn(() => ({
+    getContent: mockedGetContent,
+    close: mockedClose,
+  })),
+}))
 
 jest.mock('../../../../src/utils/gitLfsHelper')
 jest.mock('node:fs/promises')
@@ -258,8 +263,8 @@ describe('GitAdapter', () => {
       })
     })
 
-    describe('Given pathExists does not use catFile, When pathExists, Then no catFile calls are made', () => {
-      it('does not call catFile', async () => {
+    describe('Given pathExists does not use batch cat-file, When pathExists, Then no getContent calls are made', () => {
+      it('does not call getContent', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
         setupTreeIndex(['path/to/file.txt'])
@@ -268,7 +273,7 @@ describe('GitAdapter', () => {
         await gitAdapter.pathExists('path/to/file.txt')
 
         // Assert
-        expect(mockedCatFile).not.toHaveBeenCalled()
+        expect(mockedGetContent).not.toHaveBeenCalled()
       })
     })
 
@@ -304,64 +309,65 @@ describe('GitAdapter', () => {
   })
 
   describe('getStringContent', () => {
-    describe('when catFile returns a string', () => {
-      describe('when string references a LFS file', () => {
+    describe('when getContent returns content', () => {
+      describe('when content references a LFS file', () => {
         it('returns content from LFS', async () => {
           // Arrange
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedShowBuffer.mockImplementation(() =>
-            Promise.resolve('lfs content')
+          mockedGetContent.mockResolvedValue(
+            Buffer.from('lfs content') as never
           )
           isLFSmocked.mockReturnValueOnce(true)
           getLFSObjectContentPathMocked.mockReturnValueOnce('lfs/path')
           readFileMocked.mockResolvedValue(Buffer.from('') as never)
+
           // Act
           const result = await gitAdapter.getStringContent({
-            path: '',
+            path: 'file.txt',
             oid: config.to,
           })
 
           // Assert
           expect(result).toBe('')
-          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
+          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
         })
       })
-      describe('when string does not reference a LFS file', () => {
+      describe('when content does not reference a LFS file', () => {
         it('return the content', async () => {
           // Arrange
           const expected = 'test'
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedShowBuffer.mockImplementation(() => Promise.resolve(expected))
+          mockedGetContent.mockResolvedValue(Buffer.from(expected) as never)
           isLFSmocked.mockReturnValueOnce(false)
+
           // Act
           const result = await gitAdapter.getStringContent({
-            path: '',
+            path: 'file.txt',
             oid: config.to,
           })
 
           // Assert
           expect(result).toBe(expected)
-          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
+          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
         })
       })
     })
-    describe('when catFile throws exception', () => {
+    describe('when getContent throws exception', () => {
       it('throws the exception', async () => {
         // Arrange
         expect.assertions(1)
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedShowBuffer.mockImplementation(() =>
-          Promise.reject(new Error('test'))
-        )
+        mockedGetContent.mockRejectedValue(new Error('test') as never)
+
         // Act
         try {
           await gitAdapter.getStringContent({
-            path: '',
+            path: 'file.txt',
             oid: config.to,
           })
         } catch {
           // Assert
-          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
+          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
         }
       })
     })
@@ -607,7 +613,7 @@ describe('GitAdapter', () => {
       const content = 'content'
       const gitAdapter = GitAdapter.getInstance(config)
       setupTreeIndex(['directory/path/file', 'directory/path/anotherFile'])
-      mockedShowBuffer.mockResolvedValue(Buffer.from(content) as never)
+      mockedGetContent.mockResolvedValue(Buffer.from(content) as never)
 
       // Act
       const result: any = []
@@ -616,7 +622,6 @@ describe('GitAdapter', () => {
       }
 
       // Assert
-
       expect(result).toEqual(
         expect.arrayContaining([
           {
@@ -633,7 +638,7 @@ describe('GitAdapter', () => {
         const content = 'content'
         const gitAdapter = GitAdapter.getInstance(config)
         setupTreeIndex(['directory/path/file', 'directory/path/anotherFile'])
-        mockedCatFile.mockResolvedValue(Buffer.from(content) as never)
+        mockedGetContent.mockResolvedValue(Buffer.from(content) as never)
 
         // Act
         const result: any = []
@@ -642,7 +647,6 @@ describe('GitAdapter', () => {
         }
 
         // Assert
-
         expect(result).toEqual(
           expect.arrayContaining([
             {
@@ -661,7 +665,6 @@ describe('GitAdapter', () => {
         setupTreeIndex([])
 
         // Act
-
         const result: any = []
         for await (const file of gitAdapter.getFilesFrom('directory/path')) {
           result.push(file)
@@ -961,6 +964,31 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([])
+    })
+  })
+
+  describe('closeBatchProcess', () => {
+    it('Given batch process was created, When closeBatchProcess, Then calls close', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedGetContent.mockResolvedValue(Buffer.from('content') as never)
+      isLFSmocked.mockReturnValueOnce(false)
+      await gitAdapter.getStringContent({ path: 'file.txt', oid: config.to })
+
+      // Act
+      gitAdapter.closeBatchProcess()
+
+      // Assert
+      expect(mockedClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('Given batch process was not created, When closeBatchProcess, Then does nothing', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+
+      // Act & Assert (should not throw)
+      gitAdapter.closeBatchProcess()
+      expect(mockedClose).not.toHaveBeenCalled()
     })
   })
 })

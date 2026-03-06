@@ -18,10 +18,10 @@ import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import { GitBatchCatFile } from './gitBatchCatFile.js'
 
 const EOL = new RegExp(/\r?\n/)
 
-const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
 
@@ -36,10 +36,23 @@ export default class GitAdapter {
 
   protected readonly simpleGit: SimpleGit
   protected readonly treeIndex: Map<string, Set<string>>
+  protected batchCatFile: GitBatchCatFile | null = null
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
     this.treeIndex = new Map<string, Set<string>>()
+  }
+
+  protected getBatchCatFile(): GitBatchCatFile {
+    if (!this.batchCatFile) {
+      this.batchCatFile = new GitBatchCatFile(this.config.repo)
+    }
+    return this.batchCatFile
+  }
+
+  public closeBatchProcess(): void {
+    this.batchCatFile?.close()
+    this.batchCatFile = null
   }
 
   @log
@@ -106,7 +119,10 @@ export default class GitAdapter {
   }
 
   protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
-    let content: Buffer = await this.simpleGit.showBuffer(revPath(forRef))
+    let content = await this.getBatchCatFile().getContent(
+      forRef.oid,
+      forRef.path
+    )
 
     if (isLFS(content)) {
       const lsfPath = getLFSObjectContentPath(content)
