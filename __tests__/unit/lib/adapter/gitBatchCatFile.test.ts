@@ -216,6 +216,36 @@ describe('GitBatchCatFile', () => {
     })
   })
 
+  describe('Given process exits unexpectedly with pending requests', () => {
+    it('When close emits non-zero code, Then rejects all pending promises', async () => {
+      // Arrange
+      ;(mockProcess as { killed: boolean }).killed = false
+      const sut = new GitBatchCatFile('/repo')
+
+      // Act
+      const promise1 = sut.getContent('rev1', 'file1.txt')
+      const promise2 = sut.getContent('rev2', 'file2.txt')
+      mockProcess.emit('close', 1)
+
+      // Assert
+      await expect(promise1).rejects.toThrow('git cat-file exited with code 1')
+      await expect(promise2).rejects.toThrow('git cat-file exited with code 1')
+    })
+  })
+
+  describe('Given process exits normally with no pending requests', () => {
+    it('When close emits code 0, Then does nothing', () => {
+      // Arrange
+      ;(mockProcess as { killed: boolean }).killed = false
+      new GitBatchCatFile('/repo')
+
+      // Act & Assert (should not throw)
+      expect(() => {
+        mockProcess.emit('close', 0)
+      }).not.toThrow()
+    })
+  })
+
   describe('Given process error', () => {
     it('When process emits error, Then does not crash', () => {
       // Arrange

@@ -29,6 +29,15 @@ export class GitBatchCatFile {
         lazy`GitBatchCatFile process error: ${() => getErrorMessage(err)}`
       )
     })
+    this.process.on('close', (code: number | null) => {
+      if (code !== 0 && this.queue.length > 0) {
+        const error = new Error(`git cat-file exited with code ${code}`)
+        for (const entry of this.queue) {
+          entry.reject(error)
+        }
+        this.queue = []
+      }
+    })
   }
 
   async getContent(revision: string, path: string): Promise<Buffer> {

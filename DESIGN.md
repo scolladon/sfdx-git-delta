@@ -433,7 +433,9 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 **Batch cat-file**: `GitBatchCatFile` (`src/adapter/gitBatchCatFile.ts`) spawns a single long-lived `git cat-file --batch` child process per adapter instance. File content reads write `<revision>:<path>\n` to stdin and parse the binary response from stdout using a FIFO queue. This replaces individual `git show` subprocess spawns.
 
-Lifecycle: `GitAdapter.closeAll()` terminates all batch processes and clears the singleton instances map. It is called in a `finally` block in `src/main.ts` to prevent orphaned child processes on both success and error paths.
+Lifecycle: `GitAdapter.closeAll()` terminates all batch processes and clears the singleton instances map. It is called in a `finally` block in `src/main.ts` to prevent orphaned child processes on both success and error paths. If the `git cat-file` process exits unexpectedly, a `close` event handler rejects all pending promises to prevent hangs.
+
+**Memory note**: The batch cat-file process buffers each blob's content entirely in memory before resolving. There is no upper bound on individual blob size — repositories with very large binary blobs (multi-GB) could cause high memory consumption. This is acceptable because SGD operates on trusted repositories and the previous `git show` implementation had the same characteristic.
 
 ---
 
