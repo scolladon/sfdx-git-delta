@@ -23,6 +23,8 @@ jest.mock('fs-extra')
 
 jest.mock('../../../../src/utils/ignoreHelper')
 
+jest.mock('../../../../src/utils/LoggingService')
+
 const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 
 const mockGetStringContent = jest.fn()
@@ -44,7 +46,7 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
 
 let work: Work
 beforeEach(() => {
-  jest.resetAllMocks()
+  jest.clearAllMocks()
   work = getWork()
   work.config.from = 'pastsha'
   work.config.to = 'recentsha'
