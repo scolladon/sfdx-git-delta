@@ -360,7 +360,7 @@ flowchart TD
 
 **Collectors** (`isCollector = true`) run first via `collectAll()`. They produce additional `HandlerResult` data that gets merged into the main result:
 
-- **FlowTranslationProcessor**: when Flows are being deployed, scans all `.translation-meta.xml` files in the repo for `flowDefinitions` elements matching deployed flows. Produces pruned translation files as computed content.
+- **FlowTranslationProcessor**: when Flows are being deployed, uses `git grep` with pathspec globs (`<source>/*<extension><metaFileSuffix>`) to find `.translation-meta.xml` files containing `flowDefinitions` elements matching deployed flows. This avoids requiring the tree index. Produces pruned translation files as computed content.
 - **IncludeProcessor**: handles `--include` and `--include-destructive` flags. Lists all files in source directories, filters through include patterns, then processes matching lines through `DiffLineInterpreter` as synthetic additions/deletions.
 
 **Processors** (`isCollector = false`) run last via `executeRemaining()`:
@@ -375,11 +375,12 @@ Each processor is wrapped in error isolation — failures produce warnings rathe
 
 **Entry**: `IOExecutor.execute(copies)` (`src/service/ioExecutor.ts`)
 
-Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Two operation kinds:
+Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Three operation kinds:
 
 | Kind              | Description                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `GitCopy`         | Reads a file from a specific git revision via the batch `git cat-file` process and writes it to the output directory |
+| `GitCopy`         | Reads a single file from a specific git revision via the batch `git cat-file` process and writes it to the output directory. Does not require the tree index. |
+| `GitDirCopy`      | Enumerates all files under a directory path via `getFilesPath` (requires tree index), then copies each file via `git cat-file`. Used by handlers that need to copy entire directories (e.g., `ContainedDecomposedHandler` for decomposed PermissionSet holder folders). Executed serially because the outer `execute()` already parallelizes across operations. |
 | `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory      |
 
 `GitAdapter.getBufferContent()` handles LFS detection: if the buffer starts with an LFS pointer signature, it reads the actual object from the local LFS cache instead.
@@ -429,7 +430,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 `GitAdapter` (`src/adapter/GitAdapter.ts`) wraps `simple-git` with a singleton pattern keyed by `Config` identity. It minimizes git subprocess spawns via two strategies:
 
-**Tree index**: A single `git ls-tree --name-only -r <revision>` call per revision builds a `Set<string>` of all file paths. This index is cached per revision and serves `pathExists`, `getFilesPath`, and `listDirAtRevision` lookups without additional subprocess calls.
+**Tree index**: A `git ls-tree --name-only -r <revision>` call per revision builds a `Set<string>` of file paths. This index is cached per revision and serves `pathExists`, `getFilesPath`, and `listDirAtRevision` lookups without additional subprocess calls. The index is **scoped** to reduce heap pressure: `preBuildTreeIndex(revision, scopePaths)` runs `git ls-tree -r <revision> -- <path1> <path2> ...` to index only the metadata directories that handlers actually need. Scope computation (`computeTreeIndexScope` in `src/utils/treeIndexScope.ts`) analyzes diff lines against the metadata registry to determine which type directories require tree-index lookups — only types using `InResource`, `InFolder`, `ReportingFolder`, `InBundle`, `Lwc`, `CustomObject`, `ContainedDecomposed`, or `MetadataBoundaryResolver` deep-path resolution need the index. When `--include` or `--include-destructive` is set, the scope falls back to `config.source` since the include processor may touch any type. When `generateDelta` is false, the tree index is never built.
 
 **Batch cat-file**: `GitBatchCatFile` (`src/adapter/gitBatchCatFile.ts`) spawns a single long-lived `git cat-file --batch` child process per adapter instance. File content reads write `<revision>:<path>\n` to stdin and parse the binary response from stdout using a FIFO queue. This replaces individual `git show` subprocess spawns.
 
@@ -496,7 +497,7 @@ Universal handler/processor output:
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `manifests` | `ManifestElement[]` | Entries for package.xml or destructiveChanges.xml |
-| `copies` | `CopyOperation[]` | `GitCopy` or `ComputedContent` operations |
+| `copies` | `CopyOperation[]` | `GitCopy`, `GitDirCopy`, or `ComputedContent` operations |
 | `warnings` | `Error[]` | Non-fatal warnings |
 
 ### Metadata (`src/schemas/metadata.ts`)
