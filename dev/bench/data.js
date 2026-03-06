@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772615003036,
+  "lastUpdate": 1772788498850,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -3997,6 +3997,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.32,
             "range": "±1.04%",
+            "unit": "ops/sec",
+            "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2168ad098cee88fb63eaa0b26d9005d3f80d291e",
+          "message": "fix: support nested folders for all kind of handlers (#1239)",
+          "timestamp": "2026-03-06T10:10:51+01:00",
+          "tree_id": "2b14058733910ce1dc211326c4fe66e1f1515d8b",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2168ad098cee88fb63eaa0b26d9005d3f80d291e"
+        },
+        "date": 1772788498547,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.32,
+            "range": "±2.15%",
             "unit": "ops/sec",
             "extra": "5 samples"
           }
