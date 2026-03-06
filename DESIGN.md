@@ -65,7 +65,7 @@ flowchart LR
 `MetadataRepositoryImpl` maintains three lookup indexes for fast path resolution:
 
 | Index | Key | Use case |
-|-------|-----|----------|
+| ----- | --- | -------- |
 | `extIndex` | File extension (`.cls`, `.trigger`) | Primary lookup for most types |
 | `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous — picks deepest match, stops at `inFolder` types |
 | `xmlNameIndex` | XML name (`ApexClass`, `ApexTrigger`) | Direct lookup by type name |
@@ -73,7 +73,7 @@ flowchart LR
 ### Key Metadata Fields
 
 | Field | Purpose |
-|-------|---------|
+| ----- | ------- |
 | `xmlName` | Salesforce API type name |
 | `suffix` | File extension without dot |
 | `directoryName` | Expected parent directory |
@@ -147,7 +147,7 @@ flowchart TD
 The `resolveHandler()` method applies these tiers in order, returning the first match:
 
 | Tier | Signal | Handler | Example |
-|------|--------|---------|---------|
+| ---- | ------ | ------- | ------- |
 | 1. Explicit override | `xmlName` in `handlerMap` | Varies | `Flow` → `FlowHandler` |
 | 2. Folder-based | `inFolder: true` | `InFolderHandler` | `Document`, `EmailTemplate` |
 | 3. Adapter-based | `adapter` from SDR strategies | `InResourceHandler` / `InBundleHandler` | `bundle` → `InResource` |
@@ -158,7 +158,7 @@ The `resolveHandler()` method applies these tiers in order, returning the first 
 
 This design means most new SDR metadata types are handled automatically without code changes. Only types requiring specialized behavior need explicit overrides in `handlerMap`.
 
-`MetadataBoundaryResolver` creates a `MetadataElement` — a value object capturing the parsed identity of the diff line: base path, extension, parent folder, component name, and path segments after the type directory. It may scan the git tree to find the component root when the directory name isn't present in the path.
+`MetadataBoundaryResolver` creates a `MetadataElement` — a value object capturing the parsed identity of the diff line: base path, extension, parent folder, component name, and path segments after the type directory. Resolution follows a tiered strategy to minimize git I/O: (1) flat paths (single segment after the type directory) use `MetadataElement.fromPath()` directly; (2) types with no suffix (LWC, Aura) use `fromPath()` since the scan cannot identify them; (3) depth-2 paths where the file contains the metadata suffix extract the component name directly from the file name without git I/O; (4) deeper paths delegate to `scanAndCreateElement()` which calls `getFilesPath(typeDir)` — a single recursive `git ls-tree -r` per type directory, cached hierarchically — then builds a Set of component names from meta files and matches path segments inner-to-outer. This handles intermediate folders between the type directory and the component (e.g., `permissionsets/marketing/Admin/...` where `marketing` is an organizational folder, not the component). For paths where the type directory is not in the path, a fallback walk-up strategy lists directory siblings via `listDirAtRevision` and matches against known metadata suffixes, with results cached per revision via `dirCache`.
 
 ### Handler Hierarchy
 
@@ -303,7 +303,7 @@ Like DecomposedHandler but the parent copy is conditional: only copies the paren
 **Extends**: StandardHandler
 **Used by**: PermissionSet
 
-Handles types that can exist in either monolithic format (single file) or decomposed format (folder with sub-files). Detects the format at construction time. On deletion in decomposed format, checks if the holder folder still has content before treating as a true deletion.
+Handles types that can exist in either monolithic format (single file) or decomposed format (folder with sub-files). Detects the format at construction time. Locates the PermissionSet directory using a fixed offset from the file path's end, supporting arbitrary nesting depth (e.g., `permissionsets/marketing/Admin/fieldPermissions/...`). On deletion in decomposed format, checks if the holder folder still has content — if yes, treats as modification (redeploy the PS); if no, treats as true deletion.
 
 #### CustomObjectHandler
 
@@ -377,10 +377,10 @@ Each processor is wrapped in error isolation — failures produce warnings rathe
 
 Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Two operation kinds:
 
-| Kind | Description |
-|------|-------------|
-| `GitCopy` | Reads a file from a specific git revision via `git show <rev>:<path>` and writes it to the output directory |
-| `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory |
+| Kind              | Description                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GitCopy`         | Reads a file from a specific git revision via `git show <rev>:<path>` and writes it to the output directory        |
+| `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory      |
 
 `GitAdapter.getBufferContent()` handles LFS detection: if the buffer starts with an LFS pointer signature, it reads the actual object from the local LFS cache instead.
 
@@ -393,7 +393,7 @@ Executes the accumulated copy operations with concurrency bounded by `getConcurr
 SGD follows a **warnings-not-exceptions** philosophy for per-file errors:
 
 | Layer | Strategy |
-|-------|----------|
+| ----- | -------- |
 | Config validation | Fatal: throws `ConfigError` / `MetadataRegistryError` → propagates to CLI |
 | Handlers (`collect()`) | Catches all errors → converts to warnings in `HandlerResult` |
 | Post-processors | Each wrapped in `_safeProcess` → failures become warnings |
@@ -436,7 +436,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 ### For Users
 
 | Mechanism | Purpose |
-|-----------|---------|
+| --------- | ------- |
 | `--additional-metadata-registry` | JSON file defining custom metadata types (Zod-validated) |
 | `--ignore-file` / `--ignore-destructive-file` | Gitignore-format exclusion patterns |
 | `--include-file` / `--include-destructive-file` | Force-include paths regardless of diff |
@@ -445,7 +445,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 ### For Developers
 
 | Extension point | How to extend |
-|-----------------|---------------|
+| --------------- | ------------- |
 | New metadata type handler | Most types are auto-resolved via SDR registry attributes (`adapter`, `decomposition`, `inFolder`, `xmlTag`+`key`). Only add an explicit entry to `handlerMap` in `TypeHandlerFactory` when a type needs behavior that differs from what SDR signals would select. |
 | New post-processor | Add a `BaseProcessor` subclass to `registeredProcessors` in `postProcessorManager.ts` |
 | Metadata type override | Add definition to `internalRegistry.ts` with special flags (`pruneOnly`, `excluded`, `xmlTag`, etc.) |
@@ -460,7 +460,7 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 All user inputs flowing through the pipeline:
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `from` / `to` | `string` | Git commit SHAs (the diff range) |
 | `output` | `string` | Directory for generated manifests |
 | `source` | `string[]` | Source paths to scan |
@@ -476,7 +476,7 @@ All user inputs flowing through the pipeline:
 Mutable context accumulating outputs:
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `config` | `Config` | The configuration |
 | `diffs` | `{ package: Map, destructiveChanges: Map }` | Accumulated manifest maps (`type → Set<member>`) |
 | `warnings` | `Error[]` | Non-fatal warnings |
@@ -486,7 +486,7 @@ Mutable context accumulating outputs:
 Universal handler/processor output:
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `manifests` | `ManifestElement[]` | Entries for package.xml or destructiveChanges.xml |
 | `copies` | `CopyOperation[]` | `GitCopy` or `ComputedContent` operations |
 | `warnings` | `Error[]` | Non-fatal warnings |
@@ -496,7 +496,7 @@ Universal handler/processor output:
 Metadata type definition (Zod-validated):
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | `xmlName` | `string` | Salesforce API type name |
 | `suffix` | `string` | File extension without dot |
 | `directoryName` | `string` | Expected parent directory |

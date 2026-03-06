@@ -83,6 +83,35 @@ describe('BotHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given bot version in nested folder, When collect, Then returns correct BotVersion and Bot manifests', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        'A       force-app/main/default/bots/nested/TestBot/v1.botVersion-meta.xml',
+        objectType,
+        globalMetadata
+      )
+      const sut = new BotHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'BotVersion',
+            member: 'TestBot.v1',
+          }),
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Bot',
+            member: 'TestBot',
+          }),
+        ])
+      )
+    })
+
     it('Given bot file addition, When collect, Then returns only Bot manifest', async () => {
       // Arrange
       const { changeType, element } = createElement(

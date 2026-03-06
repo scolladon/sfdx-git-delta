@@ -214,12 +214,12 @@ the ones related to the files you make changes to!
 
 #### Run tests
 
-Test your change by running the unit tests and integration tests. Instructions [here](#testing).
+Test your change by running the unit tests and integration tests. See [testing instructions](#testing).
 
 ### Create a pull request
 
 If you've never created a pull request before, follow [these
-instructions](https://help.github.com/articles/creating-a-pull-request/). Pull request samples [here](https://github.com/scolladon/sfdx-git-delta/pulls)
+instructions](https://help.github.com/articles/creating-a-pull-request/). See [pull request samples](https://github.com/scolladon/sfdx-git-delta/pulls) for reference.
 
 ### Update the pull request
 

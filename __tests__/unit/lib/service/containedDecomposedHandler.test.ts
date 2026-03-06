@@ -146,6 +146,10 @@ describe('ContainedDecomposedHandler', () => {
       'force-app/main/default/permissionsets/Admin/Admin.flowAccesses-meta.xml',
       'force-app/main/default/permissionsets/Admin/fieldPermissions/Account.Test__c.fieldPermission-meta.xml',
       'force-app/main/default/permissionsets/Admin/classAccesses/MyClass.classAccess-meta.xml',
+      'force-app/main/default/permissionsets/marketing/Admin/objectSettings/Account.objectSettings-meta.xml',
+      'force-app/main/default/permissionsets/marketing/Admin/Admin.flowAccesses-meta.xml',
+      'force-app/main/default/permissionsets/marketing/Admin/fieldPermissions/Account.Test__c.fieldPermission-meta.xml',
+      'force-app/main/default/permissionsets/marketing/Admin/classAccesses/MyClass.classAccess-meta.xml',
     ])('Given decomposed format for %s', decomposedLine => {
       it('When addition, Then returns Package manifest with holder folder copies', async () => {
         // Arrange

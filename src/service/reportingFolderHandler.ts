@@ -20,6 +20,7 @@ export default class ReportingFolderHandler extends InFolderHandler {
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 
+  /* jscpd:ignore-start */
   public override async collectAddition(): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
     return await super.collectAddition()
@@ -29,6 +30,7 @@ export default class ReportingFolderHandler extends InFolderHandler {
     if (!this.resolvedType) return emptyResult()
     return await super.collectDeletion()
   }
+  /* jscpd:ignore-end */
 
   protected override _collectFolderMetaCopies(
     copies: import('../types/handlerResult.js').CopyOperation[]

@@ -9,8 +9,6 @@ import type { Metadata } from '../types/metadata.js'
 import { log } from './LoggingDecorator.js'
 import { MetadataElement } from './metadataElement.js'
 
-const MAX_HIERARCHY_DEPTH = 10
-
 export class MetadataBoundaryResolver {
   protected readonly dirCache: Map<string, string[]>
 
@@ -32,7 +30,25 @@ export class MetadataBoundaryResolver {
       metadataDef,
       this.metadataRepo
     )
-    if (element) return element
+    if (element && element.pathAfterType.length <= 1) return element
+    if (element && !metadataDef.suffix) return element
+
+    if (element && element.pathAfterType.length === 2) {
+      const fileName = element.pathAfterType[1]
+      if (fileName.includes(`.${metadataDef.suffix}`)) {
+        const componentName = this.extractName(fileName, metadataDef.suffix!)
+        if (componentName === element.pathAfterType[0]) {
+          return element
+        }
+        return MetadataElement.fromScan(
+          path,
+          metadataDef,
+          this.metadataRepo,
+          componentName
+        )
+      }
+      return element
+    }
 
     return this.scanAndCreateElement(path, metadataDef, revision)
   }
@@ -43,15 +59,48 @@ export class MetadataBoundaryResolver {
     revision: string
   ): Promise<MetadataElement> {
     const parts = path.split(PATH_SEP)
-    let currentDir = dirname(path)
-    let depthCount = 0
+    const dirIndex = parts.lastIndexOf(metadataDef.directoryName)
 
-    while (
-      currentDir &&
-      currentDir !== '.' &&
-      depthCount < MAX_HIERARCHY_DEPTH
-    ) {
-      depthCount++
+    if (dirIndex >= 0 && metadataDef.suffix) {
+      const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
+      let allFiles: string[]
+      try {
+        allFiles = await this.gitAdapter.getFilesPath(typeDir, revision)
+      } catch {
+        allFiles = []
+      }
+      const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
+
+      const componentNames = new Set<string>()
+      for (const file of allFiles) {
+        if (file.endsWith(metaSuffix)) {
+          const fileName = file.split(PATH_SEP).pop()!
+          componentNames.add(this.extractName(fileName, metadataDef.suffix))
+        }
+      }
+
+      const pathAfterType = parts.slice(dirIndex + 1)
+      for (let i = pathAfterType.length - 2; i >= 0; i--) {
+        if (componentNames.has(pathAfterType[i])) {
+          return MetadataElement.fromScan(
+            path,
+            metadataDef,
+            this.metadataRepo,
+            pathAfterType[i]
+          )
+        }
+      }
+
+      return MetadataElement.fromScan(
+        path,
+        metadataDef,
+        this.metadataRepo,
+        parse(path).name
+      )
+    }
+
+    let currentDir = dirname(path)
+    while (currentDir && currentDir !== '.') {
       const cacheKey = `${revision}:${currentDir}`
 
       let siblings = this.dirCache.get(cacheKey)
@@ -60,8 +109,8 @@ export class MetadataBoundaryResolver {
         this.dirCache.set(cacheKey, siblings)
       }
 
-      const componentName = this.findComponentName(siblings)
-      if (componentName && this.isNameInPath(parts, componentName)) {
+      const componentName = this.findComponentName(siblings, parts)
+      if (componentName) {
         return MetadataElement.fromScan(
           path,
           metadataDef,
@@ -87,14 +136,20 @@ export class MetadataBoundaryResolver {
     )
   }
 
-  protected findComponentName(siblings: string[]): string | null {
+  protected findComponentName(
+    siblings: string[],
+    parts: string[]
+  ): string | null {
     for (const sibling of siblings) {
       const siblingMetadata = this.metadataRepo.get(sibling)
       if (
         siblingMetadata?.suffix &&
         sibling.includes(`.${siblingMetadata.suffix}`)
       ) {
-        return this.extractName(sibling, siblingMetadata.suffix)
+        const name = this.extractName(sibling, siblingMetadata.suffix)
+        if (this.isNameInPath(parts, name)) {
+          return name
+        }
       }
     }
     return null
