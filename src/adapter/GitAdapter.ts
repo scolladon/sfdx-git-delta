@@ -4,13 +4,11 @@ import { SimpleGit, simpleGit } from 'simple-git'
 import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
-  BLOB_TYPE,
   DELETION,
   HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   NUM_STAT_CHANGE_INFORMATION,
-  TREE_TYPE,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
@@ -37,13 +35,11 @@ export default class GitAdapter {
   }
 
   protected readonly simpleGit: SimpleGit
-  protected readonly getFilesPathCache: Map<string, Set<string>>
-  protected readonly pathExistsCache: Map<string, boolean>
+  protected readonly treeIndex: Map<string, Set<string>>
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
-    this.getFilesPathCache = new Map<string, Set<string>>()
-    this.pathExistsCache = new Map<string, boolean>()
+    this.treeIndex = new Map<string, Set<string>>()
   }
 
   @log
@@ -57,32 +53,51 @@ export default class GitAdapter {
     return await this.simpleGit.revparse(['--verify', ref])
   }
 
+  protected async buildTreeIndex(revision: string): Promise<Set<string>> {
+    if (this.treeIndex.has(revision)) {
+      return this.treeIndex.get(revision)!
+    }
+
+    const output = await this.simpleGit.raw([
+      'ls-tree',
+      '--name-only',
+      '-r',
+      revision,
+    ])
+    const files = new Set(
+      output
+        .split(EOL)
+        .filter(line => line)
+        .map(line => treatPathSep(line))
+    )
+    this.treeIndex.set(revision, files)
+    return files
+  }
+
   protected async pathExistsImpl(path: string, revision: string) {
-    let doesPathExists = false
     try {
-      const type = await this.simpleGit.catFile([
-        '-t',
-        revPath({ path, oid: revision }),
-      ])
-      doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
+      const index = await this.buildTreeIndex(revision)
+      if (index.has(path)) {
+        return true
+      }
+      const dirPrefix = `${path}${PATH_SEP}`
+      for (const filePath of index) {
+        if (filePath.startsWith(dirPrefix)) {
+          return true
+        }
+      }
+      return false
     } catch (error) {
       Logger.debug(
         lazy`pathExistsImpl: path '${path}' at revision '${revision}' not found: ${() => getErrorMessage(error)}`
       )
-      doesPathExists = false
+      return false
     }
-    return doesPathExists
   }
 
   @log
   public async pathExists(path: string, revision: string = this.config.to) {
-    const cacheKey = `${revision}:${path}`
-    if (this.pathExistsCache.has(cacheKey)) {
-      return this.pathExistsCache.get(cacheKey)!
-    }
-    const doesPathExists = await this.pathExistsImpl(path, revision)
-    this.pathExistsCache.set(cacheKey, doesPathExists)
-    return doesPathExists
+    return this.pathExistsImpl(path, revision)
   }
 
   @log
@@ -106,58 +121,22 @@ export default class GitAdapter {
     return content.toString(UTF8_ENCODING)
   }
 
-  protected async getFilesPathImpl(
-    path: string,
-    revision: string
-  ): Promise<string[]> {
-    return (
-      await this.simpleGit.raw([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        revision,
-        path || '.',
-      ])
-    )
-      .split(EOL)
-      .filter(line => line)
-      .map(line => treatPathSep(line))
-  }
-
   protected async getFilesPathCached(
     path: string,
     revision: string
   ): Promise<string[]> {
-    const cacheKey = `${revision}:${path}`
-    if (this.getFilesPathCache.has(cacheKey)) {
-      return Array.from(this.getFilesPathCache.get(cacheKey)!)
+    const index = await this.buildTreeIndex(revision)
+    if (index.has(path)) {
+      return [path]
     }
-
-    const filesPath = await this.getFilesPathImpl(path, revision)
-    const pathSegmentsLength = path.split(PATH_SEP).length
-
-    // Start iterating over each filePath
-    for (const filePath of filesPath) {
-      const relevantSegments = filePath
-        .split(PATH_SEP)
-        .slice(pathSegmentsLength)
-
-      // Only cache the sub-paths for relevant files starting from the given path
-      const subPathSegments = [path]
-      for (const segment of relevantSegments) {
-        subPathSegments.push(segment)
-        const currentPath = `${revision}:${subPathSegments.join(PATH_SEP)}`
-        if (!this.getFilesPathCache.has(currentPath)) {
-          this.getFilesPathCache.set(currentPath, new Set())
-        }
-        this.getFilesPathCache.get(currentPath)!.add(filePath)
+    const dirPrefix = `${path}${PATH_SEP}`
+    const result: string[] = []
+    for (const filePath of index) {
+      if (filePath.startsWith(dirPrefix)) {
+        result.push(filePath)
       }
     }
-
-    // Store the full set of file paths for the given path in cache
-    this.getFilesPathCache.set(cacheKey, new Set(filesPath))
-
-    return filesPath
+    return result
   }
 
   @log
@@ -184,17 +163,19 @@ export default class GitAdapter {
     revision: string
   ): Promise<string[]> {
     try {
-      const output = await this.simpleGit.raw([
-        'ls-tree',
-        '--name-only',
-        revision,
-        dir ? `${dir}/` : '.',
-      ])
-      return output
-        .split(EOL)
-        .filter(line => line && line.startsWith(dir))
-        .map(line => line.split(PATH_SEP).pop()!)
-        .filter(name => name)
+      const index = await this.buildTreeIndex(revision)
+      const dirPrefix = dir ? `${dir}${PATH_SEP}` : ''
+      const children = new Set<string>()
+      for (const filePath of index) {
+        if (filePath.startsWith(dirPrefix)) {
+          const rest = filePath.slice(dirPrefix.length)
+          const firstSegment = rest.split(PATH_SEP)[0]
+          if (firstSegment) {
+            children.add(firstSegment)
+          }
+        }
+      }
+      return Array.from(children)
     } catch (error) {
       Logger.debug(
         lazy`listDirAtRevision: failed to list '${dir}' at '${revision}': ${() => getErrorMessage(error)}`
