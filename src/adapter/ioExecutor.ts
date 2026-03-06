@@ -53,19 +53,23 @@ export default class IOExecutor {
     }
   }
 
+  protected _getGitAdapter(revision: string): GitAdapter {
+    const config =
+      revision !== this.config.to
+        ? { ...this.config, to: revision }
+        : this.config
+    return GitAdapter.getInstance(config)
+  }
+
   protected async _executeGitFileCopy(op: {
     path: string
     revision: string
   }): Promise<void> {
     try {
-      const config =
-        op.revision !== this.config.to
-          ? { ...this.config, to: op.revision }
-          : this.config
-      const gitAdapter = GitAdapter.getInstance(config)
+      const gitAdapter = this._getGitAdapter(op.revision)
       const content = await gitAdapter.getBufferContent({
         path: op.path,
-        oid: config.to,
+        oid: op.revision,
       })
       const dst = join(this.config.output, op.path)
       await outputFile(dst, content)
@@ -81,11 +85,7 @@ export default class IOExecutor {
     revision: string
   }): Promise<void> {
     try {
-      const config =
-        op.revision !== this.config.to
-          ? { ...this.config, to: op.revision }
-          : this.config
-      const gitAdapter = GitAdapter.getInstance(config)
+      const gitAdapter = this._getGitAdapter(op.revision)
       const filePaths = await gitAdapter.getFilesPath(op.path)
       for (const filePath of filePaths) {
         if (this.ignoreHelper.globalIgnore.ignores(filePath)) {
@@ -93,7 +93,7 @@ export default class IOExecutor {
         }
         const content = await gitAdapter.getBufferContent({
           path: filePath,
-          oid: config.to,
+          oid: op.revision,
         })
         const dst = join(this.config.output, filePath)
         await outputFile(dst, content)
