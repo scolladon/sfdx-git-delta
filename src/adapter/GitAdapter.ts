@@ -200,9 +200,7 @@ export default class GitAdapter {
         if (filePath.startsWith(dirPrefix)) {
           const rest = filePath.slice(dirPrefix.length)
           const firstSegment = rest.split(PATH_SEP)[0]
-          if (firstSegment) {
-            children.add(firstSegment)
-          }
+          children.add(firstSegment)
         }
       }
       return Array.from(children)

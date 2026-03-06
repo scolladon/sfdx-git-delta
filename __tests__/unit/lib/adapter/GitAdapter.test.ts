@@ -370,6 +370,27 @@ describe('GitAdapter', () => {
         })
       })
     })
+    describe('when called twice on the same instance', () => {
+      it('reuses the same batch process', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedGetContent.mockResolvedValue(Buffer.from('content') as never)
+        isLFSmocked.mockReturnValue(false)
+
+        // Act
+        await gitAdapter.getStringContent({
+          path: 'file1.txt',
+          oid: config.to,
+        })
+        await gitAdapter.getStringContent({
+          path: 'file2.txt',
+          oid: config.to,
+        })
+
+        // Assert
+        expect(mockedGetContent).toHaveBeenCalledTimes(2)
+      })
+    })
     describe('when getContent throws exception', () => {
       it('throws the exception', async () => {
         // Arrange
@@ -843,6 +864,18 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([])
+    })
+
+    it('Given empty dir, When listDirAtRevision, Then returns top-level entries', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      setupTreeIndex(['classes/MyClass.cls', 'triggers/MyTrigger.trigger'])
+
+      // Act
+      const result = await gitAdapter.listDirAtRevision('', 'HEAD')
+
+      // Assert
+      expect(result).toEqual(expect.arrayContaining(['classes', 'triggers']))
     })
 
     it('Given listDirAtRevision uses tree index, When called, Then calls ls-tree with correct args', async () => {
