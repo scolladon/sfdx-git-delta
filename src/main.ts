@@ -23,28 +23,31 @@ export default async (config: Config): Promise<Work> => {
     diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   }
-  const configValidator = new ConfigValidator(work)
-  await configValidator.validateConfig()
+  try {
+    const configValidator = new ConfigValidator(work)
+    await configValidator.validateConfig()
 
-  const metadata: MetadataRepository = await getDefinition(config)
-  const repoGitDiffHelper = new RepoGitDiff(config, metadata)
+    const metadata: MetadataRepository = await getDefinition(config)
+    const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  const lines = await repoGitDiffHelper.getLines()
-  const lineProcessor = new DiffLineInterpreter(work, metadata)
-  const postProcessors = getPostProcessors(work, metadata)
+    const lines = await repoGitDiffHelper.getLines()
+    const lineProcessor = new DiffLineInterpreter(work, metadata)
+    const postProcessors = getPostProcessors(work, metadata)
 
-  const handlerResult = await lineProcessor.process(lines)
-  work.diffs = aggregateManifests(handlerResult)
+    const handlerResult = await lineProcessor.process(lines)
+    work.diffs = aggregateManifests(handlerResult)
 
-  const postResult = await postProcessors.collectAll()
-  const combinedResult = mergeResults(handlerResult, postResult)
+    const postResult = await postProcessors.collectAll()
+    const combinedResult = mergeResults(handlerResult, postResult)
 
-  work.diffs = aggregateManifests(combinedResult)
-  pushAll(work.warnings, combinedResult.warnings)
+    work.diffs = aggregateManifests(combinedResult)
+    pushAll(work.warnings, combinedResult.warnings)
 
-  await new IOExecutor(config).execute(combinedResult.copies)
-  await postProcessors.executeRemaining()
-  GitAdapter.closeAll()
+    await new IOExecutor(config).execute(combinedResult.copies)
+    await postProcessors.executeRemaining()
+  } finally {
+    GitAdapter.closeAll()
+  }
 
   Logger.debug(lazy`main: return ${work}`)
   Logger.trace('main: exit')

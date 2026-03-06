@@ -60,6 +60,7 @@ export default class GitAdapter {
     for (const instance of GitAdapter.instances.values()) {
       instance.closeBatchProcess()
     }
+    GitAdapter.instances.clear()
   }
 
   @log

@@ -56,6 +56,11 @@ export class GitBatchCatFile {
         }
         const parts = header.split(' ')
         this.pendingSize = parseInt(parts[2], 10)
+        if (isNaN(this.pendingSize)) {
+          this.pendingSize = -1
+          this.queue.shift()!.reject(new Error(`Invalid header: ${header}`))
+          continue
+        }
       }
       if (this.buffer.length < this.pendingSize + 1) return
       const content = Buffer.from(this.buffer.subarray(0, this.pendingSize))

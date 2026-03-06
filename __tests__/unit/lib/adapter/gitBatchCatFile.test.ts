@@ -198,6 +198,24 @@ describe('GitBatchCatFile', () => {
     })
   })
 
+  describe('Given a malformed header', () => {
+    it('When header has no size, Then rejects with invalid header error', async () => {
+      // Arrange
+      ;(mockProcess as { killed: boolean }).killed = false
+      const sut = new GitBatchCatFile('/repo')
+
+      // Act
+      const promise = sut.getContent('rev', 'file.txt')
+
+      mockStdout.emit('data', Buffer.from('oid1 blob\n'))
+
+      // Assert
+      await expect(promise).rejects.toThrow('Invalid header: oid1 blob')
+
+      sut.close()
+    })
+  })
+
   describe('Given process error', () => {
     it('When process emits error, Then does not crash', () => {
       // Arrange

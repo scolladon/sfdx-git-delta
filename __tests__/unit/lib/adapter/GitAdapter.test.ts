@@ -959,4 +959,22 @@ describe('GitAdapter', () => {
       expect(mockedClose).not.toHaveBeenCalled()
     })
   })
+
+  describe('closeAll', () => {
+    it('Given instances with batch processes, When closeAll, Then closes all and clears instances', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      mockedClose.mockClear()
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedGetContent.mockResolvedValue(Buffer.from('content') as never)
+      isLFSmocked.mockReturnValueOnce(false)
+      await gitAdapter.getStringContent({ path: 'file.txt', oid: config.to })
+
+      // Act
+      GitAdapter.closeAll()
+
+      // Assert
+      expect(mockedClose).toHaveBeenCalledTimes(1)
+    })
+  })
 })

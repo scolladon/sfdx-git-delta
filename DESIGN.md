@@ -379,7 +379,7 @@ Executes the accumulated copy operations with concurrency bounded by `getConcurr
 
 | Kind              | Description                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `GitCopy`         | Reads a file from a specific git revision via `git show <rev>:<path>` and writes it to the output directory        |
+| `GitCopy`         | Reads a file from a specific git revision via the batch `git cat-file` process and writes it to the output directory |
 | `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory      |
 
 `GitAdapter.getBufferContent()` handles LFS detection: if the buffer starts with an LFS pointer signature, it reads the actual object from the local LFS cache instead.
@@ -427,7 +427,13 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 ### Git Adapter
 
-`GitAdapter` (`src/adapter/GitAdapter.ts`) wraps `simple-git` with a singleton pattern keyed by `Config` identity. It caches `pathExists` and `ls-tree` results per instance to avoid redundant git operations.
+`GitAdapter` (`src/adapter/GitAdapter.ts`) wraps `simple-git` with a singleton pattern keyed by `Config` identity. It minimizes git subprocess spawns via two strategies:
+
+**Tree index**: A single `git ls-tree --name-only -r <revision>` call per revision builds a `Set<string>` of all file paths. This index is cached per revision and serves `pathExists`, `getFilesPath`, and `listDirAtRevision` lookups without additional subprocess calls.
+
+**Batch cat-file**: `GitBatchCatFile` (`src/adapter/gitBatchCatFile.ts`) spawns a single long-lived `git cat-file --batch` child process per adapter instance. File content reads write `<revision>:<path>\n` to stdin and parse the binary response from stdout using a FIFO queue. This replaces individual `git show` subprocess spawns.
+
+Lifecycle: `GitAdapter.closeAll()` terminates all batch processes and clears the singleton instances map. It is called in a `finally` block in `src/main.ts` to prevent orphaned child processes on both success and error paths.
 
 ---
 
