@@ -13,6 +13,7 @@ import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import { aggregateManifests } from './utils/manifestAggregator.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
+import { computeTreeIndexScope } from './utils/treeIndexScope.js'
 
 export default async (config: Config): Promise<Work> => {
   Logger.trace('main: entry')
@@ -31,6 +32,19 @@ export default async (config: Config): Promise<Work> => {
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
     const lines = await repoGitDiffHelper.getLines()
+    if (config.generateDelta) {
+      const gitAdapter = GitAdapter.getInstance(config)
+      if (config.include || config.includeDestructive) {
+        await gitAdapter.preBuildTreeIndex(config.to, config.source)
+        await gitAdapter.preBuildTreeIndex(config.from, config.source)
+      } else {
+        const scopePaths = [...computeTreeIndexScope(lines, metadata)]
+        if (scopePaths.length > 0) {
+          await gitAdapter.preBuildTreeIndex(config.to, scopePaths)
+          await gitAdapter.preBuildTreeIndex(config.from, scopePaths)
+        }
+      }
+    }
     const lineProcessor = new DiffLineInterpreter(work, metadata)
     const postProcessors = getPostProcessors(work, metadata)
 
