@@ -225,6 +225,26 @@ describe('grepContent', () => {
     // Assert
     expect(result).toEqual([])
   })
+
+  it('Given multiple paths, When grepContent, Then passes array to gitGrep', async () => {
+    // Arrange
+    const matchingFiles = ['dir1/file1.xml', 'dir2/file2.xml']
+    mockGitGrep.mockImplementation(() => Promise.resolve(matchingFiles))
+
+    // Act
+    const result = await grepContent(
+      'flowDefinitions',
+      ['dir1/*.xml', 'dir2/*.xml'],
+      work.config
+    )
+
+    // Assert
+    expect(result).toEqual(matchingFiles)
+    expect(mockGitGrep).toHaveBeenCalledWith('flowDefinitions', [
+      'dir1/*.xml',
+      'dir2/*.xml',
+    ])
+  })
 })
 
 describe('contentIncludes', () => {

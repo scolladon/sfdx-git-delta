@@ -41,7 +41,7 @@ export const readDirs = async (
 
 export const grepContent = async (
   pattern: string,
-  path: string,
+  path: string | string[],
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
