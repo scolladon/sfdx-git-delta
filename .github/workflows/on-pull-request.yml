@@ -65,7 +65,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Check outdated dependencies
-        run: npm outdated
+        run: npm outdated --omit=dev
 
       - name: Check unused dependencies
         run: npm run lint:dependencies
