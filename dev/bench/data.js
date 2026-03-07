@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772788498850,
+  "lastUpdate": 1772890431845,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -4030,6 +4030,37 @@ window.BENCHMARK_DATA = {
             "range": "±2.15%",
             "unit": "ops/sec",
             "extra": "5 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fe2c96797f22e581dcacc185f4037602bd4d3d75",
+          "message": "perf: improve I/O operations management (#1242)",
+          "timestamp": "2026-03-07T14:30:13+01:00",
+          "tree_id": "5418549e7bfcdf807a9d94238a2e0df454997b1c",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/fe2c96797f22e581dcacc185f4037602bd4d3d75"
+        },
+        "date": 1772890431542,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.47,
+            "range": "±0.85%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
           }
         ]
       }
