@@ -39,8 +39,10 @@ export default async (config: Config): Promise<Work> => {
         scopePaths = [...computeTreeIndexScope(lines, metadata)]
       }
       if (scopePaths.length > 0) {
-        await gitAdapter.preBuildTreeIndex(config.to, scopePaths)
-        await gitAdapter.preBuildTreeIndex(config.from, scopePaths)
+        await Promise.all([
+          gitAdapter.preBuildTreeIndex(config.to, scopePaths),
+          gitAdapter.preBuildTreeIndex(config.from, scopePaths),
+        ])
       }
     }
     const lineProcessor = new DiffLineInterpreter(work, metadata)
