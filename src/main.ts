@@ -34,15 +34,13 @@ export default async (config: Config): Promise<Work> => {
     const lines = await repoGitDiffHelper.getLines()
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
-      if (config.include || config.includeDestructive) {
-        await gitAdapter.preBuildTreeIndex(config.to, config.source)
-        await gitAdapter.preBuildTreeIndex(config.from, config.source)
-      } else {
-        const scopePaths = [...computeTreeIndexScope(lines, metadata)]
-        if (scopePaths.length > 0) {
-          await gitAdapter.preBuildTreeIndex(config.to, scopePaths)
-          await gitAdapter.preBuildTreeIndex(config.from, scopePaths)
-        }
+      let scopePaths = config.source
+      if (!config.include && !config.includeDestructive) {
+        scopePaths = [...computeTreeIndexScope(lines, metadata)]
+      }
+      if (scopePaths.length > 0) {
+        await gitAdapter.preBuildTreeIndex(config.to, scopePaths)
+        await gitAdapter.preBuildTreeIndex(config.from, scopePaths)
       }
     }
     const lineProcessor = new DiffLineInterpreter(work, metadata)
