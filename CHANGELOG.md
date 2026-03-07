@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.33.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.33.0...v6.33.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* support nested folders for all kind of handlers ([#1239](https://github.com/scolladon/sfdx-git-delta/issues/1239)) ([2168ad0](https://github.com/scolladon/sfdx-git-delta/commit/2168ad098cee88fb63eaa0b26d9005d3f80d291e))
+
+
+### Performance Improvements
+
+* improve I/O operations management ([#1242](https://github.com/scolladon/sfdx-git-delta/issues/1242)) ([fe2c967](https://github.com/scolladon/sfdx-git-delta/commit/fe2c96797f22e581dcacc185f4037602bd4d3d75))
+
 ## [6.33.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.32.4...v6.33.0) (2026-03-04)
 
 
