@@ -20,7 +20,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
     utf8Data = await gitAdapter.getStringContent(forRef)
   } catch (error) {
     Logger.debug(
-      lazy`readPathFromGit failed for ${forRef.path}: ${getErrorMessage(error)}`
+      lazy`readPathFromGit failed for ${forRef.path}: ${() => getErrorMessage(error)}`
     )
   }
   return utf8Data
@@ -41,7 +41,7 @@ export const readDirs = async (
 
 export const grepContent = async (
   pattern: string,
-  path: string,
+  path: string | string[],
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)

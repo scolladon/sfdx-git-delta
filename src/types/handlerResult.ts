@@ -7,6 +7,7 @@ export enum ManifestTarget {
 
 export enum CopyOperationKind {
   GitCopy = 'gitCopy',
+  GitDirCopy = 'gitDirCopy',
   ComputedContent = 'computedContent',
 }
 
@@ -22,13 +23,22 @@ export type GitCopyOperation = {
   revision: string
 }
 
+export type GitDirCopyOperation = {
+  kind: CopyOperationKind.GitDirCopy
+  path: string
+  revision: string
+}
+
 export type ComputedContentOperation = {
   kind: CopyOperationKind.ComputedContent
   path: string
   content: string
 }
 
-export type CopyOperation = GitCopyOperation | ComputedContentOperation
+export type CopyOperation =
+  | GitCopyOperation
+  | GitDirCopyOperation
+  | ComputedContentOperation
 
 export type HandlerResult = {
   manifests: ManifestElement[]

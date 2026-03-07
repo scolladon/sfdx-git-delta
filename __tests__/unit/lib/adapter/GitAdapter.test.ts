@@ -15,8 +15,6 @@ import { getWork } from '../../../__utils__/testWork'
 const mockedRaw = jest.fn()
 const mockedAddConfig = jest.fn()
 const mockedRevParse = jest.fn()
-const mockedCatFile = jest.fn()
-const mockedShowBuffer = jest.fn()
 
 jest.mock('simple-git', () => {
   return {
@@ -24,11 +22,18 @@ jest.mock('simple-git', () => {
       raw: mockedRaw,
       revparse: mockedRevParse,
       addConfig: mockedAddConfig,
-      catFile: mockedCatFile,
-      showBuffer: mockedShowBuffer,
     })),
   }
 })
+
+const mockedGetContent = jest.fn()
+const mockedClose = jest.fn()
+jest.mock('../../../../src/adapter/gitBatchCatFile', () => ({
+  GitBatchCatFile: jest.fn(() => ({
+    getContent: mockedGetContent,
+    close: mockedClose,
+  })),
+}))
 
 jest.mock('../../../../src/utils/gitLfsHelper')
 jest.mock('node:fs/promises')
@@ -38,9 +43,20 @@ const isLFSmocked = jest.mocked(isLFS)
 const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)
 const readFileMocked = jest.mocked(readFile)
 
+// Helper to pre-build tree index for a revision
+const setupTreeIndex = async (
+  sut: GitAdapter,
+  files: string[],
+  revision: string
+) => {
+  mockedRaw.mockResolvedValueOnce(files.join(EOL) as never)
+  await sut.preBuildTreeIndex(revision, [])
+}
+
 describe('GitAdapter', () => {
   let config: Config
   beforeEach(() => {
+    GitAdapter.closeAll()
     const work = getWork()
     config = work.config
   })
@@ -115,107 +131,200 @@ describe('GitAdapter', () => {
   })
 
   describe('pathExists', () => {
-    describe('when catFile returns a type', () => {
-      it.each(['tree', 'blob'])('returns true when type is %s', async type => {
+    describe('Given file exists in tree index, When pathExists, Then returns true', () => {
+      it('returns true for an exact file match', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedCatFile.mockResolvedValue(type as never)
+        await setupTreeIndex(
+          gitAdapter,
+          ['path/to/file.txt', 'other/file.cls'],
+          config.to
+        )
+
+        // Act
+        const result = await gitAdapter.pathExists('path/to/file.txt')
+
+        // Assert
+        expect(result).toBe(true)
+      })
+    })
+
+    describe('Given directory exists in tree index, When pathExists, Then returns true', () => {
+      it('returns true for a directory prefix', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        await setupTreeIndex(
+          gitAdapter,
+          ['path/to/file.txt', 'other/file.cls'],
+          config.to
+        )
+
+        // Act
+        const result = await gitAdapter.pathExists('path/to')
+
+        // Assert
+        expect(result).toBe(true)
+      })
+
+      it('returns true for a top-level directory', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], config.to)
 
         // Act
         const result = await gitAdapter.pathExists('path')
 
         // Assert
         expect(result).toBe(true)
-        expect(mockedCatFile).toHaveBeenCalledTimes(1)
-        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
-      it.each([
-        'test',
-        'other',
-        null,
-        undefined,
-        -1,
-      ])('returns false when type is not "blob" nor "tree"', async type => {
+    })
+
+    describe('Given path does not exist in tree index, When pathExists, Then returns false', () => {
+      it('returns false for non-existing path', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedCatFile.mockImplementation(() => Promise.resolve({ type }))
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], config.to)
 
         // Act
-        const result = await gitAdapter.pathExists('path')
+        const result = await gitAdapter.pathExists('nonexistent')
 
         // Assert
         expect(result).toBe(false)
-        expect(mockedCatFile).toHaveBeenCalledTimes(1)
-        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
     })
-    describe('when called multiple times with the same parameters', () => {
-      it('returns cached value', async () => {
-        // Arrange
-        const gitAdapter = GitAdapter.getInstance(config)
-        mockedCatFile.mockResolvedValue('blob' as never)
 
-        // Act
-        const result = await gitAdapter.pathExists('path')
-        const cachedResult = await gitAdapter.pathExists('path')
-
-        // Assert
-        expect(result).toBe(true)
-        expect(cachedResult).toStrictEqual(result)
-        expect(mockedCatFile).toHaveBeenCalledTimes(1)
-        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
-      })
-    })
-    describe('when catFile throws', () => {
+    describe('Given no pre-built index, When pathExists, Then returns false', () => {
       it('returns false', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedCatFile.mockImplementation(() => Promise.reject())
 
         // Act
-        const result = await gitAdapter.pathExists('path')
+        const result = await gitAdapter.pathExists('path/to/file.txt')
 
         // Assert
         expect(result).toBe(false)
-        expect(mockedCatFile).toHaveBeenCalledTimes(1)
-        expect(mockedCatFile).toHaveBeenCalledWith(['-t', `${config.to}:path`])
       })
     })
-    describe('when custom revision is provided', () => {
+
+    describe('Given multiple calls for same revision, When pathExists, Then uses single raw call', () => {
+      it('uses the tree index without additional git calls', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        await setupTreeIndex(
+          gitAdapter,
+          ['path/to/file.txt', 'other/file.cls'],
+          config.to
+        )
+
+        // Act
+        const result1 = await gitAdapter.pathExists('path/to/file.txt')
+        const result2 = await gitAdapter.pathExists('other/file.cls')
+        const result3 = await gitAdapter.pathExists('nonexistent')
+
+        // Assert
+        expect(result1).toBe(true)
+        expect(result2).toBe(true)
+        expect(result3).toBe(false)
+        expect(mockedRaw).toHaveBeenCalledTimes(1)
+        expect(mockedRaw).toHaveBeenCalledWith([
+          'ls-tree',
+          '--name-only',
+          '-r',
+          config.to,
+        ])
+      })
+    })
+
+    describe('Given custom revision, When pathExists, Then uses custom revision', () => {
       it('uses the custom revision in git command', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
         const customRevision = 'feature-branch'
-        mockedCatFile.mockResolvedValue('blob' as never)
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], customRevision)
 
         // Act
-        const result = await gitAdapter.pathExists('path', customRevision)
+        const result = await gitAdapter.pathExists(
+          'path/to/file.txt',
+          customRevision
+        )
 
         // Assert
         expect(result).toBe(true)
-        expect(mockedCatFile).toHaveBeenCalledWith([
-          '-t',
-          `${customRevision}:path`,
+        expect(mockedRaw).toHaveBeenCalledWith([
+          'ls-tree',
+          '--name-only',
+          '-r',
+          customRevision,
         ])
       })
+    })
 
-      it('caches separately per revision', async () => {
+    describe('Given different revisions, When pathExists, Then caches separately per revision', () => {
+      it('builds one tree index per revision', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedCatFile
-          .mockResolvedValueOnce('blob' as never)
-          .mockResolvedValueOnce('tree' as never)
+        mockedRaw
+          .mockResolvedValueOnce('path/file1.txt' as never)
+          .mockResolvedValueOnce('path/file2.txt' as never)
+        await gitAdapter.preBuildTreeIndex('rev1', [])
+        await gitAdapter.preBuildTreeIndex('rev2', [])
 
         // Act
-        const result1 = await gitAdapter.pathExists('path', 'rev1')
-        const result2 = await gitAdapter.pathExists('path', 'rev2')
-        const cached1 = await gitAdapter.pathExists('path', 'rev1')
+        const result1 = await gitAdapter.pathExists('path/file1.txt', 'rev1')
+        const result2 = await gitAdapter.pathExists('path/file2.txt', 'rev2')
+        const cached1 = await gitAdapter.pathExists('path/file1.txt', 'rev1')
 
         // Assert
         expect(result1).toBe(true)
         expect(result2).toBe(true)
         expect(cached1).toBe(true)
-        expect(mockedCatFile).toHaveBeenCalledTimes(2)
+        expect(mockedRaw).toHaveBeenCalledTimes(2)
+      })
+    })
+
+    describe('Given pathExists does not use batch cat-file, When pathExists, Then no getContent calls are made', () => {
+      it('does not call getContent', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], config.to)
+
+        // Act
+        await gitAdapter.pathExists('path/to/file.txt')
+
+        // Assert
+        expect(mockedGetContent).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('Given partial path match, When pathExists, Then does not false-positive', () => {
+      it('does not match partial directory names', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        await setupTreeIndex(gitAdapter, ['path/together/file.txt'], config.to)
+
+        // Act
+        const result = await gitAdapter.pathExists('path/to')
+
+        // Assert
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('Given root path, When pathExists, Then returns true if tree has files', () => {
+      it.each([
+        '',
+        '.',
+        './',
+      ])('returns true for root path "%s"', async rootPath => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        await setupTreeIndex(gitAdapter, ['src/file.ts'], config.to)
+
+        // Act
+        const result = await gitAdapter.pathExists(rootPath)
+
+        // Assert
+        expect(result).toBe(true)
       })
     })
   })
@@ -237,217 +346,247 @@ describe('GitAdapter', () => {
   })
 
   describe('getStringContent', () => {
-    describe('when catFile returns a string', () => {
-      describe('when string references a LFS file', () => {
+    describe('when getContent returns content', () => {
+      describe('when content references a LFS file', () => {
         it('returns content from LFS', async () => {
           // Arrange
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedShowBuffer.mockImplementation(() =>
-            Promise.resolve('lfs content')
+          mockedGetContent.mockResolvedValue(
+            Buffer.from('lfs content') as never
           )
           isLFSmocked.mockReturnValueOnce(true)
           getLFSObjectContentPathMocked.mockReturnValueOnce('lfs/path')
           readFileMocked.mockResolvedValue(Buffer.from('') as never)
+
           // Act
           const result = await gitAdapter.getStringContent({
-            path: '',
+            path: 'file.txt',
             oid: config.to,
           })
 
           // Assert
           expect(result).toBe('')
-          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
+          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
         })
       })
-      describe('when string does not reference a LFS file', () => {
+      describe('when content does not reference a LFS file', () => {
         it('return the content', async () => {
           // Arrange
           const expected = 'test'
           const gitAdapter = GitAdapter.getInstance(config)
-          mockedShowBuffer.mockImplementation(() => Promise.resolve(expected))
+          mockedGetContent.mockResolvedValue(Buffer.from(expected) as never)
           isLFSmocked.mockReturnValueOnce(false)
+
           // Act
           const result = await gitAdapter.getStringContent({
-            path: '',
+            path: 'file.txt',
             oid: config.to,
           })
 
           // Assert
           expect(result).toBe(expected)
-          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
+          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
         })
       })
     })
-    describe('when catFile throws exception', () => {
+    describe('when called twice on the same instance', () => {
+      it('reuses the same batch process', async () => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedGetContent.mockResolvedValue(Buffer.from('content') as never)
+        isLFSmocked.mockReturnValue(false)
+
+        // Act
+        await gitAdapter.getStringContent({
+          path: 'file1.txt',
+          oid: config.to,
+        })
+        await gitAdapter.getStringContent({
+          path: 'file2.txt',
+          oid: config.to,
+        })
+
+        // Assert
+        expect(mockedGetContent).toHaveBeenCalledTimes(2)
+      })
+    })
+    describe('when getContent throws exception', () => {
       it('throws the exception', async () => {
         // Arrange
         expect.assertions(1)
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedShowBuffer.mockImplementation(() =>
-          Promise.reject(new Error('test'))
-        )
+        mockedGetContent.mockRejectedValue(new Error('test') as never)
+
         // Act
         try {
           await gitAdapter.getStringContent({
-            path: '',
+            path: 'file.txt',
             oid: config.to,
           })
         } catch {
           // Assert
-          expect(mockedShowBuffer).toHaveBeenCalledWith(`${config.to}:`)
+          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
         }
       })
     })
   })
 
   describe('getFilesPath', () => {
-    it('calls raw', async () => {
+    it('Given path, When getFilesPath, Then returns matching files from tree index', async () => {
       // Arrange
-      const source = 'path'
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue('' as never)
+      const allFiles = [
+        'path/from/file',
+        'path/to/file',
+        'path/to/another/file',
+        'other/file',
+      ]
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
-      await gitAdapter.getFilesPath(source)
+      const result = await gitAdapter.getFilesPath('path')
 
       // Assert
+      expect(result).toEqual([
+        'path/from/file',
+        'path/to/file',
+        'path/to/another/file',
+      ])
       expect(mockedRaw).toHaveBeenCalledWith([
         'ls-tree',
         '--name-only',
         '-r',
         config.to,
-        source,
       ])
     })
 
-    it('when path is empty it calls current directory', async () => {
+    it('Given sub-path, When getFilesPath, Then returns only files under that sub-path', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue('' as never)
-
-      // Act
-      await gitAdapter.getFilesPath('')
-
-      // Assert
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-        '.',
-      ])
-    })
-
-    it('memoize call', async () => {
-      // Arrange
-      const source = 'path'
-      const gitAdapter = GitAdapter.getInstance(config)
-      const rawOutput = [
+      const allFiles = [
         'path/from/file',
         'path/to/file',
         'path/to/another/file',
       ]
-      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
-      const result = await gitAdapter.getFilesPath(source)
-      const cachedResult = await gitAdapter.getFilesPath(source)
+      const result = await gitAdapter.getFilesPath('path/to')
 
       // Assert
-      expect(result).toEqual(rawOutput)
+      expect(result).toEqual(['path/to/file', 'path/to/another/file'])
+    })
+
+    it('Given exact file path, When getFilesPath, Then returns that file', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      await setupTreeIndex(
+        gitAdapter,
+        ['path/to/file.txt', 'other/file.cls'],
+        config.to
+      )
+
+      // Act
+      const result = await gitAdapter.getFilesPath('path/to/file.txt')
+
+      // Assert
+      expect(result).toEqual(['path/to/file.txt'])
+    })
+
+    it('Given multiple calls with same revision, When getFilesPath, Then only one raw call', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const allFiles = [
+        'path/from/file',
+        'path/to/file',
+        'path/to/another/file',
+      ]
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
+
+      // Act
+      const result = await gitAdapter.getFilesPath('path')
+      const cachedResult = await gitAdapter.getFilesPath('path')
+
+      // Assert
+      expect(result).toEqual(allFiles)
       expect(cachedResult).toStrictEqual(result)
       expect(mockedRaw).toHaveBeenCalledTimes(1)
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-        source,
-      ])
     })
 
-    it('memoize sub call', async () => {
+    it('Given sub-path call after parent call, When getFilesPath, Then uses same tree index', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      const rawOutput = [
+      const allFiles = [
         'path/from/file',
         'path/to/file',
         'path/to/another/file',
       ]
-      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path')
       const subCachedResult = await gitAdapter.getFilesPath('path/to')
 
       // Assert
-      expect(result).toEqual(rawOutput)
-      expect(subCachedResult).toEqual(rawOutput.slice(1)) // Only sub-paths
+      expect(result).toEqual(allFiles)
+      expect(subCachedResult).toEqual(allFiles.slice(1))
       expect(mockedRaw).toHaveBeenCalledTimes(1)
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-        'path',
-      ])
     })
 
-    it('handles multiple paths correctly', async () => {
+    it('Given multiple paths as array, When getFilesPath, Then returns combined results', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      const path1Output = ['path1/file1', 'path1/file2']
-      const path2Output = ['path2/file1', 'path2/file2']
-
-      mockedRaw
-        .mockResolvedValueOnce(path1Output.join(EOL) as never)
-        .mockResolvedValueOnce(path2Output.join(EOL) as never)
+      const allFiles = [
+        'path1/file1',
+        'path1/file2',
+        'path2/file1',
+        'path2/file2',
+      ]
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath(['path1', 'path2'])
 
       // Assert
-      expect(result).toEqual([...path1Output, ...path2Output])
-      expect(mockedRaw).toHaveBeenCalledTimes(2)
-      expect(mockedRaw).toHaveBeenNthCalledWith(1, [
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-        'path1',
-      ])
-      expect(mockedRaw).toHaveBeenNthCalledWith(2, [
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-        'path2',
-      ])
+      expect(result).toEqual(allFiles)
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
     })
 
-    it('caches results for multiple paths independently', async () => {
+    it('Given multiple paths as array, When getFilesPath called again, Then uses cached tree index', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      const path1Output = ['path1/file1', 'path1/file2']
-      const path2Output = ['path2/file1', 'path2/file2']
-
-      mockedRaw
-        .mockResolvedValueOnce(path1Output.join(EOL) as never)
-        .mockResolvedValueOnce(path2Output.join(EOL) as never)
+      const allFiles = [
+        'path1/file1',
+        'path1/file2',
+        'path2/file1',
+        'path2/file2',
+      ]
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result1 = await gitAdapter.getFilesPath(['path1', 'path2'])
-      const result2 = await gitAdapter.getFilesPath(['path1']) // Should use cache
-      const result3 = await gitAdapter.getFilesPath(['path2']) // Should use cache
+      const result2 = await gitAdapter.getFilesPath(['path1'])
+      const result3 = await gitAdapter.getFilesPath(['path2'])
 
       // Assert
-      expect(result1).toEqual([...path1Output, ...path2Output])
-      expect(result2).toEqual(path1Output)
-      expect(result3).toEqual(path2Output)
-      expect(mockedRaw).toHaveBeenCalledTimes(2) // Only called for initial paths
+      expect(result1).toEqual(allFiles)
+      expect(result2).toEqual(['path1/file1', 'path1/file2'])
+      expect(result3).toEqual(['path2/file1', 'path2/file2'])
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
     })
 
-    it('handles empty array of paths', async () => {
+    it('Given no pre-built index, When getFilesPath, Then returns empty array', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+
+      // Act
+      const result = await gitAdapter.getFilesPath('path')
+
+      // Assert
+      expect(result).toEqual([])
+    })
+
+    it('Given empty array of paths, When getFilesPath, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
 
@@ -459,32 +598,11 @@ describe('GitAdapter', () => {
       expect(mockedRaw).not.toHaveBeenCalled()
     })
 
-    it('does not cache parent subpaths', async () => {
-      // Arrange
-      const gitAdapter = GitAdapter.getInstance(config)
-      const rawOutput = [
-        'path/from/file',
-        'path/to/file',
-        'path/to/another/file',
-      ]
-      mockedRaw.mockResolvedValueOnce(rawOutput.slice(1).join(EOL) as never)
-      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
-
-      // Act
-      const resultAtFilePath = await gitAdapter.getFilesPath('path/to')
-      const resultAtPath = await gitAdapter.getFilesPath('path')
-
-      // Assert
-      expect(resultAtFilePath).toEqual(rawOutput.slice(1))
-      expect(resultAtPath).toEqual(rawOutput)
-      expect(mockedRaw).toHaveBeenCalledTimes(2)
-    })
-
-    it('uses custom revision in git command', async () => {
+    it('Given custom revision, When getFilesPath, Then uses custom revision for tree index', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const customRevision = 'feature-branch'
-      mockedRaw.mockResolvedValue('' as never)
+      await setupTreeIndex(gitAdapter, ['path/file.txt'], customRevision)
 
       // Act
       await gitAdapter.getFilesPath('path', customRevision)
@@ -495,18 +613,17 @@ describe('GitAdapter', () => {
         '--name-only',
         '-r',
         customRevision,
-        'path',
       ])
     })
 
-    it('caches separately per revision', async () => {
+    it('Given different revisions, When getFilesPath, Then builds one tree index per revision', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      const rev1Output = ['path/file1']
-      const rev2Output = ['path/file2']
       mockedRaw
-        .mockResolvedValueOnce(rev1Output.join(EOL) as never)
-        .mockResolvedValueOnce(rev2Output.join(EOL) as never)
+        .mockResolvedValueOnce('path/file1' as never)
+        .mockResolvedValueOnce('path/file2' as never)
+      await gitAdapter.preBuildTreeIndex('rev1', [])
+      await gitAdapter.preBuildTreeIndex('rev2', [])
 
       // Act
       const result1 = await gitAdapter.getFilesPath('path', 'rev1')
@@ -514,18 +631,18 @@ describe('GitAdapter', () => {
       const cached1 = await gitAdapter.getFilesPath('path', 'rev1')
 
       // Assert
-      expect(result1).toEqual(rev1Output)
-      expect(result2).toEqual(rev2Output)
-      expect(cached1).toEqual(rev1Output)
+      expect(result1).toEqual(['path/file1'])
+      expect(result2).toEqual(['path/file2'])
+      expect(cached1).toEqual(['path/file1'])
       expect(mockedRaw).toHaveBeenCalledTimes(2)
     })
 
-    it('memoize sub call with custom revision', async () => {
+    it('Given sub-path call with custom revision, When getFilesPath, Then uses same tree index', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const customRevision = 'feature-branch'
-      const rawOutput = ['path/to/file', 'path/to/another/file']
-      mockedRaw.mockResolvedValue(rawOutput.join(EOL) as never)
+      const allFiles = ['path/to/file', 'path/to/another/file']
+      await setupTreeIndex(gitAdapter, allFiles, customRevision)
 
       // Act
       const result = await gitAdapter.getFilesPath('path', customRevision)
@@ -535,78 +652,51 @@ describe('GitAdapter', () => {
       )
 
       // Assert
-      expect(result).toEqual(rawOutput)
-      expect(subCachedResult).toEqual(rawOutput)
+      expect(result).toEqual(allFiles)
+      expect(subCachedResult).toEqual(allFiles)
       expect(mockedRaw).toHaveBeenCalledTimes(1)
     })
-  })
 
-  describe('getFilesFrom', () => {
-    it('returns the list of files', async () => {
+    it('Given path not in tree, When getFilesPath, Then returns empty array', async () => {
       // Arrange
-      const content = 'content'
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockImplementation(() =>
-        Promise.resolve(['file', 'anotherFile'].join('\n'))
-      )
-      mockedShowBuffer.mockResolvedValue(Buffer.from(content) as never)
+      await setupTreeIndex(gitAdapter, ['other/file.txt'], config.to)
 
       // Act
-      const result: any = []
-      for await (const file of gitAdapter.getFilesFrom('directory/path')) {
-        result.push(file)
-      }
+      const result = await gitAdapter.getFilesPath('path')
 
       // Assert
-
-      expect(result).toEqual(
-        expect.arrayContaining([
-          { path: 'file', content: Buffer.from(content) },
-        ])
-      )
+      expect(result).toEqual([])
     })
 
-    describe('when files are LFS', () => {
-      it('returns the list of files', async () => {
-        // Arrange
-        const content = 'content'
-        const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw.mockImplementation(() =>
-          Promise.resolve(['file', 'anotherFile'].join('\n'))
-        )
-        mockedCatFile.mockResolvedValue(Buffer.from(content) as never)
+    it('Given partial directory name match, When getFilesPath, Then does not false-positive', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      await setupTreeIndex(gitAdapter, ['path/together/file.txt'], config.to)
 
-        // Act
-        const result: any = []
-        for await (const file of gitAdapter.getFilesFrom('directory/path')) {
-          result.push(file)
-        }
+      // Act
+      const result = await gitAdapter.getFilesPath('path/to')
 
-        // Assert
-
-        expect(result).toEqual(
-          expect.arrayContaining([
-            { path: 'file', content: Buffer.from(content) },
-          ])
-        )
-      })
+      // Assert
+      expect(result).toEqual([])
     })
 
-    describe('when path is not a directory nor a file', () => {
-      it('returns empty list', async () => {
-        // Arrange
-        const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw.mockResolvedValue('' as never)
+    it.each([
+      '',
+      '.',
+      './',
+    ])('Given root path "%s", When getFilesPath, Then returns all files', async rootPath => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const allFiles = ['src/a.ts', 'src/b.ts', 'lib/c.js']
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
-        // Act
+      // Act
+      const result = await gitAdapter.getFilesPath(rootPath)
 
-        const result: any = []
-        for await (const file of gitAdapter.getFilesFrom('directory/path')) {
-          result.push(file)
-        }
-
-        expect(result).toEqual([])
-      })
+      // Assert
+      expect(result).toEqual(expect.arrayContaining(allFiles))
+      expect(result).toHaveLength(allFiles.length)
     })
   })
 
@@ -733,53 +823,116 @@ describe('GitAdapter', () => {
   })
 
   describe('listDirAtRevision', () => {
-    it('Given valid directory and revision, When listDirAtRevision, Then returns file names from the directory', async () => {
+    it('Given valid directory and revision, When listDirAtRevision, Then returns immediate children', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue(
-        ['myDir/file1.txt', 'myDir/file2.cls', ''].join(EOL) as never
+      await setupTreeIndex(
+        gitAdapter,
+        [
+          'myDir/file1.txt',
+          'myDir/file2.cls',
+          'myDir/subDir/nested.txt',
+          'other/file.txt',
+        ],
+        'HEAD'
       )
 
       // Act
       const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
 
       // Assert
-      expect(result).toEqual(['file1.txt', 'file2.cls'])
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        'HEAD',
-        'myDir/',
-      ])
+      expect(result).toEqual(['file1.txt', 'file2.cls', 'subDir'])
     })
 
-    it('Given empty directory string, When listDirAtRevision, Then calls with current directory', async () => {
+    it('Given directory with nested files only, When listDirAtRevision, Then returns unique immediate children', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue('' as never)
+      await setupTreeIndex(
+        gitAdapter,
+        [
+          'myDir/subDir/file1.txt',
+          'myDir/subDir/file2.txt',
+          'myDir/otherDir/file3.txt',
+        ],
+        'HEAD'
+      )
 
       // Act
-      await gitAdapter.listDirAtRevision('', 'HEAD')
+      const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
 
       // Assert
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        'HEAD',
-        '.',
-      ])
+      expect(result).toEqual(['subDir', 'otherDir'])
     })
 
-    it('Given git command throws, When listDirAtRevision, Then returns empty array', async () => {
+    it('Given tree index already built for revision, When listDirAtRevision, Then no additional raw calls', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockRejectedValue(new Error('git error') as never)
+      const revision = 'HEAD'
+      await setupTreeIndex(
+        gitAdapter,
+        ['myDir/file1.txt', 'myDir/file2.cls'],
+        revision
+      )
+      mockedRaw.mockClear()
+
+      // Act
+      const result = await gitAdapter.listDirAtRevision('myDir', revision)
+
+      // Assert
+      expect(result).toEqual(['file1.txt', 'file2.cls'])
+      expect(mockedRaw).not.toHaveBeenCalled()
+    })
+
+    it('Given directory does not exist in tree, When listDirAtRevision, Then returns empty array', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      await setupTreeIndex(gitAdapter, ['other/file.txt'], 'HEAD')
 
       // Act
       const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
+    })
+
+    it('Given no pre-built index, When listDirAtRevision, Then returns empty array', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+
+      // Act
+      const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
+
+      // Assert
+      expect(result).toEqual([])
+    })
+
+    it('Given empty dir, When listDirAtRevision, Then returns top-level entries', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      await setupTreeIndex(
+        gitAdapter,
+        ['classes/MyClass.cls', 'triggers/MyTrigger.trigger'],
+        'HEAD'
+      )
+
+      // Act
+      const result = await gitAdapter.listDirAtRevision('', 'HEAD')
+
+      // Assert
+      expect(result).toEqual(expect.arrayContaining(['classes', 'triggers']))
+    })
+
+    it('Given pre-built tree index, When listDirAtRevision called, Then no additional raw calls', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      await setupTreeIndex(gitAdapter, ['myDir/file1.txt'], 'HEAD')
+      mockedRaw.mockClear()
+
+      // Act
+      await gitAdapter.listDirAtRevision('myDir', 'HEAD')
+
+      // Assert
+      expect(mockedRaw).not.toHaveBeenCalled()
     })
   })
 
@@ -842,6 +995,31 @@ describe('GitAdapter', () => {
       ])
     })
 
+    it('Given multiple paths, When gitGrep is called, Then passes all paths to git grep', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValue(
+        `${config.to}:dir1/file1.txt\n${config.to}:dir2/file2.txt` as never
+      )
+
+      // Act
+      const result = await sut.gitGrep('pattern', ['dir1/', 'dir2/'])
+
+      // Assert
+      expect(result).toEqual(['dir1/file1.txt', 'dir2/file2.txt'])
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'grep',
+        '-l',
+        'pattern',
+        config.to,
+        '--',
+        'dir1/',
+        'dir2/',
+      ])
+    })
+
     it('Given no matches, When gitGrep throws, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
@@ -852,6 +1030,141 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([])
+    })
+  })
+
+  describe('preBuildTreeIndex', () => {
+    it('Given scope paths, When preBuildTreeIndex is called, Then ls-tree is scoped', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValueOnce(
+        ['dir1/file1.cls', 'dir1/file2.cls'].join(EOL) as never
+      )
+
+      // Act
+      await sut.preBuildTreeIndex(config.to, ['dir1/'])
+
+      // Assert
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+        '--',
+        'dir1/',
+      ])
+    })
+
+    it('Given pre-built index, When pathExists is called, Then uses cached index', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValueOnce('dir1/file1.cls' as never)
+
+      await sut.preBuildTreeIndex(config.to, ['dir1/'])
+      mockedRaw.mockClear()
+
+      // Act
+      const exists = await sut.pathExists('dir1/file1.cls')
+
+      // Assert
+      expect(exists).toBe(true)
+      expect(mockedRaw).not.toHaveBeenCalled()
+    })
+
+    it('Given empty scope paths, When preBuildTreeIndex is called, Then ls-tree has no path args', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValueOnce('' as never)
+
+      // Act
+      await sut.preBuildTreeIndex(config.to, [])
+
+      // Assert
+      expect(mockedRaw).toHaveBeenCalledWith([
+        'ls-tree',
+        '--name-only',
+        '-r',
+        config.to,
+      ])
+    })
+
+    it('Given git command throws, When preBuildTreeIndex is called, Then does not throw', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockRejectedValue(new Error('git error') as never)
+
+      // Act & Assert
+      await expect(
+        sut.preBuildTreeIndex(config.to, ['dir1/'])
+      ).resolves.toBeUndefined()
+    })
+
+    it('Given already-cached revision, When preBuildTreeIndex is called, Then skips ls-tree', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      const config = getWork().config
+      const sut = GitAdapter.getInstance(config)
+      mockedRaw.mockResolvedValueOnce('dir1/file1.cls' as never)
+
+      await sut.preBuildTreeIndex(config.to, ['dir1/'])
+      mockedRaw.mockClear()
+
+      // Act
+      await sut.preBuildTreeIndex(config.to, ['dir2/'])
+
+      // Assert
+      expect(mockedRaw).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('closeBatchProcess', () => {
+    it('Given batch process was created, When closeBatchProcess, Then calls close', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedGetContent.mockResolvedValue(Buffer.from('content') as never)
+      isLFSmocked.mockReturnValueOnce(false)
+      await gitAdapter.getStringContent({ path: 'file.txt', oid: config.to })
+
+      // Act
+      gitAdapter.closeBatchProcess()
+
+      // Assert
+      expect(mockedClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('Given batch process was not created, When closeBatchProcess, Then does nothing', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+
+      // Act & Assert (should not throw)
+      gitAdapter.closeBatchProcess()
+      expect(mockedClose).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('closeAll', () => {
+    it('Given instances with batch processes, When closeAll, Then closes all and clears instances', async () => {
+      // Arrange
+      GitAdapter.closeAll()
+      mockedClose.mockClear()
+      const gitAdapter = GitAdapter.getInstance(config)
+      mockedGetContent.mockResolvedValue(Buffer.from('content') as never)
+      isLFSmocked.mockReturnValueOnce(false)
+      await gitAdapter.getStringContent({ path: 'file.txt', oid: config.to })
+
+      // Act
+      GitAdapter.closeAll()
+
+      // Assert
+      expect(mockedClose).toHaveBeenCalledTimes(1)
     })
   })
 })

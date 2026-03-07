@@ -23,6 +23,8 @@ jest.mock('fs-extra')
 
 jest.mock('../../../../src/utils/ignoreHelper')
 
+jest.mock('../../../../src/utils/LoggingService')
+
 const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
 
 const mockGetStringContent = jest.fn()
@@ -44,7 +46,7 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
 
 let work: Work
 beforeEach(() => {
-  jest.resetAllMocks()
+  jest.clearAllMocks()
   work = getWork()
   work.config.from = 'pastsha'
   work.config.to = 'recentsha'
@@ -224,6 +226,26 @@ describe('grepContent', () => {
 
     // Assert
     expect(result).toEqual([])
+  })
+
+  it('Given multiple paths, When grepContent, Then passes array to gitGrep', async () => {
+    // Arrange
+    const matchingFiles = ['dir1/file1.xml', 'dir2/file2.xml']
+    mockGitGrep.mockImplementation(() => Promise.resolve(matchingFiles))
+
+    // Act
+    const result = await grepContent(
+      'flowDefinitions',
+      ['dir1/*.xml', 'dir2/*.xml'],
+      work.config
+    )
+
+    // Assert
+    expect(result).toEqual(matchingFiles)
+    expect(mockGitGrep).toHaveBeenCalledWith('flowDefinitions', [
+      'dir1/*.xml',
+      'dir2/*.xml',
+    ])
   })
 })
 

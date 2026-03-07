@@ -1,9 +1,10 @@
 'use strict'
+import GitAdapter from './adapter/GitAdapter.js'
+import IOExecutor from './adapter/ioExecutor.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
-import IOExecutor from './service/ioExecutor.js'
 import type { Config } from './types/config.js'
 import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
@@ -12,6 +13,7 @@ import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import { aggregateManifests } from './utils/manifestAggregator.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
+import { computeTreeIndexScope } from './utils/treeIndexScope.js'
 
 export default async (config: Config): Promise<Work> => {
   Logger.trace('main: entry')
@@ -22,27 +24,44 @@ export default async (config: Config): Promise<Work> => {
     diffs: { package: new Map(), destructiveChanges: new Map() },
     warnings: [],
   }
-  const configValidator = new ConfigValidator(work)
-  await configValidator.validateConfig()
+  try {
+    const configValidator = new ConfigValidator(work)
+    await configValidator.validateConfig()
 
-  const metadata: MetadataRepository = await getDefinition(config)
-  const repoGitDiffHelper = new RepoGitDiff(config, metadata)
+    const metadata: MetadataRepository = await getDefinition(config)
+    const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-  const lines = await repoGitDiffHelper.getLines()
-  const lineProcessor = new DiffLineInterpreter(work, metadata)
-  const postProcessors = getPostProcessors(work, metadata)
+    const lines = await repoGitDiffHelper.getLines()
+    if (config.generateDelta) {
+      const gitAdapter = GitAdapter.getInstance(config)
+      let scopePaths = config.source
+      if (!config.include && !config.includeDestructive) {
+        scopePaths = [...computeTreeIndexScope(lines, metadata)]
+      }
+      if (scopePaths.length > 0) {
+        await Promise.all([
+          gitAdapter.preBuildTreeIndex(config.to, scopePaths),
+          gitAdapter.preBuildTreeIndex(config.from, scopePaths),
+        ])
+      }
+    }
+    const lineProcessor = new DiffLineInterpreter(work, metadata)
+    const postProcessors = getPostProcessors(work, metadata)
 
-  const handlerResult = await lineProcessor.process(lines)
-  work.diffs = aggregateManifests(handlerResult)
+    const handlerResult = await lineProcessor.process(lines)
+    work.diffs = aggregateManifests(handlerResult)
 
-  const postResult = await postProcessors.collectAll()
-  const combinedResult = mergeResults(handlerResult, postResult)
+    const postResult = await postProcessors.collectAll()
+    const combinedResult = mergeResults(handlerResult, postResult)
 
-  work.diffs = aggregateManifests(combinedResult)
-  pushAll(work.warnings, combinedResult.warnings)
+    work.diffs = aggregateManifests(combinedResult)
+    pushAll(work.warnings, combinedResult.warnings)
 
-  await new IOExecutor(config).execute(combinedResult.copies)
-  await postProcessors.executeRemaining()
+    await new IOExecutor(config).execute(combinedResult.copies)
+    await postProcessors.executeRemaining()
+  } finally {
+    GitAdapter.closeAll()
+  }
 
   Logger.debug(lazy`main: return ${work}`)
   Logger.trace('main: exit')

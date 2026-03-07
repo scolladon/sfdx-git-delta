@@ -5,6 +5,7 @@ import { castArray } from 'lodash-es'
 import {
   FLOW_XML_NAME,
   META_REGEX,
+  METAFILE_SUFFIX,
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants.js'
@@ -16,7 +17,7 @@ import {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
-import { readDirs } from '../utils/fsHelper.js'
+import { grepContent } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -85,9 +86,13 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   async _buildFlowDefinitionsMap() {
     this.translations.clear()
 
-    const allFiles = await readDirs(this.config.source, this.work.config)
-    const translationPaths = allFiles.filter((file: string) =>
-      file.replace(META_REGEX, '').endsWith(EXTENSION)
+    const pathspecs = this.config.source.map(
+      s => `${s}/*${EXTENSION}${METAFILE_SUFFIX}`
+    )
+    const translationPaths = await grepContent(
+      'flowDefinitions',
+      pathspecs,
+      this.work.config
     )
 
     for (const translationPath of translationPaths) {

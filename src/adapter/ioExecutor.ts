@@ -4,7 +4,6 @@ import { join } from 'node:path/posix'
 import { eachLimit } from 'async'
 import { outputFile } from 'fs-extra'
 
-import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { CopyOperation } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
@@ -12,6 +11,7 @@ import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import GitAdapter from './GitAdapter.js'
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
@@ -42,7 +42,10 @@ export default class IOExecutor {
 
     switch (op.kind) {
       case CopyOperationKind.GitCopy:
-        await this._executeGitCopy(op)
+        await this._executeGitFileCopy(op)
+        break
+      case CopyOperationKind.GitDirCopy:
+        await this._executeGitDirCopy(op)
         break
       case CopyOperationKind.ComputedContent:
         await this._executeComputedContent(op)
@@ -50,24 +53,55 @@ export default class IOExecutor {
     }
   }
 
-  protected async _executeGitCopy(op: {
+  protected _getGitAdapter(revision: string): GitAdapter {
+    const config =
+      revision !== this.config.to
+        ? { ...this.config, to: revision }
+        : this.config
+    return GitAdapter.getInstance(config)
+  }
+
+  protected async _executeGitFileCopy(op: {
     path: string
     revision: string
   }): Promise<void> {
     try {
-      const config =
-        op.revision !== this.config.to
-          ? { ...this.config, to: op.revision }
-          : this.config
-      const gitAdapter = GitAdapter.getInstance(config)
-      for await (const file of gitAdapter.getFilesFrom(op.path)) {
-        const dst = join(this.config.output, file.path)
-        await outputFile(dst, file.content)
-        this.processedPaths.add(file.path)
+      const gitAdapter = this._getGitAdapter(op.revision)
+      const content = await gitAdapter.getBufferContent({
+        path: op.path,
+        oid: op.revision,
+      })
+      const dst = join(this.config.output, op.path)
+      await outputFile(dst, content)
+    } catch (error) {
+      Logger.debug(
+        lazy`IOExecutor gitFileCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
+      )
+    }
+  }
+
+  protected async _executeGitDirCopy(op: {
+    path: string
+    revision: string
+  }): Promise<void> {
+    try {
+      const gitAdapter = this._getGitAdapter(op.revision)
+      const filePaths = await gitAdapter.getFilesPath(op.path)
+      for (const filePath of filePaths) {
+        if (this.ignoreHelper.globalIgnore.ignores(filePath)) {
+          continue
+        }
+        const content = await gitAdapter.getBufferContent({
+          path: filePath,
+          oid: op.revision,
+        })
+        const dst = join(this.config.output, filePath)
+        await outputFile(dst, content)
+        this.processedPaths.add(filePath)
       }
     } catch (error) {
       Logger.debug(
-        lazy`IOExecutor gitCopy failed for ${op.path}: ${getErrorMessage(error)}`
+        lazy`IOExecutor gitDirCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
       )
     }
   }

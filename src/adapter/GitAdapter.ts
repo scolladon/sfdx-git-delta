@@ -4,13 +4,11 @@ import { SimpleGit, simpleGit } from 'simple-git'
 import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
-  BLOB_TYPE,
   DELETION,
   HEAD,
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   NUM_STAT_CHANGE_INFORMATION,
-  TREE_TYPE,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
@@ -20,10 +18,11 @@ import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import { GitBatchCatFile } from './gitBatchCatFile.js'
 
 const EOL = new RegExp(/\r?\n/)
+const ROOT_PATHS = new Set(['', '.', './'])
 
-const revPath = (pathDef: FileGitRef) => `${pathDef.oid}:${pathDef.path}`
 export default class GitAdapter {
   private static instances: Map<Config, GitAdapter> = new Map()
 
@@ -37,13 +36,31 @@ export default class GitAdapter {
   }
 
   protected readonly simpleGit: SimpleGit
-  protected readonly getFilesPathCache: Map<string, Set<string>>
-  protected readonly pathExistsCache: Map<string, boolean>
+  protected readonly treeIndex: Map<string, Set<string>>
+  protected batchCatFile: GitBatchCatFile | null = null
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
-    this.getFilesPathCache = new Map<string, Set<string>>()
-    this.pathExistsCache = new Map<string, boolean>()
+    this.treeIndex = new Map<string, Set<string>>()
+  }
+
+  protected getBatchCatFile(): GitBatchCatFile {
+    if (!this.batchCatFile) {
+      this.batchCatFile = new GitBatchCatFile(this.config.repo)
+    }
+    return this.batchCatFile
+  }
+
+  public closeBatchProcess(): void {
+    this.batchCatFile?.close()
+    this.batchCatFile = null
+  }
+
+  public static closeAll(): void {
+    for (const instance of GitAdapter.instances.values()) {
+      instance.closeBatchProcess()
+    }
+    GitAdapter.instances.clear()
   }
 
   @log
@@ -57,32 +74,55 @@ export default class GitAdapter {
     return await this.simpleGit.revparse(['--verify', ref])
   }
 
-  protected async pathExistsImpl(path: string, revision: string) {
-    let doesPathExists = false
+  @log
+  public async preBuildTreeIndex(
+    revision: string,
+    scopePaths: string[]
+  ): Promise<void> {
+    if (this.treeIndex.has(revision)) {
+      return
+    }
+
     try {
-      const type = await this.simpleGit.catFile([
-        '-t',
-        revPath({ path, oid: revision }),
-      ])
-      doesPathExists = [TREE_TYPE, BLOB_TYPE].includes(type.trimEnd())
+      const args = ['ls-tree', '--name-only', '-r', revision]
+      if (scopePaths.length > 0) {
+        args.push('--', ...scopePaths)
+      }
+      const output = await this.simpleGit.raw(args)
+      const files = new Set(
+        output
+          .split(EOL)
+          .filter(line => line)
+          .map(line => treatPathSep(line))
+      )
+      this.treeIndex.set(revision, files)
     } catch (error) {
       Logger.debug(
-        lazy`pathExistsImpl: path '${path}' at revision '${revision}' not found: ${() => getErrorMessage(error)}`
+        lazy`preBuildTreeIndex: scoped ls-tree for '${revision}' failed: ${() => getErrorMessage(error)}`
       )
-      doesPathExists = false
     }
-    return doesPathExists
+  }
+
+  protected pathExistsImpl(path: string, revision: string) {
+    const index = this.treeIndex.get(revision) ?? new Set<string>()
+    if (ROOT_PATHS.has(path)) {
+      return index.size > 0
+    }
+    if (index.has(path)) {
+      return true
+    }
+    const dirPrefix = `${path}${PATH_SEP}`
+    for (const filePath of index) {
+      if (filePath.startsWith(dirPrefix)) {
+        return true
+      }
+    }
+    return false
   }
 
   @log
   public async pathExists(path: string, revision: string = this.config.to) {
-    const cacheKey = `${revision}:${path}`
-    if (this.pathExistsCache.has(cacheKey)) {
-      return this.pathExistsCache.get(cacheKey)!
-    }
-    const doesPathExists = await this.pathExistsImpl(path, revision)
-    this.pathExistsCache.set(cacheKey, doesPathExists)
-    return doesPathExists
+    return this.pathExistsImpl(path, revision)
   }
 
   @log
@@ -90,8 +130,11 @@ export default class GitAdapter {
     return await this.simpleGit.raw(['rev-list', '--max-parents=0', HEAD])
   }
 
-  protected async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
-    let content: Buffer = await this.simpleGit.showBuffer(revPath(forRef))
+  public async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
+    let content = await this.getBatchCatFile().getContent(
+      forRef.oid,
+      forRef.path
+    )
 
     if (isLFS(content)) {
       const lsfPath = getLFSObjectContentPath(content)
@@ -106,58 +149,22 @@ export default class GitAdapter {
     return content.toString(UTF8_ENCODING)
   }
 
-  protected async getFilesPathImpl(
-    path: string,
-    revision: string
-  ): Promise<string[]> {
-    return (
-      await this.simpleGit.raw([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        revision,
-        path || '.',
-      ])
-    )
-      .split(EOL)
-      .filter(line => line)
-      .map(line => treatPathSep(line))
-  }
-
-  protected async getFilesPathCached(
-    path: string,
-    revision: string
-  ): Promise<string[]> {
-    const cacheKey = `${revision}:${path}`
-    if (this.getFilesPathCache.has(cacheKey)) {
-      return Array.from(this.getFilesPathCache.get(cacheKey)!)
+  protected getFilesPathCached(path: string, revision: string): string[] {
+    const index = this.treeIndex.get(revision) ?? new Set<string>()
+    if (ROOT_PATHS.has(path)) {
+      return Array.from(index)
     }
-
-    const filesPath = await this.getFilesPathImpl(path, revision)
-    const pathSegmentsLength = path.split(PATH_SEP).length
-
-    // Start iterating over each filePath
-    for (const filePath of filesPath) {
-      const relevantSegments = filePath
-        .split(PATH_SEP)
-        .slice(pathSegmentsLength)
-
-      // Only cache the sub-paths for relevant files starting from the given path
-      const subPathSegments = [path]
-      for (const segment of relevantSegments) {
-        subPathSegments.push(segment)
-        const currentPath = `${revision}:${subPathSegments.join(PATH_SEP)}`
-        if (!this.getFilesPathCache.has(currentPath)) {
-          this.getFilesPathCache.set(currentPath, new Set())
-        }
-        this.getFilesPathCache.get(currentPath)!.add(filePath)
+    if (index.has(path)) {
+      return [path]
+    }
+    const dirPrefix = `${path}${PATH_SEP}`
+    const result: string[] = []
+    for (const filePath of index) {
+      if (filePath.startsWith(dirPrefix)) {
+        result.push(filePath)
       }
     }
-
-    // Store the full set of file paths for the given path in cache
-    this.getFilesPathCache.set(cacheKey, new Set(filesPath))
-
-    return filesPath
+    return result
   }
 
   @log
@@ -183,54 +190,34 @@ export default class GitAdapter {
     dir: string,
     revision: string
   ): Promise<string[]> {
-    try {
-      const output = await this.simpleGit.raw([
-        'ls-tree',
-        '--name-only',
-        revision,
-        dir ? `${dir}/` : '.',
-      ])
-      return output
-        .split(EOL)
-        .filter(line => line && line.startsWith(dir))
-        .map(line => line.split(PATH_SEP).pop()!)
-        .filter(name => name)
-    } catch (error) {
-      Logger.debug(
-        lazy`listDirAtRevision: failed to list '${dir}' at '${revision}': ${() => getErrorMessage(error)}`
-      )
-      return []
-    }
-  }
-
-  public async *getFilesFrom(path: string) {
-    const filesPath = await this.getFilesPath(path)
-    for (const filePath of filesPath) {
-      const fileContent = await this.getBufferContent({
-        path: filePath,
-        oid: this.config.to,
-      })
-      yield {
-        path: filePath,
-        content: fileContent,
+    const index = this.treeIndex.get(revision) ?? new Set<string>()
+    const dirPrefix = dir ? `${dir}${PATH_SEP}` : ''
+    const children = new Set<string>()
+    for (const filePath of index) {
+      if (filePath.startsWith(dirPrefix)) {
+        const rest = filePath.slice(dirPrefix.length)
+        const firstSegment = rest.split(PATH_SEP)[0]
+        children.add(firstSegment)
       }
     }
+    return Array.from(children)
   }
 
   @log
   public async gitGrep(
     pattern: string,
-    path: string,
+    path: string | string[],
     revision: string = this.config.to
   ): Promise<string[]> {
     try {
+      const paths = Array.isArray(path) ? path : [path]
       const result = await this.simpleGit.raw([
         'grep',
         '-l',
         pattern,
         revision,
         '--',
-        path,
+        ...paths,
       ])
       return result
         .split(EOL)
@@ -246,29 +233,29 @@ export default class GitAdapter {
 
   @log
   public async getDiffLines(): Promise<string[]> {
-    const lines: string[] = []
-    for (const changeType of [ADDITION, MODIFICATION, DELETION]) {
-      const output = await this.simpleGit.raw([
-        'diff',
-        '--numstat',
-        '--no-renames',
-        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-        `--diff-filter=${changeType}`,
-        this.config.from,
-        this.config.to,
-        '--',
-        ...this.config.source,
-      ])
-      const linesOfType = output
-        .split(EOL)
-        .filter(Boolean)
-        .map(line =>
-          treatPathSep(
-            line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+    const results = await Promise.all(
+      [ADDITION, MODIFICATION, DELETION].map(async changeType => {
+        const output = await this.simpleGit.raw([
+          'diff',
+          '--numstat',
+          '--no-renames',
+          ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+          `--diff-filter=${changeType}`,
+          this.config.from,
+          this.config.to,
+          '--',
+          ...this.config.source,
+        ])
+        return output
+          .split(EOL)
+          .filter(Boolean)
+          .map(line =>
+            treatPathSep(
+              line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+            )
           )
-        )
-      pushAll(lines, linesOfType)
-    }
-    return lines
+      })
+    )
+    return results.flat()
   }
 }
