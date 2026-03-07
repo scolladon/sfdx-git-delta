@@ -43,9 +43,14 @@ const isLFSmocked = jest.mocked(isLFS)
 const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)
 const readFileMocked = jest.mocked(readFile)
 
-// Helper to set up tree index for a revision
-const setupTreeIndex = (files: string[]) => {
-  mockedRaw.mockResolvedValue(files.join(EOL) as never)
+// Helper to pre-build tree index for a revision
+const setupTreeIndex = async (
+  sut: GitAdapter,
+  files: string[],
+  revision: string
+) => {
+  mockedRaw.mockResolvedValueOnce(files.join(EOL) as never)
+  await sut.preBuildTreeIndex(revision, [])
 }
 
 describe('GitAdapter', () => {
@@ -130,7 +135,11 @@ describe('GitAdapter', () => {
       it('returns true for an exact file match', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/to/file.txt', 'other/file.cls'])
+        await setupTreeIndex(
+          gitAdapter,
+          ['path/to/file.txt', 'other/file.cls'],
+          config.to
+        )
 
         // Act
         const result = await gitAdapter.pathExists('path/to/file.txt')
@@ -144,7 +153,11 @@ describe('GitAdapter', () => {
       it('returns true for a directory prefix', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/to/file.txt', 'other/file.cls'])
+        await setupTreeIndex(
+          gitAdapter,
+          ['path/to/file.txt', 'other/file.cls'],
+          config.to
+        )
 
         // Act
         const result = await gitAdapter.pathExists('path/to')
@@ -156,7 +169,7 @@ describe('GitAdapter', () => {
       it('returns true for a top-level directory', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/to/file.txt'])
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], config.to)
 
         // Act
         const result = await gitAdapter.pathExists('path')
@@ -170,7 +183,7 @@ describe('GitAdapter', () => {
       it('returns false for non-existing path', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/to/file.txt'])
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], config.to)
 
         // Act
         const result = await gitAdapter.pathExists('nonexistent')
@@ -180,14 +193,13 @@ describe('GitAdapter', () => {
       })
     })
 
-    describe('Given tree index build fails, When pathExists, Then returns false', () => {
+    describe('Given no pre-built index, When pathExists, Then returns false', () => {
       it('returns false', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw.mockRejectedValue(new Error('git error') as never)
 
         // Act
-        const result = await gitAdapter.pathExists('path')
+        const result = await gitAdapter.pathExists('path/to/file.txt')
 
         // Assert
         expect(result).toBe(false)
@@ -198,7 +210,11 @@ describe('GitAdapter', () => {
       it('uses the tree index without additional git calls', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/to/file.txt', 'other/file.cls'])
+        await setupTreeIndex(
+          gitAdapter,
+          ['path/to/file.txt', 'other/file.cls'],
+          config.to
+        )
 
         // Act
         const result1 = await gitAdapter.pathExists('path/to/file.txt')
@@ -224,7 +240,7 @@ describe('GitAdapter', () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
         const customRevision = 'feature-branch'
-        setupTreeIndex(['path/to/file.txt'])
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], customRevision)
 
         // Act
         const result = await gitAdapter.pathExists(
@@ -250,6 +266,8 @@ describe('GitAdapter', () => {
         mockedRaw
           .mockResolvedValueOnce('path/file1.txt' as never)
           .mockResolvedValueOnce('path/file2.txt' as never)
+        await gitAdapter.preBuildTreeIndex('rev1', [])
+        await gitAdapter.preBuildTreeIndex('rev2', [])
 
         // Act
         const result1 = await gitAdapter.pathExists('path/file1.txt', 'rev1')
@@ -268,7 +286,7 @@ describe('GitAdapter', () => {
       it('does not call getContent', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/to/file.txt'])
+        await setupTreeIndex(gitAdapter, ['path/to/file.txt'], config.to)
 
         // Act
         await gitAdapter.pathExists('path/to/file.txt')
@@ -282,7 +300,7 @@ describe('GitAdapter', () => {
       it('does not match partial directory names', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['path/together/file.txt'])
+        await setupTreeIndex(gitAdapter, ['path/together/file.txt'], config.to)
 
         // Act
         const result = await gitAdapter.pathExists('path/to')
@@ -300,7 +318,7 @@ describe('GitAdapter', () => {
       ])('returns true for root path "%s"', async rootPath => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        setupTreeIndex(['src/file.ts'])
+        await setupTreeIndex(gitAdapter, ['src/file.ts'], config.to)
 
         // Act
         const result = await gitAdapter.pathExists(rootPath)
@@ -423,7 +441,7 @@ describe('GitAdapter', () => {
         'path/to/another/file',
         'other/file',
       ]
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path')
@@ -450,7 +468,7 @@ describe('GitAdapter', () => {
         'path/to/file',
         'path/to/another/file',
       ]
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path/to')
@@ -462,7 +480,11 @@ describe('GitAdapter', () => {
     it('Given exact file path, When getFilesPath, Then returns that file', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      setupTreeIndex(['path/to/file.txt', 'other/file.cls'])
+      await setupTreeIndex(
+        gitAdapter,
+        ['path/to/file.txt', 'other/file.cls'],
+        config.to
+      )
 
       // Act
       const result = await gitAdapter.getFilesPath('path/to/file.txt')
@@ -479,7 +501,7 @@ describe('GitAdapter', () => {
         'path/to/file',
         'path/to/another/file',
       ]
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path')
@@ -499,7 +521,7 @@ describe('GitAdapter', () => {
         'path/to/file',
         'path/to/another/file',
       ]
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path')
@@ -520,7 +542,7 @@ describe('GitAdapter', () => {
         'path2/file1',
         'path2/file2',
       ]
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath(['path1', 'path2'])
@@ -539,7 +561,7 @@ describe('GitAdapter', () => {
         'path2/file1',
         'path2/file2',
       ]
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result1 = await gitAdapter.getFilesPath(['path1', 'path2'])
@@ -551,6 +573,17 @@ describe('GitAdapter', () => {
       expect(result2).toEqual(['path1/file1', 'path1/file2'])
       expect(result3).toEqual(['path2/file1', 'path2/file2'])
       expect(mockedRaw).toHaveBeenCalledTimes(1)
+    })
+
+    it('Given no pre-built index, When getFilesPath, Then returns empty array', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+
+      // Act
+      const result = await gitAdapter.getFilesPath('path')
+
+      // Assert
+      expect(result).toEqual([])
     })
 
     it('Given empty array of paths, When getFilesPath, Then returns empty array', async () => {
@@ -569,7 +602,7 @@ describe('GitAdapter', () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const customRevision = 'feature-branch'
-      setupTreeIndex(['path/file.txt'])
+      await setupTreeIndex(gitAdapter, ['path/file.txt'], customRevision)
 
       // Act
       await gitAdapter.getFilesPath('path', customRevision)
@@ -589,6 +622,8 @@ describe('GitAdapter', () => {
       mockedRaw
         .mockResolvedValueOnce('path/file1' as never)
         .mockResolvedValueOnce('path/file2' as never)
+      await gitAdapter.preBuildTreeIndex('rev1', [])
+      await gitAdapter.preBuildTreeIndex('rev2', [])
 
       // Act
       const result1 = await gitAdapter.getFilesPath('path', 'rev1')
@@ -607,7 +642,7 @@ describe('GitAdapter', () => {
       const gitAdapter = GitAdapter.getInstance(config)
       const customRevision = 'feature-branch'
       const allFiles = ['path/to/file', 'path/to/another/file']
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, customRevision)
 
       // Act
       const result = await gitAdapter.getFilesPath('path', customRevision)
@@ -625,7 +660,7 @@ describe('GitAdapter', () => {
     it('Given path not in tree, When getFilesPath, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      setupTreeIndex(['other/file.txt'])
+      await setupTreeIndex(gitAdapter, ['other/file.txt'], config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path')
@@ -637,7 +672,7 @@ describe('GitAdapter', () => {
     it('Given partial directory name match, When getFilesPath, Then does not false-positive', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      setupTreeIndex(['path/together/file.txt'])
+      await setupTreeIndex(gitAdapter, ['path/together/file.txt'], config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath('path/to')
@@ -654,7 +689,7 @@ describe('GitAdapter', () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const allFiles = ['src/a.ts', 'src/b.ts', 'lib/c.js']
-      setupTreeIndex(allFiles)
+      await setupTreeIndex(gitAdapter, allFiles, config.to)
 
       // Act
       const result = await gitAdapter.getFilesPath(rootPath)
@@ -791,13 +826,15 @@ describe('GitAdapter', () => {
     it('Given valid directory and revision, When listDirAtRevision, Then returns immediate children', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue(
+      await setupTreeIndex(
+        gitAdapter,
         [
           'myDir/file1.txt',
           'myDir/file2.cls',
           'myDir/subDir/nested.txt',
           'other/file.txt',
-        ].join(EOL) as never
+        ],
+        'HEAD'
       )
 
       // Act
@@ -810,12 +847,14 @@ describe('GitAdapter', () => {
     it('Given directory with nested files only, When listDirAtRevision, Then returns unique immediate children', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue(
+      await setupTreeIndex(
+        gitAdapter,
         [
           'myDir/subDir/file1.txt',
           'myDir/subDir/file2.txt',
           'myDir/otherDir/file3.txt',
-        ].join(EOL) as never
+        ],
+        'HEAD'
       )
 
       // Act
@@ -829,13 +868,14 @@ describe('GitAdapter', () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const revision = 'HEAD'
-      mockedRaw.mockResolvedValue(
-        ['myDir/file1.txt', 'myDir/file2.cls'].join(EOL) as never
+      await setupTreeIndex(
+        gitAdapter,
+        ['myDir/file1.txt', 'myDir/file2.cls'],
+        revision
       )
+      mockedRaw.mockClear()
 
       // Act
-      await gitAdapter.getFilesPath('myDir', revision)
-      mockedRaw.mockClear()
       const result = await gitAdapter.listDirAtRevision('myDir', revision)
 
       // Assert
@@ -846,7 +886,7 @@ describe('GitAdapter', () => {
     it('Given directory does not exist in tree, When listDirAtRevision, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue('other/file.txt' as never)
+      await setupTreeIndex(gitAdapter, ['other/file.txt'], 'HEAD')
 
       // Act
       const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
@@ -855,10 +895,9 @@ describe('GitAdapter', () => {
       expect(result).toEqual([])
     })
 
-    it('Given git command throws, When listDirAtRevision, Then returns empty array', async () => {
+    it('Given no pre-built index, When listDirAtRevision, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockRejectedValue(new Error('git error') as never)
 
       // Act
       const result = await gitAdapter.listDirAtRevision('myDir', 'HEAD')
@@ -870,7 +909,11 @@ describe('GitAdapter', () => {
     it('Given empty dir, When listDirAtRevision, Then returns top-level entries', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      setupTreeIndex(['classes/MyClass.cls', 'triggers/MyTrigger.trigger'])
+      await setupTreeIndex(
+        gitAdapter,
+        ['classes/MyClass.cls', 'triggers/MyTrigger.trigger'],
+        'HEAD'
+      )
 
       // Act
       const result = await gitAdapter.listDirAtRevision('', 'HEAD')
@@ -879,21 +922,17 @@ describe('GitAdapter', () => {
       expect(result).toEqual(expect.arrayContaining(['classes', 'triggers']))
     })
 
-    it('Given listDirAtRevision uses tree index, When called, Then calls ls-tree with correct args', async () => {
+    it('Given pre-built tree index, When listDirAtRevision called, Then no additional raw calls', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValue('myDir/file1.txt' as never)
+      await setupTreeIndex(gitAdapter, ['myDir/file1.txt'], 'HEAD')
+      mockedRaw.mockClear()
 
       // Act
       await gitAdapter.listDirAtRevision('myDir', 'HEAD')
 
       // Assert
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        'HEAD',
-      ])
+      expect(mockedRaw).not.toHaveBeenCalled()
     })
   })
 
@@ -1000,7 +1039,9 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      setupTreeIndex(['dir1/file1.cls', 'dir1/file2.cls'])
+      mockedRaw.mockResolvedValueOnce(
+        ['dir1/file1.cls', 'dir1/file2.cls'].join(EOL) as never
+      )
 
       // Act
       await sut.preBuildTreeIndex(config.to, ['dir1/'])
@@ -1021,7 +1062,7 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      setupTreeIndex(['dir1/file1.cls'])
+      mockedRaw.mockResolvedValueOnce('dir1/file1.cls' as never)
 
       await sut.preBuildTreeIndex(config.to, ['dir1/'])
       mockedRaw.mockClear()
@@ -1039,7 +1080,7 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      setupTreeIndex([])
+      mockedRaw.mockResolvedValueOnce('' as never)
 
       // Act
       await sut.preBuildTreeIndex(config.to, [])
@@ -1071,7 +1112,7 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      setupTreeIndex(['dir1/file1.cls'])
+      mockedRaw.mockResolvedValueOnce('dir1/file1.cls' as never)
 
       await sut.preBuildTreeIndex(config.to, ['dir1/'])
       mockedRaw.mockClear()

@@ -74,27 +74,6 @@ export default class GitAdapter {
     return await this.simpleGit.revparse(['--verify', ref])
   }
 
-  protected async buildTreeIndex(revision: string): Promise<Set<string>> {
-    if (this.treeIndex.has(revision)) {
-      return this.treeIndex.get(revision)!
-    }
-
-    const output = await this.simpleGit.raw([
-      'ls-tree',
-      '--name-only',
-      '-r',
-      revision,
-    ])
-    const files = new Set(
-      output
-        .split(EOL)
-        .filter(line => line)
-        .map(line => treatPathSep(line))
-    )
-    this.treeIndex.set(revision, files)
-    return files
-  }
-
   @log
   public async preBuildTreeIndex(
     revision: string,
@@ -124,28 +103,21 @@ export default class GitAdapter {
     }
   }
 
-  protected async pathExistsImpl(path: string, revision: string) {
-    try {
-      const index = await this.buildTreeIndex(revision)
-      if (ROOT_PATHS.has(path)) {
-        return index.size > 0
-      }
-      if (index.has(path)) {
+  protected pathExistsImpl(path: string, revision: string) {
+    const index = this.treeIndex.get(revision) ?? new Set<string>()
+    if (ROOT_PATHS.has(path)) {
+      return index.size > 0
+    }
+    if (index.has(path)) {
+      return true
+    }
+    const dirPrefix = `${path}${PATH_SEP}`
+    for (const filePath of index) {
+      if (filePath.startsWith(dirPrefix)) {
         return true
       }
-      const dirPrefix = `${path}${PATH_SEP}`
-      for (const filePath of index) {
-        if (filePath.startsWith(dirPrefix)) {
-          return true
-        }
-      }
-      return false
-    } catch (error) {
-      Logger.debug(
-        lazy`pathExistsImpl: path '${path}' at revision '${revision}' not found: ${() => getErrorMessage(error)}`
-      )
-      return false
     }
+    return false
   }
 
   @log
@@ -177,11 +149,8 @@ export default class GitAdapter {
     return content.toString(UTF8_ENCODING)
   }
 
-  protected async getFilesPathCached(
-    path: string,
-    revision: string
-  ): Promise<string[]> {
-    const index = await this.buildTreeIndex(revision)
+  protected getFilesPathCached(path: string, revision: string): string[] {
+    const index = this.treeIndex.get(revision) ?? new Set<string>()
     if (ROOT_PATHS.has(path)) {
       return Array.from(index)
     }
@@ -221,24 +190,17 @@ export default class GitAdapter {
     dir: string,
     revision: string
   ): Promise<string[]> {
-    try {
-      const index = await this.buildTreeIndex(revision)
-      const dirPrefix = dir ? `${dir}${PATH_SEP}` : ''
-      const children = new Set<string>()
-      for (const filePath of index) {
-        if (filePath.startsWith(dirPrefix)) {
-          const rest = filePath.slice(dirPrefix.length)
-          const firstSegment = rest.split(PATH_SEP)[0]
-          children.add(firstSegment)
-        }
+    const index = this.treeIndex.get(revision) ?? new Set<string>()
+    const dirPrefix = dir ? `${dir}${PATH_SEP}` : ''
+    const children = new Set<string>()
+    for (const filePath of index) {
+      if (filePath.startsWith(dirPrefix)) {
+        const rest = filePath.slice(dirPrefix.length)
+        const firstSegment = rest.split(PATH_SEP)[0]
+        children.add(firstSegment)
       }
-      return Array.from(children)
-    } catch (error) {
-      Logger.debug(
-        lazy`listDirAtRevision: failed to list '${dir}' at '${revision}': ${() => getErrorMessage(error)}`
-      )
-      return []
     }
+    return Array.from(children)
   }
 
   @log
