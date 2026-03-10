@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772890431845,
+  "lastUpdate": 1773137147508,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -4059,6 +4059,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.47,
             "range": "±0.85%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sébastien Colladon",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sébastien Colladon",
+            "username": "scolladon"
+          },
+          "distinct": true,
+          "id": "50ed2e52b2e5518b7f00634d640256bd13806151",
+          "message": "ci: use feat(metadata) prefix for SDR dependency updates",
+          "timestamp": "2026-03-10T10:59:15+01:00",
+          "tree_id": "dcb0df1787f15a509021fc2ca1d1e57836467ba2",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/50ed2e52b2e5518b7f00634d640256bd13806151"
+        },
+        "date": 1773137147148,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.47,
+            "range": "±1.24%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
