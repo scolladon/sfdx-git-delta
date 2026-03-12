@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1773137147508,
+  "lastUpdate": 1773296831168,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Benchmark.js Benchmark": [
@@ -4090,6 +4090,37 @@ window.BENCHMARK_DATA = {
             "name": "e2e-test",
             "value": 0.47,
             "range": "±1.24%",
+            "unit": "ops/sec",
+            "extra": "6 samples"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "007885ddfbce2a9b4beab0c4511dd6ce1c07e13d",
+          "message": "feat(metadata): bump @salesforce/source-deploy-retrieve from 12.31.19 to 12.31.21 (#1245)\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-03-12T07:23:26+01:00",
+          "tree_id": "5b615b113b5ab61a81227d4bd4cb4974b022d6c1",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/007885ddfbce2a9b4beab0c4511dd6ce1c07e13d"
+        },
+        "date": 1773296830249,
+        "tool": "benchmarkjs",
+        "benches": [
+          {
+            "name": "e2e-test",
+            "value": 0.47,
+            "range": "±2.18%",
             "unit": "ops/sec",
             "extra": "6 samples"
           }
