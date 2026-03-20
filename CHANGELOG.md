@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.37.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.36.0...v6.37.0) (2026-03-20)
+
+
+### Features
+
+* **metadata:** bump @salesforce/source-deploy-retrieve from 12.31.22 to 12.31.23 ([#1250](https://github.com/scolladon/sfdx-git-delta/issues/1250)) ([bc8a274](https://github.com/scolladon/sfdx-git-delta/commit/bc8a2741637ff105c461122724f106555d918f7e))
+
 ## [6.36.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.35.0...v6.36.0) (2026-03-19)
 
 
