@@ -101,12 +101,18 @@ describe('PackageGenerator', () => {
       work.config.output = 'test'
       sut = new PackageGenerator(work, metadata)
     })
-    it('calls `fse.outputFile` for %s', async () => {
+    it('calls `fse.outputFile` with correct file paths', async () => {
       // Act
       await sut['_buildPackages']()
 
       // Assert
       expect(outputFile).toHaveBeenCalledTimes(3)
+      const calledPaths = vi.mocked(outputFile).mock.calls.map(call => call[0])
+      expect(calledPaths).toContain(
+        'test/destructiveChanges/destructiveChanges.xml'
+      )
+      expect(calledPaths).toContain('test/package/package.xml')
+      expect(calledPaths).toContain('test/destructiveChanges/package.xml')
     })
 
     it('calls `PackageBuilder.buildPackage` for %s', async () => {

@@ -179,7 +179,7 @@ describe(`test if the application`, () => {
   })
 
   it('throws errors when "-t" and "-f" are not a valid sha pointer', async () => {
-    expect.assertions(1)
+    // Arrange
     mockParseRev.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
@@ -187,7 +187,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -197,11 +197,8 @@ describe(`test if the application`, () => {
       },
     })
 
-    try {
-      await configValidator.validateConfig()
-    } catch (err) {
-      expect(err).toBeDefined()
-    }
+    // Act & Assert
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('do not throw errors when "-t" and "-f" are valid sha pointer', async () => {

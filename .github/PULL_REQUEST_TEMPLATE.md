@@ -21,7 +21,7 @@ Thanks for sending a pull request! Please make sure to have a look to the contri
 
 closes #
 
-- [ ] Jest tests added to cover the fix.
+- [ ] Vitest tests added to cover the fix.
 - [ ] NUT tests added to cover the fix.
 - [ ] E2E tests added to cover the fix.
 

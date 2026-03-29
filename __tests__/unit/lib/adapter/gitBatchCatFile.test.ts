@@ -214,6 +214,30 @@ describe('GitBatchCatFile', () => {
 
       sut.close()
     })
+
+    it('When header has invalid size followed by valid request, Then resets pendingSize to -1 and resolves next request', async () => {
+      // Arrange
+      ;(mockProcess as { killed: boolean }).killed = false
+      const sut = new GitBatchCatFile('/repo')
+      const validContent = 'valid'
+
+      // Act
+      const promise1 = sut.getContent('rev1', 'bad.txt')
+      const promise2 = sut.getContent('rev2', 'good.txt')
+
+      // Send malformed header (NaN size) then valid header+body
+      const malformed = 'oid1 blob\n'
+      const validHeader = `oid2 blob ${validContent.length}\n`
+      const validBody = `${validContent}\n`
+      mockStdout.emit('data', Buffer.from(malformed + validHeader + validBody))
+
+      // Assert
+      await expect(promise1).rejects.toThrow('Invalid header')
+      const result2 = await promise2
+      expect(result2.toString()).toBe(validContent)
+
+      sut.close()
+    })
   })
 
   describe('Given process exits unexpectedly with pending requests', () => {

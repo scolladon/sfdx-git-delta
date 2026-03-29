@@ -403,4 +403,252 @@ describe('computeTreeIndexScope', () => {
       expect(sut.size).toBe(0)
     })
   })
+
+  describe('Given GenAiFunction diff lines', () => {
+    it('When computed, Then returns component directory', () => {
+      // Arrange
+      const lines = [
+        'A\tforce-app/main/default/genAiFunctions/MyFunc/MyFunc.genAiFunction-meta.xml',
+      ]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, metadata)
+
+      // Assert
+      expect(sut.has('force-app/main/default/genAiFunctions/MyFunc')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given Territory2Model diff lines', () => {
+    it('When computed, Then returns type directory', () => {
+      // Arrange
+      const lines = [
+        'A\tforce-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
+      ]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, metadata)
+
+      // Assert
+      expect(sut.has('force-app/main/default/territory2Models')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given type with inFolder=true but not in TREE_INDEX_XML_NAMES and not bundle/mixedContent', () => {
+    it('When computed, Then still returns type directory via inFolder flag', () => {
+      // Arrange
+      const inFolderType: Metadata = {
+        directoryName: 'emailTemplates',
+        inFolder: true,
+        metaFile: false,
+        xmlName: 'EmailTemplate',
+      }
+      const repo = mockMetadata([inFolderType])
+      const lines = [
+        'A\tforce-app/main/default/emailTemplates/MyFolder/tpl.email',
+      ]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('force-app/main/default/emailTemplates')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given metadata entry without xmlName in parent index', () => {
+    it('When child references a parent, Then only entries with xmlName are findable', () => {
+      // Arrange
+      const parentWithoutXmlName: Metadata = {
+        directoryName: 'parentDir',
+        inFolder: true,
+        metaFile: false,
+      }
+      const child: Metadata = {
+        directoryName: 'childDir',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'ChildType',
+        parentXmlName: 'MissingXmlParent',
+      }
+      const repo = mockMetadata([parentWithoutXmlName, child])
+      const lines = ['A\tchildDir/file.txt']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.size).toBe(0)
+    })
+  })
+
+  describe('Given bundle type where directory is the last path segment', () => {
+    it('When computed, Then returns fallback to directory without component name', () => {
+      // Arrange
+      const bundleType: Metadata = {
+        directoryName: 'aura',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'AuraDefinitionBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = ['A\tforce-app/main/default/aura']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('force-app/main/default/aura')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given bundle type with component name in path', () => {
+    it('When computed, Then returns path including component directory', () => {
+      // Arrange
+      const bundleType: Metadata = {
+        directoryName: 'aura',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'AuraDefinitionBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = ['A\tforce-app/main/default/aura/myComp/myComp.cmp']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('force-app/main/default/aura/myComp')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given each TREE_INDEX_XML_NAMES entry', () => {
+    it.each([
+      {
+        xmlName: 'CustomObject',
+        directoryName: 'objects',
+        path: 'force-app/main/default/objects/Account/Account.object-meta.xml',
+        expected: 'force-app/main/default/objects',
+      },
+      {
+        xmlName: 'Dashboard',
+        directoryName: 'dashboards',
+        path: 'force-app/main/default/dashboards/MyDash/Dash.dashboard-meta.xml',
+        expected: 'force-app/main/default/dashboards',
+      },
+      {
+        xmlName: 'Report',
+        directoryName: 'reports',
+        path: 'force-app/main/default/reports/MyFolder/Report.report-meta.xml',
+        expected: 'force-app/main/default/reports',
+      },
+      {
+        xmlName: 'AuraDefinitionBundle',
+        directoryName: 'aura',
+        adapter: 'bundle',
+        path: 'force-app/main/default/aura/myComp/myComp.cmp',
+        expected: 'force-app/main/default/aura/myComp',
+      },
+      {
+        xmlName: 'LightningComponentBundle',
+        directoryName: 'lwc',
+        adapter: 'bundle',
+        path: 'force-app/main/default/lwc/myComp/myComp.js',
+        expected: 'force-app/main/default/lwc/myComp',
+      },
+      {
+        xmlName: 'GenAiFunction',
+        directoryName: 'genAiFunctions',
+        adapter: 'bundle',
+        path: 'force-app/main/default/genAiFunctions/MyFunc/MyFunc.genAiFunction-meta.xml',
+        expected: 'force-app/main/default/genAiFunctions/MyFunc',
+      },
+      {
+        xmlName: 'PermissionSet',
+        directoryName: 'permissionsets',
+        path: 'force-app/main/default/permissionsets/MyPS/MyPS.permissionset-meta.xml',
+        expected: 'force-app/main/default/permissionsets',
+      },
+      {
+        xmlName: 'Territory2Model',
+        directoryName: 'territory2Models',
+        path: 'force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
+        expected: 'force-app/main/default/territory2Models',
+      },
+    ])('When $xmlName diff line is computed, Then returns correct scope', ({
+      xmlName,
+      directoryName,
+      adapter,
+      path,
+      expected,
+    }) => {
+      // Arrange
+      const type: Metadata = {
+        directoryName,
+        inFolder: false,
+        metaFile: false,
+        xmlName,
+        ...(adapter ? { adapter } : {}),
+      }
+      const repo = mockMetadata([type])
+      const lines = [`A\t${path}`]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has(expected)).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given bundle type where dirIndex + 1 equals parts.length', () => {
+    it('When computed, Then returns path up to directory without extra segment', () => {
+      // Arrange
+      const bundleType: Metadata = {
+        directoryName: 'lwc',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'LightningComponentBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = ['A\tforce-app/main/default/lwc']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('force-app/main/default/lwc')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+
+    it('When path has component after directory, Then includes component in scope', () => {
+      // Arrange
+      const bundleType: Metadata = {
+        directoryName: 'lwc',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'LightningComponentBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = ['A\tforce-app/main/default/lwc/myComp/myComp.js']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      const expected = 'force-app/main/default/lwc/myComp'
+      expect(sut.has(expected)).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
 })

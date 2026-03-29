@@ -128,16 +128,8 @@ describe('external library inclusion', () => {
     })
 
     it('it should throw', async () => {
-      // Arrange
-      expect.assertions(1)
-
-      // Act
-      try {
-        await sgd({} as Config)
-      } catch (error) {
-        // Assert
-        expect((error as Error).message).toEqual('test')
-      }
+      // Act & Assert
+      await expect(sgd({} as Config)).rejects.toThrow('test')
     })
   })
 

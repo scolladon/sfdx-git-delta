@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
@@ -107,6 +108,23 @@ describe('the type handler factory', () => {
       `D       force-app/main/default/classes/folder/file`
     )
     expect(sut).toBeInstanceOf(Standard)
+  })
+
+  it('Given non-deletion change type, When resolving handler, Then uses to revision', async () => {
+    const sut = await typeHandlerFactory.getTypeHandler(
+      `A       force-app/main/default/classes/folder/file`
+    )
+    expect(sut).toBeInstanceOf(Standard)
+  })
+
+  it('Given a diff line, When getTypeHandler is called, Then path is extracted from line after change type prefix', async () => {
+    const sut = await typeHandlerFactory.getTypeHandler(
+      `A       force-app/main/default/flows/MyFlow.flow-meta.xml`
+    )
+    expect(sut).toBeInstanceOf(FlowHandler)
+    expect(sut.toString()).toContain(
+      'force-app/main/default/flows/MyFlow.flow-meta.xml'
+    )
   })
 
   describe('dynamic resolution', () => {

@@ -202,7 +202,7 @@
       "command": "knip",
       "files": [
         "src/**/*.ts",
-        "test/**/*.ts",
+        "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json",
         "knip.config.ts"
@@ -254,7 +254,7 @@
       "command": "node __tests__/perf/bench.mjs > perf-result.txt && shx cat perf-result.txt",
       "files": [
         "src/**/*.ts",
-        "test/**/*.ts",
+        "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json"
       ],
@@ -270,7 +270,7 @@
       "command": "stryker run",
       "files": [
         "src/**/*.ts",
-        "test/**/*.ts",
+        "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json"
       ],
@@ -282,10 +282,10 @@
       ]
     },
     "test:mutation:incremental": {
-      "command": "stryker run --mutate $(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -)",
+      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -) && [ -n \"$FILES\" ] && stryker run --mutate \"$FILES\" || echo 'No source files changed — skipping mutation testing'",
       "files": [
         "src/**/*.ts",
-        "test/**/*.ts",
+        "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json"
       ],

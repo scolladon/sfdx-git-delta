@@ -289,16 +289,51 @@ describe(`test if repoGitDiff`, () => {
   })
 
   it('can reject in case of error', async () => {
+    // Arrange
     mockGetDiffLines.mockImplementation(() => Promise.reject(new Error('test')))
-    try {
-      const repoGitDiff = new RepoGitDiff(
-        config,
-        null as unknown as MetadataRepository
-      )
-      await repoGitDiff.getLines()
-    } catch (e) {
-      expect(e).toBeDefined()
-    }
+    const repoGitDiff = new RepoGitDiff(
+      config,
+      null as unknown as MetadataRepository
+    )
+
+    // Act & Assert
+    await expect(repoGitDiff.getLines()).rejects.toThrow()
+  })
+
+  it('filters empty lines', async () => {
+    // Arrange
+    mockGetDiffLines.mockResolvedValue([
+      '',
+      `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
+      '',
+    ])
+    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const work = await repoGitDiff.getLines()
+
+    // Assert
+    expect(work).toHaveLength(1)
+  })
+
+  it('groups lines by diff type for rename detection', async () => {
+    // Arrange
+    const output: string[] = [
+      `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
+      `${MODIFICATION}${TAB}force-app/main/default/classes/Other.cls`,
+      `${ADDITION}${TAB}force-app/account/domain/classes/Account.cls`,
+    ]
+    mockGetDiffLines.mockResolvedValue(output)
+    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const work = await repoGitDiff.getLines()
+
+    // Assert
+    // Deletion of Account.cls should be filtered (moved), but Modification and Addition kept
+    expect(work).toHaveLength(2)
+    expect(work).toContain(output[1])
+    expect(work).toContain(output[2])
   })
 
   describe('_extractComparisonName', () => {

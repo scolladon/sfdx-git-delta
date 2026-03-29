@@ -87,14 +87,9 @@ describe('readFile', () => {
       mockedReadFile.mockRejectedValue('Error')
     })
     it('should throw', async () => {
-      // Act
-      try {
-        await readFile('path')
-      } catch (err) {
-        // Assert
-        expect(err).toBeTruthy()
-        expect(mockedReadFile).toHaveBeenCalled()
-      }
+      // Act & Assert
+      await expect(readFile('path')).rejects.toBeTruthy()
+      expect(mockedReadFile).toHaveBeenCalled()
     })
   })
 })
