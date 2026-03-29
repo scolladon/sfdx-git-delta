@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -12,7 +12,7 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
 const line =
   'A       force-app/main/default/objects/Account/recordTypes/Test.recordType-meta.xml'
@@ -24,7 +24,7 @@ beforeAll(async () => {
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
   work.config.generateDelta = false
 })

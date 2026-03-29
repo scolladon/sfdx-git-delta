@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -14,10 +14,10 @@ import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
-const mockedReadDirs = jest.mocked(readDirs)
-const mockedPathExists = jest.mocked(pathExists)
+const mockedReadDirs = vi.mocked(readDirs)
+const mockedPathExists = vi.mocked(pathExists)
 
 const lwcType = {
   directoryName: 'lwc',
@@ -49,7 +49,7 @@ const line = `A       ${entityPath}`
 const type = 'resource'
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 

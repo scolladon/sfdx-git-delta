@@ -1,4 +1,5 @@
 'use strict'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
@@ -10,7 +11,7 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
 const objectType = {
   directoryName: 'recordTypes',
@@ -25,7 +26,7 @@ const line =
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 

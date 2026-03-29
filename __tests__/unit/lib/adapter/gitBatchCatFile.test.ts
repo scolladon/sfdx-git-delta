@@ -1,14 +1,14 @@
 'use strict'
 import { EventEmitter } from 'node:events'
-import { describe, expect, it, jest } from '@jest/globals'
+import { describe, expect, it, vi } from 'vitest'
 
 import { GitBatchCatFile } from '../../../../src/adapter/gitBatchCatFile'
 
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/LoggingService')
 
 const mockStdin = {
-  write: jest.fn(),
-  end: jest.fn(),
+  write: vi.fn(),
+  end: vi.fn(),
 }
 const mockStdout = new EventEmitter()
 const mockStderr = new EventEmitter()
@@ -17,13 +17,13 @@ const mockProcess = Object.assign(new EventEmitter(), {
   stdout: mockStdout,
   stderr: mockStderr,
   killed: false,
-  kill: jest.fn(() => {
+  kill: vi.fn(() => {
     ;(mockProcess as { killed: boolean }).killed = true
   }),
 })
 
-jest.mock('node:child_process', () => ({
-  spawn: jest.fn(() => mockProcess),
+vi.mock('node:child_process', () => ({
+  spawn: vi.fn(() => mockProcess),
 }))
 
 describe('GitBatchCatFile', () => {

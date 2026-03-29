@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
@@ -37,7 +37,7 @@ const entityType = 'DiscoveryAIModel'
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
   work.config.generateDelta = false
 })

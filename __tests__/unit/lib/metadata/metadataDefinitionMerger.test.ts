@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it } from 'vitest'
 import { MetadataDefinitionMerger } from '../../../../src/metadata/metadataDefinitionMerger'
 import type { Metadata } from '../../../../src/types/metadata'
 

@@ -1,5 +1,5 @@
 'use strict'
-import { beforeEach, describe, expect, it } from '@jest/globals'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'

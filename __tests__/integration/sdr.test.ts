@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it } from 'vitest'
 
 import { SDRMetadataAdapter } from '../../src/metadata/sdrMetadataAdapter'
 import type { Metadata } from '../../src/types/metadata'

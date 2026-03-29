@@ -1,23 +1,23 @@
 'use strict'
 
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, vi } from 'vitest'
 import { MessageService } from '../../../../src/utils/MessageService.js'
 
-const mockedMessages = jest.fn()
-jest.mock('@salesforce/core', () => {
+const mockedMessages = vi.fn()
+vi.mock('@salesforce/core', () => {
   return {
     Messages: {
-      importMessagesDirectoryFromMetaUrl: jest.fn(),
-      loadMessages: jest.fn(() => ({
+      importMessagesDirectoryFromMetaUrl: vi.fn(),
+      loadMessages: vi.fn(() => ({
         getMessage: mockedMessages,
         getMessages: mockedMessages,
       })),
     },
     Logger: {
-      childFromRoot: jest.fn(() => ({
-        setLevel: jest.fn(),
-        shouldLog: jest.fn(),
-        trace: jest.fn(),
+      childFromRoot: vi.fn(() => ({
+        setLevel: vi.fn(),
+        shouldLog: vi.fn(),
+        trace: vi.fn(),
       })),
     },
     LoggerLevel: {},

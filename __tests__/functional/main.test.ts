@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
@@ -10,32 +10,49 @@ import {
   ManifestTarget,
 } from '../../src/types/handlerResult'
 
-jest.mock('../../src/utils/LoggingService')
+const {
+  mockPreBuildTreeIndex,
+  mockComputeTreeIndexScope,
+  mockValidateConfig,
+  mockGetLines,
+  mockProcess,
+  mockCollectAll,
+  mockExecuteRemaining,
+  mockExecute,
+} = vi.hoisted(() => ({
+  mockPreBuildTreeIndex: vi.fn(),
+  mockComputeTreeIndexScope: vi.fn(),
+  mockValidateConfig: vi.fn(),
+  mockGetLines: vi.fn(),
+  mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
+  mockCollectAll: vi.fn<() => Promise<HandlerResult>>(),
+  mockExecuteRemaining: vi.fn(),
+  mockExecute: vi.fn(),
+}))
 
-const mockPreBuildTreeIndex = jest.fn()
-jest.mock('../../src/adapter/GitAdapter', () => ({
+vi.mock('../../src/utils/LoggingService')
+
+vi.mock('../../src/adapter/GitAdapter', () => ({
   default: {
-    getInstance: jest.fn(() => ({
+    getInstance: vi.fn(() => ({
       preBuildTreeIndex: mockPreBuildTreeIndex,
     })),
-    closeAll: jest.fn(),
+    closeAll: vi.fn(),
   },
 }))
 
-const mockComputeTreeIndexScope = jest.fn()
-jest.mock('../../src/utils/treeIndexScope', () => ({
+vi.mock('../../src/utils/treeIndexScope', () => ({
   computeTreeIndexScope: (...args: unknown[]) =>
     mockComputeTreeIndexScope(...args),
 }))
 
-const mockValidateConfig = jest.fn()
-jest.mock('../../src/utils/configValidator', () => {
+vi.mock('../../src/utils/configValidator', async () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const actualModule: any = jest.requireActual(
+  const actualModule: any = await vi.importActual(
     '../../src/utils/configValidator'
   )
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return {
         ...actualModule,
         validateConfig: mockValidateConfig,
@@ -44,12 +61,11 @@ jest.mock('../../src/utils/configValidator', () => {
   }
 })
 
-const mockGetLines = jest.fn()
-jest.mock('../../src/utils/repoGitDiff', () => {
+vi.mock('../../src/utils/repoGitDiff', async () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const actualModule: any = jest.requireActual('../../src/utils/repoGitDiff')
+  const actualModule: any = await vi.importActual('../../src/utils/repoGitDiff')
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return {
         ...actualModule,
         getLines: mockGetLines,
@@ -58,14 +74,13 @@ jest.mock('../../src/utils/repoGitDiff', () => {
   }
 })
 
-const mockProcess = jest.fn<(lines: string[]) => Promise<HandlerResult>>()
-jest.mock('../../src/service/diffLineInterpreter', () => {
+vi.mock('../../src/service/diffLineInterpreter', async () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const actualModule: any = jest.requireActual(
+  const actualModule: any = await vi.importActual(
     '../../src/service/diffLineInterpreter'
   )
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return {
         ...actualModule,
         process: mockProcess,
@@ -74,11 +89,9 @@ jest.mock('../../src/service/diffLineInterpreter', () => {
   }
 })
 
-const mockCollectAll = jest.fn<() => Promise<HandlerResult>>()
-const mockExecuteRemaining = jest.fn()
-jest.mock('../../src/post-processor/postProcessorManager', () => {
+vi.mock('../../src/post-processor/postProcessorManager', () => {
   return {
-    getPostProcessors: jest.fn().mockImplementation(() => {
+    getPostProcessors: vi.fn().mockImplementation(function () {
       return {
         collectAll: mockCollectAll,
         executeRemaining: mockExecuteRemaining,
@@ -87,10 +100,9 @@ jest.mock('../../src/post-processor/postProcessorManager', () => {
   }
 })
 
-const mockExecute = jest.fn()
-jest.mock('../../src/adapter/ioExecutor', () => {
+vi.mock('../../src/adapter/ioExecutor', () => {
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return {
         execute: mockExecute,
       }
@@ -99,7 +111,7 @@ jest.mock('../../src/adapter/ioExecutor', () => {
 })
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
   mockGetLines.mockResolvedValue([] as never)

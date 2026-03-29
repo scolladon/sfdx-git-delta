@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PATH_SEP } from '../../../../src/constant/fsConstants'
 import {
   fs,
@@ -11,11 +11,11 @@ import {
 } from '../../../../src/utils/fsUtils'
 import { Logger } from '../../../../src/utils/LoggingService'
 
-const mockedReadFile = jest.spyOn(fs, 'readFile')
-const mockedAccess = jest.spyOn(fs, 'access')
+const mockedReadFile = vi.spyOn(fs, 'readFile')
+const mockedAccess = vi.spyOn(fs, 'access')
 
 beforeEach(() => {
-  jest.resetAllMocks()
+  vi.resetAllMocks()
 })
 
 describe('isSubDir', () => {
@@ -217,7 +217,7 @@ describe('pathExists', () => {
   it('returns false when path is not accessible', async () => {
     // Arrange
     mockedAccess.mockRejectedValue(new Error('not accessible'))
-    const debugSpy = jest
+    const debugSpy = vi
       .spyOn(Logger, 'debug')
       .mockImplementation((msg: unknown) => {
         if (typeof msg === 'function') (msg as () => void)()

@@ -1,5 +1,13 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import {
   ADDITION,
@@ -14,8 +22,8 @@ import {
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 
-jest.mock('../../../../src/utils/fsUtils')
-const mockedReadFile = jest.mocked(readFile)
+vi.mock('../../../../src/utils/fsUtils')
+const mockedReadFile = vi.mocked(readFile)
 
 describe('ignoreHelper', () => {
   let sut: IgnoreHelper
@@ -34,7 +42,7 @@ describe('ignoreHelper', () => {
     includeDestructive: '',
   }
   afterEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
   })
   describe('buildIgnoreHelper', () => {
     it('returns cached instance on subsequent calls', async () => {

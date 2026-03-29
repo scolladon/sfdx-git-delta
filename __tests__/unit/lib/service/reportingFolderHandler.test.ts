@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -13,8 +13,8 @@ import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
-const mockedReadDirs = jest.mocked(readDirs)
+vi.mock('../../../../src/utils/fsHelper')
+const mockedReadDirs = vi.mocked(readDirs)
 
 const entity = 'folder/test'
 const extension = 'report'
@@ -60,7 +60,7 @@ const testContext = [
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
   mockedReadDirs.mockResolvedValue([])
 })

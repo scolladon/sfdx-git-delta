@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -13,10 +13,10 @@ import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
-const mockedPathExist = jest.mocked(pathExists)
-const mockedGrepContent = jest.mocked(grepContent)
+const mockedPathExist = vi.mocked(pathExists)
+const mockedGrepContent = vi.mocked(grepContent)
 
 mockedPathExist.mockResolvedValue(true)
 mockedGrepContent.mockResolvedValue([])
@@ -54,7 +54,7 @@ const line =
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 

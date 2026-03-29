@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -11,9 +11,9 @@ import PostProcessorManager, {
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/adapter/GitAdapter')
+vi.mock('../../../../src/adapter/GitAdapter')
 
-const processSpy = jest.fn()
+const processSpy = vi.fn()
 
 class TestProcessor extends BaseProcessor {
   constructor(work: Work, metadata: MetadataRepository) {
@@ -161,9 +161,9 @@ describe('postProcessorManager', () => {
       const localWork = getWork()
       const sut = new PostProcessorManager(localWork)
       const includeProcessor = new IncludeProcessor(localWork, metadata)
-      jest
-        .spyOn(includeProcessor, 'transformAndCollect')
-        .mockRejectedValueOnce(new Error('collectAll error'))
+      vi.spyOn(includeProcessor, 'transformAndCollect').mockRejectedValueOnce(
+        new Error('collectAll error')
+      )
       sut.use(includeProcessor as BaseProcessor)
 
       // Act

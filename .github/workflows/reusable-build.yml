@@ -27,7 +27,7 @@ jobs:
         run: npm pack
 
       - name: Unit test
-        run: npm run test:unit -- --runInBand
+        run: npm run test:unit
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5

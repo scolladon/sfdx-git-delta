@@ -1,6 +1,6 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
 import { outputFile } from 'fs-extra'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -8,12 +8,15 @@ import PackageGenerator from '../../../../src/post-processor/packageGenerator'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('fs-extra')
+const { mockBuildPackage } = vi.hoisted(() => ({
+  mockBuildPackage: vi.fn(),
+}))
 
-const mockBuildPackage = jest.fn()
-jest.mock('../../../../src/utils/packageHelper', () => {
+vi.mock('fs-extra')
+
+vi.mock('../../../../src/utils/packageHelper', () => {
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return { buildPackage: mockBuildPackage }
     }),
   }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import {
   getDefinition,
@@ -26,9 +26,7 @@ describe(`test if metadata`, () => {
   })
 
   it('getLatestSupportedVersion', async () => {
-    jest
-      .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-      .mockResolvedValue('58')
+    vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue('58')
     const latestVersion = await getLatestSupportedVersion()
 
     expect(latestVersion).toBeDefined()
@@ -168,7 +166,7 @@ describe(`test if metadata`, () => {
         "metaFile": false
       }
     ]`
-    const readFileSpy = jest
+    const readFileSpy = vi
       .spyOn(fsUtils, 'readFile')
       .mockResolvedValue(additionalRegistryContent)
 
@@ -182,7 +180,7 @@ describe(`test if metadata`, () => {
 
   it('getDefinition with invalid additional registry', async () => {
     const additionalRegistryContent = 'invalid json'
-    const readFileSpy = jest
+    const readFileSpy = vi
       .spyOn(fsUtils, 'readFile')
       .mockResolvedValue(additionalRegistryContent)
 
@@ -199,7 +197,7 @@ describe(`test if metadata`, () => {
   it('Given additional registry is not an array, When getDefinition, Then throws validation error', async () => {
     // Arrange
     const additionalRegistryContent = '{"xmlName": "CustomThing"}'
-    const readFileSpy = jest
+    const readFileSpy = vi
       .spyOn(fsUtils, 'readFile')
       .mockResolvedValue(additionalRegistryContent)
 
@@ -219,7 +217,7 @@ describe(`test if metadata`, () => {
         "suffix": "thing"
       }
     ]`
-    const readFileSpy = jest
+    const readFileSpy = vi
       .spyOn(fsUtils, 'readFile')
       .mockResolvedValue(additionalRegistryContent)
 
@@ -244,7 +242,7 @@ describe(`test if metadata`, () => {
         "metaFile": false
       }
     ]`
-    const readFileSpy = jest
+    const readFileSpy = vi
       .spyOn(fsUtils, 'readFile')
       .mockResolvedValue(additionalRegistryContent)
 
@@ -268,7 +266,7 @@ describe(`test if metadata`, () => {
         "unknownField": "value"
       }
     ]`
-    const readFileSpy = jest
+    const readFileSpy = vi
       .spyOn(fsUtils, 'readFile')
       .mockResolvedValue(additionalRegistryContent)
 

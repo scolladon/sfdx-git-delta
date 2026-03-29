@@ -1,24 +1,23 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Work } from '../../../../src/types/work'
 import ConfigValidator from '../../../../src/utils/configValidator'
 import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockParseRev = jest.fn()
-const mockConfigureRepository = jest.fn()
+const mockParseRev = vi.fn()
+const mockConfigureRepository = vi.fn()
 
-jest.mock('@salesforce/source-deploy-retrieve', () => {
+vi.mock('@salesforce/source-deploy-retrieve', () => {
   return {
-    getCurrentApiVersion: jest.fn().mockReturnValue({ toString: () => '58.0' }),
+    getCurrentApiVersion: vi.fn().mockReturnValue({ toString: () => '58.0' }),
     registry: {
-      getCurrentApiVersion: jest
-        .fn()
-        .mockReturnValue({ toString: () => '58.0' }),
+      getCurrentApiVersion: vi.fn().mockReturnValue({ toString: () => '58.0' }),
     },
   }
 })
 
-jest.mock('../../../../src/adapter/GitAdapter', () => {
+vi.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
       getInstance: () => ({
@@ -29,20 +28,20 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
   }
 })
 
-const mockSfProjectResolve = jest.fn()
-jest.mock('@salesforce/core', () => ({
+const mockSfProjectResolve = vi.fn()
+vi.mock('@salesforce/core', () => ({
   SfProject: {
     resolve: (...args: unknown[]) => mockSfProjectResolve(...args),
   },
   Logger: {
     childFromRoot: () => ({
-      setLevel: jest.fn(),
+      setLevel: vi.fn(),
       shouldLog: () => false,
-      debug: jest.fn(),
-      error: jest.fn(),
-      info: jest.fn(),
-      trace: jest.fn(),
-      warn: jest.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      trace: vi.fn(),
+      warn: vi.fn(),
     }),
   },
   LoggerLevel: {
@@ -54,11 +53,11 @@ jest.mock('@salesforce/core', () => ({
   },
 }))
 
-jest.mock('../../../../src/utils/LoggingService')
-jest.mock('../../../../src/utils/MessageService')
-jest.mock('../../../../src/utils/fsUtils')
-const mockedPathExists = jest.mocked(pathExists)
-const mockedSanitizePath = jest.mocked(sanitizePath)
+vi.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/MessageService')
+vi.mock('../../../../src/utils/fsUtils')
+const mockedPathExists = vi.mocked(pathExists)
+const mockedSanitizePath = vi.mocked(sanitizePath)
 
 mockedSanitizePath.mockImplementation(data => data)
 
@@ -252,10 +251,10 @@ describe(`test if the application`, () => {
       latestAPIVersionSupported = 58
     })
     beforeEach(() => {
-      jest.resetAllMocks()
-      jest
-        .spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-        .mockResolvedValue('58')
+      vi.resetAllMocks()
+      vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+        '58'
+      )
     })
     describe('when apiVersion parameter is set with supported value', () => {
       it.each([

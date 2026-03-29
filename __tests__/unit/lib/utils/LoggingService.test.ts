@@ -1,17 +1,18 @@
 'use strict'
 
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import { Logger, lazy } from '../../../../src/utils/LoggingService.js'
 
-jest.mock('@salesforce/core', () => ({
+vi.mock('@salesforce/core', () => ({
   Logger: {
-    childFromRoot: jest.fn(() => ({
-      setLevel: jest.fn(),
-      shouldLog: jest.fn(),
-      debug: jest.fn(),
-      error: jest.fn(),
-      info: jest.fn(),
-      trace: jest.fn(),
-      warn: jest.fn(),
+    childFromRoot: vi.fn(() => ({
+      setLevel: vi.fn(),
+      shouldLog: vi.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      trace: vi.fn(),
+      warn: vi.fn(),
     })),
   },
   LoggerLevel: {
@@ -24,23 +25,23 @@ jest.mock('@salesforce/core', () => ({
 }))
 
 describe('LoggingService', () => {
-  let mockShouldLog: jest.Mock
-  let mockDebug: jest.Mock
-  let mockError: jest.Mock
-  let mockInfo: jest.Mock
-  let mockTrace: jest.Mock
-  let mockWarn: jest.Mock
+  let mockShouldLog: Mock
+  let mockDebug: Mock
+  let mockError: Mock
+  let mockInfo: Mock
+  let mockTrace: Mock
+  let mockWarn: Mock
 
   beforeEach(() => {
-    mockShouldLog = jest.fn().mockReturnValue(true)
-    mockDebug = jest.fn()
-    mockError = jest.fn()
-    mockInfo = jest.fn()
-    mockTrace = jest.fn()
-    mockWarn = jest.fn()
+    mockShouldLog = vi.fn().mockReturnValue(true)
+    mockDebug = vi.fn()
+    mockError = vi.fn()
+    mockInfo = vi.fn()
+    mockTrace = vi.fn()
+    mockWarn = vi.fn()
 
     Logger['coreLogger'] = {
-      setLevel: jest.fn(),
+      setLevel: vi.fn(),
       shouldLog: mockShouldLog,
       debug: mockDebug,
       error: mockError,
