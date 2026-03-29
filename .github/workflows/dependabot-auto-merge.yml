@@ -39,15 +39,53 @@ jobs:
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
         run: npm run build
 
-      - name: Sync internal registry with SDR
+      - name: Check if SDR metadata registry changed
+        id: registry-check
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        env:
+          OLD_VERSION: ${{ steps.metadata.outputs.previous-version }}
+        run: |
+          REGISTRY_PATH="lib/src/registry/metadataRegistry.json"
+
+          # Download old version tarball to extract its registry
+          TARBALL=$(npm pack "@salesforce/source-deploy-retrieve@${OLD_VERSION}" --pack-destination /tmp 2>/dev/null)
+          mkdir -p /tmp/sdr-old
+          tar -xzf "/tmp/${TARBALL}" -C /tmp/sdr-old
+
+          # Compare metadata registries
+          OLD_FILE="/tmp/sdr-old/package/${REGISTRY_PATH}"
+          NEW_FILE="node_modules/@salesforce/source-deploy-retrieve/${REGISTRY_PATH}"
+
+          if diff -q "$OLD_FILE" "$NEW_FILE" > /dev/null 2>&1; then
+            echo "registry_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No metadata registry changes detected between SDR versions"
+          else
+            echo "registry_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Metadata registry changes detected between SDR versions"
+          fi
+
+          # Cleanup
+          rm -rf /tmp/sdr-old "/tmp/${TARBALL}"
+
+      - name: Close PR if not a registry change
+        if: steps.registry-check.outputs.registry_changed == 'false'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          OLD_VERSION: ${{ steps.metadata.outputs.previous-version }}
+          NEW_VERSION: ${{ steps.metadata.outputs.new-version }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          gh pr close "$PR_URL" --comment "Closing: @salesforce/source-deploy-retrieve update from ${OLD_VERSION} to ${NEW_VERSION} does not include metadata registry changes."
+
+      - name: Sync internal registry with SDR
+        if: steps.registry-check.outputs.registry_changed == 'true'
         run: |
           npm run sync:registry
           npm run build
           npm run lint:fix
 
       - name: Update e2e expected files API version
-        if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        if: steps.registry-check.outputs.registry_changed == 'true'
         run: |
           # Extract new API version from the updated SDR
           NEW_VERSION=$(node -e "import('@salesforce/source-deploy-retrieve').then(m => m.getCurrentApiVersion()).then(v => process.stdout.write(v + '.0'))")
@@ -74,7 +112,7 @@ jobs:
           git worktree remove /tmp/e2e-head
 
       - name: Commit and push if changed
-        if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        if: steps.registry-check.outputs.registry_changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -83,11 +121,10 @@ jobs:
           git push
 
       - name: Enable auto-merge for Dependabot PRs
-        # Only for SDR updates in npm ecosystem
-        if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
+        if: steps.registry-check.outputs.registry_changed == 'true'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           gh pr review --approve "$PR_URL"
           gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.RELEASE_PAT}}
