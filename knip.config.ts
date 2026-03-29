@@ -7,12 +7,6 @@ export default {
     '.github/**/*.yml',
   ],
   project: ['**/*.{ts,js,json,yml}', '!src/metadata/v*.ts'],
-  ignoreDependencies: [
-    '@salesforce/ts-sinon',
-    '@types/mocha',
-    'mocha',
-    'sinon',
-    'ts-jest-mock-import-meta',
-  ],
+  ignoreDependencies: ['@types/lodash', 'lodash'],
   ignoreBinaries: ['npm-check-updates'],
 }

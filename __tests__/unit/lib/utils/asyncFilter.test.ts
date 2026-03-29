@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it } from 'vitest'
 
 import asyncFilter from '../../../../src/utils/asyncFilter'
 import { getConcurrencyThreshold } from '../../../../src/utils/concurrencyUtils'

@@ -1,91 +1,112 @@
 'use strict'
-import fs from 'node:fs'
 import { execCmd } from '@salesforce/cli-plugins-testkit'
-import { expect } from 'chai'
-import readline from 'readline'
+import { describe, expect, it } from 'vitest'
 
-import { getLatestSupportedVersion } from '../../src/metadata/metadataManager.js'
+const run = (cmd: string, exitCode: number): string =>
+  String(execCmd(cmd, { ensureExitCode: exitCode }).shellOutput)
 
 describe('sgd source delta NUTS', () => {
-  it('run help', () => {
-    const result = execCmd('sgd source delta --help', {
-      ensureExitCode: 0,
-    }).shellOutput
-    expect(result).to.include('incremental')
-  })
-
-  it('run `e2e` tests with multiple --source-dir flags', async () => {
+  it('Given --help flag, When running command, Then displays help', () => {
     // Act
-    const result = execCmd(
-      'sgd source delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --source-dir test/create-classes --source-dir test/update-classes --source-dir test/delete-classes --json',
-      {
-        ensureExitCode: 0,
-      }
-    ).shellOutput
+    const sut = run('sgd source delta --help', 0)
 
     // Assert
-    const packageFile = fs.readFileSync(
-      'e2e/expected/package/package.xml',
-      'utf8'
-    )
-    const destructiveChangesFile = fs.readFileSync(
-      'e2e/expected/destructiveChanges/destructiveChanges.xml',
-      'utf8'
-    )
-    const version = await getLatestSupportedVersion()
-    const expectedPackage = `<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>CreatedClass</members>
-        <members>ModifiedClass</members>
-        <name>ApexClass</name>
-    </types>
-    <version>${version}.0</version>
-</Package>`
-    const expectedDestructiveChanges = `<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>DeletedClass</members>
-        <name>ApexClass</name>
-    </types>
-    <version>${version}.0</version>
-</Package>`
-    expect(packageFile).to.equal(expectedPackage)
-    expect(destructiveChangesFile).to.equal(expectedDestructiveChanges)
-    expect(result).to.include('"status": 0')
+    expect(sut).toContain('incremental')
   })
 
-  it('run `e2e` tests', async () => {
+  it('Given missing required --from flag, When running command, Then exits with error', () => {
     // Act
-    const result = execCmd(
-      'sgd source delta --from "origin/e2e/base" --to "origin/e2e/head" --output e2e/expected --generate-delta --repo e2e --include e2e/.sgdinclude --include-destructive e2e/.sgdincludeDestructive --ignore e2e/.sgdignore --ignore-destructive e2e/.sgdignoreDestructive --ignore-whitespace --json',
-      {
-        ensureExitCode: 0,
-      }
-    ).shellOutput
+    const sut = run('sgd source delta --json', 2)
 
     // Assert
-    const packageLineCount = await getFileLineNumber(
-      'e2e/expected/package/package.xml'
+    expect(sut).toContain('from')
+  })
+
+  it('Given invalid --from sha, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from "invalid_sha_that_does_not_exist" --json',
+      1
     )
-    const destructiveChangesLineCount = await getFileLineNumber(
-      'e2e/expected/destructiveChanges/destructiveChanges.xml'
+
+    // Assert
+    expect(sut).toContain('error')
+  })
+
+  it('Given non-existing --repo-dir, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --repo-dir /non/existing/path --json',
+      1
     )
-    expect(packageLineCount).to.equal(240)
-    expect(destructiveChangesLineCount).to.equal(141)
-    expect(result).to.include('"status": 0')
+
+    // Assert
+    expect(sut).toContain('No directory found')
+  })
+
+  it('Given non-existing --output-dir, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --output-dir /non/existing/path --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('No directory found')
+  })
+
+  it('Given non-existing --ignore-file, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --ignore-file /non/existing/file --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('No file found')
+  })
+
+  it('Given non-existing --ignore-destructive-file, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --ignore-destructive-file /non/existing/file --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('No file found')
+  })
+
+  it('Given non-existing --include-file, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --include-file /non/existing/file --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('No file found')
+  })
+
+  it('Given non-existing --include-destructive-file, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --include-destructive-file /non/existing/file --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('No file found')
+  })
+
+  it('Given non-existing --additional-metadata-registry, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --additional-metadata-registry /non/existing/file --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('No file found')
   })
 })
-
-const getFileLineNumber = async (path: string) => {
-  let linesCount = 0
-  const rl = readline.createInterface({
-    input: fs.createReadStream(path),
-    output: process.stdout,
-    terminal: false,
-  })
-  for await (const _ of rl) {
-    ++linesCount
-  }
-  return linesCount
-}

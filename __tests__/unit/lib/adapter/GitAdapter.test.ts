@@ -1,8 +1,7 @@
 'use strict'
 import { readFile } from 'node:fs/promises'
-import { describe, expect, it, jest } from '@jest/globals'
-
 import { EOL } from 'os'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import GitAdapter from '../../../../src/adapter/GitAdapter'
 import { IGNORE_WHITESPACE_PARAMS } from '../../../../src/constant/gitConstants'
 import type { Config } from '../../../../src/types/config'
@@ -12,36 +11,48 @@ import {
 } from '../../../../src/utils/gitLfsHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockedRaw = jest.fn()
-const mockedAddConfig = jest.fn()
-const mockedRevParse = jest.fn()
+const {
+  mockedRaw,
+  mockedAddConfig,
+  mockedRevParse,
+  mockedGetContent,
+  mockedClose,
+} = vi.hoisted(() => ({
+  mockedRaw: vi.fn(),
+  mockedAddConfig: vi.fn(),
+  mockedRevParse: vi.fn(),
+  mockedGetContent: vi.fn(),
+  mockedClose: vi.fn(),
+}))
 
-jest.mock('simple-git', () => {
+vi.mock('simple-git', () => {
   return {
-    simpleGit: jest.fn(() => ({
-      raw: mockedRaw,
-      revparse: mockedRevParse,
-      addConfig: mockedAddConfig,
-    })),
+    simpleGit: vi.fn(function () {
+      return {
+        raw: mockedRaw,
+        revparse: mockedRevParse,
+        addConfig: mockedAddConfig,
+      }
+    }),
   }
 })
 
-const mockedGetContent = jest.fn()
-const mockedClose = jest.fn()
-jest.mock('../../../../src/adapter/gitBatchCatFile', () => ({
-  GitBatchCatFile: jest.fn(() => ({
-    getContent: mockedGetContent,
-    close: mockedClose,
-  })),
+vi.mock('../../../../src/adapter/gitBatchCatFile', () => ({
+  GitBatchCatFile: vi.fn(function () {
+    return {
+      getContent: mockedGetContent,
+      close: mockedClose,
+    }
+  }),
 }))
 
-jest.mock('../../../../src/utils/gitLfsHelper')
-jest.mock('node:fs/promises')
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/gitLfsHelper')
+vi.mock('node:fs/promises')
+vi.mock('../../../../src/utils/LoggingService')
 
-const isLFSmocked = jest.mocked(isLFS)
-const getLFSObjectContentPathMocked = jest.mocked(getLFSObjectContentPath)
-const readFileMocked = jest.mocked(readFile)
+const isLFSmocked = vi.mocked(isLFS)
+const getLFSObjectContentPathMocked = vi.mocked(getLFSObjectContentPath)
+const readFileMocked = vi.mocked(readFile)
 
 // Helper to pre-build tree index for a revision
 const setupTreeIndex = async (

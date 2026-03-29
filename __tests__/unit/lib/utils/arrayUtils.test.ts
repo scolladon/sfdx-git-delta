@@ -1,4 +1,5 @@
 'use strict'
+import { describe, expect, it } from 'vitest'
 import { pushAll } from '../../../../src/utils/arrayUtils'
 
 describe('arrayUtils', () => {

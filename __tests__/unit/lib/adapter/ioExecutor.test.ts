@@ -1,7 +1,7 @@
 'use strict'
-import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import { outputFile } from 'fs-extra'
 import type { Ignore } from 'ignore'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import IOExecutor from '../../../../src/adapter/ioExecutor'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
@@ -11,19 +11,19 @@ import {
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('fs-extra')
+vi.mock('fs-extra')
 
-jest.mock('../../../../src/utils/ignoreHelper')
+vi.mock('../../../../src/utils/ignoreHelper')
 
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/LoggingService')
 
-const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
+const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 
-const mockGetFilesPath = jest.fn<(path: string) => Promise<string[]>>()
+const mockGetFilesPath = vi.fn<(path: string) => Promise<string[]>>()
 const mockGetBufferContent =
-  jest.fn<(forRef: { path: string; oid: string }) => Promise<Buffer>>()
-const mockGetInstance = jest.fn()
-jest.mock('../../../../src/adapter/GitAdapter', () => {
+  vi.fn<(forRef: { path: string; oid: string }) => Promise<Buffer>>()
+const mockGetInstance = vi.fn()
+vi.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
       getInstance: (...args: unknown[]) => mockGetInstance(...args),
@@ -32,7 +32,7 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
 })
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mockGetInstance.mockReturnValue({
     getFilesPath: mockGetFilesPath,
     getBufferContent: mockGetBufferContent,

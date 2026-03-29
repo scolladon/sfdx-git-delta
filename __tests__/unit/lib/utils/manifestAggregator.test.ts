@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it } from 'vitest'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
 import { aggregateManifests } from '../../../../src/utils/manifestAggregator'

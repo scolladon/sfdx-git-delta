@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ADDITION,
@@ -13,11 +13,11 @@ import { ManifestTarget } from '../../src/types/handlerResult'
 import type { Work } from '../../src/types/work'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 
-jest.mock('../../src/utils/fsHelper')
+vi.mock('../../src/utils/fsHelper')
 
-const mockedReadPathFromGit = jest.mocked(readPathFromGit)
-const mockedReadDirs = jest.mocked(readDirs)
-const mockedPathExists = jest.mocked(pathExists)
+const mockedReadPathFromGit = vi.mocked(readPathFromGit)
+const mockedReadDirs = vi.mocked(readDirs)
+const mockedPathExists = vi.mocked(pathExists)
 
 const testContext = [
   [
@@ -553,7 +553,7 @@ beforeAll(async () => {
 let work: Work
 let handlerFactory: TypeHandlerFactory
 beforeEach(() => {
-  jest.resetAllMocks()
+  vi.resetAllMocks()
   work = {
     config: {
       output: '',

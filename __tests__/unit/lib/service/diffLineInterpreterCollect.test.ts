@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -12,13 +12,15 @@ import {
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockCollect = jest.fn<() => Promise<HandlerResult>>()
+const { mockCollect } = vi.hoisted(() => ({
+  mockCollect: vi.fn<() => Promise<HandlerResult>>(),
+}))
 
-jest.mock('../../../../src/service/typeHandlerFactory', () => {
+vi.mock('../../../../src/service/typeHandlerFactory', () => {
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return {
-        getTypeHandler: jest.fn().mockImplementation(async () => ({
+        getTypeHandler: vi.fn().mockImplementation(async () => ({
           collect: mockCollect,
         })),
       }
@@ -28,7 +30,7 @@ jest.mock('../../../../src/service/typeHandlerFactory', () => {
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 

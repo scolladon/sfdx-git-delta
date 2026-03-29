@@ -1,7 +1,7 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
 import { outputFile } from 'fs-extra'
 import { Ignore } from 'ignore'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
@@ -19,19 +19,19 @@ import {
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('fs-extra')
+vi.mock('fs-extra')
 
-jest.mock('../../../../src/utils/ignoreHelper')
+vi.mock('../../../../src/utils/ignoreHelper')
 
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/LoggingService')
 
-const mockBuildIgnoreHelper = jest.mocked(buildIgnoreHelper)
+const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 
-const mockGetStringContent = jest.fn()
-const mockGetFilesPath = jest.fn()
-const mockPathExists = jest.fn()
-const mockGitGrep = jest.fn()
-jest.mock('../../../../src/adapter/GitAdapter', () => {
+const mockGetStringContent = vi.fn()
+const mockGetFilesPath = vi.fn()
+const mockPathExists = vi.fn()
+const mockGitGrep = vi.fn()
+vi.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
       getInstance: () => ({
@@ -46,7 +46,7 @@ jest.mock('../../../../src/adapter/GitAdapter', () => {
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
   work.config.from = 'pastsha'
   work.config.to = 'recentsha'

@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Config } from '../../../../src/types/config'
 import { readPathFromGit } from '../../../../src/utils/fsHelper'
@@ -9,9 +9,9 @@ import {
   xml2Json,
 } from '../../../../src/utils/xmlHelper'
 
-const mockedReadPathFromGit = jest.mocked(readPathFromGit)
+const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
 describe('xmlHelper', () => {
   describe('parseXmlFileToJson', () => {

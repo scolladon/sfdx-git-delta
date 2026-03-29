@@ -1,17 +1,19 @@
-const { lazy } = jest.requireActual<typeof import('../LoggingService.js')>(
+import { vi } from 'vitest'
+
+const { lazy } = await vi.importActual<typeof import('../LoggingService.js')>(
   '../LoggingService.js'
 )
 
-const resolve = jest.fn((msg: unknown) => {
+const resolve = vi.fn((msg: unknown) => {
   if (typeof msg === 'function') (msg as () => void)()
 })
 
 const Logger = {
   debug: resolve,
   warn: resolve,
-  info: jest.fn(),
-  error: jest.fn(),
-  trace: jest.fn(),
+  info: vi.fn(),
+  error: vi.fn(),
+  trace: vi.fn(),
 }
 
-export { lazy, Logger }
+export { Logger, lazy }

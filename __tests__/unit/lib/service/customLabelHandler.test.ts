@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -12,16 +12,19 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockCompare = jest.fn()
-const mockPrune = jest.fn()
-jest.mock('../../../../src/utils/metadataDiff', () => {
+const { mockCompare, mockPrune } = vi.hoisted(() => ({
+  mockCompare: vi.fn(),
+  mockPrune: vi.fn(),
+}))
+
+vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return { compare: mockCompare, prune: mockPrune }
     }),
   }
 })
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
 const labelType = {
   directoryName: 'labels',
@@ -41,7 +44,7 @@ beforeAll(async () => {
 })
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 

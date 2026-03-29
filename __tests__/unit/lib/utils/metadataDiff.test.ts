@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import {
@@ -15,17 +15,17 @@ import {
 } from '../../../../src/utils/xmlHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/xmlHelper', () => {
-  const actualModule: any = jest.requireActual(
+vi.mock('../../../../src/utils/xmlHelper', async () => {
+  const actualModule: any = await vi.importActual(
     '../../../../src/utils/xmlHelper'
   )
   return {
     ...actualModule,
-    parseXmlFileToJson: jest.fn(),
-    convertJsonToXml: jest.fn(),
+    parseXmlFileToJson: vi.fn(),
+    convertJsonToXml: vi.fn(),
   }
 })
-const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
+const mockedParseXmlFileToJson = vi.mocked(parseXmlFileToJson)
 
 const xmlHeader = { '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' } }
 
@@ -208,7 +208,7 @@ describe('MetadataDiff', () => {
     inFileAttribute = getInFileAttributes(globalMetadata)
   })
   beforeEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
     work = getWork()
     work.config.from = 'from'
     work.config.to = 'to'

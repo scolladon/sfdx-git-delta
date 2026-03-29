@@ -1,7 +1,7 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/LoggingService')
 
 import {
   ADDITION,
@@ -40,7 +40,7 @@ const entityPath = `${basePath}${classType.directoryName}/${entity}.${classType.
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 
@@ -51,7 +51,7 @@ describe(`StandardHandler`, () => {
   })
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('collect', () => {
@@ -200,9 +200,9 @@ describe(`StandardHandler`, () => {
         globalMetadata
       )
       const sut = new StandardHandler(changeType, element, work)
-      jest
-        .spyOn(sut, 'collectAddition')
-        .mockRejectedValueOnce(new Error('test error'))
+      vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(
+        new Error('test error')
+      )
 
       // Act
       const result = await sut.collect()

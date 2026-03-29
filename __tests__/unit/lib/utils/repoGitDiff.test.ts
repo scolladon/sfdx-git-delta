@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ADDITION,
@@ -11,18 +11,18 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Config } from '../../../../src/types/config'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
 
-const mockGetDiffLines = jest.fn()
-jest.mock('../../../../src/adapter/GitAdapter', () => ({
+const mockGetDiffLines = vi.fn()
+vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
-    getInstance: jest.fn(() => ({
+    getInstance: vi.fn(() => ({
       getDiffLines: mockGetDiffLines,
     })),
   },
 }))
 
-const mockKeep = jest.fn()
-jest.mock('../../../../src/utils/ignoreHelper', () => ({
-  buildIgnoreHelper: jest.fn(() => ({
+const mockKeep = vi.fn()
+vi.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: vi.fn(() => ({
     keep: mockKeep,
   })),
 }))

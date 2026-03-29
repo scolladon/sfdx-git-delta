@@ -1,5 +1,5 @@
 'use strict'
-import { beforeEach, describe, expect, it, jest } from '@jest/globals'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 
@@ -16,9 +16,9 @@ describe('SDRMetadataAdapter', () => {
   describe('getLatestApiVersion', () => {
     it('Given SDR returns version number, When getting latest version, Then returns version as string', async () => {
       // Arrange
-      jest.resetModules()
-      jest.doMock('@salesforce/source-deploy-retrieve', () => ({
-        getCurrentApiVersion: jest
+      vi.resetModules()
+      vi.doMock('@salesforce/source-deploy-retrieve', () => ({
+        getCurrentApiVersion: vi
           .fn<() => Promise<number>>()
           .mockResolvedValue(62),
         registry: { types: {} },

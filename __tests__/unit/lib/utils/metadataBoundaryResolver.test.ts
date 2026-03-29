@@ -1,5 +1,5 @@
 'use strict'
-import { beforeEach, describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import GitAdapter from '../../../../src/adapter/GitAdapter'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -8,9 +8,9 @@ import type { Metadata } from '../../../../src/types/metadata'
 import { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 
 const mockListDirAtRevision =
-  jest.fn<(dir: string, revision: string) => Promise<string[]>>()
+  vi.fn<(dir: string, revision: string) => Promise<string[]>>()
 const mockGetFilesPath =
-  jest.fn<(paths: string | string[], revision?: string) => Promise<string[]>>()
+  vi.fn<(paths: string | string[], revision?: string) => Promise<string[]>>()
 const mockGitAdapter = {
   listDirAtRevision: mockListDirAtRevision,
   getFilesPath: mockGetFilesPath,
@@ -81,7 +81,7 @@ describe('MetadataBoundaryResolver', () => {
   let sut: MetadataBoundaryResolver
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     sut = new MetadataBoundaryResolver(globalMetadata, mockGitAdapter)
   })
 

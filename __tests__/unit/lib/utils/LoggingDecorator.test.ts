@@ -1,13 +1,13 @@
 'use strict'
 
-import { describe, expect, it, jest } from '@jest/globals'
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest'
 
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/LoggingService')
 
 import { log } from '../../../../src/utils/LoggingDecorator.js'
 import { Logger } from '../../../../src/utils/LoggingService.js'
 
-const mockedTrace = Logger.trace as jest.Mock
+const mockedTrace = Logger.trace as Mock
 
 describe('LoggingDecorator', () => {
   describe('log', () => {
@@ -93,8 +93,16 @@ describe('LoggingDecorator', () => {
       })
     })
 
+    describe('Given Logger mock receives non-function message', () => {
+      it('When called with a string, Then does not throw', () => {
+        // Act & Assert
+        expect(() => Logger.debug('plain string message')).not.toThrow()
+        expect(() => Logger.warn('plain string warning')).not.toThrow()
+      })
+    })
+
     afterEach(() => {
-      jest.clearAllMocks()
+      vi.clearAllMocks()
     })
   })
 })

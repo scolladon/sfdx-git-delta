@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -15,10 +15,14 @@ import {
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockProcess = jest.fn<() => Promise<HandlerResult>>()
-jest.mock('../../../../src/service/diffLineInterpreter', () => {
+const { mockProcess, mockGetFilesPath } = vi.hoisted(() => ({
+  mockProcess: vi.fn<() => Promise<HandlerResult>>(),
+  mockGetFilesPath: vi.fn(),
+}))
+
+vi.mock('../../../../src/service/diffLineInterpreter', () => {
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return {
         process: mockProcess,
       }
@@ -26,20 +30,19 @@ jest.mock('../../../../src/service/diffLineInterpreter', () => {
   }
 })
 
-const mockGetFilesPath = jest.fn()
-jest.mock('../../../../src/adapter/GitAdapter', () => ({
+vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
-    getInstance: jest.fn(() => ({
+    getInstance: vi.fn(() => ({
       getFilesPath: mockGetFilesPath,
-      getFirstCommitRef: jest.fn(),
+      getFirstCommitRef: vi.fn(),
     })),
   },
 }))
 
-jest.mock('../../../../src/utils/ignoreHelper')
-const mockedBuildIncludeHelper = jest.mocked(buildIncludeHelper)
+vi.mock('../../../../src/utils/ignoreHelper')
+const mockedBuildIncludeHelper = vi.mocked(buildIncludeHelper)
 
-const mockKeep = jest.fn()
+const mockKeep = vi.fn()
 mockedBuildIncludeHelper.mockResolvedValue({
   keep: mockKeep,
 } as unknown as IgnoreHelper)
@@ -54,7 +57,7 @@ describe('IncludeProcessor', () => {
 
   beforeEach(() => {
     work = getWork()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockProcess.mockResolvedValue(emptyResult())
   })
 

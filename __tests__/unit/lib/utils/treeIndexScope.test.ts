@@ -1,12 +1,12 @@
 'use strict'
-import { beforeAll, describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Metadata } from '../../../../src/types/metadata'
 import { computeTreeIndexScope } from '../../../../src/utils/treeIndexScope'
 
-jest.mock('../../../../src/utils/LoggingService')
+vi.mock('../../../../src/utils/LoggingService')
 
 const mockMetadata = (types: Metadata[]): MetadataRepository => {
   const byDir = new Map<string, Metadata>()

@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ADDITION,
@@ -15,9 +15,9 @@ import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
-const mockedReadDirs = jest.mocked(readDirs)
+const mockedReadDirs = vi.mocked(readDirs)
 
 const objectType = {
   directoryName: 'lwc',
@@ -31,7 +31,7 @@ const entityPath = `${basePath}/${element}/${element}.js`
 const xmlName = 'LightningComponentBundle'
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
   mockedReadDirs.mockResolvedValue([])
 })

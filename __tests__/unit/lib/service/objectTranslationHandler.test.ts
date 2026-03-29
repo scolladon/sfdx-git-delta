@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -12,17 +12,20 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockCompare = jest.fn<() => Promise<any>>()
-const mockprune = jest.fn<() => any>()
-jest.mock('../../../../src/utils/metadataDiff', () => {
+const { mockCompare, mockprune } = vi.hoisted(() => ({
+  mockCompare: vi.fn<() => Promise<any>>(),
+  mockprune: vi.fn<() => any>(),
+}))
+
+vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
-    default: jest.fn().mockImplementation(() => {
+    default: vi.fn().mockImplementation(function () {
       return { compare: mockCompare, prune: mockprune }
     }),
   }
 })
 
-jest.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsHelper')
 
 const objectType = {
   directoryName: 'objectTranslations',
@@ -41,7 +44,7 @@ const fromContent = {}
 
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mockCompare.mockResolvedValue({
     added: new Map(),
     deleted: new Map(),

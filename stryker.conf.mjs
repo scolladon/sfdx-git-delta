@@ -3,6 +3,6 @@ const config = {
   ignorePatterns: ['lib/', 'reports/', 'bin/', 'e2e/'],
   mutate: ['src/**/*.ts', '!src/metadata/v*.ts'],
   reporters: ['html', 'progress'],
-  testRunner: 'jest',
+  testRunner: 'vitest',
 }
 export default config

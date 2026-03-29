@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -10,8 +10,8 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
-jest.mock('../../../../src/utils/MessageService')
+vi.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/MessageService')
 
 const objectType = {
   directoryName: 'flows',
@@ -23,7 +23,7 @@ const objectType = {
 const basePath = `force-app/main/default/${objectType.directoryName}`
 let work: Work
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   work = getWork()
 })
 

@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, jest } from '@jest/globals'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   FLOW_XML_NAME,
@@ -24,34 +24,34 @@ import {
 import { parseXmlFileToJson } from '../../../../src/utils/xmlHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-jest.mock('../../../../src/utils/fsHelper')
-jest.mock('../../../../src/utils/fsUtils')
+vi.mock('../../../../src/utils/fsHelper')
+vi.mock('../../../../src/utils/fsUtils')
 
-const mockedGrepContent = jest.mocked(grepContent)
-const mockedParseXmlFileToJson = jest.mocked(parseXmlFileToJson)
-const mockedIsSubDir = jest.mocked(isSubDir)
-const mockedPathExists = jest.mocked(pathExists)
-const mockedReadFile = jest.mocked(readFile)
-const mockTreatPathSep = jest.mocked(treatPathSep)
+const mockedGrepContent = vi.mocked(grepContent)
+const mockedParseXmlFileToJson = vi.mocked(parseXmlFileToJson)
+const mockedIsSubDir = vi.mocked(isSubDir)
+const mockedPathExists = vi.mocked(pathExists)
+const mockedReadFile = vi.mocked(readFile)
+const mockTreatPathSep = vi.mocked(treatPathSep)
 mockTreatPathSep.mockImplementation(data => data)
 
-const mockIgnores = jest.fn()
-jest.mock('../../../../src/utils/ignoreHelper', () => ({
-  buildIgnoreHelper: jest.fn(() => ({
+const mockIgnores = vi.fn()
+vi.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: vi.fn(() => ({
     globalIgnore: {
       ignores: mockIgnores,
     },
   })),
 }))
-jest.mock('../../../../src/utils/xmlHelper', () => {
+vi.mock('../../../../src/utils/xmlHelper', async () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const originalModule: any = jest.requireActual(
+  const originalModule: any = await vi.importActual(
     '../../../../src/utils/xmlHelper'
   )
 
   return {
     ...originalModule,
-    parseXmlFileToJson: jest.fn(),
+    parseXmlFileToJson: vi.fn(),
   }
 })
 
