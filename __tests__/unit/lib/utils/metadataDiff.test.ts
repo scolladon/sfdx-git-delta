@@ -1510,6 +1510,765 @@ describe('MetadataDiff', () => {
     })
   })
 
+  describe('MetadataExtractor optional chaining on missing subType', () => {
+    it('Given a subType not in attributes map, When comparing with excluded check, Then no error is thrown and type is skipped', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'knownType',
+          {
+            xmlName: 'KnownType',
+            xmlTag: 'knownType',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Root: {
+          knownType: [{ fullName: 'item1' }],
+          unknownType: [{ fullName: 'item2' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Root: {},
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { added } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toEqual([{ type: 'KnownType', member: 'item1' }])
+    })
+  })
+
+  describe('excluded type prevents compare entries', () => {
+    it('Given an excluded subType in both to and from, When comparing, Then no added or deleted entries', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+            excluded: true,
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [{ fullName: 'NewAlert', description: 'new' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [{ fullName: 'OldAlert', description: 'old' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { added, deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+
+    it('Given an excluded subType with elements only in to, When comparing, Then added is empty', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+            excluded: true,
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'Alert1', description: 'a' },
+            { fullName: 'Alert2', description: 'b' },
+          ],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Workflow: {},
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { added } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(0)
+    })
+  })
+
+  describe('OBJECT_SPECIAL_KEY string identity', () => {
+    it('Given object-keyed elements where one item differs, When pruning, Then only the differing item is included', async () => {
+      // Arrange - layoutAssignments uses <object> special key
+      const existingItem = { layout: 'shared-layout', recordType: 'rt1' }
+      const newItem = { layout: 'new-layout', recordType: 'rt2' }
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [existingItem, newItem],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [existingItem],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await metadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = metadataDiff.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      expect(convertJsonToXml).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Profile: expect.objectContaining({
+            layoutAssignments: [newItem],
+          }),
+        })
+      )
+    })
+
+    it('Given a single object-keyed element identical in both, When pruning, Then element is not included', async () => {
+      // Arrange - single element identical in both from and to
+      const singleItem = { layout: 'only-layout', recordType: 'rt1' }
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [singleItem],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [singleItem],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await metadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = metadataDiff.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(true)
+    })
+  })
+
+  describe('compare with identical elements detects no false additions', () => {
+    it('Given identical keyed elements in to and from, When comparing, Then no additions detected', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const sharedAlert = { fullName: 'SharedAlert', description: 'same' }
+      const data = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [sharedAlert],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+
+      // Act
+      const { added, deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+
+    it('Given multiple identical keyed elements, When comparing, Then neither additions nor deletions detected', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const data = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'Alert1', description: 'first' },
+            { fullName: 'Alert2', description: 'second' },
+            { fullName: 'Alert3', description: 'third' },
+          ],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+
+      // Act
+      const { added, deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+  })
+
+  describe('compare detects all deletions when all elements removed', () => {
+    it('Given all elements in from but none in to, When comparing, Then all are deleted', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const fromData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'Alert1', description: 'first' },
+            { fullName: 'Alert2', description: 'second' },
+          ],
+        },
+      }
+      const toData = {
+        ...xmlHeader,
+        Workflow: {},
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { added, deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(0)
+      expect(deleted).toEqual(
+        expect.arrayContaining([
+          { type: 'WorkflowAlert', member: 'Alert1' },
+          { type: 'WorkflowAlert', member: 'Alert2' },
+        ])
+      )
+      expect(deleted).toHaveLength(2)
+    })
+
+    it('Given all elements removed from a type with multiple entries, When comparing, Then deleted contains each entry', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'RemovedAlert1', description: 'gone1' },
+            { fullName: 'RemovedAlert2', description: 'gone2' },
+            { fullName: 'RemovedAlert3', description: 'gone3' },
+          ],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(deleted).toHaveLength(3)
+      expect(deleted).toEqual(
+        expect.arrayContaining([
+          { type: 'WorkflowAlert', member: 'RemovedAlert1' },
+          { type: 'WorkflowAlert', member: 'RemovedAlert2' },
+          { type: 'WorkflowAlert', member: 'RemovedAlert3' },
+        ])
+      )
+    })
+  })
+
+  describe('key selection strategy in getPartialContent', () => {
+    it('Given elements with a defined key field, When pruning with new and modified items, Then only changed items included', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'Unchanged', description: 'same' },
+            { fullName: 'Modified', description: 'new-desc' },
+            { fullName: 'Added', description: 'brand-new' },
+          ],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'Unchanged', description: 'same' },
+            { fullName: 'Modified', description: 'old-desc' },
+          ],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await sut.compare('file/path')
+
+      // Act
+      const { isEmpty } = sut.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      expect(convertJsonToXml).toHaveBeenCalledWith({
+        ...xmlHeader,
+        Workflow: {
+          alerts: [
+            { fullName: 'Modified', description: 'new-desc' },
+            { fullName: 'Added', description: 'brand-new' },
+          ],
+        },
+      })
+    })
+
+    it('Given elements with ARRAY_SPECIAL_KEY and different content, When pruning, Then entire to array replaces from', async () => {
+      // Arrange - loginHours uses <array> special key
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          loginHours: [
+            { mondayStart: '400', mondayEnd: '600' },
+            { tuesdayStart: '300', tuesdayEnd: '500' },
+          ],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          loginHours: [{ mondayStart: '300', mondayEnd: '500' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await metadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = metadataDiff.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      expect(convertJsonToXml).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Profile: expect.objectContaining({
+            loginHours: [
+              { mondayStart: '400', mondayEnd: '600' },
+              { tuesdayStart: '300', tuesdayEnd: '500' },
+            ],
+          }),
+        })
+      )
+    })
+
+    it('Given elements with OBJECT_SPECIAL_KEY where multiple items differ, When pruning, Then only new items included', async () => {
+      // Arrange - layoutAssignments uses <object> special key
+      const shared = { layout: 'shared-layout', recordType: 'rt1' }
+      const newItem1 = { layout: 'new-layout-1', recordType: 'rt2' }
+      const newItem2 = { layout: 'new-layout-2', recordType: 'rt3' }
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [shared, newItem1, newItem2],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [shared],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await metadataDiff.compare('file/path')
+
+      // Act
+      const { isEmpty } = metadataDiff.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      expect(convertJsonToXml).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Profile: expect.objectContaining({
+            layoutAssignments: [newItem1, newItem2],
+          }),
+        })
+      )
+    })
+
+    it('Given elements with no key field and identical content, When pruning, Then content is included but isEmpty is true', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'customProp',
+          {
+            xmlName: 'CustomProp',
+            xmlTag: 'customProp',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const data = {
+        ...xmlHeader,
+        Root: {
+          customProp: [{ value: 'same' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      const { toContent, fromContent } = await sut.compare('file/path')
+
+      // Act
+      const { isEmpty } = sut.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(true)
+      expect(convertJsonToXml).toHaveBeenCalledWith({
+        ...xmlHeader,
+        Root: {
+          customProp: [{ value: 'same' }],
+        },
+      })
+    })
+
+    it('Given elements with no key field and different content, When pruning, Then to content replaces from', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'customProp',
+          {
+            xmlName: 'CustomProp',
+            xmlTag: 'customProp',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Root: {
+          customProp: [{ value: 'new' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Root: {
+          customProp: [{ value: 'old' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await sut.compare('file/path')
+
+      // Act
+      const { isEmpty } = sut.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      expect(convertJsonToXml).toHaveBeenCalledWith({
+        ...xmlHeader,
+        Root: {
+          customProp: [{ value: 'new' }],
+        },
+      })
+    })
+
+    it('Given all four key strategies in one document, When pruning, Then each strategy is applied correctly', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'alerts',
+          {
+            xmlName: 'WorkflowAlert',
+            xmlTag: 'alerts',
+            key: 'fullName',
+          } as SharedFileMetadata,
+        ],
+        [
+          'loginHours',
+          {
+            xmlName: 'ProfileLoginHours',
+            xmlTag: 'loginHours',
+            key: '<array>',
+          } as SharedFileMetadata,
+        ],
+        [
+          'layoutAssignments',
+          {
+            xmlName: 'ProfileLayoutAssignment',
+            xmlTag: 'layoutAssignments',
+            key: '<object>',
+          } as SharedFileMetadata,
+        ],
+        [
+          'noKeyProp',
+          {
+            xmlName: 'NoKeyProp',
+            xmlTag: 'noKeyProp',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const sharedLayout = { layout: 'shared', recordType: 'rt1' }
+      const newLayout = { layout: 'new', recordType: 'rt2' }
+      const toData = {
+        ...xmlHeader,
+        Root: {
+          alerts: [
+            { fullName: 'Same', description: 'same' },
+            { fullName: 'New', description: 'new' },
+          ],
+          loginHours: [{ mondayStart: '400', mondayEnd: '600' }],
+          layoutAssignments: [sharedLayout, newLayout],
+          noKeyProp: [{ value: 'changed' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Root: {
+          alerts: [{ fullName: 'Same', description: 'same' }],
+          loginHours: [{ mondayStart: '300', mondayEnd: '500' }],
+          layoutAssignments: [sharedLayout],
+          noKeyProp: [{ value: 'original' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await sut.compare('file/path')
+
+      // Act
+      const { isEmpty } = sut.prune(toContent, fromContent)
+
+      // Assert
+      expect(isEmpty).toBe(false)
+      expect(convertJsonToXml).toHaveBeenCalledWith({
+        ...xmlHeader,
+        Root: {
+          alerts: [{ fullName: 'New', description: 'new' }],
+          loginHours: [{ mondayStart: '400', mondayEnd: '600' }],
+          layoutAssignments: [newLayout],
+          noKeyProp: [{ value: 'changed' }],
+        },
+      })
+    })
+  })
+
+  describe('matchAdded and matchDeleted with undefined key selector', () => {
+    it('Given elements where key selector returns undefined, When comparing additions, Then all elements are treated as added', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'items',
+          {
+            xmlName: 'CustomItem',
+            xmlTag: 'items',
+            key: 'missingField',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Root: {
+          items: [{ name: 'a' }, { name: 'b' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Root: {
+          items: [{ name: 'a' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { added } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(2)
+      expect(added).toEqual([
+        { type: 'CustomItem', member: undefined },
+        { type: 'CustomItem', member: undefined },
+      ])
+    })
+
+    it('Given elements where key selector returns undefined, When comparing deletions, Then all from elements are treated as deleted', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'items',
+          {
+            xmlName: 'CustomItem',
+            xmlTag: 'items',
+            key: 'missingField',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const toData = {
+        ...xmlHeader,
+        Root: {
+          items: [{ name: 'x' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Root: {
+          items: [{ name: 'x' }, { name: 'y' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+
+      // Act
+      const { deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(deleted).toHaveLength(2)
+      expect(deleted).toEqual([
+        { type: 'CustomItem', member: undefined },
+        { type: 'CustomItem', member: undefined },
+      ])
+    })
+
+    it('Given elements where key selector returns undefined for both sides, When comparing, Then matchDeleted returns true for all', async () => {
+      // Arrange
+      const attrs = new Map<string, SharedFileMetadata>([
+        [
+          'items',
+          {
+            xmlName: 'CustomItem',
+            xmlTag: 'items',
+            key: 'missingField',
+          } as SharedFileMetadata,
+        ],
+      ])
+      const sut = new MetadataDiff(work.config, attrs)
+      const data = {
+        ...xmlHeader,
+        Root: {
+          items: [{ name: 'same' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+
+      // Act
+      const { added, deleted } = await sut.compare('file/path')
+
+      // Assert
+      expect(added).toHaveLength(1)
+      expect(deleted).toHaveLength(1)
+    })
+  })
+
+  describe('prune without XML header attribute key', () => {
+    it('Given toContent lacks XML header, When pruning, Then output does not have XML header key set to undefined', async () => {
+      // Arrange
+      const toData = {
+        Workflow: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          alerts: [{ fullName: 'NewAlert', description: 'new' }],
+        },
+      }
+      const fromData = {
+        Workflow: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const { toContent, fromContent } = await metadataDiff.compare('file/path')
+
+      // Act
+      metadataDiff.prune(toContent, fromContent)
+
+      // Assert
+      const calledWith = vi.mocked(convertJsonToXml).mock.calls[0][0]
+      expect(calledWith).not.toHaveProperty('?xml')
+    })
+  })
+
   // Unskip me when checking for performance
   describe.skip('Performance tests', () => {
     const formatMemory = (bytes: number): string => {

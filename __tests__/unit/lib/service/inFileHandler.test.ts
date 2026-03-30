@@ -716,6 +716,33 @@ describe('inFileHandler collect', () => {
     expect(result.warnings[0].cause).toBeInstanceOf(Error)
   })
 
+  it('Given added workflow, When collect, Then _delegateFileCopy returns false and no GitCopy operations are produced', async () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        deleted: [],
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.copies.every(c => c.kind !== CopyOperationKind.GitCopy)).toBe(
+      true
+    )
+    expect(
+      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+    ).toBe(true)
+  })
+
   it('Given modified workflow with added and deleted elements, When collect, Then returns both Package and DestructiveChanges manifests', async () => {
     // Arrange
     const { changeType, element } = createElement(

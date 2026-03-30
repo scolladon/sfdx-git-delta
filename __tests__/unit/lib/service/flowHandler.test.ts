@@ -11,7 +11,6 @@ import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-vi.mock('../../../../src/utils/MessageService')
 
 const objectType = {
   directoryName: 'flows',
@@ -50,6 +49,7 @@ describe('flowHandler', () => {
       expect(result.manifests[0].target).toBe(ManifestTarget.DestructiveChanges)
       expect(result.manifests[0].type).toBe('Flow')
       expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0].message).toContain('MyFlow')
     })
   })
 })

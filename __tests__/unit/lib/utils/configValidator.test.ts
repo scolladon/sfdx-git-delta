@@ -5,8 +5,19 @@ import ConfigValidator from '../../../../src/utils/configValidator'
 import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockParseRev = vi.fn()
-const mockConfigureRepository = vi.fn()
+const {
+  mockGetMessage,
+  mockParseRev,
+  mockConfigureRepository,
+  mockSfProjectResolve,
+} = vi.hoisted(() => ({
+  mockGetMessage: vi.fn(
+    (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
+  ),
+  mockParseRev: vi.fn(),
+  mockConfigureRepository: vi.fn(),
+  mockSfProjectResolve: vi.fn(),
+}))
 
 vi.mock('@salesforce/source-deploy-retrieve', () => {
   return {
@@ -28,7 +39,6 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
   }
 })
 
-const mockSfProjectResolve = vi.fn()
 vi.mock('@salesforce/core', () => ({
   SfProject: {
     resolve: (...args: unknown[]) => mockSfProjectResolve(...args),
@@ -54,7 +64,13 @@ vi.mock('@salesforce/core', () => ({
 }))
 
 vi.mock('../../../../src/utils/LoggingService')
-vi.mock('../../../../src/utils/MessageService')
+vi.mock('../../../../src/utils/MessageService', () => {
+  return {
+    MessageService: vi.fn().mockImplementation(function () {
+      return { getMessage: mockGetMessage }
+    }),
+  }
+})
 vi.mock('../../../../src/utils/fsUtils')
 const mockedPathExists = vi.mocked(pathExists)
 const mockedSanitizePath = vi.mocked(sanitizePath)
@@ -401,6 +417,138 @@ describe('Given a ConfigValidator', () => {
         expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
         expect(work.warnings.length).toEqual(1)
       })
+    })
+
+    describe('when apiVersion equals the latest supported version', () => {
+      it('When apiVersion equals latestVersion, Then no warning and no override', async () => {
+        // Arrange
+        work.config.apiVersion = latestAPIVersionSupported
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings).toHaveLength(0)
+      })
+    })
+
+    describe('when apiVersion is explicitly NaN', () => {
+      it('When apiVersion is NaN, Then it defaults to latest with defaulted warning', async () => {
+        // Arrange
+        work.config.apiVersion = NaN
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings).toHaveLength(1)
+        expect(work.warnings[0].message).toContain(
+          'warning.ApiVersionDefaulted'
+        )
+      })
+    })
+
+    describe('when apiVersion exceeds latest supported version', () => {
+      it('When apiVersion exceeds latest, Then warning message contains override details', async () => {
+        // Arrange
+        work.config.apiVersion = 100
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings).toHaveLength(1)
+        expect(work.warnings[0].message).toContain(
+          'warning.ApiVersionOverridden'
+        )
+      })
+    })
+
+    describe('when apiVersion defaults to latest', () => {
+      it('When apiVersion is undefined and no project file, Then warning message contains default details', async () => {
+        // Arrange
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        work.config.apiVersion = undefined
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.warnings).toHaveLength(1)
+        expect(work.warnings[0].message).toContain(
+          'warning.ApiVersionDefaulted'
+        )
+      })
+    })
+
+    describe('when apiVersion is set and project file exists', () => {
+      it('When apiVersion is defined, Then project file sourceApiVersion is ignored', async () => {
+        // Arrange
+        mockSfProjectResolve.mockResolvedValue({
+          getSfProjectJson: () => ({
+            getContents: () => ({ sourceApiVersion: '100' }),
+          }),
+        })
+        work.config.apiVersion = 46
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(46)
+        expect(work.warnings).toHaveLength(0)
+      })
+    })
+  })
+
+  describe('error message content', () => {
+    it('When repo is not a git repository, Then error contains the path message', async () => {
+      // Arrange
+      mockedPathExists.mockResolvedValue(false as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          repo: 'not/git/folder',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.PathIsNotGit'),
+        })
+      )
+    })
+
+    it('When git sha is invalid, Then error contains the parameter message', async () => {
+      // Arrange
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'invalid-sha',
+          from: 'HEAD',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ParameterIsNotGitSHA'),
+        })
+      )
     })
   })
 })

@@ -114,6 +114,27 @@ describe('InResourceHandler', () => {
         )
       })
 
+      it('Given generateDelta false with matching resources, When collect, Then no resource copies are produced', async () => {
+        // Arrange
+        mockedReadDirs.mockResolvedValue([
+          `${basePath}/${elementName}.js`,
+          `${basePath}/${elementName}.${type}${METAFILE_SUFFIX}`,
+        ])
+        const { changeType, element } = createElement(
+          line,
+          staticResourceType,
+          globalMetadata
+        )
+        const sut = new InResourceHandler(changeType, element, work)
+
+        // Act
+        const result = await sut.collect()
+
+        // Assert
+        expect(result.manifests.length).toBeGreaterThan(0)
+        expect(result.copies).toHaveLength(0)
+      })
+
       it('should correctly identify component name in deeply nested metadata kind folder structure', async () => {
         // Arrange
         const lwcType = {
