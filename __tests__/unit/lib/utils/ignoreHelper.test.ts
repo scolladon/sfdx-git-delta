@@ -77,7 +77,7 @@ describe('ignoreHelper', () => {
 
       it('destructive helper should be defined', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -112,7 +112,7 @@ describe('ignoreHelper', () => {
 
       it('destructive helper should be defined', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -177,7 +177,7 @@ describe('ignoreHelper', () => {
 
       it('helper should have destructiveInstance (with default ignore)', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -256,7 +256,7 @@ describe('ignoreHelper', () => {
 
       it('helper should have destructiveInstance', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -345,7 +345,7 @@ describe('ignoreHelper', () => {
 
       it('destructive helper should be defined', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -380,7 +380,7 @@ describe('ignoreHelper', () => {
 
       it('destructive helper should be defined', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -436,7 +436,7 @@ describe('ignoreHelper', () => {
 
       it('helper should have destructiveInstance', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([
@@ -506,7 +506,7 @@ describe('ignoreHelper', () => {
 
       it('helper should have destructiveInstance', () => {
         // Assert
-        expect(sut['destructiveIgnore']).toBeDefined()
+        expect(sut.keep(`${DELETION} path/to/file.ext`)).toBe(true)
       })
 
       it.each([

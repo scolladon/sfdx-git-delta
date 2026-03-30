@@ -55,237 +55,249 @@ describe('Given a RepoGitDiff', () => {
       includeDestructive: '',
     }
   })
-  it('can parse git correctly', async () => {
-    const output: string[] = []
-    mockGetDiffLines.mockImplementation(() => Promise.resolve([]))
+  it('Given empty diff and ignoreWhitespace, When getLines, Then returns empty', async () => {
+    // Arrange
+    mockGetDiffLines.mockResolvedValue([])
     config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreWhitespace = true
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('can parse git permissively', async () => {
-    const output: string[] = []
-    mockGetDiffLines.mockImplementation(() => Promise.resolve([]))
+  it('Given empty diff without ignoreWhitespace, When getLines, Then returns empty', async () => {
+    // Arrange
+    mockGetDiffLines.mockResolvedValue([])
     config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('can resolve file deletion', async () => {
-    const output: string[] = [
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-    ]
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${DELETION}${TAB}${x}`))
-    )
+  it('Given deleted file, When getLines, Then returns deletion line', async () => {
+    // Arrange
+    const filePath =
+      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
+    mockGetDiffLines.mockResolvedValue([`${DELETION}${TAB}${filePath}`])
     config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output.map(x => `${DELETION}${TAB}${x}`))
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([`${DELETION}${TAB}${filePath}`])
   })
 
-  it('can resolve binary file deletion', async () => {
-    const output: string[] = [
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-    ]
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${DELETION}${TAB}${x}`))
-    )
+  it('Given added file, When getLines, Then returns addition line', async () => {
+    // Arrange
+    const filePath =
+      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
+    mockGetDiffLines.mockResolvedValue([`${ADDITION}${TAB}${filePath}`])
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output.map(x => `${DELETION}${TAB}${x}`))
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([`${ADDITION}${TAB}${filePath}`])
   })
 
-  it('can resolve file copy when new file is added', async () => {
-    const output: string[] = [
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-    ]
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
+  it('Given modified file, When getLines, Then returns modification line', async () => {
+    // Arrange
+    const filePath =
+      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
+    mockGetDiffLines.mockResolvedValue([`M${TAB}${filePath}`])
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output.map(x => `${ADDITION}${TAB}${x}`))
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([`${MODIFICATION}${TAB}${filePath}`])
   })
 
-  it('can resolve file copy when new binary file is added', async () => {
-    const output: string[] = [
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-    ]
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
-    const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output.map(x => `${ADDITION}${TAB}${x}`))
-  })
-
-  it('can resolve file copy when file is modified', async () => {
-    const output: string[] = [
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-    ]
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `M${TAB}${x}`))
-    )
-    const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output.map(x => `${MODIFICATION}${TAB}${x}`))
-  })
-
-  it('can resolve file copy when binary file is modified', async () => {
-    const output: string[] = [
-      'force-app/main/default/objects/Account/fields/awesome.field-meta.xml',
-    ]
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `M${TAB}${x}`))
-    )
-    const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output.map(x => `${MODIFICATION}${TAB}${x}`))
-  })
-
-  it('can filter ignored files', async () => {
-    const output = ['force-app/main/default/pages/test.page-meta.xml']
+  it('Given ignored file, When getLines, Then filters it out', async () => {
+    // Arrange
     mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
+    mockGetDiffLines.mockResolvedValue([
+      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
+    ])
     config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    //should be empty
-    const expected: string[] = []
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('can filter ignored destructive files', async () => {
-    const output = ['force-app/main/default/pages/test.page-meta.xml']
+  it('Given ignored destructive file, When getLines, Then filters it out', async () => {
+    // Arrange
     mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
+    mockGetDiffLines.mockResolvedValue([
+      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
+    ])
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    //should be empty
-    const expected: string[] = []
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('can filter ignored and ignored destructive files', async () => {
-    const output = ['force-app/main/default/lwc/jsconfig.json']
+  it('Given both ignore and ignoreDestructive, When getLines, Then filters matching files', async () => {
+    // Arrange
     mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
+    mockGetDiffLines.mockResolvedValue([
+      `${ADDITION}${TAB}force-app/main/default/lwc/jsconfig.json`,
+    ])
     config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    //should be empty
-    const expected: string[] = []
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('can filter deletion if only ignored is specified files', async () => {
-    const output = ['force-app/main/default/pages/test.page-meta.xml']
+  it('Given ignore set, When file matches ignore, Then filters it out', async () => {
+    // Arrange
     mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
+    mockGetDiffLines.mockResolvedValue([
+      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
+    ])
     config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
 
-    const expected: string[] = []
-    expect(work).toStrictEqual(expected)
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('cannot filter non deletion if only ignored destructive is specified files', async () => {
-    const output = ['force-app/main/default/pages/test.page-meta.xml']
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
-
+  it('Given only ignoreDestructive set, When non-deletion added, Then keeps it', async () => {
+    // Arrange
+    const filePath = 'force-app/main/default/pages/test.page-meta.xml'
+    mockGetDiffLines.mockResolvedValue([`${ADDITION}${TAB}${filePath}`])
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    const expected: string[] = [`${ADDITION}${TAB}${output}`]
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([`${ADDITION}${TAB}${filePath}`])
   })
 
-  it('can filter sub folders', async () => {
-    const output = ['force-app/main/default/pages/test.page-meta.xml']
+  it('Given ignored subfolder files, When getLines, Then filters them out', async () => {
+    // Arrange
     mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockImplementation(() =>
-      Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
-    )
+    mockGetDiffLines.mockResolvedValue([
+      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
+    ])
     config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    //should be empty
-    const expected: string[] = []
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([])
   })
 
-  it('can filter moved files', async () => {
-    const output: string[] = [
+  it('Given moved file (same name different folder), When getLines, Then filters deletion and keeps addition', async () => {
+    // Arrange
+    const lines = [
       `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
       `${ADDITION}${TAB}force-app/account/domain/classes/Account.cls`,
     ]
-    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
+    mockGetDiffLines.mockResolvedValue(lines)
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    const expected: string[] = [`${output[1]}`]
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([lines[1]])
   })
 
-  it('can filter case changed files', async () => {
-    const output: string[] = [
+  it('Given case-changed file, When getLines, Then filters deletion and keeps addition', async () => {
+    // Arrange
+    const lines = [
       `${DELETION}${TAB}force-app/main/default/objects/Account/fields/TEST__c.field-meta.xml`,
       `${ADDITION}${TAB}force-app/main/default/objects/Account/fields/Test__c.field-meta.xml`,
     ]
-    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
+    mockGetDiffLines.mockResolvedValue(lines)
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    const expected: string[] = [`${output[1]}`]
-    expect(work).toStrictEqual(expected)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual([lines[1]])
   })
 
-  it('cannot filter renamed files', async () => {
-    const output: string[] = [
+  it('Given truly renamed file, When getLines, Then keeps both lines', async () => {
+    // Arrange
+    const lines = [
       `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
       `${ADDITION}${TAB}force-app/main/default/classes/RenamedAccount.cls`,
     ]
-    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
+    mockGetDiffLines.mockResolvedValue(lines)
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual(lines)
   })
 
-  it('cannot filter same name file with different metadata', async () => {
-    const output: string[] = [
+  it('Given same name in different parent, When getLines, Then keeps both lines', async () => {
+    // Arrange
+    const lines = [
       `${DELETION}${TAB}force-app/main/default/objects/Account/fields/CustomField__c.field-meta.xml`,
       `${ADDITION}${TAB}force-app/main/default/objects/Opportunity/fields/CustomField__c.field-meta.xml`,
     ]
-    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
+    mockGetDiffLines.mockResolvedValue(lines)
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual(lines)
   })
 
-  it('can handle multiple files with the same change type', async () => {
-    const output: string[] = [
+  it('Given multiple files with same change type, When getLines, Then returns all', async () => {
+    // Arrange
+    const lines = [
       `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
       `${ADDITION}${TAB}force-app/main/default/classes/Contact.cls`,
     ]
-    mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
+    mockGetDiffLines.mockResolvedValue(lines)
     const sut = new RepoGitDiff(config, globalMetadata)
-    const work = await sut.getLines()
-    expect(work).toStrictEqual(output)
+
+    // Act
+    const result = await sut.getLines()
+
+    // Assert
+    expect(result).toStrictEqual(lines)
   })
 
   it('can reject in case of error', async () => {
