@@ -113,6 +113,46 @@ describe('ObjectTranslation', () => {
       expect(result.copies).toHaveLength(0)
     })
 
+    it('Given objectTranslation file addition, When collect, Then does NOT produce GitCopy operations', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(
+        result.copies.every(c => c.kind !== CopyOperationKind.GitCopy)
+      ).toBe(true)
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      ).toBe(true)
+    })
+
+    it('Given objectTranslation addition with generateDelta true, When collect, Then _shouldCollectCopies allows ComputedContent', async () => {
+      // Arrange
+      work.config.generateDelta = true
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      ).toBe(true)
+    })
+
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
       // Arrange
       const fieldTranslationLine =

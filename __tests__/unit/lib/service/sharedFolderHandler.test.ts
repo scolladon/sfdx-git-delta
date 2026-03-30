@@ -72,6 +72,48 @@ describe('SharedFolderHandler', () => {
     )
   })
 
+  it('Given extension with resolved type but not matching suffix, When collect, Then _isProcessable returns true via resolvedType', async () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      line,
+      objectType,
+      globalMetadata
+    )
+    const sut = new SharedFolderHandler(changeType, element, work)
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: entityType,
+          member: entityName,
+        }),
+      ])
+    )
+  })
+
+  it('Given unknown extension without resolved type, When collect, Then _isProcessable returns false and result is empty', async () => {
+    // Arrange
+    const unknownLine = `A       ${basePath}${objectType}/Test.unknownext`
+    const { changeType, element } = createElement(
+      unknownLine,
+      objectType,
+      globalMetadata
+    )
+    const sut = new SharedFolderHandler(changeType, element, work)
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.manifests).toHaveLength(0)
+    expect(result.copies).toHaveLength(0)
+  })
+
   describe('when extension has no matching type', () => {
     it('should not add to package on addition', async () => {
       // Arrange

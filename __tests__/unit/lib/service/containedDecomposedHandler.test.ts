@@ -54,7 +54,7 @@ describe('ContainedDecomposedHandler', () => {
           }),
         ])
       )
-      expect(result.copies.length).toBeGreaterThanOrEqual(0)
+      expect(result.copies).toHaveLength(0)
     })
 
     describe.each([
@@ -273,6 +273,43 @@ describe('ContainedDecomposedHandler', () => {
         )
         expect(result.copies).toHaveLength(0)
       })
+    })
+
+    it('Given self-named decomposed file where dir matches parsed name, When addition, Then treated as decomposed with GitDirCopy', async () => {
+      // Arrange
+      // This path triggers _isDecomposedFormat second condition:
+      // parsed.dir.split('/').pop() === parsed.name ('Subject' === 'Subject')
+      // while first condition is false because base includes '.permissionset'
+      const decomposedLine =
+        'A       force-app/main/default/permissionsets/Subject/Subject.permissionset'
+      const existingFiles = [
+        'force-app/main/default/permissionsets/Subject/Subject.permissionset',
+        'force-app/main/default/permissionsets/Subject/objectSettings/Account.objectSettings-meta.xml',
+      ]
+      mockedReadDirs.mockResolvedValue(existingFiles)
+      const { changeType, element } = createElement(
+        decomposedLine,
+        globalMetadata.get('permissionsets')!,
+        globalMetadata
+      )
+      const sut = new ContainedDecomposedHandler(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'PermissionSet',
+            member: 'Subject',
+          }),
+        ])
+      )
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.GitDirCopy)
+      ).toBe(true)
     })
 
     it('Given decomposed addition with generateDelta false, When collect, Then no GitDirCopy in copies', async () => {

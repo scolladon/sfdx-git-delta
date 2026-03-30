@@ -424,20 +424,14 @@ describe('GitAdapter', () => {
     describe('when getContent throws exception', () => {
       it('throws the exception', async () => {
         // Arrange
-        expect.assertions(1)
         const gitAdapter = GitAdapter.getInstance(config)
         mockedGetContent.mockRejectedValue(new Error('test') as never)
 
-        // Act
-        try {
-          await gitAdapter.getStringContent({
-            path: 'file.txt',
-            oid: config.to,
-          })
-        } catch {
-          // Assert
-          expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
-        }
+        // Act & Assert
+        await expect(
+          gitAdapter.getStringContent({ path: 'file.txt', oid: config.to })
+        ).rejects.toThrow('test')
+        expect(mockedGetContent).toHaveBeenCalledWith(config.to, 'file.txt')
       })
     })
   })

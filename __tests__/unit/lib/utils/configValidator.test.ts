@@ -5,8 +5,19 @@ import ConfigValidator from '../../../../src/utils/configValidator'
 import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/testWork'
 
-const mockParseRev = vi.fn()
-const mockConfigureRepository = vi.fn()
+const {
+  mockGetMessage,
+  mockParseRev,
+  mockConfigureRepository,
+  mockSfProjectResolve,
+} = vi.hoisted(() => ({
+  mockGetMessage: vi.fn(
+    (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
+  ),
+  mockParseRev: vi.fn(),
+  mockConfigureRepository: vi.fn(),
+  mockSfProjectResolve: vi.fn(),
+}))
 
 vi.mock('@salesforce/source-deploy-retrieve', () => {
   return {
@@ -28,7 +39,6 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
   }
 })
 
-const mockSfProjectResolve = vi.fn()
 vi.mock('@salesforce/core', () => ({
   SfProject: {
     resolve: (...args: unknown[]) => mockSfProjectResolve(...args),
@@ -54,16 +64,23 @@ vi.mock('@salesforce/core', () => ({
 }))
 
 vi.mock('../../../../src/utils/LoggingService')
-vi.mock('../../../../src/utils/MessageService')
+vi.mock('../../../../src/utils/MessageService', () => {
+  return {
+    MessageService: vi.fn().mockImplementation(function () {
+      return { getMessage: mockGetMessage }
+    }),
+  }
+})
 vi.mock('../../../../src/utils/fsUtils')
 const mockedPathExists = vi.mocked(pathExists)
 const mockedSanitizePath = vi.mocked(sanitizePath)
 
 mockedSanitizePath.mockImplementation(data => data)
 
-describe(`test if the application`, () => {
+describe('Given a ConfigValidator', () => {
   let work: Work
   beforeEach(() => {
+    vi.clearAllMocks()
     work = getWork()
     work.config.repo = '.'
     work.config.to = 'test'
@@ -74,7 +91,7 @@ describe(`test if the application`, () => {
 
   it('resume nicely when everything is well configured', async () => {
     // Arrange
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -84,12 +101,12 @@ describe(`test if the application`, () => {
     })
 
     // Act & Assert
-    await expect(configValidator.validateConfig()).resolves.not.toThrow()
+    await expect(sut.validateConfig()).resolves.not.toThrow()
   })
 
   it('add errors when repo is not a git repository', async () => {
     mockedPathExists.mockResolvedValue(false as never)
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -97,12 +114,12 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(configValidator.validateConfig()).rejects.toThrow()
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when repo is not git repository', async () => {
     mockedPathExists.mockResolvedValue(false as never)
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -110,13 +127,13 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(configValidator.validateConfig()).rejects.toThrow()
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" is not a git expression', async () => {
     mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -125,13 +142,13 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(configValidator.validateConfig()).rejects.toThrow()
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-f" is not a git expression', async () => {
     mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -140,7 +157,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(configValidator.validateConfig()).rejects.toThrow()
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" is not a valid sha pointer', async () => {
@@ -148,7 +165,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -157,7 +174,7 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(configValidator.validateConfig()).rejects.toThrow()
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-f" is not a valid sha pointer', async () => {
@@ -166,7 +183,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -175,11 +192,11 @@ describe(`test if the application`, () => {
       },
     })
     expect.assertions(1)
-    await expect(configValidator.validateConfig()).rejects.toThrow()
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('throws errors when "-t" and "-f" are not a valid sha pointer', async () => {
-    expect.assertions(1)
+    // Arrange
     mockParseRev.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
@@ -187,7 +204,7 @@ describe(`test if the application`, () => {
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -197,18 +214,15 @@ describe(`test if the application`, () => {
       },
     })
 
-    try {
-      await configValidator.validateConfig()
-    } catch (err) {
-      expect(err).toBeDefined()
-    }
+    // Act & Assert
+    await expect(sut.validateConfig()).rejects.toThrow()
   })
 
   it('do not throw errors when "-t" and "-f" are valid sha pointer', async () => {
     // Arrange
     const notHeadSHA = 'test'
 
-    const configValidator = new ConfigValidator({
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
@@ -218,31 +232,35 @@ describe(`test if the application`, () => {
     })
 
     // Act & Assert
-    await expect(configValidator.validateConfig()).resolves.not.toThrow()
+    await expect(sut.validateConfig()).resolves.not.toThrow()
   })
 
   it('do not throw errors when repo contains submodule git file', async () => {
-    expect.assertions(1)
-    const configValidator = new ConfigValidator({
+    // Arrange
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
         repo: 'submodule/',
       },
     })
-    await expect(configValidator.validateConfig()).resolves.not.toBe({})
+
+    // Act & Assert
+    await expect(sut.validateConfig()).resolves.not.toThrow()
   })
 
   it('do not throw errors when repo submodule git folder', async () => {
-    expect.assertions(1)
-    const configValidator = new ConfigValidator({
+    // Arrange
+    const sut = new ConfigValidator({
       ...work,
       config: {
         ...work.config,
         repo: 'submodule/',
       },
     })
-    await expect(configValidator.validateConfig()).resolves.not.toBe({})
+
+    // Act & Assert
+    await expect(sut.validateConfig()).resolves.not.toThrow()
   })
 
   describe('apiVersion parameter handling', () => {
@@ -251,7 +269,6 @@ describe(`test if the application`, () => {
       latestAPIVersionSupported = 58
     })
     beforeEach(() => {
-      vi.resetAllMocks()
       vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
         '58'
       )
@@ -262,10 +279,10 @@ describe(`test if the application`, () => {
       ])('config.apiVersion (%s) equals the parameter', async version => {
         // Arrange
         work.config.apiVersion = version
-        const configValidator = new ConfigValidator(work)
+        const sut = new ConfigValidator(work)
 
         // Act
-        await configValidator['_handleDefault']()
+        await sut['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(version)
@@ -278,10 +295,10 @@ describe(`test if the application`, () => {
       ])(`config.apiVersion (%s) equals the parameter `, async version => {
         // Arrange
         work.config.apiVersion = version
-        const configValidator = new ConfigValidator(work)
+        const sut = new ConfigValidator(work)
 
         // Act
-        await configValidator['_handleDefault']()
+        await sut['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(version)
@@ -307,10 +324,10 @@ describe(`test if the application`, () => {
             // Arrange
             mockSfProject(String(version))
             work.config.apiVersion = undefined
-            const configValidator = new ConfigValidator(work)
+            const sut = new ConfigValidator(work)
 
             // Act
-            await configValidator['_handleDefault']()
+            await sut['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(+version)
@@ -326,10 +343,10 @@ describe(`test if the application`, () => {
             // Arrange
             mockSfProject(version)
             work.config.apiVersion = undefined
-            const configValidator = new ConfigValidator(work)
+            const sut = new ConfigValidator(work)
 
             // Act
-            await configValidator['_handleDefault']()
+            await sut['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -342,10 +359,10 @@ describe(`test if the application`, () => {
             // Arrange
             mockSfProject('40')
             work.config.apiVersion = undefined
-            const configValidator = new ConfigValidator(work)
+            const sut = new ConfigValidator(work)
 
             // Act
-            await configValidator['_handleDefault']()
+            await sut['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(40)
@@ -358,10 +375,10 @@ describe(`test if the application`, () => {
             // Arrange
             mockSfProject('1000000000')
             work.config.apiVersion = undefined
-            const configValidator = new ConfigValidator(work)
+            const sut = new ConfigValidator(work)
 
             // Act
-            await configValidator['_handleDefault']()
+            await sut['_handleDefault']()
 
             // Assert
             expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -373,10 +390,10 @@ describe(`test if the application`, () => {
           // Arrange
           mockSfProject()
           work.config.apiVersion = undefined
-          const configValidator = new ConfigValidator(work)
+          const sut = new ConfigValidator(work)
 
           // Act
-          await configValidator['_handleDefault']()
+          await sut['_handleDefault']()
 
           // Assert
           expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
@@ -391,15 +408,147 @@ describe(`test if the application`, () => {
           new Error('No sfdx-project.json found')
         )
         work.config.apiVersion = undefined
-        const configValidator = new ConfigValidator(work)
+        const sut = new ConfigValidator(work)
 
         // Act
-        await configValidator['_handleDefault']()
+        await sut['_handleDefault']()
 
         // Assert
         expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
         expect(work.warnings.length).toEqual(1)
       })
+    })
+
+    describe('when apiVersion equals the latest supported version', () => {
+      it('When apiVersion equals latestVersion, Then no warning and no override', async () => {
+        // Arrange
+        work.config.apiVersion = latestAPIVersionSupported
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings).toHaveLength(0)
+      })
+    })
+
+    describe('when apiVersion is explicitly NaN', () => {
+      it('When apiVersion is NaN, Then it defaults to latest with defaulted warning', async () => {
+        // Arrange
+        work.config.apiVersion = NaN
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings).toHaveLength(1)
+        expect(work.warnings[0].message).toContain(
+          'warning.ApiVersionDefaulted'
+        )
+      })
+    })
+
+    describe('when apiVersion exceeds latest supported version', () => {
+      it('When apiVersion exceeds latest, Then warning message contains override details', async () => {
+        // Arrange
+        work.config.apiVersion = 100
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(work.warnings).toHaveLength(1)
+        expect(work.warnings[0].message).toContain(
+          'warning.ApiVersionOverridden'
+        )
+      })
+    })
+
+    describe('when apiVersion defaults to latest', () => {
+      it('When apiVersion is undefined and no project file, Then warning message contains default details', async () => {
+        // Arrange
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        work.config.apiVersion = undefined
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.warnings).toHaveLength(1)
+        expect(work.warnings[0].message).toContain(
+          'warning.ApiVersionDefaulted'
+        )
+      })
+    })
+
+    describe('when apiVersion is set and project file exists', () => {
+      it('When apiVersion is defined, Then project file sourceApiVersion is ignored', async () => {
+        // Arrange
+        mockSfProjectResolve.mockResolvedValue({
+          getSfProjectJson: () => ({
+            getContents: () => ({ sourceApiVersion: '100' }),
+          }),
+        })
+        work.config.apiVersion = 46
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_handleDefault']()
+
+        // Assert
+        expect(work.config.apiVersion).toEqual(46)
+        expect(work.warnings).toHaveLength(0)
+      })
+    })
+  })
+
+  describe('error message content', () => {
+    it('When repo is not a git repository, Then error contains the path message', async () => {
+      // Arrange
+      mockedPathExists.mockResolvedValue(false as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          repo: 'not/git/folder',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.PathIsNotGit'),
+        })
+      )
+    })
+
+    it('When git sha is invalid, Then error contains the parameter message', async () => {
+      // Arrange
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'invalid-sha',
+          from: 'HEAD',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ParameterIsNotGitSHA'),
+        })
+      )
     })
   })
 })

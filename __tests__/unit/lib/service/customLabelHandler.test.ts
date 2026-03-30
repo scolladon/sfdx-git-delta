@@ -194,5 +194,38 @@ describe('Decomposed CustomLabel spec', () => {
       ).toBe(true)
       expect(result.warnings).toHaveLength(0)
     })
+
+    it('Given inFile labels addition with non-empty content, When collect, Then _shouldTreatContainerType prevents container manifest', async () => {
+      // Arrange
+      const inFileLine =
+        'A       force-app/main/default/labels/CustomLabels.labels-meta.xml'
+      const { changeType, element } = createElement(
+        inFileLine,
+        labelType,
+        globalMetadata
+      )
+      const sut = new CustomLabelHandler(changeType, element, work)
+      mockCompare.mockImplementation(() =>
+        Promise.resolve({
+          added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+          deleted: [],
+        })
+      )
+      mockPrune.mockReturnValue({
+        xmlContent: '<xmlContent>',
+        isEmpty: false,
+      })
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const containerManifest = result.manifests.find(
+        m => m.type === 'CustomLabels'
+      )
+      expect(containerManifest).toBeUndefined()
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].type).toBe('CustomLabel')
+    })
   })
 })

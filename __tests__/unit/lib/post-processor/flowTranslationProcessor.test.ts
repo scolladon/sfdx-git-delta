@@ -118,7 +118,7 @@ describe('FlowTranslationProcessor', () => {
 
         // Assert
         expect(mockedGrepContent).not.toHaveBeenCalled()
-        expect(hasTranslationManifest(result)).toBeFalsy()
+        expect(hasTranslationManifest(result)).toBe(false)
       })
     })
 
@@ -150,7 +150,7 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).not.toHaveBeenCalled()
-          expect(hasTranslationManifest(result)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBe(false)
           expect(result.copies).toHaveLength(0)
         })
       })
@@ -165,7 +165,7 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(hasTranslationManifest(result)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBe(false)
           expect(mockedGrepContent).toHaveBeenCalledTimes(1)
           expect(mockedGrepContent).toHaveBeenCalledWith(
             'flowDefinitions',
@@ -200,7 +200,7 @@ describe('FlowTranslationProcessor', () => {
             work.config
           )
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
-          expect(hasTranslationManifest(result)).toBeTruthy()
+          expect(hasTranslationManifest(result)).toBe(true)
           expect(result.copies).toHaveLength(1)
           expect(result.copies[0].kind).toBe(CopyOperationKind.ComputedContent)
         })
@@ -301,7 +301,7 @@ describe('FlowTranslationProcessor', () => {
             const result = await sut.transformAndCollect()
 
             // Assert
-            expect(hasTranslationManifest(result)).toBeFalsy()
+            expect(hasTranslationManifest(result)).toBe(false)
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
@@ -341,7 +341,7 @@ describe('FlowTranslationProcessor', () => {
               const result = await sut.transformAndCollect()
 
               // Assert
-              expect(hasTranslationManifest(result)).toBeTruthy()
+              expect(hasTranslationManifest(result)).toBe(true)
               expect(result.manifests).toEqual(
                 expect.arrayContaining([
                   expect.objectContaining({
@@ -377,7 +377,7 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(hasTranslationManifest(result)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBe(false)
           expect(mockedGrepContent).toHaveBeenCalledTimes(1)
           expect(mockedGrepContent).toHaveBeenCalledWith(
             'flowDefinitions',
@@ -405,7 +405,7 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(hasTranslationManifest(result)).toBeTruthy()
+          expect(hasTranslationManifest(result)).toBe(true)
           expect(mockedGrepContent).toHaveBeenCalledTimes(1)
           expect(mockedGrepContent).toHaveBeenCalledWith(
             'flowDefinitions',
@@ -432,7 +432,7 @@ describe('FlowTranslationProcessor', () => {
           const result = await sut.transformAndCollect()
 
           // Assert
-          expect(hasTranslationManifest(result)).toBeFalsy()
+          expect(hasTranslationManifest(result)).toBe(false)
           expect(mockedGrepContent).toHaveBeenCalledTimes(1)
           expect(mockedGrepContent).toHaveBeenCalledWith(
             'flowDefinitions',

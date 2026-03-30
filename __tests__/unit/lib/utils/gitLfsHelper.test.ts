@@ -51,15 +51,9 @@ describe('getLFSObjectContentPath', () => {
 
   it('without LFS content, it creates LFS file path', async () => {
     // Arrange
-    expect.assertions(1)
     const lfsFileContent = Buffer.from(`not lfs file`)
 
-    // Act
-    try {
-      await getLFSObjectContentPath(lfsFileContent)
-    } catch (e) {
-      // Assert
-      expect(e).toBeDefined()
-    }
+    // Act & Assert
+    expect(() => getLFSObjectContentPath(lfsFileContent)).toThrow()
   })
 })

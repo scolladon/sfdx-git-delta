@@ -30,7 +30,7 @@ beforeEach(() => {
   work = getWork()
 })
 
-describe('CustomFieldHandler', () => {
+describe('CustomObjectChildHandler', () => {
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     globalMetadata = await getDefinition({})

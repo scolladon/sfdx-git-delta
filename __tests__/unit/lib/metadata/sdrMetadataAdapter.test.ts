@@ -43,8 +43,9 @@ describe('SDRMetadataAdapter', () => {
 
         // Assert
         const metadata = adapter.toInternalMetadata()
-        // Should have many types from real SDR registry
-        expect(metadata.length).toBeGreaterThan(100)
+        // SDR registry contains a large number of standard Salesforce types
+        const MIN_EXPECTED_SDR_TYPES = 100
+        expect(metadata.length).toBeGreaterThan(MIN_EXPECTED_SDR_TYPES)
       })
 
       it('Given SDR type with all properties, When converting, Then maps to internal Metadata format', () => {

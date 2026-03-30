@@ -13,7 +13,7 @@ import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Metadata } from '../../../../src/types/metadata'
 import * as fsUtils from '../../../../src/utils/fsUtils'
 
-describe(`test if metadata`, () => {
+describe('Given metadata definitions', () => {
   beforeEach(() => {
     resetMetadataCache()
   })
@@ -25,12 +25,15 @@ describe(`test if metadata`, () => {
     expect(metadata.get('do not exist')).toBeUndefined()
   })
 
-  it('getLatestSupportedVersion', async () => {
+  it('Given SDR returns version, When getLatestSupportedVersion, Then returns parsed number', async () => {
+    // Arrange
     vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue('58')
-    const latestVersion = await getLatestSupportedVersion()
 
-    expect(latestVersion).toBeDefined()
-    expect(latestVersion).toEqual(58)
+    // Act
+    const sut = await getLatestSupportedVersion()
+
+    // Assert
+    expect(sut).toEqual(58)
   })
 
   it('getInFileAttributes', async () => {

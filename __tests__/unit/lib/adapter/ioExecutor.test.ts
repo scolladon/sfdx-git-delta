@@ -383,4 +383,57 @@ describe('IOExecutor', () => {
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
+
+  describe('Given a GitDirCopy that marks child paths as processed', () => {
+    it('When followed by another GitDirCopy for the same path, Then second call is skipped', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+      mockGetFilesPath.mockResolvedValue(['permissionsets/MyPS/file1.xml'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'permissionsets/MyPS',
+          revision: 'abc123',
+        },
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'permissionsets/MyPS',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert - second GitDirCopy is skipped because path is already processed
+      expect(mockGetFilesPath).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Given a ComputedContent operation', () => {
+    it('When executed, Then writes to joined output path', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'my-output'
+      const executor = new IOExecutor(work.config)
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.ComputedContent,
+          path: 'labels/CustomLabels.labels',
+          content: '<xml/>',
+        },
+      ])
+
+      // Assert
+      expect(outputFile).toHaveBeenCalledWith(
+        'my-output/labels/CustomLabels.labels',
+        '<xml/>'
+      )
+    })
+  })
 })

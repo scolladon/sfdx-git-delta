@@ -146,5 +146,112 @@ describe('InFolderHandler', () => {
       )
       expect(folderMetaCopy).toBeDefined()
     })
+
+    it('Given type with uppercase suffix, When collect, Then folder meta file uses lowercase suffix', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([])
+      const upperSuffixType = {
+        ...objectType,
+        suffix: 'Document',
+      }
+      const upperLine = `A       force-app/main/default/${upperSuffixType.directoryName}/${entity}.${extension}${METAFILE_SUFFIX}`
+      const { changeType, element } = createElement(
+        upperLine,
+        upperSuffixType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const folderMetaCopy = result.copies.find(
+        c =>
+          c.kind === CopyOperationKind.GitCopy &&
+          c.path.endsWith('folder.document-meta.xml')
+      )
+      expect(folderMetaCopy).toBeDefined()
+    })
+
+    it('Given addition with generateDelta false, When collect, Then _shouldCollectCopies prevents special extension copies', async () => {
+      // Arrange
+      work.config.generateDelta = false
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests.length).toBeGreaterThan(0)
+      expect(mockedReadDirs).not.toHaveBeenCalled()
+    })
+
+    it('Given file directly in type directory with non-matching extension, When collect, Then _isProcessable returns false and result is empty', async () => {
+      // Arrange
+      const nonMatchingLine = `A       force-app/main/default/${objectType.directoryName}/test.wrongExtension`
+      const { changeType, element } = createElement(
+        nonMatchingLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.manifests).toHaveLength(0)
+      expect(result.copies).toHaveLength(0)
+    })
+
+    it('Given element name with meta suffix, When collect, Then _getElementName strips META_REGEX', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([])
+      const metaLine = `A       force-app/main/default/${objectType.directoryName}/folder/test.${extension}${METAFILE_SUFFIX}`
+      const { changeType, element } = createElement(
+        metaLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const manifestMember = result.manifests.find(
+        m => m.target === ManifestTarget.Package
+      )?.member
+      expect(manifestMember).toBeDefined()
+      expect(manifestMember).not.toContain(METAFILE_SUFFIX)
+      expect(manifestMember).not.toContain('-meta.xml')
+    })
+
+    it('Given element name with extension suffix, When collect, Then _getElementName strips EXTENSION_SUFFIX_REGEX', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([])
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const manifestMember = result.manifests.find(
+        m => m.target === ManifestTarget.Package
+      )?.member
+      expect(manifestMember).toBe(entity)
+      expect(manifestMember).not.toMatch(/\.[^/.]+$/)
+    })
   })
 })

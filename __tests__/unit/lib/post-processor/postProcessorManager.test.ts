@@ -1,5 +1,5 @@
 'use strict'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -8,10 +8,15 @@ import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import PostProcessorManager, {
   getPostProcessors,
 } from '../../../../src/post-processor/postProcessorManager'
+import {
+  type HandlerResult,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/adapter/GitAdapter')
+vi.mock('../../../../src/utils/LoggingService')
 
 const processSpy = vi.fn()
 
@@ -24,62 +29,70 @@ class TestProcessor extends BaseProcessor {
   }
 }
 
+class TestCollector extends BaseProcessor {
+  public mockResult: HandlerResult = {
+    manifests: [],
+    copies: [],
+    warnings: [],
+  }
+  constructor(work: Work, metadata: MetadataRepository) {
+    super(work, metadata)
+  }
+  override get isCollector(): boolean {
+    return true
+  }
+  override async process() {}
+  override async transformAndCollect(): Promise<HandlerResult> {
+    return this.mockResult
+  }
+}
+
 describe('postProcessorManager', () => {
-  const work: Work = getWork()
+  let work: Work
   let metadata: MetadataRepository
   beforeAll(async () => {
     metadata = await getDefinition({})
   })
 
+  beforeEach(() => {
+    vi.clearAllMocks()
+    work = getWork()
+  })
+
   describe('getPostProcessors', () => {
-    describe('when called', () => {
-      it('returns a post processor manager with a list of post processor', () => {
-        // Arrange
-        const sut = getPostProcessors
+    it('Given work and metadata, When called, Then returns manager that can execute', async () => {
+      // Arrange
+      const sut = getPostProcessors(work, metadata)
 
-        // Act
-        const result = sut(work, metadata)
-
-        // Assert
-        expect(
-          result['processors'].length + result['collectors'].length
-        ).toBeGreaterThan(0)
-      })
+      // Act & Assert
+      await expect(sut.collectAll()).resolves.toBeDefined()
     })
   })
   describe('when calling `use`', () => {
-    it('should add a processor to the list', () => {
+    it('Given a new processor, When use is called, Then execute invokes it', async () => {
       // Arrange
       const sut = new PostProcessorManager(work)
-      const processorCount = sut['processors'].length
-
-      // Act
       sut.use(new TestProcessor(work, metadata) as BaseProcessor)
 
+      // Act
+      await sut.execute()
+
       // Assert
-      expect(processorCount).toBeLessThan(sut['processors'].length)
+      expect(processSpy).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('processor count', () => {
     describe.each([
-      [new PostProcessorManager(work), 0],
-      [
-        new PostProcessorManager(work).use(
-          new TestProcessor(work, metadata) as BaseProcessor
-        ),
-        1,
-      ],
-      [
-        new PostProcessorManager(work)
-          .use(new TestProcessor(work, metadata) as BaseProcessor)
-          .use(new TestProcessor(work, metadata) as BaseProcessor),
-        2,
-      ],
-    ])('when calling `execute`', (processorManager, expectedCount) => {
+      0, 1, 2,
+    ])('when calling `execute` with %i processors', expectedCount => {
       it(`should execute ${expectedCount} processors`, async () => {
         // Arrange
-        const sut = processorManager
+        const localWork = getWork()
+        const sut = new PostProcessorManager(localWork)
+        for (let i = 0; i < expectedCount; i++) {
+          sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+        }
 
         // Act
         await sut.execute()
@@ -91,18 +104,22 @@ describe('postProcessorManager', () => {
   })
 
   describe('when postProcessor `process` throws', () => {
-    it('should append the error in warnings', async () => {
+    it('should append the error in warnings with processor class name', async () => {
       // Arrange
-      expect.assertions(1)
-      const sut = new PostProcessorManager(work)
-      sut.use(new TestProcessor(work, metadata) as BaseProcessor)
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
       processSpy.mockImplementationOnce(() =>
-        Promise.reject(new Error('Error'))
+        Promise.reject(new Error('Some error'))
       )
 
       // Act
       await sut.execute()
-      expect(work.warnings.length).toBe(1)
+
+      // Assert
+      expect(localWork.warnings).toHaveLength(1)
+      expect(localWork.warnings[0].message).toContain('TestProcessor')
+      expect(localWork.warnings[0].message).toContain('Some error')
     })
   })
 
@@ -154,6 +171,32 @@ describe('postProcessorManager', () => {
       expect(result.manifests).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
+    })
+
+    it('Given collector with results, When collectAll, Then returns merged result', async () => {
+      // Arrange
+      const localWork = getWork()
+      const sut = new PostProcessorManager(localWork)
+      const collector = new TestCollector(localWork, metadata)
+      collector.mockResult = {
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Test',
+          },
+        ],
+        copies: [],
+        warnings: [],
+      }
+      sut.use(collector as BaseProcessor)
+
+      // Act
+      const result = await sut.collectAll()
+
+      // Assert
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].type).toBe('ApexClass')
     })
 
     it('Given IncludeProcessor that throws, When collectAll, Then returns result with warnings', async () => {

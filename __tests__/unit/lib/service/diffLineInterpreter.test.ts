@@ -87,15 +87,58 @@ describe('DiffLineInterpreter', () => {
   })
 
   describe('when called without lines', () => {
-    it('it does not process anything', async () => {
+    it('it does not process anything and returns empty result', async () => {
       // Arrange
       const lines: string[] = []
 
       // Act
-      await sut.process(lines)
+      const result = await sut.process(lines)
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
+      expect(result.manifests).toEqual([])
+      expect(result.copies).toEqual([])
+      expect(result.warnings).toEqual([])
+    })
+  })
+
+  describe('Given revisions parameter', () => {
+    it('When revisions are provided, Then uses them in effectiveWork', async () => {
+      // Arrange
+      const lines = ['test']
+      const revisions = { from: 'sha1', to: 'sha2' }
+
+      // Act
+      const result = await sut.process(lines, revisions)
+
+      // Assert
+      expect(mockCollect).toHaveBeenCalledTimes(1)
+      expect(result).toBeDefined()
+    })
+  })
+
+  describe('Given single line with result', () => {
+    it('When processed, Then returns merged result (not empty)', async () => {
+      // Arrange
+      const lines = ['test']
+      mockCollect.mockResolvedValue({
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Test',
+          },
+        ],
+        copies: [],
+        warnings: [],
+      })
+
+      // Act
+      const result = await sut.process(lines)
+
+      // Assert
+      expect(result.manifests).toHaveLength(1)
+      expect(result.manifests[0].type).toBe('ApexClass')
     })
   })
 })

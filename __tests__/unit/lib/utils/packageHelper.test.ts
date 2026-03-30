@@ -116,13 +116,13 @@ const tests = [
   ],
 ]
 
-describe(`test if package builder`, () => {
-  let packageConstructor: PackageBuilder
+describe('Given a PackageBuilder', () => {
+  let sut: PackageBuilder
   beforeAll(async () => {
-    packageConstructor = new PackageBuilder(config)
+    sut = new PackageBuilder(config)
   })
 
   it.each(tests)('can build %s manifest', (_, diff, expected) => {
-    expect(packageConstructor.buildPackage(diff as Manifest)).toBe(expected)
+    expect(sut.buildPackage(diff as Manifest)).toBe(expected)
   })
 })

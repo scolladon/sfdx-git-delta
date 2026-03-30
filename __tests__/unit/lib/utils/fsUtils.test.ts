@@ -71,13 +71,12 @@ describe('readFile', () => {
       // Arrange
       mockedReadFile.mockResolvedValue('content')
     })
-    it('should return the file', async () => {
+    it('should return the file content', async () => {
       // Act
-      const file = await readFile('path')
+      const sut = await readFile('path')
 
       // Assert
-      expect(file).toBeTruthy()
-      expect(mockedReadFile).toHaveBeenCalled()
+      expect(sut).toBe('content')
     })
   })
 
@@ -87,14 +86,8 @@ describe('readFile', () => {
       mockedReadFile.mockRejectedValue('Error')
     })
     it('should throw', async () => {
-      // Act
-      try {
-        await readFile('path')
-      } catch (err) {
-        // Assert
-        expect(err).toBeTruthy()
-        expect(mockedReadFile).toHaveBeenCalled()
-      }
+      // Act & Assert
+      await expect(readFile('path')).rejects.toBe('Error')
     })
   })
 })
