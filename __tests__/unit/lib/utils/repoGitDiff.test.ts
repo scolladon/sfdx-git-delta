@@ -32,7 +32,7 @@ const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
 
 const TAB = '\t'
 
-describe(`test if repoGitDiff`, () => {
+describe('Given a RepoGitDiff', () => {
   let globalMetadata: MetadataRepository
   let config: Config
   beforeAll(async () => {
@@ -60,8 +60,8 @@ describe(`test if repoGitDiff`, () => {
     mockGetDiffLines.mockImplementation(() => Promise.resolve([]))
     config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreWhitespace = true
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output)
   })
 
@@ -69,8 +69,8 @@ describe(`test if repoGitDiff`, () => {
     const output: string[] = []
     mockGetDiffLines.mockImplementation(() => Promise.resolve([]))
     config.ignore = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output)
   })
 
@@ -82,8 +82,8 @@ describe(`test if repoGitDiff`, () => {
       Promise.resolve(output.map(x => `${DELETION}${TAB}${x}`))
     )
     config.ignore = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output.map(x => `${DELETION}${TAB}${x}`))
   })
 
@@ -94,8 +94,8 @@ describe(`test if repoGitDiff`, () => {
     mockGetDiffLines.mockImplementation(() =>
       Promise.resolve(output.map(x => `${DELETION}${TAB}${x}`))
     )
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output.map(x => `${DELETION}${TAB}${x}`))
   })
 
@@ -106,8 +106,8 @@ describe(`test if repoGitDiff`, () => {
     mockGetDiffLines.mockImplementation(() =>
       Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output.map(x => `${ADDITION}${TAB}${x}`))
   })
 
@@ -118,8 +118,8 @@ describe(`test if repoGitDiff`, () => {
     mockGetDiffLines.mockImplementation(() =>
       Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output.map(x => `${ADDITION}${TAB}${x}`))
   })
 
@@ -130,8 +130,8 @@ describe(`test if repoGitDiff`, () => {
     mockGetDiffLines.mockImplementation(() =>
       Promise.resolve(output.map(x => `M${TAB}${x}`))
     )
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output.map(x => `${MODIFICATION}${TAB}${x}`))
   })
 
@@ -142,8 +142,8 @@ describe(`test if repoGitDiff`, () => {
     mockGetDiffLines.mockImplementation(() =>
       Promise.resolve(output.map(x => `M${TAB}${x}`))
     )
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output.map(x => `${MODIFICATION}${TAB}${x}`))
   })
 
@@ -154,8 +154,8 @@ describe(`test if repoGitDiff`, () => {
       Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
     config.ignore = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     //should be empty
     const expected: string[] = []
     expect(work).toStrictEqual(expected)
@@ -168,8 +168,8 @@ describe(`test if repoGitDiff`, () => {
       Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     //should be empty
     const expected: string[] = []
     expect(work).toStrictEqual(expected)
@@ -183,8 +183,8 @@ describe(`test if repoGitDiff`, () => {
     )
     config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     //should be empty
     const expected: string[] = []
     expect(work).toStrictEqual(expected)
@@ -197,8 +197,8 @@ describe(`test if repoGitDiff`, () => {
       Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
     config.ignore = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
 
     const expected: string[] = []
     expect(work).toStrictEqual(expected)
@@ -211,8 +211,8 @@ describe(`test if repoGitDiff`, () => {
     )
 
     config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     const expected: string[] = [`${ADDITION}${TAB}${output}`]
     expect(work).toStrictEqual(expected)
   })
@@ -224,8 +224,8 @@ describe(`test if repoGitDiff`, () => {
       Promise.resolve(output.map(x => `${ADDITION}${TAB}${x}`))
     )
     config.ignore = FORCEIGNORE_MOCK_PATH
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     //should be empty
     const expected: string[] = []
     expect(work).toStrictEqual(expected)
@@ -237,8 +237,8 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/account/domain/classes/Account.cls`,
     ]
     mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     const expected: string[] = [`${output[1]}`]
     expect(work).toStrictEqual(expected)
   })
@@ -249,8 +249,8 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/main/default/objects/Account/fields/Test__c.field-meta.xml`,
     ]
     mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     const expected: string[] = [`${output[1]}`]
     expect(work).toStrictEqual(expected)
   })
@@ -261,8 +261,8 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/main/default/classes/RenamedAccount.cls`,
     ]
     mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output)
   })
 
@@ -272,8 +272,8 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/main/default/objects/Opportunity/fields/CustomField__c.field-meta.xml`,
     ]
     mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output)
   })
 
@@ -283,21 +283,18 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/main/default/classes/Contact.cls`,
     ]
     mockGetDiffLines.mockImplementation(() => Promise.resolve(output))
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
-    const work = await repoGitDiff.getLines()
+    const sut = new RepoGitDiff(config, globalMetadata)
+    const work = await sut.getLines()
     expect(work).toStrictEqual(output)
   })
 
   it('can reject in case of error', async () => {
     // Arrange
     mockGetDiffLines.mockImplementation(() => Promise.reject(new Error('test')))
-    const repoGitDiff = new RepoGitDiff(
-      config,
-      null as unknown as MetadataRepository
-    )
+    const sut = new RepoGitDiff(config, null as unknown as MetadataRepository)
 
     // Act & Assert
-    await expect(repoGitDiff.getLines()).rejects.toThrow()
+    await expect(sut.getLines()).rejects.toThrow()
   })
 
   it('filters empty lines', async () => {
@@ -307,10 +304,10 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
       '',
     ])
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
+    const sut = new RepoGitDiff(config, globalMetadata)
 
     // Act
-    const work = await repoGitDiff.getLines()
+    const work = await sut.getLines()
 
     // Assert
     expect(work).toHaveLength(1)
@@ -324,10 +321,10 @@ describe(`test if repoGitDiff`, () => {
       `${ADDITION}${TAB}force-app/account/domain/classes/Account.cls`,
     ]
     mockGetDiffLines.mockResolvedValue(output)
-    const repoGitDiff = new RepoGitDiff(config, globalMetadata)
+    const sut = new RepoGitDiff(config, globalMetadata)
 
     // Act
-    const work = await repoGitDiff.getLines()
+    const work = await sut.getLines()
 
     // Assert
     // Deletion of Account.cls should be filtered (moved), but Modification and Addition kept

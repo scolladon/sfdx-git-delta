@@ -146,27 +146,31 @@ describe('PackageGenerator', () => {
         new Map([['a', new Set(['b'])]]),
       ],
     ])('when executed with %s', (_, additive, destructive, expectedDestructive) => {
-      let sut
-      beforeEach(async () => {
+      it('cleans up the maps', async () => {
         // Arrange
         work.diffs.package = additive
         work.diffs.destructiveChanges = destructive
         work.config.output = 'test'
-        sut = new PackageGenerator(work, metadata)
+        const sut = new PackageGenerator(work, metadata)
 
+        // Act
         await sut.process()
-      })
-      it('cleans up the maps', () => {
+
         // Assert
         expect(destructive).toEqual(expectedDestructive)
       })
-      it('calls `fse.outputFile` for %s', () => {
+      it('calls outputFile and buildPackage', async () => {
+        // Arrange
+        work.diffs.package = additive
+        work.diffs.destructiveChanges = destructive
+        work.config.output = 'test'
+        const sut = new PackageGenerator(work, metadata)
+
+        // Act
+        await sut.process()
+
         // Assert
         expect(outputFile).toHaveBeenCalledTimes(3)
-      })
-
-      it('calls `PackageBuilder.buildPackage` for %s', () => {
-        // Assert
         expect(mockBuildPackage).toHaveBeenCalledTimes(3)
       })
     })

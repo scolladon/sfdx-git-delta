@@ -54,7 +54,7 @@ describe('ContainedDecomposedHandler', () => {
           }),
         ])
       )
-      expect(result.copies.length).toBeGreaterThanOrEqual(0)
+      expect(result.copies).toHaveLength(0)
     })
 
     describe.each([

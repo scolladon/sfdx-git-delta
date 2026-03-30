@@ -1,6 +1,6 @@
 'use strict'
 import { EventEmitter } from 'node:events'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { GitBatchCatFile } from '../../../../src/adapter/gitBatchCatFile'
 
@@ -18,7 +18,7 @@ const mockProcess = Object.assign(new EventEmitter(), {
   stderr: mockStderr,
   killed: false,
   kill: vi.fn(() => {
-    ;(mockProcess as { killed: boolean }).killed = true
+    mockProcess.killed = true
   }),
 })
 
@@ -26,11 +26,18 @@ vi.mock('node:child_process', () => ({
   spawn: vi.fn(() => mockProcess),
 }))
 
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockProcess.killed = false
+  mockStdout.removeAllListeners()
+  mockStderr.removeAllListeners()
+  mockProcess.removeAllListeners()
+})
+
 describe('GitBatchCatFile', () => {
   describe('Given a successful content read', () => {
     it('When getContent is called, Then returns the file content', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
       const oid = 'abc123'
       const path = 'file.txt'
@@ -56,7 +63,6 @@ describe('GitBatchCatFile', () => {
   describe('Given a missing object', () => {
     it('When getContent is called, Then rejects with an error', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
 
       // Act
@@ -74,7 +80,6 @@ describe('GitBatchCatFile', () => {
   describe('Given close is called with pending promises', () => {
     it('When close is called, Then rejects all pending requests', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
 
       // Act
@@ -93,7 +98,6 @@ describe('GitBatchCatFile', () => {
   describe('Given multiple sequential reads', () => {
     it('When getContent is called multiple times, Then resolves each in order', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
       const content1 = 'first'
       const content2 = 'second'
@@ -122,7 +126,6 @@ describe('GitBatchCatFile', () => {
   describe('Given data arrives in chunks', () => {
     it('When stdout emits partial data, Then buffers until complete', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
       const content = 'chunked content here'
 
@@ -148,7 +151,6 @@ describe('GitBatchCatFile', () => {
   describe('Given binary content', () => {
     it('When getContent returns binary data, Then returns exact bytes', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
       const binaryContent = Buffer.from([0x00, 0x01, 0xff, 0xfe, 0x0a, 0x0d])
 
@@ -201,7 +203,6 @@ describe('GitBatchCatFile', () => {
   describe('Given a malformed header', () => {
     it('When header has no size, Then rejects with invalid header error', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
 
       // Act
@@ -217,7 +218,6 @@ describe('GitBatchCatFile', () => {
 
     it('When header has invalid size followed by valid request, Then resets pendingSize to -1 and resolves next request', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
       const validContent = 'valid'
 
@@ -243,7 +243,6 @@ describe('GitBatchCatFile', () => {
   describe('Given process exits unexpectedly with pending requests', () => {
     it('When close emits non-zero code, Then rejects all pending promises', async () => {
       // Arrange
-      ;(mockProcess as { killed: boolean }).killed = false
       const sut = new GitBatchCatFile('/repo')
 
       // Act

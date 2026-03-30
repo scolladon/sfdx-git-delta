@@ -609,23 +609,6 @@ describe('inFileHandler collect', () => {
   })
 
   let work: Work
-  const workflowType = {
-    childXmlNames: [
-      'WorkflowFieldUpdate',
-      'WorkflowFlowAction',
-      'WorkflowKnowledgePublish',
-      'WorkflowTask',
-      'WorkflowAlert',
-      'WorkflowSend',
-      'WorkflowOutboundMessage',
-      'WorkflowRule',
-    ],
-    directoryName: 'workflows',
-    inFolder: false,
-    metaFile: false,
-    suffix: 'workflow',
-    xmlName: 'Workflow',
-  }
 
   beforeEach(() => {
     vi.clearAllMocks()
