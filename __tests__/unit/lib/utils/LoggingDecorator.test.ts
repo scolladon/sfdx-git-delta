@@ -1,6 +1,6 @@
 'use strict'
 
-import { afterEach, describe, expect, it, type Mock, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 vi.mock('../../../../src/utils/LoggingService')
 
@@ -10,6 +10,10 @@ import { Logger } from '../../../../src/utils/LoggingService.js'
 const mockedTrace = Logger.trace as Mock
 
 describe('LoggingDecorator', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   describe('log', () => {
     describe('Given a sync method', () => {
       it('When called, Then traces entry and exit', () => {
@@ -99,10 +103,6 @@ describe('LoggingDecorator', () => {
         expect(() => Logger.debug('plain string message')).not.toThrow()
         expect(() => Logger.warn('plain string warning')).not.toThrow()
       })
-    })
-
-    afterEach(() => {
-      vi.clearAllMocks()
     })
   })
 })

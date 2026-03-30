@@ -158,14 +158,8 @@ describe('readDirs', () => {
       )
     })
     it('should throw', async () => {
-      // Act
-      try {
-        await readDirs('path', work.config)
-      } catch (err) {
-        // Assert
-        expect(err).toBeTruthy()
-        expect(mockGetFilesPath).toHaveBeenCalled()
-      }
+      // Act & Assert
+      await expect(readDirs('path', work.config)).rejects.toThrow('test')
     })
   })
 })

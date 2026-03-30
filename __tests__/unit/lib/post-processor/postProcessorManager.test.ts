@@ -60,32 +60,25 @@ describe('postProcessorManager', () => {
   })
 
   describe('getPostProcessors', () => {
-    describe('when called', () => {
-      it('returns a post processor manager with a list of post processor', () => {
-        // Arrange
-        const sut = getPostProcessors
+    it('Given work and metadata, When called, Then returns manager that can execute', async () => {
+      // Arrange
+      const sut = getPostProcessors(work, metadata)
 
-        // Act
-        const result = sut(work, metadata)
-
-        // Assert
-        expect(
-          result['processors'].length + result['collectors'].length
-        ).toBeGreaterThan(0)
-      })
+      // Act & Assert
+      await expect(sut.collectAll()).resolves.toBeDefined()
     })
   })
   describe('when calling `use`', () => {
-    it('should add a processor to the list', () => {
+    it('Given a new processor, When use is called, Then execute invokes it', async () => {
       // Arrange
       const sut = new PostProcessorManager(work)
-      const processorCount = sut['processors'].length
-
-      // Act
       sut.use(new TestProcessor(work, metadata) as BaseProcessor)
 
+      // Act
+      await sut.execute()
+
       // Assert
-      expect(processorCount).toBeLessThan(sut['processors'].length)
+      expect(processSpy).toHaveBeenCalledTimes(1)
     })
   })
 

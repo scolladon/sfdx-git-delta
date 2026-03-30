@@ -3,6 +3,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   it,
@@ -25,23 +26,26 @@ import {
 vi.mock('../../../../src/utils/fsUtils')
 const mockedReadFile = vi.mocked(readFile)
 
+const getConfig = (): Config => ({
+  to: '',
+  from: '',
+  output: '',
+  source: [''],
+  ignore: '',
+  ignoreDestructive: '',
+  apiVersion: 0,
+  repo: '',
+  ignoreWhitespace: false,
+  generateDelta: false,
+  include: '',
+  includeDestructive: '',
+})
+
 describe('ignoreHelper', () => {
   let sut: IgnoreHelper
-  const config: Config = {
-    to: '',
-    from: '',
-    output: '',
-    source: [''],
-    ignore: '',
-    ignoreDestructive: '',
-    apiVersion: 0,
-    repo: '',
-    ignoreWhitespace: false,
-    generateDelta: false,
-    include: '',
-    includeDestructive: '',
-  }
-  afterEach(() => {
+  let config: Config
+  beforeEach(() => {
+    config = getConfig()
     vi.resetAllMocks()
   })
   describe('buildIgnoreHelper', () => {
