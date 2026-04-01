@@ -99,9 +99,9 @@ jobs:
         uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
-            Dev build available:
+            Published under `dev-pr-${{ github.event.pull_request.number }}` draft release.
             ```sh
-            $ sf plugins install ${{ steps.release.outputs.channel }}
+            sf plugins install ${{ steps.release.outputs.channel }}
             ```
           comment-tag: dev-publish
           mode: recreate
