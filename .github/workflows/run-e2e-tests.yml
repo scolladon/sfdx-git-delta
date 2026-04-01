@@ -37,7 +37,7 @@ jobs:
         run: npm install -g ${{ matrix.cli }}
 
       - name: Install new plugin version
-        run: echo y | sf plugins install sfdx-git-delta@${{ inputs.channel }}
+        run: echo y | sf plugins install ${{ inputs.channel }}
 
       - name: Test new plugin version
         run: sf sgd source delta --help

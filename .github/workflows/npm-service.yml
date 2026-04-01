@@ -6,7 +6,7 @@ on:
     types: [published]
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
     paths-ignore:
       - "**.md"
 
@@ -14,21 +14,19 @@ permissions:
   contents: read
   id-token: write
 
-# Manage concurrency to stop running jobs and start new ones in case of new commit pushed
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
   publish:
-    if: github.event_name == 'release' || github.actor != 'dependabot[bot]'
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.publish.outputs.channel }}
     permissions:
       id-token: write
       contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -38,64 +36,98 @@ jobs:
       - run: npm install -g npm@latest
       - uses: ./.github/actions/install
 
-      # Dev version setup (PR only)
-      - name: Compute dev version
-        if: github.event_name == 'pull_request'
-        id: version
-        run: |
-          CURRENT_VERSION=$(jq -r '.version' package.json)
-          DEV_CHANNEL="dev-${{ github.event.pull_request.number }}"
-          DEV_VERSION="${CURRENT_VERSION}-${DEV_CHANNEL}.${{ github.run_id }}-${{ github.run_attempt }}"
-          echo "channel=$DEV_CHANNEL" >> "$GITHUB_OUTPUT"
-          echo "version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Set dev version
-        if: github.event_name == 'pull_request'
-        env:
-          DEV_CHANNEL: ${{ steps.version.outputs.channel }}
-        run: |
-          git config --global user.email "${DEV_CHANNEL}@github.com"
-          git config --global user.name "$DEV_CHANNEL"
-          npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
-
-      # Publish (unified with conditional channel)
       - name: Publish
         id: publish
         env:
-          DEV_CHANNEL: ${{ steps.version.outputs.channel }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            CHANNEL="$DEV_CHANNEL"
+          npm publish --provenance --access public --tag "latest-rc"
+          echo "channel=sfdx-git-delta@$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  dev-release:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.release.outputs.channel }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - uses: ./.github/actions/install
+
+      - name: Build and pack
+        id: pack
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          npm run build
+          TARBALL=$(npm pack 2>/dev/null | tail -1)
+          FIXED_NAME="sfdx-git-delta-dev-pr-${PR_NUMBER}.tgz"
+          mv "$TARBALL" "$FIXED_NAME"
+          echo "tarball=$FIXED_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upsert prerelease
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          DEV_TAG="dev-pr-${PR_NUMBER}"
+
+          # Try uploading to existing release, create if it doesn't exist
+          if gh release view "$DEV_TAG" > /dev/null 2>&1; then
+            gh release upload "$DEV_TAG" "$TARBALL" --clobber
           else
-            CHANNEL="latest-rc"
-          fi
-          npm publish --provenance --access public --tag "$CHANNEL"
-          # For e2e: PR uses dev channel, release uses tag name (e.g., v1.5.0)
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            echo "channel=$DEV_CHANNEL" >> "$GITHUB_OUTPUT"
-          else
-            echo "channel=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+            gh release create "$DEV_TAG" "$TARBALL" \
+              --title "Dev build for PR #${PR_NUMBER}" \
+              --notes "Automated dev build — not a real release." \
+              --prerelease
           fi
 
-      # Comment PR (PR only)
+          ASSET_URL=$(gh release view "$DEV_TAG" --json assets --jq ".assets[] | select(.name == \"$TARBALL\") | .url")
+          echo "channel=$ASSET_URL" >> "$GITHUB_OUTPUT"
+
       - name: Comment PR
-        if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v3
-        env:
-          DEV_CHANNEL: ${{ steps.version.outputs.channel }}
         with:
           message: |
-            Published under `${{ env.DEV_CHANNEL }}` npm channel.
+            Published under `dev-pr-${{ github.event.pull_request.number }}` draft release.
             ```sh
-            $ sf plugins install sfdx-git-delta@${{ env.DEV_CHANNEL }}
+            sf plugins install ${{ steps.release.outputs.channel }}
             ```
           comment-tag: dev-publish
           mode: recreate
 
   e2e-tests:
-    needs: [publish]
+    needs: [publish, dev-release]
+    if: "!cancelled() && (needs.publish.result == 'success' || needs.dev-release.result == 'success')"
     uses: ./.github/workflows/run-e2e-tests.yml
     with:
-      channel: ${{ needs.publish.outputs.channel }}
+      channel: ${{ needs.publish.outputs.channel || needs.dev-release.outputs.channel }}
+
+  cleanup:
+    if: >-
+      github.event.action == 'closed' &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete dev prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          DEV_TAG="dev-pr-${PR_NUMBER}"
+          gh release delete "$DEV_TAG" \
+            --repo "${{ github.repository }}" \
+            --yes \
+            --cleanup-tag 2>/dev/null || echo "No release to clean up"
