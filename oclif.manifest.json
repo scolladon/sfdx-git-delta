@@ -1,0 +1,195 @@
+{
+  "commands": {
+    "sgd:source:delta": {
+      "aliases": [],
+      "args": {},
+      "description": "Use two git commit reference to generate the package corresponding to what has changed in between",
+      "examples": [
+        "- Build incremental manifest from the previous commit\n\n<%= config.bin %> <%= command.id %> --from \"origin/development\" --output-dir incremental\n\n- Build incremental manifest and source from the development branch\n\n<%= config.bin %> <%= command.id %> --from \"origin/development\" --generate-delta --output-dir incremental"
+      ],
+      "flags": {
+        "json": {
+          "description": "Format output as json.",
+          "helpGroup": "GLOBAL",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "flags-dir": {
+          "helpGroup": "GLOBAL",
+          "name": "flags-dir",
+          "summary": "Import flag values from a directory.",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "from": {
+          "char": "f",
+          "name": "from",
+          "required": true,
+          "summary": "commit sha from where the diff is done",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "to": {
+          "char": "t",
+          "name": "to",
+          "summary": "commit sha to where the diff is done",
+          "default": "HEAD",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "generate-delta": {
+          "char": "d",
+          "name": "generate-delta",
+          "summary": "generate delta files in [--output-dir] folder",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "output-dir": {
+          "aliases": [
+            "output"
+          ],
+          "char": "o",
+          "deprecateAliases": true,
+          "name": "output-dir",
+          "summary": "source package specific output",
+          "default": "./output",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "repo-dir": {
+          "aliases": [
+            "repo"
+          ],
+          "char": "r",
+          "deprecateAliases": true,
+          "name": "repo-dir",
+          "summary": "git repository location",
+          "default": "./",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "source-dir": {
+          "aliases": [
+            "source"
+          ],
+          "char": "s",
+          "deprecateAliases": true,
+          "description": "You can use this flag multiple times to include different folders that contain source files. Each path should be relative to --repo-dir.\n\nThe folder can exist or not.\n* If the folder exists, its contents will be processed.\n* If the folder doesn't exist, it usually won't show any output—unless the folder was recently deleted and is part of a diff, in which case changes may still be picked up.",
+          "name": "source-dir",
+          "summary": "source folders focus location relative to --repo-dir",
+          "default": [
+            "./"
+          ],
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "ignore-file": {
+          "aliases": [
+            "ignore"
+          ],
+          "char": "i",
+          "deprecateAliases": true,
+          "name": "ignore-file",
+          "summary": "file listing paths to explicitly ignore for any diff actions",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "ignore-destructive-file": {
+          "aliases": [
+            "ignore-destructive"
+          ],
+          "char": "D",
+          "deprecateAliases": true,
+          "name": "ignore-destructive-file",
+          "summary": "file listing paths to explicitly ignore for any destructive actions",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "include-file": {
+          "aliases": [
+            "include"
+          ],
+          "char": "n",
+          "deprecateAliases": true,
+          "name": "include-file",
+          "summary": "file listing paths to explicitly include for any diff actions",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "include-destructive-file": {
+          "aliases": [
+            "include-destructive"
+          ],
+          "char": "N",
+          "deprecateAliases": true,
+          "name": "include-destructive-file",
+          "summary": "file listing paths to explicitly include for any destructive actions",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "additional-metadata-registry": {
+          "char": "M",
+          "name": "additional-metadata-registry",
+          "summary": "file containing additional metadata definitions to add to the registry",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "ignore-whitespace": {
+          "char": "W",
+          "name": "ignore-whitespace",
+          "summary": "ignore git diff whitespace (space, tab, eol) changes",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "api-version": {
+          "char": "a",
+          "description": "Override the api version used for api requests made by this command",
+          "name": "api-version",
+          "summary": "salesforce metadata API version, default to sfdx-project.json \"sourceApiVersion\" attribute or latest version",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "sgd:source:delta",
+      "pluginAlias": "sfdx-git-delta",
+      "pluginName": "sfdx-git-delta",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Generate incremental package manifest and source content",
+      "enableJsonFlag": true,
+      "isESM": true,
+      "relativePath": [
+        "lib",
+        "commands",
+        "sgd",
+        "source",
+        "delta.js"
+      ],
+      "aliasPermutations": [],
+      "permutations": [
+        "sgd:source:delta",
+        "source:sgd:delta",
+        "source:delta:sgd",
+        "sgd:delta:source",
+        "delta:sgd:source",
+        "delta:source:sgd"
+      ]
+    }
+  },
+  "version": "6.41.0"
+}
