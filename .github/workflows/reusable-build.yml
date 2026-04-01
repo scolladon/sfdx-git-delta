@@ -3,6 +3,9 @@ name: Build Checks
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   source:
     runs-on: ubuntu-latest

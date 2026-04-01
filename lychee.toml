@@ -4,5 +4,6 @@ exclude = [
     "https?://(www\\.)?npmjs\\.(com|org)",
     "https://api\\.codeclimate\\.com",
     "https://biomejs\\.dev/.*",
-    "https://www\\.contributor-covenant\\.org/"
+    "https://www\\.contributor-covenant\\.org/",
+    "https://developer\\.salesforce\\.com/.*"
 ]
