@@ -65,7 +65,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           npm run build
-          TARBALL=$(npm pack)
+          TARBALL=$(npm pack 2>/dev/null | tail -1)
           FIXED_NAME="sfdx-git-delta-dev-pr-${PR_NUMBER}.tgz"
           mv "$TARBALL" "$FIXED_NAME"
           echo "tarball=$FIXED_NAME" >> "$GITHUB_OUTPUT"
