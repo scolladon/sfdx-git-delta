@@ -10,7 +10,11 @@
 install-state.gz
 megalinter-reports/
 package.tgz
+perf-preview.html
+perf-raw.json
 perf-result.txt
+perf-runtime.json
+perf-memory.json
 sfdx-git-delta-*.tgz
 stderr*.txt
 stdout*.txt

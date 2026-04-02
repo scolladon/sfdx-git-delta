@@ -4,6 +4,8 @@ export default {
     'bin/dev.js',
     'bin/run.js',
     '**/*.{nut,test}.ts',
+    '__tests__/perf/**/*.{ts,mjs}',
+    'vitest.config.perf.ts',
     '.github/**/*.yml',
   ],
   project: ['**/*.{ts,js,json,yml}', '!src/metadata/v*.ts'],
