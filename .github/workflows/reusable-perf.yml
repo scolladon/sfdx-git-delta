@@ -1,0 +1,83 @@
+---
+name: Performance Benchmarks
+on:
+  workflow_call:
+    inputs:
+      auto-push:
+        description: Push benchmark data to gh-pages
+        type: boolean
+        default: false
+
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - uses: google/wireit@setup-github-actions-caching/v2
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Checkout gh-pages baseline data
+        uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: gh-pages-data
+
+      - name: Run benchmarks
+        run: npm run test:perf
+
+      - name: Generate preview with trends
+        run: node __tests__/perf/preview.mjs gh-pages-data
+
+      - name: Runtime benchmark
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Runtime Benchmark
+          tool: customBiggerIsBetter
+          output-file-path: ./perf-runtime.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ inputs.auto-push }}
+          save-data-file: ${{ inputs.auto-push }}
+          alert-threshold: '130%'
+          comment-on-alert: true
+          fail-on-alert: true
+          summary-always: ${{ inputs.auto-push }}
+          alert-comment-cc-users: '@scolladon'
+          benchmark-data-dir-path: dev/bench/runtime
+
+      - name: Memory benchmark
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Memory Benchmark
+          tool: customSmallerIsBetter
+          output-file-path: ./perf-memory.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ inputs.auto-push }}
+          save-data-file: ${{ inputs.auto-push }}
+          skip-fetch-gh-pages: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: true
+          summary-always: ${{ inputs.auto-push }}
+          alert-comment-cc-users: '@scolladon'
+          benchmark-data-dir-path: dev/bench/memory
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v6
+        with:
+          name: perf-report
+          path: |
+            perf-preview.html
+            perf-runtime.json
+            perf-memory.json
