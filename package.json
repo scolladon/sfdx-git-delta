@@ -78,7 +78,6 @@
     "@types/lodash": "^4.17.24",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^25.5.0",
-    "benchmark": "^2.1.4",
     "@vitest/coverage-v8": "^4.1.2",
     "husky": "^9.1.7",
     "knip": "^6.1.1",
@@ -141,13 +140,17 @@
       "clean": "if-file-deleted"
     },
     "clean": {
-      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt",
+      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-raw.json perf-runtime.json perf-memory.json perf-preview.html",
       "files": [
         ".stryker-tmp/*",
         "lib",
         "oclif.manifest.json",
         "package.tgz",
         "perf-result.txt",
+        "perf-raw.json",
+        "perf-runtime.json",
+        "perf-memory.json",
+        "perf-preview.html",
         "reports/*",
         "sfdx-git-delta-v*.tgz",
         "stderr*.txt",
@@ -251,18 +254,19 @@
       ]
     },
     "test:perf": {
-      "command": "node __tests__/perf/bench.mjs > perf-result.txt && shx cat perf-result.txt",
+      "command": "node --expose-gc ./node_modules/.bin/vitest bench --config vitest.config.perf.ts && node __tests__/perf/formatResults.mjs",
       "files": [
         "src/**/*.ts",
-        "__tests__/**/*.ts",
-        "messages/**",
-        "**/tsconfig.json"
+        "__tests__/perf/**",
+        "**/tsconfig.json",
+        "vitest.config.perf.ts"
       ],
       "output": [
-        "perf-result.txt"
+        "perf-raw.json",
+        "perf-runtime.json",
+        "perf-memory.json"
       ],
       "dependencies": [
-        "lint",
         "build"
       ]
     },
