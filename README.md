@@ -690,12 +690,12 @@ These plugins have been designed to work with SGD:
 ## Built With
 
 - [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser) - Validate XML, Parse XML to JS/JSON and vise versa, or parse XML to Nimn rapidly without C/C++ based libraries and no callback
+- [flexible-xml-parser](https://github.com/nodable/flexible-xml-parser) - Fastest XML parser in pure JS with pluggable output builders and value parsers
 - [fs-extra](https://github.com/jprichardson/node-fs-extra) - Node.js: extra methods for the fs object like copy(), remove(), mkdirs().
 - [ignore](https://github.com/kaelzhang/node-ignore#readme) - is a manager, filter and parser which implemented in pure JavaScript according to the .gitignore spec 2.22.1.
 - [lodash](https://github.com/lodash/lodash) - A modern JavaScript utility library delivering modularity, performance & extras.
 - [MegaLinter](https://megalinter.io) - Open-Source tool for CI/CD workflows that analyzes the consistency of your code, IAC, configuration, and scripts
 - [simple-git](https://github.com/steveukx/git-js) - A light weight interface for running git commands in any node.js application.
-- [xmlbuilder2](https://github.com/oozcitak/xmlbuilder2) - An XML builder for node.js.
 
 ## Used by 
 
