@@ -1,6 +1,6 @@
 'use strict'
 
-import FlexXMLParser from '@nodable/flexible-xml-parser'
+import FlexXMLParser, { type X2jOptions } from '@nodable/flexible-xml-parser'
 import { XMLBuilder } from 'fast-xml-parser'
 
 import type { Config } from '../types/config.js'
@@ -10,7 +10,7 @@ import { readPathFromGit } from './fsHelper.js'
 
 export type XmlContent = Record<string, unknown>
 
-const XML_PARSER_OPTION = {
+const XML_PARSER_OPTION: X2jOptions = {
   skip: {
     attributes: false,
     nsPrefix: false,
@@ -22,12 +22,12 @@ const XML_PARSER_OPTION = {
   },
   attributes: {
     prefix: '@_',
-    valueParsers: [],
+    valueParsers: [] as unknown[],
   },
   tags: {
-    valueParsers: ['trim'],
+    valueParsers: ['trim'] as unknown[],
   },
-}
+} as X2jOptions
 const JSON_PARSER_OPTION = {
   commentPropName: '#comment',
   ignoreAttributes: false,
