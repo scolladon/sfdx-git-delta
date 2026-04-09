@@ -1,36 +1,49 @@
 'use strict'
-import { create } from 'xmlbuilder2'
+import { XMLBuilder } from 'fast-xml-parser'
 
 import { OBJECT_TYPE } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
 import type { Manifest } from '../types/work.js'
 import { log } from './LoggingDecorator.js'
+import { ATTRIBUTE_PREFIX, XML_HEADER_ATTRIBUTE_KEY } from './xmlHelper.js'
 
-const xmlConf = { indent: '    ', newline: '\n', prettyPrint: true }
 const frLocale = 'fr'
+const xmlBuilder = new XMLBuilder({
+  ignoreAttributes: false,
+  format: true,
+  indentBy: '    ',
+  suppressEmptyNode: false,
+  suppressBooleanAttributes: false,
+  processEntities: false,
+})
 
 export default class PackageBuilder {
   constructor(protected readonly config: Config) {}
 
   @log
   public buildPackage(strucDiffPerType: Manifest) {
-    const xml = create({ version: '1.0', encoding: 'UTF-8' }).ele('Package', {
-      xmlns: 'http://soap.sforce.com/2006/04/metadata',
-    })
-    Array.from(strucDiffPerType.keys())
+    const types = Array.from(strucDiffPerType.keys())
       .sort(this._sortTypesWithMetadata)
-      .forEach(metadataType =>
-        [...strucDiffPerType.get(metadataType)!]
-          .sort(Intl.Collator(frLocale).compare)
-          .reduce((type, member) => {
-            type.ele('members').txt(member)
-            return type
-          }, xml.ele('types'))
-          .ele('name')
-          .txt(metadataType)
-      )
-    xml.ele('version').txt(`${this.config.apiVersion}.0`)
-    return xml.end(xmlConf)
+      .map(metadataType => ({
+        members: [...strucDiffPerType.get(metadataType)!].sort(
+          Intl.Collator(frLocale).compare
+        ),
+        name: metadataType,
+      }))
+
+    const jsonObj = {
+      [XML_HEADER_ATTRIBUTE_KEY]: {
+        [`${ATTRIBUTE_PREFIX}version`]: '1.0',
+        [`${ATTRIBUTE_PREFIX}encoding`]: 'UTF-8',
+      },
+      Package: {
+        [`${ATTRIBUTE_PREFIX}xmlns`]: 'http://soap.sforce.com/2006/04/metadata',
+        ...(types.length > 0 ? { types } : {}),
+        version: `${this.config.apiVersion}.0`,
+      },
+    }
+
+    return xmlBuilder.build(jsonObj).trimEnd()
   }
 
   _sortTypesWithMetadata = (x: string, y: string) => {
