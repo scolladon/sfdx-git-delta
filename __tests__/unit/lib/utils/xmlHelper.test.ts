@@ -60,7 +60,9 @@ describe('xmlHelper', () => {
         )
 
         // Assert
-        expect(jsonContent).toEqual({ root: { '@_a': 'nice', a: 'wow' } })
+        expect(jsonContent).toEqual({
+          root: { '@_a': 'nice', '@_checked': true, a: 'wow' },
+        })
       })
     })
     describe('when called with non xml content', () => {
@@ -137,7 +139,9 @@ describe('xmlHelper', () => {
         )
 
         // Assert
-        expect(jsonContent).toEqual({ root: { '@_a': 'nice', a: 'wow' } })
+        expect(jsonContent).toEqual({
+          root: { '@_a': 'nice', '@_checked': true, a: 'wow' },
+        })
       })
     })
     describe('when called with non xml content', () => {

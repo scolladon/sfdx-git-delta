@@ -1,19 +1,34 @@
 'use strict'
 
-import { XMLBuilder, XMLParser } from 'fast-xml-parser'
+import FlexXMLParser from '@nodable/flexible-xml-parser'
+import { XMLBuilder } from 'fast-xml-parser'
 
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
 import { readPathFromGit } from './fsHelper.js'
 
-/**
- * Represents parsed XML content as a JSON object.
- * Used throughout the codebase for XML metadata manipulation.
- */
 export type XmlContent = Record<string, unknown>
 
 const XML_PARSER_OPTION = {
+  skip: {
+    attributes: false,
+    nsPrefix: false,
+    comment: false,
+    declaration: false,
+  },
+  nameFor: {
+    comment: '#comment',
+  },
+  attributes: {
+    prefix: '@_',
+    valueParsers: [],
+  },
+  tags: {
+    valueParsers: ['trim'],
+  },
+}
+const JSON_PARSER_OPTION = {
   commentPropName: '#comment',
   ignoreAttributes: false,
   ignoreNameSpace: false,
@@ -22,22 +37,23 @@ const XML_PARSER_OPTION = {
   parseAttributeValue: false,
   trimValues: true,
   processEntities: false,
-}
-const JSON_PARSER_OPTION = {
-  ...XML_PARSER_OPTION,
   format: true,
   indentBy: '    ',
   suppressBooleanAttributes: false,
   suppressEmptyNode: false,
 }
 
+const xmlParser = new FlexXMLParser(XML_PARSER_OPTION)
+
 export const xml2Json = (xmlContent: string): XmlContent => {
-  let jsonContent: XmlContent = {}
-  if (xmlContent) {
-    const xmlParser = new XMLParser(XML_PARSER_OPTION)
-    jsonContent = xmlParser.parse(xmlContent)
+  if (!xmlContent) {
+    return {}
   }
-  return jsonContent
+  try {
+    return xmlParser.parse(xmlContent) as XmlContent
+  } catch {
+    return {}
+  }
 }
 
 export const parseXmlFileToJson = async (
