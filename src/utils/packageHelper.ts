@@ -38,7 +38,7 @@ export default class PackageBuilder {
       },
       Package: {
         [`${ATTRIBUTE_PREFIX}xmlns`]: 'http://soap.sforce.com/2006/04/metadata',
-        ...(types.length > 0 ? { types } : {}),
+        types,
         version: `${this.config.apiVersion}.0`,
       },
     }
