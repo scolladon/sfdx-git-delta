@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775140955953,
+  "lastUpdate": 1775859946367,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -137,6 +137,146 @@ window.BENCHMARK_DATA = {
             "name": "pipeline-large-manifest-aggregation",
             "value": 0.0236,
             "range": "±0.75%",
+            "unit": "ms"
+          }
+        ]
+      }
+    ],
+    "Latency Benchmark": [
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "07f6f4b647998f863f452797b2ae2ec853b0f6ac",
+          "message": "fix(perf): replace XML parser with flexible-xml-parser for ~2.5x speedup (#1272)",
+          "timestamp": "2026-04-11T00:23:14+02:00",
+          "tree_id": "a9e901ed236bdb249fcaab1c0ed3cc1c62013359",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/07f6f4b647998f863f452797b2ae2ec853b0f6ac"
+        },
+        "date": 1775859946343,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.3721,
+            "range": "±2.39%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 2.1948,
+            "range": "±3.95%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 7.0062,
+            "range": "±3.52%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.1838,
+            "range": "±1.54%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 0.0221,
+            "range": "±0.27%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 0.0225,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 0.0418,
+            "range": "±0.60%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 0.1377,
+            "range": "±0.49%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 0.141,
+            "range": "±0.56%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 0.2598,
+            "range": "±0.70%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 0.5685,
+            "range": "±0.55%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 0.5719,
+            "range": "±0.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 1.0664,
+            "range": "±0.76%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.0666,
+            "range": "±0.65%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0009,
+            "range": "±0.60%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.2741,
+            "range": "±0.63%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.005,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 1.0143,
+            "range": "±0.64%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0232,
+            "range": "±0.60%",
             "unit": "ms"
           }
         ]
