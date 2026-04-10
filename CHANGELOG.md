@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.41.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.41.0...v6.41.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* **perf:** replace XML parser with flexible-xml-parser for ~2.5x speedup ([#1272](https://github.com/scolladon/sfdx-git-delta/issues/1272)) ([07f6f4b](https://github.com/scolladon/sfdx-git-delta/commit/07f6f4b647998f863f452797b2ae2ec853b0f6ac))
+
 ## [6.41.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.40.0...v6.41.0) (2026-03-31)
 
 
