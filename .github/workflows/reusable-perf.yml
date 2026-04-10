@@ -73,10 +73,10 @@ jobs:
           alert-comment-cc-users: '@scolladon'
           benchmark-data-dir-path: dev/bench/runtime
 
-      - name: Memory benchmark
+      - name: Latency benchmark
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Memory Benchmark
+          name: Latency Benchmark
           tool: customSmallerIsBetter
           output-file-path: ./perf-memory.json
           github-token: ${{ secrets.GITHUB_TOKEN }}

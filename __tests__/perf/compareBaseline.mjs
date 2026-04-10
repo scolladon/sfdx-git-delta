@@ -91,7 +91,7 @@ console.info(report)
 if (regressions.length > 0) {
   // biome-ignore lint/suspicious/noConsole: CI output
   console.error(
-    `\n::error::${regressions.length} performance regression(s) detected (runtime threshold: ${RUNTIME_THRESHOLD}x, memory threshold: ${MEMORY_THRESHOLD}x)`
+    `\n::error::${regressions.length} performance regression(s) detected (runtime threshold: ${RUNTIME_THRESHOLD}x, latency threshold: ${MEMORY_THRESHOLD}x)`
   )
   process.exit(1)
 }
