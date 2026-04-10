@@ -57,7 +57,8 @@ for (const entry of prMemory) {
   else stable.push(row)
 }
 
-const tableRow = r => `| ${r.name} | ${r.base} | ${r.pr} | ${r.ratio} | ${r.change} |`
+const tableRow = r =>
+  `| ${r.name} | ${r.base} | ${r.pr} | ${r.ratio} | ${r.change} |`
 const tableHeader = '| Benchmark | Base | PR | Ratio | Change |\n|-|-|-|-|-|'
 
 const lines = ['# Performance Comparison (same runner)\n']
