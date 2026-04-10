@@ -39,7 +39,7 @@ console.info(
 )
 // biome-ignore lint/suspicious/noConsole: reporting benchmark results
 console.info(
-  `Written ${memoryEntries.length} memory entries to ${memoryOutputPath}`
+  `Written ${memoryEntries.length} latency entries to ${memoryOutputPath}`
 )
 
 for (const entry of runtimeEntries) {
