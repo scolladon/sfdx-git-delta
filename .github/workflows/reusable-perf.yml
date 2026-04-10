@@ -67,8 +67,8 @@ jobs:
           auto-push: ${{ inputs.auto-push }}
           save-data-file: ${{ inputs.auto-push }}
           alert-threshold: '130%'
-          comment-on-alert: ${{ inputs.auto-push }}
-          fail-on-alert: ${{ inputs.auto-push }}
+          comment-on-alert: false
+          fail-on-alert: false
           summary-always: ${{ inputs.auto-push }}
           alert-comment-cc-users: '@scolladon'
           benchmark-data-dir-path: dev/bench/runtime
@@ -84,8 +84,8 @@ jobs:
           save-data-file: ${{ inputs.auto-push }}
           skip-fetch-gh-pages: true
           alert-threshold: '150%'
-          comment-on-alert: ${{ inputs.auto-push }}
-          fail-on-alert: ${{ inputs.auto-push }}
+          comment-on-alert: false
+          fail-on-alert: false
           summary-always: ${{ inputs.auto-push }}
           alert-comment-cc-users: '@scolladon'
           benchmark-data-dir-path: dev/bench/memory
