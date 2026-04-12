@@ -88,6 +88,44 @@ writeFileSync('perf-comparison.md', report)
 // biome-ignore lint/suspicious/noConsole: CI output
 console.info(report)
 
+// Post PR comment when running in CI
+const token = process.env.GITHUB_TOKEN
+const repo = process.env.GITHUB_REPOSITORY
+const prNumber = process.env.PR_NUMBER
+
+if (token && repo && prNumber) {
+  const commentMarker = '<!-- same-runner-perf -->'
+  const commentBody = `${commentMarker}\n${report}`
+  const [owner, repoName] = repo.split('/')
+  const apiBase = `https://api.github.com/repos/${owner}/${repoName}`
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  }
+
+  const commentsRes = await fetch(
+    `${apiBase}/issues/${prNumber}/comments?per_page=100`,
+    { headers }
+  )
+  const comments = await commentsRes.json()
+  const existing = comments.find?.(c => c.body?.includes(commentMarker))
+
+  if (existing) {
+    await fetch(`${apiBase}/issues/comments/${existing.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ body: commentBody }),
+    })
+  } else {
+    await fetch(`${apiBase}/issues/${prNumber}/comments`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ body: commentBody }),
+    })
+  }
+}
+
 if (regressions.length > 0) {
   // biome-ignore lint/suspicious/noConsole: CI output
   console.error(
