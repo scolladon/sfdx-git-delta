@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775859945559,
+  "lastUpdate": 1776006594658,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Runtime Benchmark": [
@@ -275,6 +275,144 @@ window.BENCHMARK_DATA = {
             "name": "pipeline-large-manifest-aggregation",
             "value": 43101,
             "range": "±0.60%",
+            "unit": "ops/sec"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e2b7830eb91b60069ea31cabb7fee9b25b80c45b",
+          "message": "ci(perf): post same-runner perf comparison as PR comment (#1275)",
+          "timestamp": "2026-04-12T17:07:12+02:00",
+          "tree_id": "3845daf835dd70859fe5752b0c4b81c280e275d4",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/e2b7830eb91b60069ea31cabb7fee9b25b80c45b"
+        },
+        "date": 1776006594367,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 2765,
+            "range": "±2.09%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 412,
+            "range": "±4.53%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 140,
+            "range": "±3.66%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 5344,
+            "range": "±1.51%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 43220,
+            "range": "±0.35%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 42924,
+            "range": "±0.27%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 23360,
+            "range": "±0.41%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 7073,
+            "range": "±0.42%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 6860,
+            "range": "±0.42%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 3685,
+            "range": "±1.09%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 1712,
+            "range": "±0.57%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 1668,
+            "range": "±0.42%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 911,
+            "range": "±0.45%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 14866,
+            "range": "±0.56%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 1089432,
+            "range": "±0.47%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 3747,
+            "range": "±0.38%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 203401,
+            "range": "±0.35%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 950,
+            "range": "±1.89%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 44611,
+            "range": "±0.38%",
             "unit": "ops/sec"
           }
         ]
