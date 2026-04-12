@@ -52,6 +52,9 @@ jobs:
 
       - name: Compare against baseline (same runner)
         if: ${{ !inputs.auto-push }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: node __tests__/perf/compareBaseline.mjs
 
       - name: Generate preview with trends
