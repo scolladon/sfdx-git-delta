@@ -11,6 +11,9 @@ on:
 jobs:
   perf:
     runs-on: ubuntu-latest
+    # Perf is informational only: regressions/flakes show up as a PR
+    # comment from compareBaseline.mjs but never block the merge.
+    continue-on-error: true
     permissions:
       contents: write
       pull-requests: write
@@ -98,7 +101,7 @@ jobs:
           save-data-file: ${{ inputs.auto-push }}
           alert-threshold: '130%'
           comment-on-alert: false
-          fail-on-alert: true
+          fail-on-alert: false
           summary-always: ${{ inputs.auto-push }}
           alert-comment-cc-users: '@scolladon'
           benchmark-data-dir-path: dev/bench/runtime
@@ -115,7 +118,7 @@ jobs:
           skip-fetch-gh-pages: true
           alert-threshold: '150%'
           comment-on-alert: false
-          fail-on-alert: true
+          fail-on-alert: false
           summary-always: ${{ inputs.auto-push }}
           alert-comment-cc-users: '@scolladon'
           benchmark-data-dir-path: dev/bench/memory
