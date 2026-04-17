@@ -49,10 +49,12 @@ jobs:
           cp perf-memory.json perf-memory-base.json
           git checkout --force "$CURRENT_REF"
           npm ci --no-fund --prefer-offline
-          # npm ci can touch package-lock.json (metadata-only write on some
-          # npm versions) leaving the WC dirty; reset it so the subsequent
-          # benchmark-action step's internal `git switch gh-pages` succeeds.
-          git checkout -- package-lock.json
+          # npm ci can touch tracked files (e.g. metadata-only writes to
+          # package-lock.json on some npm versions) leaving the WC dirty.
+          # Reset every tracked file so the subsequent benchmark-action
+          # step's internal `git switch gh-pages` isn't blocked by a
+          # "Your local changes would be overwritten" error.
+          git checkout --
 
       - name: Run benchmarks
         run: npm run test:perf
