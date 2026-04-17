@@ -69,6 +69,18 @@ jobs:
       - name: Generate preview with trends
         run: node __tests__/perf/preview.mjs gh-pages-data
 
+      - name: Reset WC before gh-pages switch
+        if: ${{ !inputs.auto-push }}
+        run: |
+          # benchmark-action's internal `git switch gh-pages` fails with
+          # "Your local changes would be overwritten" if any tracked file
+          # is dirty. Clean the WC now so the switch succeeds; perf
+          # artifacts (perf-runtime.json, perf-memory.json) are gitignored
+          # and survive `git clean -fd` via the whitelist below.
+          git status --short
+          git checkout --
+          git clean -fd -e perf-runtime.json -e perf-memory.json -e perf-runtime-base.json -e perf-memory-base.json -e perf-comparison.md -e perf-preview.html -e perf-raw.json -e gh-pages-data
+
       - name: Runtime benchmark
         uses: benchmark-action/github-action-benchmark@v1
         with:
