@@ -28,6 +28,10 @@ const XML_PARSER_OPTION: X2jOptions = {
     valueParsers: ['trim'] as unknown[],
   },
 } as X2jOptions
+// processEntities MUST stay false: FlexXMLParser keeps XML entities raw in the
+// parsed JSON (e.g. "a &amp; b" → "a &amp; b", not "a & b"). Flipping this to
+// true makes XMLBuilder re-encode the already-raw entities, producing
+// double-encoded output like "a &amp;amp; b". Parser-builder symmetry matters.
 const JSON_PARSER_OPTION = {
   commentPropName: '#comment',
   ignoreAttributes: false,
@@ -36,7 +40,7 @@ const JSON_PARSER_OPTION = {
   parseNodeValue: false,
   parseAttributeValue: false,
   trimValues: true,
-  processEntities: true,
+  processEntities: false,
   format: true,
   indentBy: '    ',
   suppressBooleanAttributes: false,

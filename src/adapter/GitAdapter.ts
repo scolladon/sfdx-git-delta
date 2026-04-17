@@ -18,15 +18,22 @@ const EOL = /\r?\n/
 const ROOT_PATHS = new Set(['', '.', './'])
 
 export default class GitAdapter {
-  private static instances: Map<Config, GitAdapter> = new Map()
+  private static instances: Map<string, GitAdapter> = new Map()
+
+  // Keyed by repo+to so spread copies of the same config (e.g. ioExecutor's
+  // per-revision {...config, to: rev}) share one adapter instead of spawning
+  // a fresh git cat-file subprocess per call.
+  private static keyFor(config: Config): string {
+    return `${config.repo}\0${config.to}`
+  }
 
   public static getInstance(config: Config): GitAdapter {
-    if (!GitAdapter.instances.has(config)) {
-      const instance = new GitAdapter(config)
-      GitAdapter.instances.set(config, instance)
+    const key = GitAdapter.keyFor(config)
+    if (!GitAdapter.instances.has(key)) {
+      GitAdapter.instances.set(key, new GitAdapter(config))
     }
 
-    return GitAdapter.instances.get(config)!
+    return GitAdapter.instances.get(key)!
   }
 
   protected readonly simpleGit: SimpleGit
@@ -194,6 +201,10 @@ export default class GitAdapter {
     }
   }
 
+  // One git diff pass with `--diff-filter=AMD` replaces the prior three
+  // per-type spawns. Old code ran them concurrently via Promise.all so the
+  // wall-clock win is mostly spawn overhead + skipping numstat line counts,
+  // not the 3× the "3→1 process" framing suggests.
   @log
   public async getDiffLines(): Promise<string[]> {
     const output = await this.simpleGit.raw([

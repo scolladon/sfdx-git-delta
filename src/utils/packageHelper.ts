@@ -9,13 +9,16 @@ import { ATTRIBUTE_PREFIX, XML_HEADER_ATTRIBUTE_KEY } from './xmlHelper.js'
 
 const frLocale = 'fr'
 const collator = new Intl.Collator(frLocale)
+// processEntities is false to mirror xmlHelper: values flowing through this
+// builder are metadata type/member strings that never contain XML entities,
+// so re-encoding is a no-op at best and a double-encode risk at worst.
 const xmlBuilder = new XMLBuilder({
   ignoreAttributes: false,
   format: true,
   indentBy: '    ',
   suppressEmptyNode: false,
   suppressBooleanAttributes: false,
-  processEntities: true,
+  processEntities: false,
 })
 
 export default class PackageBuilder {

@@ -5,30 +5,15 @@ import type { MetadataRepository } from '../../../../src/metadata/MetadataReposi
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Metadata } from '../../../../src/types/metadata'
 import { computeTreeIndexScope } from '../../../../src/utils/treeIndexScope'
+import {
+  createMetadataRepositoryFromTypes,
+  createMetadataRepositoryMock,
+} from '../../../__utils__/testMetadataRepository'
 
 vi.mock('../../../../src/utils/LoggingService')
 
-const mockMetadata = (types: Metadata[]): MetadataRepository => {
-  const byDir = new Map<string, Metadata>()
-  const byExt = new Map<string, Metadata>()
-  for (const t of types) {
-    if (t.directoryName) byDir.set(t.directoryName, t)
-    if (t.suffix) byExt.set(t.suffix, t)
-  }
-  return {
-    has: (path: string) => byDir.has(path.split('/').find(p => byDir.has(p))!),
-    get: (path: string) => {
-      const parts = path.split('/')
-      for (const part of parts) {
-        const found = byDir.get(part)
-        if (found) return found
-      }
-      return undefined
-    },
-    getFullyQualifiedName: () => '',
-    values: () => types,
-  }
-}
+const mockMetadata = (types: Metadata[]): MetadataRepository =>
+  createMetadataRepositoryFromTypes(types)
 
 describe('computeTreeIndexScope', () => {
   let metadata: MetadataRepository
@@ -338,24 +323,18 @@ describe('computeTreeIndexScope', () => {
   describe('Given type needing tree index but directory not in path', () => {
     it('When computed, Then does not add to scope', () => {
       // Arrange
-      const customRepo: MetadataRepository = {
-        has: () => true,
-        get: () => ({
-          directoryName: 'notInPath',
-          inFolder: true,
-          metaFile: false,
-          xmlName: 'SomeInFolderType',
-        }),
-        getFullyQualifiedName: () => '',
-        values: () => [
-          {
-            directoryName: 'notInPath',
-            inFolder: true,
-            metaFile: false,
-            xmlName: 'SomeInFolderType',
-          },
-        ],
+      const typeDef: Metadata = {
+        directoryName: 'notInPath',
+        inFolder: true,
+        metaFile: false,
+        xmlName: 'SomeInFolderType',
       }
+      const customRepo: MetadataRepository = createMetadataRepositoryMock({
+        has: () => true,
+        get: () => typeDef,
+        getByXmlName: () => typeDef,
+        values: () => [typeDef],
+      })
       const lines = ['A\tother/path/file.txt']
 
       // Act

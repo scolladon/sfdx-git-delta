@@ -1,8 +1,13 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: it is dynamic by definition */
 import { Logger, lazy } from './LoggingService.js'
 
+const ASYNC_CALLABLE_TAGS = new Set([
+  '[object AsyncFunction]',
+  '[object AsyncGeneratorFunction]',
+])
+
 const isAsyncFunction = (fn: unknown): boolean =>
-  Object.prototype.toString.call(fn) === '[object AsyncFunction]'
+  ASYNC_CALLABLE_TAGS.has(Object.prototype.toString.call(fn))
 
 export function log(
   _target: any,

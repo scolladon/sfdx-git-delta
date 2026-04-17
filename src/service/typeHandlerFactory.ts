@@ -61,7 +61,6 @@ const adapterHandlerMap: Record<string, typeof Standard> = {
 
 export default class TypeHandlerFactory {
   protected readonly resolver: MetadataBoundaryResolver
-  private readonly metadataByXmlName: Map<string, Metadata>
   private readonly inFileParentXmlNames: Set<string>
 
   constructor(
@@ -70,9 +69,8 @@ export default class TypeHandlerFactory {
   ) {
     const gitAdapter = GitAdapter.getInstance(work.config)
     this.resolver = new MetadataBoundaryResolver(metadata, gitAdapter)
-    this.metadataByXmlName = new Map()
     this.inFileParentXmlNames = new Set()
-    this.buildIndex()
+    this.buildInFileParentIndex()
   }
 
   @log
@@ -91,13 +89,10 @@ export default class TypeHandlerFactory {
     return new Handler(changeType, element, this.work)
   }
 
-  private buildIndex(): void {
-    for (const m of this.metadata.values()) {
-      this.metadataByXmlName.set(m.xmlName!, m)
-    }
+  private buildInFileParentIndex(): void {
     for (const m of this.metadata.values()) {
       if (m.xmlTag && m.key && m.parentXmlName) {
-        const parent = this.metadataByXmlName.get(m.parentXmlName)
+        const parent = this.metadata.getByXmlName(m.parentXmlName)
         if (parent && !parent.adapter) {
           this.inFileParentXmlNames.add(m.parentXmlName)
         }
@@ -121,7 +116,7 @@ export default class TypeHandlerFactory {
     }
 
     if (type.parentXmlName) {
-      const parent = this.metadataByXmlName.get(type.parentXmlName)
+      const parent = this.metadata.getByXmlName(type.parentXmlName)
       if (type.xmlTag && type.key && !parent?.adapter) {
         return Decomposed
       }

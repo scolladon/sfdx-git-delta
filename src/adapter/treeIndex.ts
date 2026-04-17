@@ -26,8 +26,10 @@ export class TreeIndex {
       }
       node = child
     }
-    node.isFile = true
-    this.fileCount++
+    if (!node.isFile) {
+      node.isFile = true
+      this.fileCount++
+    }
   }
 
   public has(path: string): boolean {
@@ -72,6 +74,8 @@ export class TreeIndex {
     return node
   }
 
+  // Recursion depth is bounded by path segment count, not file count.
+  // Worst case under OS PATH_MAX (~4096 bytes) is well under V8's stack limit.
   protected collectFiles(node: TrieNode, prefix: string, out: string[]): void {
     if (node.isFile) out.push(prefix)
     for (const [segment, child] of node.children) {
