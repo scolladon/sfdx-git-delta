@@ -42,12 +42,12 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
         run: |
           CURRENT_REF=$(git rev-parse HEAD)
-          git checkout -- .detach --force "$BASE_REF"
+          git checkout --detach --force "$BASE_REF"
           npm ci --no-fund --prefer-offline
           npm run test:perf
           cp perf-runtime.json perf-runtime-base.json
           cp perf-memory.json perf-memory-base.json
-          git checkout -- .force "$CURRENT_REF"
+          git checkout --force "$CURRENT_REF"
           npm ci --no-fund --prefer-offline
           # npm ci can touch tracked files (e.g. metadata-only writes to
           # package-lock.json on some npm versions) leaving the WC dirty.
