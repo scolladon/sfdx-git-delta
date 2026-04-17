@@ -19,15 +19,17 @@ import { SDRMetadataAdapter } from './sdrMetadataAdapter.js'
 
 let inFileMetadata = new Map<string, SharedFileMetadata>()
 let sharedFolderMetadata = new Map<string, string>()
+let packableByXmlName = new Map<string, boolean>()
 
 // For testing - clears the cached metadata maps
 export const resetMetadataCache = (): void => {
   inFileMetadata = new Map()
   sharedFolderMetadata = new Map()
+  packableByXmlName = new Map()
 }
 
 export const getLatestSupportedVersion = async () => {
-  return parseInt(await SDRMetadataAdapter.getLatestApiVersion())
+  return parseInt(await SDRMetadataAdapter.getLatestApiVersion(), 10)
 }
 
 export const getDefinition = async (
@@ -88,9 +90,7 @@ export const getDefinition = async (
 }
 
 export const isPackable = (type: string) =>
-  Array.from(inFileMetadata.values()).find(
-    (inFileDef: SharedFileMetadata) => inFileDef.xmlName === type
-  )?.excluded !== true
+  packableByXmlName.get(type) !== false
 
 const granularExcludedTypes = new Set([
   'Translations',
@@ -98,24 +98,26 @@ const granularExcludedTypes = new Set([
   'GlobalValueSetTranslation',
 ])
 
-export const getInFileAttributes = (metadata: MetadataRepository) =>
-  inFileMetadata.size
-    ? inFileMetadata
-    : metadata
-        .values()
-        .filter((meta: Metadata) => meta.xmlTag)
-        .reduce((acc: Map<string, SharedFileMetadata>, meta: Metadata) => {
-          const isExcluded =
-            granularExcludedTypes.has(meta.parentXmlName || '') ||
-            granularExcludedTypes.has(meta.xmlName || '')
-
-          acc.set(meta.xmlTag!, {
-            xmlName: meta.xmlName,
-            key: meta.key,
-            excluded: isExcluded || !!meta.excluded,
-          } as SharedFileMetadata)
-          return acc
-        }, inFileMetadata)
+export const getInFileAttributes = (metadata: MetadataRepository) => {
+  if (inFileMetadata.size) return inFileMetadata
+  for (const meta of metadata.values()) {
+    if (!meta.xmlTag) continue
+    const isExcluded =
+      granularExcludedTypes.has(meta.parentXmlName || '') ||
+      granularExcludedTypes.has(meta.xmlName || '') ||
+      !!meta.excluded
+    const entry: SharedFileMetadata = {
+      xmlName: meta.xmlName,
+      key: meta.key,
+      excluded: isExcluded,
+    }
+    inFileMetadata.set(meta.xmlTag, entry)
+    if (meta.xmlName) {
+      packableByXmlName.set(meta.xmlName, !isExcluded)
+    }
+  }
+  return inFileMetadata
+}
 
 export const getSharedFolderMetadata = (metadata: MetadataRepository) =>
   sharedFolderMetadata.size

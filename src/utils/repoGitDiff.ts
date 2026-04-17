@@ -27,10 +27,12 @@ export default class RepoGitDiff {
 
     const ignoreHelper = await buildIgnoreHelper(this.config)
 
-    return lines
-      .filter(Boolean)
-      .filter((line: string) => this._filterInternal(line, renamedElements))
-      .filter((line: string) => ignoreHelper.keep(line))
+    return lines.filter(
+      (line: string) =>
+        Boolean(line) &&
+        this._filterInternal(line, renamedElements) &&
+        ignoreHelper.keep(line)
+    )
   }
 
   protected _getRenamedElements(lines: string[]): Set<string> {

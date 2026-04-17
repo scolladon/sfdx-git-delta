@@ -140,9 +140,7 @@ export class MetadataElement {
     if (!this.metadataDef.parentXmlName) {
       return undefined
     }
-    return this.metadataRepo
-      .values()
-      .find(m => m.xmlName === this.metadataDef.parentXmlName)
+    return this.metadataRepo.getByXmlName(this.metadataDef.parentXmlName)
   }
 
   getSharedFolderMetadata(): Map<string, string> {

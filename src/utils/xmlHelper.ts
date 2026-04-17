@@ -36,7 +36,7 @@ const JSON_PARSER_OPTION = {
   parseNodeValue: false,
   parseAttributeValue: false,
   trimValues: true,
-  processEntities: false,
+  processEntities: true,
   format: true,
   indentBy: '    ',
   suppressBooleanAttributes: false,
@@ -44,6 +44,7 @@ const JSON_PARSER_OPTION = {
 }
 
 const xmlParser = new FlexXMLParser(XML_PARSER_OPTION)
+const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
 
 export const xml2Json = (xmlContent: string): XmlContent => {
   if (!xmlContent) {
@@ -64,10 +65,8 @@ export const parseXmlFileToJson = async (
   return xml2Json(xmlContent)
 }
 
-export const convertJsonToXml = (jsonContent: XmlContent | unknown): string => {
-  const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-  return xmlBuilder.build(jsonContent)
-}
+export const convertJsonToXml = (jsonContent: XmlContent | unknown): string =>
+  xmlBuilder.build(jsonContent)
 
 export const ATTRIBUTE_PREFIX = '@_'
 

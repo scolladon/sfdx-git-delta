@@ -8,13 +8,14 @@ import { log } from './LoggingDecorator.js'
 import { ATTRIBUTE_PREFIX, XML_HEADER_ATTRIBUTE_KEY } from './xmlHelper.js'
 
 const frLocale = 'fr'
+const collator = new Intl.Collator(frLocale)
 const xmlBuilder = new XMLBuilder({
   ignoreAttributes: false,
   format: true,
   indentBy: '    ',
   suppressEmptyNode: false,
   suppressBooleanAttributes: false,
-  processEntities: false,
+  processEntities: true,
 })
 
 export default class PackageBuilder {
@@ -26,7 +27,7 @@ export default class PackageBuilder {
       .sort(this._sortTypesWithMetadata)
       .map(metadataType => ({
         members: [...strucDiffPerType.get(metadataType)!].sort(
-          Intl.Collator(frLocale).compare
+          collator.compare
         ),
         name: metadataType,
       }))
@@ -51,6 +52,6 @@ export default class PackageBuilder {
     // Deployments fail if dependent objects aren't deployed before their children.
     // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#customobject-ordering
     if (x === OBJECT_TYPE) return -1 // @deprecated To remove when the order will not impact the result of the deployment
-    return new Intl.Collator(frLocale).compare(x, y)
+    return collator.compare(x, y)
   }
 }

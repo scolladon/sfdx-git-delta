@@ -27,10 +27,10 @@ export class IgnoreHelper {
   public keep(line: string): boolean {
     const changeType = line.charAt(0)
 
-    let ignInstance!: Ignore
-    if (DELETION === changeType) {
+    let ignInstance: Ignore | undefined
+    if (changeType === DELETION) {
       ignInstance = this.destructiveIgnore
-    } else if ([ADDITION, MODIFICATION].includes(changeType)) {
+    } else if (changeType === ADDITION || changeType === MODIFICATION) {
       ignInstance = this.globalIgnore
     }
 
@@ -46,49 +46,58 @@ export class IgnoreHelper {
   static resetIncludeInstance() {
     IgnoreHelper.includeInstance = null
   }
+
+  static async buildIgnore(
+    ignorePath: string | undefined,
+    ignoreDestructive: string | undefined
+  ): Promise<IgnoreHelper> {
+    if (!IgnoreHelper.ignoreInstance) {
+      const globalIgnore = await _buildIgnore(ignorePath)
+      const destructiveIgnore = await _buildIgnore(
+        ignoreDestructive || ignorePath
+      )
+      destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
+      IgnoreHelper.ignoreInstance = new IgnoreHelper(
+        globalIgnore,
+        destructiveIgnore
+      )
+    }
+    return IgnoreHelper.ignoreInstance
+  }
+
+  static async buildInclude(
+    include: string | undefined,
+    includeDestructive: string | undefined
+  ): Promise<IgnoreHelper> {
+    if (!IgnoreHelper.includeInstance) {
+      const globalIgnore = await _buildIgnore(include)
+      const destructiveIgnore = await _buildIgnore(includeDestructive)
+      IgnoreHelper.includeInstance = new IgnoreHelper(
+        globalIgnore,
+        destructiveIgnore
+      )
+    }
+    return IgnoreHelper.includeInstance
+  }
 }
 
-export const buildIgnoreHelper = async ({
+export const buildIgnoreHelper = ({
   ignore: ignorePath,
   ignoreDestructive,
 }: {
   ignore?: string | undefined
   ignoreDestructive?: string | undefined
-}) => {
-  if (!IgnoreHelper['ignoreInstance']) {
-    const globalIgnore = await _buildIgnore(ignorePath)
-    const destructiveIgnore = await _buildIgnore(
-      ignoreDestructive || ignorePath
-    )
+}): Promise<IgnoreHelper> =>
+  IgnoreHelper.buildIgnore(ignorePath, ignoreDestructive)
 
-    destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
-
-    IgnoreHelper['ignoreInstance'] = new IgnoreHelper(
-      globalIgnore,
-      destructiveIgnore
-    )
-  }
-  return IgnoreHelper['ignoreInstance']
-}
-
-export const buildIncludeHelper = async ({
+export const buildIncludeHelper = ({
   include,
   includeDestructive,
 }: {
   include?: string | undefined
   includeDestructive?: string | undefined
-}) => {
-  if (!IgnoreHelper['includeInstance']) {
-    const globalIgnore = await _buildIgnore(include)
-    const destructiveIgnore = await _buildIgnore(includeDestructive)
-
-    IgnoreHelper['includeInstance'] = new IgnoreHelper(
-      globalIgnore,
-      destructiveIgnore
-    )
-  }
-  return IgnoreHelper['includeInstance']
-}
+}): Promise<IgnoreHelper> =>
+  IgnoreHelper.buildInclude(include, includeDestructive)
 
 const _buildIgnore = async (ignorePath: string | undefined) => {
   const ign = ignore()

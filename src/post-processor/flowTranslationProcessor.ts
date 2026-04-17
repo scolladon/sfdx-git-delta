@@ -214,7 +214,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     return jsonTranslation
   }
 
-  _shouldProcess() {
+  protected _shouldProcess() {
     return this.work.diffs.package.has(FLOW_XML_NAME)
   }
 }

@@ -15,8 +15,8 @@ import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import { MessageService } from './MessageService.js'
 
-const TO: keyof Config = 'to'
-const FROM: keyof Config = 'from'
+type ShaKey = 'from' | 'to'
+const SHA_KEYS: readonly ShaKey[] = ['from', 'to']
 
 export default class ConfigValidator {
   protected readonly config: Config
@@ -33,11 +33,10 @@ export default class ConfigValidator {
     const errors: string[] = []
 
     await Promise.all(
-      [FROM, TO].map(async (shaParameter: keyof Config) => {
-        const shaValue: string = this.config[shaParameter] as string
+      SHA_KEYS.map(async shaParameter => {
+        const shaValue = this.config[shaParameter]
         try {
-          const ref: string = await this.gitAdapter.parseRev(shaValue)
-          ;(this.config[shaParameter] as string) = ref
+          this.config[shaParameter] = await this.gitAdapter.parseRev(shaValue)
         } catch (error) {
           Logger.debug(
             lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' is not a valid git SHA: ${() => getErrorMessage(error)}`
@@ -94,7 +93,7 @@ export default class ConfigValidator {
         .getSfProjectJson()
         .getContents().sourceApiVersion
       if (projectApiVersion) {
-        this.config.apiVersion = parseInt(projectApiVersion)
+        this.config.apiVersion = parseInt(projectApiVersion, 10)
       }
     } catch (ex) {
       Logger.debug(

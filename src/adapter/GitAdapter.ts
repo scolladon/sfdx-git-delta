@@ -20,7 +20,7 @@ import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { GitBatchCatFile } from './gitBatchCatFile.js'
 
-const EOL = new RegExp(/\r?\n/)
+const EOL = /\r?\n/
 const ROOT_PATHS = new Set(['', '.', './'])
 
 export default class GitAdapter {
@@ -178,8 +178,7 @@ export default class GitAdapter {
 
     const result: string[] = []
     for (const path of paths) {
-      const filesPath = await this.getFilesPathCached(path, revision)
-      pushAll(result, filesPath)
+      pushAll(result, this.getFilesPathCached(path, revision))
     }
 
     return result

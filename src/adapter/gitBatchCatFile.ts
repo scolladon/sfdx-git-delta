@@ -12,7 +12,8 @@ type PendingRequest = {
 export class GitBatchCatFile {
   protected process: ChildProcessWithoutNullStreams
   protected queue: PendingRequest[] = []
-  protected buffer: Buffer = Buffer.alloc(0)
+  protected chunks: Buffer[] = []
+  protected totalLength: number = 0
   protected pendingSize: number = -1
 
   constructor(cwd: string) {
@@ -48,17 +49,38 @@ export class GitBatchCatFile {
   }
 
   protected _onData(chunk: Buffer) {
-    this.buffer = Buffer.concat([this.buffer, chunk])
+    this.chunks.push(chunk)
+    this.totalLength += chunk.length
     this._processBuffer()
   }
 
+  protected _materializeBuffer(): Buffer {
+    if (this.chunks.length === 1) return this.chunks[0]
+    const merged = Buffer.concat(this.chunks, this.totalLength)
+    this.chunks = [merged]
+    return merged
+  }
+
+  protected _advance(buffer: Buffer, consumed: number): Buffer {
+    const rest = buffer.subarray(consumed)
+    if (rest.length === 0) {
+      this.chunks = []
+      this.totalLength = 0
+    } else {
+      this.chunks = [rest]
+      this.totalLength = rest.length
+    }
+    return rest
+  }
+
   protected _processBuffer() {
+    let buffer = this._materializeBuffer()
     while (this.queue.length > 0) {
       if (this.pendingSize === -1) {
-        const newlineIdx = this.buffer.indexOf(0x0a)
+        const newlineIdx = buffer.indexOf(0x0a)
         if (newlineIdx === -1) return
-        const header = this.buffer.subarray(0, newlineIdx).toString()
-        this.buffer = this.buffer.subarray(newlineIdx + 1)
+        const header = buffer.subarray(0, newlineIdx).toString()
+        buffer = this._advance(buffer, newlineIdx + 1)
         if (header.endsWith('missing')) {
           this.queue.shift()!.reject(new Error(`Object not found: ${header}`))
           continue
@@ -71,9 +93,9 @@ export class GitBatchCatFile {
           continue
         }
       }
-      if (this.buffer.length < this.pendingSize + 1) return
-      const content = Buffer.from(this.buffer.subarray(0, this.pendingSize))
-      this.buffer = this.buffer.subarray(this.pendingSize + 1)
+      if (buffer.length < this.pendingSize + 1) return
+      const content = Buffer.from(buffer.subarray(0, this.pendingSize))
+      buffer = this._advance(buffer, this.pendingSize + 1)
       this.pendingSize = -1
       this.queue.shift()!.resolve(content)
     }

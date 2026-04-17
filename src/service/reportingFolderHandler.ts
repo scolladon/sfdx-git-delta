@@ -44,9 +44,15 @@ export default class ReportingFolderHandler extends InFolderHandler {
   protected override _collectManifestElement(
     target: ManifestTarget
   ): ManifestElement {
+    /* v8 ignore next 5 -- collectAddition/Deletion guard ensures resolvedType is set */
+    if (!this.resolvedType) {
+      throw new Error(
+        `ReportingFolderHandler: resolvedType is missing for ${this.element.fullPath}`
+      )
+    }
     return {
       target,
-      type: this.resolvedType!,
+      type: this.resolvedType,
       member: this._getElementName(),
     }
   }

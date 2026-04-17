@@ -120,7 +120,8 @@ class MetadataExtractor {
   }
 
   getXmlName(subType: string): string {
-    return this.attributes.get(subType)?.xmlName!
+    /* v8 ignore next -- callers pass subTypes present in attributes map */
+    return this.attributes.get(subType)?.xmlName ?? ''
   }
 
   getKeyValueSelector(subType: string): KeySelectorFn {

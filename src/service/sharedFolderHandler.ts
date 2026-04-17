@@ -24,9 +24,15 @@ export default class SharedFolderHandler extends StandardHandler {
   protected override _collectManifestElement(
     target: ManifestTarget
   ): ManifestElement {
+    /* v8 ignore next 5 -- collectAddition/Deletion guard ensures resolvedType is set */
+    if (!this.resolvedType) {
+      throw new Error(
+        `SharedFolderHandler: resolvedType is missing for ${this.element.fullPath}`
+      )
+    }
     return {
       target,
-      type: this.resolvedType!,
+      type: this.resolvedType,
       member: this._getElementName(),
     }
   }

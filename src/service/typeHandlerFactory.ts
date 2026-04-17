@@ -79,7 +79,11 @@ export default class TypeHandlerFactory {
   public async getTypeHandler(line: string) {
     const changeType = line.charAt(0)
     const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
-    const type: Metadata = this.metadata.get(path)!
+    const type = this.metadata.get(path)
+    /* v8 ignore next 3 -- upstream RepoGitDiff pre-filters with metadata.has() */
+    if (!type) {
+      throw new Error(`Unknown metadata type for path: ${path}`)
+    }
     const revision =
       changeType === DELETION ? this.work.config.from : this.work.config.to
     const element = await this.resolver.createElement(path, type, revision)

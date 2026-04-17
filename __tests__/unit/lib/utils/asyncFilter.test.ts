@@ -67,7 +67,7 @@ describe('asyncFilter', () => {
       const predicate = async (s: string) => {
         currentConcurrent++
         maxConcurrent = Math.max(maxConcurrent, currentConcurrent)
-        await new Promise(resolve => setTimeout(resolve, 10))
+        await new Promise(resolve => setImmediate(resolve))
         currentConcurrent--
         return s.includes('5')
       }

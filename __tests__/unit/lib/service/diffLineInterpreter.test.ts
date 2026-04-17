@@ -74,7 +74,7 @@ describe('DiffLineInterpreter', () => {
       }
       mockCollect.mockImplementation(
         () =>
-          new Promise(resolve => setTimeout(() => resolve(expectedResult), 50))
+          new Promise(resolve => setImmediate(() => resolve(expectedResult)))
       )
 
       // Act
