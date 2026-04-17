@@ -1,5 +1,5 @@
 'use strict'
-import { XMLBuilder } from 'fast-xml-parser'
+import XMLBuilder from 'fast-xml-builder'
 
 import { OBJECT_TYPE } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'

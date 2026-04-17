@@ -1,7 +1,7 @@
 'use strict'
 
 import FlexXMLParser, { type X2jOptions } from '@nodable/flexible-xml-parser'
-import { XMLBuilder } from 'fast-xml-parser'
+import XMLBuilder from 'fast-xml-builder'
 
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
