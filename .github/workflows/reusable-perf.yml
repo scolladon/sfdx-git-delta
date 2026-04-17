@@ -43,12 +43,12 @@ jobs:
         run: |
           CURRENT_REF=$(git rev-parse HEAD)
           git checkout --detach --force "$BASE_REF"
-          npm install --no-fund --prefer-offline
+          npm ci --no-fund --prefer-offline
           npm run test:perf
           cp perf-runtime.json perf-runtime-base.json
           cp perf-memory.json perf-memory-base.json
           git checkout --force "$CURRENT_REF"
-          npm install --no-fund --prefer-offline
+          npm ci --no-fund --prefer-offline
 
       - name: Run benchmarks
         run: npm run test:perf
