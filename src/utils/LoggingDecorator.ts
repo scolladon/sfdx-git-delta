@@ -21,14 +21,25 @@ export function log(
     const className = this.constructor.name
     Logger.trace(lazy`${className}.${propertyKey}: entry`)
 
-    const logExit = <T>(result: T): T => {
+    const logExit = () => {
       Logger.trace(lazy`${className}.${propertyKey}: exit`)
-      return result
     }
 
-    if (isAsync) {
-      return (original.apply(this, args) as Promise<unknown>).then(logExit)
+    // `exit` must fire on every failure path, including when `.apply()`
+    // itself throws synchronously (possible for non-async functions, and
+    // for transpiled-down async wrappers that don't convert sync throws
+    // to rejections). The outer try/catch covers that. For genuine async
+    // returns, `.finally` covers the resolve/reject paths.
+    try {
+      const result = original.apply(this, args)
+      if (isAsync) {
+        return (result as Promise<unknown>).finally(logExit)
+      }
+      logExit()
+      return result
+    } catch (error) {
+      logExit()
+      throw error
     }
-    return logExit(original.apply(this, args))
   }
 }
