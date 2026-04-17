@@ -50,12 +50,22 @@ describe('DiffLineInterpreter', () => {
     it('process each lines', async () => {
       // Arrange
       const lines = ['test']
+      const manifest = {
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Foo',
+      }
+      mockCollect.mockResolvedValue({
+        manifests: [manifest],
+        copies: [],
+        warnings: [],
+      })
 
       // Act
-      await sut.process(lines)
+      const result = await sut.process(lines)
 
       // Assert
-      expect(mockCollect).toHaveBeenCalledTimes(lines.length)
+      expect(result.manifests).toEqual([manifest])
     })
 
     it('Given slow handlers, When queue workers finish after enqueuing, Then all results are collected', async () => {
@@ -107,13 +117,23 @@ describe('DiffLineInterpreter', () => {
       // Arrange
       const lines = ['test']
       const revisions = { from: 'sha1', to: 'sha2' }
+      const manifest = {
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Scoped',
+      }
+      mockCollect.mockResolvedValue({
+        manifests: [manifest],
+        copies: [],
+        warnings: [],
+      })
 
       // Act
       const result = await sut.process(lines, revisions)
 
       // Assert
-      expect(mockCollect).toHaveBeenCalledTimes(1)
-      expect(result).toBeDefined()
+      expect(result.manifests).toEqual([manifest])
+      expect(result.warnings).toEqual([])
     })
   })
 

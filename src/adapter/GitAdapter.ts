@@ -1,15 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { SimpleGit, simpleGit } from 'simple-git'
-import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
-import {
-  ADDITION,
-  DELETION,
-  HEAD,
-  IGNORE_WHITESPACE_PARAMS,
-  MODIFICATION,
-  NUM_STAT_CHANGE_INFORMATION,
-} from '../constant/gitConstants.js'
+import { UTF8_ENCODING } from '../constant/fsConstants.js'
+import { HEAD, IGNORE_WHITESPACE_PARAMS } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import { pushAll } from '../utils/arrayUtils.js'
@@ -19,6 +12,7 @@ import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { GitBatchCatFile } from './gitBatchCatFile.js'
+import { TreeIndex } from './treeIndex.js'
 
 const EOL = /\r?\n/
 const ROOT_PATHS = new Set(['', '.', './'])
@@ -36,12 +30,12 @@ export default class GitAdapter {
   }
 
   protected readonly simpleGit: SimpleGit
-  protected readonly treeIndex: Map<string, Set<string>>
+  protected readonly treeIndex: Map<string, TreeIndex>
   protected batchCatFile: GitBatchCatFile | null = null
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
-    this.treeIndex = new Map<string, Set<string>>()
+    this.treeIndex = new Map<string, TreeIndex>()
   }
 
   protected getBatchCatFile(): GitBatchCatFile {
@@ -89,13 +83,11 @@ export default class GitAdapter {
         args.push('--', ...scopePaths)
       }
       const output = await this.simpleGit.raw(args)
-      const files = new Set(
-        output
-          .split(EOL)
-          .filter(line => line)
-          .map(line => treatPathSep(line))
-      )
-      this.treeIndex.set(revision, files)
+      const index = new TreeIndex()
+      for (const line of output.split(EOL)) {
+        if (line) index.add(treatPathSep(line))
+      }
+      this.treeIndex.set(revision, index)
     } catch (error) {
       Logger.debug(
         lazy`preBuildTreeIndex: scoped ls-tree for '${revision}' failed: ${() => getErrorMessage(error)}`
@@ -104,20 +96,10 @@ export default class GitAdapter {
   }
 
   protected pathExistsImpl(path: string, revision: string) {
-    const index = this.treeIndex.get(revision) ?? new Set<string>()
-    if (ROOT_PATHS.has(path)) {
-      return index.size > 0
-    }
-    if (index.has(path)) {
-      return true
-    }
-    const dirPrefix = `${path}${PATH_SEP}`
-    for (const filePath of index) {
-      if (filePath.startsWith(dirPrefix)) {
-        return true
-      }
-    }
-    return false
+    const index = this.treeIndex.get(revision)
+    if (!index) return false
+    if (ROOT_PATHS.has(path)) return index.size > 0
+    return index.hasPath(path)
   }
 
   @log
@@ -150,21 +132,11 @@ export default class GitAdapter {
   }
 
   protected getFilesPathCached(path: string, revision: string): string[] {
-    const index = this.treeIndex.get(revision) ?? new Set<string>()
-    if (ROOT_PATHS.has(path)) {
-      return Array.from(index)
-    }
-    if (index.has(path)) {
-      return [path]
-    }
-    const dirPrefix = `${path}${PATH_SEP}`
-    const result: string[] = []
-    for (const filePath of index) {
-      if (filePath.startsWith(dirPrefix)) {
-        result.push(filePath)
-      }
-    }
-    return result
+    const index = this.treeIndex.get(revision)
+    if (!index) return []
+    if (ROOT_PATHS.has(path)) return index.allPaths()
+    if (index.has(path)) return [path]
+    return index.getFilesUnder(path)
   }
 
   @log
@@ -189,17 +161,9 @@ export default class GitAdapter {
     dir: string,
     revision: string
   ): Promise<string[]> {
-    const index = this.treeIndex.get(revision) ?? new Set<string>()
-    const dirPrefix = dir ? `${dir}${PATH_SEP}` : ''
-    const children = new Set<string>()
-    for (const filePath of index) {
-      if (filePath.startsWith(dirPrefix)) {
-        const rest = filePath.slice(dirPrefix.length)
-        const firstSegment = rest.split(PATH_SEP)[0]
-        children.add(firstSegment)
-      }
-    }
-    return Array.from(children)
+    const index = this.treeIndex.get(revision)
+    if (!index) return []
+    return index.listChildren(dir)
   }
 
   @log
@@ -232,29 +196,20 @@ export default class GitAdapter {
 
   @log
   public async getDiffLines(): Promise<string[]> {
-    const results = await Promise.all(
-      [ADDITION, MODIFICATION, DELETION].map(async changeType => {
-        const output = await this.simpleGit.raw([
-          'diff',
-          '--numstat',
-          '--no-renames',
-          ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-          `--diff-filter=${changeType}`,
-          this.config.from,
-          this.config.to,
-          '--',
-          ...this.config.source,
-        ])
-        return output
-          .split(EOL)
-          .filter(Boolean)
-          .map(line =>
-            treatPathSep(
-              line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
-            )
-          )
-      })
-    )
-    return results.flat()
+    const output = await this.simpleGit.raw([
+      'diff',
+      '--name-status',
+      '--no-renames',
+      '--diff-filter=AMD',
+      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+      this.config.from,
+      this.config.to,
+      '--',
+      ...this.config.source,
+    ])
+    return output
+      .split(EOL)
+      .filter(Boolean)
+      .map(line => treatPathSep(line))
   }
 }

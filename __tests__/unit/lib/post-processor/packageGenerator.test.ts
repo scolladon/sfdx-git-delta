@@ -115,12 +115,22 @@ describe('PackageGenerator', () => {
       expect(calledPaths).toContain('test/destructiveChanges/package.xml')
     })
 
-    it('calls `PackageBuilder.buildPackage` for %s', async () => {
+    it('writes three packages (destructive, package, empty-destructive-package)', async () => {
       // Act
       await sut['_buildPackages']()
 
       // Assert
-      expect(mockBuildPackage).toHaveBeenCalledTimes(3)
+      const writes = vi
+        .mocked(outputFile)
+        .mock.calls.map(call => call[0] as string)
+      expect(writes).toEqual(
+        expect.arrayContaining([
+          'test/destructiveChanges/destructiveChanges.xml',
+          'test/package/package.xml',
+          'test/destructiveChanges/package.xml',
+        ])
+      )
+      expect(writes).toHaveLength(3)
     })
   })
 
@@ -159,7 +169,7 @@ describe('PackageGenerator', () => {
         // Assert
         expect(destructive).toEqual(expectedDestructive)
       })
-      it('calls outputFile and buildPackage', async () => {
+      it('emits the three expected package files', async () => {
         // Arrange
         work.diffs.package = additive
         work.diffs.destructiveChanges = destructive
@@ -170,8 +180,17 @@ describe('PackageGenerator', () => {
         await sut.process()
 
         // Assert
-        expect(outputFile).toHaveBeenCalledTimes(3)
-        expect(mockBuildPackage).toHaveBeenCalledTimes(3)
+        const writes = vi
+          .mocked(outputFile)
+          .mock.calls.map(call => call[0] as string)
+        expect(writes).toHaveLength(3)
+        expect(new Set(writes)).toEqual(
+          new Set([
+            'test/destructiveChanges/destructiveChanges.xml',
+            'test/package/package.xml',
+            'test/destructiveChanges/package.xml',
+          ])
+        )
       })
     })
   })

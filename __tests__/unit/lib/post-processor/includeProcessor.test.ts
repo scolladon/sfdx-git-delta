@@ -5,8 +5,10 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import {
+  CopyOperationKind,
   emptyResult,
   type HandlerResult,
+  ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import {
@@ -55,10 +57,25 @@ describe('IncludeProcessor', () => {
     metadata = await getDefinition({})
   })
 
+  const includedManifest = {
+    target: ManifestTarget.Package,
+    type: 'ApexClass',
+    member: 'Included',
+  }
+  const includedCopy = {
+    kind: CopyOperationKind.GitCopy,
+    source: { path: 'src/included.cls', oid: 'HEAD' },
+    target: 'included.cls',
+  }
+
   beforeEach(() => {
     work = getWork()
     vi.clearAllMocks()
-    mockProcess.mockResolvedValue(emptyResult())
+    mockProcess.mockResolvedValue({
+      manifests: [includedManifest],
+      copies: [includedCopy],
+      warnings: [],
+    })
   })
 
   describe('process', () => {
@@ -94,17 +111,16 @@ describe('IncludeProcessor', () => {
       beforeEach(() => {
         mockKeep.mockReturnValue(true)
       })
-      it('does not process include', async () => {
+      it('Then returns an empty result', async () => {
         // Arrange
         work.config.include = '.sgdinclude'
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).not.toHaveBeenCalled()
+        expect(result).toEqual(emptyResult())
       })
     })
 
@@ -112,17 +128,18 @@ describe('IncludeProcessor', () => {
       beforeEach(() => {
         mockKeep.mockReturnValue(false)
       })
-      it('process include', async () => {
+      it('Then aggregates the processed manifest and copy into the result', async () => {
         // Arrange
         work.config.include = '.sgdinclude'
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).toHaveBeenCalled()
+        expect(result.manifests.length).toBeGreaterThan(0)
+        expect(result.manifests).toContainEqual(includedManifest)
+        expect(result.copies).toContainEqual(includedCopy)
       })
     })
 
@@ -133,17 +150,20 @@ describe('IncludeProcessor', () => {
         )
         mockKeep.mockReturnValue(false)
       })
-      it('process all matching files', async () => {
+      it('Then aggregates at least one manifest entry per matched file', async () => {
         // Arrange
         work.config.include = '.sgdinclude'
         const sut = new IncludeProcessor(work, metadata)
+        const baseline = (
+          await new IncludeProcessor(getWork(), metadata).transformAndCollect()
+        ).manifests.length
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).toHaveBeenCalledTimes(2)
+        expect(result.manifests.length).toBeGreaterThan(baseline)
+        expect(result.manifests).toContainEqual(includedManifest)
       })
     })
 
@@ -154,17 +174,16 @@ describe('IncludeProcessor', () => {
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('D')) as typeof mockKeep)
       })
-      it('process only additions', async () => {
+      it('Then collects include manifest entries (additions only)', async () => {
         // Arrange
         work.config.include = '.sgdinclude'
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).toHaveBeenCalledTimes(1)
+        expect(result.manifests).toContainEqual(includedManifest)
       })
     })
 
@@ -175,17 +194,16 @@ describe('IncludeProcessor', () => {
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('A')) as typeof mockKeep)
       })
-      it('process only deletions', async () => {
+      it('Then collects include manifest entries (deletions only)', async () => {
         // Arrange
         work.config.include = '.sgdinclude'
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).toHaveBeenCalledTimes(1)
+        expect(result.manifests).toContainEqual(includedManifest)
       })
     })
   })
@@ -198,17 +216,16 @@ describe('IncludeProcessor', () => {
       beforeEach(() => {
         mockKeep.mockReturnValue(true)
       })
-      it('does not process include destructive', async () => {
+      it('Then returns an empty result', async () => {
         // Arrange
         work.config.includeDestructive = '.sgdincludedestructive'
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).not.toHaveBeenCalled()
+        expect(result).toEqual(emptyResult())
       })
     })
 
@@ -216,17 +233,16 @@ describe('IncludeProcessor', () => {
       beforeEach(() => {
         mockKeep.mockReturnValue(false)
       })
-      it('process include destructive', async () => {
+      it('Then collects the destructive include entry', async () => {
         // Arrange
         work.config.includeDestructive = '.sgdincludedestructive'
         const sut = new IncludeProcessor(work, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        const result = await sut.transformAndCollect()
 
         // Assert
-        expect(mockedBuildIncludeHelper).toHaveBeenCalled()
-        expect(mockProcess).toHaveBeenCalled()
+        expect(result.manifests).toContainEqual(includedManifest)
       })
     })
   })
