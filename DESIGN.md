@@ -92,14 +92,16 @@ flowchart LR
 
 **Entry**: `RepoGitDiff.getLines()` (`src/utils/repoGitDiff.ts`)
 
-Collects diff lines between the `from` and `to` commits:
+Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags:
 
-1. Runs a single `git diff --name-status --no-renames --diff-filter=AMD` — output is already in `<STATUS>\t<path>` form so each line starts with the change type character (`A`, `M`, `D`). `--no-renames` ensures renames decompose into an add/delete pair instead of an `R` line.
-2. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
-3. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
-4. Detects renames: paths where the fully-qualified name (case-insensitive) appears in both the deletion and addition sets have their deletion suppressed — a rename manifests only as an addition
+- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status --no-renames --diff-filter=AMD`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, or `D`. `--no-renames` decomposes renames into an add/delete pair instead of an `R` line.
+- **Whitespace-ignore path**: three parallel `git diff --numstat --no-renames --diff-filter=X` calls (A, M, D) with `--ignore-all-space --ignore-blank-lines --ignore-cr-at-eol --word-diff-regex=|[^[:space:]]`. Only `--numstat` computes a real content diff under these flags; `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs. The numstat line prefix (`<added>\t<deleted>\t`) is rewritten to `<STATUS>\t` so the downstream format is identical to the default path.
 
-When `--ignore-whitespace` is enabled, `--ignore-all-space`, `--ignore-blank-lines`, `--ignore-cr-at-eol`, and related flags are added to filter whitespace-only changes.
+Then:
+
+1. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
+2. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
+3. Detects renames: paths where the fully-qualified name (case-insensitive) appears in both the deletion and addition sets have their deletion suppressed — a rename manifests only as an addition
 
 ### Ignore System
 

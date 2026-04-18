@@ -2,7 +2,14 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { SimpleGit, simpleGit } from 'simple-git'
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
-import { HEAD, IGNORE_WHITESPACE_PARAMS } from '../constant/gitConstants.js'
+import {
+  ADDITION,
+  DELETION,
+  HEAD,
+  IGNORE_WHITESPACE_PARAMS,
+  MODIFICATION,
+  NUM_STAT_CHANGE_INFORMATION,
+} from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import { pushAll } from '../utils/arrayUtils.js'
@@ -201,26 +208,57 @@ export default class GitAdapter {
     }
   }
 
-  // One git diff pass with `--diff-filter=AMD` replaces the prior three
-  // per-type spawns. Old code ran them concurrently via Promise.all so the
-  // wall-clock win is mostly spawn overhead + skipping numstat line counts,
-  // not the 3× the "3→1 process" framing suggests.
+  // Fast path (no whitespace ignore): one `git diff --name-status` call.
+  //
+  // Whitespace path: three parallel `git diff --numstat --diff-filter=X`
+  // calls. `--name-status` does NOT honor `--ignore-all-space` — git decides
+  // A/M/D from blob SHAs for that mode, so a whitespace-only change still
+  // appears as `M`. Only `--numstat` computes a real content diff under the
+  // whitespace flags, so files with 0/0 line changes drop out naturally.
+  // A and D can't produce whitespace-only false positives, so the expensive
+  // path is only needed to correctly filter M.
   @log
   public async getDiffLines(): Promise<string[]> {
-    const output = await this.simpleGit.raw([
-      'diff',
-      '--name-status',
-      '--no-renames',
-      '--diff-filter=AMD',
-      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
-      this.config.from,
-      this.config.to,
-      '--',
-      ...this.config.source,
-    ])
-    return output
-      .split(EOL)
-      .filter(Boolean)
-      .map(line => treatPathSep(line))
+    if (!this.config.ignoreWhitespace) {
+      const output = await this.simpleGit.raw([
+        'diff',
+        '--name-status',
+        '--no-renames',
+        '--diff-filter=AMD',
+        this.config.from,
+        this.config.to,
+        '--',
+        ...this.config.source,
+      ])
+      return output
+        .split(EOL)
+        .filter(Boolean)
+        .map(line => treatPathSep(line))
+    }
+
+    const results = await Promise.all(
+      [ADDITION, MODIFICATION, DELETION].map(async changeType => {
+        const output = await this.simpleGit.raw([
+          'diff',
+          '--numstat',
+          '--no-renames',
+          ...IGNORE_WHITESPACE_PARAMS,
+          `--diff-filter=${changeType}`,
+          this.config.from,
+          this.config.to,
+          '--',
+          ...this.config.source,
+        ])
+        return output
+          .split(EOL)
+          .filter(Boolean)
+          .map(line =>
+            treatPathSep(
+              line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+            )
+          )
+      })
+    )
+    return results.flat()
   }
 }

@@ -762,20 +762,59 @@ describe('GitAdapter', () => {
     })
 
     describe('Given ignoreWhitespace is enabled', () => {
-      it('When getDiffLines, Then adds whitespace params to the diff call', async () => {
-        // Arrange
+      it('When getDiffLines, Then falls back to three parallel numstat calls with whitespace params and normalises prefixes to A/M/D', async () => {
+        // Arrange — name-status does not honour --ignore-all-space, so the
+        // adapter must issue per-filter numstat calls instead.
         config.ignoreWhitespace = true
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw.mockResolvedValueOnce('A\ttest\nM\tfile' as never)
+        mockedRaw
+          .mockResolvedValueOnce('8\t0\ttest' as never) // ADDITION
+          .mockResolvedValueOnce('3\t2\tfile' as never) // MODIFICATION
+          .mockResolvedValueOnce('' as never) // DELETION empty
 
         // Act
         const result = await gitAdapter.getDiffLines()
 
         // Assert
         expect(result).toEqual(['A\ttest', 'M\tfile'])
-        expect(mockedRaw).toHaveBeenCalledWith(
-          expect.arrayContaining([...IGNORE_WHITESPACE_PARAMS])
+        expect(mockedRaw).toHaveBeenCalledTimes(3)
+        for (let i = 1; i <= 3; i++) {
+          expect(mockedRaw).toHaveBeenNthCalledWith(
+            i,
+            expect.arrayContaining(['--numstat', ...IGNORE_WHITESPACE_PARAMS])
+          )
+        }
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          1,
+          expect.arrayContaining(['--diff-filter=A'])
         )
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          2,
+          expect.arrayContaining(['--diff-filter=M'])
+        )
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          3,
+          expect.arrayContaining(['--diff-filter=D'])
+        )
+      })
+
+      it('When a whitespace-only modification is present, Then numstat reports 0/0 and it is dropped by the empty-line filter', async () => {
+        // Arrange
+        config.ignoreWhitespace = true
+        const gitAdapter = GitAdapter.getInstance(config)
+        // numstat under --ignore-all-space emits nothing for files whose
+        // only changes are whitespace (or 0\t0\t on some git versions —
+        // both collapse to no line through filter(Boolean)).
+        mockedRaw
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+
+        // Act
+        const result = await gitAdapter.getDiffLines()
+
+        // Assert
+        expect(result).toEqual([])
       })
     })
 
