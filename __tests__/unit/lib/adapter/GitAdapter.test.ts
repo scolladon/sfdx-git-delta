@@ -706,45 +706,25 @@ describe('GitAdapter', () => {
   })
 
   describe('getDiffLines', () => {
-    it('Given diff output, When getDiffLines, Then calls numstat for each change type and transforms output', async () => {
+    it('Given diff output, When getDiffLines, Then issues one name-status diff and returns status-prefixed paths', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw
-        .mockResolvedValueOnce('8\t0\ttest' as never)
-        .mockResolvedValueOnce('3\t2\tfile' as never)
-        .mockResolvedValueOnce('0\t5\tanotherfile' as never)
+      mockedRaw.mockResolvedValueOnce(
+        'A\ttest\nM\tfile\nD\tanotherfile' as never
+      )
 
       // Act
       const result = await gitAdapter.getDiffLines()
 
       // Assert
       expect(result).toEqual(['A\ttest', 'M\tfile', 'D\tanotherfile'])
-      expect(mockedRaw).toHaveBeenCalledTimes(3)
-      expect(mockedRaw).toHaveBeenNthCalledWith(
-        1,
+      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(mockedRaw).toHaveBeenCalledWith(
         expect.arrayContaining([
           'diff',
-          '--numstat',
+          '--name-status',
           '--no-renames',
-          '--diff-filter=A',
-        ])
-      )
-      expect(mockedRaw).toHaveBeenNthCalledWith(
-        2,
-        expect.arrayContaining([
-          'diff',
-          '--numstat',
-          '--no-renames',
-          '--diff-filter=M',
-        ])
-      )
-      expect(mockedRaw).toHaveBeenNthCalledWith(
-        3,
-        expect.arrayContaining([
-          'diff',
-          '--numstat',
-          '--no-renames',
-          '--diff-filter=D',
+          '--diff-filter=AMD',
         ])
       )
     })
@@ -752,26 +732,21 @@ describe('GitAdapter', () => {
     it('Given empty diff output, When getDiffLines, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw
-        .mockResolvedValueOnce('' as never)
-        .mockResolvedValueOnce('' as never)
-        .mockResolvedValueOnce('' as never)
+      mockedRaw.mockResolvedValueOnce('' as never)
 
       // Act
       const result = await gitAdapter.getDiffLines()
 
       // Assert
       expect(result).toEqual([])
-      expect(mockedRaw).toHaveBeenCalledTimes(3)
     })
 
-    it('Given multiple files per change type, When getDiffLines, Then concatenates all results', async () => {
+    it('Given multiple lines, When getDiffLines, Then preserves ordering', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw
-        .mockResolvedValueOnce('10\t0\tnewFile1\n5\t0\tnewFile2' as never)
-        .mockResolvedValueOnce('3\t2\tmodFile1' as never)
-        .mockResolvedValueOnce('0\t8\tdelFile1\n0\t3\tdelFile2' as never)
+      mockedRaw.mockResolvedValueOnce(
+        'A\tnewFile1\nA\tnewFile2\nM\tmodFile1\nD\tdelFile1\nD\tdelFile2' as never
+      )
 
       // Act
       const result = await gitAdapter.getDiffLines()
@@ -787,14 +762,15 @@ describe('GitAdapter', () => {
     })
 
     describe('Given ignoreWhitespace is enabled', () => {
-      it('When getDiffLines, Then adds whitespace params to each call', async () => {
-        // Arrange
+      it('When getDiffLines, Then falls back to three parallel numstat calls with whitespace params and normalises prefixes to A/M/D', async () => {
+        // Arrange — name-status does not honour --ignore-all-space, so the
+        // adapter must issue per-filter numstat calls instead.
         config.ignoreWhitespace = true
         const gitAdapter = GitAdapter.getInstance(config)
         mockedRaw
-          .mockResolvedValueOnce('8\t0\ttest' as never)
-          .mockResolvedValueOnce('3\t2\tfile' as never)
-          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('8\t0\ttest' as never) // ADDITION
+          .mockResolvedValueOnce('3\t2\tfile' as never) // MODIFICATION
+          .mockResolvedValueOnce('' as never) // DELETION empty
 
         // Act
         const result = await gitAdapter.getDiffLines()
@@ -805,19 +781,47 @@ describe('GitAdapter', () => {
         for (let i = 1; i <= 3; i++) {
           expect(mockedRaw).toHaveBeenNthCalledWith(
             i,
-            expect.arrayContaining([...IGNORE_WHITESPACE_PARAMS])
+            expect.arrayContaining(['--numstat', ...IGNORE_WHITESPACE_PARAMS])
           )
         }
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          1,
+          expect.arrayContaining(['--diff-filter=A'])
+        )
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          2,
+          expect.arrayContaining(['--diff-filter=M'])
+        )
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          3,
+          expect.arrayContaining(['--diff-filter=D'])
+        )
+      })
+
+      it('When a whitespace-only modification is present, Then numstat reports 0/0 and it is dropped by the empty-line filter', async () => {
+        // Arrange
+        config.ignoreWhitespace = true
+        const gitAdapter = GitAdapter.getInstance(config)
+        // numstat under --ignore-all-space emits nothing for files whose
+        // only changes are whitespace (or 0\t0\t on some git versions —
+        // both collapse to no line through filter(Boolean)).
+        mockedRaw
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+
+        // Act
+        const result = await gitAdapter.getDiffLines()
+
+        // Assert
+        expect(result).toEqual([])
       })
     })
 
-    it('Given binary files in diff, When getDiffLines, Then handles dash stats correctly', async () => {
+    it('Given binary files in diff, When getDiffLines, Then returns the status-prefixed path', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw
-        .mockResolvedValueOnce('-\t-\tbinaryFile.png' as never)
-        .mockResolvedValueOnce('' as never)
-        .mockResolvedValueOnce('' as never)
+      mockedRaw.mockResolvedValueOnce('A\tbinaryFile.png' as never)
 
       // Act
       const result = await gitAdapter.getDiffLines()

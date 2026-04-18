@@ -48,20 +48,23 @@
     "access": "public"
   },
   "dependencies": {
-    "@nodable/flexible-xml-parser": "^1.0.1",
+    "@nodable/flexible-xml-parser": "^1.1.1",
     "@oclif/core": "^4.10.5",
-    "@salesforce/core": "^8.28.1",
+    "@salesforce/core": "^8.28.3",
     "@salesforce/sf-plugins-core": "^12.2.6",
-    "@salesforce/source-deploy-retrieve": "^12.32.7",
+    "@salesforce/source-deploy-retrieve": "^12.32.8",
     "async": "^3.2.6",
     "fast-equals": "^6.0.0",
-    "fast-xml-parser": "^5.5.11",
+    "fast-xml-builder": "^1.1.5",
     "fs-extra": "^11.3.4",
     "ignore": "^7.0.5",
     "lodash-es": "^4.18.1",
     "simple-git": "^3.36.0",
     "tslib": "^2.8.1",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "basic-ftp": "^5.3.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.11",

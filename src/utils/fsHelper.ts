@@ -11,7 +11,11 @@ import { getErrorMessage } from './errorUtils.js'
 import { buildIgnoreHelper } from './ignoreHelper.js'
 import { Logger, lazy } from './LoggingService.js'
 
-const writtenFiles = new Set()
+const writtenFiles = new Set<string>()
+
+export const resetWrittenFiles = (): void => {
+  writtenFiles.clear()
+}
 
 export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   let utf8Data = ''

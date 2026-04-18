@@ -68,7 +68,7 @@ flowchart LR
 | ----- | --- | -------- |
 | `extIndex` | File extension (`.cls`, `.trigger`) | Primary lookup for most types |
 | `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous — picks deepest match, stops at `inFolder` types |
-| `xmlNameIndex` | XML name (`ApexClass`, `ApexTrigger`) | Direct lookup by type name |
+| `xmlNameIndex` | XML name (`ApexClass`, `ApexTrigger`) | Direct lookup by type name, exposed as `getByXmlName(xmlName)` on the interface for handler-resolution and parent-type lookup |
 
 ### Key Metadata Fields
 
@@ -92,14 +92,16 @@ flowchart LR
 
 **Entry**: `RepoGitDiff.getLines()` (`src/utils/repoGitDiff.ts`)
 
-Collects diff lines between the `from` and `to` commits:
+Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags:
 
-1. Runs `git diff --numstat --no-renames` for additions/modifications, and `git diff --numstat --no-renames --diff-filter=D` for deletions
-2. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
-3. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
-4. Detects renames: paths where the fully-qualified name (case-insensitive) appears in both the deletion and addition sets have their deletion suppressed — a rename manifests only as an addition
+- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status --no-renames --diff-filter=AMD`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, or `D`. `--no-renames` decomposes renames into an add/delete pair instead of an `R` line.
+- **Whitespace-ignore path**: three parallel `git diff --numstat --no-renames --diff-filter=X` calls (A, M, D) with `--ignore-all-space --ignore-blank-lines --ignore-cr-at-eol --word-diff-regex=|[^[:space:]]`. Only `--numstat` computes a real content diff under these flags; `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs. The numstat line prefix (`<added>\t<deleted>\t`) is rewritten to `<STATUS>\t` so the downstream format is identical to the default path.
 
-When `--ignore-whitespace` is enabled, `--word-diff-regex` and related flags are added to filter whitespace-only changes. The diff uses `--numstat` format so each line starts with a change type character (`A`, `M`, `D`).
+Then:
+
+1. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
+2. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
+3. Detects renames: paths where the fully-qualified name (case-insensitive) appears in both the deletion and addition sets have their deletion suppressed — a rename manifests only as an addition
 
 ### Ignore System
 
@@ -428,9 +430,9 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 ### Git Adapter
 
-`GitAdapter` (`src/adapter/GitAdapter.ts`) wraps `simple-git` with a singleton pattern keyed by `Config` identity. It minimizes git subprocess spawns via two strategies:
+`GitAdapter` (`src/adapter/GitAdapter.ts`) wraps `simple-git` with a singleton pattern keyed by the composite string `<repo>\0<to>` — so spread copies of the same config (for example `ioExecutor`'s per-revision `{...config, to: rev}`) share one adapter instance and one `git cat-file` subprocess rather than spawning a new one per call. It minimizes git subprocess spawns via two strategies:
 
-**Tree index**: The tree index is a `Set<string>` of file paths per revision, populated exclusively by `preBuildTreeIndex(revision, scopePaths)` in `src/main.ts`. It serves `pathExists`, `getFilesPath`, and `listDirAtRevision` lookups without additional subprocess calls — if no index was pre-built for a revision, these methods return empty results. The index is **scoped** to reduce heap pressure: `preBuildTreeIndex` runs `git ls-tree --name-only -r <revision> -- <path1> <path2> ...` to index only the metadata directories that handlers actually need. Both revisions (`config.to` and `config.from`) are indexed in parallel via `Promise.all`. Scope computation (`computeTreeIndexScope` in `src/utils/treeIndexScope.ts`) analyzes diff lines against the metadata registry to determine which type directories require tree-index lookups — only types using `InResource`, `InFolder`, `ReportingFolder`, `InBundle`, `Lwc`, `CustomObject`, `ContainedDecomposed`, or `MetadataBoundaryResolver` deep-path resolution need the index. When `--include` or `--include-destructive` is set, the scope defaults to `config.source` since the include processor may touch any type. When `generateDelta` is false, the tree index is never built.
+**Tree index**: The tree index is a path-segment trie (`TreeIndex` in `src/adapter/treeIndex.ts`) per revision, populated exclusively by `preBuildTreeIndex(revision, scopePaths)` in `src/main.ts`. It serves `pathExists`, `getFilesPath`, and `listDirAtRevision` lookups in O(path-depth) without additional subprocess calls — if no index was pre-built for a revision, these methods return empty results. The trie replaces an earlier flat `Set<string>` that required O(n) prefix scans; prefix and directory-listing operations now traverse only the relevant sub-tree. The index is **scoped** to reduce heap pressure: `preBuildTreeIndex` runs `git ls-tree --name-only -r <revision> -- <path1> <path2> ...` to index only the metadata directories that handlers actually need. Both revisions (`config.to` and `config.from`) are indexed in parallel via `Promise.all`. Scope computation (`computeTreeIndexScope` in `src/utils/treeIndexScope.ts`) analyzes diff lines against the metadata registry to determine which type directories require tree-index lookups — only types using `InResource`, `InFolder`, `ReportingFolder`, `InBundle`, `Lwc`, `CustomObject`, `ContainedDecomposed`, or `MetadataBoundaryResolver` deep-path resolution need the index. When `--include` or `--include-destructive` is set, the scope defaults to `config.source` since the include processor may touch any type. When `generateDelta` is false, the tree index is never built.
 
 **Batch cat-file**: `GitBatchCatFile` (`src/adapter/gitBatchCatFile.ts`) spawns a single long-lived `git cat-file --batch` child process per adapter instance. File content reads write `<revision>:<path>\n` to stdin and parse the binary response from stdout using a FIFO queue. This replaces individual `git show` subprocess spawns.
 

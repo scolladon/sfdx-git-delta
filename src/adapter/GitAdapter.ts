@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { SimpleGit, simpleGit } from 'simple-git'
-import { PATH_SEP, UTF8_ENCODING } from '../constant/fsConstants.js'
+import { UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
   DELETION,
@@ -19,29 +19,37 @@ import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { GitBatchCatFile } from './gitBatchCatFile.js'
+import { TreeIndex } from './treeIndex.js'
 
-const EOL = new RegExp(/\r?\n/)
+const EOL = /\r?\n/
 const ROOT_PATHS = new Set(['', '.', './'])
 
 export default class GitAdapter {
-  private static instances: Map<Config, GitAdapter> = new Map()
+  private static instances: Map<string, GitAdapter> = new Map()
+
+  // Keyed by repo+to so spread copies of the same config (e.g. ioExecutor's
+  // per-revision {...config, to: rev}) share one adapter instead of spawning
+  // a fresh git cat-file subprocess per call.
+  private static keyFor(config: Config): string {
+    return `${config.repo}\0${config.to}`
+  }
 
   public static getInstance(config: Config): GitAdapter {
-    if (!GitAdapter.instances.has(config)) {
-      const instance = new GitAdapter(config)
-      GitAdapter.instances.set(config, instance)
+    const key = GitAdapter.keyFor(config)
+    if (!GitAdapter.instances.has(key)) {
+      GitAdapter.instances.set(key, new GitAdapter(config))
     }
 
-    return GitAdapter.instances.get(config)!
+    return GitAdapter.instances.get(key)!
   }
 
   protected readonly simpleGit: SimpleGit
-  protected readonly treeIndex: Map<string, Set<string>>
+  protected readonly treeIndex: Map<string, TreeIndex>
   protected batchCatFile: GitBatchCatFile | null = null
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
-    this.treeIndex = new Map<string, Set<string>>()
+    this.treeIndex = new Map<string, TreeIndex>()
   }
 
   protected getBatchCatFile(): GitBatchCatFile {
@@ -89,13 +97,11 @@ export default class GitAdapter {
         args.push('--', ...scopePaths)
       }
       const output = await this.simpleGit.raw(args)
-      const files = new Set(
-        output
-          .split(EOL)
-          .filter(line => line)
-          .map(line => treatPathSep(line))
-      )
-      this.treeIndex.set(revision, files)
+      const index = new TreeIndex()
+      for (const line of output.split(EOL)) {
+        if (line) index.add(treatPathSep(line))
+      }
+      this.treeIndex.set(revision, index)
     } catch (error) {
       Logger.debug(
         lazy`preBuildTreeIndex: scoped ls-tree for '${revision}' failed: ${() => getErrorMessage(error)}`
@@ -104,20 +110,10 @@ export default class GitAdapter {
   }
 
   protected pathExistsImpl(path: string, revision: string) {
-    const index = this.treeIndex.get(revision) ?? new Set<string>()
-    if (ROOT_PATHS.has(path)) {
-      return index.size > 0
-    }
-    if (index.has(path)) {
-      return true
-    }
-    const dirPrefix = `${path}${PATH_SEP}`
-    for (const filePath of index) {
-      if (filePath.startsWith(dirPrefix)) {
-        return true
-      }
-    }
-    return false
+    const index = this.treeIndex.get(revision)
+    if (!index) return false
+    if (ROOT_PATHS.has(path)) return index.size > 0
+    return index.hasPath(path)
   }
 
   @log
@@ -150,21 +146,11 @@ export default class GitAdapter {
   }
 
   protected getFilesPathCached(path: string, revision: string): string[] {
-    const index = this.treeIndex.get(revision) ?? new Set<string>()
-    if (ROOT_PATHS.has(path)) {
-      return Array.from(index)
-    }
-    if (index.has(path)) {
-      return [path]
-    }
-    const dirPrefix = `${path}${PATH_SEP}`
-    const result: string[] = []
-    for (const filePath of index) {
-      if (filePath.startsWith(dirPrefix)) {
-        result.push(filePath)
-      }
-    }
-    return result
+    const index = this.treeIndex.get(revision)
+    if (!index) return []
+    if (ROOT_PATHS.has(path)) return index.allPaths()
+    if (index.has(path)) return [path]
+    return index.getFilesUnder(path)
   }
 
   @log
@@ -178,8 +164,7 @@ export default class GitAdapter {
 
     const result: string[] = []
     for (const path of paths) {
-      const filesPath = await this.getFilesPathCached(path, revision)
-      pushAll(result, filesPath)
+      pushAll(result, this.getFilesPathCached(path, revision))
     }
 
     return result
@@ -190,17 +175,9 @@ export default class GitAdapter {
     dir: string,
     revision: string
   ): Promise<string[]> {
-    const index = this.treeIndex.get(revision) ?? new Set<string>()
-    const dirPrefix = dir ? `${dir}${PATH_SEP}` : ''
-    const children = new Set<string>()
-    for (const filePath of index) {
-      if (filePath.startsWith(dirPrefix)) {
-        const rest = filePath.slice(dirPrefix.length)
-        const firstSegment = rest.split(PATH_SEP)[0]
-        children.add(firstSegment)
-      }
-    }
-    return Array.from(children)
+    const index = this.treeIndex.get(revision)
+    if (!index) return []
+    return index.listChildren(dir)
   }
 
   @log
@@ -231,15 +208,41 @@ export default class GitAdapter {
     }
   }
 
+  // Fast path (no whitespace ignore): one `git diff --name-status` call.
+  //
+  // Whitespace path: three parallel `git diff --numstat --diff-filter=X`
+  // calls. `--name-status` does NOT honor `--ignore-all-space` — git decides
+  // A/M/D from blob SHAs for that mode, so a whitespace-only change still
+  // appears as `M`. Only `--numstat` computes a real content diff under the
+  // whitespace flags, so files with 0/0 line changes drop out naturally.
+  // A and D can't produce whitespace-only false positives, so the expensive
+  // path is only needed to correctly filter M.
   @log
   public async getDiffLines(): Promise<string[]> {
+    if (!this.config.ignoreWhitespace) {
+      const output = await this.simpleGit.raw([
+        'diff',
+        '--name-status',
+        '--no-renames',
+        '--diff-filter=AMD',
+        this.config.from,
+        this.config.to,
+        '--',
+        ...this.config.source,
+      ])
+      return output
+        .split(EOL)
+        .filter(Boolean)
+        .map(line => treatPathSep(line))
+    }
+
     const results = await Promise.all(
       [ADDITION, MODIFICATION, DELETION].map(async changeType => {
         const output = await this.simpleGit.raw([
           'diff',
           '--numstat',
           '--no-renames',
-          ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_PARAMS : []),
+          ...IGNORE_WHITESPACE_PARAMS,
           `--diff-filter=${changeType}`,
           this.config.from,
           this.config.to,

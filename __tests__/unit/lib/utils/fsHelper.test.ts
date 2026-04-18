@@ -11,6 +11,7 @@ import {
   pathExists,
   readDirs,
   readPathFromGit,
+  resetWrittenFiles,
   writeFile,
 } from '../../../../src/utils/fsHelper'
 import {
@@ -319,5 +320,21 @@ describe('writeFile', () => {
 
     // Assert
     expect(outputFile).not.toHaveBeenCalled()
+  })
+
+  it('Given resetWrittenFiles called, When writing same path twice, Then outputFile is called twice', async () => {
+    // Arrange
+    const path = 'reset/path/file'
+    const config: Config = work.config
+    config.output = 'root'
+    const content = 'content'
+    await writeFile(path, content, config)
+
+    // Act
+    resetWrittenFiles()
+    await writeFile(path, content, config)
+
+    // Assert
+    expect(outputFile).toHaveBeenCalledTimes(2)
   })
 })

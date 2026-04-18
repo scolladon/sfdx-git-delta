@@ -19,6 +19,8 @@ import type { Metadata } from '../types/metadata.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataRepository } from './MetadataRepository.js'
 
+const PATH_SEP_GLOBAL = new RegExp(PATH_SEP, 'g')
+
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
@@ -47,17 +49,13 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   protected addSharedFolderSuffix(metadata: Metadata) {
-    if (metadata.content) {
-      const metadataWithoutContent = {
-        ...metadata,
-        content: undefined,
-      }
-      for (const sharedFolderMetadataDef of metadata.content) {
-        this.addSuffix({
-          ...metadataWithoutContent,
-          suffix: sharedFolderMetadataDef.suffix,
-        } as unknown as Metadata)
-      }
+    if (!metadata.content) return
+    const { content: _content, ...metadataWithoutContent } = metadata
+    for (const sharedFolderMetadataDef of metadata.content) {
+      this.addSuffix({
+        ...metadataWithoutContent,
+        suffix: sharedFolderMetadataDef.suffix,
+      })
     }
   }
 
@@ -113,6 +111,10 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     return this.metadataPerXmlName.get(xmlName)
   }
 
+  public getByXmlName(xmlName: string): Metadata | undefined {
+    return this.metadataPerXmlName.get(xmlName)
+  }
+
   @log
   public getFullyQualifiedName(path: string): string {
     let fullyQualifiedName = parse(path).base
@@ -123,7 +125,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
         .find(part => this.metadataPerDir.has(part))!
       fullyQualifiedName = path
         .slice(path.indexOf(parentType))
-        .replace(new RegExp(PATH_SEP, 'g'), '')
+        .replace(PATH_SEP_GLOBAL, '')
     }
     return fullyQualifiedName
   }

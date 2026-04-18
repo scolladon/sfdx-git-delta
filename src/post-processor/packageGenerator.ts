@@ -22,16 +22,18 @@ export default class PackageGenerator extends BaseProcessor {
     const additive = this.work.diffs[PACKAGE_FILE_NAME]
     const destructive = this.work.diffs[DESTRUCTIVE_CHANGES_FILE_NAME]
     for (const [type, members] of additive) {
-      if (destructive.has(type)) {
-        destructive.set(
-          type,
-          new Set(
-            [...destructive.get(type)!].filter(element => !members.has(element))
-          )
-        )
-        if (destructive.get(type)!.size === 0) {
-          destructive.delete(type)
+      const existing = destructive.get(type)
+      if (!existing) continue
+      const filtered = new Set<string>()
+      for (const element of existing) {
+        if (!members.has(element)) {
+          filtered.add(element)
         }
+      }
+      if (filtered.size === 0) {
+        destructive.delete(type)
+      } else {
+        destructive.set(type, filtered)
       }
     }
   }

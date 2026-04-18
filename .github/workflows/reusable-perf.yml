@@ -11,9 +11,18 @@ on:
 jobs:
   perf:
     runs-on: ubuntu-latest
+    # Perf is informational only: regressions/flakes show up as a PR
+    # comment from compareBaseline.mjs but never block the merge.
+    continue-on-error: true
     permissions:
       contents: write
       pull-requests: write
+    env:
+      # Disable husky hooks (notably post-checkout, which runs
+      # `npm run dependencies:reinstall`). Without this, every baseline
+      # `git checkout` inside this job re-dirties package-lock.json,
+      # breaking the benchmark-action step's internal `git switch gh-pages`.
+      HUSKY: '0'
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -41,11 +50,20 @@ jobs:
         env:
           BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
         run: |
-          git checkout --detach "$BASE_REF"
+          CURRENT_REF=$(git rev-parse HEAD)
+          git checkout --detach --force "$BASE_REF"
+          npm ci --no-fund --prefer-offline
           npm run test:perf
           cp perf-runtime.json perf-runtime-base.json
           cp perf-memory.json perf-memory-base.json
-          git checkout -
+          git checkout --force "$CURRENT_REF"
+          npm ci --no-fund --prefer-offline
+          # npm ci can touch tracked files (e.g. metadata-only writes to
+          # package-lock.json on some npm versions) leaving the WC dirty.
+          # Reset every tracked file so the subsequent benchmark-action
+          # step's internal `git switch gh-pages` isn't blocked by a
+          # "Your local changes would be overwritten" error.
+          git checkout -- .
 
       - name: Run benchmarks
         run: npm run test:perf
@@ -59,6 +77,18 @@ jobs:
 
       - name: Generate preview with trends
         run: node __tests__/perf/preview.mjs gh-pages-data
+
+      - name: Reset WC before gh-pages switch
+        if: ${{ !inputs.auto-push }}
+        run: |
+          # benchmark-action's internal `git switch gh-pages` fails with
+          # "Your local changes would be overwritten" if any tracked file
+          # is dirty. Clean the WC now so the switch succeeds; perf
+          # artifacts (perf-runtime.json, perf-memory.json) are gitignored
+          # and survive `git clean -fd` via the whitelist below.
+          git status --short
+          git checkout -- .
+          git clean -fd -e perf-runtime.json -e perf-memory.json -e perf-runtime-base.json -e perf-memory-base.json -e perf-comparison.md -e perf-preview.html -e perf-raw.json -e gh-pages-data
 
       - name: Runtime benchmark
         uses: benchmark-action/github-action-benchmark@v1

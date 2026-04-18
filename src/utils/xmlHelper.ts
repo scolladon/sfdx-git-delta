@@ -1,7 +1,7 @@
 'use strict'
 
 import FlexXMLParser, { type X2jOptions } from '@nodable/flexible-xml-parser'
-import { XMLBuilder } from 'fast-xml-parser'
+import XMLBuilder from 'fast-xml-builder'
 
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
@@ -28,6 +28,10 @@ const XML_PARSER_OPTION: X2jOptions = {
     valueParsers: ['trim'] as unknown[],
   },
 } as X2jOptions
+// processEntities MUST stay false: FlexXMLParser keeps XML entities raw in the
+// parsed JSON (e.g. "a &amp; b" → "a &amp; b", not "a & b"). Flipping this to
+// true makes XMLBuilder re-encode the already-raw entities, producing
+// double-encoded output like "a &amp;amp; b". Parser-builder symmetry matters.
 const JSON_PARSER_OPTION = {
   commentPropName: '#comment',
   ignoreAttributes: false,
@@ -44,6 +48,7 @@ const JSON_PARSER_OPTION = {
 }
 
 const xmlParser = new FlexXMLParser(XML_PARSER_OPTION)
+const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
 
 export const xml2Json = (xmlContent: string): XmlContent => {
   if (!xmlContent) {
@@ -64,10 +69,8 @@ export const parseXmlFileToJson = async (
   return xml2Json(xmlContent)
 }
 
-export const convertJsonToXml = (jsonContent: XmlContent | unknown): string => {
-  const xmlBuilder = new XMLBuilder(JSON_PARSER_OPTION)
-  return xmlBuilder.build(jsonContent)
-}
+export const convertJsonToXml = (jsonContent: XmlContent | unknown): string =>
+  xmlBuilder.build(jsonContent)
 
 export const ATTRIBUTE_PREFIX = '@_'
 

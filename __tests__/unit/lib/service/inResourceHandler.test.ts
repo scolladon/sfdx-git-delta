@@ -539,7 +539,7 @@ describe('InResourceHandler', () => {
       })
     })
     describe('When single-file resource is deleted', () => {
-      it('Given single-file static resource deleted, When collecting, Then pathExists checks the component path', async () => {
+      it('Given single-file static resource deleted, When collecting, Then pathExists checks the component path and deletion flows through', async () => {
         // Arrange
         const base = 'force-app/main/default/'
         const entity = 'myFile'
@@ -554,13 +554,16 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(changeType, element, work)
 
         // Act
-        await sut.collect()
+        const result = await sut.collect()
 
         // Assert
         expect(pathExists).toHaveBeenCalledWith(
           `${base}${staticResourceType.directoryName}/${entity}`,
           work.config
         )
+        expect(
+          result.manifests.some(m => m.target === 'destructiveChanges')
+        ).toBe(true)
       })
     })
   })

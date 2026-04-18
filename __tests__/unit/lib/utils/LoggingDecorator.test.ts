@@ -97,6 +97,51 @@ describe('LoggingDecorator', () => {
       })
     })
 
+    describe('Given a sync method that throws', () => {
+      it('When called, Then traces entry and exit before rethrowing', () => {
+        // Arrange
+        class TestClass {
+          @log
+          syncMethod(): string {
+            throw new Error('sync boom')
+          }
+        }
+        const sut = new TestClass()
+
+        // Act
+        const act = () => sut.syncMethod()
+
+        // Assert
+        expect(act).toThrow('sync boom')
+        expect(mockedTrace).toHaveBeenCalledTimes(2)
+        const entryMsg = (mockedTrace.mock.calls[0][0] as () => string)()
+        const exitMsg = (mockedTrace.mock.calls[1][0] as () => string)()
+        expect(entryMsg).toContain('syncMethod: entry')
+        expect(exitMsg).toContain('syncMethod: exit')
+      })
+    })
+
+    describe('Given an async method that rejects', () => {
+      it('When awaited, Then traces entry and exit before propagating the rejection', async () => {
+        // Arrange
+        class TestClass {
+          @log
+          async asyncMethod(): Promise<string> {
+            throw new Error('async boom')
+          }
+        }
+        const sut = new TestClass()
+
+        // Act & Assert
+        await expect(sut.asyncMethod()).rejects.toThrow('async boom')
+        expect(mockedTrace).toHaveBeenCalledTimes(2)
+        const entryMsg = (mockedTrace.mock.calls[0][0] as () => string)()
+        const exitMsg = (mockedTrace.mock.calls[1][0] as () => string)()
+        expect(entryMsg).toContain('asyncMethod: entry')
+        expect(exitMsg).toContain('asyncMethod: exit')
+      })
+    })
+
     describe('Given Logger mock receives non-function message', () => {
       it('When called with a string, Then does not throw', () => {
         // Act & Assert

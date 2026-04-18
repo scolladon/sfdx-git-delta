@@ -6,6 +6,11 @@ import type { HandlerResult } from '../types/handlerResult.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
+const REGEX_SPECIAL_CHARS = /[.*+?^${}()|[\]\\]/g
+const escapeRegex = (value: string): string =>
+  value.replace(REGEX_SPECIAL_CHARS, '\\$&')
+const resourceRegexCache = new Map<string, RegExp>()
+
 export default class ResourceHandler extends StandardHandler {
   protected metadataName: string | undefined
 
@@ -37,11 +42,16 @@ export default class ResourceHandler extends StandardHandler {
     )
     const allStaticResources = await readDirs(staticResourcePath, this.config)
 
-    const startsWithMetadataName = new RegExp(
-      `${this.metadataName!}[${PATH_SEP}${DOT}]`
-    )
+    const cacheKey = this.metadataName!
+    let startsWithMetadataName = resourceRegexCache.get(cacheKey)
+    if (!startsWithMetadataName) {
+      startsWithMetadataName = new RegExp(
+        `${escapeRegex(cacheKey)}[${PATH_SEP}${DOT}]`
+      )
+      resourceRegexCache.set(cacheKey, startsWithMetadataName)
+    }
     const resourceFiles = allStaticResources.filter((file: string) =>
-      startsWithMetadataName.test(file)
+      startsWithMetadataName!.test(file)
     )
     for (const resourceFile of resourceFiles) {
       this._collectCopy(copies, resourceFile)

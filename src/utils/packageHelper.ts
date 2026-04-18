@@ -1,5 +1,5 @@
 'use strict'
-import { XMLBuilder } from 'fast-xml-parser'
+import XMLBuilder from 'fast-xml-builder'
 
 import { OBJECT_TYPE } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
@@ -8,6 +8,10 @@ import { log } from './LoggingDecorator.js'
 import { ATTRIBUTE_PREFIX, XML_HEADER_ATTRIBUTE_KEY } from './xmlHelper.js'
 
 const frLocale = 'fr'
+const collator = new Intl.Collator(frLocale)
+// processEntities is false to mirror xmlHelper: values flowing through this
+// builder are metadata type/member strings that never contain XML entities,
+// so re-encoding is a no-op at best and a double-encode risk at worst.
 const xmlBuilder = new XMLBuilder({
   ignoreAttributes: false,
   format: true,
@@ -26,7 +30,7 @@ export default class PackageBuilder {
       .sort(this._sortTypesWithMetadata)
       .map(metadataType => ({
         members: [...strucDiffPerType.get(metadataType)!].sort(
-          Intl.Collator(frLocale).compare
+          collator.compare
         ),
         name: metadataType,
       }))
@@ -51,6 +55,6 @@ export default class PackageBuilder {
     // Deployments fail if dependent objects aren't deployed before their children.
     // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#customobject-ordering
     if (x === OBJECT_TYPE) return -1 // @deprecated To remove when the order will not impact the result of the deployment
-    return new Intl.Collator(frLocale).compare(x, y)
+    return collator.compare(x, y)
   }
 }
