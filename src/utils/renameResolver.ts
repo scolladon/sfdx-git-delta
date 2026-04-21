@@ -6,6 +6,7 @@ import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import TypeHandlerFactory from '../service/typeHandlerFactory.js'
 import type { Work } from '../types/work.js'
 import type ChangeSet from './changeSet.js'
+import { getErrorMessage } from './errorUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import type { RenamePathPair } from './repoGitDiff.js'
@@ -55,8 +56,8 @@ export default class RenameResolver {
       if (from.member === to.member) return null
       return { type: from.type, from: from.member, to: to.member }
     } catch (error) {
-      Logger.debug(
-        lazy`RenameResolver._resolve: skipping ${pair.fromPath} -> ${pair.toPath}: ${error}`
+      Logger.warn(
+        lazy`RenameResolver._resolve: skipping ${pair.fromPath} -> ${pair.toPath}: ${() => getErrorMessage(error)}`
       )
       return null
     }

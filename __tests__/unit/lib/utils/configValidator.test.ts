@@ -663,5 +663,28 @@ describe('Given a ConfigValidator', () => {
         })
       )
     })
+
+    it('Given stat rejects with a non-Error value (e.g. a string), When validating, Then the code guard short-circuits to undefined and a ChangesManifestStatFailed error is raised', async () => {
+      // Arrange — `unknown`-discipline coverage: our narrowing must gracefully
+      // handle a promise rejection where the thrown value is not an Error
+      // instance (exotic Node/userland throws, polyfill quirks).
+      mockedStat.mockRejectedValueOnce('not-an-error' as unknown as Error)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'weird.json',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ChangesManifestStatFailed'),
+        })
+      )
+    })
   })
 })

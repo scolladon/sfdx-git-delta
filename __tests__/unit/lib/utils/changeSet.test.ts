@@ -117,6 +117,25 @@ describe('ChangeSet', () => {
   })
 
   describe('ChangeSet.from factory', () => {
+    it('Given a ManifestElement with changeKind=Rename, When constructing via from, Then the element is skipped defensively (renames must come via recordRename, not via ManifestElement)', () => {
+      // Arrange
+      const elements = [
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'Ghost',
+          changeKind: ChangeKind.Rename,
+        },
+      ]
+
+      // Act
+      const sut = ChangeSet.from(elements)
+
+      // Assert
+      expect(sut.forPackageManifest().size).toBe(0)
+      expect(sut.byChangeKind()[ChangeKind.Rename].size).toBe(0)
+    })
+
     it('Given ManifestElements, When constructing via from, Then each element lands in its declared kind bucket', () => {
       // Arrange
       const elements = [

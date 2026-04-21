@@ -92,16 +92,16 @@ flowchart LR
 
 **Entry**: `RepoGitDiff.getLines()` (`src/utils/repoGitDiff.ts`)
 
-Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags:
+Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags. Both paths enable `-M` rename detection and emit `R<score>\tfrom\tto` lines (or their numstat equivalent) which `RepoGitDiff._expandRenames` splits into synthetic `A`/`D` lines while recording each `{fromPath, toPath}` pair for `RenameResolver` to resolve later.
 
-- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status --no-renames --diff-filter=AMD`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, or `D`. `--no-renames` decomposes renames into an add/delete pair instead of an `R` line.
-- **Whitespace-ignore path**: three parallel `git diff --numstat --no-renames --diff-filter=X` calls (A, M, D) with `--ignore-all-space --ignore-blank-lines --ignore-cr-at-eol --word-diff-regex=|[^[:space:]]`. Only `--numstat` computes a real content diff under these flags; `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs. The numstat line prefix (`<added>\t<deleted>\t`) is rewritten to `<STATUS>\t` so the downstream format is identical to the default path.
+- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status -M --diff-filter=AMDR`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, `D`, or `R<score>`.
+- **Whitespace-ignore path**: four parallel `git diff --numstat` calls with `-M` and the whitespace flags. Three calls use `--diff-filter=A|M|D`, plus a dedicated `--diff-filter=R -z` call — `-z` sidesteps numstat's brace/arrow rename-path encoding by emitting `<added>\t<deleted>\t\0<src>\0<dst>\0`. Only `--numstat` computes a real content diff under the whitespace flags; `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs. Synthetic R lines from the `-z` output are prefixed `R\t` to match the default-path format.
 
 Then:
 
 1. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
 2. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
-3. Detects renames: paths where the fully-qualified name (case-insensitive) appears in both the deletion and addition sets have their deletion suppressed — a rename manifests only as an addition
+3. The legacy `_getRenamedElements` FQN match is preserved as a safety net for file-move-same-component cases (different file paths resolving to the same Salesforce component); the deletion side is dropped so the component appears only as an addition. True component renames (different FQNs) surface via git `-M`.
 
 ### Ignore System
 

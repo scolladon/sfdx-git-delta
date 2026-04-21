@@ -97,7 +97,13 @@ export default class ConfigValidator {
         ]
       }
     } catch (error: unknown) {
-      const code = (error as NodeJS.ErrnoException).code
+      // fs/promises stat always rejects with ErrnoException; narrow through
+      // an `instanceof Error` guard to keep `unknown` discipline, then read
+      // the POSIX code to distinguish "doesn't exist yet" from real failures.
+      const code =
+        error instanceof Error
+          ? (error as NodeJS.ErrnoException).code
+          : undefined
       if (code !== 'ENOENT') {
         return [
           this.message.getMessage('error.ChangesManifestStatFailed', [
