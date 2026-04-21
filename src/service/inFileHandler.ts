@@ -4,7 +4,11 @@ import { basename } from 'node:path/posix'
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
 import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
-import { emptyResult, ManifestTarget } from '../types/handlerResult.js'
+import {
+  ChangeKind,
+  emptyResult,
+  ManifestTarget,
+} from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
@@ -43,18 +47,26 @@ export default class InFileHandler extends StandardHandler {
   protected async _collectCompareResult(): Promise<HandlerResult> {
     try {
       const result = emptyResult()
-      const { added, deleted, toContent, fromContent } =
+      const { added, modified, deleted, toContent, fromContent } =
         await this.metadataDiff.compare(this.element.basePath)
 
       this._collectManifestFromComparison(
         result.manifests,
         ManifestTarget.DestructiveChanges,
+        ChangeKind.Delete,
         deleted
       )
       this._collectManifestFromComparison(
         result.manifests,
         ManifestTarget.Package,
+        ChangeKind.Add,
         added
+      )
+      this._collectManifestFromComparison(
+        result.manifests,
+        ManifestTarget.Package,
+        ChangeKind.Modify,
+        modified
       )
 
       const { xmlContent, isEmpty } = this.metadataDiff.prune(
@@ -101,6 +113,7 @@ export default class InFileHandler extends StandardHandler {
   protected _collectManifestFromComparison(
     manifests: ManifestElement[],
     target: ManifestTarget,
+    changeKind: ChangeKind,
     entries: { type: string; member: string }[]
   ): void {
     for (const { type, member } of entries) {
@@ -109,6 +122,7 @@ export default class InFileHandler extends StandardHandler {
           target,
           type,
           member: `${this._getQualifiedName()}${member}`,
+          changeKind,
         })
       }
     }

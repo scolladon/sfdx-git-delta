@@ -12,6 +12,7 @@ import {
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import {
+  ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
@@ -59,6 +60,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   protected readonly translations: Map<string, FlowDefinition[]>
   protected ignoreHelper: IgnoreHelper | undefined
   protected isOutputEqualsToRepo: boolean | undefined
+  protected packagedFlows: Set<string> = new Set()
 
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
@@ -85,6 +87,13 @@ export default class FlowTranslationProcessor extends BaseProcessor {
 
   async _buildFlowDefinitionsMap() {
     this.translations.clear()
+    // Cache the package-flow set once per process() invocation — avoids
+    // re-computing the union-view of ChangeSet for every parsed flow.
+    // _shouldProcess() has already checked has(FLOW_XML_NAME), so get cannot
+    // return undefined here.
+    this.packagedFlows = this.work.changes
+      .forPackageManifest()
+      .get(FLOW_XML_NAME)!
 
     const pathspecs = this.config.source.map(
       s => `${s}/*${EXTENSION}${METAFILE_SUFFIX}`
@@ -125,6 +134,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
         target: ManifestTarget.Package,
         type: TRANSLATION_TYPE,
         member: getTranslationName(translationPath),
+        changeKind: ChangeKind.Modify,
       })
       if (this.config.generateDelta) {
         const jsonTranslation =
@@ -186,9 +196,8 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     translationPath: string
     flowDefinition: FlowDefinition
   }) {
-    const packagedElements = this.work.diffs.package.get(FLOW_XML_NAME)
     const fullName = flowDefinition?.fullName
-    if (fullName && packagedElements?.has(fullName)) {
+    if (fullName && this.packagedFlows.has(fullName)) {
       if (!this.translations.has(translationPath)) {
         this.translations.set(translationPath, [])
       }
@@ -215,6 +224,6 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected _shouldProcess() {
-    return this.work.diffs.package.has(FLOW_XML_NAME)
+    return this.work.changes.forPackageManifest().has(FLOW_XML_NAME)
   }
 }

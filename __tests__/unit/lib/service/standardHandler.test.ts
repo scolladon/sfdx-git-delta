@@ -13,6 +13,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import StandardHandler from '../../../../src/service/standardHandler'
 import {
+  ChangeKind,
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
@@ -75,6 +76,7 @@ describe(`StandardHandler`, () => {
         target: ManifestTarget.Package,
         type: classType.xmlName,
         member: entity,
+        changeKind: ChangeKind.Add,
       })
       expect(result.copies).toEqual(
         expect.arrayContaining([
@@ -127,6 +129,7 @@ describe(`StandardHandler`, () => {
         target: ManifestTarget.DestructiveChanges,
         type: classType.xmlName,
         member: entity,
+        changeKind: ChangeKind.Delete,
       })
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])

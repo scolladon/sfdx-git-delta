@@ -44,6 +44,7 @@ type CompareEntry = Pick<ManifestElement, 'type' | 'member'>
 
 interface CompareResult {
   added: CompareEntry[]
+  modified: CompareEntry[]
   deleted: CompareEntry[]
   toContent: XmlContent
   fromContent: XmlContent
@@ -81,10 +82,11 @@ export default class MetadataDiff {
       toContent
     )
 
-    const added = comparator.getChanges()
+    const added = comparator.getAdded()
+    const modified = comparator.getModified()
     const deleted = comparator.getDeletion()
 
-    return { added, deleted, toContent, fromContent }
+    return { added, modified, deleted, toContent, fromContent }
   }
 
   @log
@@ -161,8 +163,12 @@ class MetadataComparator {
     private toContent: XmlContent
   ) {}
 
-  getChanges() {
-    return this.compare(this.toContent, this.fromContent, this.matchAdded)
+  getAdded() {
+    return this.compare(this.toContent, this.fromContent, this.matchTrulyAdded)
+  }
+
+  getModified() {
+    return this.compare(this.toContent, this.fromContent, this.matchModified)
   }
 
   getDeletion() {
@@ -212,16 +218,30 @@ class MetadataComparator {
     return entries
   }
 
-  // O(1) lookup instead of O(n) find()
-  private matchAdded = (
+  // Truly added: element not present in the opposite content by key
+  private matchTrulyAdded = (
     targetLookup: Map<string, XmlContent>,
     keySelector: KeySelectorFn,
     elem: XmlContent
   ) => {
     const elemKey = keySelector(elem)
-    if (elemKey === undefined) return true
+    // Keyless elements cannot be identified as pre-existing — bucket as modified
+    if (elemKey === undefined) return false
+    return !targetLookup.has(elemKey)
+  }
+
+  // Modified: element present in opposite content by key but with different content.
+  // Keyless elements are skipped — they lack identity, so emitting them under a
+  // keyed bucket would produce `member: undefined` entries in the changes manifest.
+  private matchModified = (
+    targetLookup: Map<string, XmlContent>,
+    keySelector: KeySelectorFn,
+    elem: XmlContent
+  ) => {
+    const elemKey = keySelector(elem)
+    if (elemKey === undefined) return false
     const match = targetLookup.get(elemKey)
-    return !match || !deepEqual(match, elem)
+    return !!match && !deepEqual(match, elem)
   }
 
   // O(1) lookup instead of O(n) some()

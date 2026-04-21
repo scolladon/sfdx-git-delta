@@ -41,9 +41,7 @@ export default class ReportingFolderHandler extends InFolderHandler {
     this._collectCopyWithMetaFile(copies, join(folderPath, folderFileName))
   }
 
-  protected override _collectManifestElement(
-    target: ManifestTarget
-  ): ManifestElement {
+  public override getElementDescriptor(): { type: string; member: string } {
     /* v8 ignore next 5 -- collectAddition/Deletion guard ensures resolvedType is set */
     if (!this.resolvedType) {
       throw new Error(
@@ -51,9 +49,18 @@ export default class ReportingFolderHandler extends InFolderHandler {
       )
     }
     return {
-      target,
       type: this.resolvedType,
       member: this._getElementName(),
+    }
+  }
+
+  protected override _collectManifestElement(
+    target: ManifestTarget
+  ): ManifestElement {
+    return {
+      target,
+      ...this.getElementDescriptor(),
+      changeKind: this._getChangeKind(),
     }
   }
 }

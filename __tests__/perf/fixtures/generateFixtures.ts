@@ -4,10 +4,17 @@ import {
   MODIFICATION,
 } from '../../../src/constant/gitConstants.js'
 import {
+  ChangeKind,
   CopyOperationKind,
   type HandlerResult,
   ManifestTarget,
 } from '../../../src/types/handlerResult.js'
+
+const CHANGE_KIND_BY_GIT: Record<string, ChangeKind> = {
+  [ADDITION]: ChangeKind.Add,
+  [MODIFICATION]: ChangeKind.Modify,
+  [DELETION]: ChangeKind.Delete,
+}
 
 type FixtureSize = 'small' | 'medium' | 'large'
 
@@ -110,10 +117,16 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
   const copies = []
 
   for (let i = 0; i < config.classes; i++) {
+    const gitType =
+      i % 3 === 0 ? ADDITION : i % 3 === 1 ? MODIFICATION : DELETION
     manifests.push({
       type: 'ApexClass',
       member: `MyClass${pad(i)}`,
-      target: ManifestTarget.Package,
+      target:
+        gitType === DELETION
+          ? ManifestTarget.DestructiveChanges
+          : ManifestTarget.Package,
+      changeKind: CHANGE_KIND_BY_GIT[gitType]!,
     })
     copies.push({
       source: `force-app/main/default/classes/MyClass${pad(i)}.cls`,
@@ -127,6 +140,7 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
       type: 'ApexTrigger',
       member: `MyTrigger${pad(i)}`,
       target: ManifestTarget.Package,
+      changeKind: ChangeKind.Add,
     })
   }
 
@@ -135,6 +149,7 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
       type: 'LightningComponentBundle',
       member: `myComponent${pad(i)}`,
       target: ManifestTarget.Package,
+      changeKind: ChangeKind.Modify,
     })
   }
 
@@ -143,11 +158,13 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
       type: 'CustomObject',
       member: `CustomObj${pad(i)}__c`,
       target: ManifestTarget.Package,
+      changeKind: ChangeKind.Modify,
     })
     manifests.push({
       type: 'CustomField',
       member: `CustomObj${pad(i)}__c.NewField__c`,
       target: ManifestTarget.Package,
+      changeKind: ChangeKind.Add,
     })
   }
 
@@ -157,6 +174,7 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
       type: 'ApexClass',
       member: `DeletedClass${pad(i)}`,
       target: ManifestTarget.DestructiveChanges,
+      changeKind: ChangeKind.Delete,
     })
   }
 

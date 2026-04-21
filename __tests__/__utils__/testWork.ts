@@ -1,11 +1,9 @@
 'use strict'
 import type { Work } from '../../src/types/work'
+import ChangeSet from '../../src/utils/changeSet'
 
 export const getWork = (): Work => ({
-  diffs: {
-    package: new Map<string, Set<string>>(),
-    destructiveChanges: new Map<string, Set<string>>(),
-  },
+  changes: new ChangeSet(),
   config: {
     source: ['./'],
     output: 'output',

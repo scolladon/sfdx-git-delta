@@ -21,9 +21,7 @@ export default class SharedFolderHandler extends StandardHandler {
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 
-  protected override _collectManifestElement(
-    target: ManifestTarget
-  ): ManifestElement {
+  public override getElementDescriptor(): { type: string; member: string } {
     /* v8 ignore next 5 -- collectAddition/Deletion guard ensures resolvedType is set */
     if (!this.resolvedType) {
       throw new Error(
@@ -31,9 +29,18 @@ export default class SharedFolderHandler extends StandardHandler {
       )
     }
     return {
-      target,
       type: this.resolvedType,
       member: this._getElementName(),
+    }
+  }
+
+  protected override _collectManifestElement(
+    target: ManifestTarget
+  ): ManifestElement {
+    return {
+      target,
+      ...this.getElementDescriptor(),
+      changeKind: this._getChangeKind(),
     }
   }
 

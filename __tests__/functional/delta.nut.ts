@@ -109,4 +109,15 @@ describe('sgd source delta NUTS', () => {
     // Assert
     expect(sut).toContain('No file found')
   })
+
+  it('Given --changes-manifest flag, When running command, Then accepts the flag and completes successfully', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --changes-manifest /tmp/sgd-nut-changes.json --json',
+      0
+    )
+
+    // Assert
+    expect(sut).toContain('output-dir')
+  })
 })

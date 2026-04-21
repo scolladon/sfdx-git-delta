@@ -89,6 +89,7 @@ describe('inFileHandler', () => {
       mockCompare.mockImplementation(() =>
         Promise.resolve({
           added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
           deleted: [],
         })
       )
@@ -136,6 +137,7 @@ describe('inFileHandler', () => {
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: [{ type: 'ValueTranslation', member: 'Three' }],
+              modified: [],
               deleted: [],
             })
           )
@@ -184,6 +186,7 @@ describe('inFileHandler', () => {
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: [],
+              modified: [],
               deleted: [],
             })
           )
@@ -237,6 +240,7 @@ describe('inFileHandler', () => {
         mockCompare.mockImplementation(() =>
           Promise.resolve({
             added: [{ type: 'WorkflowAlert', member: 'test' }],
+            modified: [],
             deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
           })
         )
@@ -291,6 +295,7 @@ describe('inFileHandler', () => {
         mockCompare.mockImplementation(() =>
           Promise.resolve({
             added: [],
+            modified: [],
             deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
           })
         )
@@ -343,6 +348,7 @@ describe('inFileHandler', () => {
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: [],
+              modified: [],
               deleted: [],
             })
           )
@@ -375,6 +381,7 @@ describe('inFileHandler', () => {
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: [],
+              modified: [],
               deleted: [{ type: 'Workflow', member: 'Deleted' }],
             })
           )
@@ -424,6 +431,7 @@ describe('inFileHandler', () => {
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: [{ type: 'ValueTranslation', member: 'Three' }],
+              modified: [],
               deleted: [],
             })
           )
@@ -476,6 +484,7 @@ describe('inFileHandler', () => {
           mockCompare.mockImplementation(() =>
             Promise.resolve({
               added: [],
+              modified: [],
               deleted: [],
             })
           )
@@ -527,6 +536,7 @@ describe('inFileHandler', () => {
       mockCompare.mockImplementation(() =>
         Promise.resolve({
           added: [],
+          modified: [],
           deleted: [{ type: 'WorkflowAlert', member: 'test' }],
         })
       )
@@ -627,6 +637,7 @@ describe('inFileHandler collect', () => {
     mockCompare.mockImplementation(() =>
       Promise.resolve({
         added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        modified: [],
         deleted: [],
       })
     )
@@ -667,6 +678,7 @@ describe('inFileHandler collect', () => {
     mockCompare.mockImplementation(() =>
       Promise.resolve({
         added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        modified: [],
         deleted: [],
       })
     )
@@ -727,6 +739,7 @@ describe('inFileHandler collect', () => {
     mockCompare.mockImplementation(() =>
       Promise.resolve({
         added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        modified: [],
         deleted: [],
       })
     )
@@ -754,6 +767,7 @@ describe('inFileHandler collect', () => {
     mockCompare.mockImplementation(() =>
       Promise.resolve({
         added: [{ type: 'WorkflowAlert', member: 'added' }],
+        modified: [],
         deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
       })
     )

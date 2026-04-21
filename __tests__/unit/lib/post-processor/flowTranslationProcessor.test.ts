@@ -10,6 +10,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import {
+  ChangeKind,
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
@@ -125,7 +126,7 @@ describe('FlowTranslationProcessor', () => {
     describe('when flow have been modified', () => {
       beforeEach(() => {
         // Arrange
-        work.diffs.package = new Map([[FLOW_XML_NAME, new Set([flowFullName])]])
+        work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
         mockedParseXmlFileToJson.mockResolvedValue({
           Translations: { flowDefinitions: { fullName: flowFullName } },
         })
@@ -209,10 +210,8 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is already a translation with flow definition related to a flow', () => {
         beforeEach(() => {
           // Arrange
-          work.diffs.package = new Map([
-            [TRANSLATION_TYPE, new Set([FR])],
-            [FLOW_XML_NAME, new Set([flowFullName])],
-          ])
+          work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
+          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
           mockedPathExists.mockResolvedValue(true as never)
           mockedReadFile.mockResolvedValue(
             `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
@@ -247,10 +246,8 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is no copied flowTranslation changed already for the flow', () => {
         beforeEach(() => {
           // Arrange
-          work.diffs.package = new Map([
-            //[TRANSLATION_TYPE, new Set([FR])],
-            [FLOW_XML_NAME, new Set([flowFullName])],
-          ])
+          // Note: TRANSLATION_TYPE / FR deliberately not added here
+          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
           mockedPathExists.mockResolvedValue(true as never)
           mockedReadFile.mockResolvedValue(
             `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
@@ -329,9 +326,8 @@ describe('FlowTranslationProcessor', () => {
                   ],
                 },
               })
-              work.diffs.package = new Map([
-                [FLOW_XML_NAME, new Set([flowFullName, 'otherFlow'])],
-              ])
+              work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+              work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, 'otherFlow')
               work.config.generateDelta = generateDelta
             })
             it('should add translation', async () => {
@@ -394,9 +390,7 @@ describe('FlowTranslationProcessor', () => {
       describe('when translation files are not ignored', () => {
         beforeEach(() => {
           // Arrange
-          work.diffs.package = new Map([
-            [FLOW_XML_NAME, new Set([flowFullName])],
-          ])
+          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
           work.config.ignore = '.forceignore'
           mockIgnores.mockReturnValue(false)
         })

@@ -723,8 +723,8 @@ describe('GitAdapter', () => {
         expect.arrayContaining([
           'diff',
           '--name-status',
-          '--no-renames',
-          '--diff-filter=AMD',
+          '-M',
+          '--diff-filter=AMDR',
         ])
       )
     })
@@ -762,26 +762,39 @@ describe('GitAdapter', () => {
     })
 
     describe('Given ignoreWhitespace is enabled', () => {
-      it('When getDiffLines, Then falls back to three parallel numstat calls with whitespace params and normalises prefixes to A/M/D', async () => {
+      it('When getDiffLines, Then falls back to four numstat calls with whitespace params and -M, covering A/M/D plus an R filter parsed from -z output', async () => {
         // Arrange — name-status does not honour --ignore-all-space, so the
-        // adapter must issue per-filter numstat calls instead.
+        // adapter must issue per-filter numstat calls instead. With -M on
+        // A/M/D, renames drop out of those filters and come in via the 4th
+        // R-filter call whose -z output encodes paths null-separated.
         config.ignoreWhitespace = true
         const gitAdapter = GitAdapter.getInstance(config)
         mockedRaw
           .mockResolvedValueOnce('8\t0\ttest' as never) // ADDITION
           .mockResolvedValueOnce('3\t2\tfile' as never) // MODIFICATION
           .mockResolvedValueOnce('' as never) // DELETION empty
+          .mockResolvedValueOnce(
+            '1\t1\t\0classes/OldName.cls\0classes/NewName.cls\0' as never
+          ) // RENAME (-z numstat format)
 
         // Act
         const result = await gitAdapter.getDiffLines()
 
         // Assert
-        expect(result).toEqual(['A\ttest', 'M\tfile'])
-        expect(mockedRaw).toHaveBeenCalledTimes(3)
+        expect(result).toEqual([
+          'A\ttest',
+          'M\tfile',
+          'R\tclasses/OldName.cls\tclasses/NewName.cls',
+        ])
+        expect(mockedRaw).toHaveBeenCalledTimes(4)
         for (let i = 1; i <= 3; i++) {
           expect(mockedRaw).toHaveBeenNthCalledWith(
             i,
-            expect.arrayContaining(['--numstat', ...IGNORE_WHITESPACE_PARAMS])
+            expect.arrayContaining([
+              '--numstat',
+              '-M',
+              ...IGNORE_WHITESPACE_PARAMS,
+            ])
           )
         }
         expect(mockedRaw).toHaveBeenNthCalledWith(
@@ -796,6 +809,27 @@ describe('GitAdapter', () => {
           3,
           expect.arrayContaining(['--diff-filter=D'])
         )
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          4,
+          expect.arrayContaining(['--numstat', '-M', '-z', '--diff-filter=R'])
+        )
+      })
+
+      it('When a -z R-output token triplet has an empty src or dst, When getDiffLines, Then it is skipped safely', async () => {
+        // Arrange — extra defensive-parse coverage for malformed -z records.
+        config.ignoreWhitespace = true
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedRaw
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('1\t1\t\0\0\0' as never)
+
+        // Act
+        const result = await gitAdapter.getDiffLines()
+
+        // Assert
+        expect(result).toEqual([])
       })
 
       it('When a whitespace-only modification is present, Then numstat reports 0/0 and it is dropped by the empty-line filter', async () => {

@@ -338,7 +338,7 @@ After handlers produce their results, post-processors run in two phases:
 
 ```mermaid
 flowchart TD
-    HR["Handler Results"] --> A["aggregateManifests()"]
+    HR["Handler Results"] --> A["ChangeSet.from()"]
     A --> C["Collectors phase<br/>(transformAndCollect)"]
     C --> M["Merge + re-aggregate"]
     M --> IO["I/O Execution"]
@@ -351,11 +351,13 @@ flowchart TD
 
     subgraph Processors
         PG["PackageGenerator"]
+        CM["ChangesManifestProcessor"]
     end
 
     C --> FT
     C --> IP
     P --> PG
+    P --> CM
 ```
 
 ### Two-Phase Execution
@@ -365,11 +367,30 @@ flowchart TD
 - **FlowTranslationProcessor**: when Flows are being deployed, uses `git grep` with pathspec globs (`<source>/*<extension><metaFileSuffix>`) to find `.translation-meta.xml` files containing `flowDefinitions` elements matching deployed flows. This avoids requiring the tree index. Produces pruned translation files as computed content.
 - **IncludeProcessor**: handles `--include` and `--include-destructive` flags. Lists all files in source directories, filters through include patterns, then processes matching lines through `DiffLineInterpreter` as synthetic additions/deletions.
 
-**Processors** (`isCollector = false`) run last via `executeRemaining()`:
+**Processors** (`isCollector = false`) run last via `executeRemaining()`, in registration order:
 
-- **PackageGenerator**: the final step. Deduplicates manifests (removes entries from `destructiveChanges` that also appear in `package`), then writes `package.xml`, `destructiveChanges.xml`, and the required companion empty `package.xml` for destructive deployments.
+- **PackageGenerator**: writes `package.xml` (from `ChangeSet.forPackageManifest()`), `destructiveChanges.xml` (from `ChangeSet.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
+- **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serialises `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`; `rename` is reserved for a future iteration). Powered by the `changeKind` field carried on every `ManifestElement`.
 
 Each processor is wrapped in error isolation — failures produce warnings rather than crashing the pipeline.
+
+### Change-kind pipeline
+
+Every `ManifestElement` produced by a handler is tagged with a `ChangeKind`. This tag is set at three sites:
+
+- **`StandardHandler._collectManifestElement`** derives the kind from the git change type (`A` → `add`, `M` → `modify`, `D` → `delete`) via the `CHANGE_KIND_BY_GIT_TYPE` map. All handlers using the default manifest builder inherit this.
+- **`InFileHandler._collectManifestFromComparison`** takes the kind as a parameter so sub-elements get the correct label from `MetadataDiff.compare()` — which returns three disjoint buckets: `added` (key absent in `from`), `modified` (key present but content differs), `deleted` (key absent in `to`). The keyless-element case is bucketed as modified.
+- **Direct constructors** (`BotHandler`, `FlowTranslationProcessor`) stamp the kind explicitly at their push site.
+
+`ChangeSet.from(manifests)` is the single ingestion point — every tagged element lands in its declared `ChangeKind` bucket. All downstream views are pure projections:
+
+- `forPackageManifest()` — union of Add + Modify + rename-target per type (used by `PackageGenerator`, `FlowTranslationProcessor`).
+- `forDestructiveManifest()` — Delete ∪ rename-source, minus anything that winds up in the package view (drops cancelled deletions and covers rename semantics in a single coalesce).
+- `byChangeKind()` — per-kind record. Rename participants are removed from the add/delete buckets so every emitted entry lives in exactly one user-visible bucket; the `rename` bucket contains `{from, to}` pairs deduplicated per type.
+
+Rename detection uses git's `-M` flag. `RepoGitDiff` splits each `R<score>\tfrom\tto` line into a synthetic `D\tfrom` + `A\tto` pair so the existing handler pipeline processes them normally, while capturing the pair. `RenameResolver` resolves each pair's paths back through `TypeHandlerFactory` to recover `(type, from-member, to-member)` — bundle renames re-emitted per file collapse to a single entry via the Map-keyed `recordRename` dedup.
+
+Package.xml remains byte-identical to the pre-feature output because `InFileHandler` still routes both `added` and `modified` sub-elements to `ManifestTarget.Package`; the ChangeSet merely tags them differently.
 
 ---
 

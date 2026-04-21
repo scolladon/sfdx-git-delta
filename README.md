@@ -149,7 +149,7 @@ Generate incremental package manifest and source content
 ```
 USAGE
   $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
-    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-M <value>] [-W] [-a <value>]
+    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-M <value>] [-c <value>] [-W] [-a <value>]
 
 FLAGS
   -D, --ignore-destructive-file=<value>       file listing paths to explicitly ignore for any destructive actions
@@ -158,6 +158,8 @@ FLAGS
   -W, --ignore-whitespace                     ignore git diff whitespace (space, tab, eol) changes
   -a, --api-version=<value>                   salesforce metadata API version, default to sfdx-project.json
                                               "sourceApiVersion" attribute or latest version
+  -c, --changes-manifest=<value>              path to a JSON file grouping changed components by kind (add, modify,
+                                              delete)
   -d, --generate-delta                        generate delta files in [--output-dir] folder
   -f, --from=<value>                          (required) commit sha from where the diff is done
   -i, --ignore-file=<value>                   file listing paths to explicitly ignore for any diff actions
@@ -517,6 +519,37 @@ Depending on your testing strategy, [you may want to generate a comma-separated 
 To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
 
 `xq . < package/package.xml | jq '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(",")'`
+
+### Review-centric: list components by change kind
+
+Package managers (1GP, unlocked, managed) and release reviewers often need to distinguish **newly added** components from **modified** ones — adding a new component to a managed package is a 1-way door that binds all subscribers. SGD groups `git diff` into Salesforce components, but its `package.xml` bundles additions and modifications together (as required for deployment).
+
+Use `--changes-manifest [-c]` to emit an additional JSON file that groups components by change kind. The file is written alongside `package.xml` / `destructiveChanges.xml` (no changes to the deployment manifests themselves).
+
+Two forms:
+
+```sh
+# Bare flag: writes to <output-dir>/changes.manifest.json
+sf sgd source delta --from "origin/development" --to HEAD --output-dir incremental --changes-manifest
+
+# Explicit path: resolved against cwd (or used as-is when absolute), same as --ignore-file
+sf sgd source delta --from "origin/development" --to HEAD --changes-manifest reports/changes.json
+```
+
+Produces (bare form example) `incremental/changes.manifest.json`. Rename detection is enabled by default via git's `-M` similarity match, so components renamed at the file level show up in their own bucket instead of being split into a fake delete+add pair:
+
+```json
+{
+  "add":    { "ApexClass": ["BrandNewClass"], "CustomObject": ["NewObject__c"] },
+  "modify": { "ApexClass": ["ExistingClass"], "CustomLabels": ["MyApp.Label1"] },
+  "delete": { "ApexTrigger": ["OldTrigger"] },
+  "rename": { "ApexClass": [{ "from": "OldName", "to": "NewName" }] }
+}
+```
+
+`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged.
+
+Works for file-backed metadata, in-file sub-components (CustomLabels members, Workflow rules, etc.), decomposed metadata, in-resource bundles and in-folder metadata.
 
 ### Condition deployment on package.xml and destructiveChange content
 

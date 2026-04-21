@@ -5,6 +5,13 @@ export enum ManifestTarget {
   DestructiveChanges = 'destructiveChanges',
 }
 
+export enum ChangeKind {
+  Add = 'add',
+  Modify = 'modify',
+  Delete = 'delete',
+  Rename = 'rename',
+}
+
 export enum CopyOperationKind {
   GitCopy = 'gitCopy',
   GitDirCopy = 'gitDirCopy',
@@ -15,6 +22,7 @@ export type ManifestElement = {
   target: ManifestTarget
   type: string
   member: string
+  changeKind: ChangeKind
 }
 
 export type GitCopyOperation = {

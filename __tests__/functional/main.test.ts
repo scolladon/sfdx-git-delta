@@ -5,6 +5,7 @@ import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
 import {
+  ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
@@ -69,6 +70,7 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
       return {
         ...actualModule,
         getLines: mockGetLines,
+        getRenamePairs: () => [],
       }
     }),
   }
@@ -162,14 +164,14 @@ describe('external library inclusion', () => {
   })
 
   describe('orchestration flow', () => {
-    it('Given valid config, When sgd runs, Then returns work with diffs and empty warnings', async () => {
+    it('Given valid config, When sgd runs, Then returns work with an initialised ChangeSet and empty warnings', async () => {
       // Act
       const result = await sgd({} as Config)
 
       // Assert
-      expect(result.diffs).toBeDefined()
-      expect(result.diffs.package).toBeInstanceOf(Map)
-      expect(result.diffs.destructiveChanges).toBeInstanceOf(Map)
+      expect(result.changes).toBeDefined()
+      expect(result.changes.forPackageManifest()).toBeInstanceOf(Map)
+      expect(result.changes.forDestructiveManifest()).toBeInstanceOf(Map)
       expect(result.warnings).toEqual([])
     })
 
@@ -203,6 +205,7 @@ describe('external library inclusion', () => {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'TestClass',
+            changeKind: ChangeKind.Add,
           },
         ],
         copies: [],
@@ -213,7 +216,7 @@ describe('external library inclusion', () => {
       const result = await sgd({} as Config)
 
       // Assert
-      expect(result.diffs.package.has('ApexClass')).toBe(true)
+      expect(result.changes.forPackageManifest().has('ApexClass')).toBe(true)
       expect(mockExecuteRemaining).toHaveBeenCalledTimes(1)
     })
 

@@ -1,3 +1,5 @@
+import { stat } from 'node:fs/promises'
+
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Work } from '../../../../src/types/work'
@@ -18,6 +20,12 @@ const {
   mockConfigureRepository: vi.fn(),
   mockSfProjectResolve: vi.fn(),
 }))
+
+vi.mock('node:fs/promises', async importOriginal => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  return { ...actual, stat: vi.fn() }
+})
+const mockedStat = vi.mocked(stat)
 
 vi.mock('@salesforce/source-deploy-retrieve', () => {
   return {
@@ -547,6 +555,111 @@ describe('Given a ConfigValidator', () => {
       await expect(sut.validateConfig()).rejects.toThrow(
         expect.objectContaining({
           message: expect.stringContaining('error.ParameterIsNotGitSHA'),
+        })
+      )
+    })
+  })
+
+  describe('changesManifest validation', () => {
+    beforeEach(() => {
+      mockedPathExists.mockResolvedValue(true as never)
+      mockParseRev.mockImplementation(() => Promise.resolve('ref'))
+    })
+
+    it('Given changesManifest is undefined, When validating, Then stat is not called and no error is added', async () => {
+      // Arrange
+      const sut = new ConfigValidator({
+        ...work,
+        config: { ...work.config, to: 'HEAD', from: 'HEAD' },
+      })
+
+      // Act
+      await sut.validateConfig()
+
+      // Assert
+      expect(mockedStat).not.toHaveBeenCalled()
+    })
+
+    it('Given the target path does not exist (ENOENT), When validating, Then no error is added', async () => {
+      // Arrange
+      const notFound = Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
+      mockedStat.mockRejectedValueOnce(notFound)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'will-be-created.json',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+    })
+
+    it('Given the target path exists as a regular file, When validating, Then no error is added', async () => {
+      // Arrange
+      mockedStat.mockResolvedValueOnce({
+        isFile: () => true,
+        isDirectory: () => false,
+      } as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'existing.json',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+    })
+
+    it('Given the target path exists as a directory, When validating, Then a ChangesManifestNotAFile error is raised', async () => {
+      // Arrange
+      mockedStat.mockResolvedValueOnce({
+        isFile: () => false,
+        isDirectory: () => true,
+      } as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'some-dir',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ChangesManifestNotAFile'),
+        })
+      )
+    })
+
+    it('Given stat fails with a non-ENOENT error, When validating, Then a ChangesManifestStatFailed error is raised', async () => {
+      // Arrange
+      const eacces = Object.assign(new Error('EACCES'), { code: 'EACCES' })
+      mockedStat.mockRejectedValueOnce(eacces)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'forbidden.json',
+        },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ChangesManifestStatFailed'),
         })
       )
     })
