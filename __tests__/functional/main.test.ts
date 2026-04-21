@@ -16,6 +16,7 @@ const {
   mockComputeTreeIndexScope,
   mockValidateConfig,
   mockGetLines,
+  mockGetRenamePairs,
   mockProcess,
   mockCollectAll,
   mockExecuteRemaining,
@@ -25,6 +26,8 @@ const {
   mockComputeTreeIndexScope: vi.fn(),
   mockValidateConfig: vi.fn(),
   mockGetLines: vi.fn(),
+  mockGetRenamePairs:
+    vi.fn<() => Array<{ fromPath: string; toPath: string }>>(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockCollectAll: vi.fn<() => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
@@ -70,11 +73,22 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
       return {
         ...actualModule,
         getLines: mockGetLines,
-        getRenamePairs: () => [],
+        getRenamePairs: mockGetRenamePairs,
       }
     }),
   }
 })
+
+// RenameResolver instantiates TypeHandlerFactory and calls getTypeHandler for
+// each rename path. Stub it so tests can control the (type, member)
+// resolution without needing a real metadata registry lookup on synthetic
+// fixture paths.
+const mockGetTypeHandler = vi.hoisted(() => vi.fn())
+vi.mock('../../src/service/typeHandlerFactory', () => ({
+  default: vi.fn().mockImplementation(function () {
+    return { getTypeHandler: mockGetTypeHandler }
+  }),
+}))
 
 vi.mock('../../src/service/diffLineInterpreter', async () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
@@ -117,6 +131,7 @@ beforeEach(() => {
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
   mockGetLines.mockResolvedValue([] as never)
+  mockGetRenamePairs.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
 
@@ -218,6 +233,55 @@ describe('external library inclusion', () => {
       // Assert
       expect(result.changes.forPackageManifest().has('ApexClass')).toBe(true)
       expect(mockExecuteRemaining).toHaveBeenCalledTimes(1)
+    })
+
+    it('Given a rename pair, When sgd runs, Then RenameResolver records the pair on the final work.changes', async () => {
+      // Arrange — emulate RepoGitDiff surfacing one rename pair after the
+      // handler pipeline has added both synthetic A/D manifest elements.
+      mockGetRenamePairs.mockReturnValueOnce([
+        { fromPath: 'old/Foo.cls', toPath: 'new/Bar.cls' },
+      ])
+      mockGetTypeHandler
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Foo' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Bar' }),
+        })
+      mockProcess.mockResolvedValueOnce({
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Bar',
+            changeKind: ChangeKind.Add,
+          },
+          {
+            target: ManifestTarget.DestructiveChanges,
+            type: 'ApexClass',
+            member: 'Foo',
+            changeKind: ChangeKind.Delete,
+          },
+        ],
+        copies: [],
+        warnings: [],
+      })
+
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert
+      const rename = result.changes
+        .byChangeKind()
+        [ChangeKind.Rename].get('ApexClass')!
+      expect([...rename.values()]).toEqual([{ from: 'Foo', to: 'Bar' }])
+      // Add/Delete views exclude rename participants
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Add].has('ApexClass')
+      ).toBe(false)
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Delete].has('ApexClass')
+      ).toBe(false)
     })
 
     it('Given handler and post-processor produce warnings, When sgd runs, Then warnings are collected in work', async () => {

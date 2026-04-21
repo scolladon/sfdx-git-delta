@@ -370,7 +370,7 @@ flowchart TD
 **Processors** (`isCollector = false`) run last via `executeRemaining()`, in registration order:
 
 - **PackageGenerator**: writes `package.xml` (from `ChangeSet.forPackageManifest()`), `destructiveChanges.xml` (from `ChangeSet.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
-- **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serialises `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`; `rename` is reserved for a future iteration). Powered by the `changeKind` field carried on every `ManifestElement`.
+- **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serialises `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`, plus `rename` as `{from, to}` pairs when git `-M` detects component renames). Powered by the `changeKind` field carried on every `ManifestElement` for add/modify/delete and by `RenameResolver` feeding `ChangeSet.recordRename` for rename pairs.
 
 Each processor is wrapped in error isolation — failures produce warnings rather than crashing the pipeline.
 

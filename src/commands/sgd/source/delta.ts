@@ -133,6 +133,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     return result
   }
 
+  /* v8 ignore start -- oclif command entry: behaviour covered via NUT tests (delta.nut.ts) */
   @log
   public async run(): Promise<SgdResult> {
     this.argv = SourceDeltaGenerate._expandBareChangesManifest(this.argv)
@@ -191,4 +192,5 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     this.spinner.stop(finalMessage)
     return output
   }
+  /* v8 ignore stop */
 }

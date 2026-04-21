@@ -20,7 +20,7 @@ export default class RepoGitDiff {
     this.gitAdapter = GitAdapter.getInstance(this.config)
   }
 
-  public async getLines() {
+  public async getLines(): Promise<string[]> {
     const rawLines = await this.gitAdapter.getDiffLines()
     const expanded = this._expandRenames(rawLines)
     return await this._treatResult(expanded)
