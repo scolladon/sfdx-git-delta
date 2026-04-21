@@ -3,7 +3,11 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
-import type { HandlerResult, ManifestElement } from '../types/handlerResult.js'
+import type {
+  AddKind,
+  HandlerResult,
+  ManifestElement,
+} from '../types/handlerResult.js'
 import {
   ChangeKind,
   emptyResult,
@@ -113,7 +117,7 @@ export default class InFileHandler extends StandardHandler {
   protected _collectManifestFromComparison(
     manifests: ManifestElement[],
     target: ManifestTarget,
-    changeKind: ChangeKind,
+    changeKind: AddKind,
     entries: { type: string; member: string }[]
   ): void {
     for (const { type, member } of entries) {

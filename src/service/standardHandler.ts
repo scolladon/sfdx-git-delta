@@ -4,7 +4,11 @@ import { join, parse } from 'node:path/posix'
 import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
-import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+import type {
+  AddKind,
+  CopyOperation,
+  HandlerResult,
+} from '../types/handlerResult.js'
 import {
   ChangeKind,
   CopyOperationKind,
@@ -17,7 +21,7 @@ import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 
-const CHANGE_KIND_BY_GIT_TYPE: Readonly<Record<string, ChangeKind>> = {
+const CHANGE_KIND_BY_GIT_TYPE: Readonly<Record<string, AddKind>> = {
   [ADDITION]: ChangeKind.Add,
   [MODIFICATION]: ChangeKind.Modify,
   [DELETION]: ChangeKind.Delete,
@@ -113,7 +117,7 @@ export default class StandardHandler {
     }
   }
 
-  protected _getChangeKind(): ChangeKind {
+  protected _getChangeKind(): AddKind {
     // collect()'s switch guarantees changeType is ADDITION | MODIFICATION |
     // DELETION before _collectManifestElement runs, so the lookup always hits.
     return CHANGE_KIND_BY_GIT_TYPE[this.changeType]!

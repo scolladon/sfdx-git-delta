@@ -843,12 +843,32 @@ describe('GitAdapter', () => {
           .mockResolvedValueOnce('' as never)
           .mockResolvedValueOnce('' as never)
           .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never) // R-filter numstat -z call
 
         // Act
         const result = await gitAdapter.getDiffLines()
 
         // Assert
         expect(result).toEqual([])
+      })
+
+      it('When -z output contains two renames in one call, Then the stride-3 parser yields both synthetic R-lines', async () => {
+        // Arrange — verifies the stride across multiple records.
+        config.ignoreWhitespace = true
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedRaw
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce(
+            ('1\t1\t\0a.cls\0b.cls\0' + '2\t2\t\0c.cls\0d.cls\0') as never
+          )
+
+        // Act
+        const result = await gitAdapter.getDiffLines()
+
+        // Assert
+        expect(result).toEqual(['R\ta.cls\tb.cls', 'R\tc.cls\td.cls'])
       })
     })
 
