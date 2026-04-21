@@ -867,8 +867,31 @@ describe('GitAdapter', () => {
         // Act
         const result = await gitAdapter.getDiffLines()
 
-        // Assert
+        // Assert — also pin the subcommand/separator args on the R-filter
+        // call so argument-literal mutations (diff, --) get caught.
         expect(result).toEqual(['R\ta.cls\tb.cls', 'R\tc.cls\td.cls'])
+        expect(mockedRaw).toHaveBeenNthCalledWith(
+          4,
+          expect.arrayContaining(['diff', '--'])
+        )
+      })
+
+      it('When -z output has src-populated but dst empty, Then the triplet is skipped (|| guard, not &&)', async () => {
+        // Arrange — distinguishes `!src || !dst` (intended) from the
+        // `!src && !dst` mutation: only one side empty must still skip.
+        config.ignoreWhitespace = true
+        const gitAdapter = GitAdapter.getInstance(config)
+        mockedRaw
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('' as never)
+          .mockResolvedValueOnce('1\t1\t\0src.cls\0\0' as never)
+
+        // Act
+        const result = await gitAdapter.getDiffLines()
+
+        // Assert
+        expect(result).toEqual([])
       })
     })
 

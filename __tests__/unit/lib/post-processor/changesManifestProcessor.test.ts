@@ -123,4 +123,23 @@ describe('ChangesManifestProcessor', () => {
       expect(parsed.add.CustomObject).toEqual(['Alpha__c', 'Beta__c'])
     })
   })
+
+  describe('Given renames across multiple types registered in non-alphabetical order', () => {
+    it('When process runs, Then the rename bucket keys are emitted in alphabetical order', async () => {
+      // Arrange — verify the type-key sort on the rename bucket; without the
+      // .sort() call the order would mirror Map-insertion order (Z then A).
+      work.config.changesManifest = 'changes.json'
+      work.changes.recordRename('ZetaType', 'z.old', 'z.new')
+      work.changes.recordRename('AlphaType', 'a.old', 'a.new')
+      const sut = new ChangesManifestProcessor(work, metadata)
+
+      // Act
+      await sut.process()
+
+      // Assert
+      const [, payload] = vi.mocked(outputFile).mock.calls[0]
+      const parsed = JSON.parse(payload as string)
+      expect(Object.keys(parsed.rename)).toEqual(['AlphaType', 'ZetaType'])
+    })
+  })
 })

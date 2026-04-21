@@ -382,6 +382,14 @@ describe('Given a RepoGitDiff', () => {
   })
 
   describe('rename detection (git -M)', () => {
+    it('Given a freshly constructed RepoGitDiff, When getRenamePairs is read before getLines is called, Then it returns an empty array (field initialiser)', () => {
+      // Arrange
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act & Assert
+      expect(sut.getRenamePairs()).toEqual([])
+    })
+
     it('Given an R-line, When getLines, Then it is split into synthetic A and D lines and exposed via getRenamePairs', async () => {
       // Arrange
       mockGetDiffLines.mockResolvedValue([
