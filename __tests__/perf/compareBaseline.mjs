@@ -126,13 +126,16 @@ if (token && repo && prNumber) {
   }
 }
 
+// Perf regressions are informational only — the PR comment + Actions
+// annotation carry the signal, but the job never blocks the merge (see
+// reusable-perf.yml `continue-on-error` + job comment). Emit a ::warning::
+// so regressions surface in the Actions summary, then exit 0.
 if (regressions.length > 0) {
   // biome-ignore lint/suspicious/noConsole: CI output
-  console.error(
-    `\n::error::${regressions.length} performance regression(s) detected (runtime threshold: ${RUNTIME_THRESHOLD}x, latency threshold: ${MEMORY_THRESHOLD}x)`
+  console.warn(
+    `\n::warning::${regressions.length} performance regression(s) detected (runtime threshold: ${RUNTIME_THRESHOLD}x, latency threshold: ${MEMORY_THRESHOLD}x) — see PR comment for details`
   )
-  process.exit(1)
+} else {
+  // biome-ignore lint/suspicious/noConsole: CI output
+  console.info('No regressions detected.')
 }
-
-// biome-ignore lint/suspicious/noConsole: CI output
-console.info('No regressions detected.')
