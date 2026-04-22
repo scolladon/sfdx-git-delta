@@ -125,9 +125,11 @@ describe('ChangesManifestProcessor', () => {
   })
 
   describe('Given renames across multiple types registered in non-alphabetical order', () => {
-    it('When process runs, Then the rename bucket keys are emitted in alphabetical order', async () => {
-      // Arrange — verify the type-key sort on the rename bucket; without the
-      // .sort() call the order would mirror Map-insertion order (Z then A).
+    it('When process runs, Then the rename bucket keys are emitted in a stable, reproducible order so CI diffs stay noise-free', async () => {
+      // Arrange — output key order is part of the JSON manifest's contract:
+      // reviewers diff this file between CI runs, so insertion-order leakage
+      // (Map iteration) would produce spurious diffs whenever handler visit
+      // order shifts. Alphabetical ordering is the stable choice.
       work.config.changesManifest = 'changes.json'
       work.changes.recordRename('ZetaType', 'z.old', 'z.new')
       work.changes.recordRename('AlphaType', 'a.old', 'a.new')
