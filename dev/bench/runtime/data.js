@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776511963660,
+  "lastUpdate": 1776839149336,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Runtime Benchmark": [
@@ -551,6 +551,144 @@ window.BENCHMARK_DATA = {
             "name": "pipeline-large-manifest-aggregation",
             "value": 45128,
             "range": "±0.58%",
+            "unit": "ops/sec"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f1151114b74c4dfa94db3472dec4f08391acb0d6",
+          "message": "feat(metadata): bump @salesforce/source-deploy-retrieve from 12.32.8 to 12.32.9 (#1279)\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-04-22T08:23:13+02:00",
+          "tree_id": "b13866dda04a942886551c635a0fca6314f76dad",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/f1151114b74c4dfa94db3472dec4f08391acb0d6"
+        },
+        "date": 1776839148679,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 3694,
+            "range": "±1.92%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 565,
+            "range": "±2.44%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 139,
+            "range": "±4.27%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 5743,
+            "range": "±1.63%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 47124,
+            "range": "±0.37%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 45664,
+            "range": "±0.36%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 24943,
+            "range": "±0.50%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 7549,
+            "range": "±0.51%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 7184,
+            "range": "±0.60%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 4000,
+            "range": "±0.53%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 1818,
+            "range": "±1.00%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 1780,
+            "range": "±0.58%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 964,
+            "range": "±0.50%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 15050,
+            "range": "±0.53%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 1095076,
+            "range": "±0.53%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 3593,
+            "range": "±0.48%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 210072,
+            "range": "±0.47%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 947,
+            "range": "±0.74%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 48707,
+            "range": "±0.46%",
             "unit": "ops/sec"
           }
         ]
