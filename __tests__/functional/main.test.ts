@@ -21,6 +21,7 @@ const {
   mockCollectAll,
   mockExecuteRemaining,
   mockExecute,
+  mockCloseAll,
 } = vi.hoisted(() => ({
   mockPreBuildTreeIndex: vi.fn(),
   mockComputeTreeIndexScope: vi.fn(),
@@ -32,6 +33,7 @@ const {
   mockCollectAll: vi.fn<() => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
   mockExecute: vi.fn(),
+  mockCloseAll: vi.fn(),
 }))
 
 vi.mock('../../src/utils/LoggingService')
@@ -41,7 +43,7 @@ vi.mock('../../src/adapter/GitAdapter', () => ({
     getInstance: vi.fn(() => ({
       preBuildTreeIndex: mockPreBuildTreeIndex,
     })),
-    closeAll: vi.fn(),
+    closeAll: mockCloseAll,
   },
 }))
 
@@ -316,6 +318,31 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given generateDelta is false BUT source is populated, When sgd runs, Then preBuildTreeIndex is still not called (the generateDelta gate short-circuits before the scope computation)', async () => {
+      // Arrange — distinguishes the generateDelta guard from the
+      // scopePaths.length > 0 guard. Without the outer `if`, scopePaths
+      // would take config.source and trigger preBuildTreeIndex.
+      const sut = {
+        generateDelta: false,
+        source: ['force-app'],
+        include: 'include.txt',
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to release batch cat-file processes', async () => {
+      // Act
+      await sgd({} as Config)
+
+      // Assert — the mutation that empties the finally block would skip this.
+      expect(mockCloseAll).toHaveBeenCalledOnce()
     })
 
     it('Given generateDelta is true with include set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
