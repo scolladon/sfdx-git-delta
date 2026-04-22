@@ -185,6 +185,23 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given a type that appears in both byTarget[Package] and as a rename target', () => {
+    it('When reading forPackageManifest, Then members from both sources merge into the same type bucket', () => {
+      // Arrange — exercises the _unionByType "type already exists, merge
+      // members into the existing Set" branch. Without the merge, the
+      // rename-target entry would overwrite the direct Package add.
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, 'ApexClass', 'DirectAdd')
+      sut.recordRename('ApexClass', 'OldName', 'RenamedTo')
+
+      // Act
+      const pkg = sut.forPackageManifest()
+
+      // Assert
+      expect(pkg.get('ApexClass')).toEqual(new Set(['DirectAdd', 'RenamedTo']))
+    })
+  })
+
   describe('recordRename', () => {
     it('Given matching synthetic add/delete, When recording a rename, Then the package view keeps to-member, destructive view keeps from-member, and by-kind add/delete drop them', () => {
       // Arrange — the handler pipeline first sees the split A/D lines, then
