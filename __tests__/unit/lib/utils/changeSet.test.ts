@@ -117,6 +117,37 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given a non-conventional (target, changeKind) pair (e.g. InFileHandler stamping a deleted container as Package+Delete to preserve surviving sub-elements)', () => {
+    it('When reading the xml and JSON views, Then the xml manifests route on target (package) while byChangeKind routes on changeKind (delete)', () => {
+      // Arrange — addElement takes both axes explicitly so callers that
+      // diverge from the add()-convention (Delete → DestructiveChanges)
+      // can stamp Package+Delete. This is the case InFileHandler hits
+      // when a CustomLabels container file is deleted but some children
+      // survive: the deployment manifest must keep it in package.xml
+      // while reviewers still see a delete in the JSON.
+      const sut = new ChangeSet()
+      sut.addElement({
+        target: ManifestTarget.Package,
+        type: 'CustomLabels',
+        member: 'CustomLabels',
+        changeKind: ChangeKind.Delete,
+      })
+
+      // Act
+      const pkg = sut.forPackageManifest()
+      const destructive = sut.forDestructiveManifest()
+      const byKind = sut.byChangeKind()
+
+      // Assert
+      expect(pkg.get('CustomLabels')).toEqual(new Set(['CustomLabels']))
+      expect(destructive.has('CustomLabels')).toBe(false)
+      expect(byKind[ChangeKind.Delete].get('CustomLabels')).toEqual(
+        new Set(['CustomLabels'])
+      )
+      expect(byKind[ChangeKind.Add].has('CustomLabels')).toBe(false)
+    })
+  })
+
   describe('ChangeSet.from factory', () => {
     it('Given ManifestElements, When constructing via from, Then each element lands in its declared kind bucket', () => {
       // Arrange
@@ -191,7 +222,11 @@ describe('ChangeSet', () => {
     })
 
     it('Given the same rename pair recorded twice (e.g. bundle rename re-emitted per file), When recording, Then it collapses to a single entry', () => {
-      // Arrange
+      // Arrange — the dedup key is `${from}\0${to}`, so only *identical*
+      // pairs collapse. Collisions where `from` matches but `to` differs
+      // (or vice versa) are not reachable in practice: RenameResolver is
+      // fed one git-detected rename per component, and LWC bundle files
+      // only synthesise duplicate identical pairs. Omitted from coverage.
       const sut = new ChangeSet()
       sut.recordRename('LightningComponentBundle', 'old', 'new')
       sut.recordRename('LightningComponentBundle', 'old', 'new')

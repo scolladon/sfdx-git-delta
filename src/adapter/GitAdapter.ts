@@ -210,30 +210,31 @@ export default class GitAdapter {
     }
   }
 
-  // Fast path (no whitespace ignore): one `git diff --name-status -M
-  // --diff-filter=AMDR` call. -M surfaces renames as `R<score>\tfrom\tto`
-  // lines that RepoGitDiff splits into synthetic A/D and records as
-  // rename pairs.
+  // Fast path (no whitespace ignore): one `git diff --name-status` call.
+  // Rename detection (`-M` + `R` filter) is gated behind
+  // `config.changesManifest` so the default sgd pipeline emits the same
+  // A/M/D line shape as before this feature. When enabled, renames surface
+  // as `R<score>\tfrom\tto` lines that RepoGitDiff splits into synthetic
+  // A/D while recording the rename pair for ChangeSet.
   //
-  // Whitespace path: four `git diff --numstat` calls — one per filter in
-  // A/M/D plus a dedicated R-filter call. `--name-status` does NOT honor
+  // Whitespace path: three (or four, when rename detection is on) parallel
+  // `git diff --numstat` calls. `--name-status` does NOT honor
   // `--ignore-all-space` (git decides A/M/D from blob SHAs for that mode,
   // so a whitespace-only change still appears as `M`). Only `--numstat`
   // computes a real content diff under the whitespace flags, so files
-  // with 0/0 line changes drop out naturally. `-M` is passed on every
-  // call so renames don't double-count across A/D and R. The R call uses
-  // `-z` to sidestep numstat's brace/arrow rename-path encoding.
+  // with 0/0 line changes drop out naturally. When rename detection is
+  // enabled, a fourth `--diff-filter=R -M -z` call is issued — `-z`
+  // sidesteps numstat's brace/arrow rename-path encoding.
   @log
   public async getDiffLines(): Promise<string[]> {
+    const detectRenames = Boolean(this.config.changesManifest)
+
     if (!this.config.ignoreWhitespace) {
       const output = await this.simpleGit.raw([
         'diff',
         '--name-status',
-        // -M lets git detect renames (default ~50% similarity). Emits
-        // `R<score>\tfrom\tto` lines that RepoGitDiff splits into synthetic
-        // A/D lines while recording the rename pair for ChangeSet.
-        '-M',
-        '--diff-filter=AMDR',
+        ...(detectRenames ? ['-M'] : ['--no-renames']),
+        `--diff-filter=${detectRenames ? 'AMDR' : 'AMD'}`,
         this.config.from,
         this.config.to,
         '--',
@@ -253,7 +254,7 @@ export default class GitAdapter {
         const output = await this.simpleGit.raw([
           'diff',
           '--numstat',
-          '-M',
+          ...(detectRenames ? ['-M'] : ['--no-renames']),
           ...IGNORE_WHITESPACE_PARAMS,
           `--diff-filter=${changeType}`,
           this.config.from,
@@ -271,7 +272,7 @@ export default class GitAdapter {
           )
       })
     )
-    const renameLines = await this._getRenameNumstatLines()
+    const renameLines = detectRenames ? await this._getRenameNumstatLines() : []
     return [...amdResults.flat(), ...renameLines]
   }
 
