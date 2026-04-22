@@ -9,7 +9,6 @@
 /reports
 install-state.gz
 megalinter-reports/
-oclif.manifest.json
 package.tgz
 perf-preview.html
 perf-raw.json
