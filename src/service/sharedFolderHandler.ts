@@ -2,11 +2,7 @@
 import { join, parse } from 'node:path/posix'
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type {
-  HandlerResult,
-  ManifestElement,
-  ManifestTarget,
-} from '../types/handlerResult.js'
+import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
@@ -31,16 +27,6 @@ export default class SharedFolderHandler extends StandardHandler {
     return {
       type: this.resolvedType,
       member: this._getElementName(),
-    }
-  }
-
-  protected override _collectManifestElement(
-    target: ManifestTarget
-  ): ManifestElement {
-    return {
-      target,
-      ...this.getElementDescriptor(),
-      changeKind: this._getChangeKind(),
     }
   }
 
