@@ -282,11 +282,22 @@ The plugin uses [sf CLI parameters convention](https://github.com/salesforcecli/
 
 ## Testing the plugin from a pull request
 
+Dev builds are no longer published to the npm registry. Each open PR gets a dedicated GitHub prerelease (`dev-pr-<number>`) with a signed tarball attached, and the `dev-release` CI job posts a comment on the PR with the exact install command.
+
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
-1. Locate the comment with the beta version published in the pull request
-2. Install the beta version `sf plugins install sfdx-git-delta@<beta-channel>`
-3. Test the plugin!
+1. Scroll the PR comments for the one titled `Published under dev-pr-<N> draft release.` (posted by `github-actions[bot]`).
+2. Copy the command from that comment — it looks like:
+
+   ```sh
+   sf plugins install https://github.com/scolladon/sfdx-git-delta/releases/download/dev-pr-<N>/sfdx-git-delta-dev-pr-<N>.tgz
+   ```
+
+   `sf plugins install` accepts either an npm spec or a tarball URL; here we pass the URL to the prerelease asset directly.
+3. Run the command. The tarball is re-uploaded on every push to the PR, so `install` again after a new commit to pick up the latest build.
+4. Test the plugin!
+
+When the PR is closed, the `cleanup` job deletes the prerelease and its tarball — any installs done against that URL need to be refreshed against a new PR.
 
 ## How to modify npm tags
 
