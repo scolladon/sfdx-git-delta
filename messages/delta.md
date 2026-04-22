@@ -78,7 +78,7 @@ file containing additional metadata definitions to add to the registry
 
 # flags.changes-manifest.summary
 
-path to a JSON file grouping changed components by kind (add, modify, delete)
+path to a JSON file grouping changed components by kind (add, modify, delete, rename); setting this flag also enables git rename detection
 
 # error.ParameterIsNotGitSHA
 

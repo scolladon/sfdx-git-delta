@@ -159,7 +159,7 @@ FLAGS
   -a, --api-version=<value>                   salesforce metadata API version, default to sfdx-project.json
                                               "sourceApiVersion" attribute or latest version
   -c, --changes-manifest=<value>              path to a JSON file grouping changed components by kind (add, modify,
-                                              delete)
+                                              delete, rename); setting this flag also enables git rename detection
   -d, --generate-delta                        generate delta files in [--output-dir] folder
   -f, --from=<value>                          (required) commit sha from where the diff is done
   -i, --ignore-file=<value>                   file listing paths to explicitly ignore for any diff actions
@@ -536,7 +536,7 @@ sf sgd source delta --from "origin/development" --to HEAD --output-dir increment
 sf sgd source delta --from "origin/development" --to HEAD --changes-manifest reports/changes.json
 ```
 
-Produces (bare form example) `incremental/changes.manifest.json`. Rename detection is enabled by default via git's `-M` similarity match, so components renamed at the file level show up in their own bucket instead of being split into a fake delete+add pair:
+Produces (bare form example) `incremental/changes.manifest.json`. Setting `--changes-manifest` also turns on git's `-M` rename detection for this run, so components renamed at the file level show up in their own bucket instead of being split into a fake delete+add pair. Default sgd runs (without the flag) keep the pre-feature behaviour — renames still appear as a delete on the old path + an add on the new path.
 
 ```json
 {

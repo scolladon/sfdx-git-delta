@@ -382,13 +382,18 @@ Every `ManifestElement` produced by a handler is tagged with a `ChangeKind`. Thi
 - **`InFileHandler._collectManifestFromComparison`** takes the kind as a parameter so sub-elements get the correct label from `MetadataDiff.compare()` — which returns three disjoint buckets: `added` (key absent in `from`), `modified` (key present but content differs), `deleted` (key absent in `to`). The keyless-element case is bucketed as modified.
 - **Direct constructors** (`BotHandler`, `FlowTranslationProcessor`) stamp the kind explicitly at their push site.
 
-`ChangeSet.from(manifests)` is the single ingestion point — every tagged element lands in its declared `ChangeKind` bucket. All downstream views are pure projections:
+`ChangeSet.from(manifests)` is the single ingestion point. Each `ManifestElement` carries two orthogonal axes — `target` (deployment contract: `Package` vs `DestructiveChanges`) and `changeKind` (review semantics: `Add` / `Modify` / `Delete`) — and the ChangeSet stores both:
 
-- `forPackageManifest()` — union of Add + Modify + rename-target per type (used by `PackageGenerator`, `FlowTranslationProcessor`).
-- `forDestructiveManifest()` — Delete ∪ rename-source, minus anything that winds up in the package view (drops cancelled deletions and covers rename semantics in a single coalesce).
+- `byTarget: Record<ManifestTarget, Manifest>` drives the xml manifests.
+- `byKind: Record<AddKind, Manifest>` drives the review-oriented JSON.
+
+The two axes are **not redundant**: a single element can be `(target=Package, changeKind=Delete)`, which is what `InFileHandler` stamps when a container file (e.g. `CustomLabels`) is deleted but child elements survive — the deployment must still list the container under `package.xml` while the JSON manifest surfaces a delete for reviewer visibility. Views route on the correct axis:
+
+- `forPackageManifest()` — `byTarget[Package]` ∪ rename-target per type (used by `PackageGenerator`, `FlowTranslationProcessor`).
+- `forDestructiveManifest()` — `byTarget[DestructiveChanges]` ∪ rename-source, minus anything that winds up in the package view (drops cancelled deletions and covers rename semantics in a single coalesce).
 - `byChangeKind()` — per-kind record. Rename participants are removed from the add/delete buckets so every emitted entry lives in exactly one user-visible bucket; the `rename` bucket contains `{from, to}` pairs deduplicated per type.
 
-Rename detection uses git's `-M` flag. `RepoGitDiff` splits each `R<score>\tfrom\tto` line into a synthetic `D\tfrom` + `A\tto` pair so the existing handler pipeline processes them normally, while capturing the pair. `RenameResolver` resolves each pair's paths back through `TypeHandlerFactory` to recover `(type, from-member, to-member)` — bundle renames re-emitted per file collapse to a single entry via the Map-keyed `recordRename` dedup.
+Rename detection uses git's `-M` flag, **gated on `config.changesManifest`**. Default sgd runs pass `--no-renames` + `--diff-filter=AMD` so line shape matches the pre-feature output; only `--changes-manifest <file>` opts into `-M` + `--diff-filter=AMDR` (fast path) or the fourth `--numstat -M -z --diff-filter=R` call (ignore-whitespace path). When enabled, `RepoGitDiff` splits each `R<score>\tfrom\tto` line into a synthetic `D\tfrom` + `A\tto` pair so the existing handler pipeline processes them normally, while capturing the pair. `RenameResolver` resolves each pair's paths back through `TypeHandlerFactory` to recover `(type, from-member, to-member)` — bundle renames re-emitted per file collapse to a single entry via the Map-keyed `recordRename` dedup.
 
 Package.xml remains byte-identical to the pre-feature output because `InFileHandler` still routes both `added` and `modified` sub-elements to `ManifestTarget.Package`; the ChangeSet merely tags them differently.
 
