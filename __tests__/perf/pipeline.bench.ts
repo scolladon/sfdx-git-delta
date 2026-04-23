@@ -1,6 +1,6 @@
 import { bench, describe } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
-import { aggregateManifests } from '../../src/utils/manifestAggregator.js'
+import ChangeSet from '../../src/utils/changeSet.js'
 import { computeTreeIndexScope } from '../../src/utils/treeIndexScope.js'
 import {
   generateDiffFixtures,
@@ -21,7 +21,7 @@ for (const size of sizes) {
     })
 
     bench(`pipeline-${size}-manifest-aggregation`, () => {
-      aggregateManifests(handlerResult)
+      ChangeSet.from(handlerResult.manifests)
     })
   })
 }

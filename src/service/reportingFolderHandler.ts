@@ -2,11 +2,7 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type {
-  HandlerResult,
-  ManifestElement,
-  ManifestTarget,
-} from '../types/handlerResult.js'
+import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
@@ -41,9 +37,7 @@ export default class ReportingFolderHandler extends InFolderHandler {
     this._collectCopyWithMetaFile(copies, join(folderPath, folderFileName))
   }
 
-  protected override _collectManifestElement(
-    target: ManifestTarget
-  ): ManifestElement {
+  public override getElementDescriptor(): { type: string; member: string } {
     /* v8 ignore next 5 -- collectAddition/Deletion guard ensures resolvedType is set */
     if (!this.resolvedType) {
       throw new Error(
@@ -51,7 +45,6 @@ export default class ReportingFolderHandler extends InFolderHandler {
       )
     }
     return {
-      target,
       type: this.resolvedType,
       member: this._getElementName(),
     }

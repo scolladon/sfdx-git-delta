@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { SimpleGit, simpleGit } from 'simple-git'
+import { TAB } from '../constant/cliConstants.js'
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
   ADDITION,
@@ -9,6 +10,7 @@ import {
   IGNORE_WHITESPACE_PARAMS,
   MODIFICATION,
   NUM_STAT_CHANGE_INFORMATION,
+  RENAMED,
 } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
@@ -209,22 +211,36 @@ export default class GitAdapter {
   }
 
   // Fast path (no whitespace ignore): one `git diff --name-status` call.
+  // Rename detection (`-M` + `R` filter) is gated behind
+  // `config.changesManifest` so the default sgd pipeline emits the same
+  // A/M/D line shape as before this feature. When enabled, renames surface
+  // as `R<score>\tfrom\tto` lines that RepoGitDiff splits into synthetic
+  // A/D while recording the rename pair for ChangeSet.
   //
-  // Whitespace path: three parallel `git diff --numstat --diff-filter=X`
-  // calls. `--name-status` does NOT honor `--ignore-all-space` — git decides
-  // A/M/D from blob SHAs for that mode, so a whitespace-only change still
-  // appears as `M`. Only `--numstat` computes a real content diff under the
-  // whitespace flags, so files with 0/0 line changes drop out naturally.
-  // A and D can't produce whitespace-only false positives, so the expensive
-  // path is only needed to correctly filter M.
+  // Whitespace path: three (or four, when rename detection is on) parallel
+  // `git diff --numstat` calls, one per --diff-filter. `--name-status` does
+  // NOT honor `--ignore-all-space` (git decides A/M/D from blob SHAs for
+  // that mode, so a whitespace-only change still appears as `M`). Only
+  // `--numstat` computes a real content diff under the whitespace flags,
+  // so files with 0/0 line changes drop out naturally. When rename
+  // detection is enabled the R call uses `-z` so it can sidestep numstat's
+  // brace/arrow rename-path encoding.
+  //
+  // The Promise.all fans out to 4 items with rename detection on. That's a
+  // localised exception to the CLAUDE.local.md ≤3 bounded-Promise.all
+  // guideline: the four `--diff-filter`s are the canonical per-kind split,
+  // so hiding R as an out-of-band sequential await just obscures the real
+  // symmetric fan-out without changing the resource footprint.
   @log
   public async getDiffLines(): Promise<string[]> {
+    const detectRenames = Boolean(this.config.changesManifest)
+
     if (!this.config.ignoreWhitespace) {
       const output = await this.simpleGit.raw([
         'diff',
         '--name-status',
-        '--no-renames',
-        '--diff-filter=AMD',
+        ...(detectRenames ? ['-M'] : ['--no-renames']),
+        `--diff-filter=${detectRenames ? 'AMDR' : 'AMD'}`,
         this.config.from,
         this.config.to,
         '--',
@@ -236,29 +252,67 @@ export default class GitAdapter {
         .map(line => treatPathSep(line))
     }
 
+    // When rename detection is on, the A/M/D filters also run with -M so
+    // renamed files drop out (reclassified to R by git), and the dedicated
+    // R call is the single source of rename lines — no dedup needed.
+    // Without rename detection, A/M/D keep their pre-feature line shape via
+    // --no-renames.
+    const filters = detectRenames
+      ? ([ADDITION, MODIFICATION, DELETION, RENAMED] as const)
+      : ([ADDITION, MODIFICATION, DELETION] as const)
+
     const results = await Promise.all(
-      [ADDITION, MODIFICATION, DELETION].map(async changeType => {
-        const output = await this.simpleGit.raw([
-          'diff',
-          '--numstat',
-          '--no-renames',
-          ...IGNORE_WHITESPACE_PARAMS,
-          `--diff-filter=${changeType}`,
-          this.config.from,
-          this.config.to,
-          '--',
-          ...this.config.source,
-        ])
-        return output
-          .split(EOL)
-          .filter(Boolean)
-          .map(line =>
-            treatPathSep(
-              line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
-            )
-          )
-      })
+      filters.map(changeType =>
+        this._getNumstatLines(changeType, detectRenames)
+      )
     )
     return results.flat()
+  }
+
+  // Per-filter numstat call. The R branch uses `-z` because numstat
+  // otherwise encodes rename paths in three format variants within the
+  // path column (`{a => b}`, `a/{b => c}/d`, or bare `old => new`). `-z`
+  // emits `N<TAB>M<TAB>\0<src>\0<dst>\0` for each rename, so we can
+  // stride-3 over the NUL-split tokens and synthesise
+  // `R<TAB><src><TAB><dst>` lines that RepoGitDiff._expandRenames
+  // already understands. A/M/D use the default output and rewrite the
+  // leading `N\tM\t` counts into the status prefix.
+  protected async _getNumstatLines(
+    changeType: string,
+    detectRenames: boolean
+  ): Promise<string[]> {
+    const isRename = changeType === RENAMED
+    const output = await this.simpleGit.raw([
+      'diff',
+      '--numstat',
+      ...(isRename ? ['-M', '-z'] : detectRenames ? ['-M'] : ['--no-renames']),
+      ...IGNORE_WHITESPACE_PARAMS,
+      `--diff-filter=${changeType}`,
+      this.config.from,
+      this.config.to,
+      '--',
+      ...this.config.source,
+    ])
+
+    if (isRename) {
+      const tokens = output.split('\0')
+      const lines: string[] = []
+      for (let i = 0; i + 2 < tokens.length; i += 3) {
+        const src = tokens[i + 1]
+        const dst = tokens[i + 2]
+        if (!src || !dst) continue
+        lines.push(treatPathSep(`${RENAMED}${TAB}${src}${TAB}${dst}`))
+      }
+      return lines
+    }
+
+    return output
+      .split(EOL)
+      .filter(Boolean)
+      .map(line =>
+        treatPathSep(
+          line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
+        )
+      )
   }
 }

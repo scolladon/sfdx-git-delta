@@ -344,11 +344,13 @@ describe('MetadataDiff', () => {
         })
 
         // Act
-        const { added, deleted } = await metadataDiff.compare('file/path')
+        const { added, modified, deleted } =
+          await metadataDiff.compare('file/path')
 
         // Assert
+        expect(added).toHaveLength(0)
         expect(deleted).toHaveLength(0)
-        expect(added).toEqual([
+        expect(modified).toEqual([
           { type: 'WorkflowAlert', member: 'TestEmailAlert' },
         ])
       })
@@ -838,7 +840,7 @@ describe('MetadataDiff', () => {
   })
 
   describe('elements without key selector returning undefined', () => {
-    it('Given elements whose key selector returns undefined, When comparing added, Then they are treated as added', async () => {
+    it('Given elements whose key selector returns undefined, When comparing, Then they are skipped from both added and modified (no identity prevents undefined members)', async () => {
       // Arrange
       const noKeyAttributes = new Map<string, SharedFileMetadata>([
         [
@@ -867,10 +869,11 @@ describe('MetadataDiff', () => {
       mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
 
       // Act
-      const { added } = await noKeyDiff.compare('file/path')
+      const { added, modified } = await noKeyDiff.compare('file/path')
 
       // Assert
-      expect(added).toHaveLength(2)
+      expect(added).toHaveLength(0)
+      expect(modified).toHaveLength(0)
     })
 
     it('Given elements whose key selector returns undefined, When comparing deleted, Then they are treated as deleted', async () => {
@@ -974,7 +977,7 @@ describe('MetadataDiff', () => {
       expect(added).toHaveLength(0)
     })
 
-    it('Given an element with same key but different content, When comparing, Then it is added', async () => {
+    it('Given an element with same key but different content, When comparing, Then it is modified (not added)', async () => {
       // Arrange
       const attrs = new Map<string, SharedFileMetadata>([
         [
@@ -1003,10 +1006,11 @@ describe('MetadataDiff', () => {
       mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
 
       // Act
-      const { added } = await sut.compare('file/path')
+      const { added, modified } = await sut.compare('file/path')
 
       // Assert
-      expect(added).toEqual([{ type: 'WorkflowAlert', member: 'Alert1' }])
+      expect(added).toEqual([])
+      expect(modified).toEqual([{ type: 'WorkflowAlert', member: 'Alert1' }])
     })
   })
 
@@ -2133,7 +2137,7 @@ describe('MetadataDiff', () => {
   })
 
   describe('matchAdded and matchDeleted with undefined key selector', () => {
-    it('Given elements where key selector returns undefined, When comparing additions, Then all elements are treated as added', async () => {
+    it('Given elements where key selector returns undefined, When comparing, Then they are skipped from added and modified (keyless has no identity)', async () => {
       // Arrange
       const attrs = new Map<string, SharedFileMetadata>([
         [
@@ -2162,14 +2166,11 @@ describe('MetadataDiff', () => {
       mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
 
       // Act
-      const { added } = await sut.compare('file/path')
+      const { added, modified } = await sut.compare('file/path')
 
       // Assert
-      expect(added).toHaveLength(2)
-      expect(added).toEqual([
-        { type: 'CustomItem', member: undefined },
-        { type: 'CustomItem', member: undefined },
-      ])
+      expect(added).toHaveLength(0)
+      expect(modified).toHaveLength(0)
     })
 
     it('Given elements where key selector returns undefined, When comparing deletions, Then all from elements are treated as deleted', async () => {
@@ -2211,7 +2212,7 @@ describe('MetadataDiff', () => {
       ])
     })
 
-    it('Given elements where key selector returns undefined for both sides, When comparing, Then matchDeleted returns true for all', async () => {
+    it('Given elements where key selector returns undefined for both sides, When comparing, Then added/modified skip them while deleted retains pre-existing behaviour', async () => {
       // Arrange
       const attrs = new Map<string, SharedFileMetadata>([
         [
@@ -2234,10 +2235,11 @@ describe('MetadataDiff', () => {
       mockedParseXmlFileToJson.mockResolvedValueOnce(data)
 
       // Act
-      const { added, deleted } = await sut.compare('file/path')
+      const { added, modified, deleted } = await sut.compare('file/path')
 
       // Assert
-      expect(added).toHaveLength(1)
+      expect(added).toHaveLength(0)
+      expect(modified).toHaveLength(0)
       expect(deleted).toHaveLength(1)
     })
   })

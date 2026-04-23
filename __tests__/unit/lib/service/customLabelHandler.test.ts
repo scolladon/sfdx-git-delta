@@ -168,6 +168,7 @@ describe('Decomposed CustomLabel spec', () => {
       mockCompare.mockImplementation(() =>
         Promise.resolve({
           added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+          modified: [],
           deleted: [],
         })
       )
@@ -208,6 +209,7 @@ describe('Decomposed CustomLabel spec', () => {
       mockCompare.mockImplementation(() =>
         Promise.resolve({
           added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+          modified: [],
           deleted: [],
         })
       )

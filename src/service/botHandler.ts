@@ -23,6 +23,7 @@ export default class BotHandler extends ShareFolderHandler {
       target: ManifestTarget.Package,
       type: BOT_TYPE,
       member: botName,
+      changeKind: this._getChangeKind(),
     })
     const botPath = `${
       parse(this.element.basePath).dir

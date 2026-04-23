@@ -1,4 +1,5 @@
 'use strict'
+import { stat } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 
 import { SfProject } from '@salesforce/core'
@@ -58,10 +59,11 @@ export default class ConfigValidator {
   public async validateConfig() {
     this._sanitizeConfig()
 
-    const [, repoExists, gitErrors] = await Promise.all([
+    const [, repoExists, gitErrors, changesManifestErrors] = await Promise.all([
       this._handleDefault(),
       pathExists(join(this.config.repo, GIT_FOLDER)),
       this._validateGitSha(),
+      this._validateChangesManifest(),
     ])
 
     const errors: string[] = []
@@ -71,12 +73,47 @@ export default class ConfigValidator {
       )
     }
     pushAll(errors, gitErrors)
+    pushAll(errors, changesManifestErrors)
 
     if (errors.length > 0) {
       throw new ConfigError(errors.join(', '))
     }
 
     await this.gitAdapter.configureRepository()
+  }
+
+  // oclif cannot natively validate --changes-manifest (it uses a string flag
+  // to allow the bare form). Replicate meaningful checks: if the path already
+  // exists it must be a regular file; otherwise ENOENT is fine because
+  // fs-extra's outputFile creates the parent directory at write time.
+  protected async _validateChangesManifest(): Promise<string[]> {
+    const target = this.config.changesManifest
+    if (!target) return []
+    try {
+      const stats = await stat(target)
+      if (!stats.isFile()) {
+        return [
+          this.message.getMessage('error.ChangesManifestNotAFile', [target]),
+        ]
+      }
+    } catch (error: unknown) {
+      // fs/promises stat always rejects with ErrnoException; narrow through
+      // an `instanceof Error` guard to keep `unknown` discipline, then read
+      // the POSIX code to distinguish "doesn't exist yet" from real failures.
+      const code =
+        error instanceof Error
+          ? (error as NodeJS.ErrnoException).code
+          : undefined
+      if (code !== 'ENOENT') {
+        return [
+          this.message.getMessage('error.ChangesManifestStatFailed', [
+            target,
+            getErrorMessage(error),
+          ]),
+        ]
+      }
+    }
+    return []
   }
 
   protected async _handleDefault() {
@@ -146,5 +183,6 @@ export default class ConfigValidator {
     this.config.additionalMetadataRegistryPath = sanitizePath(
       this.config.additionalMetadataRegistryPath
     )
+    this.config.changesManifest = sanitizePath(this.config.changesManifest)
   }
 }

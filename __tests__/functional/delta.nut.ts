@@ -109,4 +109,18 @@ describe('sgd source delta NUTS', () => {
     // Assert
     expect(sut).toContain('No file found')
   })
+
+  it('Given --changes-manifest flag, When running command, Then oclif accepts the flag', () => {
+    // Act — uses the same invalid-sha pattern as the --from test above so
+    // exit code is deterministic across environments (shallow clones on CI
+    // vs full clones locally would both fail ref resolution with exit 1
+    // regardless). An unknown flag would exit 2 from oclif instead.
+    const sut = run(
+      'sgd source delta --from "invalid_sha_that_does_not_exist" --changes-manifest /tmp/sgd-nut-changes.json --json',
+      1
+    )
+
+    // Assert
+    expect(sut).toContain('output-dir')
+  })
 })

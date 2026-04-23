@@ -12,4 +12,5 @@ export type Config = {
   include?: string | undefined
   includeDestructive?: string | undefined
   additionalMetadataRegistryPath?: string | undefined
+  changesManifest?: string | undefined
 }

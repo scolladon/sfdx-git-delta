@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
+import { ChangeKind } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -28,168 +29,67 @@ describe('PackageGenerator', () => {
   beforeEach(async () => {
     work = getWork()
     metadata = await getDefinition({})
-  })
-  describe('cleanPackages', () => {
-    describe('when destructive contains element from additive', () => {
-      it('removes same element from destructive', () => {
-        // Arrange
-        const type = 'type'
-        const element = 'element'
-        const additive = new Map([[type, new Set([element])]])
-        const destructive = new Map([[type, new Set([element, 'other'])]])
-        work.diffs.package = additive
-        work.diffs.destructiveChanges = destructive
-        work.config.output = 'test'
-        const sut = new PackageGenerator(work, metadata)
-
-        // Act
-        sut['_cleanPackages']()
-
-        // Assert
-        expect(additive.get(type)!.has(element)).toEqual(true)
-        expect(destructive.get(type)!.has(element)).toEqual(false)
-      })
-
-      describe('when destructive does not have element anymore', () => {
-        it('removes same element from destructive', () => {
-          // Arrange
-          const type = 'type'
-          const element = 'element'
-          const additive = new Map([[type, new Set([element])]])
-          const destructive = new Map([[type, new Set([element])]])
-          work.diffs.package = additive
-          work.diffs.destructiveChanges = destructive
-          work.config.output = 'test'
-          const sut = new PackageGenerator(work, metadata)
-
-          // Act
-          sut['_cleanPackages']()
-
-          // Assert
-          expect(additive.get(type)!.has(element)).toEqual(true)
-          expect(destructive.has(type)).toEqual(false)
-        })
-      })
-    })
-
-    describe('when destructive does not contain element from additive', () => {
-      it('keeps both elements', () => {
-        // Arrange
-        const type = 'type'
-        const element = 'element'
-        const additive = new Map([[type, new Set([element])]])
-        const destructive = new Map([[type, new Set(['otherElement'])]])
-        work.diffs.package = additive
-        work.diffs.destructiveChanges = destructive
-        work.config.output = 'test'
-        const sut = new PackageGenerator(work, metadata)
-
-        // Act
-        sut['_cleanPackages']()
-
-        // Assert
-        expect(additive.get(type)!.has(element)).toEqual(true)
-        expect(destructive.get(type)!.has('otherElement')).toEqual(true)
-      })
-    })
+    work.config.output = 'test'
   })
 
-  describe('buildPackages', () => {
-    let sut: PackageGenerator
-    beforeEach(() => {
+  describe('process', () => {
+    it('writes destructiveChanges.xml, package.xml, and the empty destructive package.xml', async () => {
       // Arrange
-      work.config.output = 'test'
-      sut = new PackageGenerator(work, metadata)
-    })
-    it('calls `fse.outputFile` with correct file paths', async () => {
-      // Act
-      await sut['_buildPackages']()
+      work.changes.add(ChangeKind.Add, 'ApexClass', 'Foo')
+      const sut = new PackageGenerator(work, metadata)
 
-      // Assert
-      expect(outputFile).toHaveBeenCalledTimes(3)
-      const calledPaths = vi.mocked(outputFile).mock.calls.map(call => call[0])
-      expect(calledPaths).toContain(
-        'test/destructiveChanges/destructiveChanges.xml'
-      )
-      expect(calledPaths).toContain('test/package/package.xml')
-      expect(calledPaths).toContain('test/destructiveChanges/package.xml')
-    })
-
-    it('writes three packages (destructive, package, empty-destructive-package)', async () => {
       // Act
-      await sut['_buildPackages']()
+      await sut.process()
 
       // Assert
       const writes = vi
         .mocked(outputFile)
         .mock.calls.map(call => call[0] as string)
-      expect(writes).toEqual(
-        expect.arrayContaining([
+      expect(new Set(writes)).toEqual(
+        new Set([
           'test/destructiveChanges/destructiveChanges.xml',
           'test/package/package.xml',
           'test/destructiveChanges/package.xml',
         ])
       )
-      expect(writes).toHaveLength(3)
     })
-  })
 
-  describe('process', () => {
     describe.each([
-      [
-        'different map',
-        new Map([['a', new Set(['a'])]]),
-        new Map([['d', new Set(['a'])]]),
-        new Map([['d', new Set(['a'])]]),
-      ],
-      [
-        'same map',
-        new Map([['a', new Set(['a'])]]),
-        new Map([['a', new Set(['a'])]]),
-        new Map(),
-      ],
-
-      [
-        'overlapping map',
-        new Map([['a', new Set(['a'])]]),
-        new Map([['a', new Set(['a', 'b'])]]),
-        new Map([['a', new Set(['b'])]]),
-      ],
-    ])('when executed with %s', (_, additive, destructive, expectedDestructive) => {
-      it('cleans up the maps', async () => {
+      {
+        label: 'disjoint add and delete sets',
+        add: [['a', 'a'] as const],
+        del: [['d', 'a'] as const],
+        expectedDestructive: new Map([['d', new Set(['a'])]]),
+      },
+      {
+        label: 'full cancellation (add covers every delete)',
+        add: [['a', 'a'] as const],
+        del: [['a', 'a'] as const],
+        expectedDestructive: new Map(),
+      },
+      {
+        label: 'partial cancellation (add covers some deletes)',
+        add: [['a', 'a'] as const],
+        del: [['a', 'a'] as const, ['a', 'b'] as const],
+        expectedDestructive: new Map([['a', new Set(['b'])]]),
+      },
+    ])('Given $label', ({ add, del, expectedDestructive }) => {
+      it('When process runs, Then the destructive view drops cancelled deletions', async () => {
         // Arrange
-        work.diffs.package = additive
-        work.diffs.destructiveChanges = destructive
-        work.config.output = 'test'
+        for (const [type, member] of add) {
+          work.changes.add(ChangeKind.Add, type, member)
+        }
+        for (const [type, member] of del) {
+          work.changes.add(ChangeKind.Delete, type, member)
+        }
         const sut = new PackageGenerator(work, metadata)
 
         // Act
         await sut.process()
 
         // Assert
-        expect(destructive).toEqual(expectedDestructive)
-      })
-      it('emits the three expected package files', async () => {
-        // Arrange
-        work.diffs.package = additive
-        work.diffs.destructiveChanges = destructive
-        work.config.output = 'test'
-        const sut = new PackageGenerator(work, metadata)
-
-        // Act
-        await sut.process()
-
-        // Assert
-        const writes = vi
-          .mocked(outputFile)
-          .mock.calls.map(call => call[0] as string)
-        expect(writes).toHaveLength(3)
-        expect(new Set(writes)).toEqual(
-          new Set([
-            'test/destructiveChanges/destructiveChanges.xml',
-            'test/package/package.xml',
-            'test/destructiveChanges/package.xml',
-          ])
+        expect(work.changes.forDestructiveManifest()).toEqual(
+          expectedDestructive
         )
       })
     })

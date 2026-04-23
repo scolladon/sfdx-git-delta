@@ -7,6 +7,7 @@ import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 
 import BaseProcessor from './baseProcessor.js'
+import ChangesManifestProcessor from './changesManifestProcessor.js'
 import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
@@ -21,8 +22,12 @@ const registeredProcessors: ProcessorConstructor[] = [
   IncludeProcessor,
 ]
 
-// It must be done last
+// PackageGenerator must run last among legacy processors — it writes the final
+// xml manifests. ChangesManifestProcessor operates on work.changes (populated
+// by aggregateManifests before executeRemaining runs) so it is independent of
+// PackageGenerator's output.
 registeredProcessors.push(PackageGenerator)
+registeredProcessors.push(ChangesManifestProcessor)
 
 export default class PostProcessorManager {
   protected readonly processors: BaseProcessor[] = []

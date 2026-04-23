@@ -92,16 +92,16 @@ flowchart LR
 
 **Entry**: `RepoGitDiff.getLines()` (`src/utils/repoGitDiff.ts`)
 
-Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags:
+Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags. Rename detection (`-M`) is **gated on `config.changesManifest`** — default sgd runs pass `--no-renames` so line shape matches the pre-feature output; setting `--changes-manifest` opts into `-M`. When enabled, `R<score>\tfrom\tto` lines (or their numstat equivalent) are emitted and `RepoGitDiff._expandRenames` splits them into synthetic `A`/`D` lines while recording each `{fromPath, toPath}` pair for `RenameResolver` to resolve later.
 
-- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status --no-renames --diff-filter=AMD`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, or `D`. `--no-renames` decomposes renames into an add/delete pair instead of an `R` line.
-- **Whitespace-ignore path**: three parallel `git diff --numstat --no-renames --diff-filter=X` calls (A, M, D) with `--ignore-all-space --ignore-blank-lines --ignore-cr-at-eol --word-diff-regex=|[^[:space:]]`. Only `--numstat` computes a real content diff under these flags; `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs. The numstat line prefix (`<added>\t<deleted>\t`) is rewritten to `<STATUS>\t` so the downstream format is identical to the default path.
+- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status` call. With rename detection off: `--no-renames --diff-filter=AMD`. With detection on: `-M --diff-filter=AMDR`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, `D`, or `R<score>`.
+- **Whitespace-ignore path**: three (or four, when rename detection is on) parallel `git diff --numstat` calls in a single `Promise.all`, one per `--diff-filter`. A/M/D calls emit the standard `<added>\t<deleted>\t<path>` shape; their leading counts are rewritten to the status prefix. The R call (only when `-M` is enabled) uses `-z` to sidestep numstat's brace/arrow rename-path encoding, emitting `<added>\t<deleted>\t\0<src>\0<dst>\0` triplets that are stride-3-parsed into `R\t<src>\t<dst>` lines matching the default-path format. Only `--numstat` computes a real content diff under the whitespace flags — `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs.
 
 Then:
 
 1. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
 2. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
-3. Detects renames: paths where the fully-qualified name (case-insensitive) appears in both the deletion and addition sets have their deletion suppressed — a rename manifests only as an addition
+3. The legacy `_getRenamedElements` FQN match is preserved as a safety net for file-move-same-component cases (different file paths resolving to the same Salesforce component); the deletion side is dropped so the component appears only as an addition. True component renames (different FQNs) surface via git `-M`.
 
 ### Ignore System
 
@@ -338,7 +338,7 @@ After handlers produce their results, post-processors run in two phases:
 
 ```mermaid
 flowchart TD
-    HR["Handler Results"] --> A["aggregateManifests()"]
+    HR["Handler Results"] --> A["ChangeSet.from()"]
     A --> C["Collectors phase<br/>(transformAndCollect)"]
     C --> M["Merge + re-aggregate"]
     M --> IO["I/O Execution"]
@@ -351,11 +351,13 @@ flowchart TD
 
     subgraph Processors
         PG["PackageGenerator"]
+        CM["ChangesManifestProcessor"]
     end
 
     C --> FT
     C --> IP
     P --> PG
+    P --> CM
 ```
 
 ### Two-Phase Execution
@@ -365,11 +367,35 @@ flowchart TD
 - **FlowTranslationProcessor**: when Flows are being deployed, uses `git grep` with pathspec globs (`<source>/*<extension><metaFileSuffix>`) to find `.translation-meta.xml` files containing `flowDefinitions` elements matching deployed flows. This avoids requiring the tree index. Produces pruned translation files as computed content.
 - **IncludeProcessor**: handles `--include` and `--include-destructive` flags. Lists all files in source directories, filters through include patterns, then processes matching lines through `DiffLineInterpreter` as synthetic additions/deletions.
 
-**Processors** (`isCollector = false`) run last via `executeRemaining()`:
+**Processors** (`isCollector = false`) run last via `executeRemaining()`, in registration order:
 
-- **PackageGenerator**: the final step. Deduplicates manifests (removes entries from `destructiveChanges` that also appear in `package`), then writes `package.xml`, `destructiveChanges.xml`, and the required companion empty `package.xml` for destructive deployments.
+- **PackageGenerator**: writes `package.xml` (from `ChangeSet.forPackageManifest()`), `destructiveChanges.xml` (from `ChangeSet.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
+- **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serializes `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`, plus `rename` as `{from, to}` pairs when git `-M` detects component renames). Powered by the `changeKind` field carried on every `ManifestElement` for add/modify/delete and by `RenameResolver` feeding `ChangeSet.recordRename` for rename pairs.
 
 Each processor is wrapped in error isolation — failures produce warnings rather than crashing the pipeline.
+
+### Change-kind pipeline
+
+Every `ManifestElement` produced by a handler is tagged with a `ChangeKind`. This tag is set at three sites:
+
+- **`StandardHandler._collectManifestElement`** derives the kind from the git change type (`A` → `add`, `M` → `modify`, `D` → `delete`) via the `CHANGE_KIND_BY_GIT_TYPE` map. All handlers using the default manifest builder inherit this.
+- **`InFileHandler._collectManifestFromComparison`** takes the kind as a parameter so sub-elements get the correct label from `MetadataDiff.compare()` — which returns three disjoint buckets: `added` (key absent in `from`), `modified` (key present but content differs), `deleted` (key absent in `to`). The keyless-element case is bucketed as modified.
+- **Direct constructors** (`BotHandler`, `FlowTranslationProcessor`) stamp the kind explicitly at their push site.
+
+`ChangeSet.from(manifests)` is the single ingestion point. Each `ManifestElement` carries two orthogonal axes — `target` (deployment contract: `Package` vs `DestructiveChanges`) and `changeKind` (review semantics: `Add` / `Modify` / `Delete`) — and the ChangeSet stores both:
+
+- `byTarget: Record<ManifestTarget, Manifest>` drives the xml manifests.
+- `byKind: Record<AddKind, Manifest>` drives the review-oriented JSON.
+
+The two axes are **not redundant**: a single element can be `(target=Package, changeKind=Delete)`, which is what `InFileHandler` stamps when a container file (e.g. `CustomLabels`) is deleted but child elements survive — the deployment must still list the container under `package.xml` while the JSON manifest surfaces a delete for reviewer visibility. Views route on the correct axis:
+
+- `forPackageManifest()` — `byTarget[Package]` ∪ rename-target per type (used by `PackageGenerator`, `FlowTranslationProcessor`).
+- `forDestructiveManifest()` — `byTarget[DestructiveChanges]` ∪ rename-source, minus anything that winds up in the package view (drops cancelled deletions and covers rename semantics in a single coalesce).
+- `byChangeKind()` — per-kind record. Rename participants are removed from the add/delete buckets so every emitted entry lives in exactly one user-visible bucket; the `rename` bucket contains `{from, to}` pairs deduplicated per type.
+
+Rename detection uses git's `-M` flag, **gated on `config.changesManifest`**. Default sgd runs pass `--no-renames` + `--diff-filter=AMD` so line shape matches the pre-feature output; only `--changes-manifest <file>` opts into `-M` + `--diff-filter=AMDR` (fast path) or the fourth `--numstat -M -z --diff-filter=R` call (ignore-whitespace path). When enabled, `RepoGitDiff` splits each `R<score>\tfrom\tto` line into a synthetic `D\tfrom` + `A\tto` pair so the existing handler pipeline processes them normally, while capturing the pair. `RenameResolver` resolves each pair's paths back through `TypeHandlerFactory` to recover `(type, from-member, to-member)` — bundle renames re-emitted per file collapse to a single entry via the Map-keyed `recordRename` dedupe.
+
+Package.xml remains byte-identical to the pre-feature output because `InFileHandler` still routes both `added` and `modified` sub-elements to `ManifestTarget.Package`; the ChangeSet merely tags them differently.
 
 ---
 

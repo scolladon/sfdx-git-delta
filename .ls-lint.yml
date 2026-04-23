@@ -8,12 +8,13 @@ ls:
   .test.ts: camelCase | PascalCase
   .ts: camelCase | PascalCase
 
-ignore: 
+ignore:
   - .claude
-  - .git 
+  - .git
   - .github
   - .husky
   - .nyc_output
+  - .serena
   - .stryker-tmp
   - .vscode
   - .idea

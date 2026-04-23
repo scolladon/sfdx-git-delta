@@ -4,8 +4,13 @@ import { join, parse } from 'node:path/posix'
 import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
-import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+import type {
+  AddKind,
+  CopyOperation,
+  HandlerResult,
+} from '../types/handlerResult.js'
 import {
+  ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
@@ -15,6 +20,12 @@ import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
+
+const CHANGE_KIND_BY_GIT_TYPE: Readonly<Record<string, AddKind>> = {
+  [ADDITION]: ChangeKind.Add,
+  [MODIFICATION]: ChangeKind.Modify,
+  [DELETION]: ChangeKind.Delete,
+}
 
 /**
  * Strategy pattern base for metadata type handlers.
@@ -89,12 +100,27 @@ export default class StandardHandler {
     return this.element.componentName
   }
 
-  protected _collectManifestElement(target: ManifestTarget) {
+  // Public accessor used by the rename resolver — lets main.ts map a rename
+  // path pair back to (type, member) without running collect() side-effects.
+  public getElementDescriptor(): { type: string; member: string } {
     return {
-      target,
       type: this.element.type.xmlName!,
       member: this._getElementName(),
     }
+  }
+
+  protected _collectManifestElement(target: ManifestTarget) {
+    return {
+      target,
+      ...this.getElementDescriptor(),
+      changeKind: this._getChangeKind(),
+    }
+  }
+
+  protected _getChangeKind(): AddKind {
+    // collect()'s switch guarantees changeType is ADDITION | MODIFICATION |
+    // DELETION before _collectManifestElement runs, so the lookup always hits.
+    return CHANGE_KIND_BY_GIT_TYPE[this.changeType]!
   }
 
   protected _collectCopyWithMetaFile(

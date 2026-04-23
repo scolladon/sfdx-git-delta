@@ -76,6 +76,10 @@ file listing paths to explicitly include for any destructive actions
 
 file containing additional metadata definitions to add to the registry
 
+# flags.changes-manifest.summary
+
+path to a JSON file grouping changed components by kind (add, modify, delete, rename); setting this flag also enables git rename detection
+
 # error.ParameterIsNotGitSHA
 
 --%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
@@ -83,6 +87,14 @@ file containing additional metadata definitions to add to the registry
 # error.PathIsNotGit
 
 '%s' is not a git repository
+
+# error.ChangesManifestNotAFile
+
+--changes-manifest must point to a file path, '%s' already exists and is not a regular file
+
+# error.ChangesManifestStatFailed
+
+--changes-manifest: cannot inspect '%s': %s
 
 # warning.ApiVersionOverridden
 

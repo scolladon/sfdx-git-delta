@@ -380,4 +380,65 @@ describe('Given a RepoGitDiff', () => {
       })
     })
   })
+
+  describe('rename detection (git -M)', () => {
+    it('Given a freshly constructed RepoGitDiff, When getRenamePairs is read before getLines is called, Then it returns an empty array (field initialiser)', () => {
+      // Arrange
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act & Assert
+      expect(sut.getRenamePairs()).toEqual([])
+    })
+
+    it('Given an R-line, When getLines, Then it is split into synthetic A and D lines and exposed via getRenamePairs', async () => {
+      // Arrange
+      mockGetDiffLines.mockResolvedValue([
+        `R095${TAB}force-app/main/default/classes/OldName.cls${TAB}force-app/main/default/classes/NewName.cls`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const lines = await sut.getLines()
+
+      // Assert
+      expect(lines).toContain(
+        `${DELETION}${TAB}force-app/main/default/classes/OldName.cls`
+      )
+      expect(lines).toContain(
+        `${ADDITION}${TAB}force-app/main/default/classes/NewName.cls`
+      )
+      expect(sut.getRenamePairs()).toEqual([
+        {
+          fromPath: 'force-app/main/default/classes/OldName.cls',
+          toPath: 'force-app/main/default/classes/NewName.cls',
+        },
+      ])
+    })
+
+    it('Given no rename lines, When getLines, Then getRenamePairs returns an empty array', async () => {
+      // Arrange
+      mockGetDiffLines.mockResolvedValue([
+        `${ADDITION}${TAB}force-app/main/default/classes/New.cls`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await sut.getLines()
+
+      // Assert
+      expect(sut.getRenamePairs()).toEqual([])
+    })
+
+    it('Given a malformed R-line with fewer than 3 tab-separated parts, When getLines, Then the line is passed through unchanged and no rename pair is recorded', async () => {
+      // Arrange
+      mockGetDiffLines.mockResolvedValue([`R095${TAB}only-one-path.cls`])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await sut.getLines()
+
+      // Assert
+      expect(sut.getRenamePairs()).toEqual([])
+    })
+  })
 })

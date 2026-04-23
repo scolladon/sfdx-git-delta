@@ -5,6 +5,7 @@ import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
 import {
+  ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
@@ -15,19 +16,24 @@ const {
   mockComputeTreeIndexScope,
   mockValidateConfig,
   mockGetLines,
+  mockGetRenamePairs,
   mockProcess,
   mockCollectAll,
   mockExecuteRemaining,
   mockExecute,
+  mockCloseAll,
 } = vi.hoisted(() => ({
   mockPreBuildTreeIndex: vi.fn(),
   mockComputeTreeIndexScope: vi.fn(),
   mockValidateConfig: vi.fn(),
   mockGetLines: vi.fn(),
+  mockGetRenamePairs:
+    vi.fn<() => Array<{ fromPath: string; toPath: string }>>(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockCollectAll: vi.fn<() => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
   mockExecute: vi.fn(),
+  mockCloseAll: vi.fn(),
 }))
 
 vi.mock('../../src/utils/LoggingService')
@@ -37,7 +43,7 @@ vi.mock('../../src/adapter/GitAdapter', () => ({
     getInstance: vi.fn(() => ({
       preBuildTreeIndex: mockPreBuildTreeIndex,
     })),
-    closeAll: vi.fn(),
+    closeAll: mockCloseAll,
   },
 }))
 
@@ -69,10 +75,22 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
       return {
         ...actualModule,
         getLines: mockGetLines,
+        getRenamePairs: mockGetRenamePairs,
       }
     }),
   }
 })
+
+// RenameResolver instantiates TypeHandlerFactory and calls getTypeHandler for
+// each rename path. Stub it so tests can control the (type, member)
+// resolution without needing a real metadata registry lookup on synthetic
+// fixture paths.
+const mockGetTypeHandler = vi.hoisted(() => vi.fn())
+vi.mock('../../src/service/typeHandlerFactory', () => ({
+  default: vi.fn().mockImplementation(function () {
+    return { getTypeHandler: mockGetTypeHandler }
+  }),
+}))
 
 vi.mock('../../src/service/diffLineInterpreter', async () => {
   // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
@@ -115,6 +133,7 @@ beforeEach(() => {
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
   mockGetLines.mockResolvedValue([] as never)
+  mockGetRenamePairs.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
 
@@ -162,14 +181,14 @@ describe('external library inclusion', () => {
   })
 
   describe('orchestration flow', () => {
-    it('Given valid config, When sgd runs, Then returns work with diffs and empty warnings', async () => {
+    it('Given valid config, When sgd runs, Then returns work with an initialised ChangeSet and empty warnings', async () => {
       // Act
       const result = await sgd({} as Config)
 
       // Assert
-      expect(result.diffs).toBeDefined()
-      expect(result.diffs.package).toBeInstanceOf(Map)
-      expect(result.diffs.destructiveChanges).toBeInstanceOf(Map)
+      expect(result.changes).toBeDefined()
+      expect(result.changes.forPackageManifest()).toBeInstanceOf(Map)
+      expect(result.changes.forDestructiveManifest()).toBeInstanceOf(Map)
       expect(result.warnings).toEqual([])
     })
 
@@ -203,6 +222,7 @@ describe('external library inclusion', () => {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'TestClass',
+            changeKind: ChangeKind.Add,
           },
         ],
         copies: [],
@@ -213,8 +233,57 @@ describe('external library inclusion', () => {
       const result = await sgd({} as Config)
 
       // Assert
-      expect(result.diffs.package.has('ApexClass')).toBe(true)
+      expect(result.changes.forPackageManifest().has('ApexClass')).toBe(true)
       expect(mockExecuteRemaining).toHaveBeenCalledTimes(1)
+    })
+
+    it('Given a rename pair, When sgd runs, Then RenameResolver records the pair on the final work.changes', async () => {
+      // Arrange — emulate RepoGitDiff surfacing one rename pair after the
+      // handler pipeline has added both synthetic A/D manifest elements.
+      mockGetRenamePairs.mockReturnValueOnce([
+        { fromPath: 'old/Foo.cls', toPath: 'new/Bar.cls' },
+      ])
+      mockGetTypeHandler
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Foo' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Bar' }),
+        })
+      mockProcess.mockResolvedValueOnce({
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Bar',
+            changeKind: ChangeKind.Add,
+          },
+          {
+            target: ManifestTarget.DestructiveChanges,
+            type: 'ApexClass',
+            member: 'Foo',
+            changeKind: ChangeKind.Delete,
+          },
+        ],
+        copies: [],
+        warnings: [],
+      })
+
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert
+      const rename = result.changes
+        .byChangeKind()
+        [ChangeKind.Rename].get('ApexClass')!
+      expect([...rename.values()]).toEqual([{ from: 'Foo', to: 'Bar' }])
+      // Add/Delete views exclude rename participants
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Add].has('ApexClass')
+      ).toBe(false)
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Delete].has('ApexClass')
+      ).toBe(false)
     })
 
     it('Given handler and post-processor produce warnings, When sgd runs, Then warnings are collected in work', async () => {
@@ -249,6 +318,31 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given generateDelta is false BUT source is populated, When sgd runs, Then preBuildTreeIndex is still not called (the generateDelta gate short-circuits before the scope computation)', async () => {
+      // Arrange — distinguishes the generateDelta guard from the
+      // scopePaths.length > 0 guard. Without the outer `if`, scopePaths
+      // would take config.source and trigger preBuildTreeIndex.
+      const sut = {
+        generateDelta: false,
+        source: ['force-app'],
+        include: 'include.txt',
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to release batch cat-file processes', async () => {
+      // Act
+      await sgd({} as Config)
+
+      // Assert — the mutation that empties the finally block would skip this.
+      expect(mockCloseAll).toHaveBeenCalledOnce()
     })
 
     it('Given generateDelta is true with include set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {

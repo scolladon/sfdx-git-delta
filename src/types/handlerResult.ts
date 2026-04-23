@@ -5,6 +5,18 @@ export enum ManifestTarget {
   DestructiveChanges = 'destructiveChanges',
 }
 
+export enum ChangeKind {
+  Add = 'add',
+  Modify = 'modify',
+  Delete = 'delete',
+  Rename = 'rename',
+}
+
+// Handlers can only produce single-component change kinds — rename carries a
+// (from, to) pair that the flat ManifestElement shape can't represent, so it
+// is captured separately via ChangeSet.recordRename.
+export type AddKind = ChangeKind.Add | ChangeKind.Modify | ChangeKind.Delete
+
 export enum CopyOperationKind {
   GitCopy = 'gitCopy',
   GitDirCopy = 'gitDirCopy',
@@ -15,6 +27,7 @@ export type ManifestElement = {
   target: ManifestTarget
   type: string
   member: string
+  changeKind: AddKind
 }
 
 export type GitCopyOperation = {
