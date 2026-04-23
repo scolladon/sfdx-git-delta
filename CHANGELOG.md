@@ -4,6 +4,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.42.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.41.2...v6.42.0) (2026-04-23)
+
+
+### Features
+
+* --changes-manifest for review-centric change-kind output ([#1281](https://github.com/scolladon/sfdx-git-delta/issues/1281)) ([01f7413](https://github.com/scolladon/sfdx-git-delta/commit/01f741311bf0eecee7dc6ce5b178e686dd8a28ba))
+* **metadata:** bump @salesforce/source-deploy-retrieve from 12.32.8 to 12.32.9 ([#1279](https://github.com/scolladon/sfdx-git-delta/issues/1279)) ([f115111](https://github.com/scolladon/sfdx-git-delta/commit/f1151114b74c4dfa94db3472dec4f08391acb0d6))
+* **metadata:** bump @salesforce/source-deploy-retrieve from 12.32.9 to 12.34.0 ([#1282](https://github.com/scolladon/sfdx-git-delta/issues/1282)) ([830c0fa](https://github.com/scolladon/sfdx-git-delta/commit/830c0faa6167e1e01bb90ab4a55816d5e09d6765))
+
 ## [6.41.2](https://github.com/scolladon/sfdx-git-delta/compare/v6.41.1...v6.41.2) (2026-04-18)
 
 
