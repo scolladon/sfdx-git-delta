@@ -1,4 +1,17 @@
 'use strict'
+import { PassThrough } from 'node:stream'
+
+const drainWriter = async (
+  writer: (out: import('node:stream').Writable) => Promise<void>
+): Promise<string> => {
+  const stream = new PassThrough()
+  const chunks: Buffer[] = []
+  stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
+  await writer(stream)
+  stream.end()
+  return Buffer.concat(chunks).toString('utf8')
+}
+
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -203,7 +216,7 @@ describe('FlowTranslationProcessor', () => {
           expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
           expect(hasTranslationManifest(result)).toBe(true)
           expect(result.copies).toHaveLength(1)
-          expect(result.copies[0].kind).toBe(CopyOperationKind.ComputedContent)
+          expect(result.copies[0].kind).toBe(CopyOperationKind.StreamedContent)
         })
       })
 
@@ -233,12 +246,12 @@ describe('FlowTranslationProcessor', () => {
           expect(parseXmlFileToJson).toHaveBeenCalled()
           expect(result.copies).toHaveLength(1)
           const copy = result.copies[0]
-          expect(copy.kind).toBe(CopyOperationKind.ComputedContent)
+          expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
           expect(copy.path).toBe(translationPath)
-          if (copy.kind === CopyOperationKind.ComputedContent) {
-            expect(copy.content).toContain('test-flow')
-            expect(copy.content).toContain('TestA')
-            expect(copy.content).toContain('TestB')
+          if (copy.kind === CopyOperationKind.StreamedContent) {
+            expect(await drainWriter(copy.writer)).toContain('test-flow')
+            expect(await drainWriter(copy.writer)).toContain('TestA')
+            expect(await drainWriter(copy.writer)).toContain('TestB')
           }
         })
       })
@@ -269,10 +282,10 @@ describe('FlowTranslationProcessor', () => {
           expect(parseXmlFileToJson).toHaveBeenCalled()
           expect(result.copies).toHaveLength(1)
           const copy = result.copies[0]
-          expect(copy.kind).toBe(CopyOperationKind.ComputedContent)
+          expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
           expect(copy.path).toBe(translationPath)
-          if (copy.kind === CopyOperationKind.ComputedContent) {
-            expect(copy.content).toContain('test-flow')
+          if (copy.kind === CopyOperationKind.StreamedContent) {
+            expect(await drainWriter(copy.writer)).toContain('test-flow')
           }
         })
       })

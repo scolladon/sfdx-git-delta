@@ -1,5 +1,7 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
+import type { Writable } from 'node:stream'
+
 import { castArray } from 'lodash-es'
 
 import {
@@ -22,9 +24,13 @@ import { grepContent } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
+import type { RootCapture } from '../utils/metadataDiff/xmlEventReader.js'
+import { writeXmlDocument } from '../utils/metadataDiff/xmlWriter.js'
 import {
-  convertJsonToXml,
+  ATTRIBUTE_PREFIX,
   parseXmlFileToJson,
+  XML_HEADER_ATTRIBUTE_KEY,
+  type XmlContent,
   xml2Json,
 } from '../utils/xmlHelper.js'
 import BaseProcessor from './baseProcessor.js'
@@ -55,6 +61,47 @@ const getDefaultTranslation = (): TranslationsContent => ({
     flowDefinitions: [],
   },
 })
+
+const buildTranslationWriter = (
+  translation: TranslationsContent
+): ((out: Writable) => Promise<void>) => {
+  const rootCapture = buildRootCapture(translation)
+  const rootChildren = buildRootChildren(translation)
+  return async (out: Writable) => {
+    await writeXmlDocument(out, rootCapture, rootChildren)
+  }
+}
+
+const buildRootCapture = (translation: TranslationsContent): RootCapture => {
+  const declContent = translation[XML_HEADER_ATTRIBUTE_KEY] as
+    | XmlContent
+    | undefined
+  const xmlHeader =
+    declContent === undefined
+      ? undefined
+      : { [XML_HEADER_ATTRIBUTE_KEY]: declContent }
+  const rootKey = 'Translations'
+  const translations = (translation.Translations ?? {}) as XmlContent
+  const rootAttributes: Record<string, string> = {}
+  for (const key of Object.keys(translations)) {
+    if (key.startsWith(ATTRIBUTE_PREFIX)) {
+      rootAttributes[key] = String(translations[key])
+    }
+  }
+  return { xmlHeader, rootKey, rootAttributes }
+}
+
+const buildRootChildren = (
+  translation: TranslationsContent
+): [string, unknown][] => {
+  const translations = (translation.Translations ?? {}) as XmlContent
+  const entries: [string, unknown][] = []
+  for (const key of Object.keys(translations)) {
+    if (key.startsWith(ATTRIBUTE_PREFIX)) continue
+    entries.push([key, translations[key]])
+  }
+  return entries
+}
 
 export default class FlowTranslationProcessor extends BaseProcessor {
   protected readonly translations: Map<string, FlowDefinition[]>
@@ -144,9 +191,9 @@ export default class FlowTranslationProcessor extends BaseProcessor {
           this.translations.get(translationPath)!
         )
         result.copies.push({
-          kind: CopyOperationKind.ComputedContent,
+          kind: CopyOperationKind.StreamedContent,
           path: translationPath,
-          content: convertJsonToXml(jsonTranslation),
+          writer: buildTranslationWriter(jsonTranslation),
         })
       }
     }
