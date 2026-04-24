@@ -17,3 +17,15 @@ updates:
       prefix: "feat(metadata)"
     allow:
       - dependency-name: "@salesforce/source-deploy-retrieve"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    versioning-strategy: increase
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "manual-review-only"
+    allow:
+      - dependency-name: "@nodable/*"

@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@nodable/flexible-xml-parser": "^1.1.1",
+    "@nodable/flexible-xml-parser": "1.1.1",
     "@oclif/core": "^4.10.5",
     "@salesforce/core": "^8.28.3",
     "@salesforce/sf-plugins-core": "^12.2.6",
@@ -64,7 +64,11 @@
     "zod": "^4.3.6"
   },
   "overrides": {
-    "basic-ftp": "^5.3.0"
+    "basic-ftp": "^5.3.0",
+    "@nodable/base-output-builder": "1.0.5",
+    "@nodable/compact-builder": "1.0.6",
+    "path-expression-matcher": "1.5.0",
+    "strnum": "2.2.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
