@@ -2,6 +2,8 @@
 import { join, parse } from 'node:path/posix'
 import type { Writable } from 'node:stream'
 
+import { eachLimit } from 'async'
+
 import {
   FLOW_XML_NAME,
   META_REGEX,
@@ -18,6 +20,7 @@ import {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { grepContent, readPathFromGit } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
@@ -107,11 +110,11 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     this.translations.clear()
     // Cache the package-flow set once per process() invocation — avoids
     // re-computing the union-view of ChangeSet for every parsed flow.
-    // _shouldProcess() has already checked has(FLOW_XML_NAME), so get cannot
-    // return undefined here.
-    this.packagedFlows = this.work.changes
-      .forPackageManifest()
-      .get(FLOW_XML_NAME)!
+    // _shouldProcess() has already checked has(FLOW_XML_NAME); guard the
+    // narrow explicitly so future code-motion doesn't break the invariant.
+    const packaged = this.work.changes.forPackageManifest().get(FLOW_XML_NAME)
+    if (packaged === undefined) return
+    this.packagedFlows = packaged
 
     const pathspecs = this.config.source.map(
       s => `${s}/*${EXTENSION}${METAFILE_SUFFIX}`
@@ -122,11 +125,18 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       this.work.config
     )
 
-    for (const translationPath of translationPaths) {
-      if (await this._canParse(translationPath)) {
-        await this._parseTranslationFile(translationPath)
+    // Translation files are independent; parse them in parallel under the
+    // shared concurrency cap. this.translations.set is keyed by distinct
+    // translationPath values so per-file writes do not overlap.
+    await eachLimit(
+      translationPaths,
+      getConcurrencyThreshold(),
+      async (translationPath: string) => {
+        if (await this._canParse(translationPath)) {
+          await this._parseTranslationFile(translationPath)
+        }
       }
-    }
+    )
   }
 
   protected async _canParse(translationPath: string) {
@@ -271,10 +281,12 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     translationPath: string
     flowDefinition: FlowDefinition
   }) {
-    if (!this.translations.has(translationPath)) {
-      this.translations.set(translationPath, [])
+    let list = this.translations.get(translationPath)
+    if (list === undefined) {
+      list = []
+      this.translations.set(translationPath, list)
     }
-    this.translations.get(translationPath)!.push(flowDefinition)
+    list.push(flowDefinition)
   }
 
   protected _shouldProcess() {

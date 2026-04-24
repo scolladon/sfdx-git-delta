@@ -196,12 +196,12 @@ export class StreamingDiff {
     if (key === undefined) return
     const fromMap = this.passOne.fromKeyed.get(subType)
     const fromElem = fromMap?.get(key)
-    if (fromElem === undefined) {
+    if (fromMap === undefined || fromElem === undefined) {
       this.recordAdded(subType, key)
       this.retainSubTypeElement(subType, element)
       return
     }
-    fromMap!.delete(key)
+    fromMap.delete(key)
     if (deepEqual(fromElem, element)) return
     this.recordModified(subType, key)
     this.retainSubTypeElement(subType, element)

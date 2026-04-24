@@ -111,6 +111,7 @@ describe('MetadataDiff.run', () => {
     serveXml(fromXml, toXml)
     const sut = new MetadataDiff(work.config, inFileAttributes)
     const outcome = await sut.run('file/path')
+    expect(outcome.writer).toBeDefined()
 
     const drain = async () => {
       const out = new PassThrough()

@@ -96,7 +96,9 @@ describe('StreamingDiff', () => {
       { type: packageableSubType.xmlName, member: 'New.Member' },
     ])
     expect(outcome.hasAnyChanges).toBe(true)
-    expect(produced).toContain('New.Member')
+    expect(produced).toMatch(
+      new RegExp(`<${keyField}>New\\.Member</${keyField}>`)
+    )
   })
 
   it('Given a keyed element removed in to (packageable), When finalize runs, Then deleted carries the member', () => {
