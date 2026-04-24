@@ -56,4 +56,28 @@ describe('getLFSObjectContentPath', () => {
     // Act & Assert
     expect(() => getLFSObjectContentPath(lfsFileContent)).toThrow()
   })
+
+  it('Given a traversal-crafted oid, When getLFSObjectContentPath runs, Then it rejects the oid as invalid', () => {
+    // Arrange
+    const malicious = Buffer.from(
+      `version https://git-lfs.github.com/spec/v1\noid sha256:../../../etc/passwd\nsize 7`
+    )
+
+    // Act & Assert
+    expect(() => getLFSObjectContentPath(malicious)).toThrow('Invalid LFS oid')
+  })
+
+  it('Given an uppercase or short oid, When getLFSObjectContentPath runs, Then it rejects the oid as invalid', () => {
+    // Arrange
+    const tooShort = Buffer.from(
+      `version https://git-lfs.github.com/spec/v1\noid sha256:abc123\nsize 3`
+    )
+    const upper = Buffer.from(
+      `version https://git-lfs.github.com/spec/v1\noid sha256:${'A'.repeat(64)}\nsize 9`
+    )
+
+    // Act & Assert
+    expect(() => getLFSObjectContentPath(tooShort)).toThrow()
+    expect(() => getLFSObjectContentPath(upper)).toThrow()
+  })
 })
