@@ -102,7 +102,12 @@ const driveParse = (
  * failure.
  *
  * Emits `onElement(subType, element)` per direct-child element of the
- * document root.
+ * document root after the parser finishes. The current implementation
+ * iterates the fully-materialized tree rather than firing per close-tag
+ * boundary; per-element memory-bounded parsing is DESIGN Q2 and tracked
+ * as a separate follow-up (the compact-builder package only declares its
+ * builder as a TypeScript interface, which blocks subclass-based
+ * streaming without a library-level type fix or fork).
  */
 export const parseFromSideSwallowing = async (
   source: Buffer | string | null | undefined,

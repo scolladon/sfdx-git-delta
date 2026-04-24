@@ -20,20 +20,24 @@ import {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
-import { grepContent } from '../utils/fsHelper.js'
+import { grepContent, readPathFromGit } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
-import type { RootCapture } from '../utils/metadataDiff/xmlEventReader.js'
+import {
+  parseFromSideSwallowing,
+  type RootCapture,
+} from '../utils/metadataDiff/xmlEventReader.js'
 import { writeXmlDocument } from '../utils/metadataDiff/xmlWriter.js'
 import {
   ATTRIBUTE_PREFIX,
-  parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
   type XmlContent,
   xml2Json,
 } from '../utils/xmlHelper.js'
 import BaseProcessor from './baseProcessor.js'
+
+const FLOW_DEFINITIONS_KEY = 'flowDefinitions'
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
 
@@ -220,27 +224,33 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
-  // The parse here still materializes the full translation tree via
-  // parseXmlFileToJson. The streaming win claimed in P5 applies only to
-  // the write path — collectFlowTranslations' StreamedContent writer
-  // avoids the convertJsonToXml string intermediate. Migrating the parse
-  // to xmlEventReader's early-filter mode is tracked as a follow-up.
+  // Uses the streaming xmlEventReader so non-flowDefinitions direct
+  // children of the Translations root (customFieldTranslations, etc.)
+  // are discarded as they are emitted, and flowDefinitions whose
+  // fullName is not in packagedFlows never reach this.translations.
+  // The callback-level early-filter makes _addFlowPerTranslation a
+  // plain append.
+  //
+  // Note: per DESIGN Q2 the underlying parser still materialises the
+  // full tree before the callbacks fire — the memory win is bounded by
+  // packagedFlows size, not by peak-element size. A per-element
+  // memory-bounded parse requires a subclassable output-builder in
+  // @nodable/compact-builder and is tracked separately.
   protected async _parseTranslationFile(translationPath: string) {
-    const translationJSON = (await parseXmlFileToJson(
+    const source = await readPathFromGit(
       { path: translationPath, oid: this.config.to },
       this.config
-    )) as TranslationsContent
-    const flowDefinitions = castArray(
-      translationJSON?.Translations?.flowDefinitions
-    ) as FlowDefinition[]
-    flowDefinitions.forEach(flowDefinition =>
-      this._addFlowPerTranslation({
-        translationPath,
-        flowDefinition,
-      })
     )
+    await parseFromSideSwallowing(source, (subType, element) => {
+      if (subType !== FLOW_DEFINITIONS_KEY) return
+      const flowDefinition = element as FlowDefinition
+      if (!flowDefinition.fullName) return
+      if (!this.packagedFlows.has(flowDefinition.fullName)) return
+      this._addFlowPerTranslation({ translationPath, flowDefinition })
+    })
   }
 
+  // Caller has already filtered by packagedFlows; this is pure append.
   protected _addFlowPerTranslation({
     translationPath,
     flowDefinition,
@@ -248,13 +258,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     translationPath: string
     flowDefinition: FlowDefinition
   }) {
-    const fullName = flowDefinition?.fullName
-    if (fullName && this.packagedFlows.has(fullName)) {
-      if (!this.translations.has(translationPath)) {
-        this.translations.set(translationPath, [])
-      }
-      this.translations.get(translationPath)!.push(flowDefinition)
+    if (!this.translations.has(translationPath)) {
+      this.translations.set(translationPath, [])
     }
+    this.translations.get(translationPath)!.push(flowDefinition)
   }
 
   protected async _getTranslationAsJSON(

@@ -28,26 +28,36 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import { grepContent } from '../../../../src/utils/fsHelper'
+import { grepContent, readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
   readFile,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
-import { parseXmlFileToJson } from '../../../../src/utils/xmlHelper'
 import { getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 vi.mock('../../../../src/utils/fsUtils')
 
 const mockedGrepContent = vi.mocked(grepContent)
-const mockedParseXmlFileToJson = vi.mocked(parseXmlFileToJson)
+const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 const mockedIsSubDir = vi.mocked(isSubDir)
 const mockedPathExists = vi.mocked(pathExists)
 const mockedReadFile = vi.mocked(readFile)
 const mockTreatPathSep = vi.mocked(treatPathSep)
 mockTreatPathSep.mockImplementation(data => data)
+
+const translationXml = (flowDefinitions: Array<{ fullName: string }>) => {
+  const defs = flowDefinitions
+    .map(
+      flowDef =>
+        `  <flowDefinitions><fullName>${flowDef.fullName}</fullName></flowDefinitions>`
+    )
+    .join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<Translations xmlns="http://soap.sforce.com/2006/04/metadata">\n${defs}\n</Translations>`
+}
+const emptyTranslationXml = `<?xml version="1.0" encoding="UTF-8"?>\n<Translations xmlns="http://soap.sforce.com/2006/04/metadata">\n</Translations>`
 
 const mockIgnores = vi.fn()
 vi.mock('../../../../src/utils/ignoreHelper', () => ({
@@ -57,17 +67,6 @@ vi.mock('../../../../src/utils/ignoreHelper', () => ({
     },
   })),
 }))
-vi.mock('../../../../src/utils/xmlHelper', async () => {
-  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const originalModule: any = await vi.importActual(
-    '../../../../src/utils/xmlHelper'
-  )
-
-  return {
-    ...originalModule,
-    parseXmlFileToJson: vi.fn(),
-  }
-})
 
 const FR = 'fr'
 const flowFullName = 'test-flow'
@@ -140,9 +139,9 @@ describe('FlowTranslationProcessor', () => {
       beforeEach(() => {
         // Arrange
         work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
-        mockedParseXmlFileToJson.mockResolvedValue({
-          Translations: { flowDefinitions: { fullName: flowFullName } },
-        })
+        mockedReadPathFromGit.mockResolvedValue(
+          translationXml([{ fullName: flowFullName }])
+        )
       })
 
       describe('when there is no translation file', () => {
@@ -163,7 +162,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(mockedReadPathFromGit).not.toHaveBeenCalled()
           expect(hasTranslationManifest(result)).toBe(false)
           expect(result.copies).toHaveLength(0)
         })
@@ -172,7 +171,7 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is a translation file without flow def', () => {
         beforeEach(() => {
           // Arrange
-          mockedParseXmlFileToJson.mockResolvedValue({})
+          mockedReadPathFromGit.mockResolvedValue(emptyTranslationXml)
         })
         it('should not add translation file', async () => {
           // Act
@@ -188,7 +187,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
           expect(result.copies).toHaveLength(0)
         })
       })
@@ -196,9 +195,9 @@ describe('FlowTranslationProcessor', () => {
       describe('when there is a translation file with one flow def', () => {
         beforeEach(() => {
           // Arrange
-          mockedParseXmlFileToJson.mockResolvedValue({
-            Translations: { flowDefinitions: { fullName: flowFullName } },
-          })
+          mockedReadPathFromGit.mockResolvedValue(
+            translationXml([{ fullName: flowFullName }])
+          )
         })
         it('should add translation file', async () => {
           // Act
@@ -213,7 +212,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
           expect(hasTranslationManifest(result)).toBe(true)
           expect(result.copies).toHaveLength(1)
           expect(result.copies[0].kind).toBe(CopyOperationKind.StreamedContent)
@@ -243,7 +242,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalled()
+          expect(mockedReadPathFromGit).toHaveBeenCalled()
           expect(result.copies).toHaveLength(1)
           const copy = result.copies[0]
           expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
@@ -279,7 +278,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalled()
+          expect(mockedReadPathFromGit).toHaveBeenCalled()
           expect(result.copies).toHaveLength(1)
           const copy = result.copies[0]
           expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
@@ -300,9 +299,9 @@ describe('FlowTranslationProcessor', () => {
         })
         describe('when there is no flow matching the translation', () => {
           beforeEach(() => {
-            mockedParseXmlFileToJson.mockResolvedValue({
-              Translations: { flowDefinitions: [{ fullName: 'wrong' }] },
-            })
+            mockedReadPathFromGit.mockResolvedValue(
+              translationXml([{ fullName: 'wrong' }])
+            )
           })
           it('should not add translation', async () => {
             // Arrange
@@ -320,7 +319,7 @@ describe('FlowTranslationProcessor', () => {
               ),
               work.config
             )
-            expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+            expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
             expect(result.copies).toHaveLength(0)
           })
         })
@@ -331,14 +330,12 @@ describe('FlowTranslationProcessor', () => {
             false,
           ])('when config.generateDelta is %s', generateDelta => {
             beforeEach(() => {
-              mockedParseXmlFileToJson.mockResolvedValue({
-                Translations: {
-                  flowDefinitions: [
-                    { fullName: flowFullName },
-                    { fullName: 'otherFlow' },
-                  ],
-                },
-              })
+              mockedReadPathFromGit.mockResolvedValue(
+                translationXml([
+                  { fullName: flowFullName },
+                  { fullName: 'otherFlow' },
+                ])
+              )
               work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
               work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, 'otherFlow')
               work.config.generateDelta = generateDelta
@@ -367,7 +364,7 @@ describe('FlowTranslationProcessor', () => {
                 ),
                 work.config
               )
-              expect(parseXmlFileToJson).toHaveBeenCalledTimes(2)
+              expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
               if (generateDelta) expect(result.copies).toHaveLength(2)
               else expect(result.copies).toHaveLength(0)
             })
@@ -395,7 +392,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(mockedReadPathFromGit).not.toHaveBeenCalled()
           expect(result.copies).toHaveLength(0)
         })
       })
@@ -421,7 +418,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).toHaveBeenCalledTimes(1)
+          expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
           expect(result.copies).toHaveLength(1)
         })
       })
@@ -431,7 +428,7 @@ describe('FlowTranslationProcessor', () => {
           // Arrange
           const out = 'out'
           work.config.output = out
-          mockedParseXmlFileToJson.mockResolvedValue({})
+          mockedReadPathFromGit.mockResolvedValue(emptyTranslationXml)
           mockedIsSubDir.mockImplementation(() => true)
         })
         it('should not add translation file', async () => {
@@ -448,7 +445,7 @@ describe('FlowTranslationProcessor', () => {
             ),
             work.config
           )
-          expect(parseXmlFileToJson).not.toHaveBeenCalled()
+          expect(mockedReadPathFromGit).not.toHaveBeenCalled()
           expect(result.copies).toHaveLength(0)
         })
       })
