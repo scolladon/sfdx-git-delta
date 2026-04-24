@@ -1,0 +1,20 @@
+import { PassThrough } from 'node:stream'
+import { describe, it, expect } from 'vitest'
+import { writeXmlDocument } from '/Users/scolladon/workspace/perso/node/sfdx-git-delta/src/utils/metadataDiff/xmlWriter.ts'
+
+describe('debug', () => {
+  it('empty child list', async () => {
+    const stream = new PassThrough()
+    const chunks: Buffer[] = []
+    stream.on('data', c => chunks.push(Buffer.from(c)))
+    await writeXmlDocument(stream, {
+      xmlHeader: { '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' } },
+      rootKey: 'Profile',
+      rootAttributes: { '@_xmlns': 'http://soap.sforce.com/2006/04/metadata' },
+    }, [])
+    stream.end()
+    const out = Buffer.concat(chunks).toString('utf8')
+    console.error('OUTPUT:', JSON.stringify(out))
+    expect(out).toBe('x')
+  })
+})
