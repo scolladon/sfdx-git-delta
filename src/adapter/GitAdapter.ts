@@ -466,7 +466,7 @@ export default class GitAdapter implements GitBlobReader {
     const detectRenames = Boolean(this.config.changesManifest)
 
     if (!this.config.ignoreWhitespace) {
-      const output = await this.simpleGit.raw([
+      const args = [
         'diff',
         '--name-status',
         ...(detectRenames ? ['-M'] : ['--no-renames']),
@@ -475,11 +475,12 @@ export default class GitAdapter implements GitBlobReader {
         this.config.to,
         '--',
         ...this.config.source,
-      ])
-      return output
-        .split(EOL)
-        .filter(Boolean)
-        .map(line => treatPathSep(line))
+      ]
+      const lines: string[] = []
+      for await (const line of this._spawnLines(args)) {
+        if (line) lines.push(treatPathSep(line))
+      }
+      return lines
     }
 
     // When rename detection is on, the A/M/D filters also run with -M so
@@ -502,47 +503,66 @@ export default class GitAdapter implements GitBlobReader {
   // Per-filter numstat call. The R branch uses `-z` because numstat
   // otherwise encodes rename paths in three format variants within the
   // path column (`{a => b}`, `a/{b => c}/d`, or bare `old => new`). `-z`
-  // emits `N<TAB>M<TAB>\0<src>\0<dst>\0` for each rename, so we can
-  // stride-3 over the NUL-split tokens and synthesise
-  // `R<TAB><src><TAB><dst>` lines that RepoGitDiff._expandRenames
-  // already understands. A/M/D use the default output and rewrite the
-  // leading `N\tM\t` counts into the status prefix.
+  // emits `N<TAB>M<TAB>\0<src>\0<dst>\0` for each rename, so we stride-3
+  // over the NUL-split tokens and synthesise `R<TAB><src><TAB><dst>`
+  // lines that RepoGitDiff._expandRenames already understands.
+  //
+  // A/M/D: streamed via _spawnLines + readline, per-line transform strips
+  // the leading `N\tM\t` counts and rewrites them to the status prefix.
+  // R (NUL-delimited): buffered via simpleGit.raw because readline is
+  // newline-oriented and the whole-string split remains cheap for the
+  // rare rename set.
   protected async _getNumstatLines(
     changeType: string,
     detectRenames: boolean
   ): Promise<string[]> {
-    const isRename = changeType === RENAMED
-    const output = await this.simpleGit.raw([
+    if (changeType === RENAMED) {
+      return this._getRenameLines()
+    }
+    const args = [
       'diff',
       '--numstat',
-      ...(isRename ? ['-M', '-z'] : detectRenames ? ['-M'] : ['--no-renames']),
+      ...(detectRenames ? ['-M'] : ['--no-renames']),
       ...IGNORE_WHITESPACE_PARAMS,
       `--diff-filter=${changeType}`,
       this.config.from,
       this.config.to,
       '--',
       ...this.config.source,
-    ])
-
-    if (isRename) {
-      const tokens = output.split('\0')
-      const lines: string[] = []
-      for (let i = 0; i + 2 < tokens.length; i += 3) {
-        const src = tokens[i + 1]
-        const dst = tokens[i + 2]
-        if (!src || !dst) continue
-        lines.push(treatPathSep(`${RENAMED}${TAB}${src}${TAB}${dst}`))
-      }
-      return lines
-    }
-
-    return output
-      .split(EOL)
-      .filter(Boolean)
-      .map(line =>
+    ]
+    const lines: string[] = []
+    for await (const line of this._spawnLines(args)) {
+      if (!line) continue
+      lines.push(
         treatPathSep(
           line.replace(NUM_STAT_CHANGE_INFORMATION, `${changeType}\t`)
         )
       )
+    }
+    return lines
+  }
+
+  private async _getRenameLines(): Promise<string[]> {
+    const output = await this.simpleGit.raw([
+      'diff',
+      '--numstat',
+      '-M',
+      '-z',
+      ...IGNORE_WHITESPACE_PARAMS,
+      `--diff-filter=${RENAMED}`,
+      this.config.from,
+      this.config.to,
+      '--',
+      ...this.config.source,
+    ])
+    const tokens = output.split('\0')
+    const lines: string[] = []
+    for (let i = 0; i + 2 < tokens.length; i += 3) {
+      const src = tokens[i + 1]
+      const dst = tokens[i + 2]
+      if (!src || !dst) continue
+      lines.push(treatPathSep(`${RENAMED}${TAB}${src}${TAB}${dst}`))
+    }
+    return lines
   }
 }

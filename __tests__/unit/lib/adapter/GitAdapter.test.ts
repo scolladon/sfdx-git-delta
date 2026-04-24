@@ -112,6 +112,38 @@ const installSpawnQueue = (sut: GitAdapter, responses: string[][]) => {
   sut.setSpawnFn(spawnFn)
 }
 
+// Same shape but for diff output — each response is a single raw stdout
+// string (newline-delimited lines), not a files array. getDiffLines and
+// _getNumstatLines run per-call so the queue dispenses one per spawn.
+const createRawStreamFake = (stdoutText: string) => {
+  const stdout = new PassThrough()
+  const stderr = new PassThrough()
+  const fake = Object.assign(new EventEmitter(), {
+    stdin: { write: vi.fn(), end: vi.fn() },
+    stdout,
+    stderr,
+    killed: false,
+    exitCode: null as number | null,
+    kill: vi.fn(),
+  })
+  process.nextTick(() => {
+    if (stdoutText.length > 0) stdout.write(stdoutText)
+    stdout.end()
+    fake.emit('close', 0)
+  })
+  return fake
+}
+
+const installDiffSpawnQueue = (sut: GitAdapter, responses: string[]) => {
+  let idx = 0
+  const spawnFn = vi.fn((cmd: string, args: string[]) => {
+    spawnCalls.push({ cmd, args })
+    const output = responses[idx++] ?? ''
+    return createRawStreamFake(output) as never
+  })
+  sut.setSpawnFn(spawnFn)
+}
+
 describe('GitAdapter', () => {
   let config: Config
   beforeEach(() => {
@@ -758,17 +790,15 @@ describe('GitAdapter', () => {
     it('Given diff output and no changesManifest flag, When getDiffLines, Then issues one name-status diff with --no-renames and filter=AMD (default sgd behaviour — rename detection is opt-in)', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce(
-        'A\ttest\nM\tfile\nD\tanotherfile' as never
-      )
+      installDiffSpawnQueue(gitAdapter, ['A\ttest\nM\tfile\nD\tanotherfile\n'])
 
       // Act
       const result = await gitAdapter.getDiffLines()
 
       // Assert
       expect(result).toEqual(['A\ttest', 'M\tfile', 'D\tanotherfile'])
-      expect(mockedRaw).toHaveBeenCalledTimes(1)
-      expect(mockedRaw).toHaveBeenCalledWith(
+      expect(spawnCalls).toHaveLength(1)
+      expect(spawnCalls[0]!.args).toEqual(
         expect.arrayContaining([
           'diff',
           '--name-status',
@@ -782,16 +812,14 @@ describe('GitAdapter', () => {
       // Arrange
       config.changesManifest = 'changes.json'
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce(
-        'A\ttest\nR100\told.cls\tnew.cls' as never
-      )
+      installDiffSpawnQueue(gitAdapter, ['A\ttest\nR100\told.cls\tnew.cls\n'])
 
       // Act
       const result = await gitAdapter.getDiffLines()
 
       // Assert
       expect(result).toEqual(['A\ttest', 'R100\told.cls\tnew.cls'])
-      expect(mockedRaw).toHaveBeenCalledWith(
+      expect(spawnCalls[0]!.args).toEqual(
         expect.arrayContaining([
           'diff',
           '--name-status',
@@ -804,7 +832,7 @@ describe('GitAdapter', () => {
     it('Given empty diff output, When getDiffLines, Then returns empty array', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce('' as never)
+      installDiffSpawnQueue(gitAdapter, [''])
 
       // Act
       const result = await gitAdapter.getDiffLines()
@@ -816,9 +844,9 @@ describe('GitAdapter', () => {
     it('Given multiple lines, When getDiffLines, Then preserves ordering', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce(
-        'A\tnewFile1\nA\tnewFile2\nM\tmodFile1\nD\tdelFile1\nD\tdelFile2' as never
-      )
+      installDiffSpawnQueue(gitAdapter, [
+        'A\tnewFile1\nA\tnewFile2\nM\tmodFile1\nD\tdelFile1\nD\tdelFile2\n',
+      ])
 
       // Act
       const result = await gitAdapter.getDiffLines()
@@ -840,20 +868,20 @@ describe('GitAdapter', () => {
         // skipped altogether.
         config.ignoreWhitespace = true
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw
-          .mockResolvedValueOnce('8\t0\ttest' as never) // ADDITION
-          .mockResolvedValueOnce('3\t2\tfile' as never) // MODIFICATION
-          .mockResolvedValueOnce('' as never) // DELETION empty
+        installDiffSpawnQueue(gitAdapter, [
+          '8\t0\ttest\n', // ADDITION
+          '3\t2\tfile\n', // MODIFICATION
+          '', // DELETION empty
+        ])
 
         // Act
         const result = await gitAdapter.getDiffLines()
 
         // Assert
         expect(result).toEqual(['A\ttest', 'M\tfile'])
-        expect(mockedRaw).toHaveBeenCalledTimes(3)
-        for (let i = 1; i <= 3; i++) {
-          expect(mockedRaw).toHaveBeenNthCalledWith(
-            i,
+        expect(spawnCalls).toHaveLength(3)
+        for (const call of spawnCalls) {
+          expect(call.args).toEqual(
             expect.arrayContaining([
               '--numstat',
               '--no-renames',
@@ -871,13 +899,16 @@ describe('GitAdapter', () => {
         config.ignoreWhitespace = true
         config.changesManifest = 'changes.json'
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw
-          .mockResolvedValueOnce('8\t0\ttest' as never) // ADDITION
-          .mockResolvedValueOnce('3\t2\tfile' as never) // MODIFICATION
-          .mockResolvedValueOnce('' as never) // DELETION empty
-          .mockResolvedValueOnce(
-            '1\t1\t\0classes/OldName.cls\0classes/NewName.cls\0' as never
-          ) // RENAME (-z numstat format)
+        // A/M/D stream through spawn; the -z rename call still uses
+        // simpleGit.raw because readline is newline-oriented.
+        installDiffSpawnQueue(gitAdapter, [
+          '8\t0\ttest\n', // ADDITION
+          '3\t2\tfile\n', // MODIFICATION
+          '', // DELETION empty
+        ])
+        mockedRaw.mockResolvedValueOnce(
+          '1\t1\t\0classes/OldName.cls\0classes/NewName.cls\0' as never
+        )
 
         // Act
         const result = await gitAdapter.getDiffLines()
@@ -888,10 +919,9 @@ describe('GitAdapter', () => {
           'M\tfile',
           'R\tclasses/OldName.cls\tclasses/NewName.cls',
         ])
-        expect(mockedRaw).toHaveBeenCalledTimes(4)
-        for (let i = 1; i <= 3; i++) {
-          expect(mockedRaw).toHaveBeenNthCalledWith(
-            i,
+        expect(spawnCalls).toHaveLength(3)
+        for (const call of spawnCalls) {
+          expect(call.args).toEqual(
             expect.arrayContaining([
               '--numstat',
               '-M',
@@ -899,20 +929,16 @@ describe('GitAdapter', () => {
             ])
           )
         }
-        expect(mockedRaw).toHaveBeenNthCalledWith(
-          1,
+        expect(spawnCalls[0]!.args).toEqual(
           expect.arrayContaining(['--diff-filter=A'])
         )
-        expect(mockedRaw).toHaveBeenNthCalledWith(
-          2,
+        expect(spawnCalls[1]!.args).toEqual(
           expect.arrayContaining(['--diff-filter=M'])
         )
-        expect(mockedRaw).toHaveBeenNthCalledWith(
-          3,
+        expect(spawnCalls[2]!.args).toEqual(
           expect.arrayContaining(['--diff-filter=D'])
         )
-        expect(mockedRaw).toHaveBeenNthCalledWith(
-          4,
+        expect(mockedRaw).toHaveBeenCalledWith(
           expect.arrayContaining(['--numstat', '-M', '-z', '--diff-filter=R'])
         )
       })
@@ -922,11 +948,8 @@ describe('GitAdapter', () => {
         config.ignoreWhitespace = true
         config.changesManifest = 'changes.json'
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('1\t1\t\0\0\0' as never)
+        installDiffSpawnQueue(gitAdapter, ['', '', ''])
+        mockedRaw.mockResolvedValueOnce('1\t1\t\0\0\0' as never)
 
         // Act
         const result = await gitAdapter.getDiffLines()
@@ -943,11 +966,8 @@ describe('GitAdapter', () => {
         // numstat under --ignore-all-space emits nothing for files whose
         // only changes are whitespace (or 0\t0\t on some git versions —
         // both collapse to no line through filter(Boolean)).
-        mockedRaw
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never) // R-filter numstat -z call
+        installDiffSpawnQueue(gitAdapter, ['', '', ''])
+        mockedRaw.mockResolvedValueOnce('' as never)
 
         // Act
         const result = await gitAdapter.getDiffLines()
@@ -961,22 +981,17 @@ describe('GitAdapter', () => {
         config.ignoreWhitespace = true
         config.changesManifest = 'changes.json'
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce(
-            ('1\t1\t\0a.cls\0b.cls\0' + '2\t2\t\0c.cls\0d.cls\0') as never
-          )
+        installDiffSpawnQueue(gitAdapter, ['', '', ''])
+        mockedRaw.mockResolvedValueOnce(
+          ('1\t1\t\0a.cls\0b.cls\0' + '2\t2\t\0c.cls\0d.cls\0') as never
+        )
 
         // Act
         const result = await gitAdapter.getDiffLines()
 
-        // Assert — also pin the subcommand/separator args on the R-filter
-        // call so argument-literal mutations (diff, --) get caught.
+        // Assert
         expect(result).toEqual(['R\ta.cls\tb.cls', 'R\tc.cls\td.cls'])
-        expect(mockedRaw).toHaveBeenNthCalledWith(
-          4,
+        expect(mockedRaw).toHaveBeenCalledWith(
           expect.arrayContaining(['diff', '--'])
         )
       })
@@ -987,11 +1002,8 @@ describe('GitAdapter', () => {
         config.ignoreWhitespace = true
         config.changesManifest = 'changes.json'
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('' as never)
-          .mockResolvedValueOnce('1\t1\t\0src.cls\0\0' as never)
+        installDiffSpawnQueue(gitAdapter, ['', '', ''])
+        mockedRaw.mockResolvedValueOnce('1\t1\t\0src.cls\0\0' as never)
 
         // Act
         const result = await gitAdapter.getDiffLines()
@@ -1004,7 +1016,7 @@ describe('GitAdapter', () => {
     it('Given binary files in diff, When getDiffLines, Then returns the status-prefixed path', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce('A\tbinaryFile.png' as never)
+      installDiffSpawnQueue(gitAdapter, ['A\tbinaryFile.png\n'])
 
       // Act
       const result = await gitAdapter.getDiffLines()
