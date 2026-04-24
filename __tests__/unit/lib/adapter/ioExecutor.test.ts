@@ -626,6 +626,7 @@ describe('IOExecutor', () => {
           )
         ),
         streamContent: vi.fn(() => Readable.from([Buffer.from('BIGBIG')])),
+        streamArchive: vi.fn(async function* () {}),
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
@@ -654,6 +655,48 @@ describe('IOExecutor', () => {
       )
     })
 
+    it('Given a directory with more files than the git-archive threshold, When executed, Then streamArchive entries are piped via sibling tmp + rename', async () => {
+      // Arrange — 30 paths above GIT_ARCHIVE_DIR_THRESHOLD (25)
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const filePaths = Array.from({ length: 30 }, (_, i) => `bundle/f${i}.xml`)
+      mockGetFilesPath.mockResolvedValue(filePaths)
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: () => false,
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+      const streamArchiveSpy = vi.fn(async function* () {
+        for (const path of filePaths) {
+          yield { path, stream: Readable.from([Buffer.from('x')]) }
+        }
+      })
+      mockGetInstance.mockReturnValue({
+        getFilesPath: mockGetFilesPath,
+        getBufferContent: mockGetBufferContent,
+        getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
+        streamContent: mockStreamContent,
+        streamArchive: streamArchiveSpy,
+      })
+      mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
+      const sut = new IOExecutor(work.config)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'bundle',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(streamArchiveSpy).toHaveBeenCalledWith('bundle', 'abc123')
+      expect(mockGetBufferContent).not.toHaveBeenCalled()
+      expect(mockRename).toHaveBeenCalledTimes(30)
+    })
+
     it('When the streaming pipeline errors, Then the tmp file is unlinked and rename is not invoked', async () => {
       // Arrange
       const work = getWork()
@@ -675,6 +718,7 @@ describe('IOExecutor', () => {
           )
         ),
         streamContent: vi.fn(() => failingSource),
+        streamArchive: vi.fn(async function* () {}),
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)

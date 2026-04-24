@@ -225,6 +225,50 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   /**
+   * Streams a directory from `revision` as `git archive --format=tar`
+   * entries. Yields `{ path, stream }` per file entry (directories are
+   * skipped). The tar subprocess is registered in streamingChildren so
+   * closeAll kills it on teardown.
+   *
+   * Callers MUST consume each entry's stream — even when skipping the
+   * entry — otherwise tar-stream back-pressures and halts parsing. For
+   * skip cases use `stream.resume()` to drain-and-discard.
+   */
+  public async *streamArchive(
+    path: string,
+    revision: string
+  ): AsyncGenerator<{ path: string; stream: Readable }> {
+    if (path.startsWith('-') || revision.startsWith('-')) {
+      throw new Error(`Refusing to spawn git archive for ${path}`)
+    }
+    const { extract } = await import('tar-stream')
+    const extractor = extract()
+    const child = this.spawnFn(
+      'git',
+      ['archive', '--format=tar', revision, '--', path],
+      { cwd: this.config.repo, stdio: ['ignore', 'pipe', 'pipe'] }
+    )
+    this.streamingChildren.push(child)
+    child.stderr.on('data', (chunk: Buffer) => {
+      Logger.debug(
+        lazy`streamArchive stderr for ${path}@${revision}: ${() => chunk.toString()}`
+      )
+    })
+    child.stdout.pipe(extractor)
+    try {
+      for await (const entry of extractor) {
+        if (entry.header.type !== 'file') {
+          entry.resume()
+          continue
+        }
+        yield { path: entry.header.name, stream: entry as unknown as Readable }
+      }
+    } finally {
+      if (!child.killed && child.exitCode === null) child.kill()
+    }
+  }
+
+  /**
    * Spawns a dedicated `git cat-file blob <oid>` subprocess and returns a
    * Readable that peeks the first chunks for LFS pointer magic. On match,
    * the spawned subprocess is killed and the Readable is fed from the

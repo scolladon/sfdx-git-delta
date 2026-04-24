@@ -1509,4 +1509,51 @@ describe('GitAdapter', () => {
       expect(fakeChild.kill).toHaveBeenCalled()
     })
   })
+
+  describe('streamArchive', () => {
+    it('Given path or revision starts with dash, When streamArchive runs, Then it throws without spawning', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const spawnFn = vi.fn()
+      gitAdapter.setSpawnFn(spawnFn as never)
+
+      // Act & Assert
+      const iter = gitAdapter.streamArchive('--ref', 'abc')
+      await expect(iter.next()).rejects.toThrow(/Refusing to spawn/)
+      expect(spawnFn).not.toHaveBeenCalled()
+    })
+
+    it('Given a tar stream with two files and one directory entry, When streamArchive iterates, Then file entries yield and directory entries are skipped', async () => {
+      // Arrange — build a valid ustar tar with 2 files + 1 dir
+      const gitAdapter = GitAdapter.getInstance(config)
+      const { pack } = await import('tar-stream')
+      const tarPack = pack()
+      tarPack.entry({ name: 'bundle/ignored-dir', type: 'directory' })
+      tarPack.entry({ name: 'bundle/one.xml', size: 5 }, 'hello')
+      tarPack.entry({ name: 'bundle/two.xml', size: 5 }, 'world')
+      tarPack.finalize()
+      const child = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: tarPack,
+        stderr: new PassThrough(),
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      const entries: string[] = []
+      for await (const entry of gitAdapter.streamArchive(
+        'bundle',
+        'revision'
+      )) {
+        entries.push(entry.path)
+        entry.stream.resume()
+      }
+
+      // Assert
+      expect(entries).toEqual(['bundle/one.xml', 'bundle/two.xml'])
+    })
+  })
 })

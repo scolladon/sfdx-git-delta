@@ -21,6 +21,7 @@ import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
 import {
   EscalateToStreamingSignal,
+  GIT_ARCHIVE_DIR_THRESHOLD,
   type GitBlobReader,
 } from './gitBlobReader.js'
 
@@ -130,6 +131,10 @@ export default class IOExecutor {
     try {
       const gitAdapter = this._getGitAdapter(op.revision)
       const filePaths = await gitAdapter.getFilesPath(op.path)
+      if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
+        await this._executeGitDirCopyViaArchive(gitAdapter, op, filePaths)
+        return
+      }
       for (const filePath of filePaths) {
         if (this.ignoreHelper.globalIgnore.ignores(filePath)) {
           continue
@@ -146,6 +151,40 @@ export default class IOExecutor {
       Logger.debug(
         lazy`IOExecutor gitDirCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
       )
+    }
+  }
+
+  /**
+   * Streams a directory via `git archive --format=tar` + tar-stream. One
+   * subprocess replaces N batch-cat-file round trips for large dirs
+   * (ExperienceBundle, static resource folders). Each entry pipes
+   * directly into a sibling .tmp + rename; a per-entry
+   * processedPaths.has check matches today's dedup contract.
+   */
+  private async _executeGitDirCopyViaArchive(
+    gitAdapter: GitBlobReader,
+    op: { path: string; revision: string },
+    filePaths: string[]
+  ): Promise<void> {
+    const wanted = new Set(filePaths)
+    for await (const entry of gitAdapter.streamArchive(op.path, op.revision)) {
+      if (!wanted.has(entry.path)) {
+        entry.stream.resume()
+        continue
+      }
+      if (this.processedPaths.has(entry.path)) {
+        entry.stream.resume()
+        continue
+      }
+      if (this.ignoreHelper.globalIgnore.ignores(entry.path)) {
+        entry.stream.resume()
+        continue
+      }
+      this.processedPaths.add(entry.path)
+      const dst = join(this.config.output, entry.path)
+      await this._writeAtomicallyViaTmp(dst, async ws => {
+        await pipeline(entry.stream, ws, { end: false })
+      })
     }
   }
 

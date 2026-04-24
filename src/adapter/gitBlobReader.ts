@@ -50,6 +50,24 @@ export interface GitBlobReader {
    * stream or (on LFS match) opens the underlying LFS object file.
    */
   streamContent(ref: FileGitRef): Readable
+  /**
+   * Streams `git archive --format=tar <revision> -- <path>` and yields one
+   * `{ path, stream }` per file entry. Directories are filtered out.
+   * Callers must consume every yielded stream (or call stream.resume() to
+   * drain-and-discard) otherwise tar-stream back-pressures.
+   */
+  streamArchive(
+    path: string,
+    revision: string
+  ): AsyncIterable<{ path: string; stream: Readable }>
 }
+
+/**
+ * Directory size above which `_executeGitDirCopy` switches to the
+ * git-archive streaming path. Small directories keep the existing
+ * batch-cat-file loop (fork+exec cost of git archive isn't worth
+ * paying for a handful of files).
+ */
+export const GIT_ARCHIVE_DIR_THRESHOLD = 25
 
 export const SIZE_THRESHOLD = 1 * 1024 * 1024
