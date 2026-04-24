@@ -2,8 +2,6 @@
 import { join, parse } from 'node:path/posix'
 import type { Writable } from 'node:stream'
 
-import { castArray } from 'lodash-es'
-
 import {
   FLOW_XML_NAME,
   META_REGEX,
@@ -29,15 +27,18 @@ import {
   type RootCapture,
 } from '../utils/metadataDiff/xmlEventReader.js'
 import { writeXmlDocument } from '../utils/metadataDiff/xmlWriter.js'
-import {
-  ATTRIBUTE_PREFIX,
-  XML_HEADER_ATTRIBUTE_KEY,
-  type XmlContent,
-  xml2Json,
-} from '../utils/xmlHelper.js'
+import type { XmlContent } from '../utils/xmlHelper.js'
 import BaseProcessor from './baseProcessor.js'
 
 const FLOW_DEFINITIONS_KEY = 'flowDefinitions'
+const TRANSLATIONS_ROOT_KEY = 'Translations'
+const TRANSLATIONS_NAMESPACE = 'http://soap.sforce.com/2006/04/metadata'
+const DEFAULT_XML_HEADER: XmlContent = {
+  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+}
+const DEFAULT_ROOT_ATTRIBUTES: Record<string, string> = {
+  '@_xmlns': TRANSLATIONS_NAMESPACE,
+}
 
 const EXTENSION = `.${TRANSLATION_EXTENSION}`
 
@@ -46,66 +47,28 @@ interface FlowDefinition {
   [key: string]: unknown
 }
 
-interface TranslationsContent {
-  '?xml'?: { '@_version': string; '@_encoding': string }
-  Translations?: {
-    '@_xmlns'?: string
-    flowDefinitions?: FlowDefinition | FlowDefinition[]
-    [key: string]: unknown
-  }
+// Accumulator built by stream-parsing an existing output translation file.
+// Preserves the document-order of direct-child subTypes so the writer can
+// emit them in the original sequence. flowDefinitions is tracked separately
+// because it gets merged with this.translations[path] before the write.
+type TranslationMerge = {
+  rootCapture: RootCapture
+  orderedChildren: Array<[string, unknown[]]>
+  flowsIndex: number
 }
 
 const getTranslationName = (translationPath: string) =>
   parse(translationPath.replace(META_REGEX, '')).name
 
-const getDefaultTranslation = (): TranslationsContent => ({
-  '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-  Translations: {
-    '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
-    flowDefinitions: [],
+const emptyTranslationMerge = (): TranslationMerge => ({
+  rootCapture: {
+    xmlHeader: DEFAULT_XML_HEADER,
+    rootKey: TRANSLATIONS_ROOT_KEY,
+    rootAttributes: DEFAULT_ROOT_ATTRIBUTES,
   },
+  orderedChildren: [[FLOW_DEFINITIONS_KEY, []]],
+  flowsIndex: 0,
 })
-
-const buildTranslationWriter = (
-  translation: TranslationsContent
-): ((out: Writable) => Promise<void>) => {
-  const rootCapture = buildRootCapture(translation)
-  const rootChildren = buildRootChildren(translation)
-  return async (out: Writable) => {
-    await writeXmlDocument(out, rootCapture, rootChildren)
-  }
-}
-
-const buildRootCapture = (translation: TranslationsContent): RootCapture => {
-  const declContent = translation[XML_HEADER_ATTRIBUTE_KEY] as
-    | XmlContent
-    | undefined
-  const xmlHeader =
-    declContent === undefined
-      ? undefined
-      : { [XML_HEADER_ATTRIBUTE_KEY]: declContent }
-  const rootKey = 'Translations'
-  const translations = (translation.Translations ?? {}) as XmlContent
-  const rootAttributes: Record<string, string> = {}
-  for (const key of Object.keys(translations)) {
-    if (key.startsWith(ATTRIBUTE_PREFIX)) {
-      rootAttributes[key] = String(translations[key])
-    }
-  }
-  return { xmlHeader, rootKey, rootAttributes }
-}
-
-const buildRootChildren = (
-  translation: TranslationsContent
-): [string, unknown][] => {
-  const translations = (translation.Translations ?? {}) as XmlContent
-  const entries: [string, unknown][] = []
-  for (const key of Object.keys(translations)) {
-    if (key.startsWith(ATTRIBUTE_PREFIX)) continue
-    entries.push([key, translations[key]])
-  }
-  return entries
-}
 
 export default class FlowTranslationProcessor extends BaseProcessor {
   protected readonly translations: Map<string, FlowDefinition[]>
@@ -188,16 +151,18 @@ export default class FlowTranslationProcessor extends BaseProcessor {
         changeKind: ChangeKind.Modify,
       })
       if (this.config.generateDelta) {
-        const jsonTranslation =
-          await this._getTranslationAsJSON(translationPath)
-        this._scrapTranslationFile(
-          jsonTranslation,
-          this.translations.get(translationPath)!
-        )
+        const merge = await this._mergeTranslationWithOutput(translationPath)
+        this._mergeActualFlows(merge, this.translations.get(translationPath)!)
         result.copies.push({
           kind: CopyOperationKind.StreamedContent,
           path: translationPath,
-          writer: buildTranslationWriter(jsonTranslation),
+          writer: async (out: Writable) => {
+            await writeXmlDocument(
+              out,
+              merge.rootCapture,
+              merge.orderedChildren
+            )
+          },
         })
       }
     }
@@ -205,23 +170,59 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     return result
   }
 
-  protected _scrapTranslationFile(
-    jsonTranslation: TranslationsContent,
-    actualFlowDefinition: FlowDefinition[]
-  ) {
-    const flowDefinitions = castArray(
-      jsonTranslation.Translations?.flowDefinitions
-    ) as FlowDefinition[]
-    const fullNames = new Set(
-      flowDefinitions.map((flowDef: FlowDefinition) => flowDef?.fullName)
-    )
-    const strippedActualFlowDefinition = actualFlowDefinition.filter(
-      (flowDef: FlowDefinition) => !fullNames.has(flowDef?.fullName)
-    )
+  /**
+   * Stream-parses the existing output translation file (if any), bucketing
+   * each direct-child element into an ordered-children list keyed by
+   * subType. The streaming builder drops each element from the in-progress
+   * tree on close so peak memory is bounded by the current element rather
+   * than the full translation document. Non-flowDefinitions children are
+   * retained as-is; flowDefinitions are merged downstream with the
+   * per-path actual flows we collected from the to-revision translation.
+   */
+  protected async _mergeTranslationWithOutput(
+    translationPath: string
+  ): Promise<TranslationMerge> {
+    const outputPath = join(this.config.output, translationPath)
+    if (!(await pathExists(outputPath))) return emptyTranslationMerge()
+    const xml = await readFile(outputPath)
+    const orderedChildren: Array<[string, unknown[]]> = []
+    const indexByKey = new Map<string, number>()
+    const capture = await parseFromSideSwallowing(xml, (subType, element) => {
+      let idx = indexByKey.get(subType)
+      if (idx === undefined) {
+        idx = orderedChildren.length
+        indexByKey.set(subType, idx)
+        orderedChildren.push([subType, []])
+      }
+      orderedChildren[idx]![1].push(element)
+    })
+    if (capture === null) return emptyTranslationMerge()
+    let flowsIndex = indexByKey.get(FLOW_DEFINITIONS_KEY)
+    if (flowsIndex === undefined) {
+      flowsIndex = orderedChildren.length
+      orderedChildren.push([FLOW_DEFINITIONS_KEY, []])
+    }
+    return { rootCapture: capture, orderedChildren, flowsIndex }
+  }
 
-    jsonTranslation.Translations!.flowDefinitions = flowDefinitions.concat(
-      strippedActualFlowDefinition
-    )
+  /**
+   * Appends actual flows from the to-revision translation into the merge's
+   * flowDefinitions bucket, skipping any whose fullName is already present
+   * in the output-side flows (output-wins-on-conflict — matches the
+   * legacy `_scrapTranslationFile` semantics).
+   */
+  protected _mergeActualFlows(
+    merge: TranslationMerge,
+    actualFlowDefinitions: FlowDefinition[]
+  ): void {
+    const bucket = merge.orderedChildren[
+      merge.flowsIndex
+    ]![1] as FlowDefinition[]
+    const seen = new Set(bucket.map(flowDef => flowDef?.fullName))
+    for (const flowDef of actualFlowDefinitions) {
+      if (seen.has(flowDef?.fullName)) continue
+      bucket.push(flowDef)
+    }
   }
 
   // Uses the streaming xmlEventReader so non-flowDefinitions direct
@@ -262,24 +263,6 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       this.translations.set(translationPath, [])
     }
     this.translations.get(translationPath)!.push(flowDefinition)
-  }
-
-  protected async _getTranslationAsJSON(
-    translationPath: string
-  ): Promise<TranslationsContent> {
-    const translationPathInOutputFolder = join(
-      this.config.output,
-      translationPath
-    )
-    const translationExist = await pathExists(translationPathInOutputFolder)
-
-    let jsonTranslation: TranslationsContent = getDefaultTranslation()
-    if (translationExist) {
-      const xmlTranslation = await readFile(translationPathInOutputFolder)
-      jsonTranslation = xml2Json(xmlTranslation) as TranslationsContent
-    }
-
-    return jsonTranslation
   }
 
   protected _shouldProcess() {
