@@ -45,9 +45,17 @@ type PassOneBuckets = {
  * for later writer-driven output. Deferred buckets (array / object / keyless
  * / unknown) drain at end of pass.
  *
- * The algorithm is memory-bounded per DESIGN.md \xc2\xa75.3: peak is
- * O(changed_elements_count), not O(file_size). Keyed maps shrink during Pass 2
- * as matches drain. Deferred buckets are capped by CARDINALITY_SAFETY_LIMIT.
+ * Memory bound, per DESIGN.md \xc2\xa75.3: keyed subType indexes shrink during
+ * Pass 2 as matches drain, so peak on that bucket is O(changed_keyed_count).
+ * Deferred buckets (array/object/keyless/unknown) hold every to-side element
+ * of those subTypes until end-of-pass — they are O(element_count) per
+ * subType, capped by CARDINALITY_SAFETY_LIMIT. The writer closure then
+ * captures prunedBySubType and keeps it reachable until the IOExecutor
+ * invokes the writer or the HandlerResult is GC'd.
+ *
+ * The writer closure is not thread-safe against reuse: run() instantiates a
+ * fresh StreamingDiff per call and the writer is expected to fire at most
+ * once. Calling it twice is safe but produces the same bytes.
  */
 export class StreamingDiff {
   private readonly passOne: PassOneBuckets = {

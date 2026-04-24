@@ -220,6 +220,11 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     )
   }
 
+  // The parse here still materializes the full translation tree via
+  // parseXmlFileToJson. The streaming win claimed in P5 applies only to
+  // the write path — collectFlowTranslations' StreamedContent writer
+  // avoids the convertJsonToXml string intermediate. Migrating the parse
+  // to xmlEventReader's early-filter mode is tracked as a follow-up.
   protected async _parseTranslationFile(translationPath: string) {
     const translationJSON = (await parseXmlFileToJson(
       { path: translationPath, oid: this.config.to },
