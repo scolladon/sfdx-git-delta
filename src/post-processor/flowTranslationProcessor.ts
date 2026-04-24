@@ -125,6 +125,12 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       this.work.config
     )
 
+    // Eager-init ignoreHelper + isOutputEqualsToRepo BEFORE the parallel
+    // loop: under eachLimit multiple workers would otherwise race the
+    // `if (!this.ignoreHelper)` guard, each triggering a redundant
+    // buildIgnoreHelper and then racing to assign the result.
+    await this._initIgnoreHelper()
+
     // Translation files are independent; parse them in parallel under the
     // shared concurrency cap. this.translations.set is keyed by distinct
     // translationPath values so per-file writes do not overlap.
@@ -132,23 +138,24 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       translationPaths,
       getConcurrencyThreshold(),
       async (translationPath: string) => {
-        if (await this._canParse(translationPath)) {
+        if (this._canParse(translationPath)) {
           await this._parseTranslationFile(translationPath)
         }
       }
     )
   }
 
-  protected async _canParse(translationPath: string) {
-    if (!this.ignoreHelper) {
-      this.ignoreHelper = await buildIgnoreHelper(this.config)
-      this.isOutputEqualsToRepo = isSamePath(
-        this.config.output,
-        this.config.repo
-      )
-    }
+  protected async _initIgnoreHelper(): Promise<void> {
+    if (this.ignoreHelper) return
+    this.ignoreHelper = await buildIgnoreHelper(this.config)
+    this.isOutputEqualsToRepo = isSamePath(this.config.output, this.config.repo)
+  }
+
+  protected _canParse(translationPath: string): boolean {
+    // _initIgnoreHelper is awaited by _buildFlowDefinitionsMap before any
+    // worker runs, so the helper is guaranteed initialised here.
     return (
-      !this.ignoreHelper.globalIgnore.ignores(translationPath) &&
+      !this.ignoreHelper!.globalIgnore.ignores(translationPath) &&
       (this.isOutputEqualsToRepo ||
         !isSubDir(this.config.output, translationPath))
     )
