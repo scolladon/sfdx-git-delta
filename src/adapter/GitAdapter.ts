@@ -2,6 +2,7 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
 import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
+import { createInterface } from 'node:readline'
 import { PassThrough, type Readable } from 'node:stream'
 
 import { SimpleGit, simpleGit } from 'simple-git'
@@ -125,9 +126,8 @@ export default class GitAdapter implements GitBlobReader {
       if (scopePaths.length > 0) {
         args.push('--', ...scopePaths)
       }
-      const output = await this.simpleGit.raw(args)
       const index = new TreeIndex()
-      for (const line of output.split(EOL)) {
+      for await (const line of this._spawnLines(args)) {
         if (line) index.add(treatPathSep(line))
       }
       this.treeIndex.set(revision, index)
@@ -135,6 +135,49 @@ export default class GitAdapter implements GitBlobReader {
       Logger.debug(
         lazy`preBuildTreeIndex: scoped ls-tree for '${revision}' failed: ${() => getErrorMessage(error)}`
       )
+    }
+  }
+
+  /**
+   * Spawns `git <args>`, streams stdout through a readline interface, and
+   * yields one line at a time. Replaces the old "run command, split on EOL"
+   * pattern that accumulated a multi-MB string for megarepo diffs / tree
+   * listings before any downstream consumer ran.
+   *
+   * The spawned child is pushed into streamingChildren so closeAll()
+   * kills it if teardown happens mid-stream. stderr is drained to the
+   * debug log; a non-zero exit code rejects the iterator on next read.
+   */
+  protected async *_spawnLines(args: string[]): AsyncGenerator<string> {
+    const child = this.spawnFn('git', args, {
+      cwd: this.config.repo,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    this.streamingChildren.push(child)
+    const stderrChunks: Buffer[] = []
+    child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+    const rl = createInterface({
+      input: child.stdout,
+      crlfDelay: Number.POSITIVE_INFINITY,
+    })
+    const exitPromise = new Promise<number | null>((resolve, reject) => {
+      child.once('error', reject)
+      child.once('close', resolve)
+    })
+    try {
+      for await (const line of rl) {
+        yield line
+      }
+      const code = await exitPromise
+      if (code !== 0 && code !== null) {
+        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim()
+        throw new Error(
+          `git ${args[0]} exited ${code}${stderr ? `: ${stderr}` : ''}`
+        )
+      }
+    } finally {
+      rl.close()
+      if (!child.killed && child.exitCode === null) child.kill()
     }
   }
 

@@ -59,20 +59,64 @@ const isLFSmocked = vi.mocked(isLFS)
 const getLFSObjectContentPathMocked = vi.mocked(getLFSObjectContentPath)
 const readFileMocked = vi.mocked(readFile)
 
-// Helper to pre-build tree index for a revision
+// Records every spawn invocation preBuildTreeIndex makes via _spawnLines
+// so assertions below can inspect the args (replaces the prior check on
+// simpleGit.raw).
+const spawnCalls: Array<{ cmd: string; args: string[] }> = []
+const createLsTreeFake = (files: string[]) => {
+  const stdout = new PassThrough()
+  const stderr = new PassThrough()
+  const fake = Object.assign(new EventEmitter(), {
+    stdin: { write: vi.fn(), end: vi.fn() },
+    stdout,
+    stderr,
+    killed: false,
+    exitCode: null as number | null,
+    kill: vi.fn(),
+  })
+  process.nextTick(() => {
+    if (files.length > 0) {
+      stdout.write(`${files.join(EOL)}${EOL}`)
+    }
+    stdout.end()
+    fake.emit('close', 0)
+  })
+  return fake
+}
+
+// Helper to pre-build tree index for a revision. preBuildTreeIndex now
+// consumes _spawnLines (spawned git ls-tree → readline), so the stub
+// needs to emit lines on a Readable stdout and close cleanly.
 const setupTreeIndex = async (
   sut: GitAdapter,
   files: string[],
   revision: string
 ) => {
-  mockedRaw.mockResolvedValueOnce(files.join(EOL) as never)
+  const spawnFn = vi.fn((cmd: string, args: string[]) => {
+    spawnCalls.push({ cmd, args })
+    return createLsTreeFake(files) as never
+  })
+  sut.setSpawnFn(spawnFn)
   await sut.preBuildTreeIndex(revision, [])
+}
+
+// Queues one spawn response per invocation so tests that build multiple
+// tree indexes (different revisions, scoped paths) get distinct output.
+const installSpawnQueue = (sut: GitAdapter, responses: string[][]) => {
+  let idx = 0
+  const spawnFn = vi.fn((cmd: string, args: string[]) => {
+    spawnCalls.push({ cmd, args })
+    const files = responses[idx++] ?? []
+    return createLsTreeFake(files) as never
+  })
+  sut.setSpawnFn(spawnFn)
 }
 
 describe('GitAdapter', () => {
   let config: Config
   beforeEach(() => {
     GitAdapter.closeAll()
+    spawnCalls.length = 0
     const work = getWork()
     config = work.config
   })
@@ -241,13 +285,11 @@ describe('GitAdapter', () => {
         expect(result1).toBe(true)
         expect(result2).toBe(true)
         expect(result3).toBe(false)
-        expect(mockedRaw).toHaveBeenCalledTimes(1)
-        expect(mockedRaw).toHaveBeenCalledWith([
-          'ls-tree',
-          '--name-only',
-          '-r',
-          config.to,
-        ])
+        expect(spawnCalls).toHaveLength(1)
+        expect(spawnCalls[0]).toEqual({
+          cmd: 'git',
+          args: ['ls-tree', '--name-only', '-r', config.to],
+        })
       })
     })
 
@@ -266,12 +308,14 @@ describe('GitAdapter', () => {
 
         // Assert
         expect(result).toBe(true)
-        expect(mockedRaw).toHaveBeenCalledWith([
-          'ls-tree',
-          '--name-only',
-          '-r',
-          customRevision,
-        ])
+        expect(
+          spawnCalls.some(
+            c =>
+              c.cmd === 'git' &&
+              JSON.stringify(c.args) ===
+                JSON.stringify(['ls-tree', '--name-only', '-r', customRevision])
+          )
+        ).toBe(true)
       })
     })
 
@@ -279,9 +323,7 @@ describe('GitAdapter', () => {
       it('builds one tree index per revision', async () => {
         // Arrange
         const gitAdapter = GitAdapter.getInstance(config)
-        mockedRaw
-          .mockResolvedValueOnce('path/file1.txt' as never)
-          .mockResolvedValueOnce('path/file2.txt' as never)
+        installSpawnQueue(gitAdapter, [['path/file1.txt'], ['path/file2.txt']])
         await gitAdapter.preBuildTreeIndex('rev1', [])
         await gitAdapter.preBuildTreeIndex('rev2', [])
 
@@ -294,7 +336,7 @@ describe('GitAdapter', () => {
         expect(result1).toBe(true)
         expect(result2).toBe(true)
         expect(cached1).toBe(true)
-        expect(mockedRaw).toHaveBeenCalledTimes(2)
+        expect(spawnCalls).toHaveLength(2)
       })
     })
 
@@ -462,12 +504,14 @@ describe('GitAdapter', () => {
         'path/to/file',
         'path/to/another/file',
       ])
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-      ])
+      expect(
+        spawnCalls.some(
+          c =>
+            c.cmd === 'git' &&
+            JSON.stringify(c.args) ===
+              JSON.stringify(['ls-tree', '--name-only', '-r', config.to])
+        )
+      ).toBe(true)
     })
 
     it('Given sub-path, When getFilesPath, Then returns only files under that sub-path', async () => {
@@ -520,7 +564,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(allFiles)
       expect(cachedResult).toStrictEqual(result)
-      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(spawnCalls).toHaveLength(1)
     })
 
     it('Given sub-path call after parent call, When getFilesPath, Then uses same tree index', async () => {
@@ -540,7 +584,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(allFiles)
       expect(subCachedResult).toEqual(allFiles.slice(1))
-      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(spawnCalls).toHaveLength(1)
     })
 
     it('Given multiple paths as array, When getFilesPath, Then returns combined results', async () => {
@@ -559,7 +603,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual(allFiles)
-      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(spawnCalls).toHaveLength(1)
     })
 
     it('Given multiple paths as array, When getFilesPath called again, Then uses cached tree index', async () => {
@@ -582,7 +626,7 @@ describe('GitAdapter', () => {
       expect(result1).toEqual(allFiles)
       expect(result2).toEqual(['path1/file1', 'path1/file2'])
       expect(result3).toEqual(['path2/file1', 'path2/file2'])
-      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(spawnCalls).toHaveLength(1)
     })
 
     it('Given no pre-built index, When getFilesPath, Then returns empty array', async () => {
@@ -618,20 +662,20 @@ describe('GitAdapter', () => {
       await gitAdapter.getFilesPath('path', customRevision)
 
       // Assert
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        customRevision,
-      ])
+      expect(
+        spawnCalls.some(
+          c =>
+            c.cmd === 'git' &&
+            JSON.stringify(c.args) ===
+              JSON.stringify(['ls-tree', '--name-only', '-r', customRevision])
+        )
+      ).toBe(true)
     })
 
     it('Given different revisions, When getFilesPath, Then builds one tree index per revision', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
-      mockedRaw
-        .mockResolvedValueOnce('path/file1' as never)
-        .mockResolvedValueOnce('path/file2' as never)
+      installSpawnQueue(gitAdapter, [['path/file1'], ['path/file2']])
       await gitAdapter.preBuildTreeIndex('rev1', [])
       await gitAdapter.preBuildTreeIndex('rev2', [])
 
@@ -644,7 +688,7 @@ describe('GitAdapter', () => {
       expect(result1).toEqual(['path/file1'])
       expect(result2).toEqual(['path/file2'])
       expect(cached1).toEqual(['path/file1'])
-      expect(mockedRaw).toHaveBeenCalledTimes(2)
+      expect(spawnCalls).toHaveLength(2)
     })
 
     it('Given sub-path call with custom revision, When getFilesPath, Then uses same tree index', async () => {
@@ -664,7 +708,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(allFiles)
       expect(subCachedResult).toEqual(allFiles)
-      expect(mockedRaw).toHaveBeenCalledTimes(1)
+      expect(spawnCalls).toHaveLength(1)
     })
 
     it('Given path not in tree, When getFilesPath, Then returns empty array', async () => {
@@ -1187,21 +1231,17 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce(
-        ['dir1/file1.cls', 'dir1/file2.cls'].join(EOL) as never
-      )
+      installSpawnQueue(sut, [['dir1/file1.cls', 'dir1/file2.cls']])
 
       // Act
       await sut.preBuildTreeIndex(config.to, ['dir1/'])
 
       // Assert
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
-        '--',
-        'dir1/',
+      expect(spawnCalls).toEqual([
+        {
+          cmd: 'git',
+          args: ['ls-tree', '--name-only', '-r', config.to, '--', 'dir1/'],
+        },
       ])
     })
 
@@ -1210,17 +1250,15 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce('dir1/file1.cls' as never)
-
-      await sut.preBuildTreeIndex(config.to, ['dir1/'])
-      mockedRaw.mockClear()
+      await setupTreeIndex(sut, ['dir1/file1.cls'], config.to)
+      spawnCalls.length = 0
 
       // Act
       const exists = await sut.pathExists('dir1/file1.cls')
 
       // Assert
       expect(exists).toBe(true)
-      expect(mockedRaw).not.toHaveBeenCalled()
+      expect(spawnCalls).toHaveLength(0)
     })
 
     it('Given empty scope paths, When preBuildTreeIndex is called, Then ls-tree has no path args', async () => {
@@ -1228,17 +1266,14 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce('' as never)
+      installSpawnQueue(sut, [[]])
 
       // Act
       await sut.preBuildTreeIndex(config.to, [])
 
       // Assert
-      expect(mockedRaw).toHaveBeenCalledWith([
-        'ls-tree',
-        '--name-only',
-        '-r',
-        config.to,
+      expect(spawnCalls).toEqual([
+        { cmd: 'git', args: ['ls-tree', '--name-only', '-r', config.to] },
       ])
     })
 
@@ -1247,7 +1282,10 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      mockedRaw.mockRejectedValue(new Error('git error') as never)
+      const spawnFn = vi.fn(() => {
+        throw new Error('spawn failed')
+      })
+      sut.setSpawnFn(spawnFn)
 
       // Act & Assert
       await expect(
@@ -1260,16 +1298,14 @@ describe('GitAdapter', () => {
       GitAdapter.closeAll()
       const config = getWork().config
       const sut = GitAdapter.getInstance(config)
-      mockedRaw.mockResolvedValueOnce('dir1/file1.cls' as never)
-
-      await sut.preBuildTreeIndex(config.to, ['dir1/'])
-      mockedRaw.mockClear()
+      await setupTreeIndex(sut, ['dir1/file1.cls'], config.to)
+      spawnCalls.length = 0
 
       // Act
       await sut.preBuildTreeIndex(config.to, ['dir2/'])
 
       // Assert
-      expect(mockedRaw).not.toHaveBeenCalled()
+      expect(spawnCalls).toHaveLength(0)
     })
   })
 
