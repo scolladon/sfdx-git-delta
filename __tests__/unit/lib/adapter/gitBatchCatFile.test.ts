@@ -60,6 +60,62 @@ beforeEach(() => {
 })
 
 describe('GitBatchCatFile', () => {
+  describe('Given the subprocess is spawned', () => {
+    it('When the constructor runs, Then spawn is called with the exact cat-file --batch argv', () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(1)
+
+      // Act
+      const sut = new GitBatchCatFile('/repo-path', { spawnFn: fakes.spawnFn })
+
+      // Assert — strict argv equality
+      expect(fakes.spawnFn).toHaveBeenCalledWith(
+        'git',
+        ['cat-file', '--batch'],
+        { cwd: '/repo-path', stdio: ['pipe', 'pipe', 'pipe'] }
+      )
+      sut.close()
+    })
+  })
+
+  describe('Given the subprocess closes', () => {
+    it('When it exits with code 0 and queue is empty, Then nothing is rejected', () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', { spawnFn: fakes.spawnFn })
+
+      // Act & Assert — must not throw
+      expect(() => fakes.procs[0]!.emit('close', 0)).not.toThrow()
+      sut.close()
+    })
+
+    it('When it exits with non-zero code but queue is empty, Then nothing is rejected', () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', { spawnFn: fakes.spawnFn })
+
+      // Act & Assert — queue.length > 0 guard blocks cascade
+      expect(() => fakes.procs[0]!.emit('close', 1)).not.toThrow()
+      sut.close()
+    })
+
+    it('When it exits with code 0 and queue has pending requests, Then nothing is rejected (code !== 0 guard)', async () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', { spawnFn: fakes.spawnFn })
+      const pending = sut.getContent('oid', 'path')
+
+      // Act — code === 0 bypasses the reject cascade
+      fakes.procs[0]!.emit('close', 0)
+      // Resolve pending manually via stdout data
+      fakes.procs[0]!.stdout.emit('data', Buffer.from('oid blob 2\nok\n'))
+
+      // Assert — pending still resolves because the close-0 path didn't reject it
+      expect((await pending).toString()).toBe('ok')
+      sut.close()
+    })
+  })
+
   describe('Given a successful content read', () => {
     it('When getContent is called, Then returns the file content', async () => {
       // Arrange
@@ -367,6 +423,50 @@ describe('GitBatchCatFile', () => {
       })
       expect((await p4).toString()).toBe('D')
       expect((await p5).toString()).toBe('E')
+      sut.close()
+    })
+
+    it('Given a size exactly equal to threshold, When the header is parsed, Then the request escalates (>= boundary)', async () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 1024,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Act
+      const p = sut.getContentOrEscalate('oidEq', 'eq.bin')
+      fakes.procs[0].stdout.emit('data', Buffer.from('oidEq blob 1024\n'))
+
+      // Assert — size === threshold must escalate (guards `>=` vs `>`)
+      await expect(p).rejects.toMatchObject({
+        name: 'EscalateToStreamingSignal',
+      })
+      sut.close()
+    })
+
+    it('Given a size one below threshold, When the header is parsed, Then the request resolves normally', async () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 1024,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Act
+      const p = sut.getContentOrEscalate('oidNear', 'near.bin')
+      const payload = Buffer.alloc(1023, 0x61)
+      fakes.procs[0].stdout.emit(
+        'data',
+        Buffer.concat([
+          Buffer.from('oidNear blob 1023\n'),
+          payload,
+          Buffer.from([0x0a]),
+        ])
+      )
+
+      // Assert — size === threshold-1 does NOT escalate
+      expect((await p).length).toBe(1023)
       sut.close()
     })
 

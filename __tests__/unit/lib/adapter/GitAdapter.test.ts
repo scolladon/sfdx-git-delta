@@ -1389,6 +1389,95 @@ describe('GitAdapter', () => {
       return child
     }
 
+    it('Given a valid oid+path, When streamContent spawns, Then it passes the exact cat-file blob argv to git', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      const argvCapture: { cmd: string; args: string[] }[] = []
+      gitAdapter.setSpawnFn(
+        vi.fn((cmd: string, args: string[]) => {
+          argvCapture.push({ cmd, args })
+          return child as never
+        })
+      )
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: 'src/file.cls',
+        oid: 'deadbeef',
+      })
+      stream.on('data', () => undefined)
+      stream.on('error', () => undefined)
+      child.stdout.emit('end')
+      child.emit('close', 0)
+
+      // Assert — strict argv equality
+      expect(argvCapture).toHaveLength(1)
+      expect(argvCapture[0]).toEqual({
+        cmd: 'git',
+        args: ['cat-file', 'blob', 'deadbeef:src/file.cls'],
+      })
+    })
+
+    it('Given an oid beginning with a dash, When streamContent runs, Then the resulting stream errors without spawning', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const spawnFn = vi.fn()
+      gitAdapter.setSpawnFn(spawnFn as never)
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: 'file.cls',
+        oid: '--upload-pack',
+      })
+      const received = new Promise<Error | undefined>(resolve => {
+        stream.on('error', err => resolve(err))
+      })
+
+      // Assert
+      expect(spawnFn).not.toHaveBeenCalled()
+      return expect(received).resolves.toMatchObject({
+        message: expect.stringContaining('Refusing to spawn'),
+      })
+    })
+
+    it('Given the child closes with non-zero code but was killed, When the listener runs, Then out is NOT destroyed (intentional kill)', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act — simulate a kill sequence: child.killed=true, close with SIGTERM-ish non-zero
+      const stream = gitAdapter.streamContent({ path: 'p', oid: 'o' })
+      const errors: Error[] = []
+      stream.on('error', err => errors.push(err))
+      ;(child as { killed: boolean }).killed = true
+      child.emit('close', 137)
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert — !child.killed guard blocks out.destroy on intentional kill
+      expect(errors).toHaveLength(0)
+    })
+
+    it('Given the child closes with code 0 (normal non-LFS), When the listener runs, Then out is NOT destroyed', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      const stream = gitAdapter.streamContent({ path: 'a', oid: 'b' })
+      const errors: Error[] = []
+      stream.on('error', err => errors.push(err))
+      child.stdout.emit('data', Buffer.from('hello'))
+      child.stdout.emit('end')
+      child.emit('close', 0)
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert — code === 0 → no destroy
+      expect(errors).toHaveLength(0)
+    })
+
     it('Given non-LFS content, When streamContent emits data, Then the returned stream forwards the bytes', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
@@ -1624,6 +1713,115 @@ describe('GitAdapter', () => {
       // Assert
       expect(fakeChild.kill).toHaveBeenCalled()
     })
+
+    it('Given a streaming child with non-null exitCode, When closeBatchProcess runs, Then kill is NOT called (exited naturally)', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const fakeChild = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        killed: false,
+        exitCode: 0 as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => fakeChild as never))
+      gitAdapter.streamContent({ path: 'f', oid: 'o' })
+
+      // Act
+      gitAdapter.closeBatchProcess()
+
+      // Assert — exitCode === null guard blocks kill
+      expect(fakeChild.kill).not.toHaveBeenCalled()
+    })
+
+    it('Given a streaming child already killed, When closeBatchProcess runs, Then kill is NOT re-called', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const fakeChild = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        killed: true,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => fakeChild as never))
+      gitAdapter.streamContent({ path: 'f', oid: 'o' })
+
+      // Act
+      gitAdapter.closeBatchProcess()
+
+      // Assert — !child.killed guard blocks re-kill
+      expect(fakeChild.kill).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('_spawnLines error path', () => {
+    it('Given git exits non-zero with stderr, When the iterator drains, Then the thrown error message includes both the exit code and the stderr', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const stdout = new PassThrough()
+      const stderr = new PassThrough()
+      const child = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout,
+        stderr,
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+      process.nextTick(() => {
+        stderr.write('fatal: bad thing happened\n')
+        stderr.end()
+        stdout.end()
+        child.emit('close', 128)
+      })
+
+      // Act & Assert — use preBuildTreeIndex's try/catch to observe errors
+      // captured at debug; instead assert by invoking the generator directly
+      // via a subclass exposure... fall back to asserting via getDiffLines,
+      // which re-throws _spawnLines errors directly.
+      config.from = 'from-rev'
+      config.to = 'to-rev'
+      config.source = ['force-app']
+      config.ignoreWhitespace = false
+      await expect(gitAdapter.getDiffLines()).rejects.toThrow(
+        /git diff exited 128: fatal: bad thing happened/
+      )
+    })
+
+    it('Given git exits non-zero with no stderr, When the iterator drains, Then the thrown error message contains the exit code without a stderr suffix', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const stdout = new PassThrough()
+      const stderr = new PassThrough()
+      const child = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout,
+        stderr,
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+      process.nextTick(() => {
+        stderr.end()
+        stdout.end()
+        child.emit('close', 2)
+      })
+
+      // Act
+      config.from = 'from-rev'
+      config.to = 'to-rev'
+      config.source = ['force-app']
+      config.ignoreWhitespace = false
+      const received = gitAdapter.getDiffLines()
+
+      // Assert — exact format, no ': ' separator when stderr is empty
+      await expect(received).rejects.toThrow(/^git diff exited 2$/)
+    })
   })
 
   describe('streamArchive', () => {
@@ -1637,6 +1835,98 @@ describe('GitAdapter', () => {
       const iter = gitAdapter.streamArchive('--ref', 'abc')
       await expect(iter.next()).rejects.toThrow(/Refusing to spawn/)
       expect(spawnFn).not.toHaveBeenCalled()
+    })
+
+    it('Given a valid path+revision, When streamArchive spawns, Then it passes the exact archive argv to git', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const { pack } = await import('tar-stream')
+      const tarPack = pack()
+      tarPack.finalize()
+      const argvCapture: { cmd: string; args: string[] }[] = []
+      const child = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: tarPack,
+        stderr: new PassThrough(),
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(
+        vi.fn((cmd: string, args: string[]) => {
+          argvCapture.push({ cmd, args })
+          return child as never
+        })
+      )
+
+      // Act
+      for await (const _ of gitAdapter.streamArchive(
+        'force-app/main',
+        'rev-42'
+      )) {
+        // drain
+      }
+
+      // Assert — strict argv equality so any mutation of the constant
+      // strings ('archive', '--format=tar') or the [revision, '--', path]
+      // ordering fails.
+      expect(argvCapture).toHaveLength(1)
+      expect(argvCapture[0]).toEqual({
+        cmd: 'git',
+        args: ['archive', '--format=tar', 'rev-42', '--', 'force-app/main'],
+      })
+    })
+
+    it('Given streamArchive completes, When the child exits, Then its kill is NOT called (exitCode became non-null via close)', async () => {
+      // Arrange — child.exitCode remains null in the fake, so the finally
+      // should kill. Flipping that: make exitCode transition to 0 before
+      // the finally runs so we verify the exitCode === null guard.
+      const gitAdapter = GitAdapter.getInstance(config)
+      const { pack } = await import('tar-stream')
+      const tarPack = pack()
+      tarPack.finalize()
+      const child = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: tarPack,
+        stderr: new PassThrough(),
+        killed: false,
+        exitCode: 0 as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      for await (const _ of gitAdapter.streamArchive('x', 'rev')) {
+        // drain
+      }
+
+      // Assert — the exitCode !== null guard suppresses kill
+      expect(child.kill).not.toHaveBeenCalled()
+    })
+
+    it('Given streamArchive is already killed, When the generator finalizes, Then kill is NOT re-called', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const { pack } = await import('tar-stream')
+      const tarPack = pack()
+      tarPack.finalize()
+      const child = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: tarPack,
+        stderr: new PassThrough(),
+        killed: true,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      for await (const _ of gitAdapter.streamArchive('x', 'rev')) {
+        // drain
+      }
+
+      // Assert — !child.killed guard suppresses kill
+      expect(child.kill).not.toHaveBeenCalled()
     })
 
     it('Given a tar stream with two files and one directory entry, When streamArchive iterates, Then file entries yield and directory entries are skipped', async () => {

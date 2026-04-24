@@ -219,6 +219,65 @@ describe('FlowTranslationProcessor', () => {
         })
       })
 
+      describe('when the output translation contains a non-flowDefinitions sibling', () => {
+        beforeEach(() => {
+          // Arrange — a customFieldTranslations sibling must pass through
+          // unchanged while flowDefinitions are merged. Also verifies that
+          // `subType === FLOW_DEFINITIONS_KEY` in the parse callback actually
+          // gates the seenFullNames population.
+          work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
+          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+          mockedPathExists.mockResolvedValue(true as never)
+          mockedReadFile.mockResolvedValue(
+            `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name><label>Custom</label></customFieldTranslations><flowDefinitions><fullName>TestA</fullName></flowDefinitions></Translations>`
+          )
+        })
+        it('preserves the customFieldTranslations sibling AND merges new flowDefinitions', async () => {
+          // Act
+          const result = await sut.transformAndCollect()
+
+          // Assert
+          expect(result.copies).toHaveLength(1)
+          const copy = result.copies[0]
+          if (copy.kind === CopyOperationKind.StreamedContent) {
+            const output = await drainWriter(copy.writer)
+            expect(output).toContain('<name>CF__c</name>')
+            expect(output).toContain('<label>Custom</label>')
+            expect(output).toContain('test-flow')
+            expect(output).toContain('TestA')
+          }
+        })
+      })
+
+      describe('when the output translation has a flowDefinition whose fullName matches the new one', () => {
+        beforeEach(() => {
+          work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
+          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+          mockedPathExists.mockResolvedValue(true as never)
+          // Output already has `<fullName>test-flow</fullName>` — the new
+          // flow with the same fullName must NOT duplicate (output-wins).
+          mockedReadFile.mockResolvedValue(
+            `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>${flowFullName}</fullName><label>OldLabel</label></flowDefinitions></Translations>`
+          )
+        })
+        it('does not duplicate the flow and keeps the output-side content (output-wins-on-conflict)', async () => {
+          // Act
+          const result = await sut.transformAndCollect()
+          const copy = result.copies[0]
+
+          // Assert
+          if (copy.kind === CopyOperationKind.StreamedContent) {
+            const output = await drainWriter(copy.writer)
+            // exactly one occurrence of the fullName
+            const matches = output.match(
+              new RegExp(`<fullName>${flowFullName}</fullName>`, 'g')
+            )
+            expect(matches).toHaveLength(1)
+            expect(output).toContain('<label>OldLabel</label>')
+          }
+        })
+      })
+
       describe('when there is already a translation with flow definition related to a flow', () => {
         beforeEach(() => {
           // Arrange
