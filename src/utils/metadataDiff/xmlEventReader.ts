@@ -52,7 +52,11 @@ const buildRootCapture = (parsed: XmlContent, rootKey: string): RootCapture => {
       rootAttributes[key] = String(rootNode[key])
     }
   }
-  const xmlHeader = parsed[XML_HEADER_ATTRIBUTE_KEY] as XmlContent | undefined
+  const declContent = parsed[XML_HEADER_ATTRIBUTE_KEY] as XmlContent | undefined
+  const xmlHeader: XmlContent | undefined =
+    declContent === undefined
+      ? undefined
+      : { [XML_HEADER_ATTRIBUTE_KEY]: declContent }
   return { xmlHeader, rootKey, rootAttributes }
 }
 

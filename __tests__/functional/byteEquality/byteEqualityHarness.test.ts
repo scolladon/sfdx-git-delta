@@ -1,6 +1,7 @@
 'use strict'
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { PassThrough } from 'node:stream'
 
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -10,6 +11,7 @@ import {
 } from '../../../src/metadata/metadataManager'
 import type { SharedFileMetadata } from '../../../src/types/metadata'
 import type { Work } from '../../../src/types/work'
+import { readPathFromGit } from '../../../src/utils/fsHelper'
 import MetadataDiff from '../../../src/utils/metadataDiff/index.js'
 import { parseXmlFileToJson, xml2Json } from '../../../src/utils/xmlHelper'
 import { getWork } from '../../__utils__/testWork'
@@ -23,7 +25,17 @@ vi.mock('../../../src/utils/xmlHelper', async () => {
   }
 })
 
+vi.mock('../../../src/utils/fsHelper', async () => {
+  const actual: typeof import('../../../src/utils/fsHelper') =
+    await vi.importActual('../../../src/utils/fsHelper')
+  return {
+    ...actual,
+    readPathFromGit: vi.fn(),
+  }
+})
+
 const mockedParseXmlFileToJson = vi.mocked(parseXmlFileToJson)
+const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures')
 const UPDATE_SNAPSHOTS = process.env['UPDATE_BYTE_EQUALITY_SNAPSHOTS'] === '1'
@@ -101,6 +113,36 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
     if (UPDATE_SNAPSHOTS || fixture.expected === null) {
       writeFileSync(fixture.expectedPath, produced, 'utf8')
     }
+    const expected = readFileSync(fixture.expectedPath, 'utf8')
+    expect(produced).toBe(expected)
+  })
+
+  it.each(
+    fixtures
+  )('Given fixture $name, When streaming run() executes, Then the writer output matches the committed snapshot', async (fixture: Fixture) => {
+    // Arrange
+    mockedReadPathFromGit.mockImplementation(async ref =>
+      ref.oid === work.config.to ? fixture.toXml : fixture.fromXml
+    )
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act
+    const outcome = await sut.run('file/path')
+    if (!outcome.writer) {
+      // No changes: the legacy pruned XML is just declaration + root tag.
+      // Skip comparison because we intentionally omit the writer.
+      expect(outcome.hasAnyChanges).toBe(false)
+      return
+    }
+    const chunks: Buffer[] = []
+    const stream = new PassThrough()
+    stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
+    await outcome.writer(stream)
+    stream.end()
+    const produced = Buffer.concat(chunks).toString('utf8')
+
+    // Assert — run()'s writer output must equal the committed snapshot
+    // (which itself equals legacy output by the earlier it.each).
     const expected = readFileSync(fixture.expectedPath, 'utf8')
     expect(produced).toBe(expected)
   })
