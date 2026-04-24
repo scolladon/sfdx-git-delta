@@ -38,9 +38,12 @@ class StreamingBuilderFactory extends CompactBuilderFactory {
     parserOptions: unknown,
     readonlyMatcher: unknown
   ): CompactBuilder {
+    // Cast through unknown because upstream .d.ts exposes the params as
+    // typed shapes that are not publicly re-exported; we forward them
+    // opaquely, the parent implementation consumes them directly.
     const base = super.getInstance(
-      parserOptions as never,
-      readonlyMatcher as never
+      parserOptions as Parameters<CompactBuilderFactory['getInstance']>[0],
+      readonlyMatcher as Parameters<CompactBuilderFactory['getInstance']>[1]
     )
     return wrapStreaming(base, this.onElement)
   }
@@ -56,13 +59,14 @@ type BuilderInternals = {
 }
 
 function assertInternals(
-  internals: BuilderInternals
+  internals: unknown
 ): asserts internals is BuilderInternals {
+  const maybe = internals as Partial<BuilderInternals>
   if (
-    !Array.isArray(internals.tagsStack) ||
-    typeof internals.tagName !== 'string' ||
-    internals.value === null ||
-    typeof internals.value !== 'object'
+    !Array.isArray(maybe?.tagsStack) ||
+    typeof maybe?.tagName !== 'string' ||
+    maybe?.value === null ||
+    typeof maybe?.value !== 'object'
   ) {
     throw new Error(
       'streamingBuilder: CompactBuilder internals changed — upgrade the wrapper'
@@ -75,7 +79,7 @@ const wrapStreaming = (
   onElement: SubTypeElementHandler
 ): CompactBuilder => {
   const originalClose = base.closeElement.bind(base)
-  const internals: BuilderInternals = base as unknown as BuilderInternals
+  const internals: unknown = base
   assertInternals(internals)
   base.closeElement = function (matcher: unknown) {
     const stackLenBefore = internals.tagsStack.length

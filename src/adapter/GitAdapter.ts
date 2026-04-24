@@ -374,7 +374,10 @@ export default class GitAdapter implements GitBlobReader {
     })
     child.on('error', err => out.destroy(err))
     child.on('close', code => {
-      if (code !== 0 && !out.destroyed) {
+      // Intentional kills during LFS handoff close with a null/non-zero
+      // code; destroying `out` here would truncate the piped LFS stream
+      // the handoff just started.
+      if (code !== 0 && code !== null && !child.killed && !out.destroyed) {
         out.destroy(new Error(`git cat-file blob exited ${code}`))
       }
     })

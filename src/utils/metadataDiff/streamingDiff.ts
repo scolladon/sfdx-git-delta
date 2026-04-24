@@ -25,7 +25,9 @@ export type StreamingDiffResult = {
 
 type PassTwoBuckets = {
   toArrays: Map<string, XmlContent[]>
-  toObjectFingerprints: Map<string, XmlContent[]>
+  // Object-keyed elements are buffered with their stringify fingerprint
+  // pre-computed so drain doesn't re-stringify every element a second time.
+  toObjectFingerprints: Map<string, Array<[XmlContent, string]>>
   toKeyless: Map<string, XmlContent[]>
   toUnknown: Map<string, XmlContent[]>
 }
@@ -133,7 +135,7 @@ export class StreamingDiff {
       return
     }
     if (keyField === OBJECT_SPECIAL_KEY) {
-      this.appendBounded(this.passTwo.toObjectFingerprints, subType, element)
+      this.appendObjectFingerprint(subType, element)
       return
     }
     this.classifyKeyedElement(subType, element, keyField)
@@ -229,9 +231,12 @@ export class StreamingDiff {
 
   private retainSubTypeElement(subType: string, element: XmlContent): void {
     if (!this.generateDelta) return
-    const existing = this.prunedBySubType.get(subType) ?? []
+    let existing = this.prunedBySubType.get(subType)
+    if (existing === undefined) {
+      existing = []
+      this.prunedBySubType.set(subType, existing)
+    }
     existing.push(element)
-    this.prunedBySubType.set(subType, existing)
   }
 
   private drainArrays(): void {
@@ -251,7 +256,10 @@ export class StreamingDiff {
     ] of this.passTwo.toObjectFingerprints.entries()) {
       const fromSet =
         this.passOne.fromObjectFingerprints.get(subType) ?? new Set<string>()
-      const retained = toArr.filter(el => !fromSet.has(JSON.stringify(el)))
+      const retained: XmlContent[] = []
+      for (const [element, fingerprint] of toArr) {
+        if (!fromSet.has(fingerprint)) retained.push(element)
+      }
       if (retained.length > 0) {
         this.hasAnyChanges = true
         if (this.generateDelta) this.prunedBySubType.set(subType, retained)
@@ -288,7 +296,8 @@ export class StreamingDiff {
     for (const [subType, remaining] of this.passOne.fromKeyed.entries()) {
       if (remaining.size === 0) continue
       if (!this.isPackageable(subType)) continue
-      const keyField = this.attributes.get(subType)?.key as string
+      const keyField = this.attributes.get(subType)?.key
+      if (keyField === undefined) continue
       for (const [, element] of remaining.entries()) {
         this.recordDeleted(subType, element[keyField] as string)
       }
@@ -305,9 +314,22 @@ export class StreamingDiff {
     subType: string,
     element: XmlContent
   ): void {
-    const list = bucket.get(subType) ?? []
+    let list = bucket.get(subType)
+    if (list === undefined) {
+      list = []
+      bucket.set(subType, list)
+    }
     list.push(element)
-    bucket.set(subType, list)
+    this.guardCardinality(list.length, subType)
+  }
+
+  private appendObjectFingerprint(subType: string, element: XmlContent): void {
+    let list = this.passTwo.toObjectFingerprints.get(subType)
+    if (list === undefined) {
+      list = []
+      this.passTwo.toObjectFingerprints.set(subType, list)
+    }
+    list.push([element, JSON.stringify(element)])
     this.guardCardinality(list.length, subType)
   }
 

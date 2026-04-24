@@ -838,9 +838,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(
-      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
-    ).toBe(false)
+    expect(result.copies).toHaveLength(0)
     expect(mockWriter).not.toHaveBeenCalled()
   })
 

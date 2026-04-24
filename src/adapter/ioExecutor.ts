@@ -167,6 +167,9 @@ export default class IOExecutor {
     filePaths: string[]
   ): Promise<void> {
     const wanted = new Set(filePaths)
+    const outputPrefix = this.config.output.endsWith('/')
+      ? this.config.output
+      : `${this.config.output}/`
     for await (const entry of gitAdapter.streamArchive(op.path, op.revision)) {
       if (!wanted.has(entry.path)) {
         entry.stream.resume()
@@ -180,8 +183,16 @@ export default class IOExecutor {
         entry.stream.resume()
         continue
       }
-      this.processedPaths.add(entry.path)
       const dst = join(this.config.output, entry.path)
+      // Defense-in-depth: reject any tar entry whose resolved destination
+      // escapes `config.output` (zip-slip). git-archive itself does not
+      // produce such entries, but a future streamArchive caller or a
+      // mutated registry could; failing here keeps the invariant local.
+      if (!dst.startsWith(outputPrefix)) {
+        entry.stream.resume()
+        continue
+      }
+      this.processedPaths.add(entry.path)
       await this._writeAtomicallyViaTmp(dst, async ws => {
         await pipeline(entry.stream, ws, { end: false })
       })

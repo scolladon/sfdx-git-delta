@@ -1,5 +1,6 @@
 'use strict'
 import { EventEmitter } from 'node:events'
+import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { PassThrough } from 'node:stream'
 import { EOL } from 'os'
@@ -53,11 +54,16 @@ vi.mock('../../../../src/adapter/gitBatchCatFile', () => ({
 
 vi.mock('../../../../src/utils/gitLfsHelper')
 vi.mock('node:fs/promises')
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+  return { ...actual, createReadStream: vi.fn() }
+})
 vi.mock('../../../../src/utils/LoggingService')
 
 const isLFSmocked = vi.mocked(isLFS)
 const getLFSObjectContentPathMocked = vi.mocked(getLFSObjectContentPath)
 const readFileMocked = vi.mocked(readFile)
+const createReadStreamMocked = vi.mocked(createReadStream)
 
 // Records every spawn invocation preBuildTreeIndex makes via _spawnLines
 // so assertions below can inspect the args (replaces the prior check on
@@ -1408,7 +1414,7 @@ describe('GitAdapter', () => {
       expect(Buffer.concat(chunks).toString()).toBe('version 42 rest of blob')
     })
 
-    it('Given an LFS pointer in the first chunks, When streamContent runs, Then the child is killed and hand-off to LFS path is attempted', async () => {
+    it('Given an LFS pointer in the first chunks, When streamContent runs, Then the child is killed and the resolved LFS file content is piped through', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const child = createFakeChild()
@@ -1416,29 +1422,38 @@ describe('GitAdapter', () => {
       getLFSObjectContentPathMocked.mockReturnValue(
         '.git/lfs/objects/de/ad/deadbeef'
       )
+      const lfsBytes = Buffer.from('the resolved LFS payload')
+      const fakeLfsReadable = new PassThrough()
+      createReadStreamMocked.mockReturnValue(fakeLfsReadable as never)
 
       // Act
       const stream = gitAdapter.streamContent({
         path: 'resources/LargeAsset.bin',
         oid: 'deadbeef',
       })
-      stream.on('error', () => undefined)
+      const chunks: Buffer[] = []
+      stream.on('data', c => chunks.push(Buffer.from(c)))
+      const done = new Promise<void>(resolve => stream.on('end', resolve))
 
       child.stdout.emit(
         'data',
         Buffer.from('version https://git-lfs.github.com/spec/v1\n')
       )
-      child.stdout.emit('data', Buffer.from('oid sha256:deadbeef\nsize 1\n'))
+      child.stdout.emit('data', Buffer.from('oid sha256:deadbeef\nsize 24\n'))
       child.stdout.emit('end')
+      child.emit('close', null)
+      // Drive the LFS pipe with the known payload.
       await new Promise(resolve => setImmediate(resolve))
+      fakeLfsReadable.end(lfsBytes)
+      await done
 
-      // Assert — the child was killed after detecting LFS, and the LFS path
-      // resolver was consulted.
+      // Assert — consumer receives the full LFS payload, not truncated.
       expect(child.kill).toHaveBeenCalled()
       expect(getLFSObjectContentPathMocked).toHaveBeenCalled()
+      expect(Buffer.concat(chunks).equals(lfsBytes)).toBe(true)
     })
 
-    it('Given a malformed LFS pointer throws on resolution, When streamContent hands off, Then the consumer receives the error (not an uncaught exception)', async () => {
+    it('Given a malformed LFS pointer throws on resolution, When streamContent hands off, Then the consumer receives the error and no bytes are leaked', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const child = createFakeChild()
@@ -1452,6 +1467,8 @@ describe('GitAdapter', () => {
         path: 'resources/Bad.bin',
         oid: 'cafe',
       })
+      const chunks: Buffer[] = []
+      stream.on('data', c => chunks.push(Buffer.from(c)))
       const received = new Promise<Error | undefined>(resolve => {
         stream.on('error', err => resolve(err))
       })
@@ -1463,13 +1480,14 @@ describe('GitAdapter', () => {
       child.stdout.emit('data', Buffer.from('oid sha256:bad\n'))
       child.stdout.emit('end')
 
-      // Assert
+      // Assert — error surfaces AND nothing was forwarded to the consumer.
       await expect(received).resolves.toMatchObject({
         message: 'Invalid LFS oid',
       })
+      expect(Buffer.concat(chunks).length).toBe(0)
     })
 
-    it('Given an LFS pointer exceeds the cap, When streamContent buffers beyond the limit, Then the consumer receives a cap error', async () => {
+    it('Given an LFS pointer exceeds the cap, When streamContent buffers beyond the limit, Then the consumer receives a cap error and no bytes are leaked', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const child = createFakeChild()
@@ -1480,6 +1498,8 @@ describe('GitAdapter', () => {
         path: 'resources/Huge.bin',
         oid: 'aabbccdd',
       })
+      const chunks: Buffer[] = []
+      stream.on('data', c => chunks.push(Buffer.from(c)))
       const received = new Promise<Error | undefined>(resolve => {
         stream.on('error', err => resolve(err))
       })
@@ -1491,13 +1511,14 @@ describe('GitAdapter', () => {
       // Push 2 KB beyond the 1 KB cap.
       child.stdout.emit('data', Buffer.alloc(2048, 0x61))
 
-      // Assert
+      // Assert — error surfaces AND nothing was forwarded to the consumer.
       await expect(received).resolves.toMatchObject({
         message: expect.stringContaining('LFS pointer exceeds expected size'),
       })
+      expect(Buffer.concat(chunks).length).toBe(0)
     })
 
-    it('Given the streaming child closes, When another stream is created, Then the prior child is not retained in streamingChildren', async () => {
+    it('Given the streaming child closes, When close event fires, Then the child is removed from streamingChildren', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)
       const child1 = createFakeChild()
@@ -1512,10 +1533,13 @@ describe('GitAdapter', () => {
       child1.emit('close', 0)
       await new Promise(resolve => setImmediate(resolve))
 
-      // Assert — a fresh closeBatchProcess should not attempt to kill the
-      // already-closed child because it was spliced on 'close'.
-      gitAdapter.closeBatchProcess()
-      expect(child1.kill).not.toHaveBeenCalled()
+      // Assert — internal list is empty after splice.
+      const children = (
+        gitAdapter as unknown as {
+          streamingChildren: unknown[]
+        }
+      ).streamingChildren
+      expect(children).toHaveLength(0)
     })
 
     it('Given the streaming subprocess exits non-zero, When consuming the stream, Then the consumer receives an error', async () => {
