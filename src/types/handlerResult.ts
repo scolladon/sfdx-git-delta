@@ -1,4 +1,5 @@
 'use strict'
+import type { Writable } from 'node:stream'
 
 export enum ManifestTarget {
   Package = 'package',
@@ -21,6 +22,7 @@ export enum CopyOperationKind {
   GitCopy = 'gitCopy',
   GitDirCopy = 'gitDirCopy',
   ComputedContent = 'computedContent',
+  StreamedContent = 'streamedContent',
 }
 
 export type ManifestElement = {
@@ -48,10 +50,17 @@ export type ComputedContentOperation = {
   content: string
 }
 
+export type StreamedContentOperation = {
+  kind: CopyOperationKind.StreamedContent
+  path: string
+  writer: (out: Writable) => Promise<void>
+}
+
 export type CopyOperation =
   | GitCopyOperation
   | GitDirCopyOperation
   | ComputedContentOperation
+  | StreamedContentOperation
 
 export type HandlerResult = {
   manifests: ManifestElement[]

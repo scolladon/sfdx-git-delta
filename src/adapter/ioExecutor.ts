@@ -1,17 +1,24 @@
 'use strict'
-import { join } from 'node:path/posix'
+import { createWriteStream, promises as fsPromises } from 'node:fs'
+import { dirname, join } from 'node:path/posix'
+import type { Writable } from 'node:stream'
 
 import { eachLimit } from 'async'
 import { outputFile } from 'fs-extra'
 
 import type { Config } from '../types/config.js'
-import type { CopyOperation } from '../types/handlerResult.js'
+import type {
+  CopyOperation,
+  StreamedContentOperation,
+} from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
+
+const TMP_SUFFIX = '.tmp'
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
@@ -49,6 +56,9 @@ export default class IOExecutor {
         break
       case CopyOperationKind.ComputedContent:
         await this._executeComputedContent(op)
+        break
+      case CopyOperationKind.StreamedContent:
+        await this._executeStreamedContent(op)
         break
     }
   }
@@ -111,5 +121,38 @@ export default class IOExecutor {
     content: string
   }): Promise<void> {
     await outputFile(join(this.config.output, op.path), op.content)
+  }
+
+  protected async _executeStreamedContent(
+    op: StreamedContentOperation
+  ): Promise<void> {
+    const dst = join(this.config.output, op.path)
+    await this._writeAtomicallyViaTmp(dst, op.writer)
+  }
+
+  // Writes `producer` output to a sibling `.tmp` file, then atomically renames
+  // on success. Same-directory tmp avoids EXDEV on cross-filesystem moves
+  // (Docker-on-CI overlayfs + tmpfs /tmp scenario). Errors destroy the stream,
+  // unlink the tmp, and log at debug — matching _executeGitFileCopy precedent.
+  protected async _writeAtomicallyViaTmp(
+    dst: string,
+    producer: (ws: Writable) => Promise<void>
+  ): Promise<void> {
+    const tmp = `${dst}${TMP_SUFFIX}`
+    await fsPromises.mkdir(dirname(dst), { recursive: true })
+    const ws = createWriteStream(tmp)
+    try {
+      await producer(ws)
+      await new Promise<void>((resolve, reject) => {
+        ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
+      })
+      await fsPromises.rename(tmp, dst)
+    } catch (error) {
+      ws.destroy()
+      await fsPromises.unlink(tmp).catch(() => undefined)
+      Logger.debug(
+        lazy`IOExecutor atomicWrite failed for ${dst}: ${() => getErrorMessage(error)}`
+      )
+    }
   }
 }
