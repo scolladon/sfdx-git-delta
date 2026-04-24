@@ -165,8 +165,13 @@ const frameForChild = (key: string, value: unknown, depth: number): Frame => {
   return toFrameForObjectChild(key, value as XmlContent, depth)
 }
 
-const writeChunk = async (out: Writable, chunk: string): Promise<void> => {
-  if (!out.write(chunk)) await once(out, 'drain')
+// Synchronous hot path: when the stream accepts the chunk without
+// signalling backpressure, return undefined (caller awaits a non-promise,
+// one microtask). When it signals backpressure we return a real drain
+// promise. This keeps the per-frame cost low for large pruned XML.
+const writeChunk = (out: Writable, chunk: string): Promise<void> | void => {
+  if (out.write(chunk)) return
+  return once(out, 'drain').then(() => undefined)
 }
 
 const writeXmlDeclaration = async (

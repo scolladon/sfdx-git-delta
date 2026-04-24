@@ -5,7 +5,7 @@ import { deepEqual } from 'fast-equals'
 
 import type { ManifestElement } from '../../types/handlerResult.js'
 import type { SharedFileMetadata } from '../../types/metadata.js'
-import { ATTRIBUTE_PREFIX, type XmlContent } from '../xmlHelper.js'
+import type { XmlContent } from '../xmlHelper.js'
 import type { RootCapture, SubTypeElementHandler } from './xmlEventReader.js'
 import { writeXmlDocument } from './xmlWriter.js'
 
@@ -111,8 +111,6 @@ export class StreamingDiff {
 
   public onToElement: SubTypeElementHandler = (subType, element) => {
     this.trackToOrder(subType)
-    const isPackageable =
-      this.attributes.has(subType) && !this.attributes.get(subType)?.excluded
     if (!this.attributes.has(subType)) {
       this.appendBounded(this.passTwo.toUnknown, subType, element)
       return
@@ -130,7 +128,7 @@ export class StreamingDiff {
       this.appendBounded(this.passTwo.toObjectFingerprints, subType, element)
       return
     }
-    this.classifyKeyedElement(subType, element, keyField, isPackageable)
+    this.classifyKeyedElement(subType, element, keyField)
   }
 
   private trackToOrder(subType: string): void {
@@ -182,25 +180,43 @@ export class StreamingDiff {
   private classifyKeyedElement(
     subType: string,
     element: XmlContent,
-    keyField: string,
-    isPackageable: boolean
+    keyField: string
   ): void {
     const key = element[keyField] as string | undefined
     if (key === undefined) return
-    const xmlName = this.attributes.get(subType)?.xmlName ?? ''
     const fromMap = this.passOne.fromKeyed.get(subType)
     const fromElem = fromMap?.get(key)
     if (fromElem === undefined) {
-      if (isPackageable) this.added.push({ type: xmlName, member: key })
-      this.hasAnyChanges = true
+      this.recordAdded(subType, key)
       this.retainSubTypeElement(subType, element)
       return
     }
     fromMap!.delete(key)
     if (deepEqual(fromElem, element)) return
-    if (isPackageable) this.modified.push({ type: xmlName, member: key })
-    this.hasAnyChanges = true
+    this.recordModified(subType, key)
     this.retainSubTypeElement(subType, element)
+  }
+
+  private recordAdded(subType: string, member: string): void {
+    this.hasAnyChanges = true
+    if (this.isPackageable(subType)) {
+      this.added.push({ type: this.xmlNameOf(subType), member })
+    }
+  }
+
+  private recordModified(subType: string, member: string): void {
+    this.hasAnyChanges = true
+    if (this.isPackageable(subType)) {
+      this.modified.push({ type: this.xmlNameOf(subType), member })
+    }
+  }
+
+  private isPackageable(subType: string): boolean {
+    return !this.attributes.get(subType)?.excluded
+  }
+
+  private xmlNameOf(subType: string): string {
+    return this.attributes.get(subType)?.xmlName ?? ''
   }
 
   private retainSubTypeElement(subType: string, element: XmlContent): void {
@@ -263,16 +279,17 @@ export class StreamingDiff {
   private drainDeletions(): void {
     for (const [subType, remaining] of this.passOne.fromKeyed.entries()) {
       if (remaining.size === 0) continue
-      const xmlName = this.attributes.get(subType)?.xmlName ?? ''
-      const isPackageable = !this.attributes.get(subType)?.excluded
-      if (!isPackageable) continue
+      if (!this.isPackageable(subType)) continue
       const keyField = this.attributes.get(subType)?.key as string
       for (const [, element] of remaining.entries()) {
-        const member = element[keyField] as string
-        this.deleted.push({ type: xmlName, member })
-        this.hasAnyChanges = true
+        this.recordDeleted(subType, element[keyField] as string)
       }
     }
+  }
+
+  private recordDeleted(subType: string, member: string): void {
+    this.hasAnyChanges = true
+    this.deleted.push({ type: this.xmlNameOf(subType), member })
   }
 
   private appendBounded(
@@ -292,6 +309,3 @@ export class StreamingDiff {
     }
   }
 }
-
-// Consume — silences lint when ATTRIBUTE_PREFIX is re-exported
-void ATTRIBUTE_PREFIX

@@ -194,33 +194,37 @@ describe('StreamingDiff', () => {
     expect(writer).toBeUndefined()
   })
 
-  it('Given a keyed bucket exceeds CARDINALITY_SAFETY_LIMIT, When onFromElement runs, Then it throws', () => {
-    // Arrange
+  it('Given a non-packageable keyed subType is deleted in to, When finalize runs, Then deleted manifest is empty', () => {
+    // Arrange - fieldPermissions is keyed but excluded in the registry.
+    // A from-only fieldPermission must not emit a deletion manifest entry,
+    // covering the !isPackageable early-continue in drainDeletions.
     const sut = new StreamingDiff(inFileAttributes, true)
-    // Simulate the bucket being close to the limit via repeated inserts is
-    // prohibitively expensive; patch the internal map directly.
-    const internalMap = new Map<string, unknown>()
-    for (let i = 0; i <= CARDINALITY_SAFETY_LIMIT; i++) {
-      internalMap.set(String(i), {})
-    }
-    ;(
-      sut as unknown as {
-        passOne: {
-          fromKeyed: Map<string, Map<string, unknown>>
-        }
-      }
-    ).passOne.fromKeyed.set(
-      'fieldPermissions',
-      internalMap as Map<string, unknown>
-    )
+    sut.onFromElement('fieldPermissions', {
+      field: 'Account.ExcludedOnly',
+      editable: 'true',
+      readable: 'true',
+    })
+
+    // Act
+    const outcome = sut.finalize()
+
+    // Assert
+    expect(outcome.deleted).toHaveLength(0)
+    expect(outcome.hasAnyChanges).toBe(false)
+  })
+
+  it('Given a keyless bucket reaches CARDINALITY_SAFETY_LIMIT + 1 via the public API, When onFromElement runs, Then it throws', () => {
+    // Arrange — userLicense is a keyless Profile subType (no key field,
+    // not a registry special-key marker). Feeding LIMIT+1 elements via
+    // the real public surface exercises the bounded append path without
+    // poking private Maps.
+    const sut = new StreamingDiff(inFileAttributes, true)
 
     // Act & Assert
-    expect(() =>
-      sut.onFromElement('fieldPermissions', {
-        field: 'Account.Overflow',
-        editable: 'true',
-        readable: 'true',
-      })
-    ).toThrow(/cardinality safety limit exceeded/)
+    expect(() => {
+      for (let i = 0; i <= CARDINALITY_SAFETY_LIMIT; i++) {
+        sut.onFromElement('description', { text: `entry-${i}` })
+      }
+    }).toThrow(/cardinality safety limit exceeded/)
   })
 })

@@ -1409,6 +1409,46 @@ describe('GitAdapter', () => {
       const err = await result
       expect(err?.message).toContain('git cat-file blob exited 128')
     })
+
+    it('Given the subprocess emits an error event, When consuming the stream, Then the consumer is destroyed with that error', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+      const spawnFailure = new Error('spawn ENOENT')
+
+      // Act
+      const stream = gitAdapter.streamContent({ path: 'any', oid: 'ab' })
+      const received = new Promise<Error | undefined>(resolve => {
+        stream.on('error', err => resolve(err))
+      })
+      child.emit('error', spawnFailure)
+
+      // Assert
+      await expect(received).resolves.toBe(spawnFailure)
+    })
+
+    it('Given a path beginning with a dash, When streamContent runs, Then the resulting stream errors without spawning', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const spawnFn = vi.fn()
+      gitAdapter.setSpawnFn(spawnFn as never)
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: '--version',
+        oid: 'ab',
+      })
+      const received = new Promise<Error | undefined>(resolve => {
+        stream.on('error', err => resolve(err))
+      })
+
+      // Assert
+      expect(spawnFn).not.toHaveBeenCalled()
+      return expect(received).resolves.toMatchObject({
+        message: expect.stringContaining('Refusing to spawn'),
+      })
+    })
   })
 
   describe('closeBatchProcess with streaming children', () => {

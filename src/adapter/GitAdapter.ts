@@ -189,6 +189,19 @@ export default class GitAdapter implements GitBlobReader {
    */
   public streamContent(forRef: FileGitRef): Readable {
     const out = new PassThrough()
+    // Defense in depth: `git cat-file blob <ref>` treats a ref starting
+    // with `-` as an option. Refs come from git diff output so this
+    // shouldn't happen in normal operation, but a malicious diff or a
+    // path with a leading dash would give git an option it respects.
+    // Fail fast with a clear error rather than trust the subprocess.
+    if (forRef.path.startsWith('-') || forRef.oid.startsWith('-')) {
+      process.nextTick(() =>
+        out.destroy(
+          new Error(`Refusing to spawn git cat-file for ${forRef.path}`)
+        )
+      )
+      return out
+    }
     const child = this.spawnFn(
       'git',
       ['cat-file', 'blob', `${forRef.oid}:${forRef.path}`],

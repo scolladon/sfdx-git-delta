@@ -118,17 +118,9 @@ export default class IOExecutor {
     ref: FileGitRef,
     dst: string
   ): Promise<void> {
-    const tmp = `${dst}${TMP_SUFFIX}`
-    await fsPromises.mkdir(dirname(dst), { recursive: true })
-    try {
-      await pipeline(reader.streamContent(ref), createWriteStream(tmp))
-      await fsPromises.rename(tmp, dst)
-    } catch (error) {
-      await fsPromises.unlink(tmp).catch(() => undefined)
-      Logger.warn(
-        lazy`IOExecutor streaming copy failed for ${ref.path}: ${() => getErrorMessage(error)}`
-      )
-    }
+    await this._writeAtomicallyViaTmp(dst, async ws => {
+      await pipeline(reader.streamContent(ref), ws, { end: false })
+    })
   }
 
   protected async _executeGitDirCopy(op: {

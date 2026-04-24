@@ -653,5 +653,45 @@ describe('IOExecutor', () => {
         'output/resources/big.bin'
       )
     })
+
+    it('When the streaming pipeline errors, Then the tmp file is unlinked and rename is not invoked', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const failingSource = new Readable({
+        read() {
+          this.destroy(new Error('git stream exploded'))
+        },
+      })
+      const fakeBlobReader = {
+        getBufferContent: vi.fn(),
+        getBufferContentOrEscalate: vi.fn(() =>
+          Promise.reject(
+            new EscalateToStreamingSignal(5_000_000, {
+              oid: 'abc123',
+              path: 'resources/big.bin',
+            })
+          )
+        ),
+        streamContent: vi.fn(() => failingSource),
+      }
+      const stream = createFakeWriteStream()
+      mockCreateWriteStream.mockReturnValueOnce(stream)
+      const sut = new IOExecutor(work.config, () => fakeBlobReader)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'resources/big.bin',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockRename).not.toHaveBeenCalled()
+      expect(mockUnlink).toHaveBeenCalledWith('output/resources/big.bin.tmp')
+    })
   })
 })
