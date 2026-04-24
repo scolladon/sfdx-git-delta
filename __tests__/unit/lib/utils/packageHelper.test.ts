@@ -1,9 +1,23 @@
 'use strict'
+import { PassThrough } from 'node:stream'
+
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import type { Config } from '../../../../src/types/config'
 import type { Manifest } from '../../../../src/types/work'
 import PackageBuilder from '../../../../src/utils/packageHelper'
+
+const buildToString = async (
+  builder: PackageBuilder,
+  manifest: Manifest
+): Promise<string> => {
+  const stream = new PassThrough()
+  const chunks: Buffer[] = []
+  stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
+  await builder.buildPackageStream(manifest, stream)
+  stream.end()
+  return Buffer.concat(chunks).toString('utf8')
+}
 
 const config: Config = {
   apiVersion: 46,
@@ -122,7 +136,8 @@ describe('Given a PackageBuilder', () => {
     sut = new PackageBuilder(config)
   })
 
-  it.each(tests)('can build %s manifest', (_, diff, expected) => {
-    expect(sut.buildPackage(diff as Manifest)).toBe(expected)
+  it.each(tests)('can build %s manifest', async (_, diff, expected) => {
+    const out = await buildToString(sut, diff as Manifest)
+    expect(out).toBe(expected)
   })
 })

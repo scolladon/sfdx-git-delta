@@ -1,5 +1,6 @@
 'use strict'
-import { outputFile } from 'fs-extra'
+import { PassThrough } from 'node:stream'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -9,18 +10,46 @@ import { ChangeKind } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockBuildPackage } = vi.hoisted(() => ({
-  mockBuildPackage: vi.fn(),
+const {
+  mockBuildPackageStream,
+  mockCreateWriteStream,
+  mockMkdir,
+  writtenPaths,
+} = vi.hoisted(() => ({
+  mockBuildPackageStream: vi.fn<() => Promise<void>>(),
+  mockCreateWriteStream: vi.fn(),
+  mockMkdir: vi.fn<() => Promise<void>>(),
+  writtenPaths: [] as string[],
 }))
 
-vi.mock('fs-extra')
+vi.mock('node:fs', async () => {
+  const actual: typeof import('node:fs') = await vi.importActual('node:fs')
+  return {
+    ...actual,
+    createWriteStream: mockCreateWriteStream,
+    promises: {
+      ...actual.promises,
+      mkdir: mockMkdir,
+    },
+  }
+})
 
 vi.mock('../../../../src/utils/packageHelper', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { buildPackage: mockBuildPackage }
+      return { buildPackageStream: mockBuildPackageStream }
     }),
   }
+})
+
+beforeEach(() => {
+  writtenPaths.length = 0
+  mockBuildPackageStream.mockResolvedValue()
+  mockMkdir.mockResolvedValue()
+  mockCreateWriteStream.mockImplementation((path: string) => {
+    writtenPaths.push(path)
+    return new PassThrough()
+  })
 })
 
 describe('PackageGenerator', () => {
@@ -42,10 +71,7 @@ describe('PackageGenerator', () => {
       await sut.process()
 
       // Assert
-      const writes = vi
-        .mocked(outputFile)
-        .mock.calls.map(call => call[0] as string)
-      expect(new Set(writes)).toEqual(
+      expect(new Set(writtenPaths)).toEqual(
         new Set([
           'test/destructiveChanges/destructiveChanges.xml',
           'test/package/package.xml',
