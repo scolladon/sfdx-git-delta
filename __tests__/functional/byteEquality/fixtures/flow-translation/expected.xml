@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Translations xmlns="http://soap.sforce.com/2006/04/metadata">
+    <flowDefinitions>
+        <flows>
+            <label>Start Updated</label>
+            <name>StartStep</name>
+        </flows>
+        <fullName>MyFlow</fullName>
+    </flowDefinitions>
+    <flowDefinitions>
+        <flows>
+            <label>Finish</label>
+            <name>FinishStep</name>
+        </flows>
+        <fullName>OtherFlow</fullName>
+    </flowDefinitions>
+</Translations>
