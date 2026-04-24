@@ -8,6 +8,7 @@ import {
   XML_HEADER_ATTRIBUTE_KEY,
   type XmlContent,
 } from '../xmlHelper.js'
+import { createStreamingBuilderFactory } from './streamingBuilder.js'
 
 export type RootCapture = {
   xmlHeader: XmlContent | undefined
@@ -20,7 +21,7 @@ export type SubTypeElementHandler = (
   element: XmlContent
 ) => void
 
-const STREAMING_PARSER_OPTION: X2jOptions = {
+const BASE_PARSER_OPTIONS: X2jOptions = {
   skip: {
     attributes: false,
     nsPrefix: false,
@@ -38,8 +39,6 @@ const STREAMING_PARSER_OPTION: X2jOptions = {
     valueParsers: ['trim'] as unknown[],
   },
 } as X2jOptions
-
-const streamingParser = new FlexXMLParser(STREAMING_PARSER_OPTION)
 
 const isAttributeKey = (key: string): boolean =>
   key.startsWith(ATTRIBUTE_PREFIX)
@@ -63,36 +62,28 @@ const buildRootCapture = (parsed: XmlContent, rootKey: string): RootCapture => {
 const extractRootKey = (parsed: XmlContent): string | undefined =>
   Object.keys(parsed).find(key => key !== XML_HEADER_ATTRIBUTE_KEY)
 
-const emitSubTypeElements = (
-  rootNode: XmlContent,
-  onElement: SubTypeElementHandler
-): void => {
-  for (const subType of Object.keys(rootNode)) {
-    if (isAttributeKey(subType)) continue
-    const raw = rootNode[subType]
-    const elements = Array.isArray(raw) ? raw : [raw]
-    for (const element of elements) {
-      onElement(subType, element as XmlContent)
-    }
-  }
-}
-
-const parseBuffer = (source: Buffer | string): XmlContent =>
-  streamingParser.parse(
-    typeof source === 'string' ? source : source.toString('utf8')
-  ) as XmlContent
-
 const driveParse = (
   source: Buffer | string,
   onElement: SubTypeElementHandler
 ): RootCapture | null => {
-  const parsed = parseBuffer(source)
+  // A fresh parser per call is required: the streaming builder factory
+  // captures the onElement callback in its builder instance, so reusing a
+  // shared parser would leak callbacks across concurrent parses.
+  // `OutputBuilder` is typed as `BaseOutputBuilderFactory` in X2jOptions
+  // but our factory's method inheritance isn't visible on CompactBuilder-
+  // Factory's .d.ts surface; cast through unknown to route around it.
+  const parser = new FlexXMLParser({
+    ...BASE_PARSER_OPTIONS,
+    OutputBuilder: createStreamingBuilderFactory(onElement),
+  } as unknown as X2jOptions)
+  const payload = typeof source === 'string' ? source : source.toString('utf8')
+  const parsed = parser.parse(payload) as XmlContent
   const rootKey = extractRootKey(parsed)
   if (rootKey === undefined) return null
-  const rootCapture = buildRootCapture(parsed, rootKey)
-  const rootNode = (parsed[rootKey] as XmlContent | undefined) ?? {}
-  emitSubTypeElements(rootNode, onElement)
-  return rootCapture
+  // The streaming builder has already emitted every direct-child element
+  // via onElement and deleted it from `parsed[rootKey]`, so the returned
+  // tree only carries the root's attributes and xml declaration.
+  return buildRootCapture(parsed, rootKey)
 }
 
 /**
@@ -102,12 +93,10 @@ const driveParse = (
  * failure.
  *
  * Emits `onElement(subType, element)` per direct-child element of the
- * document root after the parser finishes. The current implementation
- * iterates the fully-materialized tree rather than firing per close-tag
- * boundary; per-element memory-bounded parsing is DESIGN Q2 and tracked
- * as a separate follow-up (the compact-builder package only declares its
- * builder as a TypeScript interface, which blocks subclass-based
- * streaming without a library-level type fix or fork).
+ * document root as soon as that element's end tag is parsed. The
+ * streaming builder drops each element from the in-progress tree after
+ * emission so peak memory is bounded by the current element rather than
+ * the full document. See DESIGN.md \xc2\xa75.2 and streamingBuilder.ts.
  */
 export const parseFromSideSwallowing = async (
   source: Buffer | string | null | undefined,
