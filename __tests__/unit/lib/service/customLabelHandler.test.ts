@@ -12,15 +12,15 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockCompare, mockPrune } = vi.hoisted(() => ({
-  mockCompare: vi.fn(),
-  mockPrune: vi.fn(),
+const { mockRun, mockWriter } = vi.hoisted(() => ({
+  mockRun: vi.fn(),
+  mockWriter: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { compare: mockCompare, prune: mockPrune }
+      return { run: mockRun }
     }),
   }
 })
@@ -165,18 +165,17 @@ describe('Decomposed CustomLabel spec', () => {
         globalMetadata
       )
       const sut = new CustomLabelHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [{ type: 'CustomLabel', member: 'MyLabel' }],
-          modified: [],
-          deleted: [],
+          manifests: {
+            added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+            modified: [],
+            deleted: [],
+          },
           hasAnyChanges: true,
+          writer: mockWriter,
         })
       )
-      mockPrune.mockReturnValue({
-        xmlContent: '<xmlContent>',
-        isEmpty: false,
-      })
 
       // Act
       const result = await sut.collect()
@@ -192,7 +191,7 @@ describe('Decomposed CustomLabel spec', () => {
         ])
       )
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
       expect(result.warnings).toHaveLength(0)
     })
@@ -207,18 +206,17 @@ describe('Decomposed CustomLabel spec', () => {
         globalMetadata
       )
       const sut = new CustomLabelHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [{ type: 'CustomLabel', member: 'MyLabel' }],
-          modified: [],
-          deleted: [],
+          manifests: {
+            added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+            modified: [],
+            deleted: [],
+          },
           hasAnyChanges: true,
+          writer: mockWriter,
         })
       )
-      mockPrune.mockReturnValue({
-        xmlContent: '<xmlContent>',
-        isEmpty: false,
-      })
 
       // Act
       const result = await sut.collect()

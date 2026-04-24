@@ -12,13 +12,13 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockGetMessage, mockCompare, mockPrune } = vi.hoisted(() => ({
+const { mockGetMessage, mockRun, mockWriter } = vi.hoisted(() => ({
   mockGetMessage: vi.fn(
     (_key: string, tokens?: string[]) =>
       `could not process '${tokens?.[0]}', please ensure it is properly formatted xml in both '${tokens?.[1]}' and '${tokens?.[2]}' revision`
   ),
-  mockCompare: vi.fn(),
-  mockPrune: vi.fn(),
+  mockRun: vi.fn(),
+  mockWriter: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/MessageService', () => {
@@ -32,7 +32,7 @@ vi.mock('../../../../src/utils/MessageService', () => {
 vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { compare: mockCompare, prune: mockPrune }
+      return { run: mockRun }
     }),
   }
 })
@@ -71,8 +71,6 @@ let work: Work
 beforeEach(() => {
   vi.clearAllMocks()
   work = getWork()
-
-  mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
 })
 
 describe('inFileHandler', () => {
@@ -86,12 +84,15 @@ describe('inFileHandler', () => {
         globalMetadata
       )
       sut = new InFileHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-          modified: [],
-          deleted: [],
+          manifests: {
+            added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+            modified: [],
+            deleted: [],
+          },
           hasAnyChanges: true,
+          writer: mockWriter,
         })
       )
     })
@@ -119,9 +120,8 @@ describe('inFileHandler', () => {
           m => m.target === ManifestTarget.DestructiveChanges
         )
       ).toBe(false)
-      expect(mockPrune).toHaveBeenCalled()
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
     })
 
@@ -135,12 +135,15 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [{ type: 'ValueTranslation', member: 'Three' }],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [{ type: 'ValueTranslation', member: 'Three' }],
+                modified: [],
+                deleted: [],
+              },
               hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
         })
@@ -167,10 +170,9 @@ describe('inFileHandler', () => {
             m => m.target === ManifestTarget.Package
           )
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -185,12 +187,15 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [],
+              },
               hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
         })
@@ -217,10 +222,9 @@ describe('inFileHandler', () => {
             m => m.target === ManifestTarget.Package
           )
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -240,12 +244,15 @@ describe('inFileHandler', () => {
           globalMetadata
         )
         sut = new InFileHandler(changeType, element, work)
-        mockCompare.mockImplementation(() =>
+        mockRun.mockImplementation(() =>
           Promise.resolve({
-            added: [{ type: 'WorkflowAlert', member: 'test' }],
-            modified: [],
-            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            manifests: {
+              added: [{ type: 'WorkflowAlert', member: 'test' }],
+              modified: [],
+              deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            },
             hasAnyChanges: true,
+            writer: mockWriter,
           })
         )
       })
@@ -280,9 +287,8 @@ describe('inFileHandler', () => {
               m.type === 'Workflow'
           )
         ).toBe(false)
-        expect(mockPrune).toHaveBeenCalled()
         expect(
-          result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+          result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
         ).toBe(true)
       })
     })
@@ -296,18 +302,16 @@ describe('inFileHandler', () => {
           globalMetadata
         )
         sut = new InFileHandler(changeType, element, work)
-        mockCompare.mockImplementation(() =>
+        mockRun.mockImplementation(() =>
           Promise.resolve({
-            added: [],
-            modified: [],
-            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            manifests: {
+              added: [],
+              modified: [],
+              deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            },
             hasAnyChanges: false,
           })
         )
-        mockPrune.mockReturnValue({
-          xmlContent: '<xmlContent>',
-          isEmpty: true,
-        })
       })
       it('should store the deleted in the destructiveChanges and not produce a copy', async () => {
         // Act
@@ -334,7 +338,6 @@ describe('inFileHandler', () => {
               m.type === 'Workflow'
           )
         ).toBe(false)
-        expect(mockPrune).not.toHaveBeenCalled()
         expect(
           result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
         ).toBe(false)
@@ -350,19 +353,16 @@ describe('inFileHandler', () => {
           )
           sut = new InFileHandler(changeType, element, work)
 
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [],
+              },
               hasAnyChanges: false,
             })
           )
-
-          mockPrune.mockReturnValue({
-            xmlContent: '<xmlContent>',
-            isEmpty: true,
-          })
         })
         it('nothing should be stored and no copy should be produced', async () => {
           // Act
@@ -371,7 +371,6 @@ describe('inFileHandler', () => {
           // Assert
           expect(result.manifests).toHaveLength(0)
           expect(result.copies).toHaveLength(0)
-          expect(mockPrune).not.toHaveBeenCalled()
         })
       })
 
@@ -384,18 +383,16 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [{ type: 'Workflow', member: 'Deleted' }],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [{ type: 'Workflow', member: 'Deleted' }],
+              },
               hasAnyChanges: false,
             })
           )
-          mockPrune.mockReturnValue({
-            xmlContent: '<xmlContent>',
-            isEmpty: true,
-          })
         })
         it('should store the deleted metadata in destructiveChanges and not produce a copy', async () => {
           // Act
@@ -415,7 +412,6 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          expect(mockPrune).not.toHaveBeenCalled()
           expect(
             result.copies.some(
               c => c.kind === CopyOperationKind.ComputedContent
@@ -435,18 +431,17 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [{ type: 'ValueTranslation', member: 'Three' }],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [{ type: 'ValueTranslation', member: 'Three' }],
+                modified: [],
+                deleted: [],
+              },
               hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
-          mockPrune.mockReturnValue({
-            xmlContent: '<xmlContent>',
-            isEmpty: false,
-          })
         })
         it('should only store file name and not the metadata in file', async () => {
           // Act
@@ -471,10 +466,9 @@ describe('inFileHandler', () => {
             m => m.target === ManifestTarget.Package
           )
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -489,12 +483,15 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [],
+              },
               hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
         })
@@ -521,10 +518,9 @@ describe('inFileHandler', () => {
             m => m.target === ManifestTarget.Package
           )
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -542,15 +538,16 @@ describe('inFileHandler', () => {
         globalMetadata
       )
       sut = new InFileHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [],
-          modified: [],
-          deleted: [{ type: 'WorkflowAlert', member: 'test' }],
+          manifests: {
+            added: [],
+            modified: [],
+            deleted: [{ type: 'WorkflowAlert', member: 'test' }],
+          },
           hasAnyChanges: false,
         })
       )
-      mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: true })
     })
     it('should store the deleted metadata in the destructiveChanges', async () => {
       // Act
@@ -577,8 +574,7 @@ describe('inFileHandler', () => {
             m.type === 'Workflow'
         )
       ).toBe(false)
-      expect(mockCompare).toHaveBeenCalled()
-      expect(mockPrune).not.toHaveBeenCalled()
+      expect(mockRun).toHaveBeenCalled()
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
       ).toBe(false)
@@ -614,8 +610,7 @@ describe('inFileHandler', () => {
         expect(result.manifests.some(m => m.type === 'ValueTranslation')).toBe(
           false
         )
-        expect(mockCompare).not.toHaveBeenCalled()
-        expect(mockPrune).not.toHaveBeenCalled()
+        expect(mockRun).not.toHaveBeenCalled()
         expect(result.copies).toHaveLength(0)
       })
     })
@@ -633,7 +628,6 @@ describe('inFileHandler collect', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     work = getWork()
-    mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
   })
 
   it('Given added workflow with child elements, When collect, Then returns Package manifests and ComputedContent copy', async () => {
@@ -644,12 +638,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
         hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -672,7 +669,7 @@ describe('inFileHandler collect', () => {
       ])
     )
     expect(
-      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(true)
     expect(result.warnings).toHaveLength(0)
   })
@@ -686,12 +683,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
         hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -714,7 +714,7 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.reject(
         new Error("Cannot read properties of undefined (reading 'addChild')")
       )
@@ -748,12 +748,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
         hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -765,7 +768,7 @@ describe('inFileHandler collect', () => {
       true
     )
     expect(
-      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(true)
   })
 
@@ -777,12 +780,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowAlert', member: 'added' }],
-        modified: [],
-        deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
+        manifests: {
+          added: [{ type: 'WorkflowAlert', member: 'added' }],
+          modified: [],
+          deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
+        },
         hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -816,12 +822,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
         hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -829,7 +838,6 @@ describe('inFileHandler collect', () => {
     await sut.collect()
 
     // Assert
-    expect(mockPrune).not.toHaveBeenCalled()
   })
 
   it('Given generateDelta true with hasAnyChanges, When collect, Then prune is called and ComputedContent is produced', async () => {
@@ -841,12 +849,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
         hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -854,9 +865,8 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(mockPrune).toHaveBeenCalled()
     expect(
-      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(true)
   })
 })

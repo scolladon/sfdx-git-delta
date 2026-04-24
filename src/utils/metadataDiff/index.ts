@@ -46,10 +46,10 @@ export default class MetadataDiff extends LegacyMetadataDiff {
   @log
   async run(path: string): Promise<DiffOutcome> {
     const config = this.getConfig()
-    const [fromSource, toSource] = await Promise.all([
-      readPathFromGit({ path, oid: config.from }, config),
-      readPathFromGit({ path, oid: config.to }, config),
-    ])
+    // Ordering mirrors legacy MetadataDiff.compare (to first, then from) so
+    // tests relying on mockResolvedValueOnce sequencing keep working.
+    const toSource = await readPathFromGit({ path, oid: config.to }, config)
+    const fromSource = await readPathFromGit({ path, oid: config.from }, config)
 
     const engine = new StreamingDiff(
       this.inFileAttributes,

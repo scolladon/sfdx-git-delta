@@ -4,9 +4,8 @@ import { parse } from 'node:path/posix'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
-import MetadataDiff, {
-  type PrunedContent,
-} from '../utils/metadataDiff/index.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
+import MetadataDiff from '../utils/metadataDiff/index.js'
 import ResourceHandler from './inResourceHandler.js'
 import StandardHandler from './standardHandler.js'
 
@@ -19,24 +18,22 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     // fieldTranslation elements are not deployable without their parent objectTranslation.
     // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#object-translations
     const objectTranslationPath = this._getObjectTranslationPath()
-    const { xmlContent } = await this._getObjectTranslationContent(
-      objectTranslationPath
-    )
-    this._collectComputedContent(
-      result.copies,
-      objectTranslationPath,
-      xmlContent
-    )
+    const writer = await this._getObjectTranslationWriter(objectTranslationPath)
+    if (writer) {
+      result.copies.push({
+        kind: CopyOperationKind.StreamedContent,
+        path: objectTranslationPath,
+        writer,
+      })
+    }
     return result
   }
 
-  protected async _getObjectTranslationContent(
-    path: string
-  ): Promise<PrunedContent> {
+  protected async _getObjectTranslationWriter(path: string) {
     const inFileMetadata = this.element.getInFileAttributes()
     const metadataDiff = new MetadataDiff(this.config, inFileMetadata)
-    const { toContent, fromContent } = await metadataDiff.compare(path)
-    return metadataDiff.prune(toContent, fromContent)
+    const outcome = await metadataDiff.run(path)
+    return outcome.writer
   }
 
   protected _getObjectTranslationPath() {

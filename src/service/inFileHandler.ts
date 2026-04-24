@@ -10,6 +10,7 @@ import type {
 } from '../types/handlerResult.js'
 import {
   ChangeKind,
+  CopyOperationKind,
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
@@ -51,53 +52,45 @@ export default class InFileHandler extends StandardHandler {
   protected async _collectCompareResult(): Promise<HandlerResult> {
     try {
       const result = emptyResult()
-      const {
-        added,
-        modified,
-        deleted,
-        hasAnyChanges,
-        toContent,
-        fromContent,
-      } = await this.metadataDiff.compare(this.element.basePath)
+      const outcome = await this.metadataDiff.run(this.element.basePath)
 
       this._collectManifestFromComparison(
         result.manifests,
         ManifestTarget.DestructiveChanges,
         ChangeKind.Delete,
-        deleted
+        outcome.manifests.deleted
       )
       this._collectManifestFromComparison(
         result.manifests,
         ManifestTarget.Package,
         ChangeKind.Add,
-        added
+        outcome.manifests.added
       )
       this._collectManifestFromComparison(
         result.manifests,
         ManifestTarget.Package,
         ChangeKind.Modify,
-        modified
+        outcome.manifests.modified
       )
 
       // RATIONALE: Why include root component in package.xml for InFile sub-elements?
       // InFile elements are not independently deployable; the root component must be listed.
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
-      if (this._shouldTreatContainerType(!hasAnyChanges)) {
+      if (this._shouldTreatContainerType(!outcome.hasAnyChanges)) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this)
         pushAll(result.manifests, containerResult.manifests)
       }
 
-      // prune() materializes the pruned XML. Skip entirely when generateDelta
-      // is off — today's `_collectComputedContent` would discard the string
-      // anyway, so building it is pure waste.
-      if (hasAnyChanges && this.config.generateDelta) {
-        const { xmlContent } = this.metadataDiff.prune(toContent, fromContent)
-        this._collectComputedContent(
-          result.copies,
-          this.element.basePath,
-          xmlContent
-        )
+      // run() already gated the writer on generateDelta + hasAnyChanges.
+      // Subclasses like CustomLabelHandler may still veto via
+      // _shouldCollectCopies.
+      if (outcome.writer && this._shouldCollectCopies()) {
+        result.copies.push({
+          kind: CopyOperationKind.StreamedContent,
+          path: this.element.basePath,
+          writer: outcome.writer,
+        })
       }
 
       return result

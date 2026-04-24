@@ -12,15 +12,15 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockCompare, mockprune } = vi.hoisted(() => ({
-  mockCompare: vi.fn<() => Promise<any>>(),
-  mockprune: vi.fn<() => any>(),
+const { mockRun, mockWriter } = vi.hoisted(() => ({
+  mockRun: vi.fn<() => Promise<any>>(),
+  mockWriter: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { compare: mockCompare, prune: mockprune }
+      return { run: mockRun }
     }),
   }
 })
@@ -38,20 +38,14 @@ const objectType = {
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
-const xmlContent = '<xmlContent>'
-const toContent = {}
-const fromContent = {}
-
 let work: Work
 beforeEach(() => {
   vi.clearAllMocks()
-  mockCompare.mockResolvedValue({
-    added: new Map(),
-    deleted: new Map(),
-    toContent,
-    fromContent,
+  mockRun.mockResolvedValue({
+    manifests: { added: [], modified: [], deleted: [] },
+    hasAnyChanges: true,
+    writer: mockWriter,
   })
-  mockprune.mockReturnValue({ xmlContent })
   work = getWork()
 })
 
@@ -87,7 +81,7 @@ describe('ObjectTranslation', () => {
       expect(
         result.copies.some(
           c =>
-            c.kind === CopyOperationKind.ComputedContent &&
+            c.kind === CopyOperationKind.StreamedContent &&
             c.path.includes('Account-es.objectTranslation')
         )
       ).toBe(true)
@@ -130,7 +124,7 @@ describe('ObjectTranslation', () => {
         result.copies.every(c => c.kind !== CopyOperationKind.GitCopy)
       ).toBe(true)
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
     })
 
@@ -149,7 +143,7 @@ describe('ObjectTranslation', () => {
 
       // Assert
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
     })
 
@@ -178,7 +172,7 @@ describe('ObjectTranslation', () => {
         ])
       )
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.GitCopy)
