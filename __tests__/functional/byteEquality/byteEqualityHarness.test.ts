@@ -13,17 +13,7 @@ import type { SharedFileMetadata } from '../../../src/types/metadata'
 import type { Work } from '../../../src/types/work'
 import { readPathFromGit } from '../../../src/utils/fsHelper'
 import MetadataDiff from '../../../src/utils/metadataDiff/index.js'
-import { parseXmlFileToJson, xml2Json } from '../../../src/utils/xmlHelper'
 import { getWork } from '../../__utils__/testWork'
-
-vi.mock('../../../src/utils/xmlHelper', async () => {
-  const actual: typeof import('../../../src/utils/xmlHelper') =
-    await vi.importActual('../../../src/utils/xmlHelper')
-  return {
-    ...actual,
-    parseXmlFileToJson: vi.fn(),
-  }
-})
 
 vi.mock('../../../src/utils/fsHelper', async () => {
   const actual: typeof import('../../../src/utils/fsHelper') =
@@ -34,7 +24,6 @@ vi.mock('../../../src/utils/fsHelper', async () => {
   }
 })
 
-const mockedParseXmlFileToJson = vi.mocked(parseXmlFileToJson)
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures')
@@ -90,33 +79,11 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
 
   const fixtures = listFixtures()
 
-  it.each(
-    fixtures
-  )('Given fixture $name, When legacy compare+prune runs, Then the produced XML matches the committed snapshot', async (fixture: Fixture) => {
-    // Arrange
-    const fromContent = xml2Json(fixture.fromXml)
-    const toContent = xml2Json(fixture.toXml)
-    mockedParseXmlFileToJson.mockImplementation(
-      async (ref): Promise<ReturnType<typeof xml2Json>> => {
-        if (ref.oid === work.config.to) return toContent
-        return fromContent
-      }
-    )
-    const sut = new MetadataDiff(work.config, inFileAttributes)
-
-    // Act
-    const compared = await sut.compare('file/path')
-    const pruned = sut.prune(compared.toContent, compared.fromContent)
-    const produced = pruned.xmlContent
-
-    // Assert
-    if (UPDATE_SNAPSHOTS || fixture.expected === null) {
-      writeFileSync(fixture.expectedPath, produced, 'utf8')
-    }
-    const expected = readFileSync(fixture.expectedPath, 'utf8')
-    expect(produced).toBe(expected)
-  })
-
+  // Snapshots were originally produced by the legacy compare+prune pipeline
+  // (P3.5). After P4b.2 deleted legacy, run()'s writer output matching the
+  // committed snapshot IS the parity assertion. Regenerate with the
+  // UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 env var if the pipeline intentionally
+  // changes output format.
   it.each(
     fixtures
   )('Given fixture $name, When streaming run() executes, Then the writer output matches the committed snapshot', async (fixture: Fixture) => {
@@ -129,8 +96,6 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
     // Act
     const outcome = await sut.run('file/path')
     if (!outcome.writer) {
-      // No changes: the legacy pruned XML is just declaration + root tag.
-      // Skip comparison because we intentionally omit the writer.
       expect(outcome.hasAnyChanges).toBe(false)
       return
     }
@@ -141,8 +106,10 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
     stream.end()
     const produced = Buffer.concat(chunks).toString('utf8')
 
-    // Assert — run()'s writer output must equal the committed snapshot
-    // (which itself equals legacy output by the earlier it.each).
+    // Assert
+    if (UPDATE_SNAPSHOTS || fixture.expected === null) {
+      writeFileSync(fixture.expectedPath, produced, 'utf8')
+    }
     const expected = readFileSync(fixture.expectedPath, 'utf8')
     expect(produced).toBe(expected)
   })

@@ -3,11 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Config } from '../../../../src/types/config'
 import { readPathFromGit } from '../../../../src/utils/fsHelper'
-import {
-  convertJsonToXml,
-  parseXmlFileToJson,
-  xml2Json,
-} from '../../../../src/utils/xmlHelper'
+import { parseXmlFileToJson, xml2Json } from '../../../../src/utils/xmlHelper'
 
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 
@@ -79,44 +75,6 @@ describe('xmlHelper', () => {
 
         // Assert
         expect(jsonContent).toStrictEqual({})
-      })
-    })
-  })
-
-  describe('convertJsonToXml', () => {
-    describe('when called with empty object', () => {
-      it('returns empty object', () => {
-        // Act
-        const xmlResult = convertJsonToXml({})
-
-        // Assert
-        expect(xmlResult).toEqual('')
-      })
-    })
-    describe('when called with json content', () => {
-      it('returns json content', () => {
-        // Act
-        const xmlResult = convertJsonToXml({
-          root: { '@_a': 'nice', a: 'wow' },
-        })
-
-        // Assert
-        expect(xmlResult).toEqual(
-          `<root a="nice">
-    <a>wow</a>
-</root>
-`
-        )
-      })
-    })
-    describe('when called with non json content', () => {
-      it('returns empty object', () => {
-        // Act
-        const jsonContent = convertJsonToXml('s')
-
-        // Assert
-        expect(jsonContent).toStrictEqual(`<0>s</0>
-`)
       })
     })
   })
@@ -246,33 +204,6 @@ describe('xmlHelper', () => {
       // Assert
       const value = (sut as Record<string, Record<string, unknown>>).root.a
       expect(value).toBe('foo &amp; bar')
-    })
-  })
-
-  describe('Given json with boolean attribute', () => {
-    it('When converted to xml, Then boolean attribute is rendered', () => {
-      // Arrange
-      const json = { root: { '@_checked': true, a: 'wow' } }
-
-      // Act
-      const sut = convertJsonToXml(json)
-
-      // Assert
-      expect(sut).toContain('checked')
-    })
-  })
-
-  describe('Given json with empty node', () => {
-    it('When converted to xml, Then empty node is rendered with open/close tags', () => {
-      // Arrange
-      const json = { root: { empty: '' } }
-
-      // Act
-      const sut = convertJsonToXml(json)
-
-      // Assert
-      expect(sut).toContain('<empty>')
-      expect(sut).toContain('</empty>')
     })
   })
 })
