@@ -171,6 +171,15 @@ export class GitBatchCatFile {
 
   private _recycleSubprocess(): void {
     const stale = this.process
+    // Detach listeners BEFORE kill: Node may have already queued stdout
+    // `data` events for bytes read before the escalation header was
+    // parsed. Those events would still fire on `_onData` and corrupt the
+    // fresh subprocess's header state via the shared chunks/pendingSize
+    // fields.
+    stale.stdout.removeAllListeners('data')
+    stale.stderr.removeAllListeners('data')
+    stale.removeAllListeners('close')
+    stale.removeAllListeners('error')
     if (!stale.killed) {
       try {
         stale.stdin.end()

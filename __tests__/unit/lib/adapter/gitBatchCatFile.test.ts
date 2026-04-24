@@ -344,6 +344,36 @@ describe('GitBatchCatFile', () => {
       expect((await p5).toString()).toBe('E')
       sut.close()
     })
+
+    it('Given the stale subprocess emits data after escalation, When the fresh subprocess services the next request, Then the stale bytes do not corrupt parsing', async () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 1024,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Act — trigger escalation
+      const p1 = sut.getContentOrEscalate('oidBig', 'big.bin')
+      fakes.procs[0].stdout.emit('data', Buffer.from('oidBig blob 4096\n'))
+      await expect(p1).rejects.toMatchObject({
+        name: 'EscalateToStreamingSignal',
+      })
+
+      // Simulate a late-delivered data event on the OLD subprocess's stdout
+      // (as if Node had already queued it before kill). If the listener is
+      // still attached, it would mutate the shared chunks/pendingSize and
+      // break the next request.
+      fakes.procs[0].stdout.emit('data', Buffer.from('GARBAGE\n'))
+
+      // The fresh subprocess services a normal request cleanly.
+      const p2 = sut.getContent('oid2', 'file2.txt')
+      fakes.procs[1].stdout.emit('data', Buffer.from('oid2 blob 5\nhello\n'))
+
+      // Assert
+      expect((await p2).toString()).toBe('hello')
+      sut.close()
+    })
   })
 })
 
