@@ -7,6 +7,7 @@
 /lib
 /node_modules
 /reports
+/test
 install-state.gz
 megalinter-reports/
 package.tgz
