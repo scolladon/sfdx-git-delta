@@ -18,7 +18,7 @@ import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
-import MetadataDiff from '../utils/metadataDiff.js'
+import MetadataDiff from '../utils/metadataDiff/index.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 

@@ -8,7 +8,7 @@ import {
 } from '../../../../src/metadata/metadataManager'
 import { SharedFileMetadata } from '../../../../src/types/metadata'
 import type { Work } from '../../../../src/types/work'
-import MetadataDiff from '../../../../src/utils/metadataDiff'
+import MetadataDiff from '../../../../src/utils/metadataDiff/index.js'
 import {
   convertJsonToXml,
   parseXmlFileToJson,

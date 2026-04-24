@@ -4,7 +4,9 @@ import { parse } from 'node:path/posix'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
-import MetadataDiff, { type PrunedContent } from '../utils/metadataDiff.js'
+import MetadataDiff, {
+  type PrunedContent,
+} from '../utils/metadataDiff/index.js'
 import ResourceHandler from './inResourceHandler.js'
 import StandardHandler from './standardHandler.js'
 

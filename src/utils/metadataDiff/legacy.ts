@@ -2,17 +2,17 @@
 import { deepEqual } from 'fast-equals'
 import { isUndefined } from 'lodash-es'
 
-import type { Config } from '../types/config.js'
-import type { ManifestElement } from '../types/handlerResult.js'
-import type { SharedFileMetadata } from '../types/metadata.js'
-import { log } from './LoggingDecorator.js'
+import type { Config } from '../../types/config.js'
+import type { ManifestElement } from '../../types/handlerResult.js'
+import type { SharedFileMetadata } from '../../types/metadata.js'
+import { log } from '../LoggingDecorator.js'
 import {
   ATTRIBUTE_PREFIX,
   convertJsonToXml,
   parseXmlFileToJson,
   XML_HEADER_ATTRIBUTE_KEY,
   type XmlContent,
-} from './xmlHelper.js'
+} from '../xmlHelper.js'
 
 /**
  * Special key markers for metadata comparison strategies.
