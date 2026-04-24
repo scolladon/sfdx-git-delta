@@ -1,9 +1,10 @@
 'use strict'
-import { PassThrough, Writable } from 'node:stream'
+import { PassThrough, Readable, Writable } from 'node:stream'
 
 import { outputFile } from 'fs-extra'
 import type { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { EscalateToStreamingSignal } from '../../../../src/adapter/gitBlobReader'
 import IOExecutor from '../../../../src/adapter/ioExecutor'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
@@ -47,6 +48,9 @@ const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 const mockGetFilesPath = vi.fn<(path: string) => Promise<string[]>>()
 const mockGetBufferContent =
   vi.fn<(forRef: { path: string; oid: string }) => Promise<Buffer>>()
+const mockGetBufferContentOrEscalate =
+  vi.fn<(forRef: { path: string; oid: string }) => Promise<Buffer>>()
+const mockStreamContent = vi.fn()
 const mockGetInstance = vi.fn()
 vi.mock('../../../../src/adapter/GitAdapter', () => {
   return {
@@ -61,6 +65,8 @@ beforeEach(() => {
   mockGetInstance.mockReturnValue({
     getFilesPath: mockGetFilesPath,
     getBufferContent: mockGetBufferContent,
+    getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
+    streamContent: mockStreamContent,
   })
   mockBuildIgnoreHelper.mockResolvedValue({
     globalIgnore: {
@@ -100,7 +106,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
           kind: CopyOperationKind.GitCopy,
@@ -125,7 +131,9 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetBufferContent.mockResolvedValue(Buffer.from('class content'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(
+        Buffer.from('class content')
+      )
 
       // Act
       await executor.execute([
@@ -137,7 +145,7 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetBufferContent).toHaveBeenCalledWith({
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
         path: 'classes/MyClass.cls',
         oid: 'abc123',
       })
@@ -179,7 +187,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
           kind: CopyOperationKind.GitCopy,
@@ -197,7 +205,7 @@ describe('IOExecutor', () => {
       await executor.execute(copies)
 
       // Assert
-      expect(mockGetBufferContent).toHaveBeenCalledTimes(1)
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -235,7 +243,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetBufferContent.mockRejectedValue(new Error('git error'))
+      mockGetBufferContentOrEscalate.mockRejectedValue(new Error('git error'))
 
       // Act & Assert (should not throw)
       await executor.execute([
@@ -246,7 +254,7 @@ describe('IOExecutor', () => {
         },
       ])
 
-      expect(mockGetBufferContent).toHaveBeenCalled()
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
@@ -258,7 +266,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
       await executor.execute([
@@ -283,7 +291,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config)
-      mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
       await executor.execute([
@@ -598,6 +606,52 @@ describe('IOExecutor', () => {
       // Assert
       expect(outputFile).toHaveBeenCalledTimes(1)
       expect(writer).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given a large GitCopy blob that triggers escalation', () => {
+    it('When getBufferContentOrEscalate rejects with EscalateToStreamingSignal, Then _streamCopyWithAtomicRename pipes into a sibling tmp and renames', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const fakeBlobReader = {
+        getBufferContent: vi.fn(),
+        getBufferContentOrEscalate: vi.fn(() =>
+          Promise.reject(
+            new EscalateToStreamingSignal(5_000_000, {
+              oid: 'abc123',
+              path: 'resources/big.bin',
+            })
+          )
+        ),
+        streamContent: vi.fn(() => Readable.from([Buffer.from('BIGBIG')])),
+      }
+      const stream = createFakeWriteStream()
+      mockCreateWriteStream.mockReturnValueOnce(stream)
+      const sut = new IOExecutor(work.config, () => fakeBlobReader)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'resources/big.bin',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(fakeBlobReader.streamContent).toHaveBeenCalledWith({
+        oid: 'abc123',
+        path: 'resources/big.bin',
+      })
+      expect(mockCreateWriteStream).toHaveBeenCalledWith(
+        'output/resources/big.bin.tmp'
+      )
+      expect(mockRename).toHaveBeenCalledWith(
+        'output/resources/big.bin.tmp',
+        'output/resources/big.bin'
+      )
     })
   })
 })

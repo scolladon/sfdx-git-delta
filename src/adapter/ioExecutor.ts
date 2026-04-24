@@ -2,11 +2,13 @@
 import { createWriteStream, promises as fsPromises } from 'node:fs'
 import { dirname, join } from 'node:path/posix'
 import type { Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import { eachLimit } from 'async'
 import { outputFile } from 'fs-extra'
 
 import type { Config } from '../types/config.js'
+import type { FileGitRef } from '../types/git.js'
 import type {
   CopyOperation,
   StreamedContentOperation,
@@ -17,6 +19,10 @@ import { getErrorMessage } from '../utils/errorUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
+import {
+  EscalateToStreamingSignal,
+  type GitBlobReader,
+} from './gitBlobReader.js'
 
 const TMP_SUFFIX = '.tmp'
 
@@ -24,7 +30,22 @@ export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
   protected ignoreHelper!: IgnoreHelper
 
-  constructor(protected readonly config: Config) {}
+  constructor(
+    protected readonly config: Config,
+    protected readonly blobReaderForRevision: (
+      revision: string
+    ) => GitBlobReader = revision =>
+      IOExecutor._defaultBlobReaderForRevision(config, revision)
+  ) {}
+
+  private static _defaultBlobReaderForRevision(
+    config: Config,
+    revision: string
+  ): GitBlobReader {
+    const adapterConfig =
+      revision !== config.to ? { ...config, to: revision } : config
+    return GitAdapter.getInstance(adapterConfig)
+  }
 
   public async execute(copies: CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
@@ -75,17 +96,37 @@ export default class IOExecutor {
     path: string
     revision: string
   }): Promise<void> {
+    const ref: FileGitRef = { path: op.path, oid: op.revision }
+    const dst = join(this.config.output, op.path)
+    const reader = this.blobReaderForRevision(op.revision)
     try {
-      const gitAdapter = this._getGitAdapter(op.revision)
-      const content = await gitAdapter.getBufferContent({
-        path: op.path,
-        oid: op.revision,
-      })
-      const dst = join(this.config.output, op.path)
+      const content = await reader.getBufferContentOrEscalate(ref)
       await outputFile(dst, content)
     } catch (error) {
+      if (error instanceof EscalateToStreamingSignal) {
+        await this._streamCopyWithAtomicRename(reader, ref, dst)
+        return
+      }
       Logger.debug(
         lazy`IOExecutor gitFileCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
+      )
+    }
+  }
+
+  protected async _streamCopyWithAtomicRename(
+    reader: GitBlobReader,
+    ref: FileGitRef,
+    dst: string
+  ): Promise<void> {
+    const tmp = `${dst}${TMP_SUFFIX}`
+    await fsPromises.mkdir(dirname(dst), { recursive: true })
+    try {
+      await pipeline(reader.streamContent(ref), createWriteStream(tmp))
+      await fsPromises.rename(tmp, dst)
+    } catch (error) {
+      await fsPromises.unlink(tmp).catch(() => undefined)
+      Logger.warn(
+        lazy`IOExecutor streaming copy failed for ${ref.path}: ${() => getErrorMessage(error)}`
       )
     }
   }

@@ -281,4 +281,99 @@ describe('GitBatchCatFile', () => {
       }).not.toThrow()
     })
   })
+
+  describe('Given an escalation-eligible request with oversize blob', () => {
+    it('When the header reports size >= threshold, Then rejects with EscalateToStreamingSignal and recycles the subprocess', async () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 1024,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Act
+      const escalating = sut.getContentOrEscalate('oidBig', 'big.bin')
+
+      // Emit header showing size > threshold
+      fakes.procs[0].stdout.emit('data', Buffer.from('oidBig blob 4096\n'))
+
+      // Assert
+      const [error] = await Promise.allSettled([escalating]).then(r =>
+        r[0].status === 'rejected' ? [r[0].reason] : [undefined]
+      )
+      expect(error).toBeDefined()
+      expect((error as { name: string }).name).toBe('EscalateToStreamingSignal')
+      expect(fakes.procs[0].kill).toHaveBeenCalled()
+      expect(fakes.spawnFn).toHaveBeenCalledTimes(2)
+      sut.close()
+    })
+
+    it('Given five queued requests where the third exceeds threshold, When escalation fires, Then the third rejects while others resolve after re-enqueue', async () => {
+      // Arrange
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 1024,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Act
+      const p1 = sut.getContentOrEscalate('oid1', 'f1.txt')
+      const p2 = sut.getContentOrEscalate('oid2', 'f2.txt')
+      const p3 = sut.getContentOrEscalate('oid3', 'big.bin')
+      const p4 = sut.getContentOrEscalate('oid4', 'f4.txt')
+      const p5 = sut.getContentOrEscalate('oid5', 'f5.txt')
+
+      // First two resolve from the original subprocess
+      const firstChunk =
+        `oid1 blob 1\nA\n` + `oid2 blob 1\nB\n` + `oid3 blob 4096\n`
+      fakes.procs[0].stdout.emit('data', Buffer.from(firstChunk))
+
+      // After escalation, the fresh subprocess services p4 and p5
+      fakes.procs[1].stdout.emit(
+        'data',
+        Buffer.from(`oid4 blob 1\nD\noid5 blob 1\nE\n`)
+      )
+
+      // Assert
+      expect((await p1).toString()).toBe('A')
+      expect((await p2).toString()).toBe('B')
+      await expect(p3).rejects.toMatchObject({
+        name: 'EscalateToStreamingSignal',
+      })
+      expect((await p4).toString()).toBe('D')
+      expect((await p5).toString()).toBe('E')
+      sut.close()
+    })
+  })
 })
+
+type FakeChild = EventEmitter & {
+  stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> }
+  stdout: EventEmitter
+  stderr: EventEmitter
+  killed: boolean
+  kill: ReturnType<typeof vi.fn>
+}
+
+const createFakeChild = (): FakeChild => {
+  const stdin = { write: vi.fn(), end: vi.fn() }
+  const stdout = new EventEmitter()
+  const stderr = new EventEmitter()
+  const child = Object.assign(new EventEmitter(), {
+    stdin,
+    stdout,
+    stderr,
+    killed: false,
+    kill: vi.fn(() => {
+      child.killed = true
+    }),
+  }) as FakeChild
+  return child
+}
+
+const createFakeSpawnSequence = (count: number) => {
+  const procs: FakeChild[] = Array.from({ length: count }, createFakeChild)
+  let idx = 0
+  const spawnFn = vi.fn(() => procs[idx++] as never)
+  return { procs, spawnFn }
+}

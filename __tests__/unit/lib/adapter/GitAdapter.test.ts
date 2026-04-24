@@ -1,5 +1,7 @@
 'use strict'
+import { EventEmitter } from 'node:events'
 import { readFile } from 'node:fs/promises'
+import { PassThrough } from 'node:stream'
 import { EOL } from 'os'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import GitAdapter from '../../../../src/adapter/GitAdapter'
@@ -16,12 +18,14 @@ const {
   mockedAddConfig,
   mockedRevParse,
   mockedGetContent,
+  mockedGetContentOrEscalate,
   mockedClose,
 } = vi.hoisted(() => ({
   mockedRaw: vi.fn(),
   mockedAddConfig: vi.fn(),
   mockedRevParse: vi.fn(),
   mockedGetContent: vi.fn(),
+  mockedGetContentOrEscalate: vi.fn(),
   mockedClose: vi.fn(),
 }))
 
@@ -41,6 +45,7 @@ vi.mock('../../../../src/adapter/gitBatchCatFile', () => ({
   GitBatchCatFile: vi.fn(function () {
     return {
       getContent: mockedGetContent,
+      getContentOrEscalate: mockedGetContentOrEscalate,
       close: mockedClose,
     }
   }),
@@ -1308,6 +1313,124 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(mockedClose).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('streamContent', () => {
+    const createFakeChild = () => {
+      const stdin = { write: vi.fn(), end: vi.fn() }
+      const stdout = new PassThrough()
+      const stderr = new PassThrough()
+      const child = Object.assign(new EventEmitter(), {
+        stdin,
+        stdout,
+        stderr,
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(function () {
+          child.killed = true
+          return true
+        }),
+      })
+      return child
+    }
+
+    it('Given non-LFS content, When streamContent emits data, Then the returned stream forwards the bytes', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: 'classes/Big.cls',
+        oid: 'abc',
+      })
+      const chunks: Buffer[] = []
+      stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
+      const done = new Promise<void>(resolve => stream.on('end', resolve))
+
+      child.stdout.emit('data', Buffer.from('version 42'))
+      child.stdout.emit('data', Buffer.from(' rest of blob'))
+      child.stdout.emit('end')
+      child.emit('close', 0)
+      await done
+
+      // Assert
+      expect(Buffer.concat(chunks).toString()).toBe('version 42 rest of blob')
+    })
+
+    it('Given an LFS pointer in the first chunks, When streamContent runs, Then the child is killed and hand-off to LFS path is attempted', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/de/ad/deadbeef'
+      )
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: 'resources/LargeAsset.bin',
+        oid: 'deadbeef',
+      })
+      stream.on('error', () => undefined)
+
+      child.stdout.emit(
+        'data',
+        Buffer.from('version https://git-lfs.github.com/spec/v1\n')
+      )
+      child.stdout.emit('data', Buffer.from('oid sha256:deadbeef\nsize 1\n'))
+      child.stdout.emit('end')
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert — the child was killed after detecting LFS, and the LFS path
+      // resolver was consulted.
+      expect(child.kill).toHaveBeenCalled()
+      expect(getLFSObjectContentPathMocked).toHaveBeenCalled()
+    })
+
+    it('Given the streaming subprocess exits non-zero, When consuming the stream, Then the consumer receives an error', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      const stream = gitAdapter.streamContent({ path: 'missing', oid: 'aa' })
+      const result = new Promise<Error | undefined>(resolve => {
+        stream.on('error', err => resolve(err))
+        stream.on('end', () => resolve(undefined))
+      })
+      child.stdout.emit('end')
+      child.emit('close', 128)
+
+      // Assert
+      const err = await result
+      expect(err?.message).toContain('git cat-file blob exited 128')
+    })
+  })
+
+  describe('closeBatchProcess with streaming children', () => {
+    it('Given a streaming child is still alive, When closeBatchProcess runs, Then kill is called', () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const fakeChild = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      gitAdapter.setSpawnFn(vi.fn(() => fakeChild as never))
+      gitAdapter.streamContent({ path: 'f', oid: 'o' })
+
+      // Act
+      gitAdapter.closeBatchProcess()
+
+      // Assert
+      expect(fakeChild.kill).toHaveBeenCalled()
     })
   })
 })

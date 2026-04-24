@@ -1,5 +1,9 @@
+import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
+import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
+import { PassThrough, type Readable } from 'node:stream'
+
 import { SimpleGit, simpleGit } from 'simple-git'
 import { TAB } from '../constant/cliConstants.js'
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
@@ -21,12 +25,15 @@ import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { GitBatchCatFile } from './gitBatchCatFile.js'
+import type { GitBlobReader, SpawnFn } from './gitBlobReader.js'
 import { TreeIndex } from './treeIndex.js'
+
+const LFS_MAGIC = Buffer.from('version https://git-lfs.github.com/spec/v1\n')
 
 const EOL = /\r?\n/
 const ROOT_PATHS = new Set(['', '.', './'])
 
-export default class GitAdapter {
+export default class GitAdapter implements GitBlobReader {
   private static instances: Map<string, GitAdapter> = new Map()
 
   // Keyed by repo+to so spread copies of the same config (e.g. ioExecutor's
@@ -48,15 +55,29 @@ export default class GitAdapter {
   protected readonly simpleGit: SimpleGit
   protected readonly treeIndex: Map<string, TreeIndex>
   protected batchCatFile: GitBatchCatFile | null = null
+  // Append-only list of streaming subprocesses. Never queried for membership;
+  // iterated at closeAll() teardown and kill()ed if still alive.
+  private readonly streamingChildren: ChildProcessWithoutNullStreams[] = []
+  private spawnFn: SpawnFn = spawn as SpawnFn
 
   private constructor(protected readonly config: Config) {
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
     this.treeIndex = new Map<string, TreeIndex>()
   }
 
+  /**
+   * Testability seam: lets unit tests swap in a fake spawn for streaming
+   * subprocesses. Production always uses `child_process.spawn`.
+   */
+  public setSpawnFn(spawnFn: SpawnFn): void {
+    this.spawnFn = spawnFn
+  }
+
   protected getBatchCatFile(): GitBatchCatFile {
     if (!this.batchCatFile) {
-      this.batchCatFile = new GitBatchCatFile(this.config.repo)
+      this.batchCatFile = new GitBatchCatFile(this.config.repo, {
+        spawnFn: this.spawnFn,
+      })
     }
     return this.batchCatFile
   }
@@ -64,6 +85,12 @@ export default class GitAdapter {
   public closeBatchProcess(): void {
     this.batchCatFile?.close()
     this.batchCatFile = null
+    for (const child of this.streamingChildren) {
+      if (child.exitCode === null && !child.killed) {
+        child.kill()
+      }
+    }
+    this.streamingChildren.length = 0
   }
 
   public static closeAll(): void {
@@ -139,6 +166,109 @@ export default class GitAdapter {
       content = await readFile(join(this.config.repo, lsfPath))
     }
     return content
+  }
+
+  public async getBufferContentOrEscalate(forRef: FileGitRef): Promise<Buffer> {
+    let content = await this.getBatchCatFile().getContentOrEscalate(
+      forRef.oid,
+      forRef.path
+    )
+
+    if (isLFS(content)) {
+      const lsfPath = getLFSObjectContentPath(content)
+      content = await readFile(join(this.config.repo, lsfPath))
+    }
+    return content
+  }
+
+  /**
+   * Spawns a dedicated `git cat-file blob <oid>` subprocess and returns a
+   * Readable that peeks the first chunks for LFS pointer magic. On match,
+   * the spawned subprocess is killed and the Readable is fed from the
+   * resolved LFS object file. Otherwise bytes are forwarded as-is.
+   */
+  public streamContent(forRef: FileGitRef): Readable {
+    const out = new PassThrough()
+    const child = this.spawnFn(
+      'git',
+      ['cat-file', 'blob', `${forRef.oid}:${forRef.path}`],
+      { cwd: this.config.repo, stdio: ['ignore', 'pipe', 'pipe'] }
+    )
+    this.streamingChildren.push(child)
+    this._wireStreamContent(child, out, forRef)
+    return out
+  }
+
+  private _wireStreamContent(
+    child: ChildProcessWithoutNullStreams,
+    out: PassThrough,
+    forRef: FileGitRef
+  ): void {
+    let peeked: Buffer[] = []
+    let peekedLen = 0
+    let decided = false
+
+    const forwardPeeked = () => {
+      const head = Buffer.concat(peeked, peekedLen)
+      peeked = []
+      peekedLen = 0
+      return head
+    }
+
+    const onChunk = (chunk: Buffer) => {
+      if (decided) {
+        if (!out.write(chunk)) child.stdout.pause()
+        return
+      }
+      peeked.push(chunk)
+      peekedLen += chunk.length
+      if (peekedLen < LFS_MAGIC.length) return
+      decided = true
+      const head = forwardPeeked()
+      if (head.subarray(0, LFS_MAGIC.length).equals(LFS_MAGIC)) {
+        this._handoffToLfs(child, out, head)
+        return
+      }
+      if (!out.write(head)) child.stdout.pause()
+    }
+
+    child.stdout.on('data', onChunk)
+    out.on('drain', () => child.stdout.resume())
+    child.stdout.on('end', () => {
+      if (!decided && peekedLen > 0) {
+        out.write(forwardPeeked())
+      }
+      if (decided || peekedLen === 0) out.end()
+    })
+    child.stderr.on('data', (chunk: Buffer) => {
+      Logger.debug(
+        lazy`streamContent stderr for ${forRef.path}: ${() => chunk.toString()}`
+      )
+    })
+    child.on('error', err => out.destroy(err))
+    child.on('close', code => {
+      if (code !== 0 && !out.destroyed) {
+        out.destroy(new Error(`git cat-file blob exited ${code}`))
+      }
+    })
+  }
+
+  private _handoffToLfs(
+    child: ChildProcessWithoutNullStreams,
+    out: PassThrough,
+    head: Buffer
+  ): void {
+    const pointerParts: Buffer[] = [head]
+    child.stdout.removeAllListeners('data')
+    child.stdout.on('data', (c: Buffer) => pointerParts.push(c))
+    child.stdout.on('end', () => {
+      const pointer = Buffer.concat(pointerParts)
+      const lfsPath = getLFSObjectContentPath(pointer)
+      createReadStream(join(this.config.repo, lfsPath))
+        .on('error', err => out.destroy(err))
+        .pipe(out)
+    })
+    if (!child.killed) child.kill()
   }
 
   @log
