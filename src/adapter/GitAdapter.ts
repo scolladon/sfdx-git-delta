@@ -56,9 +56,19 @@ export default class GitAdapter implements GitBlobReader {
   protected readonly simpleGit: SimpleGit
   protected readonly treeIndex: Map<string, TreeIndex>
   protected batchCatFile: GitBatchCatFile | null = null
-  // Append-only list of streaming subprocesses. Never queried for membership;
-  // iterated at closeAll() teardown and kill()ed if still alive.
+  // Live-only list of streaming subprocesses: children are appended when
+  // spawned and spliced on `close` so long-running invocations don't
+  // accumulate dead process references. Iterated at closeAll() teardown and
+  // kill()ed if still alive.
   private readonly streamingChildren: ChildProcessWithoutNullStreams[] = []
+  // Cap on stderr buffered per-subprocess: long-running git processes that
+  // emit progress to stderr would otherwise grow this without bound. The
+  // final error message truncates at this size.
+  private static readonly STDERR_BUFFER_CAP = 8 * 1024
+  // Cap on LFS pointer buffering: real pointers are < 200 bytes; a crafted
+  // blob with the LFS magic prefix followed by gigabytes of content should
+  // not OOM the process before validation fails.
+  private static readonly LFS_POINTER_CAP = 1024
   private spawnFn: SpawnFn = spawn as SpawnFn
 
   private constructor(protected readonly config: Config) {
@@ -153,9 +163,14 @@ export default class GitAdapter implements GitBlobReader {
       cwd: this.config.repo,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    this.streamingChildren.push(child)
+    this._trackChild(child)
     const stderrChunks: Buffer[] = []
-    child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+    let stderrLen = 0
+    child.stderr.on('data', (chunk: Buffer) => {
+      if (stderrLen >= GitAdapter.STDERR_BUFFER_CAP) return
+      stderrChunks.push(chunk)
+      stderrLen += chunk.length
+    })
     const rl = createInterface({
       input: child.stdout,
       crlfDelay: Number.POSITIVE_INFINITY,
@@ -170,7 +185,10 @@ export default class GitAdapter implements GitBlobReader {
       }
       const code = await exitPromise
       if (code !== 0 && code !== null) {
-        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim()
+        const stderr = Buffer.concat(stderrChunks)
+          .subarray(0, GitAdapter.STDERR_BUFFER_CAP)
+          .toString('utf8')
+          .trim()
         throw new Error(
           `git ${args[0]} exited ${code}${stderr ? `: ${stderr}` : ''}`
         )
@@ -179,6 +197,14 @@ export default class GitAdapter implements GitBlobReader {
       rl.close()
       if (!child.killed && child.exitCode === null) child.kill()
     }
+  }
+
+  private _trackChild(child: ChildProcessWithoutNullStreams): void {
+    this.streamingChildren.push(child)
+    child.once('close', () => {
+      const idx = this.streamingChildren.indexOf(child)
+      if (idx !== -1) this.streamingChildren.splice(idx, 1)
+    })
   }
 
   protected pathExistsImpl(path: string, revision: string) {
@@ -205,8 +231,8 @@ export default class GitAdapter implements GitBlobReader {
     )
 
     if (isLFS(content)) {
-      const lsfPath = getLFSObjectContentPath(content)
-      content = await readFile(join(this.config.repo, lsfPath))
+      const lfsPath = getLFSObjectContentPath(content)
+      content = await readFile(join(this.config.repo, lfsPath))
     }
     return content
   }
@@ -218,8 +244,8 @@ export default class GitAdapter implements GitBlobReader {
     )
 
     if (isLFS(content)) {
-      const lsfPath = getLFSObjectContentPath(content)
-      content = await readFile(join(this.config.repo, lsfPath))
+      const lfsPath = getLFSObjectContentPath(content)
+      content = await readFile(join(this.config.repo, lfsPath))
     }
     return content
   }
@@ -248,7 +274,8 @@ export default class GitAdapter implements GitBlobReader {
       ['archive', '--format=tar', revision, '--', path],
       { cwd: this.config.repo, stdio: ['ignore', 'pipe', 'pipe'] }
     )
-    this.streamingChildren.push(child)
+    this._trackChild(child)
+    child.on('error', err => extractor.destroy(err))
     child.stderr.on('data', (chunk: Buffer) => {
       Logger.debug(
         lazy`streamArchive stderr for ${path}@${revision}: ${() => chunk.toString()}`
@@ -294,7 +321,7 @@ export default class GitAdapter implements GitBlobReader {
       ['cat-file', 'blob', `${forRef.oid}:${forRef.path}`],
       { cwd: this.config.repo, stdio: ['ignore', 'pipe', 'pipe'] }
     )
-    this.streamingChildren.push(child)
+    this._trackChild(child)
     this._wireStreamContent(child, out, forRef)
     return out
   }
@@ -359,14 +386,34 @@ export default class GitAdapter implements GitBlobReader {
     head: Buffer
   ): void {
     const pointerParts: Buffer[] = [head]
+    let pointerLen = head.length
+    let aborted = false
+    // Replace both data and end listeners from _wireStreamContent: the
+    // original end listener calls out.end() when decided===true, which would
+    // close `out` before the LFS file stream begins piping into it and the
+    // consumer would receive an empty/truncated payload.
     child.stdout.removeAllListeners('data')
-    child.stdout.on('data', (c: Buffer) => pointerParts.push(c))
+    child.stdout.removeAllListeners('end')
+    child.stdout.on('data', (c: Buffer) => {
+      if (aborted) return
+      pointerParts.push(c)
+      pointerLen += c.length
+      if (pointerLen > GitAdapter.LFS_POINTER_CAP) {
+        aborted = true
+        out.destroy(new Error('LFS pointer exceeds expected size'))
+      }
+    })
     child.stdout.on('end', () => {
-      const pointer = Buffer.concat(pointerParts)
-      const lfsPath = getLFSObjectContentPath(pointer)
-      createReadStream(join(this.config.repo, lfsPath))
-        .on('error', err => out.destroy(err))
-        .pipe(out)
+      if (aborted) return
+      try {
+        const pointer = Buffer.concat(pointerParts, pointerLen)
+        const lfsPath = getLFSObjectContentPath(pointer)
+        createReadStream(join(this.config.repo, lfsPath))
+          .on('error', err => out.destroy(err))
+          .pipe(out)
+      } catch (err) {
+        out.destroy(err instanceof Error ? err : new Error(String(err)))
+      }
     })
     if (!child.killed) child.kill()
   }

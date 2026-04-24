@@ -6,32 +6,57 @@ import { GitBatchCatFile } from '../../../../src/adapter/gitBatchCatFile'
 
 vi.mock('../../../../src/utils/LoggingService')
 
-const mockStdin = {
-  write: vi.fn(),
-  end: vi.fn(),
+type FakeChild = EventEmitter & {
+  stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> }
+  stdout: EventEmitter
+  stderr: EventEmitter
+  killed: boolean
+  kill: ReturnType<typeof vi.fn>
 }
-const mockStdout = new EventEmitter()
-const mockStderr = new EventEmitter()
-const mockProcess = Object.assign(new EventEmitter(), {
-  stdin: mockStdin,
-  stdout: mockStdout,
-  stderr: mockStderr,
-  killed: false,
-  kill: vi.fn(() => {
-    mockProcess.killed = true
-  }),
-})
+
+const createFakeChild = (): FakeChild => {
+  const stdin = { write: vi.fn(), end: vi.fn() }
+  const stdout = new EventEmitter()
+  const stderr = new EventEmitter()
+  const child = Object.assign(new EventEmitter(), {
+    stdin,
+    stdout,
+    stderr,
+    killed: false,
+    kill: vi.fn(() => {
+      child.killed = true
+    }),
+  }) as FakeChild
+  return child
+}
+
+const createFakeSpawnSequence = (count: number) => {
+  const procs: FakeChild[] = Array.from({ length: count }, createFakeChild)
+  let idx = 0
+  const spawnFn = vi.fn(() => procs[idx++] as never)
+  return { procs, spawnFn }
+}
+
+// Tests that construct `new GitBatchCatFile('/repo')` (no spawnFn override)
+// rely on the mocked `node:child_process.spawn` resolving to `currentChild`.
+// `currentChild` is reassigned in `beforeEach` so no state leaks across tests.
+let currentChild: FakeChild
+let mockStdin: FakeChild['stdin']
+let mockStdout: FakeChild['stdout']
+let mockStderr: FakeChild['stderr']
+let mockProcess: FakeChild
 
 vi.mock('node:child_process', () => ({
-  spawn: vi.fn(() => mockProcess),
+  spawn: vi.fn(() => currentChild),
 }))
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockProcess.killed = false
-  mockStdout.removeAllListeners()
-  mockStderr.removeAllListeners()
-  mockProcess.removeAllListeners()
+  currentChild = createFakeChild()
+  mockStdin = currentChild.stdin
+  mockStdout = currentChild.stdout
+  mockStderr = currentChild.stderr
+  mockProcess = currentChild
 })
 
 describe('GitBatchCatFile', () => {
@@ -376,34 +401,3 @@ describe('GitBatchCatFile', () => {
     })
   })
 })
-
-type FakeChild = EventEmitter & {
-  stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> }
-  stdout: EventEmitter
-  stderr: EventEmitter
-  killed: boolean
-  kill: ReturnType<typeof vi.fn>
-}
-
-const createFakeChild = (): FakeChild => {
-  const stdin = { write: vi.fn(), end: vi.fn() }
-  const stdout = new EventEmitter()
-  const stderr = new EventEmitter()
-  const child = Object.assign(new EventEmitter(), {
-    stdin,
-    stdout,
-    stderr,
-    killed: false,
-    kill: vi.fn(() => {
-      child.killed = true
-    }),
-  }) as FakeChild
-  return child
-}
-
-const createFakeSpawnSequence = (count: number) => {
-  const procs: FakeChild[] = Array.from({ length: count }, createFakeChild)
-  let idx = 0
-  const spawnFn = vi.fn(() => procs[idx++] as never)
-  return { procs, spawnFn }
-}

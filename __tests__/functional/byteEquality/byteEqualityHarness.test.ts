@@ -107,8 +107,12 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
     const produced = Buffer.concat(chunks).toString('utf8')
 
     // Assert
-    if (UPDATE_SNAPSHOTS || fixture.expected === null) {
+    if (UPDATE_SNAPSHOTS) {
       writeFileSync(fixture.expectedPath, produced, 'utf8')
+    } else if (fixture.expected === null) {
+      throw new Error(
+        `Missing snapshot for fixture ${fixture.name} at ${fixture.expectedPath}. Rerun with UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 to create it.`
+      )
     }
     const expected = readFileSync(fixture.expectedPath, 'utf8')
     expect(produced).toBe(expected)

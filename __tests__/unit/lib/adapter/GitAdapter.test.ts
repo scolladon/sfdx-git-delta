@@ -1438,6 +1438,86 @@ describe('GitAdapter', () => {
       expect(getLFSObjectContentPathMocked).toHaveBeenCalled()
     })
 
+    it('Given a malformed LFS pointer throws on resolution, When streamContent hands off, Then the consumer receives the error (not an uncaught exception)', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+      getLFSObjectContentPathMocked.mockImplementation(() => {
+        throw new Error('Invalid LFS oid')
+      })
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: 'resources/Bad.bin',
+        oid: 'cafe',
+      })
+      const received = new Promise<Error | undefined>(resolve => {
+        stream.on('error', err => resolve(err))
+      })
+
+      child.stdout.emit(
+        'data',
+        Buffer.from('version https://git-lfs.github.com/spec/v1\n')
+      )
+      child.stdout.emit('data', Buffer.from('oid sha256:bad\n'))
+      child.stdout.emit('end')
+
+      // Assert
+      await expect(received).resolves.toMatchObject({
+        message: 'Invalid LFS oid',
+      })
+    })
+
+    it('Given an LFS pointer exceeds the cap, When streamContent buffers beyond the limit, Then the consumer receives a cap error', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child as never))
+
+      // Act
+      const stream = gitAdapter.streamContent({
+        path: 'resources/Huge.bin',
+        oid: 'aabbccdd',
+      })
+      const received = new Promise<Error | undefined>(resolve => {
+        stream.on('error', err => resolve(err))
+      })
+
+      child.stdout.emit(
+        'data',
+        Buffer.from('version https://git-lfs.github.com/spec/v1\n')
+      )
+      // Push 2 KB beyond the 1 KB cap.
+      child.stdout.emit('data', Buffer.alloc(2048, 0x61))
+
+      // Assert
+      await expect(received).resolves.toMatchObject({
+        message: expect.stringContaining('LFS pointer exceeds expected size'),
+      })
+    })
+
+    it('Given the streaming child closes, When another stream is created, Then the prior child is not retained in streamingChildren', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config)
+      const child1 = createFakeChild()
+      gitAdapter.setSpawnFn(vi.fn(() => child1 as never))
+      const stream1 = gitAdapter.streamContent({ path: 'a', oid: 'o1' })
+      stream1.on('error', () => undefined)
+      stream1.on('data', () => undefined)
+
+      // Act — child1 closes normally; splice runs on 'close' event.
+      child1.stdout.emit('data', Buffer.from('ok'))
+      child1.stdout.emit('end')
+      child1.emit('close', 0)
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert — a fresh closeBatchProcess should not attempt to kill the
+      // already-closed child because it was spliced on 'close'.
+      gitAdapter.closeBatchProcess()
+      expect(child1.kill).not.toHaveBeenCalled()
+    })
+
     it('Given the streaming subprocess exits non-zero, When consuming the stream, Then the consumer receives an error', async () => {
       // Arrange
       const gitAdapter = GitAdapter.getInstance(config)

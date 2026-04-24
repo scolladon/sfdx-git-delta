@@ -46,24 +46,46 @@ class StreamingBuilderFactory extends CompactBuilderFactory {
   }
 }
 
+// Private-field contract bridged in a single cast so upstream changes in
+// @nodable/compact-builder produce one obvious failure site (asserted below),
+// not three silent `undefined` reads.
+type BuilderInternals = {
+  tagsStack: unknown[]
+  tagName: string
+  value: Record<string, unknown>
+}
+
+function assertInternals(
+  internals: BuilderInternals
+): asserts internals is BuilderInternals {
+  if (
+    !Array.isArray(internals.tagsStack) ||
+    typeof internals.tagName !== 'string' ||
+    internals.value === null ||
+    typeof internals.value !== 'object'
+  ) {
+    throw new Error(
+      'streamingBuilder: CompactBuilder internals changed — upgrade the wrapper'
+    )
+  }
+}
+
 const wrapStreaming = (
   base: CompactBuilder,
   onElement: SubTypeElementHandler
 ): CompactBuilder => {
   const originalClose = base.closeElement.bind(base)
+  const internals: BuilderInternals = base as unknown as BuilderInternals
+  assertInternals(internals)
   base.closeElement = function (matcher: unknown) {
-    const stackLenBefore = (base as unknown as { tagsStack: unknown[] })
-      .tagsStack.length
-    const closingTag = (base as unknown as { tagName: string }).tagName
+    const stackLenBefore = internals.tagsStack.length
+    const closingTag = internals.tagName
     originalClose(matcher)
     if (stackLenBefore !== ROOT_CHILD_STACK_DEPTH) return
-    const parent = (base as unknown as { value: Record<string, unknown> }).value
+    const parent = internals.value
     const added = parent[closingTag]
     if (added === undefined) return
-    const element = Array.isArray(added)
-      ? (added[0] as XmlContent)
-      : (added as XmlContent)
-    onElement(closingTag, element ?? ({} as XmlContent))
+    onElement(closingTag, added as XmlContent)
     delete parent[closingTag]
   }
   return base

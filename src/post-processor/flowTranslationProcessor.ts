@@ -51,10 +51,13 @@ interface FlowDefinition {
 // Preserves the document-order of direct-child subTypes so the writer can
 // emit them in the original sequence. flowDefinitions is tracked separately
 // because it gets merged with this.translations[path] before the write.
+// `seenFullNames` is populated while parsing so the merge step is O(new
+// flows) instead of rebuilding a Set per path.
 type TranslationMerge = {
   rootCapture: RootCapture
   orderedChildren: Array<[string, unknown[]]>
   flowsIndex: number
+  seenFullNames: Set<string | undefined>
 }
 
 const getTranslationName = (translationPath: string) =>
@@ -68,6 +71,7 @@ const emptyTranslationMerge = (): TranslationMerge => ({
   },
   orderedChildren: [[FLOW_DEFINITIONS_KEY, []]],
   flowsIndex: 0,
+  seenFullNames: new Set<string | undefined>(),
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
@@ -187,6 +191,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     const xml = await readFile(outputPath)
     const orderedChildren: Array<[string, unknown[]]> = []
     const indexByKey = new Map<string, number>()
+    const seenFullNames = new Set<string | undefined>()
     const capture = await parseFromSideSwallowing(xml, (subType, element) => {
       let idx = indexByKey.get(subType)
       if (idx === undefined) {
@@ -195,6 +200,9 @@ export default class FlowTranslationProcessor extends BaseProcessor {
         orderedChildren.push([subType, []])
       }
       orderedChildren[idx]![1].push(element)
+      if (subType === FLOW_DEFINITIONS_KEY) {
+        seenFullNames.add((element as FlowDefinition)?.fullName)
+      }
     })
     if (capture === null) return emptyTranslationMerge()
     let flowsIndex = indexByKey.get(FLOW_DEFINITIONS_KEY)
@@ -202,7 +210,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       flowsIndex = orderedChildren.length
       orderedChildren.push([FLOW_DEFINITIONS_KEY, []])
     }
-    return { rootCapture: capture, orderedChildren, flowsIndex }
+    return { rootCapture: capture, orderedChildren, flowsIndex, seenFullNames }
   }
 
   /**
@@ -210,6 +218,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
    * flowDefinitions bucket, skipping any whose fullName is already present
    * in the output-side flows (output-wins-on-conflict — matches the
    * legacy `_scrapTranslationFile` semantics).
+   *
+   * In-place append into `merge.orderedChildren` is intentional: the merge
+   * object is single-use, freshly built per translationPath by the caller,
+   * and the writer closure captures the same reference.
    */
   protected _mergeActualFlows(
     merge: TranslationMerge,
@@ -218,10 +230,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     const bucket = merge.orderedChildren[
       merge.flowsIndex
     ]![1] as FlowDefinition[]
-    const seen = new Set(bucket.map(flowDef => flowDef?.fullName))
     for (const flowDef of actualFlowDefinitions) {
-      if (seen.has(flowDef?.fullName)) continue
+      if (merge.seenFullNames.has(flowDef?.fullName)) continue
       bucket.push(flowDef)
+      merge.seenFullNames.add(flowDef?.fullName)
     }
   }
 

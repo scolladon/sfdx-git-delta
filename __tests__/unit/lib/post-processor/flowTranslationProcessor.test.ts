@@ -248,9 +248,10 @@ describe('FlowTranslationProcessor', () => {
           expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
           expect(copy.path).toBe(translationPath)
           if (copy.kind === CopyOperationKind.StreamedContent) {
-            expect(await drainWriter(copy.writer)).toContain('test-flow')
-            expect(await drainWriter(copy.writer)).toContain('TestA')
-            expect(await drainWriter(copy.writer)).toContain('TestB')
+            const output = await drainWriter(copy.writer)
+            expect(output).toContain('test-flow')
+            expect(output).toContain('TestA')
+            expect(output).toContain('TestB')
           }
         })
       })

@@ -135,7 +135,9 @@ describe('MetadataDiff.run', () => {
     const sut = new MetadataDiff(work.config, inFileAttributes)
 
     // Act & Assert
-    await expect(sut.run('file/path')).rejects.toThrow()
+    await expect(sut.run('file/path')).rejects.toThrow(
+      /unclosed|parse|invalid|unexpected/i
+    )
   })
 
   it('Given the from-side file is missing, When run runs, Then it treats it as an addition', async () => {
