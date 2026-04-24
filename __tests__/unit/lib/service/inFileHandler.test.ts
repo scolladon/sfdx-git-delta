@@ -91,6 +91,7 @@ describe('inFileHandler', () => {
           added: [{ type: 'WorkflowFlowAction', member: 'test' }],
           modified: [],
           deleted: [],
+          hasAnyChanges: true,
         })
       )
     })
@@ -139,6 +140,7 @@ describe('inFileHandler', () => {
               added: [{ type: 'ValueTranslation', member: 'Three' }],
               modified: [],
               deleted: [],
+              hasAnyChanges: true,
             })
           )
         })
@@ -188,6 +190,7 @@ describe('inFileHandler', () => {
               added: [],
               modified: [],
               deleted: [],
+              hasAnyChanges: true,
             })
           )
         })
@@ -242,6 +245,7 @@ describe('inFileHandler', () => {
             added: [{ type: 'WorkflowAlert', member: 'test' }],
             modified: [],
             deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            hasAnyChanges: true,
           })
         )
       })
@@ -297,6 +301,7 @@ describe('inFileHandler', () => {
             added: [],
             modified: [],
             deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            hasAnyChanges: false,
           })
         )
         mockPrune.mockReturnValue({
@@ -329,7 +334,7 @@ describe('inFileHandler', () => {
               m.type === 'Workflow'
           )
         ).toBe(false)
-        expect(mockPrune).toHaveBeenCalled()
+        expect(mockPrune).not.toHaveBeenCalled()
         expect(
           result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
         ).toBe(false)
@@ -350,6 +355,7 @@ describe('inFileHandler', () => {
               added: [],
               modified: [],
               deleted: [],
+              hasAnyChanges: false,
             })
           )
 
@@ -365,7 +371,7 @@ describe('inFileHandler', () => {
           // Assert
           expect(result.manifests).toHaveLength(0)
           expect(result.copies).toHaveLength(0)
-          expect(mockPrune).toHaveBeenCalled()
+          expect(mockPrune).not.toHaveBeenCalled()
         })
       })
 
@@ -383,6 +389,7 @@ describe('inFileHandler', () => {
               added: [],
               modified: [],
               deleted: [{ type: 'Workflow', member: 'Deleted' }],
+              hasAnyChanges: false,
             })
           )
           mockPrune.mockReturnValue({
@@ -408,7 +415,7 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          expect(mockPrune).toHaveBeenCalled()
+          expect(mockPrune).not.toHaveBeenCalled()
           expect(
             result.copies.some(
               c => c.kind === CopyOperationKind.ComputedContent
@@ -433,6 +440,7 @@ describe('inFileHandler', () => {
               added: [{ type: 'ValueTranslation', member: 'Three' }],
               modified: [],
               deleted: [],
+              hasAnyChanges: true,
             })
           )
           mockPrune.mockReturnValue({
@@ -486,6 +494,7 @@ describe('inFileHandler', () => {
               added: [],
               modified: [],
               deleted: [],
+              hasAnyChanges: true,
             })
           )
         })
@@ -538,6 +547,7 @@ describe('inFileHandler', () => {
           added: [],
           modified: [],
           deleted: [{ type: 'WorkflowAlert', member: 'test' }],
+          hasAnyChanges: false,
         })
       )
       mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: true })
@@ -568,7 +578,7 @@ describe('inFileHandler', () => {
         )
       ).toBe(false)
       expect(mockCompare).toHaveBeenCalled()
-      expect(mockPrune).toHaveBeenCalled()
+      expect(mockPrune).not.toHaveBeenCalled()
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
       ).toBe(false)
@@ -639,6 +649,7 @@ describe('inFileHandler collect', () => {
         added: [{ type: 'WorkflowFlowAction', member: 'test' }],
         modified: [],
         deleted: [],
+        hasAnyChanges: true,
       })
     )
 
@@ -680,6 +691,7 @@ describe('inFileHandler collect', () => {
         added: [{ type: 'WorkflowFlowAction', member: 'test' }],
         modified: [],
         deleted: [],
+        hasAnyChanges: true,
       })
     )
 
@@ -741,6 +753,7 @@ describe('inFileHandler collect', () => {
         added: [{ type: 'WorkflowFlowAction', member: 'test' }],
         modified: [],
         deleted: [],
+        hasAnyChanges: true,
       })
     )
 
@@ -769,6 +782,7 @@ describe('inFileHandler collect', () => {
         added: [{ type: 'WorkflowAlert', member: 'added' }],
         modified: [],
         deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
+        hasAnyChanges: true,
       })
     )
 
@@ -791,5 +805,58 @@ describe('inFileHandler collect', () => {
       ])
     )
     expect(result.warnings).toHaveLength(0)
+  })
+
+  it('Given generateDelta false, When collect with hasAnyChanges, Then prune is not called', async () => {
+    // Arrange
+    work.config.generateDelta = false
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        modified: [],
+        deleted: [],
+        hasAnyChanges: true,
+      })
+    )
+
+    // Act
+    await sut.collect()
+
+    // Assert
+    expect(mockPrune).not.toHaveBeenCalled()
+  })
+
+  it('Given generateDelta true with hasAnyChanges, When collect, Then prune is called and ComputedContent is produced', async () => {
+    // Arrange
+    work.config.generateDelta = true
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockCompare.mockImplementation(() =>
+      Promise.resolve({
+        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+        modified: [],
+        deleted: [],
+        hasAnyChanges: true,
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(mockPrune).toHaveBeenCalled()
+    expect(
+      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+    ).toBe(true)
   })
 })

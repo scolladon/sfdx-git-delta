@@ -170,6 +170,7 @@ describe('Decomposed CustomLabel spec', () => {
           added: [{ type: 'CustomLabel', member: 'MyLabel' }],
           modified: [],
           deleted: [],
+          hasAnyChanges: true,
         })
       )
       mockPrune.mockReturnValue({
@@ -211,6 +212,7 @@ describe('Decomposed CustomLabel spec', () => {
           added: [{ type: 'CustomLabel', member: 'MyLabel' }],
           modified: [],
           deleted: [],
+          hasAnyChanges: true,
         })
       )
       mockPrune.mockReturnValue({

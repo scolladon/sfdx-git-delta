@@ -46,6 +46,7 @@ interface CompareResult {
   added: CompareEntry[]
   modified: CompareEntry[]
   deleted: CompareEntry[]
+  hasAnyChanges: boolean
   toContent: XmlContent
   fromContent: XmlContent
 }
@@ -85,8 +86,19 @@ export default class MetadataDiff {
     const added = comparator.getAdded()
     const modified = comparator.getModified()
     const deleted = comparator.getDeletion()
+    const hasAnyChanges = new ChangeDetector(this.extractor).detect(
+      fromContent,
+      toContent
+    )
 
-    return { added, modified, deleted, toContent, fromContent }
+    return {
+      added,
+      modified,
+      deleted,
+      hasAnyChanges,
+      toContent,
+      fromContent,
+    }
   }
 
   @log
@@ -369,5 +381,77 @@ class JsonTransformer {
       return isUndefined(fromItem) || !deepEqual(item, fromItem)
     })
     return { content, hasChanges: !isEmpty(content) }
+  }
+}
+
+/**
+ * Computes whether the `to` content has any differences from `from` without
+ * building the pruned tree. Mirrors JsonTransformer's per-subKey bucket
+ * detection but short-circuits on first difference and allocates no result
+ * arrays.
+ *
+ * Separate from MetadataComparator because the comparator's manifest
+ * classification ignores keyless / <array>-keyed / <object>-keyed / non-
+ * registry subTypes, yet those still count toward hasAnyChanges.
+ */
+class ChangeDetector {
+  constructor(private extractor: MetadataExtractor) {}
+
+  detect(fromContent: XmlContent, toContent: XmlContent): boolean {
+    const from = this.extractor.extractRootElement(fromContent)
+    const to = this.extractor.extractRootElement(toContent)
+    const subKeys = this.extractor.getSubKeys(to)
+    for (const key of subKeys) {
+      if (key.startsWith(ATTRIBUTE_PREFIX)) continue
+      if (this.bucketHasChanges(from, to, key)) return true
+    }
+    return false
+  }
+
+  private bucketHasChanges(
+    from: XmlContent,
+    to: XmlContent,
+    key: string
+  ): boolean {
+    const toMeta = this.extractor.extractForSubType(to, key)
+    if (isEmpty(toMeta)) return false
+    const fromMeta = this.extractor.extractForSubType(from, key)
+    if (isEmpty(fromMeta)) return true
+    const keyField = this.extractor.getKeyFieldDefinition(key)
+    return this.bucketDiffers(fromMeta, toMeta, keyField)
+  }
+
+  private bucketDiffers(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[],
+    keyField: string | undefined
+  ): boolean {
+    if (isUndefined(keyField)) return !deepEqual(fromMeta, toMeta)
+    if (keyField === ARRAY_SPECIAL_KEY) return !deepEqual(fromMeta, toMeta)
+    if (keyField === OBJECT_SPECIAL_KEY)
+      return this.objectBucketDiffers(fromMeta, toMeta)
+    return this.keyedBucketDiffers(fromMeta, toMeta, keyField)
+  }
+
+  private objectBucketDiffers(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[]
+  ): boolean {
+    const fromSet = new Set(fromMeta.map(item => JSON.stringify(item)))
+    return toMeta.some(item => !fromSet.has(JSON.stringify(item)))
+  }
+
+  private keyedBucketDiffers(
+    fromMeta: XmlContent[],
+    toMeta: XmlContent[],
+    keyField: string
+  ): boolean {
+    const fromMap = new Map(
+      fromMeta.map(item => [item[keyField] as string | undefined, item])
+    )
+    return toMeta.some(item => {
+      const fromItem = fromMap.get(item[keyField] as string | undefined)
+      return isUndefined(fromItem) || !deepEqual(item, fromItem)
+    })
   }
 }

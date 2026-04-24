@@ -51,8 +51,14 @@ export default class InFileHandler extends StandardHandler {
   protected async _collectCompareResult(): Promise<HandlerResult> {
     try {
       const result = emptyResult()
-      const { added, modified, deleted, toContent, fromContent } =
-        await this.metadataDiff.compare(this.element.basePath)
+      const {
+        added,
+        modified,
+        deleted,
+        hasAnyChanges,
+        toContent,
+        fromContent,
+      } = await this.metadataDiff.compare(this.element.basePath)
 
       this._collectManifestFromComparison(
         result.manifests,
@@ -73,23 +79,20 @@ export default class InFileHandler extends StandardHandler {
         modified
       )
 
-      const { xmlContent, isEmpty } = this.metadataDiff.prune(
-        toContent,
-        fromContent
-      )
-
       // RATIONALE: Why include root component in package.xml for InFile sub-elements?
       // InFile elements are not independently deployable; the root component must be listed.
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
-      if (this._shouldTreatContainerType(isEmpty)) {
+      if (this._shouldTreatContainerType(!hasAnyChanges)) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this)
         pushAll(result.manifests, containerResult.manifests)
       }
 
-      // Separate from _shouldTreatContainerType: subclasses (e.g. CustomLabelHandler)
-      // may disable container manifests while still needing computed content
-      if (!isEmpty) {
+      // prune() materializes the pruned XML. Skip entirely when generateDelta
+      // is off — today's `_collectComputedContent` would discard the string
+      // anyway, so building it is pure waste.
+      if (hasAnyChanges && this.config.generateDelta) {
+        const { xmlContent } = this.metadataDiff.prune(toContent, fromContent)
         this._collectComputedContent(
           result.copies,
           this.element.basePath,

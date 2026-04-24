@@ -2270,4 +2270,124 @@ describe('MetadataDiff', () => {
       expect(calledWith).not.toHaveProperty('?xml')
     })
   })
+
+  describe('hasAnyChanges without manifest entries', () => {
+    it('Given an <array>-keyed subType differs, When compare runs, Then hasAnyChanges is true and manifests are empty', async () => {
+      // Arrange - loginHours uses <array> special key; no manifest emission
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          loginHours: [{ mondayStart: '400', mondayEnd: '500' }],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          loginHours: [{ mondayStart: '300', mondayEnd: '500' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const sut = metadataDiff
+
+      // Act
+      const { added, modified, deleted, hasAnyChanges } =
+        await sut.compare('file/path')
+
+      // Assert
+      expect(hasAnyChanges).toBe(true)
+      expect(added).toHaveLength(0)
+      expect(modified).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+
+    it('Given an <object>-keyed subType differs, When compare runs, Then hasAnyChanges is true and manifests are empty', async () => {
+      // Arrange - layoutAssignments uses <object> special key; no manifest emission
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [
+            { layout: 'existing-layout', recordType: 'rt1' },
+            { layout: 'new-layout', recordType: 'rt2' },
+          ],
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          layoutAssignments: [{ layout: 'existing-layout', recordType: 'rt1' }],
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const sut = metadataDiff
+
+      // Act
+      const { added, modified, deleted, hasAnyChanges } =
+        await sut.compare('file/path')
+
+      // Assert
+      expect(hasAnyChanges).toBe(true)
+      expect(added).toHaveLength(0)
+      expect(modified).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+
+    it('Given a keyless non-registry subType differs, When compare runs, Then hasAnyChanges is true and manifests are empty', async () => {
+      // Arrange - `description` on Profile is not a registered subType
+      const toData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          description: 'new description',
+        },
+      }
+      const fromData = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          description: 'old description',
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(toData)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(fromData)
+      const sut = metadataDiff
+
+      // Act
+      const { added, modified, deleted, hasAnyChanges } =
+        await sut.compare('file/path')
+
+      // Assert
+      expect(hasAnyChanges).toBe(true)
+      expect(added).toHaveLength(0)
+      expect(modified).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+
+    it('Given identical content, When compare runs, Then hasAnyChanges is false', async () => {
+      // Arrange
+      const data = {
+        ...xmlHeader,
+        Profile: {
+          '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+          loginHours: [{ mondayStart: '300', mondayEnd: '500' }],
+          layoutAssignments: [{ layout: 'l1', recordType: 'rt1' }],
+          description: 'same',
+        },
+      }
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      mockedParseXmlFileToJson.mockResolvedValueOnce(data)
+      const sut = metadataDiff
+
+      // Act
+      const { hasAnyChanges } = await sut.compare('file/path')
+
+      // Assert
+      expect(hasAnyChanges).toBe(false)
+    })
+  })
 })
