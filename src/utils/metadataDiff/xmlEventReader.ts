@@ -157,12 +157,18 @@ const streamRootChildren = (
 
 const driveParse = (
   source: Buffer | string,
-  onElement: SubTypeElementHandler
+  onElement: SubTypeElementHandler,
+  options: { strict: boolean }
 ): RootCapture | null => {
   const payload = typeof source === 'string' ? source : source.toString('utf8')
-  // Refuse malformed input up front so the streaming loop can trust
-  // tag balance (and matches the previous parser's error contract).
-  validateXml(payload)
+  // Strict mode (to-side): reject malformed input up front so the
+  // MalformedXML warning path in the diff caller fires. The
+  // swallowing path skips this scan — its caller already discards
+  // errors and falls back to "no prior content", so tolerating a
+  // partial txml parse is fine and saves an O(N) prepass per file.
+  if (options.strict) {
+    validateXml(payload)
+  }
   const prologue = parsePrologue(payload)
   if (prologue === null) return null
   streamRootChildren(payload, prologue.bodyStart, onElement)
@@ -191,7 +197,7 @@ export const parseFromSideSwallowing = async (
 ): Promise<RootCapture | null> => {
   if (!source) return null
   try {
-    return driveParse(source, onElement)
+    return driveParse(source, onElement, { strict: false })
   } catch (error) {
     Logger.debug(
       lazy`parseFromSideSwallowing failed: ${() => getErrorMessage(error)}`
@@ -211,7 +217,7 @@ export const parseToSidePropagating = async (
   source: Buffer | string,
   onElement: SubTypeElementHandler
 ): Promise<RootCapture> => {
-  const capture = driveParse(source, onElement)
+  const capture = driveParse(source, onElement, { strict: true })
   if (capture === null) {
     throw new Error('to-side document has no root element')
   }

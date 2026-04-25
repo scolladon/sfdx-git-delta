@@ -130,8 +130,15 @@ describe('xmlEventReader', () => {
       expect(onElement).not.toHaveBeenCalled()
     })
 
-    it('Given malformed XML, When parseFromSideSwallowing runs, Then it resolves null and swallows the error', async () => {
-      // Arrange
+    it('Given malformed XML, When parseFromSideSwallowing runs, Then it tolerates the partial tree (no balance check on the swallowing path)', async () => {
+      // Arrange — `parseFromSideSwallowing` skips the balance-check pre-pass
+      // for performance (saves an O(N) scan per from-side parse). txml is
+      // tolerant of unclosed tags, so we get a partial RootCapture rather
+      // than null. The caller treats this as best-effort prior content;
+      // anything truly catastrophic still goes through the catch and
+      // returns null. The strict failure contract lives on the to-side
+      // (`parseToSidePropagating`) where the diff caller wires it to the
+      // MalformedXML warning.
       const source = '<Root><unclosed>'
       const onElement = vi.fn()
 
@@ -139,7 +146,8 @@ describe('xmlEventReader', () => {
       const sut = await parseFromSideSwallowing(source, onElement)
 
       // Assert
-      expect(sut).toBeNull()
+      expect(sut).not.toBeNull()
+      expect(sut?.rootKey).toBe('Root')
     })
 
     it('Given a Buffer source, When parseFromSideSwallowing runs, Then it decodes and emits elements', async () => {
