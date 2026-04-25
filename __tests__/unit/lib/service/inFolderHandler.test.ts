@@ -54,7 +54,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(0)
+      expect(result.changes.toElements()).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -72,7 +72,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -105,7 +105,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -133,7 +133,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -188,7 +188,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests.length).toBeGreaterThan(0)
+      expect(result.changes.toElements().length).toBeGreaterThan(0)
       expect(mockedReadDirs).not.toHaveBeenCalled()
     })
 
@@ -206,7 +206,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(0)
+      expect(result.changes.toElements()).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -225,9 +225,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.manifests.find(
-        m => m.target === ManifestTarget.Package
-      )?.member
+      const manifestMember = result.changes
+        .toElements()
+        .find(m => m.target === ManifestTarget.Package)?.member
       expect(manifestMember).toBeDefined()
       expect(manifestMember).not.toContain(METAFILE_SUFFIX)
       expect(manifestMember).not.toContain('-meta.xml')
@@ -247,9 +247,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.manifests.find(
-        m => m.target === ManifestTarget.Package
-      )?.member
+      const manifestMember = result.changes
+        .toElements()
+        .find(m => m.target === ManifestTarget.Package)?.member
       expect(manifestMember).toBe(entity)
       expect(manifestMember).not.toMatch(/\.[^/.]+$/)
     })
@@ -270,9 +270,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.manifests.find(
-        m => m.target === ManifestTarget.Package
-      )?.member
+      const manifestMember = result.changes
+        .toElements()
+        .find(m => m.target === ManifestTarget.Package)?.member
       expect(manifestMember).toBeDefined()
       // INFOLDER_SUFFIX_REGEX (/Folder$/) must strip "Folder" → member is "my", not "myFolder"
       expect(manifestMember).toBe('my')
@@ -293,9 +293,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.manifests.find(
-        m => m.target === ManifestTarget.Package
-      )?.member
+      const manifestMember = result.changes
+        .toElements()
+        .find(m => m.target === ManifestTarget.Package)?.member
       expect(manifestMember).toBeDefined()
       // META_REGEX must strip "-meta.xml" before EXTENSION_SUFFIX_REGEX runs;
       // without it the member would still contain "meta"

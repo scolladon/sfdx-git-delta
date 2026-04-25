@@ -59,7 +59,7 @@ describe('BotHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -96,7 +96,7 @@ describe('BotHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -125,7 +125,7 @@ describe('BotHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

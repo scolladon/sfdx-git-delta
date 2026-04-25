@@ -6,10 +6,13 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
+  ChangeKind,
   CopyOperationKind,
+  emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
@@ -44,13 +47,14 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called, Then merges all handler results', async () => {
       // Arrange
       mockCollect.mockResolvedValue({
-        manifests: [
+        changes: ChangeSet.from([
           {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'MyClass',
+            changeKind: ChangeKind.Add,
           },
-        ],
+        ]),
         copies: [
           {
             kind: CopyOperationKind.GitCopy,
@@ -67,7 +71,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(2)
-      expect(result.manifests).toHaveLength(2)
+      expect(result.changes.toElements()).toHaveLength(2)
       expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
@@ -83,7 +87,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -92,11 +96,7 @@ describe('DiffLineInterpreter.process', () => {
   describe('Given revision overrides', () => {
     it('When process is called with revisions, Then uses override revisions', async () => {
       // Arrange
-      mockCollect.mockResolvedValue({
-        manifests: [],
-        copies: [],
-        warnings: [],
-      })
+      mockCollect.mockResolvedValue(emptyResult())
       const sut = new DiffLineInterpreter(work, globalMetadata)
 
       // Act
@@ -107,7 +107,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(1)
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
     })
   })
 
@@ -115,8 +115,7 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called, Then warnings are collected', async () => {
       // Arrange
       mockCollect.mockResolvedValue({
-        manifests: [],
-        copies: [],
+        ...emptyResult(),
         warnings: [new Error('test warning')],
       })
       const sut = new DiffLineInterpreter(work, globalMetadata)

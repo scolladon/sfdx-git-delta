@@ -5,12 +5,14 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import {
+  ChangeKind,
   CopyOperationKind,
   emptyResult,
   type HandlerResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import {
   buildIncludeHelper,
   IgnoreHelper,
@@ -64,18 +66,19 @@ describe('IncludeProcessor', () => {
     target: ManifestTarget.Package,
     type: 'ApexClass',
     member: 'Included',
+    changeKind: ChangeKind.Add as ChangeKind.Add,
   }
   const includedCopy = {
-    kind: CopyOperationKind.GitCopy,
-    source: { path: 'src/included.cls', oid: 'HEAD' },
-    target: 'included.cls',
+    kind: CopyOperationKind.GitCopy as const,
+    path: 'src/included.cls',
+    revision: 'HEAD',
   }
 
   beforeEach(() => {
     work = getWork()
     vi.clearAllMocks()
     mockProcess.mockResolvedValue({
-      manifests: [includedManifest],
+      changes: ChangeSet.from([includedManifest]),
       copies: [includedCopy],
       warnings: [],
     })
@@ -100,7 +103,7 @@ describe('IncludeProcessor', () => {
       const result = await sut.transformAndCollect()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(mockedBuildIncludeHelper).not.toHaveBeenCalled()
     })
   })
@@ -152,8 +155,8 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.manifests.length).toBeGreaterThan(0)
-        expect(result.manifests).toContainEqual(includedManifest)
+        expect(result.changes.toElements().length).toBeGreaterThan(0)
+        expect(result.changes.toElements()).toContainEqual(includedManifest)
         expect(result.copies).toContainEqual(includedCopy)
       })
     })
@@ -171,14 +174,14 @@ describe('IncludeProcessor', () => {
         const sut = new IncludeProcessor(work, metadata)
         const baseline = (
           await new IncludeProcessor(getWork(), metadata).transformAndCollect()
-        ).manifests.length
+        ).changes.toElements().length
 
         // Act
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.manifests.length).toBeGreaterThan(baseline)
-        expect(result.manifests).toContainEqual(includedManifest)
+        expect(result.changes.toElements().length).toBeGreaterThan(baseline)
+        expect(result.changes.toElements()).toContainEqual(includedManifest)
       })
     })
 
@@ -198,7 +201,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.manifests).toContainEqual(includedManifest)
+        expect(result.changes.toElements()).toContainEqual(includedManifest)
       })
 
       it('Then calls process with ADDITION lines only, not DELETION (kills L78 ConditionalExpression false)', async () => {
@@ -230,7 +233,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.manifests).toContainEqual(includedManifest)
+        expect(result.changes.toElements()).toContainEqual(includedManifest)
       })
 
       it('Then calls process with DELETION lines only, not ADDITION (kills L86 ConditionalExpression true)', async () => {
@@ -343,7 +346,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // All manifests must be valid HandlerResult manifest objects (no undefined from stray entry)
-        for (const m of result.manifests) {
+        for (const m of result.changes.toElements()) {
           expect(m).toBeDefined()
           expect(m).toMatchObject({ type: expect.any(String) })
         }
@@ -430,7 +433,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.manifests).toContainEqual(includedManifest)
+        expect(result.changes.toElements()).toContainEqual(includedManifest)
       })
     })
   })

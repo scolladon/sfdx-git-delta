@@ -9,10 +9,13 @@ import PostProcessorManager, {
   getPostProcessors,
 } from '../../../../src/post-processor/postProcessorManager'
 import {
+  ChangeKind,
+  emptyResult,
   type HandlerResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/adapter/GitAdapter')
@@ -30,11 +33,7 @@ class TestProcessor extends BaseProcessor {
 }
 
 class TestCollector extends BaseProcessor {
-  public mockResult: HandlerResult = {
-    manifests: [],
-    copies: [],
-    warnings: [],
-  }
+  public mockResult: HandlerResult = emptyResult()
   constructor(work: Work, metadata: MetadataRepository) {
     super(work, metadata)
   }
@@ -88,7 +87,7 @@ describe('postProcessorManager', () => {
       // since no flows/includes are configured in the default work, but the TYPE is correct.
       expect(result).toEqual(
         expect.objectContaining({
-          manifests: expect.any(Array),
+          changes: expect.any(ChangeSet),
           copies: expect.any(Array),
           warnings: expect.any(Array),
         })
@@ -220,7 +219,7 @@ describe('postProcessorManager', () => {
       const result = await sut.collectAll()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -236,7 +235,7 @@ describe('postProcessorManager', () => {
 
       // Assert — results.length is 0, so emptyResult() must be returned, not mergeResults()
       // Kills: ConditionalExpression true (always mergeResults) and EqualityOperator >= 0 (>= vs >)
-      expect(result.manifests).toHaveLength(0)
+      expect(result.changes.toElements()).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
       expect(result.warnings).toHaveLength(0)
     })
@@ -247,9 +246,14 @@ describe('postProcessorManager', () => {
       const sut = new PostProcessorManager(localWork)
       const collector = new TestCollector(localWork, metadata)
       collector.mockResult = {
-        manifests: [
-          { target: ManifestTarget.Package, type: 'Flow', member: 'MyFlow' },
-        ],
+        changes: ChangeSet.from([
+          {
+            target: ManifestTarget.Package,
+            type: 'Flow',
+            member: 'MyFlow',
+            changeKind: ChangeKind.Add,
+          },
+        ]),
         copies: [],
         warnings: [],
       }
@@ -259,8 +263,8 @@ describe('postProcessorManager', () => {
       const result = await sut.collectAll()
 
       // Assert — exactly one result, must come through mergeResults path
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].member).toBe('MyFlow')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].member).toBe('MyFlow')
     })
 
     it('Given collector with results, When collectAll, Then returns merged result', async () => {
@@ -269,13 +273,14 @@ describe('postProcessorManager', () => {
       const sut = new PostProcessorManager(localWork)
       const collector = new TestCollector(localWork, metadata)
       collector.mockResult = {
-        manifests: [
+        changes: ChangeSet.from([
           {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'Test',
+            changeKind: ChangeKind.Add,
           },
-        ],
+        ]),
         copies: [],
         warnings: [],
       }
@@ -285,8 +290,8 @@ describe('postProcessorManager', () => {
       const result = await sut.collectAll()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].type).toBe('ApexClass')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].type).toBe('ApexClass')
     })
 
     it('Given IncludeProcessor that throws, When collectAll, Then returns result with warnings', async () => {
@@ -305,7 +310,7 @@ describe('postProcessorManager', () => {
       // Assert
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('collectAll error')
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
     })
   })

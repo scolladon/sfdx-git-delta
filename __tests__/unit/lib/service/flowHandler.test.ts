@@ -45,9 +45,11 @@ describe('flowHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].target).toBe(ManifestTarget.DestructiveChanges)
-      expect(result.manifests[0].type).toBe('Flow')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].target).toBe(
+        ManifestTarget.DestructiveChanges
+      )
+      expect(result.changes.toElements()[0].type).toBe('Flow')
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('MyFlow')
     })

@@ -512,7 +512,7 @@ export default class GitAdapter implements GitBlobReader {
   // so hiding R as an out-of-band sequential await just obscures the real
   // symmetric fan-out without changing the resource footprint.
   @log
-  public async getDiffLines(): Promise<string[]> {
+  public async *streamDiffLines(): AsyncGenerator<string> {
     const detectRenames = Boolean(this.config.changesManifest)
 
     if (!this.config.ignoreWhitespace) {
@@ -526,11 +526,10 @@ export default class GitAdapter implements GitBlobReader {
         '--',
         ...this.config.source,
       ]
-      const lines: string[] = []
       for await (const line of this._spawnLines(args)) {
-        if (line) lines.push(treatPathSep(line))
+        if (line) yield treatPathSep(line)
       }
-      return lines
+      return
     }
 
     // When rename detection is on, the A/M/D filters also run with -M so
@@ -542,12 +541,17 @@ export default class GitAdapter implements GitBlobReader {
       ? ([ADDITION, MODIFICATION, DELETION, RENAMED] as const)
       : ([ADDITION, MODIFICATION, DELETION] as const)
 
-    const results = await Promise.all(
-      filters.map(changeType =>
-        this._getNumstatLines(changeType, detectRenames)
-      )
-    )
-    return results.flat()
+    // Numstat path runs one git invocation per change-type; we still emit
+    // each batch as it lands so downstream filters can begin work before
+    // every filter has finished.
+    for (const changeType of filters) {
+      for (const line of await this._getNumstatLines(
+        changeType,
+        detectRenames
+      )) {
+        yield line
+      }
+    }
   }
 
   // Per-filter numstat call. The R branch uses `-z` because numstat

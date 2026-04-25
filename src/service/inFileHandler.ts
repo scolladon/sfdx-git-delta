@@ -3,11 +3,7 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
-import type {
-  AddKind,
-  HandlerResult,
-  ManifestElement,
-} from '../types/handlerResult.js'
+import type { AddKind, HandlerResult } from '../types/handlerResult.js'
 import {
   ChangeKind,
   CopyOperationKind,
@@ -15,7 +11,7 @@ import {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
-import { pushAll } from '../utils/arrayUtils.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
@@ -55,19 +51,19 @@ export default class InFileHandler extends StandardHandler {
       const outcome = await this.metadataDiff.run(this.element.basePath)
 
       this._collectManifestFromComparison(
-        result.manifests,
+        result.changes,
         ManifestTarget.DestructiveChanges,
         ChangeKind.Delete,
         outcome.manifests.deleted
       )
       this._collectManifestFromComparison(
-        result.manifests,
+        result.changes,
         ManifestTarget.Package,
         ChangeKind.Add,
         outcome.manifests.added
       )
       this._collectManifestFromComparison(
-        result.manifests,
+        result.changes,
         ManifestTarget.Package,
         ChangeKind.Modify,
         outcome.manifests.modified
@@ -79,7 +75,7 @@ export default class InFileHandler extends StandardHandler {
       if (this._shouldTreatContainerType(!outcome.hasAnyChanges)) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this)
-        pushAll(result.manifests, containerResult.manifests)
+        result.changes.merge(containerResult.changes)
       }
 
       // run() already gated the writer on generateDelta + hasAnyChanges.
@@ -102,23 +98,21 @@ export default class InFileHandler extends StandardHandler {
         this.config.to,
       ])
       Logger.warn(lazy`${message}`)
-      return {
-        manifests: [],
-        copies: [],
-        warnings: [wrapError(message, error)],
-      }
+      const failed = emptyResult()
+      failed.warnings.push(wrapError(message, error))
+      return failed
     }
   }
 
   protected _collectManifestFromComparison(
-    manifests: ManifestElement[],
+    changes: ChangeSet,
     target: ManifestTarget,
     changeKind: AddKind,
     entries: { type: string; member: string }[]
   ): void {
     for (const { type, member } of entries) {
       if (isPackable(type)) {
-        manifests.push({
+        changes.addElement({
           target,
           type,
           member: `${this._getQualifiedName()}${member}`,

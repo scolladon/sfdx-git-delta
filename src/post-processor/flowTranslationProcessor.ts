@@ -165,7 +165,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     const result = emptyResult()
 
     for (const translationPath of this.translations.keys()) {
-      result.manifests.push({
+      result.changes.addElement({
         target: ManifestTarget.Package,
         type: TRANSLATION_TYPE,
         member: getTranslationName(translationPath),

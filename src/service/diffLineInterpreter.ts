@@ -18,7 +18,7 @@ export default class DiffLineInterpreter {
 
   @log
   public async process(
-    lines: string[],
+    lines: Iterable<string> | AsyncIterable<string>,
     revisions?: { from: string; to: string }
   ): Promise<HandlerResult> {
     const effectiveWork = revisions
@@ -37,7 +37,10 @@ export default class DiffLineInterpreter {
       results.push(result)
     }, MAX_PARALLELISM)
 
-    for (const line of lines) {
+    // `for await…of` iterates both Iterable and AsyncIterable so handlers
+    // start executing as soon as the first line lands — no need to
+    // materialize the whole diff first.
+    for await (const line of lines) {
       const handler = await typeHandlerFactory.getTypeHandler(line)
       processor.push(handler)
     }

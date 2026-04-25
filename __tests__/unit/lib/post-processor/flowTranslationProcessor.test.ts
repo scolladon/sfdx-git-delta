@@ -75,7 +75,7 @@ const cardinalProduct = (a: string[], b: string[]): string[][] =>
   a.reduce((acc, x) => [...acc, ...b.map(y => [x, y])], [] as string[][])
 
 const hasTranslationManifest = (result: { manifests: { type: string }[] }) =>
-  result.manifests.some(m => m.type === TRANSLATION_TYPE)
+  result.changes.toElements().some(m => m.type === TRANSLATION_TYPE)
 
 describe('FlowTranslationProcessor', () => {
   let work: Work
@@ -156,7 +156,7 @@ describe('FlowTranslationProcessor', () => {
       const output = await drainWriter(copy.writer)
 
       // Assert — kills getTranslationName ArrowFunction → undefined
-      expect(result.manifests[0].member).toBe(FR)
+      expect(result.changes.toElements()[0].member).toBe(FR)
       expect(output).toContain(flowFullName)
     })
   })
@@ -815,7 +815,7 @@ describe('FlowTranslationProcessor', () => {
 
               // Assert
               expect(hasTranslationManifest(result)).toBe(true)
-              expect(result.manifests).toEqual(
+              expect(result.changes.toElements()).toEqual(
                 expect.arrayContaining([
                   expect.objectContaining({
                     target: ManifestTarget.Package,

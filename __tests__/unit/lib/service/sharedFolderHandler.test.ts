@@ -61,7 +61,7 @@ describe('SharedFolderHandler', () => {
     const result = await sut.collectAddition()
 
     // Assert
-    expect(result.manifests).toEqual(
+    expect(result.changes.toElements()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,
@@ -85,7 +85,7 @@ describe('SharedFolderHandler', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.manifests).toEqual(
+    expect(result.changes.toElements()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,
@@ -110,7 +110,7 @@ describe('SharedFolderHandler', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.manifests).toHaveLength(0)
+    expect(result.changes.toElements()).toHaveLength(0)
     expect(result.copies).toHaveLength(0)
   })
 
@@ -129,7 +129,7 @@ describe('SharedFolderHandler', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
     })
 
     it('should not add to package on deletion', async () => {
@@ -146,7 +146,7 @@ describe('SharedFolderHandler', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
     })
   })
@@ -166,7 +166,7 @@ describe('SharedFolderHandler', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -195,7 +195,7 @@ describe('SharedFolderHandler', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

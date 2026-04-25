@@ -69,7 +69,7 @@ describe('ObjectTranslation', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -102,8 +102,8 @@ describe('ObjectTranslation', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -187,7 +187,7 @@ describe('ObjectTranslation', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

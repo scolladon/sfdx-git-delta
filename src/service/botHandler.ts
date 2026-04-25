@@ -19,7 +19,7 @@ export default class BotHandler extends ShareFolderHandler {
   public override async collectAddition(): Promise<HandlerResult> {
     const result = await super.collectAddition()
     const botName = this.element.parentFolder.split(PATH_SEP).pop() as string
-    result.manifests.push({
+    result.changes.addElement({
       target: ManifestTarget.Package,
       type: BOT_TYPE,
       member: botName,

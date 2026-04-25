@@ -46,6 +46,11 @@ export default class ChangeSet {
     [ChangeKind.Modify]: new Map(),
     [ChangeKind.Delete]: new Map(),
   }
+  // Insertion log of every addElement call. byTarget/byKind store independent
+  // axes and cannot be losslessly joined back into ManifestElement form when
+  // the same (type, member) is added with multiple (target, kind) tuples;
+  // this list keeps the original triples for inspection (`toElements()`).
+  private readonly _elements: ManifestElement[] = []
   private readonly renames: RenameBucket = new Map()
 
   static from(elements: readonly ManifestElement[]): ChangeSet {
@@ -70,6 +75,14 @@ export default class ChangeSet {
       element.type,
       element.member
     )
+    this._elements.push(element)
+  }
+
+  // Returns the insertion log as a defensive shallow copy. Useful for tests
+  // and diagnostics; production consumers should prefer `forPackageManifest`,
+  // `forDestructiveManifest`, or `byChangeKind` for the indexed views.
+  toElements(): ManifestElement[] {
+    return [...this._elements]
   }
 
   // Convenience for callers (mostly tests) that operate under the standard
@@ -90,6 +103,42 @@ export default class ChangeSet {
       this.renames.set(type, new Map())
     }
     this.renames.get(type)!.set(renameKey(from, to), { from, to })
+  }
+
+  // Folds another ChangeSet's entries into this one. Used to combine
+  // per-handler / per-collector outputs into a single project-wide view.
+  // Mutates `this`; `other` is left untouched so the source can stay
+  // referentially shared if a caller needs the snapshot it represents.
+  merge(other: ChangeSet): void {
+    for (const target of [
+      ManifestTarget.Package,
+      ManifestTarget.DestructiveChanges,
+    ] as const) {
+      for (const [type, members] of other.byTarget[target]) {
+        for (const member of members) {
+          this._addToManifest(this.byTarget[target], type, member)
+        }
+      }
+    }
+    for (const kind of [
+      ChangeKind.Add,
+      ChangeKind.Modify,
+      ChangeKind.Delete,
+    ] as const) {
+      for (const [type, members] of other.byKind[kind]) {
+        for (const member of members) {
+          this._addToManifest(this.byKind[kind], type, member)
+        }
+      }
+    }
+    for (const element of other._elements) {
+      this._elements.push(element)
+    }
+    for (const [type, pairs] of other.renames) {
+      for (const { from, to } of pairs.values()) {
+        this.recordRename(type, from, to)
+      }
+    }
   }
 
   forPackageManifest(): Manifest {
@@ -218,5 +267,26 @@ export default class ChangeSet {
       }
     }
     return result
+  }
+}
+
+// HandlerResult helpers live next to ChangeSet because they construct it
+// at runtime; keeping them here avoids a circular module dep with
+// handlerResult.ts (which only imports the type).
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+
+export const emptyResult = (): HandlerResult => ({
+  changes: new ChangeSet(),
+  copies: [] as CopyOperation[],
+  warnings: [] as Error[],
+})
+
+export const mergeResults = (...results: HandlerResult[]): HandlerResult => {
+  const merged = new ChangeSet()
+  for (const r of results) merged.merge(r.changes)
+  return {
+    changes: merged,
+    copies: results.flatMap(r => r.copies),
+    warnings: results.flatMap(r => r.warnings),
   }
 }

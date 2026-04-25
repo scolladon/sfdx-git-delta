@@ -69,24 +69,24 @@ export default class StandardHandler {
       Logger.debug(
         lazy`${this.constructor.name}.collect: ${this.changeType} ${this.element.type.xmlName} '${this.element.basePath}' failed: ${() => getErrorMessage(error)}`
       )
-      return {
-        manifests: [],
-        copies: [],
-        warnings: [wrapError(message, error)],
-      }
+      const failed = emptyResult()
+      failed.warnings.push(wrapError(message, error))
+      return failed
     }
   }
 
   public async collectAddition(): Promise<HandlerResult> {
     const result = emptyResult()
-    result.manifests.push(this._collectManifestElement(ManifestTarget.Package))
+    result.changes.addElement(
+      this._collectManifestElement(ManifestTarget.Package)
+    )
     this._collectCopyWithMetaFile(result.copies, this.element.basePath)
     return result
   }
 
   public async collectDeletion(): Promise<HandlerResult> {
     const result = emptyResult()
-    result.manifests.push(
+    result.changes.addElement(
       this._collectManifestElement(ManifestTarget.DestructiveChanges)
     )
     return result
@@ -142,15 +142,6 @@ export default class StandardHandler {
       path,
       revision: this.config.to,
     })
-  }
-
-  protected _collectComputedContent(
-    copies: CopyOperation[],
-    path: string,
-    content: string
-  ): void {
-    if (!this._shouldCollectCopies()) return
-    copies.push({ kind: CopyOperationKind.ComputedContent, path, content })
   }
 
   protected _shouldCollectCopies(): boolean {

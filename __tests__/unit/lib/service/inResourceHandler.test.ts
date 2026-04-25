@@ -78,7 +78,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -103,7 +103,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -131,7 +131,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests.length).toBeGreaterThan(0)
+        expect(result.changes.toElements().length).toBeGreaterThan(0)
         expect(result.copies).toHaveLength(0)
       })
 
@@ -157,7 +157,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -199,7 +199,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -250,7 +250,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -359,7 +359,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -404,7 +404,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -443,7 +443,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -490,7 +490,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -522,7 +522,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -602,7 +602,9 @@ describe('InResourceHandler', () => {
           work.config
         )
         expect(
-          result.manifests.some(m => m.target === 'destructiveChanges')
+          result.changes
+            .toElements()
+            .some(m => m.target === 'destructiveChanges')
         ).toBe(true)
       })
     })

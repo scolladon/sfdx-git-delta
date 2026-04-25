@@ -3,13 +3,31 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
-import type { HandlerResult } from '../../src/types/handlerResult'
+import type {
+  CopyOperation,
+  HandlerResult,
+  ManifestElement,
+} from '../../src/types/handlerResult'
 import {
   ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
 } from '../../src/types/handlerResult'
+import ChangeSet from '../../src/utils/changeSet'
+
+// Test ergonomics: tests express their fixtures as ManifestElement arrays
+// (the legacy wire format) for readability; this builder folds them into
+// the new ChangeSet-shaped HandlerResult.
+const handlerResult = (parts: {
+  manifests?: ManifestElement[]
+  copies?: CopyOperation[]
+  warnings?: Error[]
+}): HandlerResult => ({
+  changes: ChangeSet.from(parts.manifests ?? []),
+  copies: parts.copies ?? [],
+  warnings: parts.warnings ?? [],
+})
 
 const {
   mockPreBuildTreeIndex,
@@ -128,11 +146,20 @@ vi.mock('../../src/adapter/ioExecutor', () => {
   }
 })
 
+// getLines is now an async generator. Tests express the upstream output
+// as an array; this helper turns it into an iterable the production code
+// can consume via `for await`.
+const asAsyncIterable = (lines: string[]): AsyncIterable<string> => ({
+  async *[Symbol.asyncIterator]() {
+    for (const line of lines) yield line
+  },
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
-  mockGetLines.mockResolvedValue([] as never)
+  mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
@@ -155,28 +182,30 @@ describe('external library inclusion', () => {
   describe('when there are no changes', () => {
     beforeEach(() => {
       // Arrange
-      mockGetLines.mockImplementationOnce(() => Promise.resolve([]))
+      mockGetLines.mockReturnValueOnce(asAsyncIterable([]))
     })
     it('it should not process lines', async () => {
       // Act
-      await sgd({} as Config)
+      await sgd({ generateDelta: false } as Config)
 
-      // Assert
-      expect(mockProcess).toHaveBeenCalledWith([])
+      // Assert — when generateDelta is off, main.ts streams getLines()
+      // straight into process(), so process() receives the async
+      // iterable directly rather than a materialized array.
+      expect(mockProcess).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('when there are changes', () => {
     beforeEach(() => {
       // Arrange
-      mockGetLines.mockImplementationOnce(() => Promise.resolve(['line']))
+      mockGetLines.mockReturnValueOnce(asAsyncIterable(['line']))
     })
     it('it should process those lines', async () => {
       // Act
-      await sgd({} as Config)
+      await sgd({ generateDelta: false } as Config)
 
       // Assert
-      expect(mockProcess).toHaveBeenCalledWith(['line'])
+      expect(mockProcess).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -199,11 +228,9 @@ describe('external library inclusion', () => {
         path: 'test/path',
         revision: 'HEAD',
       }
-      mockProcess.mockResolvedValueOnce({
-        manifests: [],
-        copies: [handlerCopy],
-        warnings: [],
-      })
+      mockProcess.mockResolvedValueOnce(
+        handlerResult({ copies: [handlerCopy] })
+      )
 
       // Act
       await sgd({} as Config)
@@ -216,18 +243,18 @@ describe('external library inclusion', () => {
 
     it('Given post-processor produces results, When sgd runs, Then results are merged into work', async () => {
       // Arrange
-      mockCollectAll.mockResolvedValueOnce({
-        manifests: [
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'TestClass',
-            changeKind: ChangeKind.Add,
-          },
-        ],
-        copies: [],
-        warnings: [],
-      })
+      mockCollectAll.mockResolvedValueOnce(
+        handlerResult({
+          manifests: [
+            {
+              target: ManifestTarget.Package,
+              type: 'ApexClass',
+              member: 'TestClass',
+              changeKind: ChangeKind.Add,
+            },
+          ],
+        })
+      )
 
       // Act
       const result = await sgd({} as Config)
@@ -250,24 +277,24 @@ describe('external library inclusion', () => {
         .mockResolvedValueOnce({
           getElementDescriptor: () => ({ type: 'ApexClass', member: 'Bar' }),
         })
-      mockProcess.mockResolvedValueOnce({
-        manifests: [
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'Bar',
-            changeKind: ChangeKind.Add,
-          },
-          {
-            target: ManifestTarget.DestructiveChanges,
-            type: 'ApexClass',
-            member: 'Foo',
-            changeKind: ChangeKind.Delete,
-          },
-        ],
-        copies: [],
-        warnings: [],
-      })
+      mockProcess.mockResolvedValueOnce(
+        handlerResult({
+          manifests: [
+            {
+              target: ManifestTarget.Package,
+              type: 'ApexClass',
+              member: 'Bar',
+              changeKind: ChangeKind.Add,
+            },
+            {
+              target: ManifestTarget.DestructiveChanges,
+              type: 'ApexClass',
+              member: 'Foo',
+              changeKind: ChangeKind.Delete,
+            },
+          ],
+        })
+      )
 
       // Act
       const result = await sgd({} as Config)
@@ -290,16 +317,12 @@ describe('external library inclusion', () => {
       // Arrange
       const handlerWarning = new Error('handler warning')
       const postWarning = new Error('post-processor warning')
-      mockProcess.mockResolvedValueOnce({
-        manifests: [],
-        copies: [],
-        warnings: [handlerWarning],
-      })
-      mockCollectAll.mockResolvedValueOnce({
-        manifests: [],
-        copies: [],
-        warnings: [postWarning],
-      })
+      mockProcess.mockResolvedValueOnce(
+        handlerResult({ warnings: [handlerWarning] })
+      )
+      mockCollectAll.mockResolvedValueOnce(
+        handlerResult({ warnings: [postWarning] })
+      )
 
       // Act
       const result = await sgd({} as Config)

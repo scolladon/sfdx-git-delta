@@ -7,10 +7,12 @@ import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
+  ChangeKind,
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
@@ -55,9 +57,10 @@ describe('DiffLineInterpreter', () => {
         target: ManifestTarget.Package,
         type: 'ApexClass',
         member: 'Foo',
+        changeKind: ChangeKind.Add as ChangeKind.Add,
       }
       mockCollect.mockResolvedValue({
-        manifests: [manifest],
+        changes: ChangeSet.from([manifest]),
         copies: [],
         warnings: [],
       })
@@ -66,20 +69,21 @@ describe('DiffLineInterpreter', () => {
       const result = await sut.process(lines)
 
       // Assert
-      expect(result.manifests).toEqual([manifest])
+      expect(result.changes.toElements()).toEqual([manifest])
     })
 
     it('Given slow handlers, When queue workers finish after enqueuing, Then all results are collected', async () => {
       // Arrange
       const lines = ['a', 'b', 'c']
       const expectedResult: HandlerResult = {
-        manifests: [
+        changes: ChangeSet.from([
           {
             target: ManifestTarget.Package,
             type: 'CustomLabel',
             member: 'test',
+            changeKind: ChangeKind.Modify,
           },
-        ],
+        ]),
         copies: [],
         warnings: [],
       }
@@ -93,7 +97,7 @@ describe('DiffLineInterpreter', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(3)
-      expect(result.manifests).toHaveLength(3)
+      expect(result.changes.toElements()).toHaveLength(3)
     })
   })
 
@@ -107,7 +111,7 @@ describe('DiffLineInterpreter', () => {
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -122,9 +126,10 @@ describe('DiffLineInterpreter', () => {
         target: ManifestTarget.Package,
         type: 'ApexClass',
         member: 'Scoped',
+        changeKind: ChangeKind.Add as ChangeKind.Add,
       }
       mockCollect.mockResolvedValue({
-        manifests: [manifest],
+        changes: ChangeSet.from([manifest]),
         copies: [],
         warnings: [],
       })
@@ -133,7 +138,7 @@ describe('DiffLineInterpreter', () => {
       const result = await sut.process(lines, revisions)
 
       // Assert
-      expect(result.manifests).toEqual([manifest])
+      expect(result.changes.toElements()).toEqual([manifest])
       expect(result.warnings).toEqual([])
     })
   })
@@ -143,13 +148,14 @@ describe('DiffLineInterpreter', () => {
       // Arrange
       const lines = ['test']
       mockCollect.mockResolvedValue({
-        manifests: [
+        changes: ChangeSet.from([
           {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'Test',
+            changeKind: ChangeKind.Add,
           },
-        ],
+        ]),
         copies: [],
         warnings: [],
       })
@@ -158,8 +164,8 @@ describe('DiffLineInterpreter', () => {
       const result = await sut.process(lines)
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].type).toBe('ApexClass')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].type).toBe('ApexClass')
     })
   })
 

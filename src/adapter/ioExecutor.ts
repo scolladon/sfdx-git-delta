@@ -76,9 +76,6 @@ export default class IOExecutor {
       case CopyOperationKind.GitDirCopy:
         await this._executeGitDirCopy(op)
         break
-      case CopyOperationKind.ComputedContent:
-        await this._executeComputedContent(op)
-        break
       case CopyOperationKind.StreamedContent:
         await this._executeStreamedContent(op)
         break
@@ -197,13 +194,6 @@ export default class IOExecutor {
         await pipeline(entry.stream, ws, { end: false })
       })
     }
-  }
-
-  protected async _executeComputedContent(op: {
-    path: string
-    content: string
-  }): Promise<void> {
-    await outputFile(join(this.config.output, op.path), op.content)
   }
 
   protected async _executeStreamedContent(

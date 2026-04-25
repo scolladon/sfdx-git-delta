@@ -14,6 +14,16 @@ import {
 } from '../../../../src/utils/gitLfsHelper'
 import { getWork } from '../../../__utils__/testWork'
 
+// Streamed-output helper: materializes an AsyncIterable<string> into an array
+// for assertion. Used by streamDiffLines tests below.
+const collectStream = async (
+  source: AsyncIterable<string>
+): Promise<string[]> => {
+  const out: string[] = []
+  for await (const line of source) out.push(line)
+  return out
+}
+
 const {
   mockedRaw,
   mockedAddConfig,
@@ -799,7 +809,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, ['A\ttest\nM\tfile\nD\tanotherfile\n'])
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert
       expect(result).toEqual(['A\ttest', 'M\tfile', 'D\tanotherfile'])
@@ -821,7 +831,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, ['A\ttest\nR100\told.cls\tnew.cls\n'])
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert
       expect(result).toEqual(['A\ttest', 'R100\told.cls\tnew.cls'])
@@ -841,7 +851,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, [''])
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert
       expect(result).toEqual([])
@@ -855,7 +865,7 @@ describe('GitAdapter', () => {
       ])
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert
       expect(result).toEqual([
@@ -881,7 +891,7 @@ describe('GitAdapter', () => {
         ])
 
         // Act
-        const result = await gitAdapter.getDiffLines()
+        const result = await collectStream(gitAdapter.streamDiffLines())
 
         // Assert
         expect(result).toEqual(['A\ttest', 'M\tfile'])
@@ -917,7 +927,7 @@ describe('GitAdapter', () => {
         )
 
         // Act
-        const result = await gitAdapter.getDiffLines()
+        const result = await collectStream(gitAdapter.streamDiffLines())
 
         // Assert
         expect(result).toEqual([
@@ -958,7 +968,7 @@ describe('GitAdapter', () => {
         mockedRaw.mockResolvedValueOnce('1\t1\t\0\0\0' as never)
 
         // Act
-        const result = await gitAdapter.getDiffLines()
+        const result = await collectStream(gitAdapter.streamDiffLines())
 
         // Assert
         expect(result).toEqual([])
@@ -976,7 +986,7 @@ describe('GitAdapter', () => {
         mockedRaw.mockResolvedValueOnce('' as never)
 
         // Act
-        const result = await gitAdapter.getDiffLines()
+        const result = await collectStream(gitAdapter.streamDiffLines())
 
         // Assert
         expect(result).toEqual([])
@@ -993,7 +1003,7 @@ describe('GitAdapter', () => {
         )
 
         // Act
-        const result = await gitAdapter.getDiffLines()
+        const result = await collectStream(gitAdapter.streamDiffLines())
 
         // Assert
         expect(result).toEqual(['R\ta.cls\tb.cls', 'R\tc.cls\td.cls'])
@@ -1012,7 +1022,7 @@ describe('GitAdapter', () => {
         mockedRaw.mockResolvedValueOnce('1\t1\t\0src.cls\0\0' as never)
 
         // Act
-        const result = await gitAdapter.getDiffLines()
+        const result = await collectStream(gitAdapter.streamDiffLines())
 
         // Assert
         expect(result).toEqual([])
@@ -1025,7 +1035,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, ['A\tbinaryFile.png\n'])
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert
       expect(result).toEqual(['A\tbinaryFile.png'])
@@ -1787,7 +1797,7 @@ describe('GitAdapter', () => {
       config.to = 'to-rev'
       config.source = ['force-app']
       config.ignoreWhitespace = false
-      await expect(gitAdapter.getDiffLines()).rejects.toThrow(
+      await expect(collectStream(gitAdapter.streamDiffLines())).rejects.toThrow(
         /git diff exited 128: fatal: bad thing happened/
       )
     })
@@ -1817,7 +1827,7 @@ describe('GitAdapter', () => {
       config.to = 'to-rev'
       config.source = ['force-app']
       config.ignoreWhitespace = false
-      const received = gitAdapter.getDiffLines()
+      const received = collectStream(gitAdapter.streamDiffLines())
 
       // Assert — exact format, no ': ' separator when stderr is empty
       await expect(received).rejects.toThrow(/^git diff exited 2$/)
@@ -2045,7 +2055,9 @@ describe('GitAdapter', () => {
         child.emit('close', 1)
       })
 
-      const err = await gitAdapter.getDiffLines().catch(e => e)
+      const err = await collectStream(gitAdapter.streamDiffLines()).catch(
+        e => e
+      )
       expect(err).toBeInstanceOf(Error)
       // The error must include the exit code
       expect(err.message).toMatch(/git diff exited 1/)
@@ -2083,7 +2095,9 @@ describe('GitAdapter', () => {
         child.emit('close', 1)
       })
 
-      const err = await gitAdapter.getDiffLines().catch(e => e)
+      const err = await collectStream(gitAdapter.streamDiffLines()).catch(
+        e => e
+      )
       expect(err).toBeInstanceOf(Error)
       // The second chunk (0x43 = 'C') must not appear in the message
       expect(err.message).not.toContain('C'.repeat(10))
@@ -2116,7 +2130,7 @@ describe('GitAdapter', () => {
         child.emit('close', null)
       })
 
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
       expect(result).toEqual(['A\tsome/file'])
     })
 
@@ -2142,7 +2156,7 @@ describe('GitAdapter', () => {
         child.emit('close', 0)
       })
 
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
       expect(result).toEqual(['M\tmodified.cls'])
     })
 
@@ -2170,7 +2184,7 @@ describe('GitAdapter', () => {
         child.emit('close', 0)
       })
 
-      await gitAdapter.getDiffLines()
+      await collectStream(gitAdapter.streamDiffLines())
       // exitCode is 0 (non-null) so kill must NOT be called
       expect(killFn).not.toHaveBeenCalled()
     })
@@ -2197,7 +2211,7 @@ describe('GitAdapter', () => {
         child.emit('close', 0)
       })
 
-      await gitAdapter.getDiffLines()
+      await collectStream(gitAdapter.streamDiffLines())
       expect(killFn).not.toHaveBeenCalled()
     })
 
@@ -2224,7 +2238,7 @@ describe('GitAdapter', () => {
         child.emit('close', 0)
       })
 
-      await gitAdapter.getDiffLines()
+      await collectStream(gitAdapter.streamDiffLines())
       expect(killFn).toHaveBeenCalled()
     })
   })
@@ -2254,7 +2268,7 @@ describe('GitAdapter', () => {
         child.emit('close', 0)
       })
 
-      await gitAdapter.getDiffLines()
+      await collectStream(gitAdapter.streamDiffLines())
 
       // Child was removed from streamingChildren during normal close handling.
       // Firing close again must not throw (idx would be -1).
@@ -2288,10 +2302,10 @@ describe('GitAdapter', () => {
 
       // Spawn first streaming child
       config.ignoreWhitespace = false
-      gitAdapter.getDiffLines().catch(() => undefined)
+      collectStream(gitAdapter.streamDiffLines()).catch(() => undefined)
       // Spawn second streaming child by reconfiguring and re-calling
       config.ignoreWhitespace = false
-      gitAdapter.getDiffLines().catch(() => undefined)
+      collectStream(gitAdapter.streamDiffLines()).catch(() => undefined)
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -2889,7 +2903,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, ['A\tnewFile\n'])
 
       // Act
-      await gitAdapter.getDiffLines()
+      await collectStream(gitAdapter.streamDiffLines())
 
       // Assert — '--' must appear before source paths in strict sequence
       const args = spawnCalls[0]!.args
@@ -2911,7 +2925,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, ['A\tfile1.cls\n\nM\tfile2.cls\n'])
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert — empty string must not be in output
       expect(result).toEqual(['A\tfile1.cls', 'M\tfile2.cls'])
@@ -2929,7 +2943,7 @@ describe('GitAdapter', () => {
       installDiffSpawnQueue(gitAdapter, ['8\t0\tsome/file.cls\n', '', ''])
 
       // Act
-      await gitAdapter.getDiffLines()
+      await collectStream(gitAdapter.streamDiffLines())
 
       // Assert — all three spawn calls must begin with 'diff' then '--numstat'
       for (const call of spawnCalls) {
@@ -2955,7 +2969,7 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert — rename must appear and must have come from simpleGit.raw
       expect(result).toContain('R\tsrc/OldClass.cls\tsrc/NewClass.cls')
@@ -3019,7 +3033,7 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert — only two complete rename pairs, dangling triplet is skipped
       expect(result).toEqual(['R\ta.cls\tb.cls', 'R\tc.cls\td.cls'])
@@ -3035,7 +3049,7 @@ describe('GitAdapter', () => {
       mockedRaw.mockResolvedValueOnce('1\t1\t\0old.cls\0new.cls\0' as never)
 
       // Act
-      const result = await gitAdapter.getDiffLines()
+      const result = await collectStream(gitAdapter.streamDiffLines())
 
       // Assert
       expect(result).toEqual(['R\told.cls\tnew.cls'])

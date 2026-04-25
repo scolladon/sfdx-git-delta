@@ -65,7 +65,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -89,7 +89,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectModification()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -113,7 +113,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -140,7 +140,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -181,7 +181,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -222,12 +222,12 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      const containerManifest = result.manifests.find(
-        m => m.type === 'CustomLabels'
-      )
+      const containerManifest = result.changes
+        .toElements()
+        .find(m => m.type === 'CustomLabels')
       expect(containerManifest).toBeUndefined()
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].type).toBe('CustomLabel')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].type).toBe('CustomLabel')
     })
   })
 })

@@ -156,30 +156,6 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given a ComputedContent operation', () => {
-    it('When executed, Then writes content directly to output', async () => {
-      // Arrange
-      const work = getWork()
-      work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-
-      // Act
-      await executor.execute([
-        {
-          kind: CopyOperationKind.ComputedContent,
-          path: 'labels/CustomLabels.labels',
-          content: '<xml>label content</xml>',
-        },
-      ])
-
-      // Assert
-      expect(outputFile).toHaveBeenCalledWith(
-        'output/labels/CustomLabels.labels',
-        '<xml>label content</xml>'
-      )
-    })
-  })
-
   describe('Given duplicate paths', () => {
     it('When executed, Then deduplicates by path', async () => {
       // Arrange
@@ -468,30 +444,6 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given a ComputedContent operation', () => {
-    it('When executed, Then writes to joined output path', async () => {
-      // Arrange
-      const work = getWork()
-      work.config.output = 'my-output'
-      const executor = new IOExecutor(work.config)
-
-      // Act
-      await executor.execute([
-        {
-          kind: CopyOperationKind.ComputedContent,
-          path: 'labels/CustomLabels.labels',
-          content: '<xml/>',
-        },
-      ])
-
-      // Assert
-      expect(outputFile).toHaveBeenCalledWith(
-        'my-output/labels/CustomLabels.labels',
-        '<xml/>'
-      )
-    })
-  })
-
   describe('Given a StreamedContent operation', () => {
     it('When executed, Then writes via sibling tmp and renames on success', async () => {
       // Arrange
@@ -582,30 +534,35 @@ describe('IOExecutor', () => {
       expect(mockCreateWriteStream).not.toHaveBeenCalled()
     })
 
-    it('When ComputedContent precedes StreamedContent for the same path, Then the streamed writer is silently dropped', async () => {
+    it('When two StreamedContent ops target the same path, Then only the first writer fires (per-path dedup via processedPaths)', async () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
+      const stream = createFakeWriteStream()
+      mockCreateWriteStream.mockReturnValueOnce(stream)
       const sut = new IOExecutor(work.config)
-      const writer = vi.fn()
+      const firstWriter = vi.fn(async (out: Writable) => {
+        out.write('<first/>')
+      })
+      const secondWriter = vi.fn()
 
       // Act
       await sut.execute([
         {
-          kind: CopyOperationKind.ComputedContent,
+          kind: CopyOperationKind.StreamedContent,
           path: 'labels/CustomLabels.labels',
-          content: '<xml/>',
+          writer: firstWriter,
         },
         {
           kind: CopyOperationKind.StreamedContent,
           path: 'labels/CustomLabels.labels',
-          writer,
+          writer: secondWriter,
         },
       ])
 
       // Assert
-      expect(outputFile).toHaveBeenCalledTimes(1)
-      expect(writer).not.toHaveBeenCalled()
+      expect(firstWriter).toHaveBeenCalledTimes(1)
+      expect(secondWriter).not.toHaveBeenCalled()
     })
   })
 
