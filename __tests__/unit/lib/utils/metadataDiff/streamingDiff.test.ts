@@ -692,4 +692,18 @@ describe('StreamingDiff', () => {
       { type: packageableSubType.xmlName, member: 'Second.Key' },
     ])
   })
+
+  it('Given an added keyed element retained in the to-side, When finalize runs, Then isEmpty is false (streamingDiff isEmpty kills `=== 0` → `true` mutant)', () => {
+    // Counterpart to the delete-only isEmpty=true test above. The mutant
+    // `prunedBySubType.size === 0` → `true` would always mark isEmpty as
+    // true, even when surviving children exist; this assertion catches
+    // that by requiring isEmpty=false on a single retained add.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'Survivor.Key' })
+    const outcome = sut.finalize()
+    expect(outcome.isEmpty).toBe(false)
+    expect(outcome.hasAnyChanges).toBe(true)
+  })
 })

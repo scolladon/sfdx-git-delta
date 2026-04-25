@@ -50,7 +50,7 @@ Rebuild every time you make a change in the source and need to test locally.
 
 ## Testing
 
-The test suite is organised into five buckets, each backed by its own
+The test suite is organized into five buckets, each backed by its own
 directory and its own `npm` script. They are cumulative: a typical CI
 build runs them in the order below, and `npm test` aggregates all four
 non-perf buckets.
