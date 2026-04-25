@@ -5,7 +5,7 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     clearMocks: true,
-    include: ['__tests__/**/*.test.ts'],
+    include: ['__tests__/unit/**/*.test.ts'],
     exclude: ['src', 'node_modules', '__tests__/__utils__', 'reports', 'e2e'],
     coverage: {
       provider: 'v8',

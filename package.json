@@ -115,6 +115,8 @@
     "prepublishOnly": "npm shrinkwrap",
     "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
     "test:build": "wireit",
+    "test:functional": "wireit",
+    "test:integration": "wireit",
     "test:mutation": "wireit",
     "test:mutation:incremental": "wireit",
     "test:nut": "wireit",
@@ -247,7 +249,36 @@
     "test": {
       "dependencies": [
         "test:unit",
-        "test:nut"
+        "test:integration",
+        "test:nut",
+        "test:functional"
+      ]
+    },
+    "test:functional": {
+      "command": "vitest run --config vitest.functional.config.ts",
+      "files": [
+        "src/**/*.ts",
+        "__tests__/functional/**/*.test.ts",
+        "__tests__/functional/byteEquality/fixtures/**",
+        "**/tsconfig.json",
+        "vitest.functional.config.ts"
+      ],
+      "output": [],
+      "dependencies": [
+        "lint"
+      ]
+    },
+    "test:integration": {
+      "command": "vitest run --config vitest.integration.config.ts",
+      "files": [
+        "src/**/*.ts",
+        "__tests__/integration/**/*.test.ts",
+        "**/tsconfig.json",
+        "vitest.integration.config.ts"
+      ],
+      "output": [],
+      "dependencies": [
+        "lint"
       ]
     },
     "test:build": {
@@ -308,7 +339,7 @@
       "command": "oclif manifest && vitest run --config vitest.nut.config.ts",
       "files": [
         "src/**/*.ts",
-        "__tests__/**/*.nut.ts",
+        "__tests__/nut/**/*.nut.ts",
         "messages/**",
         "**/tsconfig.json",
         "vitest.nut.config.ts"

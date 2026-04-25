@@ -1,89 +1,14 @@
 'use strict'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import type { Config } from '../../../../src/types/config'
-import { readPathFromGit } from '../../../../src/utils/fsHelper'
-import { parseXmlFileToJson, xml2Json } from '../../../../src/utils/xmlHelper'
-
-const mockedReadPathFromGit = vi.mocked(readPathFromGit)
-
-vi.mock('../../../../src/utils/fsHelper')
+import { parseXml } from '../../../../src/utils/txmlAdapter'
 
 describe('xmlHelper', () => {
-  describe('parseXmlFileToJson', () => {
-    const config: Config = {
-      from: '',
-      to: '',
-      output: '',
-      source: [''],
-      ignore: '',
-      ignoreDestructive: '',
-      apiVersion: 0,
-      repo: '',
-      ignoreWhitespace: false,
-      generateDelta: false,
-      include: '',
-      includeDestructive: '',
-    }
-    describe('when called with empty content', () => {
-      beforeEach(() => {
-        // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce('')
-      })
-      it('returns empty object', async () => {
-        // Act
-        const jsonResult = await parseXmlFileToJson(
-          { path: 'path/to/empty/file', oid: config.to },
-          config
-        )
-
-        // Assert
-        expect(jsonResult).toStrictEqual({})
-      })
-    })
-    describe('when called with xml content', () => {
-      beforeEach(() => {
-        // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce(
-          '<root a="nice" checked><a>wow</a></root>'
-        )
-      })
-      it('returns json content', async () => {
-        // Act
-        const jsonContent = await parseXmlFileToJson(
-          { path: 'path/to/empty/file', oid: config.to },
-          config
-        )
-
-        // Assert
-        expect(jsonContent).toEqual({
-          root: { '@_a': 'nice', '@_checked': true, a: 'wow' },
-        })
-      })
-    })
-    describe('when called with non xml content', () => {
-      beforeEach(() => {
-        // Arrange
-        mockedReadPathFromGit.mockResolvedValueOnce('{"attribute": "value"}')
-      })
-      it('returns empty object', async () => {
-        // Act
-        const jsonContent = await parseXmlFileToJson(
-          { path: 'path/to/empty/file', oid: config.to },
-          config
-        )
-
-        // Assert
-        expect(jsonContent).toStrictEqual({})
-      })
-    })
-  })
-
-  describe('xml2Json', () => {
+  describe('parseXml', () => {
     describe('when called with empty content', () => {
       it('returns empty object', () => {
         // Act
-        const jsonResult = xml2Json('')
+        const jsonResult = parseXml('')
 
         // Assert
         expect(jsonResult).toStrictEqual({})
@@ -92,7 +17,7 @@ describe('xmlHelper', () => {
     describe('when called with xml content', () => {
       it('returns json content', () => {
         // Act
-        const jsonContent = xml2Json('<root a="nice" checked><a>wow</a></root>')
+        const jsonContent = parseXml('<root a="nice" checked><a>wow</a></root>')
 
         // Assert
         expect(jsonContent).toEqual({
@@ -103,7 +28,7 @@ describe('xmlHelper', () => {
     describe('when called with non xml content', () => {
       it('returns empty object', () => {
         // Act
-        const jsonContent = xml2Json(JSON.stringify({ attribute: 'value' }))
+        const jsonContent = parseXml(JSON.stringify({ attribute: 'value' }))
 
         // Assert
         expect(jsonContent).toStrictEqual({})
@@ -117,7 +42,7 @@ describe('xmlHelper', () => {
       const xmlWithComment = '<root><!-- a comment --><a>value</a></root>'
 
       // Act
-      const sut = xml2Json(xmlWithComment)
+      const sut = parseXml(xmlWithComment)
 
       // Assert
       expect(sut).toHaveProperty('root.#comment')
@@ -134,7 +59,7 @@ describe('xmlHelper', () => {
         '<ns:root xmlns:ns="http://example.com"><ns:child>val</ns:child></ns:root>'
 
       // Act
-      const sut = xml2Json(xmlWithNs)
+      const sut = parseXml(xmlWithNs)
 
       // Assert
       expect(sut).toHaveProperty('ns:root')
@@ -147,7 +72,7 @@ describe('xmlHelper', () => {
       const xmlWithNumber = '<root><version>42</version></root>'
 
       // Act
-      const sut = xml2Json(xmlWithNumber)
+      const sut = parseXml(xmlWithNumber)
 
       // Assert
       const version = (sut as Record<string, Record<string, unknown>>).root
@@ -163,7 +88,7 @@ describe('xmlHelper', () => {
       const xmlWithAttrNumber = '<root count="10">text</root>'
 
       // Act
-      const sut = xml2Json(xmlWithAttrNumber)
+      const sut = parseXml(xmlWithAttrNumber)
 
       // Assert
       const count = (sut as Record<string, Record<string, unknown>>).root[
@@ -180,7 +105,7 @@ describe('xmlHelper', () => {
       const xmlWithSpaces = '<root><a>  hello  </a></root>'
 
       // Act
-      const sut = xml2Json(xmlWithSpaces)
+      const sut = parseXml(xmlWithSpaces)
 
       // Assert
       expect((sut as Record<string, Record<string, unknown>>).root.a).toBe(
@@ -195,7 +120,7 @@ describe('xmlHelper', () => {
       const xmlWithEntity = '<root><a>foo &amp; bar</a></root>'
 
       // Act
-      const sut = xml2Json(xmlWithEntity)
+      const sut = parseXml(xmlWithEntity)
 
       // Assert
       const value = (sut as Record<string, Record<string, unknown>>).root.a
@@ -211,7 +136,7 @@ describe('xmlHelper', () => {
       const xml = '<root><wrap><a>1</a><a>2</a><a>3</a></wrap></root>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       const wrap = (sut as Record<string, Record<string, unknown>>).root
@@ -225,7 +150,7 @@ describe('xmlHelper', () => {
       const xml = '<root><a>x</a><a>y</a></root>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       expect((sut as Record<string, Record<string, unknown>>).root.a).toEqual([
@@ -239,7 +164,7 @@ describe('xmlHelper', () => {
       const xml = '<root><wrap><!-- a --><!-- b --><!-- c --></wrap></root>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       const wrap = (sut as Record<string, Record<string, unknown>>).root
@@ -252,7 +177,7 @@ describe('xmlHelper', () => {
       const xml = '<!-- one --><!-- two --><Root/>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       expect(sut['#comment']).toEqual([' one ', ' two '])
@@ -263,7 +188,7 @@ describe('xmlHelper', () => {
       const xml = '<!-- a --><!-- b --><!-- c --><Root/>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       expect(sut['#comment']).toEqual([' a ', ' b ', ' c '])
@@ -275,7 +200,7 @@ describe('xmlHelper', () => {
       const xml = '<root><inner attr="x"/></root>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       const inner = (sut as Record<string, Record<string, unknown>>).root.inner
@@ -289,7 +214,7 @@ describe('xmlHelper', () => {
       const xml = '<?xml version="1.0" encoding="UTF-8"?><Root>x</Root>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       expect(sut['?xml']).toEqual({
@@ -305,7 +230,7 @@ describe('xmlHelper', () => {
       const xml = '<A>1</A><A>2</A><A>3</A>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert
       expect(sut.A).toEqual(['1', '2', '3'])
@@ -318,7 +243,7 @@ describe('xmlHelper', () => {
       const xml = '   \n  <Root>x</Root>'
 
       // Act
-      const sut = xml2Json(xml)
+      const sut = parseXml(xml)
 
       // Assert — root parses cleanly with no leakage from the whitespace
       expect(sut).toEqual({ Root: 'x' })
@@ -331,22 +256,22 @@ describe('xmlHelper', () => {
       undefined,
       0,
       false,
-    ])('When xml2Json receives falsy value %s, Then returns empty object without calling parser', falsy => {
+    ])('When parseXml receives falsy value %s, Then returns empty object without calling parser', falsy => {
       // Arrange — any falsy xmlContent must trigger the early-return guard
       // at L34. If the ConditionalExpression is mutated to `false` the
       // guard never fires and the parser is called with a falsy string,
       // producing either an error or unexpected output.
-      const sut = xml2Json(falsy as unknown as string)
+      const sut = parseXml(falsy as unknown as string)
 
       // Assert
       expect(sut).toStrictEqual({})
     })
 
-    it('When xml2Json receives a non-empty string, Then does NOT early-return (guard only fires for falsy)', () => {
+    it('When parseXml receives a non-empty string, Then does NOT early-return (guard only fires for falsy)', () => {
       // Arrange — verifies the guard does not fire for truthy input.
       // If ConditionalExpression were mutated to `true` this would return {}
       // for valid XML, breaking the parse path.
-      const sut = xml2Json('<root><a>1</a></root>')
+      const sut = parseXml('<root><a>1</a></root>')
 
       // Assert — parsed content must be present
       expect(sut).not.toStrictEqual({})

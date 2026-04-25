@@ -658,4 +658,38 @@ describe('StreamingDiff', () => {
     sut.finalize()
     expect(sut.buildWriter(buildRoot())).toBeDefined()
   })
+
+  it('Given a delete-only keyed subType (all from elements removed in to), When buildWriter runs, Then it returns undefined via the prunedBySubType.size === 0 short-circuit (streamingDiff L182)', () => {
+    // Arrange — from has a packageable keyed element, to is empty for it.
+    // hasAnyChanges is true (drainDeletions records the delete), but the
+    // pruned XML would be just the empty root → buildWriter must skip.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onFromElement(packageableSubType.tag, { [keyField]: 'Only.From' })
+    const outcome = sut.finalize()
+
+    // Act
+    const writer = sut.buildWriter(buildRoot())
+
+    // Assert — change recorded, but writer skipped (no surviving children)
+    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.isEmpty).toBe(true)
+    expect(writer).toBeUndefined()
+  })
+
+  it('Given two added keyed elements of the same subType, When retainSubTypeElement runs, Then the second push hits the existing-array branch (streamingDiff L250 sub 1)', () => {
+    // Kills L250 ConditionalExpression false: with the mutant, every retain
+    // creates a new array, dropping the first element from the writer output.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'First.Key' })
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'Second.Key' })
+    const outcome = sut.finalize()
+    expect(outcome.added).toEqual([
+      { type: packageableSubType.xmlName, member: 'First.Key' },
+      { type: packageableSubType.xmlName, member: 'Second.Key' },
+    ])
+  })
 })

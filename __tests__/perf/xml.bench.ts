@@ -4,7 +4,7 @@ import {
   parseFromSideSwallowing,
   parseToSidePropagating,
 } from '../../src/utils/metadataDiff/xmlEventReader.js'
-import { xml2Json } from '../../src/utils/xmlHelper.js'
+import { parseXml } from '../../src/utils/txmlAdapter.js'
 
 // Salesforce-shaped XML payloads at three rough sizes. The fixtures are
 // generated in-memory rather than read from disk so the benchmark
@@ -44,8 +44,8 @@ for (const [size, payload] of Object.entries(FIXTURES) as Array<
   [keyof typeof FIXTURES, string]
 >) {
   describe(`xml-parse-${size}`, () => {
-    bench(`xml2Json-${size}`, () => {
-      xml2Json(payload)
+    bench(`parseXml-${size}`, () => {
+      parseXml(payload)
     })
 
     bench(`parseToSidePropagating-${size}`, async () => {
