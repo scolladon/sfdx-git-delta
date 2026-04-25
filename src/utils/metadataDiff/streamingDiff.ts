@@ -9,8 +9,8 @@ import type { XmlContent } from '../xmlHelper.js'
 import type { RootCapture, SubTypeElementHandler } from './xmlEventReader.js'
 import { writeXmlDocument } from './xmlWriter.js'
 
-export const ARRAY_SPECIAL_KEY = '<array>'
-export const OBJECT_SPECIAL_KEY = '<object>'
+const ARRAY_SPECIAL_KEY = '<array>'
+const OBJECT_SPECIAL_KEY = '<object>'
 export const CARDINALITY_SAFETY_LIMIT = 100_000
 
 export type CompareEntry = Pick<ManifestElement, 'type' | 'member'>

@@ -21,9 +21,6 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: [
-      { find: /^(.+)\.js$/, replacement: '$1' },
-      { find: 'lodash-es', replacement: 'lodash' },
-    ],
+    alias: [{ find: /^(.+)\.js$/, replacement: '$1' }],
   },
 })
