@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
+import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
   emptyResult,
@@ -159,6 +160,61 @@ describe('DiffLineInterpreter', () => {
       // Assert
       expect(result.manifests).toHaveLength(1)
       expect(result.manifests[0].type).toBe('ApexClass')
+    })
+  })
+
+  describe('Given revisions override, effectiveWork construction', () => {
+    const MockedTypeHandlerFactory = vi.mocked(TypeHandlerFactory)
+
+    it('When revisions provided, Then TypeHandlerFactory receives work with merged config containing revision from', async () => {
+      // Arrange — L25:33 mutant replaces `{ ...this.work.config, ...revisions }` with `{}`
+      // so effectiveWork.config would be missing the revision values
+      mockCollect.mockResolvedValue(emptyResult())
+      const revisions = { from: 'rev-from', to: 'rev-to' }
+
+      // Act
+      await sut.process(['line'], revisions)
+
+      // Assert — TypeHandlerFactory constructor first arg is effectiveWork
+      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+        -1
+      )![0] as Work
+      expect(effectiveWork.config.from).toBe('rev-from')
+      expect(effectiveWork.config.to).toBe('rev-to')
+    })
+
+    it('When revisions provided, Then TypeHandlerFactory receives work with all original work fields preserved', async () => {
+      // Arrange — L25:9 mutant replaces `{ ...this.work, config: ... }` with `{}`
+      // so effectiveWork would be empty, losing all work fields (changes, warnings, etc.)
+      mockCollect.mockResolvedValue(emptyResult())
+      work.config.generateDelta = true
+      work.config.output = 'custom-output'
+      const revisions = { from: 'sha-a', to: 'sha-b' }
+
+      // Act
+      await sut.process(['line'], revisions)
+
+      // Assert — effectiveWork must retain all original work properties
+      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+        -1
+      )![0] as Work
+      expect(effectiveWork.config.generateDelta).toBe(true)
+      expect(effectiveWork.config.output).toBe('custom-output')
+      expect(effectiveWork.warnings).toBe(work.warnings)
+    })
+
+    it('When no revisions provided, Then TypeHandlerFactory receives the original work reference', async () => {
+      // Arrange — when revisions is undefined, effectiveWork should equal work (same reference)
+      mockCollect.mockResolvedValue(emptyResult())
+
+      // Act
+      await sut.process(['line'])
+
+      // Assert
+      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+        -1
+      )![0] as Work
+      expect(effectiveWork).toBe(work)
     })
   })
 })

@@ -624,6 +624,44 @@ describe('SDRMetadataAdapter', () => {
         // Child keeps its own directoryName since parent's is empty (different)
         expect(child?.directoryName).toBe('childDir')
       })
+
+      it('Given parent with directoryName and child with same directoryName, When converting, Then child directoryName is empty (skipDirectory = true via parentDirName)', () => {
+        // Arrange — exercises the `sdrType.directoryName ?? ''` at L129.
+        // When parentDirName equals childDirName, skipDirectory is true and
+        // convertChildType sets child.directoryName to ''.
+        // If the literal were mutated to something other than the actual
+        // directoryName, skipDirectory would be false and child would keep
+        // 'workflows', breaking the expectation below.
+        const mockRegistry: MockRegistry = {
+          types: {
+            workflow: {
+              id: 'workflow',
+              name: 'Workflow',
+              directoryName: 'workflows',
+              suffix: 'workflow',
+              children: {
+                types: {
+                  workflowalert: {
+                    id: 'workflowalert',
+                    name: 'WorkflowAlert',
+                    suffix: 'workflow', // same as parent → skipSuffix = true
+                    directoryName: 'workflows', // same as parent → skipDirectory = true
+                  },
+                },
+              },
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert — child directory must be '' because parentDirName='workflows'
+        // and childDirName='workflows' (found via findChildDirectory fallback)
+        const child = metadata.find(m => m.xmlName === 'WorkflowAlert')
+        expect(child?.directoryName).toBe('')
+      })
     })
 
     describe('caching', () => {

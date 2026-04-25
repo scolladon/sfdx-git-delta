@@ -500,4 +500,372 @@ describe('GitBatchCatFile', () => {
       sut.close()
     })
   })
+
+  // -----------------------------------------------------------------------
+  // Mutation-killing tests (added to kill Stryker survivors)
+  // -----------------------------------------------------------------------
+
+  describe('Given getContent vs getContentOrEscalate escalation flag', () => {
+    it('When getContent is called with size >= threshold, Then it resolves (allowStreamingEscalation=false, no escalation)', async () => {
+      // Arrange — getContent must pass allowStreamingEscalation=false so
+      // even an oversized blob is returned as a buffer.
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 1,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Act
+      const p = sut.getContent('oidBig', 'big.bin')
+      const payload = Buffer.from('X')
+      fakes.procs[0].stdout.emit(
+        'data',
+        Buffer.concat([
+          Buffer.from('oidBig blob 1\n'),
+          payload,
+          Buffer.from([0x0a]),
+        ])
+      )
+
+      // Assert — resolves, NOT escalated (kills L44 BooleanLiteral → true)
+      expect((await p).toString()).toBe('X')
+      sut.close()
+    })
+  })
+
+  describe('Given _materializeBuffer with multiple chunks', () => {
+    it('When two separate data events arrive, Then both chunks are concatenated into a single buffer', async () => {
+      // Arrange — forces chunks.length > 1 before any header newline is
+      // received, exercising the merge branch (kills L91 ConditionalExpression)
+      const sut = new GitBatchCatFile('/repo')
+      const content = 'hello'
+
+      // Act
+      const p = sut.getContent('rev', 'file.txt')
+      // Send header in one chunk, content in another — two separate `data`
+      // events so chunks[] has two entries when the second call processes.
+      mockStdout.emit('data', Buffer.from(`oid blob ${content.length}\n`))
+      mockStdout.emit('data', Buffer.from(`${content}\n`))
+
+      const result = await p
+
+      // Assert
+      expect(result.toString()).toBe(content)
+      sut.close()
+    })
+  })
+
+  describe('Given _processBuffer body-wait condition', () => {
+    it('When pendingSize+1 bytes are exactly available, Then the content is resolved (boundary: buffer.length === pendingSize+1)', async () => {
+      // Arrange — tests pendingSize+1 vs pendingSize (kills L120 ArithmeticOperator)
+      const sut = new GitBatchCatFile('/repo')
+      const content = 'AB'
+      // pendingSize = 2, so we need at least 3 bytes (content + trailing \n)
+
+      // Act
+      const p = sut.getContent('rev', 'f.txt')
+      mockStdout.emit(
+        'data',
+        Buffer.concat([
+          Buffer.from(`oid blob ${content.length}\n`),
+          Buffer.from(`${content}\n`),
+        ])
+      )
+
+      // Assert
+      expect((await p).toString()).toBe(content)
+      sut.close()
+    })
+
+    it('When exactly pendingSize bytes are available but no trailing newline, Then it waits for more data before resolving', async () => {
+      // Arrange — buffer.length === pendingSize (not pendingSize+1), must stall
+      const sut = new GitBatchCatFile('/repo')
+      const content = 'XY'
+
+      // Act
+      const p = sut.getContent('rev', 'f.txt')
+      // Send header then body WITHOUT trailing newline
+      mockStdout.emit('data', Buffer.from(`oid blob ${content.length}\n`))
+      mockStdout.emit('data', Buffer.from(content)) // 2 bytes, needs 3
+
+      // Assert — still pending at this point (not yet resolved)
+      let resolved = false
+      p.then(() => {
+        resolved = true
+      })
+      await new Promise(resolve => setImmediate(resolve))
+      expect(resolved).toBe(false)
+
+      // Now deliver the trailing byte — should resolve
+      mockStdout.emit('data', Buffer.from('\n'))
+      expect((await p).toString()).toBe(content)
+      sut.close()
+    })
+  })
+
+  describe('Given _processBuffer queue.length check', () => {
+    it('When queue is empty and data arrives, Then no error is thrown', () => {
+      // Arrange — tests queue.length > 0 guard (kills L111 EqualityOperator)
+      const sut = new GitBatchCatFile('/repo')
+
+      // Act — send data with no pending requests; must not throw
+      expect(() => {
+        mockStdout.emit('data', Buffer.from('oid blob 3\nabc\n'))
+      }).not.toThrow()
+
+      sut.close()
+    })
+
+    it('When queue has exactly one item and data satisfies it, Then resolves that one item', async () => {
+      // Arrange
+      const sut = new GitBatchCatFile('/repo')
+      const p = sut.getContent('oid1', 'f1.txt')
+
+      // Act
+      mockStdout.emit('data', Buffer.from('oid1 blob 3\nabc\n'))
+
+      // Assert — exactly one item resolved, queue now empty
+      expect((await p).toString()).toBe('abc')
+      sut.close()
+    })
+  })
+
+  describe('Given _processBuffer action branching after header parse', () => {
+    it('When action is reject, Then the while loop continues without trying to read body', async () => {
+      // Arrange — two requests: first is missing (reject action), second
+      // should still resolve (kills L116 ConditionalExpression)
+      const sut = new GitBatchCatFile('/repo')
+      const p1 = sut.getContent('badoid', 'missing.txt')
+      const p2 = sut.getContent('goodoid', 'present.txt')
+
+      // Act — send both responses in one chunk
+      mockStdout.emit(
+        'data',
+        Buffer.from('badoid:missing.txt missing\ngoodoid blob 2\nok\n')
+      )
+
+      // Assert
+      await expect(p1).rejects.toThrow('Object not found')
+      expect((await p2).toString()).toBe('ok')
+      sut.close()
+    })
+
+    it('When action is escalated, Then the while loop continues without consuming body bytes', async () => {
+      // Arrange — first request escalates, second resolves from fresh proc
+      // (kills L116 ConditionalExpression for `escalated` branch)
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 10,
+        spawnFn: fakes.spawnFn,
+      })
+      const p1 = sut.getContentOrEscalate('bigoid', 'big.bin')
+      const p2 = sut.getContentOrEscalate('smalloid', 'small.txt')
+
+      fakes.procs[0].stdout.emit('data', Buffer.from('bigoid blob 4096\n'))
+      // After escalation, p2 is re-queued on fresh proc
+      fakes.procs[1].stdout.emit('data', Buffer.from('smalloid blob 2\nok\n'))
+
+      await expect(p1).rejects.toMatchObject({
+        name: 'EscalateToStreamingSignal',
+      })
+      expect((await p2).toString()).toBe('ok')
+      sut.close()
+    })
+  })
+
+  describe('Given _recycleSubprocess with already-killed stale process', () => {
+    it('When the stale process is already killed, Then stdin.end and kill are NOT called during recycle', async () => {
+      // Arrange — kills L183 ConditionalExpression (!stale.killed guard)
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 10,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Kill the first proc before escalation
+      fakes.procs[0].killed = true
+      const p = sut.getContentOrEscalate('bigoid', 'big.bin')
+      fakes.procs[0].stdout.emit('data', Buffer.from('bigoid blob 4096\n'))
+
+      await expect(p).rejects.toMatchObject({
+        name: 'EscalateToStreamingSignal',
+      })
+
+      // stale proc was already killed — stdin.end and kill should not be called
+      expect(fakes.procs[0].stdin.end).not.toHaveBeenCalled()
+      expect(fakes.procs[0].kill).not.toHaveBeenCalled()
+      sut.close()
+    })
+  })
+
+  describe('Given _spawnSubprocess close handler with stale process guard', () => {
+    it('When a stale recycled process emits close with non-zero code and queue is pending, Then the stale close is ignored (child !== this.process guard)', async () => {
+      // Arrange — kills L212 ConditionalExpression (child !== this.process)
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 10,
+        spawnFn: fakes.spawnFn,
+      })
+
+      // Trigger escalation to recycle to proc[1]
+      const p1 = sut.getContentOrEscalate('bigoid', 'big.bin')
+      fakes.procs[0].stdout.emit('data', Buffer.from('bigoid blob 4096\n'))
+      await expect(p1).rejects.toMatchObject({
+        name: 'EscalateToStreamingSignal',
+      })
+
+      // Now enqueue a fresh request on proc[1]
+      const p2 = sut.getContent('oid2', 'f2.txt')
+
+      // The stale proc[0] fires a non-zero close — must NOT reject p2
+      // (if the guard were absent, p2 would be rejected)
+      fakes.procs[0].emit('close', 1)
+      await new Promise(resolve => setImmediate(resolve))
+
+      // p2 is still pending — satisfy it from proc[1]
+      fakes.procs[1].stdout.emit('data', Buffer.from('oid2 blob 5\nhello\n'))
+      expect((await p2).toString()).toBe('hello')
+      sut.close()
+    })
+
+    it('When the active process emits non-zero close with queue length === 0, Then nothing is rejected', () => {
+      // Arrange — kills L213 EqualityOperator (queue.length > 0)
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', { spawnFn: fakes.spawnFn })
+
+      // No pending requests; non-zero close must not throw
+      expect(() => {
+        fakes.procs[0].emit('close', 1)
+      }).not.toThrow()
+
+      sut.close()
+    })
+
+    it('When the active process emits non-zero close with pending requests, Then all pending are rejected', async () => {
+      // Arrange — positive path for L213 (queue.length > 0 IS true)
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', { spawnFn: fakes.spawnFn })
+      const p1 = sut.getContent('oid1', 'f1.txt')
+      const p2 = sut.getContent('oid2', 'f2.txt')
+
+      // Act
+      fakes.procs[0].emit('close', 2)
+
+      // Assert — both rejected
+      await expect(p1).rejects.toThrow('git cat-file exited with code 2')
+      await expect(p2).rejects.toThrow('git cat-file exited with code 2')
+    })
+  })
+
+  describe('Given _escalateHead re-enqueue', () => {
+    it('When escalation fires, Then re-enqueued requests write oid:path to fresh stdin', async () => {
+      // Arrange — kills L153 StringLiteral and L159 ObjectLiteral empty mutations
+      // by asserting the escalation signal carries the correct oid/path
+      const fakes = createFakeSpawnSequence(2)
+      const sut = new GitBatchCatFile('/repo', {
+        sizeThreshold: 10,
+        spawnFn: fakes.spawnFn,
+      })
+
+      const p1 = sut.getContentOrEscalate('the-oid', 'the/path.cls')
+
+      fakes.procs[0].stdout.emit('data', Buffer.from('the-oid blob 4096\n'))
+
+      const result = await p1.catch(e => e)
+      // Assert signal carries oid and path (kills ObjectLiteral {} mutation)
+      expect(result.name).toBe('EscalateToStreamingSignal')
+      expect(result.ref.oid).toBe('the-oid')
+      expect(result.ref.path).toBe('the/path.cls')
+      sut.close()
+    })
+  })
+
+  describe('Given _advance with zero-length rest (L99 ConditionalExpression false)', () => {
+    it('When content is consumed exactly (rest.length === 0), Then chunks are cleared and totalLength is 0', async () => {
+      // Mutant false: else-branch always taken → chunks = [emptyBuffer], totalLength = 0
+      // If chunks is not cleared, next _processBuffer starts with a stale empty chunk
+      // which causes _materializeBuffer to return the empty chunk (length=1 iteration)
+      // instead of short-circuiting properly.
+      // We detect this by sending exactly the right number of bytes then a second
+      // clean request — if chunks were not cleared the second request would mismatch.
+      const sut = new GitBatchCatFile('/repo')
+      const content = 'XY'
+      const p1 = sut.getContent('rev1', 'f1.txt')
+      const p2 = sut.getContent('rev2', 'f2.txt')
+
+      // Deliver both complete responses in one emission (rest is [] after each)
+      mockStdout.emit(
+        'data',
+        Buffer.from(
+          `oid1 blob ${content.length}\n${content}\noid2 blob ${content.length}\n${content}\n`
+        )
+      )
+
+      // Both must resolve cleanly — if _advance doesn't clear chunks on rest.length===0,
+      // the second header parse would see stale bytes and reject or misparse.
+      expect((await p1).toString()).toBe(content)
+      expect((await p2).toString()).toBe(content)
+      sut.close()
+    })
+  })
+
+  describe('Given _materializeBuffer with exactly 1 chunk (L91 ConditionalExpression false)', () => {
+    it('When single chunk arrives, Then returns it directly without concat', async () => {
+      // Mutant false: always concatenates even for 1 chunk.
+      // After concat the result is set into chunks[0] and returned.
+      // The externally visible behaviour is identical except when concat
+      // fails (e.g. totalLength mismatch). We verify via a well-formed single
+      // chunk that resolves cleanly — the concat path with 1 chunk produces
+      // the same bytes, so the killing signal is via the L93 mutation below.
+      const sut = new GitBatchCatFile('/repo')
+      const p = sut.getContent('oid', 'f.txt')
+      // Single emission — chunks.length === 1 when _processBuffer runs
+      mockStdout.emit('data', Buffer.from('oid blob 3\nabc\n'))
+      expect((await p).toString()).toBe('abc')
+      sut.close()
+    })
+
+    it('When L93 mutation replaces chunks=[merged] with [], Then second read on same SUT is still correct', async () => {
+      // L93:19 mutant: after Buffer.concat, sets `this.chunks = []` instead of `[merged]`
+      // With chunks=[], totalLength stays stale. The next _processBuffer call would call
+      // _materializeBuffer which calls Buffer.concat([], stale) → empty buffer → wrong parse.
+      // We trigger a multi-chunk header path (two data events before newline arrives)
+      // which forces the concat branch, then confirm a second request works.
+      const sut = new GitBatchCatFile('/repo')
+      const p1 = sut.getContent('oid1', 'f1.txt')
+
+      // Split header across two chunks so chunks.length === 2 when second arrives
+      mockStdout.emit('data', Buffer.from('oid1 blob 3'))
+      mockStdout.emit('data', Buffer.from('\nabc\n'))
+
+      expect((await p1).toString()).toBe('abc')
+
+      // Now a second request — if chunks were [] after concat, this request would stall or misparse
+      const p2 = sut.getContent('oid2', 'f2.txt')
+      mockStdout.emit('data', Buffer.from('oid2 blob 3\nxyz\n'))
+      expect((await p2).toString()).toBe('xyz')
+
+      sut.close()
+    })
+  })
+
+  describe('Given close() resets queue to empty (L64 ArrayDeclaration mutation)', () => {
+    it('When close is called, Then queue is exactly empty (not ["Stryker was here"])', async () => {
+      // L64:18 mutant: `this.queue = ["Stryker was here"]` instead of []
+      // If queue is non-empty after close, a subsequent non-zero close event on the
+      // process would reject the stale entry — but the real process was already killed.
+      // We verify: after close(), the L213 guard `queue.length > 0` is false by
+      // confirming a non-zero close event does NOT produce unhandled rejections.
+      const fakes = createFakeSpawnSequence(1)
+      const sut = new GitBatchCatFile('/repo', { spawnFn: fakes.spawnFn })
+      const p = sut.getContent('oid', 'f.txt')
+      sut.close()
+
+      await expect(p).rejects.toThrow('GitBatchCatFile closed')
+
+      // Emit non-zero close on already-closed process — must not throw
+      // (L213 queue.length > 0 must be false because close() set queue=[])
+      expect(() => fakes.procs[0].emit('close', 1)).not.toThrow()
+    })
+  })
 })

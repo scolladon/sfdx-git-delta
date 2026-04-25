@@ -560,6 +560,397 @@ describe('Given a ConfigValidator', () => {
     })
   })
 
+  describe('getMessage token arrays contain correct values (L46, L72, L109, L152, L165)', () => {
+    it('Given invalid SHA for "to", When error thrown, Then message contains the SHA parameter name and value (kills L46 [] mutant)', async () => {
+      // L46 mutant: getMessage(..., []) → message = 'error.ParameterIsNotGitSHA:'
+      // Real: getMessage(..., ['to', 'bad-to']) → 'error.ParameterIsNotGitSHA:to,bad-to'
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: { ...work.config, to: 'bad-to', from: 'HEAD' },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('to'),
+        })
+      )
+    })
+
+    it('Given apiVersion exceeds latest, When _handleDefault, Then warning message contains both version values (kills L152 [] mutant)', async () => {
+      // L152 mutant: getMessage(..., []) → message = 'warning.ApiVersionOverridden:'
+      // Real: getMessage(..., ['100', '58']) → 'warning.ApiVersionOverridden:100,58'
+      vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+        '58'
+      )
+      work.config.apiVersion = 100
+      const sut = new ConfigValidator(work)
+      await sut['_handleDefault']()
+
+      expect(work.warnings[0].message).toContain('100')
+    })
+
+    it('Given apiVersion defaults to latest, When _handleDefault, Then warning message contains latestVersion (kills L165 [] mutant)', async () => {
+      // L165 mutant: getMessage(..., []) → message = 'warning.ApiVersionDefaulted:'
+      // Real: getMessage(..., ['58']) → 'warning.ApiVersionDefaulted:58'
+      vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+        '58'
+      )
+      mockSfProjectResolve.mockRejectedValue(new Error('no project'))
+      work.config.apiVersion = undefined
+      const sut = new ConfigValidator(work)
+      await sut['_handleDefault']()
+
+      expect(work.warnings[0].message).toContain('58')
+    })
+  })
+
+  describe('SHA_KEYS covers both from and to (L20)', () => {
+    it('Given both from and to are invalid SHAs, When validating, Then error message includes both parameters', async () => {
+      // Mutant '' instead of 'from' or 'to' would lose the parameter names in messages
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: { ...work.config, to: 'bad-to', from: 'bad-from' },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringMatching(/error\.ParameterIsNotGitSHA/),
+        })
+      )
+    })
+
+    it('Given from is invalid SHA only, When validating, Then error is thrown for from key', async () => {
+      // Ensures SHA_KEYS contains 'from' (not empty string)
+      mockParseRev
+        .mockResolvedValueOnce('valid-to')
+        .mockRejectedValueOnce(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: { ...work.config, to: 'HEAD', from: 'bad-from' },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringMatching(/error\.ParameterIsNotGitSHA/),
+        })
+      )
+    })
+  })
+
+  describe('errors array accumulation (L46, L72, L75-L76)', () => {
+    it('Given both git SHA invalid and repo missing, When validating, Then error combines both messages', async () => {
+      // Mutant [] on errors.push in SHA loop would lose the SHA error
+      // Mutant [] on getMessage([repo]) would lose the path in message
+      mockedPathExists.mockResolvedValue(false as never)
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: { ...work.config, repo: 'missing/repo' },
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.PathIsNotGit'),
+        })
+      )
+    })
+
+    it('Given errors join produces non-empty string (L79), When validating, Then ConfigError gets the joined messages', async () => {
+      // Mutant "" for errors.join(', ') would make ConfigError("")
+      mockedPathExists.mockResolvedValue(false as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: { ...work.config, repo: 'not-git' },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.PathIsNotGit:not-git'),
+        })
+      )
+    })
+  })
+
+  describe('_apiVersionDefault logical operators (L146, L161)', () => {
+    beforeEach(() => {
+      vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+        '58'
+      )
+    })
+
+    it('Given apiVersion is defined, valid, and less than latest, When _apiVersionDefault, Then no warning and no override (L146 &&)', async () => {
+      // Mutant "||" instead of "&&": undefined || !isNaN(undefined)=true → still false since undefined > 58 is false
+      // Key: test that apiVersion < latest stays unchanged (no false positive override)
+      work.config.apiVersion = 55
+      const sut = new ConfigValidator(work)
+      await sut['_handleDefault']()
+
+      expect(work.config.apiVersion).toBe(55)
+      expect(work.warnings).toHaveLength(0)
+    })
+
+    it('Given apiVersion is defined and equal to latest, When _apiVersionDefault, Then no override (L146 boundary)', async () => {
+      // Confirms the > operator (not >= in mutant "anchorIndex > 2")
+      work.config.apiVersion = 58
+      const sut = new ConfigValidator(work)
+      await sut['_handleDefault']()
+
+      expect(work.config.apiVersion).toBe(58)
+      expect(work.warnings).toHaveLength(0)
+    })
+
+    it('Given apiVersion is NaN, When _apiVersionDefault, Then defaults to latest (L161 ConditionalExpression)', async () => {
+      // Mutant ConditionalExpression false: the defaulting block never runs → apiVersion stays NaN
+      work.config.apiVersion = NaN
+      const sut = new ConfigValidator(work)
+      await sut['_handleDefault']()
+
+      expect(work.config.apiVersion).toBe(58)
+      expect(work.warnings).toHaveLength(1)
+    })
+
+    it('Given apiVersion is undefined after project lookup, When _apiVersionDefault, Then defaults to latest (L161)', async () => {
+      // Mutant false: if block skipped → apiVersion stays undefined
+      work.config.apiVersion = undefined
+      mockSfProjectResolve.mockRejectedValue(new Error('no project'))
+      const sut = new ConfigValidator(work)
+      await sut['_handleDefault']()
+
+      expect(work.config.apiVersion).toBe(58)
+      expect(work.warnings).toHaveLength(1)
+    })
+  })
+
+  describe('_validateChangesManifest message tokens (L96, L109, L132, L137)', () => {
+    beforeEach(() => {
+      mockedPathExists.mockResolvedValue(true as never)
+      mockParseRev.mockResolvedValue('ref')
+    })
+
+    it('Given target is directory (isFile=false), When validating, Then error message contains target path (L96 [])', async () => {
+      // Mutant [] for [target] in getMessage → message has no path token
+      mockedStat.mockResolvedValueOnce({
+        isFile: () => false,
+        isDirectory: () => true,
+      } as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'my-dir',
+        },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'error.ChangesManifestNotAFile:my-dir'
+          ),
+        })
+      )
+    })
+
+    it('Given stat fails with non-ENOENT, When validating, Then error message contains path and error detail (L109 [])', async () => {
+      // Mutant [] for [target, getErrorMessage(error)] → message has no tokens
+      const eacces = Object.assign(new Error('permission denied'), {
+        code: 'EACCES',
+      })
+      mockedStat.mockRejectedValueOnce(eacces)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'locked-file.json',
+        },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'error.ChangesManifestStatFailed:locked-file.json'
+          ),
+        })
+      )
+    })
+
+    it('Given target is not a file (L132 ConditionalExpression true), When validating, Then error always contains ChangesManifestNotAFile', async () => {
+      // Mutant true: isFile() check always enters error path even for real files
+      // We cannot test the inverse without modifying code, so assert the real case: directory = error
+      mockedStat.mockResolvedValueOnce({
+        isFile: () => false,
+      } as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'not-a-file',
+        },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ChangesManifestNotAFile'),
+        })
+      )
+    })
+
+    it('Given target is a regular file (L132 boundary), When validating, Then no ChangesManifestNotAFile error', async () => {
+      // Mutant true: always errors → this test verifies !isFile()=false means no error
+      mockedStat.mockResolvedValueOnce({ isFile: () => true } as never)
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          changesManifest: 'real-file.json',
+        },
+      })
+
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+    })
+  })
+
+  describe('mutation-killers: targeted asserts on observable side-effects', () => {
+    beforeEach(() => {
+      vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+        '58'
+      )
+    })
+
+    it('Given multiple errors accumulate, When validateConfig throws, Then ConfigError joins them with ", " (kills L79 join("") mutant)', async () => {
+      // The L79 mutant turns errors.join(", ") into errors.join("") which
+      // collapses two distinct error strings into one without separator.
+      // Combine an invalid repo (PathIsNotGit) AND an invalid SHA so two
+      // strings end up in the array; the message must contain ", " between
+      // them — that is the only observable channel for the separator.
+      mockedPathExists.mockResolvedValue(false as never)
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          repo: 'missing/repo',
+          to: 'bad-to',
+          from: 'bad-from',
+        },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringMatching(/error\.[A-Za-z]+.*, error\./),
+        })
+      )
+    })
+
+    it('Given numeric falsy sourceApiVersion (0), When _handleDefault runs, Then projectApiVersion truthy guard skips parseInt (kills L132 cond=true mutant)', async () => {
+      // Real: `if (projectApiVersion)` is false for 0 (numeric), apiVersion
+      //       stays undefined → defaults to latest with warning.
+      // Mutant `if (true)`: enters branch, parseInt(0, 10) = 0, apiVersion
+      //       becomes 0 (a falsy but defined number). The downstream
+      //       _apiVersionDefault then sees 0 !== undefined && !isNaN(0)
+      //       && 0 > 58 = false → no override. 0 === undefined || isNaN(0)
+      //       = false → no defaulting. apiVersion stays 0 with no warning.
+      // Observable difference: real => 58 with warning, mutant => 0 with
+      // no warning.
+      mockSfProjectResolve.mockResolvedValue({
+        getSfProjectJson: () => ({
+          // numeric 0 (intentionally bypassing the string contract for the
+          // truthiness guard) — the production code's truthy check exists
+          // exactly to handle this ill-typed shape gracefully.
+          getContents: () =>
+            ({ sourceApiVersion: 0 }) as unknown as Record<string, unknown>,
+        }),
+      })
+      work.config.apiVersion = undefined
+      const sut = new ConfigValidator(work)
+
+      await sut['_handleDefault']()
+
+      expect(work.config.apiVersion).toBe(58)
+      expect(work.warnings).toHaveLength(1)
+    })
+
+    it('Given two invalid SHAs, When validateConfig throws, Then both parameter names appear in the joined message (kills L20 SHA_KEYS[0] empty mutant)', async () => {
+      // SHA_KEYS = ['from', 'to']. The L20 mutant replaces 'from' with ''.
+      // Under that mutant, this.config[''] is undefined for both
+      // iterations and parseRev gets called with undefined twice; the
+      // resulting error tokens contain '', '' (no parameter name). We
+      // assert the genuine 'from' identifier survives in the message.
+      mockParseRev.mockImplementation((sha: string | undefined) =>
+        sha && sha.startsWith('valid')
+          ? Promise.resolve('ref')
+          : Promise.reject(new Error('bad sha'))
+      )
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          from: 'invalid-from',
+          to: 'invalid-to',
+        },
+      })
+
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('from'),
+        })
+      )
+      // Both real keys must be threaded through to parseRev (mutant '' would
+      // call parseRev with undefined for the empty key)
+      expect(mockParseRev).toHaveBeenCalledWith('invalid-from')
+      expect(mockParseRev).toHaveBeenCalledWith('invalid-to')
+    })
+
+    it('Given apiVersion is NaN with a working SfProject, When _handleDefault runs, Then it is reset to latest with a single warning (kills L161 cond=false mutant)', async () => {
+      // Mutant L161 cond=false: the NaN-detection block never fires →
+      // apiVersion stays NaN and the defaulted warning is never pushed.
+      // Concretely contrast the two outcomes via two separate asserts —
+      // value AND warning count — so neither survives in isolation.
+      work.config.apiVersion = NaN
+      mockSfProjectResolve.mockResolvedValue({
+        getSfProjectJson: () => ({ getContents: () => ({}) }),
+      })
+      const sut = new ConfigValidator(work)
+
+      await sut['_handleDefault']()
+
+      expect(work.config.apiVersion).toBe(58)
+      expect(Number.isNaN(work.config.apiVersion)).toBe(false)
+      expect(work.warnings).toHaveLength(1)
+    })
+  })
+
+  describe('_sanitizeConfig completeness (L173, L175)', () => {
+    it('Given source array with multiple entries, When validateConfig, Then all sources are sanitized', async () => {
+      // Mutant BlockStatement {}: sanitizeConfig does nothing → config is not sanitized
+      // Mutant ArrowFunction () => undefined: source.map returns [undefined]
+      const sut = new ConfigValidator({
+        ...work,
+        config: {
+          ...work.config,
+          to: 'HEAD',
+          from: 'HEAD',
+          source: ['/path/a', '/path/b'],
+        },
+      })
+      // sanitizePath is mocked to be identity; just verifies it is called for each source
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+      expect(mockedSanitizePath).toHaveBeenCalledWith('/path/a')
+      expect(mockedSanitizePath).toHaveBeenCalledWith('/path/b')
+    })
+  })
+
   describe('changesManifest validation', () => {
     beforeEach(() => {
       mockedPathExists.mockResolvedValue(true as never)

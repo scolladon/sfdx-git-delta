@@ -140,4 +140,49 @@ describe('Given a PackageBuilder', () => {
     const out = await buildToString(sut, diff as Manifest)
     expect(out).toBe(expected)
   })
+
+  describe('member sort order uses fr locale collation', () => {
+    it('When members include accented chars (À), Then they sort before uppercase ASCII A under fr locale', async () => {
+      // Arrange — 'À' (U+00C0) sorts before 'A' in French locale (fr)
+      // because the primary letter is treated as 'A' and the accent is a
+      // secondary difference that makes it sort first in fr collation.
+      // If the locale string were mutated to '' the sort order could differ.
+      const manifest = new Map([
+        ['ApexClass', new Set(['Zebra', 'Alpha', 'ÀAccented', 'Beta'])],
+      ])
+
+      // Act
+      const out = await buildToString(sut, manifest)
+
+      // Assert — ÀAccented must appear before Alpha under fr collation
+      const membersSection = out
+        .split('<name>')[0]
+        .split('<members>')
+        .filter(Boolean)
+        .map(s => s.split('</members>')[0].trim())
+      const idxAccented = membersSection.indexOf('ÀAccented')
+      const idxAlpha = membersSection.indexOf('Alpha')
+      expect(idxAccented).toBeGreaterThanOrEqual(0)
+      expect(idxAlpha).toBeGreaterThanOrEqual(0)
+      expect(idxAccented).toBeLessThan(idxAlpha)
+    })
+
+    it('When types include CustomObject, Then it is sorted first regardless of locale', async () => {
+      // Arrange — CustomObject must always be first because the comparator
+      // special-cases it (x === OBJECT_TYPE → return -1).
+      const manifest = new Map([
+        ['ApexClass', new Set(['Foo'])],
+        ['CustomObject', new Set(['Bar'])],
+        ['Workflow', new Set(['Baz'])],
+      ])
+
+      // Act
+      const out = await buildToString(sut, manifest)
+
+      // Assert — CustomObject block comes before ApexClass block
+      const customObjectIdx = out.indexOf('<name>CustomObject</name>')
+      const apexClassIdx = out.indexOf('<name>ApexClass</name>')
+      expect(customObjectIdx).toBeLessThan(apexClassIdx)
+    })
+  })
 })

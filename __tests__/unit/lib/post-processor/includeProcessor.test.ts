@@ -17,10 +17,13 @@ import {
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockProcess, mockGetFilesPath } = vi.hoisted(() => ({
-  mockProcess: vi.fn<() => Promise<HandlerResult>>(),
-  mockGetFilesPath: vi.fn(),
-}))
+const { mockProcess, mockGetFilesPath, mockGetFirstCommitRef } = vi.hoisted(
+  () => ({
+    mockProcess: vi.fn<() => Promise<HandlerResult>>(),
+    mockGetFilesPath: vi.fn(),
+    mockGetFirstCommitRef: vi.fn<() => Promise<string>>(),
+  })
+)
 
 vi.mock('../../../../src/service/diffLineInterpreter', () => {
   return {
@@ -36,7 +39,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
     getInstance: vi.fn(() => ({
       getFilesPath: mockGetFilesPath,
-      getFirstCommitRef: vi.fn(),
+      getFirstCommitRef: mockGetFirstCommitRef,
     })),
   },
 }))
@@ -122,6 +125,18 @@ describe('IncludeProcessor', () => {
         // Assert
         expect(result).toEqual(emptyResult())
       })
+
+      it('Then does not call DiffLineInterpreter.process (kills L70 ConditionalExpression false)', async () => {
+        // Arrange — keep returns true for all lines, so includeLines map is empty
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.transformAndCollect()
+
+        // Assert — emptyResult path taken, process never called
+        expect(mockProcess).not.toHaveBeenCalled()
+      })
     })
 
     describe('when file matches the patterns', () => {
@@ -185,6 +200,18 @@ describe('IncludeProcessor', () => {
         // Assert
         expect(result.manifests).toContainEqual(includedManifest)
       })
+
+      it('Then calls process with ADDITION lines only, not DELETION (kills L78 ConditionalExpression false)', async () => {
+        // Arrange
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.transformAndCollect()
+
+        // Assert — process called exactly once (for ADDITION), not twice
+        expect(mockProcess).toHaveBeenCalledTimes(1)
+      })
     })
 
     describe('when only deletions match the patterns', () => {
@@ -204,6 +231,167 @@ describe('IncludeProcessor', () => {
 
         // Assert
         expect(result.manifests).toContainEqual(includedManifest)
+      })
+
+      it('Then calls process with DELETION lines only, not ADDITION (kills L86 ConditionalExpression true)', async () => {
+        // Arrange
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.transformAndCollect()
+
+        // Assert — process called exactly once (for DELETION), not twice
+        expect(mockProcess).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    describe('when include helper is called with correct changedLine format (kills L55 StringLiteral "")', () => {
+      beforeEach(() => {
+        mockGetFilesPath.mockImplementation(() =>
+          Promise.resolve(['myFile.cls'])
+        )
+        mockKeep.mockReturnValue(false)
+      })
+
+      it('Then keep is called with TAB-separated changeType+path line', async () => {
+        // Arrange
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.transformAndCollect()
+
+        // Assert — changedLine must be "A\tmyFile.cls" and "D\tmyFile.cls"
+        // StringLiteral mutation "" would call keep("") instead
+        expect(mockKeep).toHaveBeenCalledWith(
+          expect.stringContaining('myFile.cls')
+        )
+        expect(mockKeep).toHaveBeenCalledWith(expect.stringContaining('\t'))
+      })
+    })
+
+    describe('includeLines set initialization integrity (kills L57:15 true, L58:42 ArrayDeclaration)', () => {
+      beforeEach(() => {
+        mockGetFilesPath.mockImplementation(() =>
+          Promise.resolve(['file1.cls', 'file2.cls'])
+        )
+        mockKeep.mockReturnValue(false) // all lines are included
+      })
+
+      it('When two files match, Then DiffLineInterpreter.process receives exactly 2 ADDITION lines (kills L57 true mutant)', async () => {
+        // L57 mutant: if (true) → always reinitializes the array for each file,
+        // so second file overwrites first → only 1 line per changeType.
+        // Real: array initialized once, both lines pushed → 2 lines.
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        await sut.transformAndCollect()
+
+        // ADDITION lines array should have exactly 2 entries (one per file)
+        const additionCallArgs = mockProcess.mock.calls.find(call =>
+          (call[0] as string[])[0]?.startsWith('A')
+        )?.[0] as string[]
+        expect(additionCallArgs).toHaveLength(2)
+      })
+
+      it('When one file matches, Then process is called with exactly [changeType+TAB+file] (kills L58 ArrayDeclaration ["Stryker was here"])', async () => {
+        // L58 mutant: includeLines.set(changeType, ["Stryker was here"]) → stray entry
+        // → process receives ["Stryker was here", "A\tfile.cls"] instead of ["A\tfile.cls"]
+        mockGetFilesPath.mockImplementation(() => Promise.resolve(['only.cls']))
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        await sut.transformAndCollect()
+
+        // The ADDITION lines passed to process must contain only the real line, not "Stryker was here"
+        const additionLines = mockProcess.mock.calls.find(call =>
+          (call[0] as string[])[0]?.startsWith('A')
+        )?.[0] as string[]
+        expect(additionLines).toEqual(['A\tonly.cls'])
+      })
+    })
+
+    describe('_collectIncludes emptyResult guard (kills L70:9 false, L70:34 BlockStatement {})', () => {
+      it('When includeLines is empty, Then emptyResult is returned (L70 false mutant would call process unnecessarily)', async () => {
+        // L70:9 false: if(false) → always proceeds past the emptyResult guard
+        // → getFirstCommitRef() and DiffLineInterpreter.process() would be called even with no lines
+        // L70:34 {}: the emptyResult() return is a no-op → same effect
+        mockKeep.mockReturnValue(true) // keep all = nothing included
+        work.config.include = '.sgdinclude'
+        mockGetFilesPath.mockResolvedValue(['test.cls'])
+        const sut = new IncludeProcessor(work, metadata)
+
+        const result = await sut.transformAndCollect()
+
+        // process must NOT be called since includeLines is empty
+        expect(mockProcess).not.toHaveBeenCalled()
+        expect(result).toEqual(emptyResult())
+      })
+    })
+
+    describe('results array initialization (kills L76:38 ArrayDeclaration ["Stryker was here"])', () => {
+      it('When ADDITION and DELETION both match, Then merged result contains exactly the items from process calls (no stray entries)', async () => {
+        // L76 mutant: results = ["Stryker was here"] → mergeResults gets stray string as first result
+        // mergeResults("Stryker was here", actual) → manifests = [undefined, ...actual.manifests]
+        // The exact manifests array would differ (has an undefined entry).
+        mockGetFilesPath.mockResolvedValue(['file.cls'])
+        mockKeep.mockReturnValue(false)
+        work.config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(work, metadata)
+
+        const result = await sut.transformAndCollect()
+
+        // All manifests must be valid HandlerResult manifest objects (no undefined from stray entry)
+        for (const m of result.manifests) {
+          expect(m).toBeDefined()
+          expect(m).toMatchObject({ type: expect.any(String) })
+        }
+      })
+    })
+
+    describe('process revisions passed to DiffLineInterpreter (kills L79:79 and L87:79 ObjectLiteral {})', () => {
+      const firstSHA = 'first-sha-000'
+
+      beforeEach(() => {
+        mockGetFilesPath.mockResolvedValue(['test'])
+        mockGetFirstCommitRef.mockResolvedValue(firstSHA)
+      })
+
+      it('Then ADDITION process is called with from=firstSHA, to=config.to', async () => {
+        // Arrange — keep only deletion lines so only ADDITION lines are collected
+        work.config.include = '.sgdinclude'
+        work.config.to = 'HEAD'
+        mockKeep.mockImplementation(((line: string) =>
+          line.startsWith('D')) as typeof mockKeep)
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.transformAndCollect()
+
+        // Assert — kills ObjectLiteral {} replacing { from: firstSHA, to: config.to }
+        expect(mockProcess).toHaveBeenCalledWith(
+          expect.any(Array),
+          expect.objectContaining({ from: firstSHA, to: 'HEAD' })
+        )
+      })
+
+      it('Then DELETION process is called with from=config.to, to=firstSHA', async () => {
+        // Arrange — keep only addition lines so only DELETION lines are collected
+        work.config.include = '.sgdinclude'
+        work.config.to = 'HEAD'
+        mockKeep.mockImplementation(((line: string) =>
+          line.startsWith('A')) as typeof mockKeep)
+        const sut = new IncludeProcessor(work, metadata)
+
+        // Act
+        await sut.transformAndCollect()
+
+        // Assert — kills ObjectLiteral {} replacing { from: config.to, to: firstSHA }
+        expect(mockProcess).toHaveBeenCalledWith(
+          expect.any(Array),
+          expect.objectContaining({ from: 'HEAD', to: firstSHA })
+        )
       })
     })
   })

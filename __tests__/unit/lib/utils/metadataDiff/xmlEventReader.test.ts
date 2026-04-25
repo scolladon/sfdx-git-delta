@@ -179,5 +179,87 @@ describe('xmlEventReader', () => {
       )
       expect(subTypeCalls).toHaveLength(0)
     })
+
+    it('Given a document with xml declaration, When parseFromSideSwallowing runs, Then xmlHeader is populated on RootCapture', async () => {
+      // Kills L56 ConditionalExpression false: declContent===undefined ? undefined : {...}
+      // If mutated to false, xmlHeader would always be undefined even when declaration exists.
+      const onElement = vi.fn()
+      const source = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
+      const sut = await parseFromSideSwallowing(source, onElement)
+      expect(sut?.xmlHeader).toBeDefined()
+      expect(sut?.xmlHeader?.['?xml']).toBeDefined()
+    })
+
+    it('Given a document without xml declaration, When parseFromSideSwallowing runs, Then xmlHeader is undefined', async () => {
+      // Ensures the true-branch of L56 also works (xmlHeader undefined for no-decl docs)
+      const onElement = vi.fn()
+      const source = `<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
+      const sut = await parseFromSideSwallowing(source, onElement)
+      expect(sut?.xmlHeader).toBeUndefined()
+    })
+
+    it('Given a Buffer source with non-ASCII content, When parseFromSideSwallowing runs, Then it decodes correctly via toString utf8', async () => {
+      // Kills L79 ConditionalExpression/EqualityOperator: typeof source === 'string'
+      // If mutated to true (always string branch) → Buffer.toString not called → garbled
+      const onElement = vi.fn()
+      const content = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata">\n  <fieldPermissions>\n    <field>café</field>\n  </fieldPermissions>\n</Profile>`
+      const buf = Buffer.from(content, 'utf8')
+      const sut = await parseFromSideSwallowing(buf, onElement)
+      expect(sut).not.toBeNull()
+      expect(onElement).toHaveBeenCalledWith(
+        'fieldPermissions',
+        expect.objectContaining({ field: 'café' })
+      )
+    })
+  })
+
+  describe('parseToSidePropagating', () => {
+    it('Given a document with xml declaration, When parseToSidePropagating runs, Then xmlHeader is populated', async () => {
+      // Kills L56 ConditionalExpression false on to-side path
+      const onElement = vi.fn()
+      const source = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
+      const sut = await parseToSidePropagating(source, onElement)
+      expect(sut.xmlHeader).toBeDefined()
+    })
+
+    it('Given a document without root element (only declaration), When parseToSidePropagating runs, Then it rejects with "no root element"', async () => {
+      // Kills L129 StringLiteral "": error message in parseToSidePropagating
+      // A document that produces no root key after parsing → capture=null → throws
+      const onElement = vi.fn()
+      // An XML declaration with no root tag produces an empty parsed object
+      await expect(
+        parseToSidePropagating('<?xml version="1.0"?>', onElement)
+      ).rejects.toThrow(/no root element|parse|invalid/i)
+    })
+
+    it('Given a string source, When parseToSidePropagating runs, Then it resolves (kills L79 EqualityOperator typeof!==string)', async () => {
+      // Kills L79 EqualityOperator: typeof source !== 'string' mutant would invert the check,
+      // causing strings to go through Buffer.toString and Buffers to be used as-is.
+      // This verifies a plain string source is handled correctly (not treated as Buffer).
+      const onElement = vi.fn()
+      const source = `<Root><child>val</child></Root>`
+      const sut = await parseToSidePropagating(source, onElement)
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement).toHaveBeenCalledWith('child', 'val')
+    })
+
+    it('Given a Buffer source, When parseToSidePropagating runs, Then it decodes and parses correctly (kills L79 ConditionalExpression)', async () => {
+      // Kills L79 ConditionalExpression false: if always-false, Buffer.toString never called →
+      // Buffer treated as string → garbled. Verify Buffer path produces correct output.
+      const onElement = vi.fn()
+      const source = Buffer.from(`<Root><item>hello</item></Root>`, 'utf8')
+      const sut = await parseToSidePropagating(source, onElement)
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement).toHaveBeenCalledWith('item', 'hello')
+    })
+
+    it('Given malformed XML that results in null capture, When parseToSidePropagating runs, Then it throws (kills L105 ConditionalExpression false)', async () => {
+      // Kills L105 ConditionalExpression false: mutant skips the null guard, so null.rootKey
+      // would throw a different uncaught error rather than our explicit message.
+      const onElement = vi.fn()
+      await expect(
+        parseToSidePropagating('<?xml version="1.0"?>', onElement)
+      ).rejects.toThrow()
+    })
   })
 })

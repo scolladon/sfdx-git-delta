@@ -147,6 +147,31 @@ describe('ObjectTranslation', () => {
       ).toBe(true)
     })
 
+    it('Given writer is null, When collectAddition, Then does not push StreamedContent copy', async () => {
+      // Arrange — writer is null, so the `if (writer)` guard must prevent pushing the copy
+      // Mutation `[ConditionalExpression] true` would always push, producing a copy with writer=null
+      work.config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasAnyChanges: true,
+        writer: null,
+      })
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
+      ).toBe(false)
+    })
+
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
       // Arrange
       const fieldTranslationLine =

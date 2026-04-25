@@ -26,6 +26,8 @@ vi.mock('../../../../src/utils/ignoreHelper')
 
 vi.mock('../../../../src/utils/LoggingService')
 
+import { Logger } from '../../../../src/utils/LoggingService'
+
 const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 
 const mockGetStringContent = vi.fn()
@@ -110,6 +112,21 @@ describe('readPathFromGit', () => {
 
       // Assert
       expect(content).toBe('')
+    })
+
+    it('When git adapter throws, Then Logger.debug is called (catch block body is not empty)', async () => {
+      // Arrange — the BlockStatement {} mutant empties the catch body, which
+      // means Logger.debug is never called. Asserting on it pins the catch body.
+      const debugSpy = vi.spyOn(Logger, 'debug')
+
+      // Act
+      await readPathFromGit(
+        { path: 'path/file', oid: work.config.to },
+        work.config
+      )
+
+      // Assert — debug must have been called once for the error
+      expect(debugSpy).toHaveBeenCalledOnce()
     })
   })
 })

@@ -253,5 +253,53 @@ describe('InFolderHandler', () => {
       expect(manifestMember).toBe(entity)
       expect(manifestMember).not.toMatch(/\.[^/.]+$/)
     })
+
+    it('Given element name ending with Folder, When collect, Then _getElementName strips INFOLDER_SUFFIX_REGEX so member has no trailing Folder', async () => {
+      // Arrange — a bare folder entry with no dot-extension so pathAfterType = ['myFolder']
+      // _getElementName: join → "myFolder" → META_REGEX (no match) → INFOLDER_SUFFIX_REGEX strips trailing "Folder" → "my" → EXTENSION_SUFFIX_REGEX (no dot, no change) → "my"
+      mockedReadDirs.mockResolvedValue([])
+      const folderEntryLine = `A       force-app/main/default/${objectType.directoryName}/myFolder`
+      const { changeType, element } = createElement(
+        folderEntryLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const manifestMember = result.manifests.find(
+        m => m.target === ManifestTarget.Package
+      )?.member
+      expect(manifestMember).toBeDefined()
+      // INFOLDER_SUFFIX_REGEX (/Folder$/) must strip "Folder" → member is "my", not "myFolder"
+      expect(manifestMember).toBe('my')
+    })
+
+    it('Given element name containing meta suffix, When collect, Then _getElementName strips META_REGEX leaving no meta keyword', async () => {
+      // Arrange — path whose joined pathAfterType contains the full -meta.xml token
+      mockedReadDirs.mockResolvedValue([])
+      const metaInNameLine = `A       force-app/main/default/${objectType.directoryName}/subfolder/item.documentFolder-meta.xml`
+      const { changeType, element } = createElement(
+        metaInNameLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, work)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      const manifestMember = result.manifests.find(
+        m => m.target === ManifestTarget.Package
+      )?.member
+      expect(manifestMember).toBeDefined()
+      // META_REGEX must strip "-meta.xml" before EXTENSION_SUFFIX_REGEX runs;
+      // without it the member would still contain "meta"
+      expect(manifestMember).not.toContain('meta')
+    })
   })
 })

@@ -157,4 +157,32 @@ describe('MetadataDiff.run', () => {
     expect(outcome.hasAnyChanges).toBe(true)
     expect(outcome.writer).toBeDefined()
   })
+
+  it('Given different from and to content, When run runs, Then readPathFromGit is called with correct oids for both sides', async () => {
+    // Kills L48 ObjectLiteral {}: mutant replaces {path, oid: config.from} with {},
+    // so fromSource would receive toSource content (oid mismatch → same XML returned).
+    // Verify from-oid is used correctly: from has element X, to does not → X appears deleted.
+    const fromXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <fieldPermissions>\n        <field>Account.FromOnly</field>\n        <editable>true</editable>\n        <readable>true</readable>\n    </fieldPermissions>\n</Profile>\n`
+    const toXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <fieldPermissions>\n        <field>Account.ToOnly</field>\n        <editable>true</editable>\n        <readable>true</readable>\n    </fieldPermissions>\n</Profile>\n`
+
+    let fromCallOid: string | undefined
+    let toCallOid: string | undefined
+    mockedReadPathFromGit.mockImplementation(async ref => {
+      if (ref.oid === work.config.to) {
+        toCallOid = ref.oid
+        return toXml
+      }
+      fromCallOid = ref.oid
+      return fromXml
+    })
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act
+    await sut.run('file/path')
+
+    // Assert — both oids must be passed as distinct non-empty values
+    expect(toCallOid).toBe(work.config.to)
+    expect(fromCallOid).toBe(work.config.from)
+    expect(fromCallOid).not.toBe(toCallOid)
+  })
 })

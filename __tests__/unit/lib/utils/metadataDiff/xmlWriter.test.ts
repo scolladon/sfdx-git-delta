@@ -235,4 +235,145 @@ describe('writeXmlDocument', () => {
     expect(firstIdx).toBeGreaterThan(0)
     expect(secondIdx).toBeGreaterThan(firstIdx)
   })
+
+  it('Given a null primitive child value, When the writer runs, Then an empty leaf is emitted', async () => {
+    // Kills L128 ConditionalExpression/LogicalOperator: value===undefined||value===null → ''
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [['nullField', null]])
+    })
+    expect(out).toContain(`<nullField></nullField>`)
+  })
+
+  it('Given an undefined primitive child value, When the writer runs, Then an empty leaf is emitted', async () => {
+    // Kills L128 LogicalOperator: value===undefined&&value===null would be false for undefined
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [
+        ['undefinedField', undefined],
+      ])
+    })
+    expect(out).toContain(`<undefinedField></undefinedField>`)
+  })
+
+  it('Given a numeric primitive child value, When the writer runs, Then it is stringified in the leaf', async () => {
+    // Kills L128 ConditionalExpression: String(value) branch must be taken for non-null/undef
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [['count', 42]])
+    })
+    expect(out).toContain(`<count>42</count>`)
+  })
+
+  it('Given renderAttrs is given an attribute key, When the writer runs, Then the prefix is stripped from the attribute name', async () => {
+    // Kills L93 isPrimitive null/undefined check: attribute extraction branch in renderAttrs
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        {
+          xmlHeader: undefined,
+          rootKey: 'Root',
+          rootAttributes: { '@_myAttr': 'val' },
+        },
+        []
+      )
+    })
+    expect(out).toContain(`myAttr="val"`)
+    expect(out).not.toContain('@_')
+  })
+
+  it('Given close frame with trailingNewline false, When the writer runs, Then no newline after closing tag', async () => {
+    // Kills L183 ConditionalExpression: trailingNewline on CloseFrame — triggered by
+    // options.trailingNewline=false propagating into close frame
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        { xmlHeader: undefined, rootKey: 'Root', rootAttributes: {} },
+        [['child', { field: 'v' }]],
+        { trailingNewline: false }
+      )
+    })
+    // The close tag of Root must not end with \n
+    expect(out.endsWith(`</Root>`)).toBe(true)
+  })
+
+  it('Given empty frame with trailingNewline false (root is empty), When the writer runs, Then no newline after root tag', async () => {
+    // Kills L248 StringLiteral "": trailingNewline conditional on EmptyFrame
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        { xmlHeader: undefined, rootKey: 'Root', rootAttributes: {} },
+        [],
+        { trailingNewline: false }
+      )
+    })
+    expect(out.endsWith(`</Root>`)).toBe(true)
+    expect(out.endsWith(`</Root>\n`)).toBe(false)
+  })
+
+  it('Given an ArithmeticOperator mutant on pushChildren depth, When a child element is rendered, Then its indent is depth+1 not depth', async () => {
+    // Kills L141 ArithmeticOperator: value.length + 1 → value.length - 1 would collapse indent
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [
+        ['parent', { child: 'value' }],
+      ])
+    })
+    // parent at depth 1 → 4 spaces; child at depth 2 → 8 spaces
+    expect(out).toContain(`    <parent>`)
+    expect(out).toContain(`        <child>value</child>`)
+  })
+
+  it('Given close frame trailingNewline true (default), When the writer runs, Then closing tag ends with newline', async () => {
+    // Kills L183 ConditionalExpression false: trailingNewline conditional on CloseFrame.
+    // Default trailingNewline=true → closing tag must end with \n.
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [
+        ['fieldPermissions', { field: 'A' }],
+      ])
+    })
+    // The </fieldPermissions> close tag must be followed by a newline
+    expect(out).toMatch(/<\/fieldPermissions>\n/)
+  })
+
+  it('Given close frame with trailingNewline explicitly false on inner close, When the writer runs with no-newline option, Then root closing tag has no newline', async () => {
+    // Kills L183 ConditionalExpression: trailingNewline false → no \n after </Root>
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        { xmlHeader: undefined, rootKey: 'Root', rootAttributes: {} },
+        [['item', { leaf: 'v' }]],
+        { trailingNewline: false }
+      )
+    })
+    // Root close must NOT end with newline
+    expect(out.endsWith('</Root>')).toBe(true)
+    expect(out.endsWith('</Root>\n')).toBe(false)
+    // But inner close (</item>) DOES get a trailing newline (its own frame has trailingNewline=true)
+    expect(out).toMatch(/<\/item>\n/)
+  })
+
+  it('Given empty root frame with trailingNewline true (default), When the writer runs, Then empty root tag ends with newline', async () => {
+    // Kills L248 StringLiteral "": the empty frame trailing-newline conditional must emit \n
+    // when trailingNewline is true (default).
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        { xmlHeader: undefined, rootKey: 'Root', rootAttributes: {} },
+        []
+      )
+    })
+    expect(out.endsWith('<Root></Root>\n')).toBe(true)
+  })
+
+  it('Given open frame emitted, When the writer runs, Then opening tag ends with newline before children', async () => {
+    // Kills L93 ConditionalExpression false in emitFrame (open branch): the open tag must
+    // be followed by NEWLINE for proper formatting.
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [
+        ['parent', { childA: 'x', childB: 'y' }],
+      ])
+    })
+    // Opening tag of parent must be followed immediately by \n
+    expect(out).toMatch(/<parent>\n/)
+    // Both children on their own indented lines
+    expect(out).toContain(`        <childA>x</childA>`)
+    expect(out).toContain(`        <childB>y</childB>`)
+  })
 })

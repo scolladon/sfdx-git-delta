@@ -206,4 +206,33 @@ describe('xmlHelper', () => {
       expect(value).toBe('foo &amp; bar')
     })
   })
+
+  describe('Given the xmlContent guard (if (!xmlContent) return {})', () => {
+    it.each([
+      null,
+      undefined,
+      0,
+      false,
+    ])('When xml2Json receives falsy value %s, Then returns empty object without calling parser', falsy => {
+      // Arrange — any falsy xmlContent must trigger the early-return guard
+      // at L34. If the ConditionalExpression is mutated to `false` the
+      // guard never fires and the parser is called with a falsy string,
+      // producing either an error or unexpected output.
+      const sut = xml2Json(falsy as unknown as string)
+
+      // Assert
+      expect(sut).toStrictEqual({})
+    })
+
+    it('When xml2Json receives a non-empty string, Then does NOT early-return (guard only fires for falsy)', () => {
+      // Arrange — verifies the guard does not fire for truthy input.
+      // If ConditionalExpression were mutated to `true` this would return {}
+      // for valid XML, breaking the parse path.
+      const sut = xml2Json('<root><a>1</a></root>')
+
+      // Assert — parsed content must be present
+      expect(sut).not.toStrictEqual({})
+      expect(sut).toHaveProperty('root')
+    })
+  })
 })

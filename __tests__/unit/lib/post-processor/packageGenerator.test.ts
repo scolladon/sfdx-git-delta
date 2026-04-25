@@ -80,6 +80,37 @@ describe('PackageGenerator', () => {
       )
     })
 
+    it('When process runs, Then mkdir is called with recursive: true for each write (kills L54 ObjectLiteral {} and BooleanLiteral false)', async () => {
+      // Arrange
+      const sut = new PackageGenerator(work, metadata)
+
+      // Act
+      await sut.process()
+
+      // Assert — three WriteOps → three mkdir calls, each must pass recursive: true
+      expect(mockMkdir).toHaveBeenCalledTimes(3)
+      for (const call of mockMkdir.mock.calls) {
+        expect(call[1]).toEqual({ recursive: true })
+      }
+    })
+
+    it('When process runs, Then buildPackageStream is called three times with distinct manifests (kills L54:42 ObjectLiteral {} for empty Map)', async () => {
+      // Arrange
+      work.changes.add(ChangeKind.Add, 'ApexClass', 'Foo')
+      work.changes.add(ChangeKind.Delete, 'ApexClass', 'Bar')
+      const sut = new PackageGenerator(work, metadata)
+
+      // Act
+      await sut.process()
+
+      // Assert — three calls: destructive manifest, package manifest, empty Map
+      expect(mockBuildPackageStream).toHaveBeenCalledTimes(3)
+      // Third call uses an empty Map (the companion package.xml in destructive folder)
+      const thirdCallManifest = mockBuildPackageStream.mock.calls[2]![0]
+      expect(thirdCallManifest).toBeInstanceOf(Map)
+      expect((thirdCallManifest as Map<string, Set<string>>).size).toBe(0)
+    })
+
     describe.each([
       {
         label: 'disjoint add and delete sets',
