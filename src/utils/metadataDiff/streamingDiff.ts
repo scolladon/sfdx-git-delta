@@ -100,6 +100,7 @@ export class StreamingDiff {
       this.appendBounded(this.passOne.fromUnknown, subType, element)
       return
     }
+    // Stryker disable next-line OptionalChaining -- defensive: attributes.has gate above guarantees a hit; optional chain is for future-proofing
     const keyField = this.attributes.get(subType)?.key
     if (keyField === undefined) {
       this.appendBounded(this.passOne.fromKeyless, subType, element)
@@ -132,6 +133,7 @@ export class StreamingDiff {
       this.appendBounded(this.passTwo.toUnknown, subType, element)
       return
     }
+    // Stryker disable next-line OptionalChaining -- defensive: attributes.has gate above guarantees a hit
     const keyField = this.attributes.get(subType)?.key
     if (keyField === undefined) {
       this.appendBounded(this.passTwo.toKeyless, subType, element)
@@ -236,11 +238,13 @@ export class StreamingDiff {
   }
 
   private isPackageable(subType: string): boolean {
+    // Stryker disable next-line OptionalChaining -- defensive: callers gate via attributes.has so the entry is always present
     return !this.attributes.get(subType)?.excluded
   }
 
   private xmlNameOf(subType: string): string {
-    /* v8 ignore next -- defensive: every tracked subType has an xmlName in the registry */
+    // Stryker disable next-line OptionalChaining,LogicalOperator -- defensive: every tracked subType has an xmlName in the registry; the optional chain + nullish-coalesce is unreachable in practice
+    /* v8 ignore next */
     return this.attributes.get(subType)?.xmlName ?? ''
   }
 
@@ -311,6 +315,7 @@ export class StreamingDiff {
     for (const [subType, remaining] of this.passOne.fromKeyed.entries()) {
       if (remaining.size === 0) continue
       if (!this.isPackageable(subType)) continue
+      // Stryker disable next-line OptionalChaining -- defensive: fromKeyed is only populated for subTypes with a configured key
       const keyField = this.attributes.get(subType)?.key
       /* v8 ignore next -- defensive: passOne.fromKeyed is only populated for subTypes whose key field is defined */
       if (keyField === undefined) continue
