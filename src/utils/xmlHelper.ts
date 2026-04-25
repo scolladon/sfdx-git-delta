@@ -1,7 +1,5 @@
 'use strict'
 
-import FlexXMLParser, { type X2jOptions } from '@nodable/flexible-xml-parser'
-
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
@@ -9,37 +7,16 @@ import { readPathFromGit } from './fsHelper.js'
 
 export type XmlContent = Record<string, unknown>
 
-const XML_PARSER_OPTION: X2jOptions = {
-  skip: {
-    attributes: false,
-    nsPrefix: false,
-    comment: false,
-    declaration: false,
-  },
-  nameFor: {
-    comment: '#comment',
-  },
-  attributes: {
-    prefix: '@_',
-    valueParsers: [] as unknown[],
-  },
-  tags: {
-    valueParsers: ['trim'] as unknown[],
-  },
-} as X2jOptions
+export const ATTRIBUTE_PREFIX = '@_'
 
-const xmlParser = new FlexXMLParser(XML_PARSER_OPTION)
+export const XML_HEADER_ATTRIBUTE_KEY = '?xml'
 
-export const xml2Json = (xmlContent: string): XmlContent => {
-  if (!xmlContent) {
-    return {}
-  }
-  try {
-    return xmlParser.parse(xmlContent) as XmlContent
-  } catch {
-    return {}
-  }
-}
+// txmlAdapter consumes ATTRIBUTE_PREFIX + XML_HEADER_ATTRIBUTE_KEY at
+// import time, so the import lives below their declarations to avoid the
+// ordering hazard that comes with circular module init.
+import { parseXml } from './txmlAdapter.js'
+
+export const xml2Json = (xmlContent: string): XmlContent => parseXml(xmlContent)
 
 export const parseXmlFileToJson = async (
   forRef: FileGitRef,
@@ -48,7 +25,3 @@ export const parseXmlFileToJson = async (
   const xmlContent = await readPathFromGit(forRef, config)
   return xml2Json(xmlContent)
 }
-
-export const ATTRIBUTE_PREFIX = '@_'
-
-export const XML_HEADER_ATTRIBUTE_KEY = '?xml'
