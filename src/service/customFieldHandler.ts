@@ -1,14 +1,20 @@
 'use strict'
 import { MASTER_DETAIL_TAG } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { contentIncludes } from '../utils/fsHelper.js'
 
 import DecomposedHandler from './decomposedHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomFieldHandler extends DecomposedHandler {
-  public override async collectAddition(): Promise<HandlerResult> {
-    const result = await StandardHandler.prototype.collectAddition.call(this)
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    const result = await StandardHandler.prototype.collectAddition.call(
+      this,
+      sink
+    )
     if (!this._shouldCollectCopies()) return result
     // RATIONALE: Why include parent object when deploying Master Detail fields?
     // Master Detail fields require their parent object to exist; deployment fails otherwise.

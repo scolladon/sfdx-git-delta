@@ -4,16 +4,28 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
+import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
+  ChangeKind,
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
 
+// `collect(sink?)` writes manifest entries directly into the sink the
+// interpreter passes in. We hoist a mock that accepts the sink, mirrors
+// the production contract by addElement-ing into it, and returns the
+// recorded result for the test's outer assertions.
 const { mockCollect } = vi.hoisted(() => ({
-  mockCollect: vi.fn<() => Promise<HandlerResult>>(),
+  mockCollect:
+    vi.fn<
+      (
+        sink?: import('../../../../src/utils/changeSet').default
+      ) => Promise<import('../../../../src/types/handlerResult').HandlerResult>
+    >(),
 }))
 
 vi.mock('../../../../src/service/typeHandlerFactory', () => {
@@ -54,45 +66,52 @@ describe('DiffLineInterpreter', () => {
         target: ManifestTarget.Package,
         type: 'ApexClass',
         member: 'Foo',
+        changeKind: ChangeKind.Add as ChangeKind.Add,
       }
-      mockCollect.mockResolvedValue({
-        manifests: [manifest],
-        copies: [],
-        warnings: [],
+      mockCollect.mockImplementation(async sink => {
+        sink?.addElement(manifest)
+        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
       })
 
       // Act
       const result = await sut.process(lines)
 
       // Assert
-      expect(result.manifests).toEqual([manifest])
+      expect(result.changes.toElements()).toEqual([manifest])
     })
 
     it('Given slow handlers, When queue workers finish after enqueuing, Then all results are collected', async () => {
-      // Arrange
+      // Arrange — three lines, each handler returns a distinct manifest so
+      // we can verify all three results landed (Set-based ChangeSet dedupes
+      // identical entries, so the per-handler element must differ to
+      // distinguish "all collected" from "one collected three times").
       const lines = ['a', 'b', 'c']
-      const expectedResult: HandlerResult = {
-        manifests: [
-          {
-            target: ManifestTarget.Package,
-            type: 'CustomLabel',
-            member: 'test',
-          },
-        ],
-        copies: [],
-        warnings: [],
-      }
-      mockCollect.mockImplementation(
-        () =>
-          new Promise(resolve => setImmediate(() => resolve(expectedResult)))
-      )
+      let counter = 0
+      mockCollect.mockImplementation(sink => {
+        const seq = counter++
+        return new Promise(resolve =>
+          setImmediate(() => {
+            sink?.addElement({
+              target: ManifestTarget.Package,
+              type: 'CustomLabel',
+              member: `test${seq}`,
+              changeKind: ChangeKind.Modify,
+            })
+            resolve({
+              changes: sink ?? new ChangeSet(),
+              copies: [],
+              warnings: [],
+            })
+          })
+        )
+      })
 
       // Act
       const result = await sut.process(lines)
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(3)
-      expect(result.manifests).toHaveLength(3)
+      expect(result.changes.toElements()).toHaveLength(3)
     })
   })
 
@@ -106,7 +125,7 @@ describe('DiffLineInterpreter', () => {
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -121,18 +140,18 @@ describe('DiffLineInterpreter', () => {
         target: ManifestTarget.Package,
         type: 'ApexClass',
         member: 'Scoped',
+        changeKind: ChangeKind.Add as ChangeKind.Add,
       }
-      mockCollect.mockResolvedValue({
-        manifests: [manifest],
-        copies: [],
-        warnings: [],
+      mockCollect.mockImplementation(async sink => {
+        sink?.addElement(manifest)
+        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
       })
 
       // Act
       const result = await sut.process(lines, revisions)
 
       // Assert
-      expect(result.manifests).toEqual([manifest])
+      expect(result.changes.toElements()).toEqual([manifest])
       expect(result.warnings).toEqual([])
     })
   })
@@ -141,24 +160,77 @@ describe('DiffLineInterpreter', () => {
     it('When processed, Then returns merged result (not empty)', async () => {
       // Arrange
       const lines = ['test']
-      mockCollect.mockResolvedValue({
-        manifests: [
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'Test',
-          },
-        ],
-        copies: [],
-        warnings: [],
+      mockCollect.mockImplementation(async sink => {
+        sink?.addElement({
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'Test',
+          changeKind: ChangeKind.Add,
+        })
+        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
       })
 
       // Act
       const result = await sut.process(lines)
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].type).toBe('ApexClass')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].type).toBe('ApexClass')
+    })
+  })
+
+  describe('Given revisions override, effectiveWork construction', () => {
+    const MockedTypeHandlerFactory = vi.mocked(TypeHandlerFactory)
+
+    it('When revisions provided, Then TypeHandlerFactory receives work with merged config containing revision from', async () => {
+      // Arrange — L25:33 mutant replaces `{ ...this.work.config, ...revisions }` with `{}`
+      // so effectiveWork.config would be missing the revision values
+      mockCollect.mockResolvedValue(emptyResult())
+      const revisions = { from: 'rev-from', to: 'rev-to' }
+
+      // Act
+      await sut.process(['line'], revisions)
+
+      // Assert — TypeHandlerFactory constructor first arg is effectiveWork
+      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+        -1
+      )![0] as Work
+      expect(effectiveWork.config.from).toBe('rev-from')
+      expect(effectiveWork.config.to).toBe('rev-to')
+    })
+
+    it('When revisions provided, Then TypeHandlerFactory receives work with all original work fields preserved', async () => {
+      // Arrange — L25:9 mutant replaces `{ ...this.work, config: ... }` with `{}`
+      // so effectiveWork would be empty, losing all work fields (changes, warnings, etc.)
+      mockCollect.mockResolvedValue(emptyResult())
+      work.config.generateDelta = true
+      work.config.output = 'custom-output'
+      const revisions = { from: 'sha-a', to: 'sha-b' }
+
+      // Act
+      await sut.process(['line'], revisions)
+
+      // Assert — effectiveWork must retain all original work properties
+      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+        -1
+      )![0] as Work
+      expect(effectiveWork.config.generateDelta).toBe(true)
+      expect(effectiveWork.config.output).toBe('custom-output')
+      expect(effectiveWork.warnings).toBe(work.warnings)
+    })
+
+    it('When no revisions provided, Then TypeHandlerFactory receives the original work reference', async () => {
+      // Arrange — when revisions is undefined, effectiveWork should equal work (same reference)
+      mockCollect.mockResolvedValue(emptyResult())
+
+      // Act
+      await sut.process(['line'])
+
+      // Assert
+      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+        -1
+      )![0] as Work
+      expect(effectiveWork).toBe(work)
     })
   })
 })

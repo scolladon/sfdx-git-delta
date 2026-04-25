@@ -71,8 +71,8 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0]).toEqual({
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0]).toEqual({
         target: ManifestTarget.Package,
         type: classType.xmlName,
         member: entity,
@@ -124,8 +124,8 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0]).toEqual({
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0]).toEqual({
         target: ManifestTarget.DestructiveChanges,
         type: classType.xmlName,
         member: entity,
@@ -150,8 +150,8 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
       expect(result.copies.length).toBeGreaterThan(0)
     })
 
@@ -169,7 +169,7 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -188,7 +188,7 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -211,7 +211,7 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('test error')
@@ -232,8 +232,8 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
     })
 

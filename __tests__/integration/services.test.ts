@@ -602,7 +602,8 @@ describe.each(testContext)(`integration test %s`, (changePath:
 
     // Assert
     const members = new Set(
-      result.manifests
+      result.changes
+        .toElements()
         .filter(
           m => m.target === ManifestTarget.Package && m.type === expectedType
         )
@@ -629,7 +630,8 @@ describe.each(testContext)(`integration test %s`, (changePath:
 
     // Assert
     const members = new Set(
-      result.manifests
+      result.changes
+        .toElements()
         .filter(
           m =>
             m.target === ManifestTarget.DestructiveChanges &&
@@ -655,7 +657,8 @@ describe.each(testContext)(`integration test %s`, (changePath:
 
     // Assert
     const members = new Set(
-      result.manifests
+      result.changes
+        .toElements()
         .filter(
           m => m.target === ManifestTarget.Package && m.type === expectedType
         )

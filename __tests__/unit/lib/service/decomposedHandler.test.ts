@@ -57,7 +57,7 @@ describe('DecomposedHandler', () => {
         await sut[method as 'collectAddition' | 'collectModification']()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -81,7 +81,7 @@ describe('DecomposedHandler', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -106,7 +106,7 @@ describe('DecomposedHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -138,7 +138,7 @@ describe('DecomposedHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,

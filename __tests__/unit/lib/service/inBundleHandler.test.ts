@@ -92,7 +92,7 @@ describe('InBundleHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -120,7 +120,7 @@ describe('InBundleHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

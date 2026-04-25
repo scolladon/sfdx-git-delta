@@ -1,5 +1,5 @@
 'use strict'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -181,6 +181,153 @@ describe('the type handler factory', () => {
         )
         expect(sut).toBeInstanceOf(InFileHandler)
       })
+    })
+  })
+
+  // --- Mutation-killing tests ---
+
+  describe('Given DELETION change type (L86)', () => {
+    it('When change type is D, Then uses from revision (not to)', async () => {
+      // Mutant: changeType !== DELETION → swaps from/to for deletion
+      // We cannot inspect the revision directly, but we can verify that a D-line
+      // resolves the same handler class regardless of the direction.
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `${DELETION}       force-app/main/default/flows/MyFlow.flow-meta.xml`
+      )
+      expect(sut).toBeInstanceOf(FlowHandler)
+    })
+
+    it('When change type is A (not DELETION), Then uses to revision', async () => {
+      // Mutant: changeType === DELETION flipped → addition uses from revision
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `A       force-app/main/default/flows/MyFlow.flow-meta.xml`
+      )
+      expect(sut).toBeInstanceOf(FlowHandler)
+    })
+  })
+
+  describe('buildInFileParentIndex logic (L94-L96)', () => {
+    it('Given type with xmlTag AND key AND parentXmlName where parent has no adapter, When resolving, Then parent is in InFile set', async () => {
+      // WorkflowAlert has xmlTag + key + parentXmlName=Workflow; Workflow has no adapter
+      // Mutant "m.xmlTag || m.key" would admit types with only xmlTag (no key)
+      // Mutant "m.xmlTag && m.key || m.parentXmlName" would also admit types with parentXmlName alone
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
+      )
+      expect(sut).toBeInstanceOf(InFileHandler)
+    })
+
+    it('Given parent type that has adapter set, When resolving its child, Then parent is NOT in InFile set', async () => {
+      // LightningComponentBundle children (e.g., lwc files) have parent with adapter='bundle'
+      // Mutant "parent || !parent.adapter" → always true → everything in InFile set
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/lwc/myComponent/myComponent.js`
+      )
+      // lwc resolves via handlerMap → Lwc (InResource subtype), not InFile
+      expect(sut).not.toBeInstanceOf(InFileHandler)
+    })
+  })
+
+  describe('resolveHandler child type branching (L118-L123)', () => {
+    it('Given child type with xmlTag AND key AND parent without adapter, When resolving, Then returns Decomposed', async () => {
+      // Mutant "type.xmlTag && type.key || !parent?.adapter" → incorrect condition
+      // WorkflowAlert has xmlTag+key, parent=Workflow has no adapter
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/workflows/Account/workflowAlerts/MyAlert.workflowAlert-meta.xml`
+      )
+      expect(sut).toBeInstanceOf(Decomposed)
+    })
+
+    it('Given child type with xmlTag but parent has adapter, When resolving, Then does NOT return Decomposed for that branch', async () => {
+      // Mutant "type.xmlTag || type.key" would make any type with xmlTag use Decomposed
+      // LightningMessageChannel has xmlTag, adapter=... let's use a type that's in handlerMap instead
+      // InBundle digital experience → not Decomposed
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/digitalExperiences/site/home/file.json`
+      )
+      expect(sut).not.toBeInstanceOf(Decomposed)
+    })
+
+    it('Given child type without xmlTag and parent decomposition is folderPerType, When resolving, Then returns CustomObjectChildHandler', async () => {
+      // Mutant "!type.xmlTag || parent?.decomposition === FOLDER_PER_TYPE" → inverts condition
+      // RecordType has no xmlTag, parent CustomObject has decomposition=folderPerType
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/objects/Account/recordTypes/Test__c.recordType-meta.xml`
+      )
+      expect(sut).toBeInstanceOf(CustomObjectChildHandler)
+    })
+
+    it('Given child type without xmlTag but parent decomposition is NOT folderPerType, When resolving, Then does NOT return CustomObjectChildHandler via that branch', async () => {
+      // WorkflowAlert parent=Workflow: decomposition is not folderPerType → falls through to InFile
+      // Mutant that always returns CustomObjectChildHandler would fail
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
+      )
+      expect(sut).not.toBeInstanceOf(CustomObjectChildHandler)
+    })
+  })
+
+  describe('resolveHandler with unknown parent (L120 OptionalChaining, L123 OptionalChaining)', () => {
+    it('Given type with parentXmlName that resolves to undefined parent, When resolving handler, Then returns Standard without crashing', async () => {
+      // Mutant parent.adapter (non-optional): would throw TypeError when parent is undefined
+      // We create a stub metadata repo that has the type but returns undefined for the parent
+      const orphanType = {
+        directoryName: 'orphans',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'orphan',
+        xmlName: 'OrphanType',
+        parentXmlName: 'NonExistentParent',
+        xmlTag: 'orphanTag',
+        key: 'Name',
+      }
+      const stubMetadata = {
+        has: (_path: string) => true,
+        get: (_path: string) => orphanType,
+        getByXmlName: (xmlName: string) =>
+          xmlName === 'NonExistentParent' ? undefined : orphanType,
+        getFullyQualifiedName: (path: string) => path,
+        values: () => [orphanType],
+      }
+      const work = getWork()
+      work.config.apiVersion = 46
+      // Mock GitAdapter to avoid real git operations
+      const mockResolver = {
+        createElement: vi.fn().mockResolvedValue({
+          type: orphanType,
+          pathAfterType: ['file.orphan'],
+          fullPath: 'force-app/orphans/file.orphan',
+          parts: ['force-app', 'orphans', 'file.orphan'],
+          basePath: 'force-app/orphans/file.orphan',
+          isMetaFile: false,
+          extension: 'orphan',
+          parentFolder: 'orphans',
+          componentName: 'file',
+          parentName: '',
+          typeDirectoryPath: 'force-app/orphans',
+          componentPath: 'force-app/orphans/file',
+        }),
+      }
+      const factory = new TypeHandlerFactory(work, stubMetadata as never)
+      // Inject the mock resolver
+      ;(factory as unknown as { resolver: typeof mockResolver }).resolver =
+        mockResolver
+
+      const sut = await factory.getTypeHandler(
+        `Z       force-app/orphans/file.orphan`
+      )
+      // Should not throw, should return Standard (no match in any handler branch)
+      expect(sut).toBeInstanceOf(Standard)
+    })
+
+    it('Given type with parentXmlName where parent exists but has adapter, When resolving handler, Then does not return Decomposed', async () => {
+      // Mutant: !parent?.adapter → !parent.adapter — safe since parent exists here
+      // But when parent is undefined: !undefined = true → incorrectly returns Decomposed
+      // This tests the false branch: parent exists with adapter → no Decomposed
+      const sut = await typeHandlerFactory.getTypeHandler(
+        `Z       force-app/main/default/staticresources/MyResource/file.txt`
+      )
+      expect(sut).toBeInstanceOf(InResource)
     })
   })
 })

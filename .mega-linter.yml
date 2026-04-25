@@ -15,6 +15,10 @@ DISABLE_LINTERS:
   - TYPESCRIPT_PRETTIER
   - TYPESCRIPT_STANDARD
 MARKDOWN_MARKDOWNLINT_FILTER_REGEX_EXCLUDE: "messages/"
+# Empty-document fixtures intentionally exercise the empty-from
+# code paths in MetadataDiff and the streaming reader. xmllint flags
+# them as malformed which is correct — that's the point of the fixture.
+XML_XMLLINT_FILTER_REGEX_EXCLUDE: "byteEquality/fixtures/profile-(addition|from-empty)/from\\.xml"
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 # DISABLE_ERRORS: true # Uncomment if you want MegaLinter to detect errors but not block CI to pass

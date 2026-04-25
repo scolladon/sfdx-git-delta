@@ -5,6 +5,7 @@ import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import InFolderHandler from './inFolderHandler.js'
 
@@ -17,14 +18,18 @@ export default class ReportingFolderHandler extends InFolderHandler {
   }
 
   /* jscpd:ignore-start */
-  public override async collectAddition(): Promise<HandlerResult> {
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
-    return await super.collectAddition()
+    return await super.collectAddition(sink)
   }
 
-  public override async collectDeletion(): Promise<HandlerResult> {
+  public override async collectDeletion(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
-    return await super.collectDeletion()
+    return await super.collectDeletion(sink)
   }
   /* jscpd:ignore-end */
 

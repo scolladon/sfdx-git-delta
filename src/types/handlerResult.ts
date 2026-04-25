@@ -1,4 +1,11 @@
 'use strict'
+import type { Writable } from 'node:stream'
+
+// Use a type-only import to keep this module purely declarative; the
+// runtime constructors emptyResult/mergeResults live in changeSet.ts to
+// avoid the circular dep that would arise from a value-side ChangeSet
+// import here (changeSet.ts already imports the enums below).
+import type ChangeSet from '../utils/changeSet.js'
 
 export enum ManifestTarget {
   Package = 'package',
@@ -20,7 +27,7 @@ export type AddKind = ChangeKind.Add | ChangeKind.Modify | ChangeKind.Delete
 export enum CopyOperationKind {
   GitCopy = 'gitCopy',
   GitDirCopy = 'gitDirCopy',
-  ComputedContent = 'computedContent',
+  StreamedContent = 'streamedContent',
 }
 
 export type ManifestElement = {
@@ -42,31 +49,31 @@ export type GitDirCopyOperation = {
   revision: string
 }
 
-export type ComputedContentOperation = {
-  kind: CopyOperationKind.ComputedContent
+export type StreamedContentOperation = {
+  kind: CopyOperationKind.StreamedContent
   path: string
-  content: string
+  writer: (out: Writable) => Promise<void>
 }
 
 export type CopyOperation =
   | GitCopyOperation
   | GitDirCopyOperation
-  | ComputedContentOperation
+  | StreamedContentOperation
 
+// Handlers and collectors emit a HandlerResult shaped around a ChangeSet
+// instead of a flat ManifestElement[] list. The wire format is now the
+// same as the storage format used downstream by ChangeSet.forPackageManifest
+// / forDestructiveManifest, removing the dual representation that used to
+// live as `manifests: ManifestElement[]` + `work.changes: ChangeSet`.
+//
+// `emptyResult` and `mergeResults` are exported from changeSet.ts (re-exported
+// here for backward compatibility); they live there because they construct
+// ChangeSet instances at runtime, which would otherwise cycle through this
+// module's enum imports.
 export type HandlerResult = {
-  manifests: ManifestElement[]
+  changes: ChangeSet
   copies: CopyOperation[]
   warnings: Error[]
 }
 
-export const emptyResult = (): HandlerResult => ({
-  manifests: [],
-  copies: [],
-  warnings: [],
-})
-
-export const mergeResults = (...results: HandlerResult[]): HandlerResult => ({
-  manifests: results.flatMap(r => r.manifests),
-  copies: results.flatMap(r => r.copies),
-  warnings: results.flatMap(r => r.warnings),
-})
+export { emptyResult, mergeResults } from '../utils/changeSet.js'

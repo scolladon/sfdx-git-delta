@@ -55,7 +55,7 @@ const scopeForType = (parts: string[], type: Metadata): string | null => {
 }
 
 export const computeTreeIndexScope = (
-  lines: string[],
+  lines: Iterable<string>,
   metadata: MetadataRepository
 ): Set<string> => {
   const scope = new Set<string>()

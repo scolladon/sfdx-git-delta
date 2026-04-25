@@ -3,22 +3,19 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
-import type {
-  AddKind,
-  HandlerResult,
-  ManifestElement,
-} from '../types/handlerResult.js'
+import type { AddKind, HandlerResult } from '../types/handlerResult.js'
 import {
   ChangeKind,
+  CopyOperationKind,
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
-import { pushAll } from '../utils/arrayUtils.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
-import MetadataDiff from '../utils/metadataDiff.js'
+import MetadataDiff from '../utils/metadataDiff/index.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
 
@@ -33,68 +30,75 @@ export default class InFileHandler extends StandardHandler {
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
-  public override async collectAddition(): Promise<HandlerResult> {
-    return await this._collectCompareResult()
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    return await this._collectCompareResult(sink)
   }
 
-  public override async collectDeletion(): Promise<HandlerResult> {
+  public override async collectDeletion(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (this._shouldTreatDeletionAsDeletion()) {
-      return await super.collectDeletion()
+      return await super.collectDeletion(sink)
     }
-    return await this.collectAddition()
+    return await this.collectAddition(sink)
   }
 
-  public override async collectModification(): Promise<HandlerResult> {
-    return await this.collectAddition()
+  public override async collectModification(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    return await this.collectAddition(sink)
   }
 
-  protected async _collectCompareResult(): Promise<HandlerResult> {
+  protected async _collectCompareResult(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     try {
-      const result = emptyResult()
-      const { added, modified, deleted, toContent, fromContent } =
-        await this.metadataDiff.compare(this.element.basePath)
+      const result = this._emptyResultFor(sink)
+      const outcome = await this.metadataDiff.run(this.element.basePath)
 
       this._collectManifestFromComparison(
-        result.manifests,
+        result.changes,
         ManifestTarget.DestructiveChanges,
         ChangeKind.Delete,
-        deleted
+        outcome.manifests.deleted
       )
       this._collectManifestFromComparison(
-        result.manifests,
+        result.changes,
         ManifestTarget.Package,
         ChangeKind.Add,
-        added
+        outcome.manifests.added
       )
       this._collectManifestFromComparison(
-        result.manifests,
+        result.changes,
         ManifestTarget.Package,
         ChangeKind.Modify,
-        modified
-      )
-
-      const { xmlContent, isEmpty } = this.metadataDiff.prune(
-        toContent,
-        fromContent
+        outcome.manifests.modified
       )
 
       // RATIONALE: Why include root component in package.xml for InFile sub-elements?
       // InFile elements are not independently deployable; the root component must be listed.
+      // The container is added only when there are surviving children to deploy (i.e.
+      // adds or modifications). Delete-only changes go to destructiveChanges.xml; their
+      // parent must NOT be re-listed in package.xml because there is nothing to deploy.
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
-      if (this._shouldTreatContainerType(isEmpty)) {
+      const fileIsEmpty = outcome.isEmpty ?? !outcome.hasAnyChanges
+      if (this._shouldTreatContainerType(fileIsEmpty)) {
         const containerResult =
-          await StandardHandler.prototype.collectAddition.call(this)
-        pushAll(result.manifests, containerResult.manifests)
+          await StandardHandler.prototype.collectAddition.call(this, sink)
+        result.changes.merge(containerResult.changes)
       }
 
-      // Separate from _shouldTreatContainerType: subclasses (e.g. CustomLabelHandler)
-      // may disable container manifests while still needing computed content
-      if (!isEmpty) {
-        this._collectComputedContent(
-          result.copies,
-          this.element.basePath,
-          xmlContent
-        )
+      // run() already gated the writer on generateDelta + hasAnyChanges.
+      // Subclasses like CustomLabelHandler may still veto via
+      // _shouldCollectCopies.
+      if (outcome.writer && this._shouldCollectCopies()) {
+        result.copies.push({
+          kind: CopyOperationKind.StreamedContent,
+          path: this.element.basePath,
+          writer: outcome.writer,
+        })
       }
 
       return result
@@ -106,23 +110,21 @@ export default class InFileHandler extends StandardHandler {
         this.config.to,
       ])
       Logger.warn(lazy`${message}`)
-      return {
-        manifests: [],
-        copies: [],
-        warnings: [wrapError(message, error)],
-      }
+      const failed = emptyResult()
+      failed.warnings.push(wrapError(message, error))
+      return failed
     }
   }
 
   protected _collectManifestFromComparison(
-    manifests: ManifestElement[],
+    changes: ChangeSet,
     target: ManifestTarget,
     changeKind: AddKind,
     entries: { type: string; member: string }[]
   ): void {
     for (const { type, member } of entries) {
       if (isPackable(type)) {
-        manifests.push({
+        changes.addElement({
           target,
           type,
           member: `${this._getQualifiedName()}${member}`,

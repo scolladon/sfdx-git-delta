@@ -1,23 +1,52 @@
 'use strict'
-import { join } from 'node:path/posix'
+import { createWriteStream, promises as fsPromises } from 'node:fs'
+import { dirname, join } from 'node:path/posix'
+import type { Writable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 import { eachLimit } from 'async'
 import { outputFile } from 'fs-extra'
 
 import type { Config } from '../types/config.js'
-import type { CopyOperation } from '../types/handlerResult.js'
+import type { FileGitRef } from '../types/git.js'
+import type {
+  CopyOperation,
+  StreamedContentOperation,
+} from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
+import {
+  EscalateToStreamingSignal,
+  GIT_ARCHIVE_DIR_THRESHOLD,
+  type GitBlobReader,
+} from './gitBlobReader.js'
+
+const TMP_SUFFIX = '.tmp'
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
   protected ignoreHelper!: IgnoreHelper
 
-  constructor(protected readonly config: Config) {}
+  constructor(
+    protected readonly config: Config,
+    protected readonly blobReaderForRevision: (
+      revision: string
+    ) => GitBlobReader = revision =>
+      IOExecutor._defaultBlobReaderForRevision(config, revision)
+  ) {}
+
+  private static _defaultBlobReaderForRevision(
+    config: Config,
+    revision: string
+  ): GitBlobReader {
+    const adapterConfig =
+      revision !== config.to ? { ...config, to: revision } : config
+    return GitAdapter.getInstance(adapterConfig)
+  }
 
   public async execute(copies: CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
@@ -47,8 +76,8 @@ export default class IOExecutor {
       case CopyOperationKind.GitDirCopy:
         await this._executeGitDirCopy(op)
         break
-      case CopyOperationKind.ComputedContent:
-        await this._executeComputedContent(op)
+      case CopyOperationKind.StreamedContent:
+        await this._executeStreamedContent(op)
         break
     }
   }
@@ -65,19 +94,31 @@ export default class IOExecutor {
     path: string
     revision: string
   }): Promise<void> {
+    const ref: FileGitRef = { path: op.path, oid: op.revision }
+    const dst = join(this.config.output, op.path)
+    const reader = this.blobReaderForRevision(op.revision)
     try {
-      const gitAdapter = this._getGitAdapter(op.revision)
-      const content = await gitAdapter.getBufferContent({
-        path: op.path,
-        oid: op.revision,
-      })
-      const dst = join(this.config.output, op.path)
+      const content = await reader.getBufferContentOrEscalate(ref)
       await outputFile(dst, content)
     } catch (error) {
+      if (error instanceof EscalateToStreamingSignal) {
+        await this._streamCopyWithAtomicRename(reader, ref, dst)
+        return
+      }
       Logger.debug(
         lazy`IOExecutor gitFileCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
       )
     }
+  }
+
+  protected async _streamCopyWithAtomicRename(
+    reader: GitBlobReader,
+    ref: FileGitRef,
+    dst: string
+  ): Promise<void> {
+    await this._writeAtomicallyViaTmp(dst, async ws => {
+      await pipeline(reader.streamContent(ref), ws, { end: false })
+    })
   }
 
   protected async _executeGitDirCopy(op: {
@@ -87,6 +128,10 @@ export default class IOExecutor {
     try {
       const gitAdapter = this._getGitAdapter(op.revision)
       const filePaths = await gitAdapter.getFilesPath(op.path)
+      if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
+        await this._executeGitDirCopyViaArchive(gitAdapter, op, filePaths)
+        return
+      }
       for (const filePath of filePaths) {
         if (this.ignoreHelper.globalIgnore.ignores(filePath)) {
           continue
@@ -106,10 +151,83 @@ export default class IOExecutor {
     }
   }
 
-  protected async _executeComputedContent(op: {
-    path: string
-    content: string
-  }): Promise<void> {
-    await outputFile(join(this.config.output, op.path), op.content)
+  /**
+   * Streams a directory via `git archive --format=tar` + tar-stream. One
+   * subprocess replaces N batch-cat-file round trips for large dirs
+   * (ExperienceBundle, static resource folders). Each entry pipes
+   * directly into a sibling .tmp + rename; a per-entry
+   * processedPaths.has check matches today's dedup contract.
+   */
+  private async _executeGitDirCopyViaArchive(
+    gitAdapter: GitBlobReader,
+    op: { path: string; revision: string },
+    filePaths: string[]
+  ): Promise<void> {
+    const wanted = new Set(filePaths)
+    const outputPrefix = this.config.output.endsWith('/')
+      ? this.config.output
+      : `${this.config.output}/`
+    for await (const entry of gitAdapter.streamArchive(op.path, op.revision)) {
+      if (!wanted.has(entry.path)) {
+        entry.stream.resume()
+        continue
+      }
+      if (this.processedPaths.has(entry.path)) {
+        entry.stream.resume()
+        continue
+      }
+      if (this.ignoreHelper.globalIgnore.ignores(entry.path)) {
+        entry.stream.resume()
+        continue
+      }
+      const dst = join(this.config.output, entry.path)
+      // Defense-in-depth: reject any tar entry whose resolved destination
+      // escapes `config.output` (zip-slip). git-archive itself does not
+      // produce such entries, but a future streamArchive caller or a
+      // mutated registry could; failing here keeps the invariant local.
+      if (!dst.startsWith(outputPrefix)) {
+        entry.stream.resume()
+        continue
+      }
+      this.processedPaths.add(entry.path)
+      await this._writeAtomicallyViaTmp(dst, async ws => {
+        await pipeline(entry.stream, ws, { end: false })
+      })
+    }
+  }
+
+  protected async _executeStreamedContent(
+    op: StreamedContentOperation
+  ): Promise<void> {
+    const dst = join(this.config.output, op.path)
+    await this._writeAtomicallyViaTmp(dst, op.writer)
+  }
+
+  // Writes `producer` output to a sibling `.tmp` file, then atomically renames
+  // on success. Same-directory tmp avoids EXDEV on cross-filesystem moves
+  // (Docker-on-CI overlayfs + tmpfs /tmp scenario). Errors destroy the stream,
+  // unlink the tmp, and log at debug — matching _executeGitFileCopy precedent.
+  protected async _writeAtomicallyViaTmp(
+    dst: string,
+    producer: (ws: Writable) => Promise<void>
+  ): Promise<void> {
+    const tmp = `${dst}${TMP_SUFFIX}`
+    await fsPromises.mkdir(dirname(dst), { recursive: true })
+    const ws = createWriteStream(tmp)
+    try {
+      await producer(ws)
+      await new Promise<void>((resolve, reject) => {
+        /* v8 ignore next -- defensive: createWriteStream's end-callback fires with err only on synchronous fd write failure */
+        ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
+      })
+      await fsPromises.rename(tmp, dst)
+    } catch (error) {
+      ws.destroy()
+      /* v8 ignore next -- defensive cleanup: best-effort tmp removal swallows ENOENT and permission errors */
+      await fsPromises.unlink(tmp).catch(() => undefined)
+      Logger.debug(
+        lazy`IOExecutor atomicWrite failed for ${dst}: ${() => getErrorMessage(error)}`
+      )
+    }
   }
 }

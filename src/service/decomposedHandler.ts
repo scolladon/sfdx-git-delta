@@ -1,13 +1,15 @@
 'use strict'
 import { dirname, join } from 'node:path/posix'
-
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
+import type ChangeSet from '../utils/changeSet.js'
 import StandardHandler from './standardHandler.js'
 
 export default class DecomposedHandler extends StandardHandler {
-  public override async collectAddition(): Promise<HandlerResult> {
-    const result = await super.collectAddition()
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    const result = await super.collectAddition(sink)
     this._collectParentCopies(result.copies)
     return result
   }

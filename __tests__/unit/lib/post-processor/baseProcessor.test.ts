@@ -44,7 +44,7 @@ describe('BaseProcessor', () => {
       const result = await sut.transformAndCollect()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })

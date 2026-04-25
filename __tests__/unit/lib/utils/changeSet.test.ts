@@ -258,4 +258,47 @@ describe('ChangeSet', () => {
       expect([...bucket.values()]).toEqual([{ from: 'old', to: 'new' }])
     })
   })
+
+  describe('Given two ChangeSets merged together', () => {
+    it('When the source has rename pairs, Then merge propagates them into the destination (changeSet L158-160)', () => {
+      // Arrange — destination already has a couple of entries; source
+      // contributes a different rename pair plus an addition.
+      const dst = new ChangeSet()
+      dst.addElement({
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Existing',
+        changeKind: ChangeKind.Add,
+      })
+      dst.recordRename('ApexClass', 'before', 'after')
+
+      const src = new ChangeSet()
+      src.addElement({
+        target: ManifestTarget.Package,
+        type: 'ApexTrigger',
+        member: 'NewTrigger',
+        changeKind: ChangeKind.Add,
+      })
+      src.recordRename('ApexTrigger', 'OldTrigger', 'NewTrigger')
+
+      // Act
+      dst.merge(src)
+
+      // Assert — both manifests folded
+      expect(dst.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Existing', 'after'])
+      )
+      expect(dst.forPackageManifest().get('ApexTrigger')).toEqual(
+        new Set(['NewTrigger'])
+      )
+      // Both renames present in the rename bucket
+      const renameByKind = dst.byChangeKind()[ChangeKind.Rename]
+      expect([...renameByKind.get('ApexClass')!.values()]).toEqual([
+        { from: 'before', to: 'after' },
+      ])
+      expect([...renameByKind.get('ApexTrigger')!.values()]).toEqual([
+        { from: 'OldTrigger', to: 'NewTrigger' },
+      ])
+    })
+  })
 })

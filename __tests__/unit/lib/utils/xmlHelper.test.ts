@@ -3,11 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Config } from '../../../../src/types/config'
 import { readPathFromGit } from '../../../../src/utils/fsHelper'
-import {
-  convertJsonToXml,
-  parseXmlFileToJson,
-  xml2Json,
-} from '../../../../src/utils/xmlHelper'
+import { parseXmlFileToJson, xml2Json } from '../../../../src/utils/xmlHelper'
 
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 
@@ -83,44 +79,6 @@ describe('xmlHelper', () => {
     })
   })
 
-  describe('convertJsonToXml', () => {
-    describe('when called with empty object', () => {
-      it('returns empty object', () => {
-        // Act
-        const xmlResult = convertJsonToXml({})
-
-        // Assert
-        expect(xmlResult).toEqual('')
-      })
-    })
-    describe('when called with json content', () => {
-      it('returns json content', () => {
-        // Act
-        const xmlResult = convertJsonToXml({
-          root: { '@_a': 'nice', a: 'wow' },
-        })
-
-        // Assert
-        expect(xmlResult).toEqual(
-          `<root a="nice">
-    <a>wow</a>
-</root>
-`
-        )
-      })
-    })
-    describe('when called with non json content', () => {
-      it('returns empty object', () => {
-        // Act
-        const jsonContent = convertJsonToXml('s')
-
-        // Assert
-        expect(jsonContent).toStrictEqual(`<0>s</0>
-`)
-      })
-    })
-  })
-
   describe('xml2Json', () => {
     describe('when called with empty content', () => {
       it('returns empty object', () => {
@@ -132,11 +90,9 @@ describe('xmlHelper', () => {
       })
     })
     describe('when called with xml content', () => {
-      it('returns json content', async () => {
+      it('returns json content', () => {
         // Act
-        const jsonContent = await xml2Json(
-          '<root a="nice" checked><a>wow</a></root>'
-        )
+        const jsonContent = xml2Json('<root a="nice" checked><a>wow</a></root>')
 
         // Assert
         expect(jsonContent).toEqual({
@@ -145,11 +101,9 @@ describe('xmlHelper', () => {
       })
     })
     describe('when called with non xml content', () => {
-      it('returns empty object', async () => {
+      it('returns empty object', () => {
         // Act
-        const jsonContent = await xml2Json(
-          JSON.stringify({ attribute: 'value' })
-        )
+        const jsonContent = xml2Json(JSON.stringify({ attribute: 'value' }))
 
         // Assert
         expect(jsonContent).toStrictEqual({})
@@ -249,30 +203,154 @@ describe('xmlHelper', () => {
     })
   })
 
-  describe('Given json with boolean attribute', () => {
-    it('When converted to xml, Then boolean attribute is rendered', () => {
-      // Arrange
-      const json = { root: { '@_checked': true, a: 'wow' } }
+  describe('Given txmlAdapter branch coverage (addChild / addComment / parseXml)', () => {
+    it('When parsing three siblings of the same name nested two deep, Then the inner array.push branch fires (txmlAdapter L78-80)', () => {
+      // Arrange — three sibling <a> tags inside a wrapper. tNodeToXmlContent
+      // walks them, sees the wrapper, then recurses; the third <a> inside
+      // hits `Array.isArray(existing)` → existing.push(child) branch.
+      const xml = '<root><wrap><a>1</a><a>2</a><a>3</a></wrap></root>'
 
       // Act
-      const sut = convertJsonToXml(json)
+      const sut = xml2Json(xml)
 
       // Assert
-      expect(sut).toContain('checked')
+      const wrap = (sut as Record<string, Record<string, unknown>>).root
+        .wrap as Record<string, unknown>
+      expect(wrap.a).toEqual(['1', '2', '3'])
+    })
+
+    it('When parsing two siblings of the same name, Then the scalar→array upgrade branch fires (txmlAdapter L82)', () => {
+      // Arrange — exactly two <a> children: existing is scalar, second
+      // call upgrades to [first, second].
+      const xml = '<root><a>x</a><a>y</a></root>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      expect((sut as Record<string, Record<string, unknown>>).root.a).toEqual([
+        'x',
+        'y',
+      ])
+    })
+
+    it('When parsing three sibling comments nested in a wrapper, Then addComment array.push fires (txmlAdapter L91-93)', () => {
+      // Arrange
+      const xml = '<root><wrap><!-- a --><!-- b --><!-- c --></wrap></root>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      const wrap = (sut as Record<string, Record<string, unknown>>).root
+        .wrap as Record<string, unknown>
+      expect(wrap['#comment']).toEqual([' a ', ' b ', ' c '])
+    })
+
+    it('When parsing two top-level comments, Then top-level scalar→array upgrade fires (txmlAdapter L95)', () => {
+      // Arrange
+      const xml = '<!-- one --><!-- two --><Root/>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      expect(sut['#comment']).toEqual([' one ', ' two '])
+    })
+
+    it('When parsing three top-level comments, Then top-level array.push fires (txmlAdapter L91-93 at top level)', () => {
+      // Arrange
+      const xml = '<!-- a --><!-- b --><!-- c --><Root/>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      expect(sut['#comment']).toEqual([' a ', ' b ', ' c '])
+    })
+
+    it('When parsing an inner element with attributes but no children, Then attributes-only object is returned (txmlAdapter L108 sub 0)', () => {
+      // Arrange — inner `<inner attr="x"/>` triggers tNodeToXmlContent's
+      // attributes-only arm: `node.children.length === 0 && hasAttributes`
+      const xml = '<root><inner attr="x"/></root>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      const inner = (sut as Record<string, Record<string, unknown>>).root.inner
+      expect(inner).toEqual({ '@_attr': 'x' })
+    })
+
+    it('When parsing a document with an XML declaration, Then the ?xml branch is taken (txmlAdapter L158-159)', () => {
+      // Arrange — declaration plus a root. Hits the `if (child.tagName ===
+      // XML_HEADER_ATTRIBUTE_KEY)` branch that copies the declaration's
+      // attributes onto out['?xml'].
+      const xml = '<?xml version="1.0" encoding="UTF-8"?><Root>x</Root>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      expect(sut['?xml']).toEqual({
+        '@_version': '1.0',
+        '@_encoding': 'UTF-8',
+      })
+      expect(sut.Root).toBe('x')
+    })
+
+    it('When parsing three top-level <Root/> siblings, Then top-level addChild array.push fires (txmlAdapter L153-154 at top level)', () => {
+      // Arrange — three top-level elements with the same tag name.
+      // Top-level addChild collapses them to an array.
+      const xml = '<A>1</A><A>2</A><A>3</A>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert
+      expect(sut.A).toEqual(['1', '2', '3'])
+    })
+
+    it('When the source has top-level whitespace between elements, Then the top-level whitespace branch is taken (txmlAdapter L158-159)', () => {
+      // Arrange — leading whitespace before the root element. txml emits
+      // the whitespace as a top-level string child; parseXml's
+      // `typeof child === 'string'` branch skips it.
+      const xml = '   \n  <Root>x</Root>'
+
+      // Act
+      const sut = xml2Json(xml)
+
+      // Assert — root parses cleanly with no leakage from the whitespace
+      expect(sut).toEqual({ Root: 'x' })
     })
   })
 
-  describe('Given json with empty node', () => {
-    it('When converted to xml, Then empty node is rendered with open/close tags', () => {
-      // Arrange
-      const json = { root: { empty: '' } }
-
-      // Act
-      const sut = convertJsonToXml(json)
+  describe('Given the xmlContent guard (if (!xmlContent) return {})', () => {
+    it.each([
+      null,
+      undefined,
+      0,
+      false,
+    ])('When xml2Json receives falsy value %s, Then returns empty object without calling parser', falsy => {
+      // Arrange — any falsy xmlContent must trigger the early-return guard
+      // at L34. If the ConditionalExpression is mutated to `false` the
+      // guard never fires and the parser is called with a falsy string,
+      // producing either an error or unexpected output.
+      const sut = xml2Json(falsy as unknown as string)
 
       // Assert
-      expect(sut).toContain('<empty>')
-      expect(sut).toContain('</empty>')
+      expect(sut).toStrictEqual({})
+    })
+
+    it('When xml2Json receives a non-empty string, Then does NOT early-return (guard only fires for falsy)', () => {
+      // Arrange — verifies the guard does not fire for truthy input.
+      // If ConditionalExpression were mutated to `true` this would return {}
+      // for valid XML, breaking the parse path.
+      const sut = xml2Json('<root><a>1</a></root>')
+
+      // Assert — parsed content must be present
+      expect(sut).not.toStrictEqual({})
+      expect(sut).toHaveProperty('root')
     })
   })
 })

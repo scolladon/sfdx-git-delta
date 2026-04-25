@@ -1,6 +1,5 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
-
 import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants.js'
 import {
   INFOLDER_SUFFIX,
@@ -8,13 +7,16 @@ import {
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {
-  public override async collectAddition(): Promise<HandlerResult> {
-    const result = await super.collectAddition()
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    const result = await super.collectAddition(sink)
     this._collectFolderMetaCopies(result.copies)
     await this._collectSpecialExtensionCopies(result.copies)
     return result

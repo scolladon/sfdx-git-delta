@@ -12,15 +12,15 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockCompare, mockPrune } = vi.hoisted(() => ({
-  mockCompare: vi.fn(),
-  mockPrune: vi.fn(),
+const { mockRun, mockWriter } = vi.hoisted(() => ({
+  mockRun: vi.fn(),
+  mockWriter: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { compare: mockCompare, prune: mockPrune }
+      return { run: mockRun }
     }),
   }
 })
@@ -65,7 +65,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -89,7 +89,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectModification()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -113,7 +113,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -140,7 +140,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -165,23 +165,23 @@ describe('Decomposed CustomLabel spec', () => {
         globalMetadata
       )
       const sut = new CustomLabelHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [{ type: 'CustomLabel', member: 'MyLabel' }],
-          modified: [],
-          deleted: [],
+          manifests: {
+            added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+            modified: [],
+            deleted: [],
+          },
+          hasAnyChanges: true,
+          writer: mockWriter,
         })
       )
-      mockPrune.mockReturnValue({
-        xmlContent: '<xmlContent>',
-        isEmpty: false,
-      })
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -191,7 +191,7 @@ describe('Decomposed CustomLabel spec', () => {
         ])
       )
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
       expect(result.warnings).toHaveLength(0)
     })
@@ -206,28 +206,28 @@ describe('Decomposed CustomLabel spec', () => {
         globalMetadata
       )
       const sut = new CustomLabelHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [{ type: 'CustomLabel', member: 'MyLabel' }],
-          modified: [],
-          deleted: [],
+          manifests: {
+            added: [{ type: 'CustomLabel', member: 'MyLabel' }],
+            modified: [],
+            deleted: [],
+          },
+          hasAnyChanges: true,
+          writer: mockWriter,
         })
       )
-      mockPrune.mockReturnValue({
-        xmlContent: '<xmlContent>',
-        isEmpty: false,
-      })
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      const containerManifest = result.manifests.find(
-        m => m.type === 'CustomLabels'
-      )
+      const containerManifest = result.changes
+        .toElements()
+        .find(m => m.type === 'CustomLabels')
       expect(containerManifest).toBeUndefined()
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].type).toBe('CustomLabel')
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].type).toBe('CustomLabel')
     })
   })
 })

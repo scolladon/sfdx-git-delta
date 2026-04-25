@@ -25,6 +25,15 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
   protected readonly metadataPerXmlName: Map<string, Metadata>
+  // Memoizes get(path) results across the registry's lifetime. The lookup
+  // chain (split + extension + directory walk + xmlName) is deterministic
+  // in `path` and the registry is read-only after construction, so a
+  // single cache here is safe and frees every consumer (has,
+  // getFullyQualifiedName, TypeHandlerFactory, computeTreeIndexScope, the
+  // RepoGitDiff filter chain) from repeating the work. Stores `undefined`
+  // negatives too — distinguished from "uncached" via .has().
+  private readonly pathCache: Map<string, Metadata | undefined> = new Map()
+
   constructor(protected readonly metadatas: Metadata[]) {
     this.metadataPerExt = new Map<string, Metadata>()
     this.metadataPerDir = new Map<string, Metadata>()
@@ -76,12 +85,14 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   public get(path: string): Metadata | undefined {
+    if (this.pathCache.has(path)) return this.pathCache.get(path)
     const parts = path.split(PATH_SEP)
-    return (
+    const result =
       this.searchByExtension(parts) ??
       this.searchByDirectory(parts) ??
       this.searchByXmlName(path)
-    )
+    this.pathCache.set(path, result)
+    return result
   }
 
   protected searchByExtension(parts: string[]): Metadata | undefined {
