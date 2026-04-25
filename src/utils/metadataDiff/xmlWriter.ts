@@ -8,6 +8,27 @@ import type { RootCapture } from './xmlEventReader.js'
 const INDENT = '    '
 const NEWLINE = '\n'
 const COMMENT_KEY = '#comment'
+// Buffer threshold for batching frame chunks before flushing to the
+// underlying stream. ~8 KB matches a typical socket / pipe payload
+// without forcing the writer to round-trip the event loop on every
+// element. Picked to amortize the per-write overhead (Writable._write,
+// drain bookkeeping) across ~50-100 frames for medium Profiles.
+const FLUSH_THRESHOLD = 8 * 1024
+
+// Pre-computed indent strings keyed by depth. XML is rarely deeper than
+// 4-6 levels in Salesforce metadata, so this stays tiny. Lazily extended
+// on first miss so deeper inputs still work without an upfront bound.
+const indentCache: string[] = ['']
+const indent = (depth: number): string => {
+  let cached = indentCache[depth]
+  if (cached === undefined) {
+    for (let d = indentCache.length; d <= depth; d++) {
+      indentCache[d] = indentCache[d - 1] + INDENT
+    }
+    cached = indentCache[depth]
+  }
+  return cached!
+}
 
 type ElementEntry = readonly [key: string, value: unknown]
 
@@ -61,8 +82,6 @@ type Frame =
   | CommentFrame
   | LeafFrame
   | EmptyFrame
-
-const indent = (depth: number): string => INDENT.repeat(depth)
 
 const renderAttrs = (attrs: Record<string, string>): string => {
   let out = ''
@@ -165,24 +184,42 @@ const frameForChild = (key: string, value: unknown, depth: number): Frame => {
   return toFrameForObjectChild(key, value as XmlContent, depth)
 }
 
-// Synchronous hot path: when the stream accepts the chunk without
-// signalling backpressure, return undefined (caller awaits a non-promise,
-// one microtask). When it signals backpressure we return a real drain
-// promise. This keeps the per-frame cost low for large pruned XML.
-const writeChunk = (out: Writable, chunk: string): Promise<void> | void => {
-  if (out.write(chunk)) return
-  return once(out, 'drain').then(() => undefined)
+// Buffered emitter: pushes frame fragments into a string until the
+// FLUSH_THRESHOLD is crossed, then writes a single chunk to the
+// underlying stream. Replaces the prior per-frame `out.write` which
+// fired ~3 stream writes per element on large outputs (~thousands of
+// writes per Profile prune). Backpressure is honoured at flush time:
+// if `out.write` returns false we await the next `drain` before
+// continuing — same semantics as before, just at coarser granularity.
+class ChunkBuffer {
+  private buffer = ''
+  constructor(private readonly out: Writable) {}
+
+  push(chunk: string): Promise<void> | void {
+    this.buffer += chunk
+    if (this.buffer.length >= FLUSH_THRESHOLD) {
+      return this.flush()
+    }
+  }
+
+  flush(): Promise<void> | void {
+    if (this.buffer.length === 0) return
+    const payload = this.buffer
+    this.buffer = ''
+    if (this.out.write(payload)) return
+    return once(this.out, 'drain').then(() => undefined)
+  }
 }
 
 const writeXmlDeclaration = async (
-  out: Writable,
+  buf: ChunkBuffer,
   xmlHeader: XmlContent | undefined
 ): Promise<void> => {
   if (!xmlHeader) return
   const decl = xmlHeader['?xml'] as XmlContent | undefined
   if (!decl) return
   const { attributes } = splitAttributesAndChildren(decl)
-  await writeChunk(out, `<?xml${renderAttrs(attributes)}?>${NEWLINE}`)
+  await buf.push(`<?xml${renderAttrs(attributes)}?>${NEWLINE}`)
 }
 
 export type WriteOptions = {
@@ -204,7 +241,8 @@ export const writeXmlDocument = async (
   rootChildren: ElementEntry[],
   options: WriteOptions = {}
 ): Promise<void> => {
-  await writeXmlDeclaration(out, rootCapture.xmlHeader)
+  const buf = new ChunkBuffer(out)
+  await writeXmlDeclaration(buf, rootCapture.xmlHeader)
   const trailingNewline = options.trailingNewline !== false
   const rootFrame: Frame =
     rootChildren.length === 0
@@ -226,43 +264,40 @@ export const writeXmlDocument = async (
   const stack: Frame[] = [rootFrame]
   while (stack.length > 0) {
     const frame = stack.pop()!
-    await emitFrame(out, frame, stack)
+    await emitFrame(buf, frame, stack)
   }
+  // Final flush — anything still buffered at end-of-document goes out
+  // before the caller resolves.
+  await buf.flush()
 }
 
 const emitFrame = async (
-  out: Writable,
+  buf: ChunkBuffer,
   frame: Frame,
   stack: Frame[]
 ): Promise<void> => {
   switch (frame.kind) {
     case 'open':
-      await emitOpenFrame(out, frame, stack)
+      await emitOpenFrame(buf, frame, stack)
       break
     case 'close':
-      await writeChunk(
-        out,
+      await buf.push(
         `${indent(frame.depth)}</${frame.name}>${frame.trailingNewline ? NEWLINE : ''}`
       )
       break
     case 'text':
-      await writeChunk(out, frame.value)
+      await buf.push(frame.value)
       break
     case 'comment':
-      await writeChunk(
-        out,
-        `${indent(frame.depth)}<!--${frame.value}-->${NEWLINE}`
-      )
+      await buf.push(`${indent(frame.depth)}<!--${frame.value}-->${NEWLINE}`)
       break
     case 'leaf':
-      await writeChunk(
-        out,
+      await buf.push(
         `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}>${frame.value}</${frame.name}>${NEWLINE}`
       )
       break
     case 'empty':
-      await writeChunk(
-        out,
+      await buf.push(
         `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}></${frame.name}>${frame.trailingNewline ? NEWLINE : ''}`
       )
       break
@@ -270,12 +305,11 @@ const emitFrame = async (
 }
 
 const emitOpenFrame = async (
-  out: Writable,
+  buf: ChunkBuffer,
   frame: OpenFrame,
   stack: Frame[]
 ): Promise<void> => {
-  await writeChunk(
-    out,
+  await buf.push(
     `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}>${NEWLINE}`
   )
   stack.push({
