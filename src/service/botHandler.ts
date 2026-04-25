@@ -1,9 +1,9 @@
 'use strict'
 import { parse } from 'node:path/posix'
-
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { ManifestTarget } from '../types/handlerResult.js'
+import type ChangeSet from '../utils/changeSet.js'
 import ShareFolderHandler from './sharedFolderHandler.js'
 
 const BOT_TYPE = 'Bot'
@@ -16,8 +16,10 @@ export default class BotHandler extends ShareFolderHandler {
     return [...elementName].join(DOT)
   }
 
-  public override async collectAddition(): Promise<HandlerResult> {
-    const result = await super.collectAddition()
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    const result = await super.collectAddition(sink)
     const botName = this.element.parentFolder.split(PATH_SEP).pop() as string
     result.changes.addElement({
       target: ManifestTarget.Package,

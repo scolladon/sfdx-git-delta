@@ -3,6 +3,7 @@
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
@@ -14,21 +15,25 @@ const resourceRegexCache = new Map<string, RegExp>()
 export default class ResourceHandler extends StandardHandler {
   protected metadataName: string | undefined
 
-  public override async collectAddition(): Promise<HandlerResult> {
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
-    const result = await super.collectAddition()
+    const result = await super.collectAddition(sink)
     await this._collectResourceCopies(result.copies)
     return result
   }
 
-  public override async collectDeletion(): Promise<HandlerResult> {
+  public override async collectDeletion(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
     const componentPath = this.metadataName!
     const exists = await pathExists(componentPath, this.config)
     if (exists) {
-      return await this.collectModification()
+      return await this.collectModification(sink)
     }
-    return await super.collectDeletion()
+    return await super.collectDeletion(sink)
   }
 
   protected async _collectResourceCopies(

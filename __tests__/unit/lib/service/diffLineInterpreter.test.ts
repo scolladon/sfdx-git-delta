@@ -15,8 +15,17 @@ import type { Work } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
 
+// `collect(sink?)` writes manifest entries directly into the sink the
+// interpreter passes in. We hoist a mock that accepts the sink, mirrors
+// the production contract by addElement-ing into it, and returns the
+// recorded result for the test's outer assertions.
 const { mockCollect } = vi.hoisted(() => ({
-  mockCollect: vi.fn<() => Promise<HandlerResult>>(),
+  mockCollect:
+    vi.fn<
+      (
+        sink?: import('../../../../src/utils/changeSet').default
+      ) => Promise<import('../../../../src/types/handlerResult').HandlerResult>
+    >(),
 }))
 
 vi.mock('../../../../src/service/typeHandlerFactory', () => {
@@ -59,10 +68,9 @@ describe('DiffLineInterpreter', () => {
         member: 'Foo',
         changeKind: ChangeKind.Add as ChangeKind.Add,
       }
-      mockCollect.mockResolvedValue({
-        changes: ChangeSet.from([manifest]),
-        copies: [],
-        warnings: [],
+      mockCollect.mockImplementation(async sink => {
+        sink?.addElement(manifest)
+        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
       })
 
       // Act
@@ -73,24 +81,30 @@ describe('DiffLineInterpreter', () => {
     })
 
     it('Given slow handlers, When queue workers finish after enqueuing, Then all results are collected', async () => {
-      // Arrange
+      // Arrange — three lines, each handler returns a distinct manifest so
+      // we can verify all three results landed (Set-based ChangeSet dedupes
+      // identical entries, so the per-handler element must differ to
+      // distinguish "all collected" from "one collected three times").
       const lines = ['a', 'b', 'c']
-      const expectedResult: HandlerResult = {
-        changes: ChangeSet.from([
-          {
-            target: ManifestTarget.Package,
-            type: 'CustomLabel',
-            member: 'test',
-            changeKind: ChangeKind.Modify,
-          },
-        ]),
-        copies: [],
-        warnings: [],
-      }
-      mockCollect.mockImplementation(
-        () =>
-          new Promise(resolve => setImmediate(() => resolve(expectedResult)))
-      )
+      let counter = 0
+      mockCollect.mockImplementation(sink => {
+        const seq = counter++
+        return new Promise(resolve =>
+          setImmediate(() => {
+            sink?.addElement({
+              target: ManifestTarget.Package,
+              type: 'CustomLabel',
+              member: `test${seq}`,
+              changeKind: ChangeKind.Modify,
+            })
+            resolve({
+              changes: sink ?? new ChangeSet(),
+              copies: [],
+              warnings: [],
+            })
+          })
+        )
+      })
 
       // Act
       const result = await sut.process(lines)
@@ -128,10 +142,9 @@ describe('DiffLineInterpreter', () => {
         member: 'Scoped',
         changeKind: ChangeKind.Add as ChangeKind.Add,
       }
-      mockCollect.mockResolvedValue({
-        changes: ChangeSet.from([manifest]),
-        copies: [],
-        warnings: [],
+      mockCollect.mockImplementation(async sink => {
+        sink?.addElement(manifest)
+        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
       })
 
       // Act
@@ -147,17 +160,14 @@ describe('DiffLineInterpreter', () => {
     it('When processed, Then returns merged result (not empty)', async () => {
       // Arrange
       const lines = ['test']
-      mockCollect.mockResolvedValue({
-        changes: ChangeSet.from([
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'Test',
-            changeKind: ChangeKind.Add,
-          },
-        ]),
-        copies: [],
-        warnings: [],
+      mockCollect.mockImplementation(async sink => {
+        sink?.addElement({
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'Test',
+          changeKind: ChangeKind.Add,
+        })
+        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
       })
 
       // Act

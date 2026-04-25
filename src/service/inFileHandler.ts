@@ -30,24 +30,32 @@ export default class InFileHandler extends StandardHandler {
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
-  public override async collectAddition(): Promise<HandlerResult> {
-    return await this._collectCompareResult()
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    return await this._collectCompareResult(sink)
   }
 
-  public override async collectDeletion(): Promise<HandlerResult> {
+  public override async collectDeletion(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (this._shouldTreatDeletionAsDeletion()) {
-      return await super.collectDeletion()
+      return await super.collectDeletion(sink)
     }
-    return await this.collectAddition()
+    return await this.collectAddition(sink)
   }
 
-  public override async collectModification(): Promise<HandlerResult> {
-    return await this.collectAddition()
+  public override async collectModification(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    return await this.collectAddition(sink)
   }
 
-  protected async _collectCompareResult(): Promise<HandlerResult> {
+  protected async _collectCompareResult(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     try {
-      const result = emptyResult()
+      const result = this._emptyResultFor(sink)
       const outcome = await this.metadataDiff.run(this.element.basePath)
 
       this._collectManifestFromComparison(
@@ -74,7 +82,7 @@ export default class InFileHandler extends StandardHandler {
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
       if (this._shouldTreatContainerType(!outcome.hasAnyChanges)) {
         const containerResult =
-          await StandardHandler.prototype.collectAddition.call(this)
+          await StandardHandler.prototype.collectAddition.call(this, sink)
         result.changes.merge(containerResult.changes)
       }
 

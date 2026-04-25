@@ -46,11 +46,6 @@ export default class ChangeSet {
     [ChangeKind.Modify]: new Map(),
     [ChangeKind.Delete]: new Map(),
   }
-  // Insertion log of every addElement call. byTarget/byKind store independent
-  // axes and cannot be losslessly joined back into ManifestElement form when
-  // the same (type, member) is added with multiple (target, kind) tuples;
-  // this list keeps the original triples for inspection (`toElements()`).
-  private readonly _elements: ManifestElement[] = []
   private readonly renames: RenameBucket = new Map()
 
   static from(elements: readonly ManifestElement[]): ChangeSet {
@@ -75,14 +70,43 @@ export default class ChangeSet {
       element.type,
       element.member
     )
-    this._elements.push(element)
   }
 
-  // Returns the insertion log as a defensive shallow copy. Useful for tests
-  // and diagnostics; production consumers should prefer `forPackageManifest`,
-  // `forDestructiveManifest`, or `byChangeKind` for the indexed views.
+  // Diagnostic / test-only: reconstructs the (target, type, member, changeKind)
+  // tuples by joining byTarget × byKind on (type, member). Production diff
+  // lines never insert the same (type, member) under two different changeKind
+  // values, so the join is unambiguous in practice. Production code should
+  // use forPackageManifest / forDestructiveManifest / byChangeKind for the
+  // indexed views — this method exists only so tests can list inserted
+  // elements without paying a per-addElement push in the hot path.
   toElements(): ManifestElement[] {
-    return [...this._elements]
+    const targets = [
+      ManifestTarget.Package,
+      ManifestTarget.DestructiveChanges,
+    ] as const
+    const kinds = [
+      ChangeKind.Add,
+      ChangeKind.Modify,
+      ChangeKind.Delete,
+    ] as const
+    const out: ManifestElement[] = []
+    for (const target of targets) {
+      for (const [type, members] of this.byTarget[target]) {
+        for (const member of members) {
+          let kind: AddKind | undefined
+          for (const k of kinds) {
+            if (this.byKind[k].get(type)?.has(member)) {
+              kind = k
+              break
+            }
+          }
+          if (kind !== undefined) {
+            out.push({ target, type, member, changeKind: kind })
+          }
+        }
+      }
+    }
+    return out
   }
 
   // Convenience for callers (mostly tests) that operate under the standard
@@ -130,9 +154,6 @@ export default class ChangeSet {
           this._addToManifest(this.byKind[kind], type, member)
         }
       }
-    }
-    for (const element of other._elements) {
-      this._elements.push(element)
     }
     for (const [type, pairs] of other.renames) {
       for (const { from, to } of pairs.values()) {

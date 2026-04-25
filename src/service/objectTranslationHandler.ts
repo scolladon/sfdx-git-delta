@@ -1,17 +1,22 @@
 'use strict'
 import { parse } from 'node:path/posix'
-
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
+import type ChangeSet from '../utils/changeSet.js'
 import MetadataDiff from '../utils/metadataDiff/index.js'
 import ResourceHandler from './inResourceHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
-  public override async collectAddition(): Promise<HandlerResult> {
-    const result = await StandardHandler.prototype.collectAddition.call(this)
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    const result = await StandardHandler.prototype.collectAddition.call(
+      this,
+      sink
+    )
     if (!this._shouldCollectCopies()) return result
 
     // RATIONALE: Why include objectTranslation file even when pruned content is empty?

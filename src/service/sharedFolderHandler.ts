@@ -1,10 +1,10 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
-
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 
 import StandardHandler from './standardHandler.js'
@@ -30,14 +30,18 @@ export default class SharedFolderHandler extends StandardHandler {
     }
   }
 
-  public override async collectAddition(): Promise<HandlerResult> {
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
-    return await super.collectAddition()
+    return await super.collectAddition(sink)
   }
 
-  public override async collectDeletion(): Promise<HandlerResult> {
+  public override async collectDeletion(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
-    return await super.collectDeletion()
+    return await super.collectDeletion(sink)
   }
 
   protected override _isProcessable() {

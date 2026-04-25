@@ -45,24 +45,28 @@ describe('DiffLineInterpreter.process', () => {
 
   describe('Given lines with handlers returning results', () => {
     it('When process is called, Then merges all handler results', async () => {
-      // Arrange
-      mockCollect.mockResolvedValue({
-        changes: ChangeSet.from([
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'MyClass',
-            changeKind: ChangeKind.Add,
-          },
-        ]),
-        copies: [
-          {
-            kind: CopyOperationKind.GitCopy,
-            path: 'classes/MyClass.cls',
-            revision: 'sha123',
-          },
-        ],
-        warnings: [],
+      // Arrange — distinct member per handler so the union ChangeSet keeps
+      // both, not deduplicated.
+      let seq = 0
+      mockCollect.mockImplementation((sink?: ChangeSet) => {
+        const i = seq++
+        sink?.addElement({
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: `MyClass${i}`,
+          changeKind: ChangeKind.Add,
+        })
+        return Promise.resolve({
+          changes: sink ?? new ChangeSet(),
+          copies: [
+            {
+              kind: CopyOperationKind.GitCopy,
+              path: `classes/MyClass${i}.cls`,
+              revision: 'sha123',
+            },
+          ],
+          warnings: [],
+        })
       })
       const sut = new DiffLineInterpreter(work, globalMetadata)
 
