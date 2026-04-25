@@ -1,5 +1,9 @@
 import { bench, describe } from 'vitest'
 
+import {
+  parseFromSideSwallowing,
+  parseToSidePropagating,
+} from '../../src/utils/metadataDiff/xmlEventReader.js'
 import { xml2Json } from '../../src/utils/xmlHelper.js'
 
 // Salesforce-shaped XML payloads at three rough sizes. The fixtures are
@@ -34,12 +38,22 @@ const FIXTURES = {
   large: buildProfile(2000),
 } as const
 
+const noopElement = (): void => undefined
+
 for (const [size, payload] of Object.entries(FIXTURES) as Array<
   [keyof typeof FIXTURES, string]
 >) {
   describe(`xml-parse-${size}`, () => {
     bench(`xml2Json-${size}`, () => {
       xml2Json(payload)
+    })
+
+    bench(`parseToSidePropagating-${size}`, async () => {
+      await parseToSidePropagating(payload, noopElement)
+    })
+
+    bench(`parseFromSideSwallowing-${size}`, async () => {
+      await parseFromSideSwallowing(payload, noopElement)
     })
   })
 }

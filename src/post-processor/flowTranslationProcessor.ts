@@ -259,13 +259,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   // are discarded as they are emitted, and flowDefinitions whose
   // fullName is not in packagedFlows never reach this.translations.
   // The callback-level early-filter makes _addFlowPerTranslation a
-  // plain append.
-  //
-  // Note: per DESIGN Q2 the underlying parser still materialises the
-  // full tree before the callbacks fire — the memory win is bounded by
-  // packagedFlows size, not by peak-element size. A per-element
-  // memory-bounded parse requires a subclassable output-builder in
-  // @nodable/compact-builder and is tracked separately.
+  // plain append. The underlying reader (xmlEventReader) parses one
+  // element at a time via txml's parseNode primitive, so peak memory
+  // stays bounded by the largest single subtree rather than the full
+  // document.
   protected async _parseTranslationFile(translationPath: string) {
     const source = await readPathFromGit(
       { path: translationPath, oid: this.config.to },
