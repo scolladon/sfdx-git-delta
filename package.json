@@ -48,10 +48,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "^4.10.5",
-    "@salesforce/core": "^8.28.3",
+    "@oclif/core": "^4.10.6",
+    "@salesforce/core": "^8.28.4",
     "@salesforce/sf-plugins-core": "^12.2.6",
-    "@salesforce/source-deploy-retrieve": "^12.34.0",
+    "@salesforce/source-deploy-retrieve": "^12.34.2",
     "async": "^3.2.6",
     "fast-equals": "^6.0.0",
     "fs-extra": "^11.3.4",
@@ -71,12 +71,12 @@
     "strnum": "2.2.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.12",
-    "@commitlint/cli": "^20.5.0",
+    "@biomejs/biome": "2.4.13",
+    "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",
     "@ls-lint/ls-lint": "^2.3.1",
     "@oclif/plugin-help": "^6.2.44",
-    "@salesforce/cli-plugins-testkit": "^5.3.53",
+    "@salesforce/cli-plugins-testkit": "^5.3.54",
     "@salesforce/dev-config": "^4.3.3",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
@@ -88,7 +88,7 @@
     "@types/tar-stream": "^3.1.4",
     "@vitest/coverage-v8": "^4.1.5",
     "husky": "^9.1.7",
-    "knip": "^6.6.1",
+    "knip": "^6.7.0",
     "lint-staged": "^16.4.0",
     "lodash": "^4.18.1",
     "oclif": "^4.23.0",

@@ -19,6 +19,9 @@ export type DiffOutcome = {
     deleted: CompareEntry[]
   }
   hasAnyChanges: boolean
+  // True when no surviving children remain after pruning — InFileHandler
+  // uses this to decide whether to include the root in package.xml.
+  isEmpty: boolean
   writer?: (out: Writable) => Promise<void>
 }
 
@@ -54,10 +57,17 @@ export default class MetadataDiff {
       this.config.generateDelta
     )
     await parseFromSideSwallowing(fromSource, engine.onFromElement)
-    const rootCapture = await parseToSidePropagating(
-      toSource,
-      engine.onToElement
-    )
+    // Deleted files have an empty to-side; legacy parseXmlFileToJson
+    // silently returned {}, so MetadataComparator saw "no children" and
+    // emitted every from-side element as deleted. The strict to-side
+    // parser throws on empty input, so we short-circuit here: an empty
+    // toSource means there are no children to classify, and the engine's
+    // drainDeletions pass naturally records every from-side element as
+    // deleted. No rootCapture is produced — InFileHandler doesn't need
+    // one for a delete-only file and the writer is gated on hasAnyChanges.
+    const rootCapture: RootCapture | null = toSource
+      ? await parseToSidePropagating(toSource, engine.onToElement)
+      : null
     const outcome = engine.finalize()
     const writer = engine.buildWriter(rootCapture)
     return {
@@ -67,6 +77,7 @@ export default class MetadataDiff {
         deleted: outcome.deleted,
       },
       hasAnyChanges: outcome.hasAnyChanges,
+      isEmpty: outcome.isEmpty,
       ...(writer ? { writer } : {}),
     }
   }

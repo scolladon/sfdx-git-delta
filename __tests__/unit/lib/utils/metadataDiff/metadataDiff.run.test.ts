@@ -185,4 +185,30 @@ describe('MetadataDiff.run', () => {
     expect(fromCallOid).toBe(work.config.from)
     expect(fromCallOid).not.toBe(toCallOid)
   })
+
+  it('Given the to-side is empty (file deleted in to-revision), When run runs, Then the to-side parse is short-circuited and isEmpty is true', async () => {
+    // Arrange — empty to-side simulates a file deletion. Legacy
+    // parseXmlFileToJson returned `{}` and MetadataComparator emitted
+    // every from-side element as deleted; the streaming reader throws
+    // on empty input, so MetadataDiff short-circuits the to-side parse
+    // when toSource is empty. The from-side is still consumed so
+    // drainDeletions can emit packageable subTypes (fieldPermissions
+    // is registry-excluded → no manifest entry, but isEmpty=true
+    // reflects the empty to-side correctly).
+    const fromXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <fieldPermissions>\n        <field>Account.X</field>\n        <editable>true</editable>\n        <readable>true</readable>\n    </fieldPermissions>\n</Profile>\n`
+    mockedReadPathFromGit.mockImplementation(async ref =>
+      ref.oid === work.config.to ? '' : fromXml
+    )
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act
+    const outcome = await sut.run('deleted/path')
+
+    // Assert — the empty-toSource short-circuit returns a well-formed
+    // outcome without throwing the parser's "no root element" error.
+    expect(outcome.isEmpty).toBe(true)
+    expect(outcome.writer).toBeUndefined()
+    expect(outcome.manifests.added).toHaveLength(0)
+    expect(outcome.manifests.modified).toHaveLength(0)
+  })
 })

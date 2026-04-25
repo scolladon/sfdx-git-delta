@@ -20,6 +20,12 @@ export type StreamingDiffResult = {
   modified: CompareEntry[]
   deleted: CompareEntry[]
   hasAnyChanges: boolean
+  // True when the to-side has no surviving elements after pruning (every
+  // sub-element was deleted, or the to-side was already empty). Distinct
+  // from `hasAnyChanges`: a delete-only file can have hasAnyChanges=true
+  // *and* isEmpty=true, in which case InFileHandler must NOT include the
+  // root in package.xml — there is nothing deployable left to ship.
+  isEmpty: boolean
   writer?: (out: Writable) => Promise<void>
 }
 
@@ -150,7 +156,7 @@ export class StreamingDiff {
 
   public finalize(): Pick<
     StreamingDiffResult,
-    'added' | 'modified' | 'deleted' | 'hasAnyChanges'
+    'added' | 'modified' | 'deleted' | 'hasAnyChanges' | 'isEmpty'
   > {
     this.drainArrays()
     this.drainObjectFingerprints()
@@ -162,6 +168,7 @@ export class StreamingDiff {
       modified: this.modified,
       deleted: this.deleted,
       hasAnyChanges: this.hasAnyChanges,
+      isEmpty: this.prunedBySubType.size === 0,
     }
   }
 
@@ -169,6 +176,10 @@ export class StreamingDiff {
     if (!this.generateDelta || !this.hasAnyChanges || !rootCapture) {
       return undefined
     }
+    // No surviving children means the pruned output is just the empty
+    // root tag, which legacy treated as "do not emit". Skipping here keeps
+    // delete-only files out of the delta output entirely.
+    if (this.prunedBySubType.size === 0) return undefined
     const rootChildren = this.collectRootChildren(rootCapture)
     return async (out: Writable) => {
       // Per-file pruned XML retains the legacy trailing newline (matches

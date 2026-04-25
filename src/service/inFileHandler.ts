@@ -79,8 +79,12 @@ export default class InFileHandler extends StandardHandler {
 
       // RATIONALE: Why include root component in package.xml for InFile sub-elements?
       // InFile elements are not independently deployable; the root component must be listed.
+      // The container is added only when there are surviving children to deploy (i.e.
+      // adds or modifications). Delete-only changes go to destructiveChanges.xml; their
+      // parent must NOT be re-listed in package.xml because there is nothing to deploy.
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
-      if (this._shouldTreatContainerType(!outcome.hasAnyChanges)) {
+      const fileIsEmpty = outcome.isEmpty ?? !outcome.hasAnyChanges
+      if (this._shouldTreatContainerType(fileIsEmpty)) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this, sink)
         result.changes.merge(containerResult.changes)
