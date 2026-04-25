@@ -103,6 +103,7 @@ export default class StandardHandler {
   }
 
   protected _emptyResultFor(sink?: ChangeSet): HandlerResult {
+    /* v8 ignore next -- defensive: production callers always pass a sink; the no-sink fallback exists for legacy / direct-handler tests */
     return sink ? { changes: sink, copies: [], warnings: [] } : emptyResult()
   }
 

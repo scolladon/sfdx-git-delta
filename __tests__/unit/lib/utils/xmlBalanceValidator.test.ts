@@ -88,6 +88,22 @@ describe('validateXml', () => {
         /multiple root/
       )
     })
+
+    it('throws on a closing tag with no readable name (L96 malformed closing tag)', () => {
+      expect(() => validateXml('<Root></></Root>')).toThrow(
+        /malformed closing tag/
+      )
+    })
+
+    it('throws when a closing tag is not terminated with `>` (L100 closing tag findTagEnd path)', () => {
+      expect(() => validateXml('<Root></Root')).toThrow(
+        /unterminated closing tag/
+      )
+    })
+
+    it('throws on a malformed open tag with no name (L114 malformed open tag)', () => {
+      expect(() => validateXml('<>foo</>')).toThrow(/malformed tag/)
+    })
   })
 
   describe('Tolerated edge cases', () => {
@@ -111,6 +127,16 @@ describe('validateXml', () => {
     it('accepts attributes containing forward slashes', () => {
       expect(() =>
         validateXml('<Root><a href="https://x/y"/></Root>')
+      ).not.toThrow()
+    })
+
+    it('accepts terminated DOCTYPE declarations (xmlBalanceValidator L89-90)', () => {
+      // Arrange — a DOCTYPE that *does* terminate exercises the success
+      // arm of the `<!...>` branch, which advances `i` past the closing
+      // `>` and continues into the body. Only the unterminated form was
+      // covered before.
+      expect(() =>
+        validateXml('<!DOCTYPE root SYSTEM "ext.dtd"><Root>x</Root>')
       ).not.toThrow()
     })
   })

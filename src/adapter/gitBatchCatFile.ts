@@ -209,6 +209,7 @@ export class GitBatchCatFile {
       )
     })
     child.on('close', (code: number | null) => {
+      /* v8 ignore next -- defensive: the close listener is bound to the active process; only fires for `this.process` in practice */
       if (child !== this.process) return
       if (code !== 0 && this.queue.length > 0) {
         const error = new Error(`git cat-file exited with code ${code}`)

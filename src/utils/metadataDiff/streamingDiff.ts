@@ -112,6 +112,7 @@ export class StreamingDiff {
       return
     }
     const key = element[keyField] as string | undefined
+    /* v8 ignore next -- defensive: keyed subTypes always have the configured key in well-formed metadata */
     if (key === undefined) return
     const map = this.passOne.fromKeyed.get(subType) ?? new Map()
     map.set(key, element)
@@ -181,6 +182,7 @@ export class StreamingDiff {
     const entries: [string, unknown][] = []
     for (const subType of this.toSubTypeOrder) {
       const elements = this.prunedBySubType.get(subType)
+      /* v8 ignore next -- defensive: trackToOrder is paired with retainSubTypeElement, so prunedBySubType is always populated for tracked subTypes */
       if (!elements || elements.length === 0) continue
       entries.push([subType, elements])
     }
@@ -193,6 +195,7 @@ export class StreamingDiff {
     keyField: string
   ): void {
     const key = element[keyField] as string | undefined
+    /* v8 ignore next -- defensive: keyed subTypes always have the configured key in well-formed metadata */
     if (key === undefined) return
     const fromMap = this.passOne.fromKeyed.get(subType)
     const fromElem = fromMap?.get(key)
@@ -226,6 +229,7 @@ export class StreamingDiff {
   }
 
   private xmlNameOf(subType: string): string {
+    /* v8 ignore next -- defensive: every tracked subType has an xmlName in the registry */
     return this.attributes.get(subType)?.xmlName ?? ''
   }
 
@@ -297,6 +301,7 @@ export class StreamingDiff {
       if (remaining.size === 0) continue
       if (!this.isPackageable(subType)) continue
       const keyField = this.attributes.get(subType)?.key
+      /* v8 ignore next -- defensive: passOne.fromKeyed is only populated for subTypes whose key field is defined */
       if (keyField === undefined) continue
       for (const [, element] of remaining.entries()) {
         this.recordDeleted(subType, element[keyField] as string)

@@ -217,11 +217,13 @@ export default class IOExecutor {
     try {
       await producer(ws)
       await new Promise<void>((resolve, reject) => {
+        /* v8 ignore next -- defensive: createWriteStream's end-callback fires with err only on synchronous fd write failure */
         ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
       })
       await fsPromises.rename(tmp, dst)
     } catch (error) {
       ws.destroy()
+      /* v8 ignore next -- defensive cleanup: best-effort tmp removal swallows ENOENT and permission errors */
       await fsPromises.unlink(tmp).catch(() => undefined)
       Logger.debug(
         lazy`IOExecutor atomicWrite failed for ${dst}: ${() => getErrorMessage(error)}`

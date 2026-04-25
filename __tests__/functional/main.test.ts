@@ -449,5 +449,39 @@ describe('external library inclusion', () => {
       expect(mockComputeTreeIndexScope).toHaveBeenCalled()
       expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
     })
+
+    it('Given generateDelta is true and the diff stream emits lines, When sgd runs, Then the materialize-once branch buffers them for both the scope read and the handler pass (main L46)', async () => {
+      // Arrange — the materialize branch (`needsScopeFromDiff` true)
+      // pushes each yielded line into a string[] so both
+      // computeTreeIndexScope and lineProcessor.process can iterate
+      // the same data. Without an actual line yielded the
+      // materialized.push branch never fires, leaving L46 uncovered.
+      mockGetLines.mockReturnValueOnce(
+        asAsyncIterable([
+          'A\tforce-app/main/default/classes/Foo.cls',
+          'M\tforce-app/main/default/classes/Bar.cls',
+        ])
+      )
+      mockComputeTreeIndexScope.mockReturnValueOnce(
+        new Set(['force-app/main/default/classes'])
+      )
+      const sut = {
+        generateDelta: true,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as Config
+
+      // Act
+      await sgd(sut)
+
+      // Assert — process gets the materialized array; treeIndexScope
+      // also saw it (via the same buffered array reference).
+      expect(mockProcess).toHaveBeenCalledTimes(1)
+      expect(mockComputeTreeIndexScope).toHaveBeenCalled()
+      const passedLines = mockProcess.mock.calls[0]?.[0]
+      expect(Array.isArray(passedLines)).toBe(true)
+      expect(passedLines).toHaveLength(2)
+    })
   })
 })

@@ -48,11 +48,6 @@ type CloseFrame = {
   trailingNewline: boolean
 }
 
-type TextFrame = {
-  kind: 'text'
-  value: string
-}
-
 type CommentFrame = {
   kind: 'comment'
   value: string
@@ -75,13 +70,7 @@ type EmptyFrame = {
   trailingNewline: boolean
 }
 
-type Frame =
-  | OpenFrame
-  | CloseFrame
-  | TextFrame
-  | CommentFrame
-  | LeafFrame
-  | EmptyFrame
+type Frame = OpenFrame | CloseFrame | CommentFrame | LeafFrame | EmptyFrame
 
 const renderAttrs = (attrs: Record<string, string>): string => {
   let out = ''
@@ -284,9 +273,6 @@ const emitFrame = async (
       await buf.push(
         `${indent(frame.depth)}</${frame.name}>${frame.trailingNewline ? NEWLINE : ''}`
       )
-      break
-    case 'text':
-      await buf.push(frame.value)
       break
     case 'comment':
       await buf.push(`${indent(frame.depth)}<!--${frame.value}-->${NEWLINE}`)

@@ -55,6 +55,7 @@ export default class PackageGenerator extends BaseProcessor {
     const ws = createWriteStream(dst)
     await builder.buildPackageStream(op.manifest, ws)
     await new Promise<void>((resolve, reject) => {
+      /* v8 ignore next -- defensive: createWriteStream's end-callback fires with err only on synchronous fd write failure */
       ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
     })
   }

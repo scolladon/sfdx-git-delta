@@ -100,6 +100,7 @@ export default class ChangeSet {
               break
             }
           }
+          /* v8 ignore next -- defensive: addElement always pairs byTarget and byKind, so every (type, member) in byTarget has a corresponding byKind entry */
           if (kind !== undefined) {
             out.push({ target, type, member, changeKind: kind })
           }

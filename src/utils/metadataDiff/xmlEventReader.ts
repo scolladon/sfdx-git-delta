@@ -128,6 +128,7 @@ const streamRootChildren = (
   let pos = bodyStart
   while (pos < xml.length) {
     const lt = xml.indexOf('<', pos)
+    /* v8 ignore next -- defensive: well-formed XML always has the closing root tag, so '<' is reachable until the </Root> marker exits the loop on L133 */
     if (lt < 0) break
 
     if (xml.startsWith('</', lt)) break

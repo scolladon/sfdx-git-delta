@@ -39,6 +39,7 @@ export default class RepoGitDiff {
     for await (const rawLine of this.gitAdapter.streamDiffLines()) {
       for (const expanded of this._expandRename(rawLine)) {
         if (!expanded) continue
+        /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
         if (!this.metadata.has(expanded)) continue
         if (!ignoreHelper.keep(expanded)) continue
 

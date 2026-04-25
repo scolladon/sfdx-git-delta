@@ -376,4 +376,80 @@ describe('writeXmlDocument', () => {
     expect(out).toContain(`        <childA>x</childA>`)
     expect(out).toContain(`        <childB>y</childB>`)
   })
+
+  it('Given a payload whose only push exceeds FLUSH_THRESHOLD, When the writer finalises, Then the trailing flush sees an empty buffer (xmlWriter L195 sub 0)', async () => {
+    // Arrange — a single attribute > 8 KB. The empty-root frame produces
+    // one push of `<Root attr="…"></Root>\n` whose length exceeds the
+    // threshold, so push() flushes inline. After that the loop exits and
+    // writeXmlDocument's final buf.flush() sees buffer.length === 0,
+    // exercising the early-return arm.
+    const longAttr = 'a'.repeat(9000)
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        {
+          rootKey: 'Root',
+          rootAttributes: { '@_attr': longAttr },
+          xmlHeader: undefined,
+        },
+        []
+      )
+    })
+
+    // Assert — content survives the inline flush + empty trailing flush
+    expect(out).toContain('<Root attr=')
+    expect(out).toContain('</Root>')
+  })
+
+  it('Given an xmlHeader without the `?xml` key, When the writer runs, Then writeXmlDeclaration short-circuits (xmlWriter L209 sub 0)', async () => {
+    // Arrange — an xmlHeader object that is truthy but missing the '?xml'
+    // entry exercises the `if (!decl) return` arm. The writer must skip
+    // declaration emission and proceed straight to the root.
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        {
+          xmlHeader: {} as Record<string, never>,
+          rootKey: 'Root',
+          rootAttributes: {},
+        },
+        []
+      )
+    })
+
+    // Assert — no `<?xml ... ?>` line was emitted
+    expect(out.startsWith('<?xml')).toBe(false)
+    expect(out).toContain('<Root></Root>')
+  })
+
+  it('Given a Writable that signals backpressure, When ChunkBuffer flushes, Then the writer awaits drain (xmlWriter L210)', async () => {
+    // Arrange — a PassThrough with a tiny highWaterMark plus a paused
+    // reader forces `out.write(...)` to return false on the first flush.
+    // We resume the reader after a tick so the producer awaits `drain`
+    // and exercises the once(out, 'drain') branch in ChunkBuffer.flush.
+    const stream = new PassThrough({ highWaterMark: 16 })
+    stream.pause()
+    const sinkChunks: Buffer[] = []
+    stream.on('data', chunk => sinkChunks.push(Buffer.from(chunk)))
+    // Build a payload large enough to cross the 8 KB flush threshold.
+    const labels = Array.from({ length: 200 }, (_, i): [string, unknown] => [
+      'labels',
+      {
+        fullName: `Label_${i}`,
+        language: 'en_US',
+        protected: 'false',
+        shortDescription: 'A short description that exists',
+        value: `A label value with words ${i}`,
+      },
+    ])
+    const writePromise = writeXmlDocument(stream, profileCapture, labels)
+    // Yield once so the writer enters drain-await, then flip the stream
+    // back to flowing mode to release backpressure.
+    setImmediate(() => stream.resume())
+    await writePromise
+    stream.end()
+    const out = Buffer.concat(sinkChunks).toString('utf8')
+    expect(out).toContain('<Profile')
+    expect(out.match(/<labels>/g)?.length).toBe(200)
+  })
 })

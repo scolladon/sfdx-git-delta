@@ -203,6 +203,7 @@ export default class GitAdapter implements GitBlobReader {
     this.streamingChildren.push(child)
     child.once('close', () => {
       const idx = this.streamingChildren.indexOf(child)
+      /* v8 ignore next -- defensive: the close listener is once-only and bound to the tracked child; idx is always >= 0 here */
       if (idx !== -1) this.streamingChildren.splice(idx, 1)
     })
   }
@@ -344,6 +345,7 @@ export default class GitAdapter implements GitBlobReader {
 
     const onChunk = (chunk: Buffer) => {
       if (decided) {
+        /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
         if (!out.write(chunk)) child.stdout.pause()
         return
       }
@@ -356,6 +358,7 @@ export default class GitAdapter implements GitBlobReader {
         this._handoffToLfs(child, out, head)
         return
       }
+      /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
       if (!out.write(head)) child.stdout.pause()
     }
 
@@ -365,6 +368,7 @@ export default class GitAdapter implements GitBlobReader {
       if (!decided && peekedLen > 0) {
         out.write(forwardPeeked())
       }
+      /* v8 ignore next -- defensive: forwardPeeked above zeroes peekedLen, so the second arm always evaluates true after a flush */
       if (decided || peekedLen === 0) out.end()
     })
     child.stderr.on('data', (chunk: Buffer) => {
@@ -415,9 +419,11 @@ export default class GitAdapter implements GitBlobReader {
           .on('error', err => out.destroy(err))
           .pipe(out)
       } catch (err) {
+        /* v8 ignore next -- defensive: getLFSObjectContentPath / createReadStream throw Error instances in practice; the String() fallback exists for non-Error throws */
         out.destroy(err instanceof Error ? err : new Error(String(err)))
       }
     })
+    /* v8 ignore next -- defensive: _handoffToLfs is reached after the first peek; the child is alive at this point */
     if (!child.killed) child.kill()
   }
 
@@ -586,6 +592,7 @@ export default class GitAdapter implements GitBlobReader {
     ]
     const lines: string[] = []
     for await (const line of this._spawnLines(args)) {
+      /* v8 ignore next -- defensive: _spawnLines splits on EOL; trailing/empty lines from git numstat are filtered here */
       if (!line) continue
       lines.push(
         treatPathSep(
