@@ -20,88 +20,72 @@ export default class RepoGitDiff {
     this.gitAdapter = GitAdapter.getInstance(this.config)
   }
 
-  public async getLines(): Promise<string[]> {
-    const rawLines = await this.gitAdapter.getDiffLines()
-    const expanded = this._expandRenames(rawLines)
-    return await this._treatResult(expanded)
+  /**
+   * Streams the filtered, rename-expanded diff lines. Yields A/M lines as
+   * they arrive from git so handlers can start working immediately; D
+   * lines are buffered until upstream EOF because the deleted-renamed
+   * cancellation rule needs the full A-name set before any D line can
+   * be classified.
+   *
+   * Rename pairs are captured along the way and exposed via
+   * getRenamePairs() once iteration completes.
+   */
+  public async *getLines(): AsyncGenerator<string> {
+    this.renamePairs = []
+    const ignoreHelper = await buildIgnoreHelper(this.config)
+    const additionNames = new Set<string>()
+    const deferredDeletions: string[] = []
+
+    for await (const rawLine of this.gitAdapter.streamDiffLines()) {
+      for (const expanded of this._expandRename(rawLine)) {
+        if (!expanded) continue
+        /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
+        if (!this.metadata.has(expanded)) continue
+        if (!ignoreHelper.keep(expanded)) continue
+
+        if (expanded.startsWith(ADDITION)) {
+          additionNames.add(this._extractComparisonName(expanded))
+          yield expanded
+        } else if (expanded.startsWith(DELETION)) {
+          // Defer: the D line might cancel against an A line we haven't
+          // seen yet (rename-collapse case).
+          deferredDeletions.push(expanded)
+        } else {
+          yield expanded
+        }
+      }
+    }
+
+    for (const dLine of deferredDeletions) {
+      if (!additionNames.has(this._extractComparisonName(dLine))) {
+        yield dLine
+      }
+    }
   }
 
   public getRenamePairs(): readonly RenamePathPair[] {
     return this.renamePairs
   }
 
-  // git emits `R<score>\tfrom\tto` when -M detects a rename. We split each
-  // rename into the equivalent pair of A/D lines so every downstream handler
-  // continues to operate on a (status, path) tuple; the rename pair is
-  // captured separately for ChangeSet to re-group into its Rename bucket.
-  protected _expandRenames(lines: string[]): string[] {
-    this.renamePairs = []
-    const expanded: string[] = []
-    for (const line of lines) {
-      if (!line.startsWith(RENAMED)) {
-        expanded.push(line)
-        continue
-      }
-      const parts = line.split(TAB)
-      if (parts.length < 3) {
-        expanded.push(line)
-        continue
-      }
-      const fromPath = parts[1]!
-      const toPath = parts[2]!
-      this.renamePairs.push({ fromPath, toPath })
-      expanded.push(`${DELETION}${TAB}${fromPath}`)
-      expanded.push(`${ADDITION}${TAB}${toPath}`)
+  // git emits `R<score>\tfrom\tto` when -M detects a rename. Each rename is
+  // expanded into the equivalent D/A pair so every downstream handler keeps
+  // operating on a (status, path) tuple; the rename pair is captured for
+  // ChangeSet to re-group into its Rename bucket.
+  protected *_expandRename(line: string): Iterable<string> {
+    if (!line.startsWith(RENAMED)) {
+      yield line
+      return
     }
-    return expanded
-  }
-
-  protected async _treatResult(lines: string[]): Promise<string[]> {
-    const renamedElements = this._getRenamedElements(lines)
-
-    const ignoreHelper = await buildIgnoreHelper(this.config)
-
-    return lines.filter(
-      (line: string) =>
-        Boolean(line) &&
-        this._filterInternal(line, renamedElements) &&
-        ignoreHelper.keep(line)
-    )
-  }
-
-  protected _getRenamedElements(lines: string[]): Set<string> {
-    const linesPerDiffType: Map<string, string[]> =
-      this._spreadLinePerDiffType(lines)
-    const AfileNames: Set<string> = new Set(
-      linesPerDiffType
-        .get(ADDITION)
-        ?.map(line => this._extractComparisonName(line)) ?? []
-    )
-    const deletedRenamed = (linesPerDiffType.get(DELETION) ?? []).filter(
-      (line: string) => {
-        const dEl = this._extractComparisonName(line)
-        return AfileNames.has(dEl)
-      }
-    )
-
-    return new Set(deletedRenamed)
-  }
-  protected _spreadLinePerDiffType(lines: string[]) {
-    return lines.reduce((acc: Map<string, string[]>, line: string) => {
-      const idx: string = line.charAt(0)
-      if (!acc.has(idx)) {
-        acc.set(idx, [])
-      }
-      acc.get(idx)!.push(line)
-      return acc
-    }, new Map())
-  }
-
-  protected _filterInternal(
-    line: string,
-    deletedRenamed: Set<string>
-  ): boolean {
-    return !deletedRenamed.has(line) && this.metadata.has(line)
+    const parts = line.split(TAB)
+    if (parts.length < 3) {
+      yield line
+      return
+    }
+    const fromPath = parts[1]!
+    const toPath = parts[2]!
+    this.renamePairs.push({ fromPath, toPath })
+    yield `${DELETION}${TAB}${fromPath}`
+    yield `${ADDITION}${TAB}${toPath}`
   }
 
   protected _extractComparisonName(line: string) {

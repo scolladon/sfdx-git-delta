@@ -62,6 +62,13 @@ const adapterHandlerMap: Record<string, typeof Standard> = {
 export default class TypeHandlerFactory {
   protected readonly resolver: MetadataBoundaryResolver
   private readonly inFileParentXmlNames: Set<string>
+  // Memoizes resolveHandler(metadata) → handler-class. The dispatch
+  // (handlerMap lookup, inFolder check, adapter check, parentXmlName
+  // walk, inFileParent check) is deterministic in the metadata
+  // reference, and the registry returns the same Metadata instance for
+  // a given type. ~50 distinct types per diff at most, so the cache
+  // stays trivially small.
+  private readonly handlerCache: Map<Metadata, typeof Standard> = new Map()
 
   constructor(
     protected readonly work: Work,
@@ -101,6 +108,14 @@ export default class TypeHandlerFactory {
   }
 
   private resolveHandler(type: Metadata): typeof Standard {
+    const cached = this.handlerCache.get(type)
+    if (cached !== undefined) return cached
+    const resolved = this._computeHandler(type)
+    this.handlerCache.set(type, resolved)
+    return resolved
+  }
+
+  private _computeHandler(type: Metadata): typeof Standard {
     const xmlName = type.xmlName!
 
     if (xmlName in handlerMap) {

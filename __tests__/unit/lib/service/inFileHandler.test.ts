@@ -12,13 +12,13 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockGetMessage, mockCompare, mockPrune } = vi.hoisted(() => ({
+const { mockGetMessage, mockRun, mockWriter } = vi.hoisted(() => ({
   mockGetMessage: vi.fn(
     (_key: string, tokens?: string[]) =>
       `could not process '${tokens?.[0]}', please ensure it is properly formatted xml in both '${tokens?.[1]}' and '${tokens?.[2]}' revision`
   ),
-  mockCompare: vi.fn(),
-  mockPrune: vi.fn(),
+  mockRun: vi.fn(),
+  mockWriter: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/MessageService', () => {
@@ -32,7 +32,7 @@ vi.mock('../../../../src/utils/MessageService', () => {
 vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { compare: mockCompare, prune: mockPrune }
+      return { run: mockRun }
     }),
   }
 })
@@ -71,8 +71,6 @@ let work: Work
 beforeEach(() => {
   vi.clearAllMocks()
   work = getWork()
-
-  mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
 })
 
 describe('inFileHandler', () => {
@@ -86,11 +84,15 @@ describe('inFileHandler', () => {
         globalMetadata
       )
       sut = new InFileHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-          modified: [],
-          deleted: [],
+          manifests: {
+            added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+            modified: [],
+            deleted: [],
+          },
+          hasAnyChanges: true,
+          writer: mockWriter,
         })
       )
     })
@@ -99,7 +101,7 @@ describe('inFileHandler', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -114,13 +116,12 @@ describe('inFileHandler', () => {
         ])
       )
       expect(
-        result.manifests.some(
-          m => m.target === ManifestTarget.DestructiveChanges
-        )
+        result.changes
+          .toElements()
+          .some(m => m.target === ManifestTarget.DestructiveChanges)
       ).toBe(false)
-      expect(mockPrune).toHaveBeenCalled()
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
     })
 
@@ -134,11 +135,15 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [{ type: 'ValueTranslation', member: 'Three' }],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [{ type: 'ValueTranslation', member: 'Three' }],
+                modified: [],
+                deleted: [],
+              },
+              hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
         })
@@ -148,11 +153,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.manifests.some(
-              m => m.target === ManifestTarget.DestructiveChanges
-            )
+            result.changes
+              .toElements()
+              .some(m => m.target === ManifestTarget.DestructiveChanges)
           ).toBe(false)
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -161,14 +166,13 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.manifests.filter(
-            m => m.target === ManifestTarget.Package
-          )
+          const packageManifests = result.changes
+            .toElements()
+            .filter(m => m.target === ManifestTarget.Package)
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -183,11 +187,15 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [],
+              },
+              hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
         })
@@ -197,11 +205,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.manifests.some(
-              m => m.target === ManifestTarget.DestructiveChanges
-            )
+            result.changes
+              .toElements()
+              .some(m => m.target === ManifestTarget.DestructiveChanges)
           ).toBe(false)
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -210,14 +218,13 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.manifests.filter(
-            m => m.target === ManifestTarget.Package
-          )
+          const packageManifests = result.changes
+            .toElements()
+            .filter(m => m.target === ManifestTarget.Package)
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -237,11 +244,15 @@ describe('inFileHandler', () => {
           globalMetadata
         )
         sut = new InFileHandler(changeType, element, work)
-        mockCompare.mockImplementation(() =>
+        mockRun.mockImplementation(() =>
           Promise.resolve({
-            added: [{ type: 'WorkflowAlert', member: 'test' }],
-            modified: [],
-            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            manifests: {
+              added: [{ type: 'WorkflowAlert', member: 'test' }],
+              modified: [],
+              deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            },
+            hasAnyChanges: true,
+            writer: mockWriter,
           })
         )
       })
@@ -250,7 +261,7 @@ describe('inFileHandler', () => {
         const result = await sut.collectModification()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -270,15 +281,16 @@ describe('inFileHandler', () => {
           ])
         )
         expect(
-          result.manifests.some(
-            m =>
-              m.target === ManifestTarget.DestructiveChanges &&
-              m.type === 'Workflow'
-          )
+          result.changes
+            .toElements()
+            .some(
+              m =>
+                m.target === ManifestTarget.DestructiveChanges &&
+                m.type === 'Workflow'
+            )
         ).toBe(false)
-        expect(mockPrune).toHaveBeenCalled()
         expect(
-          result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+          result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
         ).toBe(true)
       })
     })
@@ -292,28 +304,27 @@ describe('inFileHandler', () => {
           globalMetadata
         )
         sut = new InFileHandler(changeType, element, work)
-        mockCompare.mockImplementation(() =>
+        mockRun.mockImplementation(() =>
           Promise.resolve({
-            added: [],
-            modified: [],
-            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            manifests: {
+              added: [],
+              modified: [],
+              deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            },
+            hasAnyChanges: false,
           })
         )
-        mockPrune.mockReturnValue({
-          xmlContent: '<xmlContent>',
-          isEmpty: true,
-        })
       })
       it('should store the deleted in the destructiveChanges and not produce a copy', async () => {
         // Act
         const result = await sut.collectModification()
 
         // Assert
-        const packageManifests = result.manifests.filter(
-          m => m.target === ManifestTarget.Package
-        )
+        const packageManifests = result.changes
+          .toElements()
+          .filter(m => m.target === ManifestTarget.Package)
         expect(packageManifests).toHaveLength(0)
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -323,13 +334,14 @@ describe('inFileHandler', () => {
           ])
         )
         expect(
-          result.manifests.some(
-            m =>
-              m.target === ManifestTarget.DestructiveChanges &&
-              m.type === 'Workflow'
-          )
+          result.changes
+            .toElements()
+            .some(
+              m =>
+                m.target === ManifestTarget.DestructiveChanges &&
+                m.type === 'Workflow'
+            )
         ).toBe(false)
-        expect(mockPrune).toHaveBeenCalled()
         expect(
           result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
         ).toBe(false)
@@ -345,27 +357,24 @@ describe('inFileHandler', () => {
           )
           sut = new InFileHandler(changeType, element, work)
 
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [],
+              },
+              hasAnyChanges: false,
             })
           )
-
-          mockPrune.mockReturnValue({
-            xmlContent: '<xmlContent>',
-            isEmpty: true,
-          })
         })
         it('nothing should be stored and no copy should be produced', async () => {
           // Act
           const result = await sut.collectModification()
 
           // Assert
-          expect(result.manifests).toHaveLength(0)
+          expect(result.changes.toElements()).toHaveLength(0)
           expect(result.copies).toHaveLength(0)
-          expect(mockPrune).toHaveBeenCalled()
         })
       })
 
@@ -378,28 +387,27 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [{ type: 'Workflow', member: 'Deleted' }],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [{ type: 'Workflow', member: 'Deleted' }],
+              },
+              hasAnyChanges: false,
             })
           )
-          mockPrune.mockReturnValue({
-            xmlContent: '<xmlContent>',
-            isEmpty: true,
-          })
         })
         it('should store the deleted metadata in destructiveChanges and not produce a copy', async () => {
           // Act
           const result = await sut.collectModification()
 
           // Assert
-          const packageManifests = result.manifests.filter(
-            m => m.target === ManifestTarget.Package
-          )
+          const packageManifests = result.changes
+            .toElements()
+            .filter(m => m.target === ManifestTarget.Package)
           expect(packageManifests).toHaveLength(0)
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.DestructiveChanges,
@@ -408,7 +416,6 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
               c => c.kind === CopyOperationKind.ComputedContent
@@ -428,17 +435,17 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [{ type: 'ValueTranslation', member: 'Three' }],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [{ type: 'ValueTranslation', member: 'Three' }],
+                modified: [],
+                deleted: [],
+              },
+              hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
-          mockPrune.mockReturnValue({
-            xmlContent: '<xmlContent>',
-            isEmpty: false,
-          })
         })
         it('should only store file name and not the metadata in file', async () => {
           // Act
@@ -446,11 +453,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.manifests.some(
-              m => m.target === ManifestTarget.DestructiveChanges
-            )
+            result.changes
+              .toElements()
+              .some(m => m.target === ManifestTarget.DestructiveChanges)
           ).toBe(false)
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -459,14 +466,13 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.manifests.filter(
-            m => m.target === ManifestTarget.Package
-          )
+          const packageManifests = result.changes
+            .toElements()
+            .filter(m => m.target === ManifestTarget.Package)
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -481,11 +487,15 @@ describe('inFileHandler', () => {
             globalMetadata
           )
           sut = new InFileHandler(changeType, element, work)
-          mockCompare.mockImplementation(() =>
+          mockRun.mockImplementation(() =>
             Promise.resolve({
-              added: [],
-              modified: [],
-              deleted: [],
+              manifests: {
+                added: [],
+                modified: [],
+                deleted: [],
+              },
+              hasAnyChanges: true,
+              writer: mockWriter,
             })
           )
         })
@@ -495,11 +505,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.manifests.some(
-              m => m.target === ManifestTarget.DestructiveChanges
-            )
+            result.changes
+              .toElements()
+              .some(m => m.target === ManifestTarget.DestructiveChanges)
           ).toBe(false)
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -508,14 +518,13 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.manifests.filter(
-            m => m.target === ManifestTarget.Package
-          )
+          const packageManifests = result.changes
+            .toElements()
+            .filter(m => m.target === ManifestTarget.Package)
           expect(packageManifests).toHaveLength(1)
-          expect(mockPrune).toHaveBeenCalled()
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(true)
         })
@@ -533,25 +542,27 @@ describe('inFileHandler', () => {
         globalMetadata
       )
       sut = new InFileHandler(changeType, element, work)
-      mockCompare.mockImplementation(() =>
+      mockRun.mockImplementation(() =>
         Promise.resolve({
-          added: [],
-          modified: [],
-          deleted: [{ type: 'WorkflowAlert', member: 'test' }],
+          manifests: {
+            added: [],
+            modified: [],
+            deleted: [{ type: 'WorkflowAlert', member: 'test' }],
+          },
+          hasAnyChanges: false,
         })
       )
-      mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: true })
     })
     it('should store the deleted metadata in the destructiveChanges', async () => {
       // Act
       const result = await sut.collectDeletion()
 
       // Assert
-      const packageManifests = result.manifests.filter(
-        m => m.target === ManifestTarget.Package
-      )
+      const packageManifests = result.changes
+        .toElements()
+        .filter(m => m.target === ManifestTarget.Package)
       expect(packageManifests).toHaveLength(0)
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -561,14 +572,15 @@ describe('inFileHandler', () => {
         ])
       )
       expect(
-        result.manifests.some(
-          m =>
-            m.target === ManifestTarget.DestructiveChanges &&
-            m.type === 'Workflow'
-        )
+        result.changes
+          .toElements()
+          .some(
+            m =>
+              m.target === ManifestTarget.DestructiveChanges &&
+              m.type === 'Workflow'
+          )
       ).toBe(false)
-      expect(mockCompare).toHaveBeenCalled()
-      expect(mockPrune).toHaveBeenCalled()
+      expect(mockRun).toHaveBeenCalled()
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
       ).toBe(false)
@@ -588,11 +600,11 @@ describe('inFileHandler', () => {
         const result = await sut.collectDeletion()
 
         // Assert
-        const packageManifests = result.manifests.filter(
-          m => m.target === ManifestTarget.Package
-        )
+        const packageManifests = result.changes
+          .toElements()
+          .filter(m => m.target === ManifestTarget.Package)
         expect(packageManifests).toHaveLength(0)
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -601,11 +613,10 @@ describe('inFileHandler', () => {
             }),
           ])
         )
-        expect(result.manifests.some(m => m.type === 'ValueTranslation')).toBe(
-          false
-        )
-        expect(mockCompare).not.toHaveBeenCalled()
-        expect(mockPrune).not.toHaveBeenCalled()
+        expect(
+          result.changes.toElements().some(m => m.type === 'ValueTranslation')
+        ).toBe(false)
+        expect(mockRun).not.toHaveBeenCalled()
         expect(result.copies).toHaveLength(0)
       })
     })
@@ -623,7 +634,6 @@ describe('inFileHandler collect', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     work = getWork()
-    mockPrune.mockReturnValue({ xmlContent: '<xmlContent>', isEmpty: false })
   })
 
   it('Given added workflow with child elements, When collect, Then returns Package manifests and ComputedContent copy', async () => {
@@ -634,11 +644,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
+        hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -646,7 +660,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.manifests).toEqual(
+    expect(result.changes.toElements()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,
@@ -661,7 +675,7 @@ describe('inFileHandler collect', () => {
       ])
     )
     expect(
-      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(true)
     expect(result.warnings).toHaveLength(0)
   })
@@ -675,11 +689,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
+        hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -687,7 +705,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.manifests.length).toBeGreaterThan(0)
+    expect(result.changes.toElements().length).toBeGreaterThan(0)
     expect(result.copies).toHaveLength(0)
     expect(result.warnings).toHaveLength(0)
   })
@@ -702,7 +720,7 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.reject(
         new Error("Cannot read properties of undefined (reading 'addChild')")
       )
@@ -712,7 +730,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.manifests).toHaveLength(0)
+    expect(result.changes.toElements()).toHaveLength(0)
     expect(result.copies).toHaveLength(0)
     expect(result.warnings).toHaveLength(1)
     expect(mockGetMessage).toHaveBeenCalledWith('warning.MalformedXML', [
@@ -736,11 +754,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowFlowAction', member: 'test' }],
-        modified: [],
-        deleted: [],
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
+        hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -752,7 +774,7 @@ describe('inFileHandler collect', () => {
       true
     )
     expect(
-      result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(true)
   })
 
@@ -764,11 +786,15 @@ describe('inFileHandler collect', () => {
       globalMetadata
     )
     const sut = new InFileHandler(changeType, element, work)
-    mockCompare.mockImplementation(() =>
+    mockRun.mockImplementation(() =>
       Promise.resolve({
-        added: [{ type: 'WorkflowAlert', member: 'added' }],
-        modified: [],
-        deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
+        manifests: {
+          added: [{ type: 'WorkflowAlert', member: 'added' }],
+          modified: [],
+          deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
+        },
+        hasAnyChanges: true,
+        writer: mockWriter,
       })
     )
 
@@ -776,7 +802,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.manifests).toEqual(
+    expect(result.changes.toElements()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,
@@ -791,5 +817,64 @@ describe('inFileHandler collect', () => {
       ])
     )
     expect(result.warnings).toHaveLength(0)
+  })
+
+  it('Given generateDelta false, When collect with hasAnyChanges, Then no StreamedContent copy is emitted', async () => {
+    // Arrange
+    work.config.generateDelta = false
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockRun.mockImplementation(() =>
+      Promise.resolve({
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
+        hasAnyChanges: true,
+        writer: mockWriter,
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(result.copies).toHaveLength(0)
+    expect(mockWriter).not.toHaveBeenCalled()
+  })
+
+  it('Given generateDelta true with hasAnyChanges, When collect, Then prune is called and ComputedContent is produced', async () => {
+    // Arrange
+    work.config.generateDelta = true
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockRun.mockImplementation(() =>
+      Promise.resolve({
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'test' }],
+          modified: [],
+          deleted: [],
+        },
+        hasAnyChanges: true,
+        writer: mockWriter,
+      })
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
+    ).toBe(true)
   })
 })

@@ -90,7 +90,7 @@ describe('InNestedFolderHandler', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -124,7 +124,7 @@ describe('InNestedFolderHandler', () => {
         const result = await sut.collectAddition()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -162,7 +162,7 @@ describe('InNestedFolderHandler', () => {
         const result = await sut.collectAddition()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -193,7 +193,7 @@ describe('InNestedFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
     })
   })
@@ -214,7 +214,7 @@ describe('InNestedFolderHandler', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
     })
   })
 
@@ -234,7 +234,7 @@ describe('InNestedFolderHandler', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -260,7 +260,7 @@ describe('InNestedFolderHandler', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.manifests).toEqual([])
+      expect(result.changes.toElements()).toEqual([])
       expect(result.copies).toEqual([])
     })
   })

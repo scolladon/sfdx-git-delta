@@ -35,6 +35,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
+      - name: Integration test
+        run: npm run test:integration
+
       - name: Checkout e2e sources
         uses: actions/checkout@v6
         with:
@@ -42,8 +45,11 @@ jobs:
           fetch-depth: 0
           path: ./e2e
 
-      - name: Functional test
+      - name: NUT test
         run: npm run test:nut
+
+      - name: Functional test
+        run: npm run test:functional
 
       - uses: actions/upload-artifact@v7
         with:

@@ -78,6 +78,21 @@ describe('readFile', () => {
       // Assert
       expect(sut).toBe('content')
     })
+
+    it('When called, Then passes encoding option to fs.readFile (not an empty object)', async () => {
+      // Arrange — the { encoding: UTF8_ENCODING } object at L45 is a
+      // mutation target: replacing it with {} drops the encoding, causing
+      // readFile to return a Buffer instead of a string. We assert the
+      // actual options object that was forwarded.
+      // Act
+      await readFile('path')
+
+      // Assert — second argument must include the encoding property
+      expect(mockedReadFile).toHaveBeenCalledWith(
+        'path',
+        expect.objectContaining({ encoding: 'utf8' })
+      )
+    })
   })
 
   describe('when readfile throw', () => {

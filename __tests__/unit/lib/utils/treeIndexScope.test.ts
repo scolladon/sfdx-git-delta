@@ -630,4 +630,144 @@ describe('computeTreeIndexScope', () => {
       expect(sut.size).toBe(1)
     })
   })
+
+  describe('Given bundle type at exactly dirIndex + 1 == parts.length (boundary: only dir segment, no component after)', () => {
+    it('When path equals exactly the directoryName segment, Then returns the directory path without going past it', () => {
+      // Arrange — path has exactly one segment after the base prefix: the
+      // directoryName itself. dirIndex + 1 == parts.length so the < branch
+      // is false; we must take the else branch (slice to dirIndex + 1).
+      const bundleType: Metadata = {
+        directoryName: 'aura',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'AuraDefinitionBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      // Only the dir segment present — dirIndex is the last index.
+      const lines = ['A\taura']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert — must equal 'aura', not 'aura/<undefined>'
+      expect(sut.has('aura')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+
+    it('When path has one segment after the dir (component), Then includes exactly dir + component', () => {
+      // Arrange — dirIndex + 1 < parts.length, so the < branch is taken.
+      // We get dir + 2 segments => dir/component
+      const bundleType: Metadata = {
+        directoryName: 'aura',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'AuraDefinitionBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = ['A\taura/myComp']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('aura/myComp')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+
+    it('When path has multiple segments after the dir, Then still returns dir + component (not deeper)', () => {
+      // Arrange — only first two segments from dirIndex matter; deeper files
+      // must not extend the scope.
+      const bundleType: Metadata = {
+        directoryName: 'aura',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'AuraDefinitionBundle',
+        adapter: 'bundle',
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = ['A\taura/myComp/helper.js']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert — scope must be 'aura/myComp', not 'aura/myComp/helper.js'
+      expect(sut.has('aura/myComp')).toBe(true)
+      expect(sut.has('aura/myComp/helper.js')).toBe(false)
+      expect(sut.size).toBe(1)
+    })
+  })
+
+  describe('Given a path whose directoryName segment is absent (dirIndex < 0)', () => {
+    it('When computed for non-bundle type, Then scopeForType returns null and no scope added', () => {
+      // Arrange — type.directoryName = 'objects' but path contains 'classes'
+      // so indexOf returns -1. The `dirIndex < 0 → return null` branch fires.
+      const typeDef: Metadata = {
+        directoryName: 'objects',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'CustomObject',
+      }
+      const repo = mockMetadata([typeDef])
+      const customRepo = createMetadataRepositoryMock({
+        has: () => true,
+        get: () => typeDef,
+        getByXmlName: () => typeDef,
+        values: () => [typeDef],
+      })
+      const lines = ['A\tclasses/MyClass.cls']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, customRepo)
+
+      // Assert
+      expect(sut.size).toBe(0)
+    })
+  })
+
+  describe('Given BUNDLE_ADAPTERS set membership', () => {
+    it.each([
+      'bundle',
+      'digitalExperience',
+    ])('When adapter is %s, Then component directory is included in scope', adapter => {
+      // Arrange
+      const bundleType: Metadata = {
+        directoryName: 'mydir',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'SomeBundleType',
+        adapter,
+      }
+      const repo = mockMetadata([bundleType])
+      const lines = [`A\tmydir/myComp/file.js`]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('mydir/myComp')).toBe(true)
+    })
+
+    it('When adapter is mixedContent, Then type directory (not component dir) is included', () => {
+      // Arrange — mixedContent is NOT in BUNDLE_ADAPTERS so takes the
+      // non-bundle branch → slice to dirIndex + 1
+      const mixedType: Metadata = {
+        directoryName: 'staticresources',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'StaticResource',
+        adapter: 'mixedContent',
+      }
+      const repo = mockMetadata([mixedType])
+      const lines = ['A\tstaticresources/MyRes/file.txt']
+
+      // Act
+      const sut = computeTreeIndexScope(lines, repo)
+
+      // Assert
+      expect(sut.has('staticresources')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
 })

@@ -5,6 +5,7 @@ import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { readDirs } from '../utils/fsHelper.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
@@ -22,22 +23,26 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     this._setholderFolder()
   }
 
-  public override async collectAddition(): Promise<HandlerResult> {
-    const result = await super.collectAddition()
+  public override async collectAddition(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
+    const result = await super.collectAddition(sink)
     if (this._isDecomposedFormat()) {
       this._collectDirCopy(result.copies, this._getHolderPath())
     }
     return result
   }
 
-  public override async collectDeletion(): Promise<HandlerResult> {
+  public override async collectDeletion(
+    sink?: ChangeSet
+  ): Promise<HandlerResult> {
     if (!this._isDecomposedFormat()) {
-      return await super.collectDeletion()
+      return await super.collectDeletion(sink)
     }
     if (await this._hasRelatedContent()) {
-      return await this.collectModification()
+      return await this.collectModification(sink)
     }
-    return await super.collectDeletion()
+    return await super.collectDeletion(sink)
   }
 
   protected _setholderFolder() {

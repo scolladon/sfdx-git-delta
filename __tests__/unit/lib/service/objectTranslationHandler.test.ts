@@ -12,15 +12,15 @@ import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
 import { getWork } from '../../../__utils__/testWork'
 
-const { mockCompare, mockprune } = vi.hoisted(() => ({
-  mockCompare: vi.fn<() => Promise<any>>(),
-  mockprune: vi.fn<() => any>(),
+const { mockRun, mockWriter } = vi.hoisted(() => ({
+  mockRun: vi.fn<() => Promise<any>>(),
+  mockWriter: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/metadataDiff', () => {
   return {
     default: vi.fn().mockImplementation(function () {
-      return { compare: mockCompare, prune: mockprune }
+      return { run: mockRun }
     }),
   }
 })
@@ -38,20 +38,14 @@ const objectType = {
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
-const xmlContent = '<xmlContent>'
-const toContent = {}
-const fromContent = {}
-
 let work: Work
 beforeEach(() => {
   vi.clearAllMocks()
-  mockCompare.mockResolvedValue({
-    added: new Map(),
-    deleted: new Map(),
-    toContent,
-    fromContent,
+  mockRun.mockResolvedValue({
+    manifests: { added: [], modified: [], deleted: [] },
+    hasAnyChanges: true,
+    writer: mockWriter,
   })
-  mockprune.mockReturnValue({ xmlContent })
   work = getWork()
 })
 
@@ -75,7 +69,7 @@ describe('ObjectTranslation', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -87,7 +81,7 @@ describe('ObjectTranslation', () => {
       expect(
         result.copies.some(
           c =>
-            c.kind === CopyOperationKind.ComputedContent &&
+            c.kind === CopyOperationKind.StreamedContent &&
             c.path.includes('Account-es.objectTranslation')
         )
       ).toBe(true)
@@ -108,8 +102,8 @@ describe('ObjectTranslation', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toHaveLength(1)
-      expect(result.manifests[0].target).toBe(ManifestTarget.Package)
+      expect(result.changes.toElements()).toHaveLength(1)
+      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -130,7 +124,7 @@ describe('ObjectTranslation', () => {
         result.copies.every(c => c.kind !== CopyOperationKind.GitCopy)
       ).toBe(true)
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
     })
 
@@ -149,8 +143,33 @@ describe('ObjectTranslation', () => {
 
       // Assert
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
+    })
+
+    it('Given writer is null, When collectAddition, Then does not push StreamedContent copy', async () => {
+      // Arrange — writer is null, so the `if (writer)` guard must prevent pushing the copy
+      // Mutation `[ConditionalExpression] true` would always push, producing a copy with writer=null
+      work.config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasAnyChanges: true,
+        writer: null,
+      })
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
+      ).toBe(false)
     })
 
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
@@ -168,7 +187,7 @@ describe('ObjectTranslation', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.manifests).toEqual(
+      expect(result.changes.toElements()).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -178,7 +197,7 @@ describe('ObjectTranslation', () => {
         ])
       )
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(true)
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.GitCopy)

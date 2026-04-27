@@ -2,9 +2,10 @@
 import { queue } from 'async'
 
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { HandlerResult } from '../types/handlerResult.js'
-import { emptyResult, mergeResults } from '../types/handlerResult.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import { pushAll } from '../utils/arrayUtils.js'
+import ChangeSet from '../utils/changeSet.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
@@ -18,7 +19,7 @@ export default class DiffLineInterpreter {
 
   @log
   public async process(
-    lines: string[],
+    lines: Iterable<string> | AsyncIterable<string>,
     revisions?: { from: string; to: string }
   ): Promise<HandlerResult> {
     const effectiveWork = revisions
@@ -29,15 +30,24 @@ export default class DiffLineInterpreter {
       effectiveWork,
       this.metadata
     )
-    const results: HandlerResult[] = []
+    // Single ChangeSet shared by every handler in this pass — eliminates the
+    // per-handler ChangeSet allocation and the merge step that used to fold
+    // ~N small ChangeSets together at the end.
+    const sink = new ChangeSet()
+    const copies: CopyOperation[] = []
+    const warnings: Error[] = []
     const MAX_PARALLELISM = getConcurrencyThreshold()
 
     const processor = queue(async (handler: StandardHandler) => {
-      const result = await handler.collect()
-      results.push(result)
+      const result = await handler.collect(sink)
+      pushAll(copies, result.copies)
+      pushAll(warnings, result.warnings)
     }, MAX_PARALLELISM)
 
-    for (const line of lines) {
+    // `for await…of` iterates both Iterable and AsyncIterable so handlers
+    // start executing as soon as the first line lands — no need to
+    // materialize the whole diff first.
+    for await (const line of lines) {
       const handler = await typeHandlerFactory.getTypeHandler(line)
       processor.push(handler)
     }
@@ -46,6 +56,6 @@ export default class DiffLineInterpreter {
       await processor.drain()
     }
 
-    return results.length > 0 ? mergeResults(...results) : emptyResult()
+    return { changes: sink, copies, warnings }
   }
 }

@@ -32,12 +32,31 @@ export default async (config: Config): Promise<Work> => {
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-    const lines = await repoGitDiffHelper.getLines()
+    // The treeIndex scope read needs the full path set up front, so when
+    // generateDelta is on without an include override we materialize the
+    // streamed diff once. Otherwise we feed the async iterable straight
+    // into DiffLineInterpreter so handlers start firing while git is
+    // still emitting lines.
+    const needsScopeFromDiff =
+      config.generateDelta && !config.include && !config.includeDestructive
+    let lines: Iterable<string> | AsyncIterable<string>
+    if (needsScopeFromDiff) {
+      const materialized: string[] = []
+      for await (const line of repoGitDiffHelper.getLines()) {
+        materialized.push(line)
+      }
+      lines = materialized
+    } else {
+      lines = repoGitDiffHelper.getLines()
+    }
+
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
       let scopePaths = config.source
-      if (!config.include && !config.includeDestructive) {
-        scopePaths = [...computeTreeIndexScope(lines, metadata)]
+      if (needsScopeFromDiff) {
+        scopePaths = [
+          ...computeTreeIndexScope(lines as Iterable<string>, metadata),
+        ]
       }
       if (scopePaths.length > 0) {
         await Promise.all([
@@ -51,14 +70,14 @@ export default async (config: Config): Promise<Work> => {
 
     // First pass: build the ChangeSet from handler output so collectors
     // (e.g. FlowTranslationProcessor) can introspect the package view via
-    // work.changes.forPackageManifest() before emitting their own manifests.
+    // work.changes.forPackageManifest() before emitting their own changes.
     const handlerResult = await lineProcessor.process(lines)
-    work.changes = ChangeSet.from(handlerResult.manifests)
+    work.changes = handlerResult.changes
 
-    // Second pass: rebuild once collector output is merged in.
+    // Second pass: fold collector output into the same ChangeSet.
     const postResult = await postProcessors.collectAll()
     const combinedResult = mergeResults(handlerResult, postResult)
-    work.changes = ChangeSet.from(combinedResult.manifests)
+    work.changes = combinedResult.changes
 
     // Apply git-detected renames: resolve the `{fromPath, toPath}` pairs that
     // RepoGitDiff captured from `-M` output into (type, from, to) triples and

@@ -62,11 +62,9 @@ export default class PostProcessorManager {
       } catch (error) {
         const message = `${collector.constructor.name}: ${getErrorMessage(error)}`
         Logger.warn(lazy`${message}`)
-        results.push({
-          manifests: [],
-          copies: [],
-          warnings: [wrapError(message, error)],
-        })
+        const failed = emptyResult()
+        failed.warnings.push(wrapError(message, error))
+        results.push(failed)
       }
     }
 

@@ -16,6 +16,7 @@ import {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -47,21 +48,26 @@ export default class StandardHandler {
     this.config = work.config
   }
 
+  // `sink` lets the orchestrator (DiffLineInterpreter) share one ChangeSet
+  // across every handler in a pass, eliminating ~N per-handler ChangeSet
+  // allocations and their later merge. When omitted (tests, ad-hoc callers)
+  // each call still gets its own fresh ChangeSet via `emptyResult()`, so the
+  // existing test API (`await sut.collectAddition()`) stays unchanged.
   @log
-  public async collect(): Promise<HandlerResult> {
+  public async collect(sink?: ChangeSet): Promise<HandlerResult> {
     if (!this._isProcessable()) {
-      return emptyResult()
+      return this._emptyResultFor(sink)
     }
     try {
       switch (this.changeType) {
         case ADDITION:
-          return await this.collectAddition()
+          return await this.collectAddition(sink)
         case DELETION:
-          return await this.collectDeletion()
+          return await this.collectDeletion(sink)
         case MODIFICATION:
-          return await this.collectModification()
+          return await this.collectModification(sink)
         default:
-          return emptyResult()
+          return this._emptyResultFor(sink)
       }
     } catch (error) {
       const message = `${this.element.basePath}: ${getErrorMessage(error)}`
@@ -69,31 +75,36 @@ export default class StandardHandler {
       Logger.debug(
         lazy`${this.constructor.name}.collect: ${this.changeType} ${this.element.type.xmlName} '${this.element.basePath}' failed: ${() => getErrorMessage(error)}`
       )
-      return {
-        manifests: [],
-        copies: [],
-        warnings: [wrapError(message, error)],
-      }
+      const failed = this._emptyResultFor(sink)
+      failed.warnings.push(wrapError(message, error))
+      return failed
     }
   }
 
-  public async collectAddition(): Promise<HandlerResult> {
-    const result = emptyResult()
-    result.manifests.push(this._collectManifestElement(ManifestTarget.Package))
+  public async collectAddition(sink?: ChangeSet): Promise<HandlerResult> {
+    const result = this._emptyResultFor(sink)
+    result.changes.addElement(
+      this._collectManifestElement(ManifestTarget.Package)
+    )
     this._collectCopyWithMetaFile(result.copies, this.element.basePath)
     return result
   }
 
-  public async collectDeletion(): Promise<HandlerResult> {
-    const result = emptyResult()
-    result.manifests.push(
+  public async collectDeletion(sink?: ChangeSet): Promise<HandlerResult> {
+    const result = this._emptyResultFor(sink)
+    result.changes.addElement(
       this._collectManifestElement(ManifestTarget.DestructiveChanges)
     )
     return result
   }
 
-  public async collectModification(): Promise<HandlerResult> {
-    return await this.collectAddition()
+  public async collectModification(sink?: ChangeSet): Promise<HandlerResult> {
+    return await this.collectAddition(sink)
+  }
+
+  protected _emptyResultFor(sink?: ChangeSet): HandlerResult {
+    /* v8 ignore next -- defensive: production callers always pass a sink; the no-sink fallback exists for legacy / direct-handler tests */
+    return sink ? { changes: sink, copies: [], warnings: [] } : emptyResult()
   }
 
   protected _getElementName() {
@@ -142,15 +153,6 @@ export default class StandardHandler {
       path,
       revision: this.config.to,
     })
-  }
-
-  protected _collectComputedContent(
-    copies: CopyOperation[],
-    path: string,
-    content: string
-  ): void {
-    if (!this._shouldCollectCopies()) return
-    copies.push({ kind: CopyOperationKind.ComputedContent, path, content })
   }
 
   protected _shouldCollectCopies(): boolean {

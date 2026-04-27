@@ -21,7 +21,7 @@ flowchart TD
 
 The pipeline is orchestrated by `src/main.ts`, which receives a `Config` object and returns a `Work` result containing the accumulated manifests and warnings.
 
-Key design principle: **collection is separated from execution**. Handlers produce `HandlerResult` objects (manifest entries + copy operations) that are aggregated first, then written to disk only at the end. This allows deduplication and conflict resolution before any I/O occurs.
+Key design principle: **collection is separated from execution**. Handlers write manifest entries into a shared `ChangeSet` sink and accumulate `CopyOperation` plans in their `HandlerResult`; nothing is written to disk until `IOExecutor` runs at stage 6, after collectors have folded their own contributions in. This separation enables deduplication and conflict resolution before any I/O occurs, and lets the diff stream be consumed as it arrives from git rather than buffered up front — `RepoGitDiff.getLines()` returns an `AsyncGenerator<string>` that handlers begin draining while git is still emitting.
 
 ---
 
@@ -92,16 +92,19 @@ flowchart LR
 
 **Entry**: `RepoGitDiff.getLines()` (`src/utils/repoGitDiff.ts`)
 
-Collects diff lines between the `from` and `to` commits. `GitAdapter.getDiffLines` has two code paths because git's `--name-status` output does not honour whitespace-ignore flags. Rename detection (`-M`) is **gated on `config.changesManifest`** — default sgd runs pass `--no-renames` so line shape matches the pre-feature output; setting `--changes-manifest` opts into `-M`. When enabled, `R<score>\tfrom\tto` lines (or their numstat equivalent) are emitted and `RepoGitDiff._expandRenames` splits them into synthetic `A`/`D` lines while recording each `{fromPath, toPath}` pair for `RenameResolver` to resolve later.
+Streams diff lines between the `from` and `to` commits. `getLines()` is an `AsyncGenerator<string>` — handlers can begin processing while git is still emitting; the whole diff never has to materialize as an array. `GitAdapter.streamDiffLines()` is the upstream producer and has two code paths because git's `--name-status` output does not honour whitespace-ignore flags. Rename detection (`-M`) is **gated on `config.changesManifest`** — default sgd runs pass `--no-renames` so line shape matches the pre-feature output; setting `--changes-manifest` opts into `-M`. When enabled, `R<score>\tfrom\tto` lines (or their numstat equivalent) are emitted and `RepoGitDiff._expandRename` splits them into synthetic `A`/`D` pairs while recording each `{fromPath, toPath}` pair for `RenameResolver` to resolve later.
 
-- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status` call. With rename detection off: `--no-renames --diff-filter=AMD`. With detection on: `-M --diff-filter=AMDR`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, `D`, or `R<score>`.
-- **Whitespace-ignore path**: three (or four, when rename detection is on) parallel `git diff --numstat` calls in a single `Promise.all`, one per `--diff-filter`. A/M/D calls emit the standard `<added>\t<deleted>\t<path>` shape; their leading counts are rewritten to the status prefix. The R call (only when `-M` is enabled) uses `-z` to sidestep numstat's brace/arrow rename-path encoding, emitting `<added>\t<deleted>\t\0<src>\0<dst>\0` triplets that are stride-3-parsed into `R\t<src>\t<dst>` lines matching the default-path format. Only `--numstat` computes a real content diff under the whitespace flags — `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs.
+- **Default path** (no `--ignore-whitespace`): a single `git diff --name-status` call streamed via `_spawnLines` (spawn + readline). With rename detection off: `--no-renames --diff-filter=AMD`. With detection on: `-M --diff-filter=AMDR`. Output is already `<STATUS>\t<path>`, so each line starts with `A`, `M`, `D`, or `R<score>`.
+- **Whitespace-ignore path**: three (or four, when rename detection is on) `git diff --numstat` calls run sequentially per `--diff-filter`, each yielded as it lands so downstream filtering can begin before the later filters complete. A/M/D calls emit the standard `<added>\t<deleted>\t<path>` shape; their leading counts are rewritten to the status prefix. The R call (only when `-M` is enabled) uses `-z` to sidestep numstat's brace/arrow rename-path encoding, emitting `<added>\t<deleted>\t\0<src>\0<dst>\0` triplets that are stride-3-parsed into `R\t<src>\t<dst>` lines matching the default-path format. Only `--numstat` computes a real content diff under the whitespace flags — `--name-status` would still mark whitespace-only changes as `M` because it works off raw blob SHAs.
 
-Then:
+Per upstream line, `getLines()` then:
 
-1. Filters lines through the metadata registry — only paths that resolve to a known metadata type are kept
-2. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files
-3. The legacy `_getRenamedElements` FQN match is preserved as a safety net for file-move-same-component cases (different file paths resolving to the same Salesforce component); the deletion side is dropped so the component appears only as an addition. True component renames (different FQNs) surface via git `-M`.
+1. Expands rename lines into synthetic `A`/`D` pairs (capturing the rename-pair side-channel).
+2. Filters through the metadata registry — only paths that resolve to a known metadata type are yielded.
+3. Applies ignore patterns (`IgnoreHelper`) — separate global and destructive-only ignore files.
+4. **Defers `D` lines until upstream EOF** so the deleted-renamed cancellation rule has the full A-name set. A/M lines yield as they arrive; D lines are buffered and yielded last, dropping any whose comparison name matches an addition (the legacy file-move-same-component safety net — different file paths resolving to the same Salesforce component). True component renames (different FQNs) surface via git `-M`.
+
+When the orchestrator (`src/main.ts`) needs to also compute the tree-index scope (`generateDelta` on, no `--include`), it materializes the stream once into an array because both `computeTreeIndexScope` and `lineProcessor.process` need to walk the same lines; otherwise the async iterable feeds straight into the handler queue.
 
 ### Ignore System
 
@@ -135,14 +138,16 @@ flowchart TD
     T4 -->|No| T5{"parent of<br/>InFile children?"}
     T5 -->|Yes| IFH["InFileHandler"]
     T5 -->|No| DH["StandardHandler"]
-    CH --> C["handler.collect()"]
+    CH --> C["handler.collect(sink)"]
     SH --> C
     IF --> C
     AH --> C
     IFH --> C
     DH --> C
-    C --> HR["HandlerResult<br/>{manifests, copies, warnings}"]
+    C --> HR["HandlerResult<br/>{changes: ChangeSet, copies, warnings}"]
 ```
+
+`DiffLineInterpreter.process()` allocates a single `ChangeSet` sink up-front and passes it to every handler's `collect(sink)` call. Handlers write manifest entries directly into the shared sink; the per-handler `ChangeSet` allocation and the end-of-pass merge step that the original design implied are both gone. The `sink` parameter is optional on `collect` / `collectAddition` / `collectDeletion` / `collectModification` so tests can still call those methods without an argument and get a fresh `ChangeSet` back via `result.changes`.
 
 ### Handler Resolution Tiers
 
@@ -338,9 +343,8 @@ After handlers produce their results, post-processors run in two phases:
 
 ```mermaid
 flowchart TD
-    HR["Handler Results"] --> A["ChangeSet.from()"]
-    A --> C["Collectors phase<br/>(transformAndCollect)"]
-    C --> M["Merge + re-aggregate"]
+    HR["Handler sink<br/>(work.changes: ChangeSet)"] --> C["Collectors phase<br/>(transformAndCollect)"]
+    C --> M["mergeResults()"]
     M --> IO["I/O Execution"]
     IO --> P["Processors phase<br/>(process)"]
 
@@ -382,10 +386,12 @@ Every `ManifestElement` produced by a handler is tagged with a `ChangeKind`. Thi
 - **`InFileHandler._collectManifestFromComparison`** takes the kind as a parameter so sub-elements get the correct label from `MetadataDiff.compare()` — which returns three disjoint buckets: `added` (key absent in `from`), `modified` (key present but content differs), `deleted` (key absent in `to`). The keyless-element case is bucketed as modified.
 - **Direct constructors** (`BotHandler`, `FlowTranslationProcessor`) stamp the kind explicitly at their push site.
 
-`ChangeSet.from(manifests)` is the single ingestion point. Each `ManifestElement` carries two orthogonal axes — `target` (deployment contract: `Package` vs `DestructiveChanges`) and `changeKind` (review semantics: `Add` / `Modify` / `Delete`) — and the ChangeSet stores both:
+`ChangeSet.addElement(element)` is the single ingestion point. Each `ManifestElement` carries two orthogonal axes — `target` (deployment contract: `Package` vs `DestructiveChanges`) and `changeKind` (review semantics: `Add` / `Modify` / `Delete`) — and the ChangeSet stores both:
 
 - `byTarget: Record<ManifestTarget, Manifest>` drives the xml manifests.
 - `byKind: Record<AddKind, Manifest>` drives the review-oriented JSON.
+
+The sink is the wire format end-to-end: `DiffLineInterpreter.process()` creates one `ChangeSet`, every handler writes into it via `result.changes.addElement(...)` (where `result.changes` is the shared sink reference), and the orchestrator merges the collector output back into the same instance via `ChangeSet.merge()`. There is no separate `ManifestElement[]` carrier on `HandlerResult`; the `toElements()` view reconstructs `(target, type, member, changeKind)` tuples from the indexed buckets on demand for tests and diagnostics, joining `byTarget × byKind` on `(type, member)`.
 
 The two axes are **not redundant**: a single element can be `(target=Package, changeKind=Delete)`, which is what `InFileHandler` stamps when a container file (e.g. `CustomLabels`) is deleted but child elements survive — the deployment must still list the container under `package.xml` while the JSON manifest surfaces a delete for reviewer visibility. Views route on the correct axis:
 
@@ -407,11 +413,11 @@ Executes the accumulated copy operations with concurrency bounded by `getConcurr
 
 | Kind              | Description                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `GitCopy`         | Reads a single file from a specific git revision via the batch `git cat-file` process and writes it to the output directory. Does not require the tree index. |
-| `GitDirCopy`      | Enumerates all files under a directory path via `getFilesPath` (requires tree index), then copies each file via `git cat-file`. Used by handlers that need to copy entire directories (e.g., `ContainedDecomposedHandler` for decomposed PermissionSet holder folders). Executed serially because the outer `execute()` already parallelizes across operations. |
-| `ComputedContent` | Writes a string (typically pruned XML from InFile/ObjectTranslation handlers) directly to the output directory      |
+| `GitCopy`         | Reads a single file from a specific git revision via the batch `git cat-file` process and writes it to the output directory. Blobs above `SIZE_THRESHOLD` (1 MB) escalate to a streaming subprocess via `EscalateToStreamingSignal` and pipe through an atomic `.tmp` + `rename` to bound peak memory. Does not require the tree index. |
+| `GitDirCopy`      | Enumerates all files under a directory path via `getFilesPath` (requires tree index). Below `GIT_ARCHIVE_DIR_THRESHOLD` (25 files) each file is fetched via the batched `git cat-file` pipe; above the threshold the executor switches to one streamed `git archive --format=tar` subprocess + `tar-stream`, piping each entry directly into a sibling `.tmp` + `rename` (replaces N batch round-trips for ExperienceBundle / static-resource folders). Defence-in-depth path-prefix check rejects any tar entry whose resolved destination escapes `config.output`. |
+| `StreamedContent` | Writes content emitted by a handler/collector-supplied producer function (typically pruned XML from `InFileHandler`, `ObjectTranslationHandler`, `FlowTranslationProcessor`, and `PackageGenerator`). The executor pipes the producer into a sibling `.tmp` file and renames atomically on success — handles back-pressure via the writer's own `drain` await and survives EXDEV cross-filesystem rename hazards (Docker overlayfs + tmpfs `/tmp`). |
 
-`GitAdapter.getBufferContent()` handles LFS detection: if the buffer starts with an LFS pointer signature, it reads the actual object from the local LFS cache instead.
+`GitAdapter.getBufferContentOrEscalate()` handles LFS detection: if the buffer starts with an LFS pointer signature, it reads the actual object from the local LFS cache instead. Blobs that exceed `SIZE_THRESHOLD` raise an `EscalateToStreamingSignal` instead of returning a buffer, telling the executor to switch to the streaming path.
 
 ---
 
@@ -464,7 +470,25 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 Lifecycle: `GitAdapter.closeAll()` terminates all batch processes and clears the singleton instances map. It is called in a `finally` block in `src/main.ts` to prevent orphaned child processes on both success and error paths. If the `git cat-file` process exits unexpectedly, a `close` event handler rejects all pending promises to prevent hangs.
 
-**Memory note**: The batch cat-file process buffers each blob's content entirely in memory before resolving. There is no upper bound on individual blob size — repositories with very large binary blobs (multi-GB) could cause high memory consumption. This is acceptable because SGD operates on trusted repositories and the previous `git show` implementation had the same characteristic.
+**Memory note**: The batch cat-file process buffers each blob's content entirely in memory up to `SIZE_THRESHOLD` (1 MB) before resolving. Larger blobs raise `EscalateToStreamingSignal` and route through `streamContent`, which spawns a dedicated `git cat-file blob <oid>` subprocess and pipes the output — peak memory bounded by the stream's high-water mark, not the blob size.
+
+### XML Reading & Writing
+
+XML reading uses [txml](https://www.npmjs.com/package/txml) — a small, fast parser that takes the source string and returns a flat `(tNode | string)[]` tree. `txmlAdapter.ts` normalises the tree into our compact `XmlContent` shape (`@_attr` for attributes, `#comment` for comments, repeated tags collapsed to arrays, `?xml` for the declaration). Two entry points:
+
+- **Full-document parse** (`xmlHelper.xml2Json`): used by `parseXmlFileToJson` for bounded inputs (FlowTranslationProcessor's translation merge). One `txmlParse(...)` call + one tree walk.
+- **Streaming parse** (`xmlEventReader.driveParse`): used by `metadataDiff.run` and `FlowTranslationProcessor._parseTranslationFile`. Walks the prologue manually to capture `<?xml?>` and the root open tag, then loops over the body calling `txmlParse(payload, { pos, parseNode: true, setPos: true })` once per direct child of root. The parsed subtree is fed to `onElement` and our reference is dropped before advancing the cursor — peak resident memory ≈ largest single child rather than the full document.
+
+The strict failure contract that `metadataDiff` depends on (txml is otherwise tolerant — `<Root><unclosed>` parses to a partial tree without throwing, `<a></a><b/>` returns multiple roots, `<a></a>extra` accepts trailing junk) is preserved inside the streaming reader itself. `parsePrologue` skips the XML declaration, leading whitespace, comments, and `<!...>` declarations (DOCTYPE, ENTITY) and tracks `isSelfClosing`. The per-child `parseNode` loop already throws on inner mismatches and crossed nesting via txml itself. After the loop, `verifyTail` confirms the document ends with `</rootName>` (or is a self-closing root) followed only by whitespace or comments — anything else throws so the diff caller's `MalformedXML` warning fires. `parseToSidePropagating` runs `verifyTail`; `parseFromSideSwallowing` skips it because its caller already discards parse errors and falls back to "no prior content", and txml's tolerant partial parse is fine there. No CDATA branch: Salesforce metadata never uses CDATA.
+
+XML writing is in-house (`xmlWriter.ts`). Iterative depth-first traversal with an explicit LIFO frame stack — safe under unexpectedly-deep input, cancellation-friendly. Frame chunks are batched in a `ChunkBuffer` (8 KB threshold) before flushing to the underlying `Writable` so a 3 000-element Profile prune flushes in tens of stream writes instead of thousands. Backpressure is honoured at flush time via `once(out, 'drain')`. Indent strings are cached in a lazily-extended array keyed by depth, replacing the per-frame `INDENT.repeat(depth)` allocation.
+
+### Lookup Caches
+
+Two memoization caches sit on the lookup hot path; both have lifetime scoped to the surrounding instance and need no eviction:
+
+- **`MetadataRepositoryImpl.pathCache`** memoizes `get(path)` results (including negative lookups) on a `Map<string, Metadata|undefined>`. The lookup chain (split + `searchByExtension` + `searchByDirectory` + `searchByXmlName`) is deterministic in `path` and the registry is read-only after construction; a single cache here propagates to every consumer (`has`, `getFullyQualifiedName`, `TypeHandlerFactory.getTypeHandler`, `computeTreeIndexScope`, `RepoGitDiff`'s filter chain).
+- **`TypeHandlerFactory.handlerCache`** memoizes `resolveHandler(metadata)` → handler-class on a `Map<Metadata, typeof Standard>`. Dispatch involves five branches plus a `getByXmlName` lookup, all deterministic in the metadata reference — and the registry returns the same instance for a given type. Reference-keyed (not xmlName-keyed) to skip the string hash on every call.
 
 ---
 
@@ -515,7 +539,7 @@ Mutable context accumulating outputs:
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `config` | `Config` | The configuration |
-| `diffs` | `{ package: Map, destructiveChanges: Map }` | Accumulated manifest maps (`type → Set<member>`) |
+| `changes` | `ChangeSet` | Aggregated manifest entries — handlers, collectors, and `RenameResolver` all write into this single instance. Views (`forPackageManifest`, `forDestructiveManifest`, `byChangeKind`) are pure projections. |
 | `warnings` | `Error[]` | Non-fatal warnings |
 
 ### HandlerResult (`src/types/handlerResult.ts`)
@@ -524,8 +548,8 @@ Universal handler/processor output:
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| `manifests` | `ManifestElement[]` | Entries for package.xml or destructiveChanges.xml |
-| `copies` | `CopyOperation[]` | `GitCopy`, `GitDirCopy`, or `ComputedContent` operations |
+| `changes` | `ChangeSet` | The shared sink the handler/collector wrote manifest entries into. In the handler dispatch path this is a reference to `DiffLineInterpreter`'s sink (so `mergeResults` is a no-op for the changes axis). For collectors and ad-hoc test calls, a fresh `ChangeSet` is allocated. |
+| `copies` | `CopyOperation[]` | `GitCopy`, `GitDirCopy`, or `StreamedContent` operations |
 | `warnings` | `Error[]` | Non-fatal warnings |
 
 ### Metadata (`src/schemas/metadata.ts`)

@@ -1,5 +1,12 @@
 const config = {
   coverageAnalysis: 'perTest',
+  // Static mutants live in top-level / module-init code that runs once
+  // per worker. With perTest coverage Stryker has to spin up a fresh
+  // worker for every static mutant, which Stryker itself reports as
+  // ~75% of the wall time on this codebase. Skipping them drops the
+  // CI run from ~60min to ~15min while only narrowing scope to mutants
+  // that can actually be killed by per-test execution.
+  ignoreStatic: true,
   ignorePatterns: ['lib/', 'reports/', 'bin/', 'e2e/'],
   mutate: [
     'src/**/*.ts',

@@ -72,6 +72,44 @@ export default class ChangeSet {
     )
   }
 
+  // Diagnostic / test-only: reconstructs the (target, type, member, changeKind)
+  // tuples by joining byTarget × byKind on (type, member). Production diff
+  // lines never insert the same (type, member) under two different changeKind
+  // values, so the join is unambiguous in practice. Production code should
+  // use forPackageManifest / forDestructiveManifest / byChangeKind for the
+  // indexed views — this method exists only so tests can list inserted
+  // elements without paying a per-addElement push in the hot path.
+  toElements(): ManifestElement[] {
+    const targets = [
+      ManifestTarget.Package,
+      ManifestTarget.DestructiveChanges,
+    ] as const
+    const kinds = [
+      ChangeKind.Add,
+      ChangeKind.Modify,
+      ChangeKind.Delete,
+    ] as const
+    const out: ManifestElement[] = []
+    for (const target of targets) {
+      for (const [type, members] of this.byTarget[target]) {
+        for (const member of members) {
+          let kind: AddKind | undefined
+          for (const k of kinds) {
+            if (this.byKind[k].get(type)?.has(member)) {
+              kind = k
+              break
+            }
+          }
+          /* v8 ignore next -- defensive: addElement always pairs byTarget and byKind, so every (type, member) in byTarget has a corresponding byKind entry */
+          if (kind !== undefined) {
+            out.push({ target, type, member, changeKind: kind })
+          }
+        }
+      }
+    }
+    return out
+  }
+
   // Convenience for callers (mostly tests) that operate under the standard
   // convention: Add/Modify target Package, Delete targets DestructiveChanges.
   // Production handlers that diverge from this convention (e.g. InFileHandler
@@ -90,6 +128,39 @@ export default class ChangeSet {
       this.renames.set(type, new Map())
     }
     this.renames.get(type)!.set(renameKey(from, to), { from, to })
+  }
+
+  // Folds another ChangeSet's entries into this one. Used to combine
+  // per-handler / per-collector outputs into a single project-wide view.
+  // Mutates `this`; `other` is left untouched so the source can stay
+  // referentially shared if a caller needs the snapshot it represents.
+  merge(other: ChangeSet): void {
+    for (const target of [
+      ManifestTarget.Package,
+      ManifestTarget.DestructiveChanges,
+    ] as const) {
+      for (const [type, members] of other.byTarget[target]) {
+        for (const member of members) {
+          this._addToManifest(this.byTarget[target], type, member)
+        }
+      }
+    }
+    for (const kind of [
+      ChangeKind.Add,
+      ChangeKind.Modify,
+      ChangeKind.Delete,
+    ] as const) {
+      for (const [type, members] of other.byKind[kind]) {
+        for (const member of members) {
+          this._addToManifest(this.byKind[kind], type, member)
+        }
+      }
+    }
+    for (const [type, pairs] of other.renames) {
+      for (const { from, to } of pairs.values()) {
+        this.recordRename(type, from, to)
+      }
+    }
   }
 
   forPackageManifest(): Manifest {
@@ -218,5 +289,26 @@ export default class ChangeSet {
       }
     }
     return result
+  }
+}
+
+// HandlerResult helpers live next to ChangeSet because they construct it
+// at runtime; keeping them here avoids a circular module dep with
+// handlerResult.ts (which only imports the type).
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+
+export const emptyResult = (): HandlerResult => ({
+  changes: new ChangeSet(),
+  copies: [] as CopyOperation[],
+  warnings: [] as Error[],
+})
+
+export const mergeResults = (...results: HandlerResult[]): HandlerResult => {
+  const merged = new ChangeSet()
+  for (const r of results) merged.merge(r.changes)
+  return {
+    changes: merged,
+    copies: results.flatMap(r => r.copies),
+    warnings: results.flatMap(r => r.warnings),
   }
 }

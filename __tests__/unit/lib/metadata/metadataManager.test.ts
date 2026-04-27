@@ -17,6 +17,60 @@ describe('Given metadata definitions', () => {
   beforeEach(() => {
     resetMetadataCache()
   })
+
+  describe('resetMetadataCache', () => {
+    it('When called, Then subsequent getInFileAttributes call recomputes from scratch', async () => {
+      // Arrange — populate the cache via getInFileAttributes, then reset.
+      const metadata = new MetadataRepositoryImpl([
+        {
+          directoryName: 'workflows.alerts',
+          inFolder: false,
+          metaFile: false,
+          xmlName: 'WorkflowAlert',
+          xmlTag: 'alerts',
+          key: 'fullName',
+        },
+      ])
+      const firstResult = getInFileAttributes(metadata)
+      // Verify cache is populated (same reference returned on second call)
+      expect(getInFileAttributes(metadata)).toBe(firstResult)
+
+      // Act
+      resetMetadataCache()
+
+      // Assert — after reset the function must recompute, producing a new Map
+      // object (different reference), proving the cache was cleared.
+      const afterReset = getInFileAttributes(metadata)
+      expect(afterReset).not.toBe(firstResult)
+      // Content must still be correct
+      expect(afterReset.has('alerts')).toBe(true)
+    })
+
+    it('When called, Then subsequent getSharedFolderMetadata call recomputes from scratch', async () => {
+      // Arrange
+      const metadata = new MetadataRepositoryImpl([
+        {
+          directoryName: 'discovery',
+          inFolder: false,
+          metaFile: true,
+          content: [{ suffix: 'model', xmlName: 'DiscoveryAIModel' }],
+        } as unknown as import('../../../../src/types/metadata').Metadata,
+      ])
+      const firstResult = getSharedFolderMetadata(metadata)
+      expect(getSharedFolderMetadata(metadata)).toBe(firstResult)
+
+      // Act
+      resetMetadataCache()
+
+      // Assert
+      const afterReset = getSharedFolderMetadata(metadata)
+      expect(afterReset).not.toBe(firstResult)
+      expect((afterReset as Map<string, string>).get('model')).toBe(
+        'DiscoveryAIModel'
+      )
+    })
+  })
+
   it('Given no config, When getDefinition, Then returns metadata with known types', async () => {
     const metadata = await getDefinition({})
 
@@ -280,6 +334,41 @@ describe('Given metadata definitions', () => {
       })
     ).rejects.toThrow(/Unrecognized key.*unknownField/)
     readFileSpy.mockRestore()
+  })
+
+  it('Given additional registry with nested path violation, When getDefinition, Then error message contains dotted path', async () => {
+    // Arrange — triggers the issue.path.join('.') path on L74. A nested Zod
+    // path like [0, 'inFolder'] serialises to "0.inFolder".
+    const additionalRegistryContent = `[
+      {
+        "xmlName": "CustomThing",
+        "directoryName": "things",
+        "inFolder": 123,
+        "metaFile": false
+      }
+    ]`
+    const readFileSpy = vi
+      .spyOn(fsUtils, 'readFile')
+      .mockResolvedValue(additionalRegistryContent)
+
+    // Act & Assert
+    let thrown: Error | undefined
+    try {
+      await getDefinition({
+        additionalMetadataRegistryPath: 'path/to/registry.json',
+      })
+    } catch (e) {
+      thrown = e as Error
+    } finally {
+      readFileSpy.mockRestore()
+    }
+    expect(thrown).toBeDefined()
+    // The error message must contain the dotted path (e.g. "0.inFolder")
+    // proving issue.path.join('.') ran and was included.
+    expect(thrown!.message).toMatch(/0\.inFolder/)
+    expect(thrown!.message).toContain(
+      "Invalid additional metadata registry file 'path/to/registry.json'"
+    )
   })
 
   it('getSharedFolderMetadata', async () => {

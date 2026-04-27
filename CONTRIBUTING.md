@@ -50,26 +50,80 @@ Rebuild every time you make a change in the source and need to test locally.
 
 ## Testing
 
+The test suite is organized into five buckets, each backed by its own
+directory and its own `npm` script. They are cumulative: a typical CI
+build runs them in the order below, and `npm test` aggregates all four
+non-perf buckets.
+
+| Bucket          | Directory                                  | Vitest config                       | npm script             |
+| --------------- | ------------------------------------------ | ----------------------------------- | ---------------------- |
+| Unit            | `__tests__/unit/`                          | `vitest.config.ts`                  | `npm run test:unit`    |
+| Integration     | `__tests__/integration/`                   | `vitest.integration.config.ts`      | `npm run test:integration` |
+| NUT             | `__tests__/nut/` (`*.nut.ts`)              | `vitest.nut.config.ts`              | `npm run test:nut`     |
+| Functional      | `__tests__/functional/byteEquality/`       | `vitest.functional.config.ts`       | `npm run test:functional` |
+| Performance     | `__tests__/perf/`                          | `vitest.config.perf.ts`             | `npm run test:perf`    |
+
+E2E tests live on dedicated git branches and are run separately — see the
+**E2E Testing** section below.
+
 ### Unit Testing
 
-Use [jest](https://jestjs.io/en/) unit testing to provide test coverage for new functionality. To run the jest tests use the following command from the root directory:
+Unit tests live in `__tests__/unit/` and are the only bucket whose vitest
+config enforces 100% line / branch / function / statement coverage.
 
 ```bash
 npm run test:unit
 ```
 
-To execute a particular test, use the following command:
+To run a particular file:
 
 ```bash
 npm run test:unit -- <path_to_test>
 ```
 
+### Integration Testing
+
+Integration tests live in `__tests__/integration/`. They exercise broader
+slices of the pipeline (e.g. SDR registry adapters, TypeHandlerFactory)
+and run without coverage.
+
+```bash
+npm run test:integration
+```
+
 ### NUT Testing
 
-Use mocha testing to provide NUT functional tests. To run the mocha tests use the following command from the root directory:
+NUT tests (Salesforce CLI plugin testkit) live in `__tests__/nut/` as
+`*.nut.ts` files. They drive the packaged CLI through the testkit
+runner.
 
 ```bash
 npm run test:nut
+```
+
+### Functional Testing
+
+Functional tests live in `__tests__/functional/byteEquality/`. They
+assert byte-for-byte parity of the streaming pipeline against committed
+fixtures.
+
+```bash
+npm run test:functional
+```
+
+To regenerate fixtures after intentional output-format changes:
+
+```bash
+UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 npm run test:functional
+```
+
+### Performance Testing
+
+Performance benchmarks live in `__tests__/perf/`. They run through
+vitest's `bench` mode and emit `perf-runtime.json` / `perf-memory.json`.
+
+```bash
+npm run test:perf
 ```
 
 ### E2E Testing

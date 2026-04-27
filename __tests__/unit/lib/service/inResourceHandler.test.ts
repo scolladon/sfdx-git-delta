@@ -78,7 +78,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -103,7 +103,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -131,7 +131,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests.length).toBeGreaterThan(0)
+        expect(result.changes.toElements().length).toBeGreaterThan(0)
         expect(result.copies).toHaveLength(0)
       })
 
@@ -157,7 +157,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -199,7 +199,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -250,7 +250,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -359,7 +359,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -404,7 +404,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -443,7 +443,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.manifests).toEqual(
+          expect(result.changes.toElements()).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -490,7 +490,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -522,7 +522,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.manifests).toEqual(
+        expect(result.changes.toElements()).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -538,6 +538,46 @@ describe('InResourceHandler', () => {
         )
       })
     })
+    describe('When resource name contains regex special characters', () => {
+      it('Given resource name with a dot, When collecting with matching files, Then escapeRegex prevents mismatched resource files from being copied', async () => {
+        // Arrange — resource named "my.Resource" contains a dot which is a regex special char.
+        // Without proper escaping, the regex would treat "." as "any char" and could match
+        // unrelated files like "myXResource.js". escapeRegex must escape it to "my\\.Resource".
+        work.config.generateDelta = true
+        const specialName = 'my.Resource'
+        const specialBase = 'force-app/main/default/staticresources'
+        const specialLine = `A       ${specialBase}/${specialName}.js`
+        const unrelatedFile = `${specialBase}/myXResource.resource-meta.xml`
+        const matchingFile = `${specialBase}/${specialName}.resource-meta.xml`
+        mockedReadDirs.mockResolvedValue([matchingFile, unrelatedFile])
+        const { changeType, element } = createElement(
+          specialLine,
+          staticResourceType,
+          globalMetadata
+        )
+        const sut = new InResourceHandler(changeType, element, work)
+
+        // Act
+        const result = await sut.collect()
+
+        // Assert — the unrelated file must NOT appear in copies
+        expect(result.copies).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ path: unrelatedFile }),
+          ])
+        )
+        // The matching file (escaped dot) should be copied
+        expect(result.copies).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: CopyOperationKind.GitCopy,
+              path: matchingFile,
+            }),
+          ])
+        )
+      })
+    })
+
     describe('When single-file resource is deleted', () => {
       it('Given single-file static resource deleted, When collecting, Then pathExists checks the component path and deletion flows through', async () => {
         // Arrange
@@ -562,7 +602,9 @@ describe('InResourceHandler', () => {
           work.config
         )
         expect(
-          result.manifests.some(m => m.target === 'destructiveChanges')
+          result.changes
+            .toElements()
+            .some(m => m.target === 'destructiveChanges')
         ).toBe(true)
       })
     })
