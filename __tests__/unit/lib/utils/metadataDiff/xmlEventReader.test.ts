@@ -63,6 +63,76 @@ describe('xmlEventReader', () => {
       await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
     })
 
+    it.each([
+      ['unclosed root', '<Root><a>'],
+      ['inner tag mismatch', '<Root><a></b></Root>'],
+      ['multiple top-level roots', '<A/><B/>'],
+      ['sibling after closed root', '<Root></Root><Sibling/>'],
+      ['trailing text after root close', '<Root></Root>extra'],
+      ['unterminated tag', '<Root'],
+      ['closing tag before opening', '</Root>'],
+      ['no name in open tag', '<>foo</>'],
+      ['malformed close tag in body', '<Root></></Root>'],
+      ['unterminated close tag', '<Root></Root'],
+    ])('Given %s, When parseToSidePropagating runs, Then it rejects', async (_label, source) => {
+      const onElement = vi.fn()
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
+    })
+
+    it('Given trailing whitespace after the root close, When parseToSidePropagating runs, Then it is tolerated', async () => {
+      // Arrange — exercises the trailing-whitespace branch of verifyTail.
+      const onElement = vi.fn()
+      const source = '<Root></Root>\n  \t\r\n'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+    })
+
+    it('Given a comment after the root close, When parseToSidePropagating runs, Then the trailing comment is tolerated', async () => {
+      // Arrange — well-formed XML allows comments after the document root.
+      const onElement = vi.fn()
+      const source = '<Root></Root><!-- trailing -->'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+    })
+
+    it('Given an unterminated trailing comment, When parseToSidePropagating runs, Then it rejects', async () => {
+      // Arrange — comment opened after root close but never terminated.
+      const onElement = vi.fn()
+      const source = '<Root></Root><!-- never closed'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
+    })
+
+    it('Given a leading DOCTYPE declaration, When parseToSidePropagating runs, Then the prologue skips it and parses the root', async () => {
+      // Arrange — exercises the `<!...>` branch in parsePrologue.
+      const onElement = vi.fn()
+      const source = '<!DOCTYPE root SYSTEM "ext.dtd"><Root>x</Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+    })
+
+    it('Given an unterminated DOCTYPE declaration, When parseToSidePropagating runs, Then it rejects', async () => {
+      // Arrange — `<!DOCTYPE root` has no closing `>`, prologue bails.
+      const onElement = vi.fn()
+      const source = '<!DOCTYPE root'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
+    })
+
     it('Given empty XML, When parseToSidePropagating runs, Then the rejection propagates', async () => {
       // Arrange
       const source = ''
@@ -141,34 +211,6 @@ describe('xmlEventReader', () => {
       // Assert
       expect(sut?.rootKey).toBe('Profile')
       expect(onElement).toHaveBeenCalledWith('a', expect.any(Object))
-    })
-
-    it('Given a CDATA section between two child elements, When parseFromSideSwallowing runs, Then the CDATA is skipped and emission resumes (xmlEventReader L142-144)', async () => {
-      // Arrange — CDATA in the body, between two siblings.
-      const onElement = vi.fn()
-      const source = `<Profile xmlns="http://soap.sforce.com/2006/04/metadata"><a/><![CDATA[<not> & "an" <element>]]><b/></Profile>`
-
-      // Act
-      const sut = await parseFromSideSwallowing(source, onElement)
-
-      // Assert
-      expect(sut?.rootKey).toBe('Profile')
-      const tags = onElement.mock.calls.map(([tag]) => tag)
-      expect(tags).toEqual(['a', 'b'])
-    })
-
-    it('Given an unterminated CDATA section, When parseFromSideSwallowing runs, Then the loop exits cleanly (xmlEventReader L143 end<0 path)', async () => {
-      // Arrange — CDATA opens but the document is truncated mid-section.
-      const onElement = vi.fn()
-      const source = `<Profile><a/><![CDATA[truncated`
-
-      // Act
-      const sut = await parseFromSideSwallowing(source, onElement)
-
-      // Assert — element before CDATA emitted, after isn't reached.
-      expect(sut).not.toBeNull()
-      const tags = onElement.mock.calls.map(([tag]) => tag)
-      expect(tags).toEqual(['a'])
     })
 
     it('Given an unterminated comment in the body, When parseFromSideSwallowing runs, Then the loop exits cleanly (xmlEventReader L137 end<0 path)', async () => {

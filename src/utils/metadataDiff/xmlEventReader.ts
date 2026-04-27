@@ -10,7 +10,6 @@ import {
   type TxmlNode,
   tNodeToXmlContent,
 } from '../txmlAdapter.js'
-import { validateXml } from '../xmlBalanceValidator.js'
 import {
   ATTRIBUTE_PREFIX,
   XML_HEADER_ATTRIBUTE_KEY,
@@ -38,6 +37,7 @@ type Prologue = {
   rootName: string
   rootAttributes: Record<string, string>
   bodyStart: number
+  isSelfClosing: boolean
 }
 
 const parseDeclaration = (decl: string): XmlContent => {
@@ -55,10 +55,11 @@ const parseDeclaration = (decl: string): XmlContent => {
   return { [XML_HEADER_ATTRIBUTE_KEY]: headerAttrs }
 }
 
-// Walks the prologue (BOM, optional declaration, leading whitespace and
-// comments) and stops at the root opening tag. Returns the root name,
-// its attributes, and the byte offset where the root's body starts so
-// the streaming loop can pick up from there.
+// Walks the prologue (BOM, optional declaration, leading whitespace,
+// comments, and `<!...>` declarations such as DOCTYPE) and stops at the
+// root opening tag. Returns the root name, its attributes, the byte
+// offset where the root's body starts so the streaming loop can pick up
+// from there, and whether the root is self-closing.
 const parsePrologue = (xml: string): Prologue | null => {
   let i = 0
   let xmlHeader: XmlContent | undefined
@@ -78,6 +79,16 @@ const parsePrologue = (xml: string): Prologue | null => {
     const commentMatch = COMMENT_RE.exec(xml.slice(i))
     if (commentMatch) {
       i += commentMatch[0].length
+      continue
+    }
+    // `<!...>` declarations (DOCTYPE, ENTITY, etc.) before the root.
+    // Naive boundary at the next `>` — none of our metadata payloads use
+    // bracketed internal subsets, so a more elaborate scan would be
+    // unused work.
+    if (xml.startsWith('<!', i) && !xml.startsWith('<!--', i)) {
+      const end = xml.indexOf('>', i + 2)
+      if (end < 0) return null
+      i = end + 1
       continue
     }
     break
@@ -111,7 +122,13 @@ const parsePrologue = (xml: string): Prologue | null => {
     }
   }
 
-  return { xmlHeader, rootName: rootName!, rootAttributes, bodyStart }
+  return {
+    xmlHeader,
+    rootName: rootName!,
+    rootAttributes,
+    bodyStart,
+    isSelfClosing,
+  }
 }
 
 // One-shot per-element parse via txml's parseNode primitive. We loop
@@ -120,27 +137,30 @@ const parsePrologue = (xml: string): Prologue | null => {
 // the cursor. txml returns the parsed subtree fully built — but we drop
 // our reference after onElement, so peak resident memory stays bounded
 // by the largest single child rather than the full document.
+//
+// Returns the cursor position where the loop exited so the strict-mode
+// caller can verify the root close tag and reject trailing content.
 const streamRootChildren = (
   xml: string,
   bodyStart: number,
   onElement: SubTypeElementHandler
-): void => {
+): number => {
   let pos = bodyStart
   while (pos < xml.length) {
     const lt = xml.indexOf('<', pos)
-    /* v8 ignore next -- defensive: well-formed XML always has the closing root tag, so '<' is reachable until the </Root> marker exits the loop on L133 */
-    if (lt < 0) break
+    /* v8 ignore next 4 -- defensive: well-formed XML always has the closing root tag, so '<' is reachable until the </Root> marker exits the loop below */
+    if (lt < 0) {
+      pos = xml.length
+      break
+    }
 
-    if (xml.startsWith('</', lt)) break
+    if (xml.startsWith('</', lt)) {
+      pos = lt
+      break
+    }
 
     if (xml.startsWith('<!--', lt)) {
       const end = xml.indexOf('-->', lt + 4)
-      pos = end < 0 ? xml.length : end + 3
-      continue
-    }
-
-    if (xml.startsWith('<![CDATA[', lt)) {
-      const end = xml.indexOf(']]>', lt + 9)
       pos = end < 0 ? xml.length : end + 3
       continue
     }
@@ -154,6 +174,45 @@ const streamRootChildren = (
     onElement(res.tagName, tNodeToXmlContent(res) as XmlContent)
     pos = res.pos
   }
+  return pos
+}
+
+// Strict-mode tail check: confirms the document closes with `</rootName>`
+// (or is a self-closing root) and that only whitespace or comments
+// follow. Covers what txml itself is too tolerant to flag — unclosed
+// roots, multi-root documents, trailing junk after the root close.
+const verifyTail = (
+  xml: string,
+  pos: number,
+  rootName: string,
+  isSelfClosing: boolean
+): void => {
+  let i = pos
+  if (!isSelfClosing) {
+    const expected = `</${rootName}>`
+    if (!xml.startsWith(expected, i)) {
+      throw new Error(
+        `unclosed or mismatched root <${rootName}> at offset ${i}`
+      )
+    }
+    i += expected.length
+  }
+  while (i < xml.length) {
+    const ch = xml[i]
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
+      i++
+      continue
+    }
+    if (xml.startsWith('<!--', i)) {
+      const end = xml.indexOf('-->', i + 4)
+      if (end < 0) throw new Error('unterminated comment after root close')
+      i = end + 3
+      continue
+    }
+    throw new Error(
+      `unexpected content after root close: ${xml.slice(i, Math.min(i + 30, xml.length))}`
+    )
+  }
 }
 
 const driveParse = (
@@ -162,17 +221,19 @@ const driveParse = (
   options: { strict: boolean }
 ): RootCapture | null => {
   const payload = typeof source === 'string' ? source : source.toString('utf8')
-  // Strict mode (to-side): reject malformed input up front so the
-  // MalformedXML warning path in the diff caller fires. The
-  // swallowing path skips this scan — its caller already discards
-  // errors and falls back to "no prior content", so tolerating a
-  // partial txml parse is fine and saves an O(N) prepass per file.
-  if (options.strict) {
-    validateXml(payload)
-  }
   const prologue = parsePrologue(payload)
   if (prologue === null) return null
-  streamRootChildren(payload, prologue.bodyStart, onElement)
+  const endPos = prologue.isSelfClosing
+    ? prologue.bodyStart
+    : streamRootChildren(payload, prologue.bodyStart, onElement)
+  // Strict mode (to-side): confirm the input closes cleanly so the
+  // MalformedXML warning path in the diff caller fires. Inner mismatches
+  // already throw via txml's per-child parseNode. The swallowing path
+  // skips this — its caller already discards errors and falls back to
+  // "no prior content", so a partial parse is acceptable there.
+  if (options.strict) {
+    verifyTail(payload, endPos, prologue.rootName, prologue.isSelfClosing)
+  }
   return {
     xmlHeader: prologue.xmlHeader,
     rootKey: prologue.rootName,
