@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.43.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.42.0...v6.43.0) (2026-04-27)
+
+
+### Features
+
+* **pipeline:** streaming I/O end-to-end + txml + lookup caches ([#1284](https://github.com/scolladon/sfdx-git-delta/issues/1284)) ([df3c833](https://github.com/scolladon/sfdx-git-delta/commit/df3c8330076517fa1fdc9f73e60ce1ac54867ab2))
+
 ## [6.42.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.41.2...v6.42.0) (2026-04-23)
 
 
