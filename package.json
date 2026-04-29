@@ -51,7 +51,7 @@
     "@oclif/core": "^4.10.6",
     "@salesforce/core": "^8.28.4",
     "@salesforce/sf-plugins-core": "^12.2.6",
-    "@salesforce/source-deploy-retrieve": "^12.34.5",
+    "@salesforce/source-deploy-retrieve": "^12.35.0",
     "async": "^3.2.6",
     "fast-equals": "^6.0.0",
     "fs-extra": "^11.3.4",
