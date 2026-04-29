@@ -44,6 +44,7 @@ jobs:
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
         env:
           OLD_VERSION: ${{ steps.metadata.outputs.previous-version }}
+          NEW_VERSION: ${{ steps.metadata.outputs.new-version }}
         run: |
           REGISTRY_PATH="lib/src/registry/metadataRegistry.json"
 
@@ -59,12 +60,74 @@ jobs:
           if diff -q "$OLD_FILE" "$NEW_FILE" > /dev/null 2>&1; then
             echo "registry_changed=false" >> "$GITHUB_OUTPUT"
             echo "No metadata registry changes detected between SDR versions"
-          else
-            echo "registry_changed=true" >> "$GITHUB_OUTPUT"
-            echo "Metadata registry changes detected between SDR versions"
+            rm -rf /tmp/sdr-old "/tmp/${TARBALL}"
+            exit 0
           fi
 
-          # Cleanup
+          echo "registry_changed=true" >> "$GITHUB_OUTPUT"
+          echo "Metadata registry changes detected between SDR versions"
+
+          # Diff added top-level type API names
+          jq -r '.types[].name' "$OLD_FILE" | sort -u > /tmp/old-types.txt
+          jq -r '.types[].name' "$NEW_FILE" | sort -u > /tmp/new-types.txt
+          comm -23 /tmp/new-types.txt /tmp/old-types.txt > /tmp/added-types.txt
+
+          # Diff added child type API names with parent context (tab-separated: child<TAB>parent)
+          CHILD_QUERY='.types[] | select(.children) | .name as $p | .children.types[] | "\(.name)\t\($p)"'
+          jq -r "$CHILD_QUERY" "$OLD_FILE" | sort -u > /tmp/old-children.txt
+          jq -r "$CHILD_QUERY" "$NEW_FILE" | sort -u > /tmp/new-children.txt
+          comm -23 /tmp/new-children.txt /tmp/old-children.txt > /tmp/added-children.txt
+
+          # Build PR title — prefer top-level types, fall back to child-only, then to bump message
+          PREFIX="feat(metadata): support "
+          MAX_LEN=72
+          ADDED_TOP_COUNT=$(wc -l < /tmp/added-types.txt | tr -d ' ')
+          ADDED_CHILD_COUNT=$(wc -l < /tmp/added-children.txt | tr -d ' ')
+
+          if [ "$ADDED_TOP_COUNT" -gt 0 ]; then
+            cp /tmp/added-types.txt /tmp/title-source.txt
+            TITLE_COUNT="$ADDED_TOP_COUNT"
+          elif [ "$ADDED_CHILD_COUNT" -gt 0 ]; then
+            # Use child name only for title; body retains full child (under Parent) context
+            cut -f1 /tmp/added-children.txt > /tmp/title-source.txt
+            TITLE_COUNT="$ADDED_CHILD_COUNT"
+          else
+            TITLE_COUNT=0
+          fi
+
+          if [ "$TITLE_COUNT" -eq 0 ]; then
+            TITLE="feat(metadata): refresh SDR registry to ${NEW_VERSION}"
+          else
+            JOINED=$(paste -sd "," /tmp/title-source.txt | sed 's/,/, /g')
+            CANDIDATE="${PREFIX}${JOINED}"
+            if [ "${#CANDIDATE}" -le "$MAX_LEN" ]; then
+              TITLE="$CANDIDATE"
+            else
+              TITLE="${PREFIX}${TITLE_COUNT} new metadata types"
+            fi
+          fi
+
+          # Build PR body — bump line + two sections
+          {
+            echo "Bumps @salesforce/source-deploy-retrieve from ${OLD_VERSION} to ${NEW_VERSION}."
+            echo ""
+            if [ -s /tmp/added-types.txt ]; then
+              echo "### New types"
+              echo ""
+              sed 's/^/- /' /tmp/added-types.txt
+              echo ""
+            fi
+            if [ -s /tmp/added-children.txt ]; then
+              echo "### New child types"
+              echo ""
+              awk -F'\t' '{print "- " $1 " (under " $2 ")"}' /tmp/added-children.txt
+              echo ""
+            fi
+          } > /tmp/pr-body.md
+
+          echo "$TITLE" > /tmp/pr-title.txt
+          echo "Resolved title: $TITLE"
+
           rm -rf /tmp/sdr-old "/tmp/${TARBALL}"
 
       - name: Close PR if not a registry change
@@ -126,5 +189,7 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
+          TITLE=$(cat /tmp/pr-title.txt)
+          gh pr edit "$PR_URL" --title "$TITLE"
           gh pr review --approve "$PR_URL"
-          gh pr merge --auto --squash "$PR_URL"
+          gh pr merge --auto --squash --subject "$TITLE" --body-file /tmp/pr-body.md "$PR_URL"
