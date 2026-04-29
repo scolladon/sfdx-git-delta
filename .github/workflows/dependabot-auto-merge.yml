@@ -73,6 +73,7 @@ jobs:
           comm -23 /tmp/new-types.txt /tmp/old-types.txt > /tmp/added-types.txt
 
           # Diff added child type API names with parent context (tab-separated: child<TAB>parent)
+          # shellcheck disable=SC2016 # $p is a jq variable, not a shell variable
           CHILD_QUERY='.types[] | select(.children) | .name as $p | .children.types[] | "\(.name)\t\($p)"'
           jq -r "$CHILD_QUERY" "$OLD_FILE" | sort -u > /tmp/old-children.txt
           jq -r "$CHILD_QUERY" "$NEW_FILE" | sort -u > /tmp/new-children.txt
