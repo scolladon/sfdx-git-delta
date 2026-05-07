@@ -43,7 +43,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockRun.mockResolvedValue({
     manifests: { added: [], modified: [], deleted: [] },
-    hasAnyChanges: true,
+    hasPackageContent: true,
     writer: mockWriter,
   })
   work = getWork()
@@ -153,7 +153,7 @@ describe('ObjectTranslation', () => {
       work.config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: null,
       })
       const { changeType, element } = createElement(

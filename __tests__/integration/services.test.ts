@@ -667,3 +667,121 @@ describe.each(testContext)(`integration test %s`, (changePath:
     expect(members).toEqual(expected)
   })
 })
+
+describe('InFile container manifest under generateDelta=false', () => {
+  // End-to-end lock: real TypeHandlerFactory + real InFileHandler + real
+  // MetadataDiff. When a SharingRules file gains a new sharingCriteriaRules
+  // child while keeping pre-existing siblings, both the parent SharingRules
+  // entry AND the new SharingCriteriaRule member must appear in package.xml
+  // — even when generateDelta is off (the user-facing programmatic mode and
+  // the CLI default). Without the parent entry, Salesforce rejects the
+  // deploy with 'pre-existing sibling Not in package.xml'.
+  it('Given a new sharingCriteriaRules added to a file with an existing sibling and generateDelta=false, When the handler collects, Then both SharingRules and SharingCriteriaRule appear in the package manifest', async () => {
+    // Arrange
+    work.config.generateDelta = false
+    const path =
+      'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
+    const ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
+    const header = '<?xml version="1.0" encoding="UTF-8"?>'
+    const fromXml = `${header}<SharingRules ${ns}><sharingCriteriaRules><fullName>Existing</fullName></sharingCriteriaRules></SharingRules>`
+    const toXml = `${header}<SharingRules ${ns}><sharingCriteriaRules><fullName>Existing</fullName></sharingCriteriaRules><sharingCriteriaRules><fullName>NewlyAdded</fullName></sharingCriteriaRules></SharingRules>`
+    mockedReadPathFromGit.mockResolvedValueOnce(toXml)
+    mockedReadPathFromGit.mockResolvedValueOnce(fromXml)
+    const sut = await handlerFactory.getTypeHandler(
+      `${MODIFICATION}       ${path}`
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert — package manifest must contain both the parent container
+    // and the newly added child sub-element.
+    const packageEntries = result.changes
+      .toElements()
+      .filter(m => m.target === ManifestTarget.Package)
+    expect(packageEntries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'SharingRules', member: 'Account' }),
+        expect.objectContaining({
+          type: 'SharingCriteriaRule',
+          member: 'Account.NewlyAdded',
+        }),
+      ])
+    )
+  })
+
+  it('Given an existing sharingCriteriaRules whose content is modified and generateDelta=false, When the handler collects, Then both SharingRules and SharingCriteriaRule appear in the package manifest', async () => {
+    // Locks the recordModified flag-set path: when a child's content
+    // changes (no add, no delete), hasSurvivingChange must still flip
+    // and the parent must still go in package.xml.
+    work.config.generateDelta = false
+    const path =
+      'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
+    const ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
+    const header = '<?xml version="1.0" encoding="UTF-8"?>'
+    const fromXml = `${header}<SharingRules ${ns}><sharingCriteriaRules><fullName>Existing</fullName><accessLevel>Read</accessLevel></sharingCriteriaRules></SharingRules>`
+    const toXml = `${header}<SharingRules ${ns}><sharingCriteriaRules><fullName>Existing</fullName><accessLevel>Edit</accessLevel></sharingCriteriaRules></SharingRules>`
+    mockedReadPathFromGit.mockResolvedValueOnce(toXml)
+    mockedReadPathFromGit.mockResolvedValueOnce(fromXml)
+    const sut = await handlerFactory.getTypeHandler(
+      `${MODIFICATION}       ${path}`
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    const packageEntries = result.changes
+      .toElements()
+      .filter(m => m.target === ManifestTarget.Package)
+    expect(packageEntries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'SharingRules', member: 'Account' }),
+        expect.objectContaining({
+          type: 'SharingCriteriaRule',
+          member: 'Account.Existing',
+        }),
+      ])
+    )
+  })
+
+  it('Given a sharingCriteriaRules removed in to (sibling preserved) and generateDelta=false, When the handler collects, Then the deleted child goes to destructiveChanges and the parent is NOT listed in either manifest', async () => {
+    // Locks deletion semantics: recordDeleted must NOT flip
+    // hasSurvivingChange. The deleted child belongs in
+    // destructiveChanges.xml only; the parent SharingRules file still
+    // exists on disk with its surviving sibling, so it must NOT appear
+    // in package.xml (nothing to deploy) NOR in destructiveChanges.xml
+    // (the file isn't being deleted, just one child).
+    work.config.generateDelta = false
+    const path =
+      'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
+    const ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
+    const header = '<?xml version="1.0" encoding="UTF-8"?>'
+    const fromXml = `${header}<SharingRules ${ns}><sharingCriteriaRules><fullName>Kept</fullName></sharingCriteriaRules><sharingCriteriaRules><fullName>Gone</fullName></sharingCriteriaRules></SharingRules>`
+    const toXml = `${header}<SharingRules ${ns}><sharingCriteriaRules><fullName>Kept</fullName></sharingCriteriaRules></SharingRules>`
+    mockedReadPathFromGit.mockResolvedValueOnce(toXml)
+    mockedReadPathFromGit.mockResolvedValueOnce(fromXml)
+    const sut = await handlerFactory.getTypeHandler(
+      `${MODIFICATION}       ${path}`
+    )
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert — child in destructiveChanges, no parent anywhere.
+    const elements = result.changes.toElements()
+    const destructive = elements.filter(
+      m => m.target === ManifestTarget.DestructiveChanges
+    )
+    const packageEntries = elements.filter(
+      m => m.target === ManifestTarget.Package
+    )
+    expect(destructive).toEqual([
+      expect.objectContaining({
+        type: 'SharingCriteriaRule',
+        member: 'Account.Gone',
+      }),
+    ])
+    expect(packageEntries).toEqual([])
+  })
+})

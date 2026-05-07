@@ -77,22 +77,23 @@ export default class InFileHandler extends StandardHandler {
         outcome.manifests.modified
       )
 
-      // RATIONALE: Why include root component in package.xml for InFile sub-elements?
-      // InFile elements are not independently deployable; the root component must be listed.
-      // The container is added only when there are surviving children to deploy (i.e.
-      // adds or modifications). Delete-only changes go to destructiveChanges.xml; their
-      // parent must NOT be re-listed in package.xml because there is nothing to deploy.
+      // RATIONALE: InFile elements are not independently deployable; the
+      // root component must be listed in package.xml whenever children
+      // survive the diff. hasPackageContent captures that signal
+      // independent of generateDelta — see DiffOutcome / StreamingDiff.
+      // Delete-only changes go to destructiveChanges.xml only; their
+      // parent must NOT be re-listed in package.xml because nothing
+      // deployable remains.
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
-      const fileIsEmpty = outcome.isEmpty ?? !outcome.hasAnyChanges
-      if (this._shouldTreatContainerType(fileIsEmpty)) {
+      if (this._shouldEmitContainer(outcome.hasPackageContent)) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this, sink)
         result.changes.merge(containerResult.changes)
       }
 
-      // run() already gated the writer on generateDelta + hasAnyChanges.
-      // Subclasses like CustomLabelHandler may still veto via
-      // _shouldCollectCopies.
+      // run() returns a writer iff generateDelta is on and the to-side
+      // has retained content. Subclasses like CustomLabelHandler may
+      // still veto via _shouldCollectCopies.
       if (outcome.writer && this._shouldCollectCopies()) {
         result.copies.push({
           kind: CopyOperationKind.StreamedContent,
@@ -146,7 +147,7 @@ export default class InFileHandler extends StandardHandler {
     return this.element.type.pruneOnly
   }
 
-  protected _shouldTreatContainerType(fileIsEmpty?: boolean): boolean {
-    return !fileIsEmpty
+  protected _shouldEmitContainer(hasPackageContent: boolean): boolean {
+    return hasPackageContent
   }
 }

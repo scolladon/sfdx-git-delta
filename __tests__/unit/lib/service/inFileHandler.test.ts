@@ -91,7 +91,7 @@ describe('inFileHandler', () => {
             modified: [],
             deleted: [],
           },
-          hasAnyChanges: true,
+          hasPackageContent: true,
           writer: mockWriter,
         })
       )
@@ -142,7 +142,7 @@ describe('inFileHandler', () => {
                 modified: [],
                 deleted: [],
               },
-              hasAnyChanges: true,
+              hasPackageContent: true,
               writer: mockWriter,
             })
           )
@@ -194,7 +194,7 @@ describe('inFileHandler', () => {
                 modified: [],
                 deleted: [],
               },
-              hasAnyChanges: true,
+              hasPackageContent: true,
               writer: mockWriter,
             })
           )
@@ -251,7 +251,7 @@ describe('inFileHandler', () => {
               modified: [],
               deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
             },
-            hasAnyChanges: true,
+            hasPackageContent: true,
             writer: mockWriter,
           })
         )
@@ -311,7 +311,7 @@ describe('inFileHandler', () => {
               modified: [],
               deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
             },
-            hasAnyChanges: false,
+            hasPackageContent: false,
           })
         )
       })
@@ -364,7 +364,7 @@ describe('inFileHandler', () => {
                 modified: [],
                 deleted: [],
               },
-              hasAnyChanges: false,
+              hasPackageContent: false,
             })
           )
         })
@@ -394,7 +394,7 @@ describe('inFileHandler', () => {
                 modified: [],
                 deleted: [{ type: 'Workflow', member: 'Deleted' }],
               },
-              hasAnyChanges: false,
+              hasPackageContent: false,
             })
           )
         })
@@ -442,7 +442,7 @@ describe('inFileHandler', () => {
                 modified: [],
                 deleted: [],
               },
-              hasAnyChanges: true,
+              hasPackageContent: true,
               writer: mockWriter,
             })
           )
@@ -494,7 +494,7 @@ describe('inFileHandler', () => {
                 modified: [],
                 deleted: [],
               },
-              hasAnyChanges: true,
+              hasPackageContent: true,
               writer: mockWriter,
             })
           )
@@ -549,7 +549,7 @@ describe('inFileHandler', () => {
             modified: [],
             deleted: [{ type: 'WorkflowAlert', member: 'test' }],
           },
-          hasAnyChanges: false,
+          hasPackageContent: false,
         })
       )
     })
@@ -651,7 +651,7 @@ describe('inFileHandler collect', () => {
           modified: [],
           deleted: [],
         },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: mockWriter,
       })
     )
@@ -696,7 +696,7 @@ describe('inFileHandler collect', () => {
           modified: [],
           deleted: [],
         },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: mockWriter,
       })
     )
@@ -761,7 +761,7 @@ describe('inFileHandler collect', () => {
           modified: [],
           deleted: [],
         },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: mockWriter,
       })
     )
@@ -793,7 +793,7 @@ describe('inFileHandler collect', () => {
           modified: [],
           deleted: [{ type: 'WorkflowAlert', member: 'removed' }],
         },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: mockWriter,
       })
     )
@@ -835,7 +835,7 @@ describe('inFileHandler collect', () => {
           modified: [],
           deleted: [],
         },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: mockWriter,
       })
     )
@@ -864,7 +864,7 @@ describe('inFileHandler collect', () => {
           modified: [],
           deleted: [],
         },
-        hasAnyChanges: true,
+        hasPackageContent: true,
         writer: mockWriter,
       })
     )
@@ -876,5 +876,51 @@ describe('inFileHandler collect', () => {
     expect(
       result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(true)
+  })
+
+  it('Given hasPackageContent=true with writer absent (generateDelta=false, packable child added), When collect runs, Then the parent container is added to package manifest', async () => {
+    // Regression lock: under generateDelta=false the engine produces
+    // hasPackageContent=true but no writer (no per-file pruned XML).
+    // The handler MUST still emit the parent container so the file is
+    // listed in package.xml — without it, Salesforce rejects the deploy
+    // for any pre-existing sibling sub-element of the same parent.
+    work.config.generateDelta = false
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, work)
+    mockRun.mockResolvedValue({
+      manifests: {
+        added: [{ type: 'WorkflowAlert', member: 'NewAlert' }],
+        modified: [],
+        deleted: [],
+      },
+      hasPackageContent: true,
+      // no writer — generateDelta=false produces no per-file pruned XML
+    })
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert — parent Workflow container present in package manifest
+    expect(result.changes.toElements()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'Workflow',
+          member: 'Account',
+        }),
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'WorkflowAlert',
+          member: 'Account.NewAlert',
+        }),
+      ])
+    )
+    expect(
+      result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
+    ).toBe(false)
   })
 })

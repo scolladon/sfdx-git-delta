@@ -19,13 +19,13 @@ export type StreamingDiffResult = {
   added: CompareEntry[]
   modified: CompareEntry[]
   deleted: CompareEntry[]
-  hasAnyChanges: boolean
-  // True when the to-side has no surviving elements after pruning (every
-  // sub-element was deleted, or the to-side was already empty). Distinct
-  // from `hasAnyChanges`: a delete-only file can have hasAnyChanges=true
-  // *and* isEmpty=true, in which case InFileHandler must NOT include the
-  // root in package.xml — there is nothing deployable left to ship.
-  isEmpty: boolean
+  // True when the to-side has retained content that warrants a parent
+  // manifest entry (any add/modify, or a deferred-bucket change with
+  // non-empty to). Drives InFileHandler's container manifest decision
+  // independent of generateDelta. A delete-only file leaves this false —
+  // the parent must not be re-listed in package.xml because nothing
+  // deployable remains.
+  hasPackageContent: boolean
   writer?: (out: Writable) => Promise<void>
 }
 
@@ -89,6 +89,7 @@ export class StreamingDiff {
   private readonly modified: CompareEntry[] = []
   private readonly deleted: CompareEntry[] = []
   private hasAnyChanges = false
+  private hasSurvivingChange = false
 
   constructor(
     private readonly attributes: Map<string, SharedFileMetadata>,
@@ -158,7 +159,7 @@ export class StreamingDiff {
 
   public finalize(): Pick<
     StreamingDiffResult,
-    'added' | 'modified' | 'deleted' | 'hasAnyChanges' | 'isEmpty'
+    'added' | 'modified' | 'deleted' | 'hasPackageContent'
   > {
     this.drainArrays()
     this.drainObjectFingerprints()
@@ -169,8 +170,7 @@ export class StreamingDiff {
       added: this.added,
       modified: this.modified,
       deleted: this.deleted,
-      hasAnyChanges: this.hasAnyChanges,
-      isEmpty: this.prunedBySubType.size === 0,
+      hasPackageContent: this.hasSurvivingChange,
     }
   }
 
@@ -249,6 +249,7 @@ export class StreamingDiff {
   }
 
   private retainSubTypeElement(subType: string, element: XmlContent): void {
+    this.hasSurvivingChange = true
     if (!this.generateDelta) return
     let existing = this.prunedBySubType.get(subType)
     if (existing === undefined) {
@@ -263,6 +264,7 @@ export class StreamingDiff {
       const fromArr = this.passOne.fromArrays.get(subType) ?? []
       if (!deepEqual(fromArr, toArr)) {
         this.hasAnyChanges = true
+        this.hasSurvivingChange = true
         if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
       }
     }
@@ -281,6 +283,7 @@ export class StreamingDiff {
       }
       if (retained.length > 0) {
         this.hasAnyChanges = true
+        this.hasSurvivingChange = true
         if (this.generateDelta) this.prunedBySubType.set(subType, retained)
       }
     }
@@ -293,9 +296,15 @@ export class StreamingDiff {
       if (changed) this.hasAnyChanges = true
       // Legacy JsonTransformer retains keyless content unconditionally when
       // toMeta is non-empty (matches getPartialContentWithoutKey). Keep that
-      // behavior for byte-equality.
-      if (this.generateDelta && toArr.length > 0) {
-        this.prunedBySubType.set(subType, toArr)
+      // behavior for byte-equality. The retention also drives the parent
+      // container manifest decision via hasSurvivingChange — a non-empty
+      // keyless to-side keeps the parent in package.xml even when content
+      // happens to match the from-side.
+      // Stryker disable next-line ConditionalExpression,EqualityOperator -- defensive: passTwo.toKeyless entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable
+      /* v8 ignore next */
+      if (toArr.length > 0) {
+        this.hasSurvivingChange = true
+        if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
       }
     }
   }
@@ -305,8 +314,11 @@ export class StreamingDiff {
       const fromArr = this.passOne.fromUnknown.get(subType) ?? []
       const changed = fromArr.length === 0 || !deepEqual(fromArr, toArr)
       if (changed) this.hasAnyChanges = true
-      if (this.generateDelta && toArr.length > 0) {
-        this.prunedBySubType.set(subType, toArr)
+      // Stryker disable next-line ConditionalExpression,EqualityOperator -- defensive: passTwo.toUnknown entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable
+      /* v8 ignore next */
+      if (toArr.length > 0) {
+        this.hasSurvivingChange = true
+        if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
       }
     }
   }

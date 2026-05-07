@@ -56,7 +56,7 @@ describe('StreamingDiff', () => {
     inFileAttributes = getInFileAttributes(metadata)
   })
 
-  it('Given identical content, When finalize runs, Then hasAnyChanges is false and writer is undefined', () => {
+  it('Given identical content, When finalize runs, Then hasPackageContent is false and writer is undefined', () => {
     // Arrange
     const sut = new StreamingDiff(inFileAttributes, true)
     const element = {
@@ -72,7 +72,7 @@ describe('StreamingDiff', () => {
     const writer = sut.buildWriter(buildRoot())
 
     // Assert
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(outcome.hasPackageContent).toBe(false)
     expect(outcome.added).toHaveLength(0)
     expect(outcome.modified).toHaveLength(0)
     expect(outcome.deleted).toHaveLength(0)
@@ -95,7 +95,7 @@ describe('StreamingDiff', () => {
     expect(outcome.added).toEqual([
       { type: packageableSubType.xmlName, member: 'New.Member' },
     ])
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(produced).toMatch(
       new RegExp(`<${keyField}>New\\.Member</${keyField}>`)
     )
@@ -119,8 +119,11 @@ describe('StreamingDiff', () => {
     ])
   })
 
-  it('Given a non-packageable keyed element differs, When finalize runs, Then hasAnyChanges is true without manifest entries', async () => {
-    // Arrange - fieldPermissions is keyed but excluded in the registry
+  it('Given a non-packageable keyed element differs, When finalize runs, Then hasPackageContent is true without manifest entries', async () => {
+    // Arrange - fieldPermissions is keyed but excluded in the registry.
+    // The retain path still fires (so per-file pruned XML carries the
+    // change AND the parent container goes in package.xml — non-packable
+    // children are children of a packable file).
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('fieldPermissions', {
       field: 'Account.Name',
@@ -139,11 +142,11 @@ describe('StreamingDiff', () => {
 
     // Assert
     expect(outcome.modified).toHaveLength(0)
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(produced).toContain('<editable>true</editable>')
   })
 
-  it('Given an <array>-keyed subType differs, When finalize runs, Then hasAnyChanges is true and the entire to array is retained', async () => {
+  it('Given an <array>-keyed subType differs, When finalize runs, Then hasPackageContent is true and the entire to array is retained', async () => {
     // Arrange
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('loginHours', { mondayStart: '300', mondayEnd: '500' })
@@ -154,7 +157,7 @@ describe('StreamingDiff', () => {
     const produced = await drainWriter(sut.buildWriter(buildRoot()))
 
     // Assert
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(outcome.added).toHaveLength(0)
     expect(outcome.modified).toHaveLength(0)
     expect(produced).toContain('<mondayStart>400</mondayStart>')
@@ -174,7 +177,7 @@ describe('StreamingDiff', () => {
     const produced = await drainWriter(sut.buildWriter(buildRoot()))
 
     // Assert
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(produced).toContain('<layout>New</layout>')
     expect(produced).not.toContain('<layout>Existing</layout>')
   })
@@ -212,26 +215,33 @@ describe('StreamingDiff', () => {
 
     // Assert
     expect(outcome.deleted).toHaveLength(0)
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(outcome.hasPackageContent).toBe(false)
   })
 
-  it('Given keyless buckets match exactly, When finalize runs, Then hasAnyChanges stays false', () => {
-    // Arrange — identical from and to content in a keyless subType
+  it('Given keyless buckets match exactly, When finalize runs, Then writer is undefined (hasAnyChanges short-circuit) but hasPackageContent is true (retention quirk)', () => {
+    // Arrange — identical from and to content in a keyless subType.
+    // The `fromArr.length === 0 || !deepEqual(...)` branch must take
+    // the false path so the internal `hasAnyChanges` stays false and
+    // the writer short-circuits — this kills mutations on the OR.
+    // Separately, drainKeyless retains keyless content when toArr is
+    // non-empty (legacy JsonTransformer parity), which flips
+    // hasPackageContent regardless of `changed`.
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('description', { text: 'same' })
     sut.onToElement('description', { text: 'same' })
 
     // Act
     const outcome = sut.finalize()
+    const writer = sut.buildWriter(buildRoot())
 
-    // Assert — the `fromArr.length === 0 || !deepEqual(...)` branch must
-    // take the false path when lengths match and deepEqual is true.
-    expect(outcome.hasAnyChanges).toBe(false)
+    // Assert
+    expect(writer).toBeUndefined()
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
-  it('Given generateDelta is true but toArr is empty (keyless from-only), When finalize runs, Then prunedBySubType is NOT set', () => {
+  it('Given generateDelta is true but toArr is empty (keyless from-only), When finalize runs, Then hasPackageContent stays false and writer is undefined', () => {
     // Arrange — from-only keyless subType; toArr.length === 0 gates
-    // prunedBySubType write.
+    // both prunedBySubType write AND hasSurvivingChange (post-fix).
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('description', { text: 'gone' })
 
@@ -240,14 +250,16 @@ describe('StreamingDiff', () => {
     const writer = sut.buildWriter(buildRoot())
 
     // Assert — keyless subType vanished, but no prunedBySubType for it.
-    // hasAnyChanges stays false since pure keyless deletions don't flip it.
-    expect(outcome.hasAnyChanges).toBe(false)
+    // drainKeyless never iterates a from-only subType (it iterates
+    // passTwo), so neither hasAnyChanges nor hasSurvivingChange flips.
+    expect(outcome.hasPackageContent).toBe(false)
     expect(writer).toBeUndefined()
   })
 
-  it('Given generateDelta is false with keyless changes, When finalize runs, Then hasAnyChanges is true but prunedBySubType is not populated', () => {
-    // Arrange — toggle the generateDelta branch off so drainKeyless takes
-    // the false side of `this.generateDelta && toArr.length > 0`.
+  it('Given generateDelta is false with keyless changes, When finalize runs, Then hasPackageContent is true but writer is undefined', () => {
+    // Arrange — toggle generateDelta off. Even without a writer,
+    // drainKeyless flips hasSurvivingChange when toArr.length > 0
+    // (the new branch extracted from the combined gate).
     const sut = new StreamingDiff(inFileAttributes, false)
     sut.onFromElement('description', { text: 'old' })
     sut.onToElement('description', { text: 'new' })
@@ -256,12 +268,12 @@ describe('StreamingDiff', () => {
     const outcome = sut.finalize()
     const writer = sut.buildWriter(buildRoot())
 
-    // Assert
-    expect(outcome.hasAnyChanges).toBe(true)
+    // Assert — hasPackageContent must NOT depend on generateDelta.
+    expect(outcome.hasPackageContent).toBe(true)
     expect(writer).toBeUndefined()
   })
 
-  it('Given object-keyed subType fully matches (retained empty), When finalize runs, Then hasAnyChanges stays false', () => {
+  it('Given object-keyed subType fully matches (retained empty), When finalize runs, Then hasPackageContent stays false', () => {
     // Arrange — all to elements match from fingerprints, so retained is empty.
     const sut = new StreamingDiff(inFileAttributes, true)
     const existing = { layout: 'Account-Layout' }
@@ -272,7 +284,7 @@ describe('StreamingDiff', () => {
     const outcome = sut.finalize()
 
     // Assert — `retained.length > 0` guard must be the `>` branch, not `>=`
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(outcome.hasPackageContent).toBe(false)
   })
 
   it('Given keyed deletion with `excluded` subType, When drainDeletions runs, Then no manifest entry is produced (optional-chain on excluded)', () => {
@@ -332,23 +344,30 @@ describe('StreamingDiff', () => {
     expect(keyedIdx).toBeGreaterThan(descIdx)
   })
 
-  it('Given a subType present in from with no matching to entry (unknown subType), When finalize runs, Then hasAnyChanges stays false', () => {
-    // Kills L98/L102 ConditionalExpression: fromUnknown branch
+  it('Given a subType present in from with no matching to entry (unknown subType), When finalize runs, Then hasPackageContent stays false', () => {
+    // Kills L98/L102 ConditionalExpression: fromUnknown branch.
+    // drainUnknown only iterates passTwo, so a from-only unknown
+    // subType triggers neither hasAnyChanges nor hasSurvivingChange.
     const sut = new StreamingDiff(inFileAttributes, false)
     // 'unknownSubType' is not in the attributes map
     sut.onFromElement('unknownSubType', { value: 'x' })
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(outcome.hasPackageContent).toBe(false)
   })
 
-  it('Given same unknown subType in from and to, When finalize runs, Then hasAnyChanges stays false', async () => {
-    // Kills drainUnknown L287 LogicalOperator: fromArr.length===0 || !deepEqual path
+  it('Given same unknown subType in from and to, When finalize runs, Then writer is undefined (changed=false short-circuit) but hasPackageContent is true (retention quirk)', async () => {
+    // Kills drainUnknown L287 LogicalOperator: fromArr.length===0 || !deepEqual path.
+    // Same parity as the keyless case: unchanged content with non-empty
+    // toArr keeps the parent in package.xml because the file is still
+    // there with deployable content; the writer short-circuits because
+    // no real change happened.
     const sut = new StreamingDiff(inFileAttributes, true)
     const elem = { value: 'same' }
     sut.onFromElement('unknownSubType', elem)
     sut.onToElement('unknownSubType', elem)
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(sut.buildWriter(buildRoot())).toBeUndefined()
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
   it('Given unknown subType only in to, When finalize runs with generateDelta, Then prunedBySubType retains it', async () => {
@@ -357,25 +376,25 @@ describe('StreamingDiff', () => {
     sut.onToElement('unknownSubType', { value: 'new' })
     const outcome = sut.finalize()
     const out = await drainWriter(sut.buildWriter(buildRoot()))
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(out).toContain('<unknownSubType>')
   })
 
-  it('Given unknown subType only in to with generateDelta false, When finalize runs, Then hasAnyChanges is true but no writer', async () => {
+  it('Given unknown subType only in to with generateDelta false, When finalize runs, Then hasPackageContent is true but no writer', async () => {
     // Kills L289 generateDelta false branch in drainUnknown
     const sut = new StreamingDiff(inFileAttributes, false)
     sut.onToElement('unknownSubType', { value: 'new' })
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(sut.buildWriter(buildRoot())).toBeUndefined()
   })
 
-  it('Given keyless subType only in to (no from), When finalize runs, Then hasAnyChanges is true (fromArr.length===0 branch)', () => {
+  it('Given keyless subType only in to (no from), When finalize runs, Then hasPackageContent is true (fromArr.length===0 branch)', () => {
     // Kills L273 LogicalOperator: fromArr.length === 0 arm; also L273 EqualityOperator
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onToElement('description', { text: 'only-to' })
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
   it('Given keyless subType with same content, When toArr.length > 0 and generateDelta true, Then it is retained even without change', async () => {
@@ -400,14 +419,14 @@ describe('StreamingDiff', () => {
     expect(out).toContain('<description>')
   })
 
-  it('Given array subType with same content, When finalize runs, Then hasAnyChanges stays false', () => {
+  it('Given array subType with same content, When finalize runs, Then hasPackageContent stays false', () => {
     // Kills L245 ConditionalExpression true: deepEqual branch
     const sut = new StreamingDiff(inFileAttributes, true)
     const elem = { mondayStart: '300', mondayEnd: '500' }
     sut.onFromElement('loginHours', elem)
     sut.onToElement('loginHours', elem)
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(outcome.hasPackageContent).toBe(false)
   })
 
   it('Given array subType only in to with generateDelta true, When finalize runs, Then it is retained in writer', async () => {
@@ -419,13 +438,15 @@ describe('StreamingDiff', () => {
     expect(out).toContain('<loginHours>')
   })
 
-  it('Given array subType differs with generateDelta false, When finalize runs, Then hasAnyChanges is true but no writer', () => {
-    // Kills L247 ConditionalExpression: generateDelta=false branch in drainArrays
+  it('Given array subType differs with generateDelta false, When finalize runs, Then hasPackageContent is true but no writer', () => {
+    // Kills L247 ConditionalExpression: generateDelta=false branch in drainArrays.
+    // Also locks the regression for the array-bucket path:
+    // hasPackageContent must flip even when no per-file writer is produced.
     const sut = new StreamingDiff(inFileAttributes, false)
     sut.onFromElement('loginHours', { mondayStart: '300' })
     sut.onToElement('loginHours', { mondayStart: '400' })
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(sut.buildWriter(buildRoot())).toBeUndefined()
   })
 
@@ -489,30 +510,34 @@ describe('StreamingDiff', () => {
     const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
     const sut = new StreamingDiff(inFileAttributes, true)
     const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
-    // Add one subType to force hasAnyChanges and create writer
+    // Add one subType to force hasPackageContent and create writer
     sut.onToElement(packageableSubType.tag, { [keyField]: 'Key.A' })
     // Also emit a second subType to to-order but give it no to-elements
     // (will not appear in prunedBySubType since no retain was called)
     sut.onFromElement('description', { text: 'only-from' })
     const outcome = sut.finalize()
     const out = await drainWriter(sut.buildWriter(buildRoot()))
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     // 'description' had no to-elements so must not appear in output
     expect(out).not.toContain('<description>')
     expect(out).toContain(`<${packageableSubType.tag}>`)
   })
 
-  it('Given a packageable keyed deletion, When drainDeletions runs, Then deleted and hasAnyChanges are set (recordDeleted true branch)', () => {
-    // Kills L308 BooleanLiteral false: hasAnyChanges = true in recordDeleted
+  it('Given a packageable keyed deletion, When drainDeletions runs, Then deleted is recorded but hasPackageContent stays false (delete-only)', () => {
+    // Kills L308 BooleanLiteral false: hasAnyChanges = true in recordDeleted.
+    // The internal hasAnyChanges flip is observable via the writer (a
+    // delete-only file under generateDelta=true still produces no writer
+    // because prunedBySubType is empty — the second buildWriter gate).
     const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
     const sut = new StreamingDiff(inFileAttributes, true)
     const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
     sut.onFromElement(packageableSubType.tag, { [keyField]: 'Del.Key' })
     // No to-element → stays in fromKeyed → drainDeletions fires
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(false)
     expect(outcome.deleted).toHaveLength(1)
     expect(outcome.deleted[0].member).toBe('Del.Key')
+    expect(sut.buildWriter(buildRoot())).toBeUndefined()
   })
 
   it('Given drainDeletions subType has size > 0 but remaining.size is exactly 0, When finalize runs, Then no deletion recorded', () => {
@@ -528,29 +553,35 @@ describe('StreamingDiff', () => {
     expect(outcome.deleted).toHaveLength(0)
   })
 
-  it('Given object-keyed subType has new element with generateDelta false, When finalize runs, Then hasAnyChanges is true but writer undefined', () => {
-    // Kills drainObjectFingerprints L265 ConditionalExpression: generateDelta guard
+  it('Given object-keyed subType has new element with generateDelta false, When finalize runs, Then hasPackageContent is true but writer undefined', () => {
+    // Kills drainObjectFingerprints L265 ConditionalExpression: generateDelta guard.
+    // Also locks the regression for the object-bucket path.
     const sut = new StreamingDiff(inFileAttributes, false)
     sut.onToElement('layoutAssignments', { layout: 'New' })
     const outcome = sut.finalize()
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(sut.buildWriter(buildRoot())).toBeUndefined()
   })
 
   // --- drainKeyless (valueTranslation is the only registry keyless subType) ---
 
-  it('Given real keyless subType with identical from and to content, When finalize runs, Then hasAnyChanges stays false (drainKeyless changed=false path)', () => {
+  it('Given real keyless subType with identical from and to content, When finalize runs, Then writer is undefined (drainKeyless changed=false short-circuits writer)', () => {
     // Kills L273 LogicalOperator: fromArr.length === 0 && !deepEqual (mutant would use &&
     // instead of ||, wrongly marking unchanged equal arrays as changed).
-    // fromArr.length > 0 AND deepEqual(fromArr,toArr) === true → changed must be false.
+    // fromArr.length > 0 AND deepEqual(fromArr,toArr) === true → changed must be false,
+    // so the internal hasAnyChanges stays false and the writer is undefined.
+    // hasPackageContent is true because of the keyless retention quirk
+    // (toArr.length > 0 — see drainKeyless body).
     const sut = new StreamingDiff(inFileAttributes, true)
     const elem = { fullName: 'salesforce' }
     sut.onFromElement('valueTranslation', elem)
     sut.onToElement('valueTranslation', elem)
 
     const outcome = sut.finalize()
+    const writer = sut.buildWriter(buildRoot())
 
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(writer).toBeUndefined()
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
   it('Given real keyless subType only in to with generateDelta true, When finalize runs, Then it is retained in writer (drainKeyless retain path)', async () => {
@@ -562,11 +593,11 @@ describe('StreamingDiff', () => {
     const outcome = sut.finalize()
     const out = await drainWriter(sut.buildWriter(buildRoot()))
 
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(out).toContain('<valueTranslation>')
   })
 
-  it('Given real keyless subType with changed content, When finalize runs, Then hasAnyChanges is true (drainKeyless deepEqual false path)', async () => {
+  it('Given real keyless subType with changed content, When finalize runs, Then hasPackageContent is true (drainKeyless deepEqual false path)', async () => {
     // Kills L273 ConditionalExpression false: !deepEqual(fromArr,toArr) arm; fromArr.length>0
     // so the || short-circuit does not fire — deepEqual result drives changed.
     const sut = new StreamingDiff(inFileAttributes, true)
@@ -575,17 +606,17 @@ describe('StreamingDiff', () => {
 
     const outcome = sut.finalize()
 
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
-  it('Given real keyless subType only in to with generateDelta false, When finalize runs, Then hasAnyChanges is true but writer is undefined', () => {
+  it('Given real keyless subType only in to with generateDelta false, When finalize runs, Then hasPackageContent is true but writer is undefined', () => {
     // Kills L278 LogicalOperator: generateDelta || toArr.length>0 would retain even when false
     const sut = new StreamingDiff(inFileAttributes, false)
     sut.onToElement('valueTranslation', { fullName: 'new-value' })
 
     const outcome = sut.finalize()
 
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(sut.buildWriter(buildRoot())).toBeUndefined()
   })
 
@@ -609,20 +640,24 @@ describe('StreamingDiff', () => {
 
   // --- drainUnknown (uses 'description' which is NOT in inFileAttributes) ---
 
-  it('Given unknown subType with identical from and to content, When finalize runs, Then hasAnyChanges stays false (drainUnknown changed=false path)', () => {
+  it('Given unknown subType with identical from and to content, When finalize runs, Then writer is undefined (drainUnknown changed=false path)', () => {
     // Kills L287 LogicalOperator: fromArr.length===0 && !deepEqual (mutant) vs || (correct)
-    // fromArr.length>0 and deepEqual → changed=false
+    // fromArr.length>0 and deepEqual → changed=false → internal hasAnyChanges
+    // stays false → buildWriter short-circuits. hasPackageContent is true
+    // because of the unknown-bucket retention quirk (toArr.length>0).
     const sut = new StreamingDiff(inFileAttributes, true)
     const elem = { value: 'same' }
     sut.onFromElement('unknownSubType', elem)
     sut.onToElement('unknownSubType', elem)
 
     const outcome = sut.finalize()
+    const writer = sut.buildWriter(buildRoot())
 
-    expect(outcome.hasAnyChanges).toBe(false)
+    expect(writer).toBeUndefined()
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
-  it('Given unknown subType with changed content (from non-empty), When finalize runs, Then hasAnyChanges is true (drainUnknown deepEqual false)', () => {
+  it('Given unknown subType with changed content (from non-empty), When finalize runs, Then hasPackageContent is true (drainUnknown deepEqual false)', () => {
     // Kills L287 ConditionalExpression false: !deepEqual arm fires when fromArr.length>0
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('unknownSubType', { value: 'old' })
@@ -630,7 +665,7 @@ describe('StreamingDiff', () => {
 
     const outcome = sut.finalize()
 
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
   })
 
   it('Given buildWriter called before finalize with hasAnyChanges still false, When called with valid rootCapture, Then writer is undefined', () => {
@@ -661,8 +696,9 @@ describe('StreamingDiff', () => {
 
   it('Given a delete-only keyed subType (all from elements removed in to), When buildWriter runs, Then it returns undefined via the prunedBySubType.size === 0 short-circuit (streamingDiff L182)', () => {
     // Arrange — from has a packageable keyed element, to is empty for it.
-    // hasAnyChanges is true (drainDeletions records the delete), but the
-    // pruned XML would be just the empty root → buildWriter must skip.
+    // The internal hasAnyChanges flips (drainDeletions records the delete)
+    // and a deletion entry is emitted, but hasPackageContent stays false
+    // and the writer is skipped (no surviving children to ship).
     const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
     const sut = new StreamingDiff(inFileAttributes, true)
     const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
@@ -673,8 +709,8 @@ describe('StreamingDiff', () => {
     const writer = sut.buildWriter(buildRoot())
 
     // Assert — change recorded, but writer skipped (no surviving children)
-    expect(outcome.hasAnyChanges).toBe(true)
-    expect(outcome.isEmpty).toBe(true)
+    expect(outcome.deleted.length).toBeGreaterThan(0)
+    expect(outcome.hasPackageContent).toBe(false)
     expect(writer).toBeUndefined()
   })
 
@@ -693,17 +729,42 @@ describe('StreamingDiff', () => {
     ])
   })
 
-  it('Given an added keyed element retained in the to-side, When finalize runs, Then isEmpty is false (streamingDiff isEmpty kills `=== 0` → `true` mutant)', () => {
-    // Counterpart to the delete-only isEmpty=true test above. The mutant
-    // `prunedBySubType.size === 0` → `true` would always mark isEmpty as
-    // true, even when surviving children exist; this assertion catches
-    // that by requiring isEmpty=false on a single retained add.
+  it('Given an added keyed element retained in the to-side, When finalize runs, Then hasPackageContent is true (kills the always-false mutant)', () => {
+    // Counterpart to the delete-only hasPackageContent=false test above.
+    // A mutant that always returns false from hasSurvivingChange would
+    // wrongly suppress the parent container even when surviving children
+    // exist; this assertion catches that by requiring hasPackageContent
+    // to be true on a single retained add.
     const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
     const sut = new StreamingDiff(inFileAttributes, true)
     const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
     sut.onToElement(packageableSubType.tag, { [keyField]: 'Survivor.Key' })
     const outcome = sut.finalize()
-    expect(outcome.isEmpty).toBe(false)
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
+  })
+
+  // --- regression coverage for generateDelta=false ---
+
+  it('Given generateDelta=false with a packable keyed add, When finalize runs, Then hasPackageContent is true', () => {
+    // Engine-level lock: a packable child added to the to-side flips
+    // hasPackageContent regardless of generateDelta.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, false)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'Survivor.Key' })
+    const outcome = sut.finalize()
+    expect(outcome.hasPackageContent).toBe(true)
+    expect(sut.buildWriter(buildRoot())).toBeUndefined()
+  })
+
+  it('Given generateDelta=false with only a packable delete, When finalize runs, Then hasPackageContent is false', () => {
+    // Counterpart: delete-only must NOT force the container in package.xml.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, false)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onFromElement(packageableSubType.tag, { [keyField]: 'Gone.Key' })
+    const outcome = sut.finalize()
+    expect(outcome.hasPackageContent).toBe(false)
+    expect(outcome.deleted.length).toBeGreaterThan(0)
   })
 })

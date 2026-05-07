@@ -31,7 +31,7 @@ export default class CustomLabelHandler extends InFileHandler {
     return true
   }
 
-  protected override _shouldTreatContainerType() {
+  protected override _shouldEmitContainer(_hasPackageContent: boolean) {
     return false
   }
 
