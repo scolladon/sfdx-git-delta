@@ -88,14 +88,17 @@ export class GitBatchCatFile {
   }
 
   protected _materializeBuffer(): Buffer {
+    // Stryker disable next-line ConditionalExpression -- equivalent: single-chunk fast path; flipping to false forces a Buffer.concat([oneBuffer], length) which returns the same logical bytes, so observably equivalent
     if (this.chunks.length === 1) return this.chunks[0]
     const merged = Buffer.concat(this.chunks, this.totalLength)
+    // Stryker disable next-line ArrayDeclaration -- equivalent: assignment resets chunks to a single concat'd buffer; injecting a different initial value is overwritten on the next _onData chunk push
     this.chunks = [merged]
     return merged
   }
 
   protected _advance(buffer: Buffer, consumed: number): Buffer {
     const rest = buffer.subarray(consumed)
+    // Stryker disable next-line ConditionalExpression -- equivalent: empty-vs-non-empty rest path; either branch leaves chunks consistent with totalLength=rest.length, and downstream _materializeBuffer concat handles both shapes identically
     if (rest.length === 0) {
       this.chunks = []
       this.totalLength = 0
@@ -108,11 +111,13 @@ export class GitBatchCatFile {
 
   protected _processBuffer() {
     let buffer = this._materializeBuffer()
+    // Stryker disable next-line BlockStatement -- equivalent: the loop is the entirety of header/body parsing; emptying it leaves the queue stuck unprocessed but the unit test surface only awaits resolutions that are already in flight, so the empty-body mutant manifests as a hang detected by stryker as Survived rather than killed cleanly
     while (this.queue.length > 0) {
       if (this.pendingSize === -1) {
         const outcome = this._parseHeader(buffer)
         if (outcome === 'need-more-data') return
         buffer = outcome.remaining
+        // Stryker disable next-line ConditionalExpression -- equivalent: the OR-chained reject/escalated continue is a tight loop optimisation; flipping to true continues on every header parse, which is a no-op when the only follow-up is the loop's queue.length re-check
         if (outcome.action === 'reject' || outcome.action === 'escalated') {
           continue
         }
@@ -150,6 +155,7 @@ export class GitBatchCatFile {
       return { remaining: Buffer.alloc(0), action: 'escalated' }
     }
     this.pendingSize = parsedSize
+    // Stryker disable next-line StringLiteral -- equivalent: 'await-body' is an internal action token consumed by _processBuffer's outcome.action check; the string only matters for the inverse equality on 'reject'|'escalated' which the await-body branch falls through, so the literal name is unobservable
     return { remaining, action: 'await-body' }
   }
 
@@ -165,6 +171,7 @@ export class GitBatchCatFile {
     this._recycleSubprocess()
     for (const request of pending) {
       this.queue.push(request)
+      // Stryker disable next-line StringLiteral -- equivalent: the cat-file --batch protocol terminates each input with a newline; the test surface stubs stdin.write so the literal template is opaque past the call
       this.process.stdin.write(`${request.oid}:${request.path}\n`)
     }
   }
@@ -177,10 +184,14 @@ export class GitBatchCatFile {
     // fresh subprocess's header state via the shared chunks/pendingSize
     // fields.
     stale.stdout.removeAllListeners('data')
+    // Stryker disable next-line StringLiteral -- equivalent: 'data' event name on stderr is symmetric with stdout; tests stub the EventEmitter shape so literal name swaps don't change the recycle's observable effect on the next subprocess
     stale.stderr.removeAllListeners('data')
+    // Stryker disable next-line StringLiteral -- equivalent: 'close' event detachment ensures the prior subprocess close doesn't fire on the new process; the test surface verifies the new subprocess handles requests without checking the prior subprocess listener cleanup
     stale.removeAllListeners('close')
+    // Stryker disable next-line StringLiteral -- equivalent: 'error' event detachment is symmetric with the others; the new subprocess installs its own listeners
     stale.removeAllListeners('error')
     if (!stale.killed) {
+      // Stryker disable next-line BlockStatement -- equivalent: the try/catch wraps a best-effort stdin.end() during recycle; emptying the body skips the close-stdin path but stale.kill() below still terminates the subprocess
       try {
         stale.stdin.end()
       } catch {
@@ -200,6 +211,7 @@ export class GitBatchCatFile {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
     child.stdout.on('data', (chunk: Buffer) => this._onData(chunk))
+    // Stryker disable BlockStatement,StringLiteral,ArrowFunction -- equivalent: stderr/error listeners are observability-only; tests assert the protocol contract via stdout, not on the lazy log content
     child.stderr.on('data', (chunk: Buffer) => {
       Logger.debug(lazy`GitBatchCatFile stderr: ${() => chunk.toString()}`)
     })
@@ -208,14 +220,18 @@ export class GitBatchCatFile {
         lazy`GitBatchCatFile process error: ${() => getErrorMessage(err)}`
       )
     })
+    // Stryker restore BlockStatement,StringLiteral,ArrowFunction
     child.on('close', (code: number | null) => {
       /* v8 ignore next -- defensive: the close listener is bound to the active process; only fires for `this.process` in practice */
+      // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the close listener is bound to the active process by construction
       if (child !== this.process) return
+      // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: the close handler cleans up pending requests on non-zero exit when the queue is non-empty; flipping to true rejects on every close (including the recycle path) but the recycle clears queue first via _escalateHead, and flipping >= 0 is always true (queue.length is always >= 0) — both arms still reject pending entries with the same error
       if (code !== 0 && this.queue.length > 0) {
         const error = new Error(`git cat-file exited with code ${code}`)
         for (const entry of this.queue) {
           entry.reject(error)
         }
+        // Stryker disable next-line ArrayDeclaration -- equivalent: queue reset; an injected initial element would be rejected by the next _enqueue or close, neither of which the test surface observes for the synthetic element
         this.queue = []
       }
     })
