@@ -597,16 +597,22 @@ describe('StreamingDiff', () => {
     expect(out).toContain('<valueTranslation>')
   })
 
-  it('Given real keyless subType with changed content, When finalize runs, Then hasPackageContent is true (drainKeyless deepEqual false path)', async () => {
+  it('Given real keyless subType with changed content, When finalize runs, Then hasPackageContent is true and the writer produces the new content (drainKeyless deepEqual false path)', async () => {
     // Kills L273 ConditionalExpression false: !deepEqual(fromArr,toArr) arm; fromArr.length>0
     // so the || short-circuit does not fire — deepEqual result drives changed.
+    // The produced-output assertion kills the changed-condition mutants too:
+    // when changed mutates to false, hasAnyChanges stays false and the
+    // writer short-circuits, leaving produced empty.
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('valueTranslation', { fullName: 'old' })
     sut.onToElement('valueTranslation', { fullName: 'new' })
 
     const outcome = sut.finalize()
+    const out = await drainWriter(sut.buildWriter(buildRoot()))
 
     expect(outcome.hasPackageContent).toBe(true)
+    expect(out).toContain('<valueTranslation>')
+    expect(out).toContain('<fullName>new</fullName>')
   })
 
   it('Given real keyless subType only in to with generateDelta false, When finalize runs, Then hasPackageContent is true but writer is undefined', () => {
@@ -657,15 +663,21 @@ describe('StreamingDiff', () => {
     expect(outcome.hasPackageContent).toBe(true)
   })
 
-  it('Given unknown subType with changed content (from non-empty), When finalize runs, Then hasPackageContent is true (drainUnknown deepEqual false)', () => {
-    // Kills L287 ConditionalExpression false: !deepEqual arm fires when fromArr.length>0
+  it('Given unknown subType with changed content (from non-empty), When the writer renders, Then the new content appears in output (drainUnknown deepEqual false)', async () => {
+    // Kills L287 ConditionalExpression false: !deepEqual arm fires when fromArr.length>0.
+    // The produced-output assertion kills the changed-condition mutants too:
+    // when changed mutates to false, hasAnyChanges stays false and the
+    // writer short-circuits, leaving produced empty.
     const sut = new StreamingDiff(inFileAttributes, true)
     sut.onFromElement('unknownSubType', { value: 'old' })
     sut.onToElement('unknownSubType', { value: 'new' })
 
     const outcome = sut.finalize()
+    const out = await drainWriter(sut.buildWriter(buildRoot()))
 
     expect(outcome.hasPackageContent).toBe(true)
+    expect(out).toContain('<unknownSubType>')
+    expect(out).toContain('<value>new</value>')
   })
 
   it('Given buildWriter called before finalize with hasAnyChanges still false, When called with valid rootCapture, Then writer is undefined', () => {
@@ -766,5 +778,86 @@ describe('StreamingDiff', () => {
     const outcome = sut.finalize()
     expect(outcome.hasPackageContent).toBe(false)
     expect(outcome.deleted.length).toBeGreaterThan(0)
+  })
+
+  // --- mutation kills ---
+
+  it('Given the same subType pushed twice via onToElement, When the writer renders, Then each element appears exactly once (kills trackToOrder dedup mutant)', async () => {
+    // Without the seenSubTypes guard, toSubTypeOrder gets duplicates and
+    // the writer iterates prunedBySubType[tag] twice, emitting each
+    // child element a second time.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'A.Key' })
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'B.Key' })
+    sut.finalize()
+    const out = await drainWriter(sut.buildWriter(buildRoot()))
+    const aKeyMatches = out.match(/A\.Key/g)?.length ?? 0
+    const bKeyMatches = out.match(/B\.Key/g)?.length ?? 0
+    expect(aKeyMatches).toBe(1)
+    expect(bKeyMatches).toBe(1)
+  })
+
+  it('Given a non-packageable keyed addition, When finalize runs, Then added stays empty (kills recordAdded isPackageable mutant)', () => {
+    // fieldPermissions is keyed-but-excluded in the registry. An add must
+    // flip hasSurvivingChange (via retainSubTypeElement) but must NOT
+    // appear in the manifests.added list.
+    const sut = new StreamingDiff(inFileAttributes, true)
+    sut.onToElement('fieldPermissions', {
+      field: 'Account.NewlyAdded',
+      editable: 'true',
+      readable: 'true',
+    })
+    const outcome = sut.finalize()
+    expect(outcome.added).toHaveLength(0)
+    expect(outcome.hasPackageContent).toBe(true)
+  })
+
+  it('Given two added keyed elements of the same subType under generateDelta=true, When buildWriter renders, Then both keys appear and no garbage is injected (kills retainSubTypeElement existing-array mutants)', async () => {
+    // Without the existing-array branch, the second retainSubTypeElement
+    // call would reset the array (or inject garbage from an
+    // ArrayDeclaration mutation), losing the first element or polluting
+    // the per-file pruned XML output.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'First.Key' })
+    sut.onToElement(packageableSubType.tag, { [keyField]: 'Second.Key' })
+    sut.finalize()
+    const out = await drainWriter(sut.buildWriter(buildRoot()))
+    expect(out).toContain(`<${keyField}>First.Key</${keyField}>`)
+    expect(out).toContain(`<${keyField}>Second.Key</${keyField}>`)
+    expect(out).not.toContain('Stryker')
+  })
+
+  it('Given two object-keyed elements pushed to the same subType, When the writer renders, Then both fingerprints appear (kills appendObjectFingerprint list-init mutant)', async () => {
+    // appendObjectFingerprint's `if (list === undefined)` guard must
+    // preserve the existing list across pushes; resetting it would drop
+    // the first fingerprint and the writer output would be missing one.
+    const sut = new StreamingDiff(inFileAttributes, true)
+    sut.onToElement('layoutAssignments', { layout: 'Layout.A' })
+    sut.onToElement('layoutAssignments', { layout: 'Layout.B' })
+    sut.finalize()
+    const out = await drainWriter(sut.buildWriter(buildRoot()))
+    expect(out).toContain('<layout>Layout.A</layout>')
+    expect(out).toContain('<layout>Layout.B</layout>')
+  })
+
+  it('Given a new keyed subType (no from-side at all), When onToElement runs, Then it must record an addition without throwing (kills classifyKeyedElement add-branch mutant)', () => {
+    // Pure addition path: passOne.fromKeyed has no entry for the subType,
+    // so fromMap === undefined. The `if (fromMap === undefined || ...)`
+    // guard must take the true branch; mutating it to false would fall
+    // through to `fromMap.delete(key)` and throw on undefined.
+    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
+    expect(() => {
+      sut.onToElement(packageableSubType.tag, { [keyField]: 'BrandNew.Key' })
+    }).not.toThrow()
+    const outcome = sut.finalize()
+    expect(outcome.added).toEqual([
+      { type: packageableSubType.xmlName, member: 'BrandNew.Key' },
+    ])
   })
 })
