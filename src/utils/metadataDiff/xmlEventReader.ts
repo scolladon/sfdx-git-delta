@@ -167,8 +167,8 @@ const streamRootChildren = (
   // Stryker disable next-line BlockStatement,EqualityOperator -- equivalent: streamRootChildren main loop; emptying the body returns the bodyStart pos which the strict-tail check then rejects (or accepts as malformed) — the test surface for the swallowing path tolerates partial parses, so the empty-body mutant manifests as a no-op for tests that don't assert specific element emission counts; <= vs < changes the boundary by one position with no observable effect since we always exit via the </Root> branch
   while (pos < xml.length) {
     const lt = xml.indexOf('<', pos)
-    /* v8 ignore next 4 -- defensive: well-formed XML always has the closing root tag, so '<' is reachable until the </Root> marker exits the loop below */
     // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement -- equivalent: see v8 ignore — the lt < 0 branch is unreachable for well-formed metadata XML
+    /* v8 ignore next 4 -- defensive: well-formed XML always has the closing root tag, so '<' is reachable until the </Root> marker exits the loop below */
     if (lt < 0) {
       pos = xml.length
       break

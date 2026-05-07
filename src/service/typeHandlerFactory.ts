@@ -89,8 +89,8 @@ export default class TypeHandlerFactory {
     // Stryker disable next-line StringLiteral -- equivalent: replace strips the leading "<changeType>\t" prefix; tests assert on the (changeType, element) pair returned, not on the literal replacement string
     const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
     const type = this.metadata.get(path)
-    /* v8 ignore next 3 -- upstream RepoGitDiff pre-filters with metadata.has() */
-    // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: see v8 ignore — RepoGitDiff filters non-metadata paths before this call, so `type` is always defined and the throw branch is unreachable
+    // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: upstream RepoGitDiff pre-filters with metadata.has(), so `type` is always defined and the throw branch is unreachable
+    /* v8 ignore next 3 -- defensive: see stryker disable comment above */
     if (!type) {
       throw new Error(`Unknown metadata type for path: ${path}`)
     }

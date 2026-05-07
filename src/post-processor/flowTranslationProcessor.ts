@@ -115,8 +115,8 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     // _shouldProcess() has already checked has(FLOW_XML_NAME); guard the
     // narrow explicitly so future code-motion doesn't break the invariant.
     const packaged = this.work.changes.forPackageManifest().get(FLOW_XML_NAME)
-    /* v8 ignore next -- defensive: _shouldProcess() already gates on FLOW_XML_NAME presence, so packaged is always defined here */
     // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the gate is unreachable when _shouldProcess passes, which is the precondition for being here
+    /* v8 ignore next -- defensive: _shouldProcess() already gates on FLOW_XML_NAME presence, so packaged is always defined here */
     if (packaged === undefined) return
     this.packagedFlows = packaged
 
@@ -280,12 +280,12 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       this.config
     )
     await parseFromSideSwallowing(source, (subType, element) => {
-      /* v8 ignore next -- defensive: translation files only contain flowDefinitions children; non-flowDefinitions paths are filtered upstream */
       // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the gate is unreachable for translation files which only emit flowDefinitions children
+      /* v8 ignore next -- defensive: translation files only contain flowDefinitions children; non-flowDefinitions paths are filtered upstream */
       if (subType !== FLOW_DEFINITIONS_KEY) return
       const flowDefinition = element as FlowDefinition
-      /* v8 ignore next -- defensive: every flowDefinition emitted by Salesforce has a fullName */
       // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — fullName is always present
+      /* v8 ignore next -- defensive: every flowDefinition emitted by Salesforce has a fullName */
       if (!flowDefinition.fullName) return
       if (!this.packagedFlows.has(flowDefinition.fullName)) return
       this._addFlowPerTranslation({ translationPath, flowDefinition })

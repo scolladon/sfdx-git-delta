@@ -40,8 +40,8 @@ export default class RepoGitDiff {
       for (const expanded of this._expandRename(rawLine)) {
         // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
         if (!expanded) continue
-        /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
         // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — _expandRename emits paths that are routed through the metadata index by the producing test fixtures, so the false-flip (always continue) is unreachable when the test corpus is in use
+        /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
         if (!this.metadata.has(expanded)) continue
         if (!ignoreHelper.keep(expanded)) continue
 

@@ -105,8 +105,8 @@ export default class StandardHandler {
   }
 
   protected _emptyResultFor(sink?: ChangeSet): HandlerResult {
-    /* v8 ignore next -- defensive: production callers always pass a sink; the no-sink fallback exists for legacy / direct-handler tests */
     // Stryker disable next-line ObjectLiteral,ArrayDeclaration -- equivalent: see v8 ignore — production callers always pass a sink, so the truthy branch is the only reachable one and the {changes,copies,warnings} shape is asserted by the consumer via specific keys
+    /* v8 ignore next -- defensive: production callers always pass a sink; the no-sink fallback exists for legacy / direct-handler tests */
     return sink ? { changes: sink, copies: [], warnings: [] } : emptyResult()
   }
 

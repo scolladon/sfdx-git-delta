@@ -214,8 +214,8 @@ export default class GitAdapter implements GitBlobReader {
     this.streamingChildren.push(child)
     child.once('close', () => {
       const idx = this.streamingChildren.indexOf(child)
-      /* v8 ignore next -- defensive: the close listener is once-only and bound to the tracked child; idx is always >= 0 here */
       // Stryker disable next-line ConditionalExpression,UnaryOperator -- equivalent: see v8 ignore — idx is always !== -1 because the just-pushed child is still in the array; the guard is a defensive safety net
+      /* v8 ignore next -- defensive: the close listener is once-only and bound to the tracked child; idx is always >= 0 here */
       if (idx !== -1) this.streamingChildren.splice(idx, 1)
     })
   }
@@ -363,8 +363,8 @@ export default class GitAdapter implements GitBlobReader {
 
     const onChunk = (chunk: Buffer) => {
       if (decided) {
-        /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
         // Stryker disable next-line BooleanLiteral -- equivalent: see v8 ignore — backpressure pause is rarely triggered in unit tests, and the drain listener resumes either way
+        /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
         if (!out.write(chunk)) child.stdout.pause()
         return
       }
@@ -379,8 +379,8 @@ export default class GitAdapter implements GitBlobReader {
         this._handoffToLfs(child, out, head)
         return
       }
-      /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
       // Stryker disable next-line BooleanLiteral -- equivalent: see v8 ignore — pause is rarely triggered in tests
+      /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
       if (!out.write(head)) child.stdout.pause()
     }
 
@@ -392,8 +392,8 @@ export default class GitAdapter implements GitBlobReader {
       if (!decided && peekedLen > 0) {
         out.write(forwardPeeked())
       }
-      /* v8 ignore next -- defensive: forwardPeeked above zeroes peekedLen, so the second arm always evaluates true after a flush */
       // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — second arm always true after flush
+      /* v8 ignore next -- defensive: forwardPeeked above zeroes peekedLen, so the second arm always evaluates true after a flush */
       if (decided || peekedLen === 0) out.end()
     })
     // Stryker disable BlockStatement,StringLiteral,ArrowFunction -- equivalent: stderr listener is observability-only; tests assert that the consumer sees the streamed content, not on the lazy log line
@@ -454,8 +454,8 @@ export default class GitAdapter implements GitBlobReader {
         out.destroy(err instanceof Error ? err : new Error(String(err)))
       }
     })
-    /* v8 ignore next -- defensive: _handoffToLfs is reached after the first peek; the child is alive at this point */
     // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — child is always alive here
+    /* v8 ignore next -- defensive: _handoffToLfs is reached after the first peek; the child is alive at this point */
     if (!child.killed) child.kill()
   }
 
@@ -628,8 +628,8 @@ export default class GitAdapter implements GitBlobReader {
     ]
     const lines: string[] = []
     for await (const line of this._spawnLines(args)) {
-      /* v8 ignore next -- defensive: _spawnLines splits on EOL; trailing/empty lines from git numstat are filtered here */
       // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — _spawnLines is the line splitter; empty lines are unreachable in practice
+      /* v8 ignore next -- defensive: _spawnLines splits on EOL; trailing/empty lines from git numstat are filtered here */
       if (!line) continue
       lines.push(
         treatPathSep(

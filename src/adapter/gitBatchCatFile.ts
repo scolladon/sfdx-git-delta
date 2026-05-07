@@ -222,8 +222,8 @@ export class GitBatchCatFile {
     })
     // Stryker restore BlockStatement,StringLiteral,ArrowFunction
     child.on('close', (code: number | null) => {
-      /* v8 ignore next -- defensive: the close listener is bound to the active process; only fires for `this.process` in practice */
       // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the close listener is bound to the active process by construction
+      /* v8 ignore next -- defensive: the close listener is bound to the active process; only fires for `this.process` in practice */
       if (child !== this.process) return
       // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: the close handler cleans up pending requests on non-zero exit when the queue is non-empty; flipping to true rejects on every close (including the recycle path) but the recycle clears queue first via _escalateHead, and flipping >= 0 is always true (queue.length is always >= 0) — both arms still reject pending entries with the same error
       if (code !== 0 && this.queue.length > 0) {

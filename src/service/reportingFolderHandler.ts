@@ -43,8 +43,8 @@ export default class ReportingFolderHandler extends InFolderHandler {
   }
 
   public override getElementDescriptor(): { type: string; member: string } {
-    /* v8 ignore next 5 -- TypeHandlerFactory routes by extension via SharedFolderMetadata, so a handler instantiated as ReportingFolderHandler always has a known extension; resolvedType being undefined is unreachable in practice */
-    // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: see v8 ignore — TypeHandlerFactory only routes here for extensions present in SharedFolderMetadata, so the defensive throw is unreachable
+    // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: TypeHandlerFactory routes by extension via SharedFolderMetadata, so a handler instantiated as ReportingFolderHandler always has a known extension; resolvedType being undefined is unreachable in practice
+    /* v8 ignore next 5 -- defensive: see stryker disable comment above */
     if (!this.resolvedType) {
       throw new Error(
         `ReportingFolderHandler: resolvedType is missing for ${this.element.fullPath}`
