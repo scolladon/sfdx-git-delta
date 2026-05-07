@@ -33,6 +33,7 @@ export default class CustomObjectHandler extends StandardHandler {
       FIELD_DIRECTORY_NAME
     )
     const exists = await pathExists(fieldsFolder, this.config)
+    // Stryker disable next-line ConditionalExpression -- equivalent: existence guard; flipping to false runs grepContent on a non-existent path which returns [] (gitGrep catch swallows and returns empty), so the for-loop iterates 0 times — observably the same as the early return
     if (!exists) return
 
     const masterDetailsFields = await grepContent(

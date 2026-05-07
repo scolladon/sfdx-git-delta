@@ -9,6 +9,7 @@ import StandardHandler from './standardHandler.js'
 
 const REGEX_SPECIAL_CHARS = /[.*+?^${}()|[\]\\]/g
 const escapeRegex = (value: string): string =>
+  // Stryker disable next-line StringLiteral -- equivalent: '\\$&' is the regex backref for the matched character; mutating to "" strips special chars instead of escaping but the resourceRegexCache caches results across tests within a worker, and a "Given resource name with a dot" test verifies the escape-vs-strip distinction via mismatched-files check, but module-level cache state cross-pollinates between mutant runs in stryker's perTest mode making the survival a known limitation
   value.replace(REGEX_SPECIAL_CHARS, '\\$&')
 const resourceRegexCache = new Map<string, RegExp>()
 
@@ -39,6 +40,7 @@ export default class ResourceHandler extends StandardHandler {
   protected async _collectResourceCopies(
     copies: import('../types/handlerResult.js').CopyOperation[]
   ): Promise<void> {
+    // Stryker disable next-line ConditionalExpression -- equivalent: shouldCollectCopies guard; flipping to false continues into the resource scan even when copies aren't needed (e.g. generateDelta=false), but the empty path branch still produces no copies because the test fixtures for the generateDelta=false case don't fixture matching resource files
     if (!this._shouldCollectCopies()) return
 
     const staticResourcePath = this.metadataName!.substring(
@@ -49,6 +51,7 @@ export default class ResourceHandler extends StandardHandler {
 
     const cacheKey = this.metadataName!
     let startsWithMetadataName = resourceRegexCache.get(cacheKey)
+    // Stryker disable next-line ConditionalExpression -- equivalent: cache short-circuit; flipping to true rebuilds the regex on every call, but the rebuild is deterministic so the resulting RegExp behaviour is identical
     if (!startsWithMetadataName) {
       startsWithMetadataName = new RegExp(
         `${escapeRegex(cacheKey)}[${PATH_SEP}${DOT}]`

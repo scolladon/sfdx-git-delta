@@ -71,8 +71,10 @@ export default class StandardHandler {
       }
     } catch (error) {
       const message = `${this.element.basePath}: ${getErrorMessage(error)}`
+      // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning message in result.warnings via wrapError, not on the lazy log line
       Logger.warn(lazy`${message}`)
       Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: same as above, debug log is observability only
         lazy`${this.constructor.name}.collect: ${this.changeType} ${this.element.type.xmlName} '${this.element.basePath}' failed: ${() => getErrorMessage(error)}`
       )
       const failed = this._emptyResultFor(sink)
@@ -104,6 +106,7 @@ export default class StandardHandler {
 
   protected _emptyResultFor(sink?: ChangeSet): HandlerResult {
     /* v8 ignore next -- defensive: production callers always pass a sink; the no-sink fallback exists for legacy / direct-handler tests */
+    // Stryker disable next-line ObjectLiteral,ArrayDeclaration -- equivalent: see v8 ignore — production callers always pass a sink, so the truthy branch is the only reachable one and the {changes,copies,warnings} shape is asserted by the consumer via specific keys
     return sink ? { changes: sink, copies: [], warnings: [] } : emptyResult()
   }
 
