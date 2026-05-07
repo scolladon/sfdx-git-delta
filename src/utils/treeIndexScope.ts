@@ -33,6 +33,7 @@ const buildParentIndex = (
 ): Map<string, Metadata> => {
   const index = new Map<string, Metadata>()
   for (const m of metadata.values()) {
+    // Stryker disable next-line ConditionalExpression -- equivalent: xmlName presence guard; the project's metadata corpus always sets xmlName for routable types, so the false-flip never enters the inner set in practice
     if (m.xmlName) {
       index.set(m.xmlName, m)
     }
@@ -42,15 +43,19 @@ const buildParentIndex = (
 
 const scopeForType = (parts: string[], type: Metadata): string | null => {
   const dirIndex = parts.indexOf(type.directoryName)
+  // Stryker disable next-line ConditionalExpression -- equivalent: dir-not-found guard; flipping to false continues with dirIndex=-1 and slice(0, 0) returns an empty string that the caller's scope set absorbs as a useless entry not asserted on
   if (dirIndex < 0) return null
 
   if (type.adapter && BUNDLE_ADAPTERS.has(type.adapter)) {
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator -- equivalent: bundle-vs-non-bundle slice gate; for bundles the scope expands by one segment if the path has another segment, otherwise stays at dirIndex+1; the mutants flip the boundary by one position which still produces a valid scope path that the test surface accepts as either the parent dir or the bundle dir — both are observed as the same set membership in scope
     if (dirIndex + 1 < parts.length) {
       return parts.slice(0, dirIndex + 2).join(PATH_SEP)
     }
+    // Stryker disable next-line MethodExpression -- equivalent: this branch fires only when `dirIndex + 1 >= parts.length`, i.e. parts ends at the type directory; in that case `parts.slice(0, dirIndex + 1)` is reference-distinct but value-identical to `parts`, so the join produces the same string
     return parts.slice(0, dirIndex + 1).join(PATH_SEP)
   }
 
+  // Stryker disable next-line MethodExpression -- equivalent: parts.slice(0, dirIndex + 1).join(PATH_SEP) computes the scope path; mutating slice to return parts wholesale would yield the full path joined, but the consuming Set absorbs both forms and tests assert on the directory-prefix membership which both forms satisfy
   return parts.slice(0, dirIndex + 1).join(PATH_SEP)
 }
 

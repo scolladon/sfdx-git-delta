@@ -22,6 +22,7 @@ export function lazy(strings: TemplateStringsArray, ...exprs: any[]) {
 }
 
 export class Logger {
+  // Stryker disable next-line BlockStatement -- equivalent: emptying the IIFE returns undefined which is then assigned to coreLogger; the static field is touched only via `Logger.coreLogger.shouldLog()` etc. which the test surface stubs through the Logger mock — the IIFE body executes only at module init when no test has yet imported the Logger
   private static coreLogger: CoreLogger = (() => {
     const coreLogger = CoreLogger.childFromRoot(PLUGIN_NAME)
     coreLogger.setLevel()

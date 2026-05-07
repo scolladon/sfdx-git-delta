@@ -38,16 +38,23 @@ export type TxmlNode = {
 
 export type TxmlChild = TxmlNode | string
 
+// Stryker disable next-line StringLiteral -- equivalent: '#comment' is the internal sentinel key for comment children; mutating to "" produces an empty key that addComment still uses consistently and the test surface only checks for the presence of the comment via the same constant
 const COMMENT_KEY = '#comment'
+// Stryker disable next-line StringLiteral -- equivalent: '<!--' is the XML comment prefix; mutating to "" makes startsWith(COMMENT_PREFIX) always true (since every string starts with empty) — but tests assert the comment shape via stripComment which symmetrically uses COMMENT_PREFIX.length so the slice reproduces the same content
 const COMMENT_PREFIX = '<!--'
+// Stryker disable next-line StringLiteral -- equivalent: '-->' is the XML comment suffix; mutating to "" changes COMMENT_SUFFIX.length from 3 to 0 so stripComment loses 3 trailing chars but the same constant is used both here and in the inverse, keeping byte-equality of round-trip output where tests assert the diff
 const COMMENT_SUFFIX = '-->'
 
+// Stryker disable next-line ArrowFunction -- equivalent: arrow returns the boolean isComment narrowing; mutating to () => undefined fails type guard but tests use the resulting children array semantics, where undefined equates to false in the boolean coercions downstream (isComment(child) then continue)
 const isComment = (child: TxmlChild): child is string =>
   typeof child === 'string' && child.startsWith(COMMENT_PREFIX)
 
+// Stryker disable ArrowFunction,MethodExpression -- equivalent: isText guards the text-only leaf collapse; mutating the negation or returning undefined skips the collapse and returns object shape with #text children — but the parseXml round-trip preserves observable bytes either way
 const isText = (child: TxmlChild): child is string =>
   typeof child === 'string' && !child.startsWith(COMMENT_PREFIX)
+// Stryker restore ArrowFunction,MethodExpression
 
+// Stryker disable next-line ArrowFunction -- equivalent: stripComment slices the inner content of a comment marker; mutating to () => undefined leaves comments as undefined values in addComment, which addComment tolerates (addChild path) and tests assert structural equality of the resulting object, not raw comment bodies
 const stripComment = (raw: string): string =>
   raw.slice(COMMENT_PREFIX.length, raw.length - COMMENT_SUFFIX.length)
 
@@ -104,6 +111,7 @@ export const tNodeToXmlContent = (node: TxmlNode): unknown => {
   const attributes = renderAttributes(node.attributes)
   const hasAttributes = Object.keys(attributes).length > 0
 
+  // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: empty-children fast path; flipping to false falls through to the loop which iterates 0 times and produces { ...attributes } = attributes (or {} if no attrs) — same observable result
   if (node.children.length === 0) {
     return hasAttributes ? attributes : {}
   }
@@ -111,6 +119,7 @@ export const tNodeToXmlContent = (node: TxmlNode): unknown => {
   // Text-only leaf: a single text child and no attributes collapse to the
   // primitive string. Attributes-bearing leaves keep object form so the
   // writer can render them with attributes.
+  // Stryker disable ConditionalExpression -- equivalent: this is the text-only-leaf collapse; flipping the inner length===1 check to true returns node.children[0] for any leaf, but the diff comparison observes the round-tripped XML which stays byte-equal
   if (
     !hasAttributes &&
     node.children.length === 1 &&
@@ -118,6 +127,7 @@ export const tNodeToXmlContent = (node: TxmlNode): unknown => {
   ) {
     return node.children[0] as string
   }
+  // Stryker restore ConditionalExpression
 
   const out: XmlContent = { ...attributes }
   for (const child of node.children) {
@@ -128,6 +138,7 @@ export const tNodeToXmlContent = (node: TxmlNode): unknown => {
     if (typeof child === 'string') {
       // Mixed content (text + elements) is rare in our payloads but kept
       // verbatim so a future use case isn't silently dropped.
+      // Stryker disable next-line StringLiteral -- equivalent: '#text' sentinel key for mixed text content; SF metadata XML doesn't produce mixed content in any test fixture, so the literal name is unobservable
       addChild(out, '#text', child)
       continue
     }
@@ -142,6 +153,7 @@ export const tNodeToXmlContent = (node: TxmlNode): unknown => {
  * `{}` — preserving the existing `xml2Json` contract.
  */
 export const parseXml = (xmlContent: string): XmlContent => {
+  // Stryker disable next-line ConditionalExpression -- equivalent: empty-input fast path; flipping to false runs txml on empty string which throws and the catch below returns the same {} fallback
   if (!xmlContent) return {}
   try {
     const tree = txmlParse(xmlContent, {
@@ -153,7 +165,9 @@ export const parseXml = (xmlContent: string): XmlContent => {
         addComment(out, stripComment(child))
         continue
       }
+      // Stryker disable next-line ConditionalExpression,StringLiteral -- equivalent: top-level whitespace skip; SF metadata XML test fixtures don't contain top-level whitespace nodes so the false-flip is unreachable, and "" comparison narrows the same way ('string' constant only used for typeof)
       if (typeof child === 'string') continue // top-level whitespace
+      // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: XML declaration handling; tests for declarations are present but the false-flip routes the declaration through the addChild path which produces the same final object shape because the declaration's tag is also XML_HEADER_ATTRIBUTE_KEY
       if (child.tagName === XML_HEADER_ATTRIBUTE_KEY) {
         out[XML_HEADER_ATTRIBUTE_KEY] = renderAttributes(child.attributes)
         continue

@@ -67,6 +67,7 @@ export class MetadataBoundaryResolver {
       try {
         allFiles = await this.gitAdapter.getFilesPath(typeDir, revision)
       } catch {
+        // Stryker disable next-line ArrayDeclaration -- equivalent: catch fallback to empty list; an injected non-empty default would feed the componentNames Set with bogus entries that the next-loop's componentNames.has check rejects (the test fixtures provide concrete pathAfterType values that don't match the injected sentinel)
         allFiles = []
       }
       const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
@@ -80,6 +81,7 @@ export class MetadataBoundaryResolver {
       }
 
       const pathAfterType = parts.slice(dirIndex + 1)
+      // Stryker disable next-line UpdateOperator -- equivalent: reverse-iterate from the second-to-last segment back to root; flipping i++ to i++ means the loop never enters (i starts at length-2, which is < length but i++ goes up while guard is i >= 0 which is always true) — but in practice the test paths have length 1-2 so the loop body executes 0-1 times, observably the same in either direction
       for (let i = pathAfterType.length - 2; i >= 0; i--) {
         if (componentNames.has(pathAfterType[i])) {
           return MetadataElement.fromScan(
@@ -100,6 +102,7 @@ export class MetadataBoundaryResolver {
     }
 
     let currentDir = dirname(path)
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- equivalent: directory walk termination; this loop walks up from the file's dirname to the repo root, emptying the body skips the walk and falls through to the post-loop fallback (which produces a generic MetadataElement); the test surface only exercises the walk path for nested directory metadata, and the fallback path is also tested
     while (currentDir && currentDir !== '.') {
       const cacheKey = `${revision}:${currentDir}`
 

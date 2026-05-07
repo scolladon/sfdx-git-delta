@@ -101,6 +101,7 @@ export default class ChangeSet {
             }
           }
           /* v8 ignore next -- defensive: addElement always pairs byTarget and byKind, so every (type, member) in byTarget has a corresponding byKind entry */
+          // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the kind === undefined branch is unreachable because addElement keeps byTarget and byKind in lockstep
           if (kind !== undefined) {
             out.push({ target, type, member, changeKind: kind })
           }

@@ -16,7 +16,10 @@ export const isLFS = (content: Buffer): boolean =>
 
 export const getLFSObjectContentPath = (bufferContent: Buffer): string => {
   const content = bufferContent.toString(UTF8_ENCODING)
-  const oid = content.split(/\n/)[1]?.split(':')[1] ?? ''
+  const oid =
+    content.split(/\n/)[1]?.split(':')[1] ??
+    // Stryker disable next-line StringLiteral -- equivalent: '' fallback; mutating to "Stryker was here!" makes the next LFS_OID_PATTERN.test reject (sha256 hex regex won't match), so the mutant produces the same throw as the unmutated empty-string fallback
+    ''
   if (!LFS_OID_PATTERN.test(oid)) {
     throw new Error('Invalid LFS oid')
   }
