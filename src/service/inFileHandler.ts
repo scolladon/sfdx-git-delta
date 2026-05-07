@@ -85,7 +85,7 @@ export default class InFileHandler extends StandardHandler {
       // parent must NOT be re-listed in package.xml because nothing
       // deployable remains.
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
-      if (this._shouldEmitContainer(outcome.hasPackageContent)) {
+      if (this._collectsContainer() && outcome.hasPackageContent) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this, sink)
         result.changes.merge(containerResult.changes)
@@ -147,7 +147,7 @@ export default class InFileHandler extends StandardHandler {
     return this.element.type.pruneOnly
   }
 
-  protected _shouldEmitContainer(hasPackageContent: boolean): boolean {
-    return hasPackageContent
+  protected _collectsContainer(): boolean {
+    return true
   }
 }
