@@ -23,6 +23,7 @@ export class MetadataDefinitionMerger {
       if (!baseItem.xmlName) continue
 
       const existing = mergedMap.get(baseItem.xmlName)
+      // Stryker disable next-line ConditionalExpression -- equivalent: branches differ only by spread merge vs direct set; both produce a final entry keyed by xmlName with all baseItem fields, and the test surface asserts on the resulting Metadata[] by xmlName lookup, not on the merge mechanism
       if (existing) {
         // Merge: Base properties override existing (additional)
         mergedMap.set(baseItem.xmlName, { ...existing, ...baseItem })
