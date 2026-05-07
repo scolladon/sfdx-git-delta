@@ -31,7 +31,8 @@ export default class CustomLabelHandler extends InFileHandler {
     return true
   }
 
-  protected override _shouldTreatContainerType() {
+  // Stryker disable next-line BlockStatement -- equivalent: returning undefined is falsy, identical to returning false in the if-check that consumes this method
+  protected override _collectsContainer() {
     return false
   }
 

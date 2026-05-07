@@ -18,10 +18,12 @@ export type DiffOutcome = {
     modified: CompareEntry[]
     deleted: CompareEntry[]
   }
-  hasAnyChanges: boolean
-  // True when no surviving children remain after pruning — InFileHandler
-  // uses this to decide whether to include the root in package.xml.
-  isEmpty: boolean
+  // True when the to-side has retained content that warrants the parent
+  // container in package.xml (any add/modify, or deferred-bucket change
+  // with non-empty to-side). Independent of generateDelta — the writer
+  // is gated separately. See StreamingDiff.hasPackageContent for the
+  // full contract.
+  hasPackageContent: boolean
   writer?: (out: Writable) => Promise<void>
 }
 
@@ -64,7 +66,7 @@ export default class MetadataDiff {
     // toSource means there are no children to classify, and the engine's
     // drainDeletions pass naturally records every from-side element as
     // deleted. No rootCapture is produced — InFileHandler doesn't need
-    // one for a delete-only file and the writer is gated on hasAnyChanges.
+    // one for a delete-only file and the writer is gated internally.
     const rootCapture: RootCapture | null = toSource
       ? await parseToSidePropagating(toSource, engine.onToElement)
       : null
@@ -76,8 +78,7 @@ export default class MetadataDiff {
         modified: outcome.modified,
         deleted: outcome.deleted,
       },
-      hasAnyChanges: outcome.hasAnyChanges,
-      isEmpty: outcome.isEmpty,
+      hasPackageContent: outcome.hasPackageContent,
       ...(writer ? { writer } : {}),
     }
   }

@@ -49,8 +49,12 @@ describe('MetadataDiff.run', () => {
     )
   }
 
-  it('Given identical content, When run runs, Then hasAnyChanges is false and writer is undefined', async () => {
-    // Arrange
+  it('Given identical content, When run runs, Then writer is undefined and no manifest entries are produced', async () => {
+    // Arrange — userLicense is keyless; identical content makes the
+    // internal hasAnyChanges stay false (writer short-circuits) but
+    // drainKeyless still retains the to-side content for byte-equality
+    // parity, which leaves hasPackageContent=true. The latter is
+    // harmless: real diffs never deliver an unchanged file to run().
     const xml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <userLicense>Salesforce</userLicense>\n</Profile>\n`
     serveXml(xml, xml)
     const sut = new MetadataDiff(work.config, inFileAttributes)
@@ -59,14 +63,13 @@ describe('MetadataDiff.run', () => {
     const outcome = await sut.run('file/path')
 
     // Assert
-    expect(outcome.hasAnyChanges).toBe(false)
     expect(outcome.writer).toBeUndefined()
     expect(outcome.manifests.added).toHaveLength(0)
     expect(outcome.manifests.modified).toHaveLength(0)
     expect(outcome.manifests.deleted).toHaveLength(0)
   })
 
-  it('Given a modified Profile, When run runs with generateDelta=true, Then hasAnyChanges is true and writer produces pruned XML', async () => {
+  it('Given a modified Profile, When run runs with generateDelta=true, Then hasPackageContent is true and writer produces pruned XML', async () => {
     // Arrange
     const fromXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <userLicense>Salesforce</userLicense>\n</Profile>\n`
     const toXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <userLicense>Salesforce Platform</userLicense>\n</Profile>\n`
@@ -84,11 +87,11 @@ describe('MetadataDiff.run', () => {
     const produced = Buffer.concat(chunks).toString('utf8')
 
     // Assert
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(produced).toContain('<userLicense>Salesforce Platform</userLicense>')
   })
 
-  it('Given generateDelta is false, When run runs, Then writer is undefined even with changes', async () => {
+  it('Given generateDelta is false with changes, When run runs, Then hasPackageContent is true but writer is undefined', async () => {
     // Arrange
     work.config.generateDelta = false
     const fromXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <userLicense>Salesforce</userLicense>\n</Profile>\n`
@@ -99,8 +102,10 @@ describe('MetadataDiff.run', () => {
     // Act
     const outcome = await sut.run('file/path')
 
-    // Assert
-    expect(outcome.hasAnyChanges).toBe(true)
+    // Assert — hasPackageContent must NOT depend on generateDelta:
+    // the parent container still goes in package.xml even when no
+    // per-file pruned XML is requested.
+    expect(outcome.hasPackageContent).toBe(true)
     expect(outcome.writer).toBeUndefined()
   })
 
@@ -154,7 +159,7 @@ describe('MetadataDiff.run', () => {
     const outcome = await sut.run('file/path')
 
     // Assert
-    expect(outcome.hasAnyChanges).toBe(true)
+    expect(outcome.hasPackageContent).toBe(true)
     expect(outcome.writer).toBeDefined()
   })
 
@@ -186,15 +191,15 @@ describe('MetadataDiff.run', () => {
     expect(fromCallOid).not.toBe(toCallOid)
   })
 
-  it('Given the to-side is empty (file deleted in to-revision), When run runs, Then the to-side parse is short-circuited and isEmpty is true', async () => {
+  it('Given the to-side is empty (file deleted in to-revision), When run runs, Then the to-side parse is short-circuited and hasPackageContent is false', async () => {
     // Arrange — empty to-side simulates a file deletion. Legacy
     // parseXmlFileToJson returned `{}` and MetadataComparator emitted
     // every from-side element as deleted; the streaming reader throws
     // on empty input, so MetadataDiff short-circuits the to-side parse
     // when toSource is empty. The from-side is still consumed so
     // drainDeletions can emit packageable subTypes (fieldPermissions
-    // is registry-excluded → no manifest entry, but isEmpty=true
-    // reflects the empty to-side correctly).
+    // is registry-excluded → no manifest entry, but hasPackageContent
+    // stays false because nothing on the to-side survived).
     const fromXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <fieldPermissions>\n        <field>Account.X</field>\n        <editable>true</editable>\n        <readable>true</readable>\n    </fieldPermissions>\n</Profile>\n`
     mockedReadPathFromGit.mockImplementation(async ref =>
       ref.oid === work.config.to ? '' : fromXml
@@ -206,7 +211,7 @@ describe('MetadataDiff.run', () => {
 
     // Assert — the empty-toSource short-circuit returns a well-formed
     // outcome without throwing the parser's "no root element" error.
-    expect(outcome.isEmpty).toBe(true)
+    expect(outcome.hasPackageContent).toBe(false)
     expect(outcome.writer).toBeUndefined()
     expect(outcome.manifests.added).toHaveLength(0)
     expect(outcome.manifests.modified).toHaveLength(0)

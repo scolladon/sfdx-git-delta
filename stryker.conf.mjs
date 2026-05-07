@@ -24,9 +24,9 @@ const config = {
   },
   testRunner: 'vitest',
   thresholds: {
-    high: 90,
-    low: 80,
-    break: 70,
+    high: 95,
+    low: 90,
+    break: 90,
   },
 }
 export default config

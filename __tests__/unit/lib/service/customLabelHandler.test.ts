@@ -172,7 +172,7 @@ describe('Decomposed CustomLabel spec', () => {
             modified: [],
             deleted: [],
           },
-          hasAnyChanges: true,
+          hasPackageContent: true,
           writer: mockWriter,
         })
       )
@@ -196,7 +196,7 @@ describe('Decomposed CustomLabel spec', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given inFile labels addition with non-empty content, When collect, Then _shouldTreatContainerType prevents container manifest', async () => {
+    it('Given inFile labels addition with non-empty content, When collect, Then _collectsContainer prevents container manifest', async () => {
       // Arrange
       const inFileLine =
         'A       force-app/main/default/labels/CustomLabels.labels-meta.xml'
@@ -213,7 +213,7 @@ describe('Decomposed CustomLabel spec', () => {
             modified: [],
             deleted: [],
           },
-          hasAnyChanges: true,
+          hasPackageContent: true,
           writer: mockWriter,
         })
       )

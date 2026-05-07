@@ -96,7 +96,13 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
     // Act
     const outcome = await sut.run('file/path')
     if (!outcome.writer) {
-      expect(outcome.hasAnyChanges).toBe(false)
+      // Under generateDelta=true (set by getWork()), writer-absent means
+      // no add/modify content was retained for the to-side (only deletes
+      // or no real change at all). Either way, the manifest's package
+      // side must be empty.
+      expect(
+        outcome.manifests.added.length + outcome.manifests.modified.length
+      ).toBe(0)
       return
     }
     const chunks: Buffer[] = []
