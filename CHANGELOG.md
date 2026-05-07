@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.44.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.0...v6.44.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* **metadata:** emit parent container in package.xml when generateDelta is off ([#1298](https://github.com/scolladon/sfdx-git-delta/issues/1298)) ([380a8e0](https://github.com/scolladon/sfdx-git-delta/commit/380a8e00ad7823701a550933fcc91edbbd481f30))
+
 ## [6.44.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.43.0...v6.44.0) (2026-04-29)
 
 
