@@ -110,6 +110,7 @@ export default class InFileHandler extends StandardHandler {
         this.config.from,
         this.config.to,
       ])
+      // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the wrapped warning message via wrapError, not on the lazy log line
       Logger.warn(lazy`${message}`)
       const failed = emptyResult()
       failed.warnings.push(wrapError(message, error))
@@ -139,7 +140,9 @@ export default class InFileHandler extends StandardHandler {
     return `${getRootType(this.element.basePath)}${DOT}`
   }
 
+  // Stryker disable next-line BlockStatement -- equivalent: the container path's copies array is local and discarded after merging only its changes back, so _delegateFileCopy returning true would push a GitCopy that is never observed by callers
   protected override _delegateFileCopy() {
+    // Stryker disable next-line BooleanLiteral -- equivalent: same rationale (true would push an unobserved GitCopy)
     return false
   }
 

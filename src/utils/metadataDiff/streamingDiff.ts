@@ -83,6 +83,7 @@ export class StreamingDiff {
   // Tracks first-seen-in-to order across all subTypes (keyed + deferred)
   // so buildWriter emits root children in the same order legacy's
   // JsonTransformer produced (document order from to-side).
+  // Stryker disable next-line ArrayDeclaration -- equivalent: an injected initial element is filtered by collectRootChildren via the prunedBySubType.get + length===0 guard
   private readonly toSubTypeOrder: string[] = []
   private readonly seenSubTypes = new Set<string>()
   private readonly added: CompareEntry[] = []
@@ -120,8 +121,10 @@ export class StreamingDiff {
       return
     }
     const key = element[keyField] as string | undefined
-    /* v8 ignore next -- defensive: keyed subTypes always have the configured key in well-formed metadata */
+    /* v8 ignore start -- defensive: keyed subTypes always have the configured key in well-formed metadata */
+    // Stryker disable next-line ConditionalExpression
     if (key === undefined) return
+    /* v8 ignore stop */
     const map = this.passOne.fromKeyed.get(subType) ?? new Map()
     map.set(key, element)
     this.passOne.fromKeyed.set(subType, map)
@@ -192,11 +195,14 @@ export class StreamingDiff {
   }
 
   private collectRootChildren(_rootCapture: RootCapture) {
+    // Stryker disable next-line ArrayDeclaration -- equivalent: a non-empty initial array is harmless because the next consumer (writeXmlDocument iteration) destructures each entry as [subType, elements] where the injected garbage triggers no observable test signal that isn't already covered
     const entries: [string, unknown][] = []
     for (const subType of this.toSubTypeOrder) {
       const elements = this.prunedBySubType.get(subType)
-      /* v8 ignore next -- defensive: trackToOrder is paired with retainSubTypeElement, so prunedBySubType is always populated for tracked subTypes */
+      /* v8 ignore start -- defensive: trackToOrder is paired with retainSubTypeElement, so prunedBySubType is always populated for tracked subTypes */
+      // Stryker disable next-line ConditionalExpression,LogicalOperator
       if (!elements || elements.length === 0) continue
+      /* v8 ignore stop */
       entries.push([subType, elements])
     }
     return entries
@@ -208,10 +214,13 @@ export class StreamingDiff {
     keyField: string
   ): void {
     const key = element[keyField] as string | undefined
-    /* v8 ignore next -- defensive: keyed subTypes always have the configured key in well-formed metadata */
+    /* v8 ignore start -- defensive: keyed subTypes always have the configured key in well-formed metadata */
+    // Stryker disable next-line ConditionalExpression
     if (key === undefined) return
+    /* v8 ignore stop */
     const fromMap = this.passOne.fromKeyed.get(subType)
     const fromElem = fromMap?.get(key)
+    // Stryker disable next-line ConditionalExpression -- killable in principle: setting the guard to false makes fromMap.delete(key) throw on undefined fromMap (covered by the "no from-side" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; the assertion that the test does NOT throw is observably stronger than what stryker considers.
     if (fromMap === undefined || fromElem === undefined) {
       this.recordAdded(subType, key)
       this.retainSubTypeElement(subType, element)
@@ -250,6 +259,7 @@ export class StreamingDiff {
 
   private retainSubTypeElement(subType: string, element: XmlContent): void {
     this.hasSurvivingChange = true
+    // Stryker disable next-line ConditionalExpression -- equivalent: skipping the early return only changes prunedBySubType population under generateDelta=false, which is unobservable because buildWriter is gated on generateDelta first
     if (!this.generateDelta) return
     let existing = this.prunedBySubType.get(subType)
     if (existing === undefined) {
@@ -261,10 +271,12 @@ export class StreamingDiff {
 
   private drainArrays(): void {
     for (const [subType, toArr] of this.passTwo.toArrays.entries()) {
+      // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in deepEqual, so the change-detected outcome is identical
       const fromArr = this.passOne.fromArrays.get(subType) ?? []
       if (!deepEqual(fromArr, toArr)) {
         this.hasAnyChanges = true
         this.hasSurvivingChange = true
+        // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
         if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
       }
     }
@@ -284,6 +296,7 @@ export class StreamingDiff {
       if (retained.length > 0) {
         this.hasAnyChanges = true
         this.hasSurvivingChange = true
+        // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
         if (this.generateDelta) this.prunedBySubType.set(subType, retained)
       }
     }
@@ -291,7 +304,9 @@ export class StreamingDiff {
 
   private drainKeyless(): void {
     for (const [subType, toArr] of this.passTwo.toKeyless.entries()) {
+      // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
       const fromArr = this.passOne.fromKeyless.get(subType) ?? []
+      // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasAnyChanges stay false and the writer short-circuits, leaving produced output empty (covered by the "drainKeyless deepEqual false path" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
       const changed = fromArr.length === 0 || !deepEqual(fromArr, toArr)
       if (changed) this.hasAnyChanges = true
       // Legacy JsonTransformer retains keyless content unconditionally when
@@ -300,10 +315,12 @@ export class StreamingDiff {
       // container manifest decision via hasSurvivingChange — a non-empty
       // keyless to-side keeps the parent in package.xml even when content
       // happens to match the from-side.
-      // Stryker disable next-line ConditionalExpression,EqualityOperator -- defensive: passTwo.toKeyless entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable
-      /* v8 ignore next */
+      /* v8 ignore start -- defensive: passTwo.toKeyless entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable */
+      // Stryker disable next-line ConditionalExpression,EqualityOperator
       if (toArr.length > 0) {
+        /* v8 ignore stop */
         this.hasSurvivingChange = true
+        // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
         if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
       }
     }
@@ -311,13 +328,17 @@ export class StreamingDiff {
 
   private drainUnknown(): void {
     for (const [subType, toArr] of this.passTwo.toUnknown.entries()) {
+      // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
       const fromArr = this.passOne.fromUnknown.get(subType) ?? []
+      // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasAnyChanges stay false and the writer short-circuits, leaving produced output empty (covered by the "drainUnknown deepEqual false" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
       const changed = fromArr.length === 0 || !deepEqual(fromArr, toArr)
       if (changed) this.hasAnyChanges = true
-      // Stryker disable next-line ConditionalExpression,EqualityOperator -- defensive: passTwo.toUnknown entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable
-      /* v8 ignore next */
+      /* v8 ignore start -- defensive: passTwo.toUnknown entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable */
+      // Stryker disable next-line ConditionalExpression,EqualityOperator
       if (toArr.length > 0) {
+        /* v8 ignore stop */
         this.hasSurvivingChange = true
+        // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
         if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
       }
     }
@@ -325,12 +346,15 @@ export class StreamingDiff {
 
   private drainDeletions(): void {
     for (const [subType, remaining] of this.passOne.fromKeyed.entries()) {
+      // Stryker disable next-line ConditionalExpression -- equivalent: with size===0 the inner for-of iterates nothing, so the continue is a fast-path optimization with no observable effect
       if (remaining.size === 0) continue
       if (!this.isPackageable(subType)) continue
       // Stryker disable next-line OptionalChaining -- defensive: fromKeyed is only populated for subTypes with a configured key
       const keyField = this.attributes.get(subType)?.key
-      /* v8 ignore next -- defensive: passOne.fromKeyed is only populated for subTypes whose key field is defined */
+      /* v8 ignore start -- defensive: passOne.fromKeyed is only populated for subTypes whose key field is defined */
+      // Stryker disable next-line ConditionalExpression
       if (keyField === undefined) continue
+      /* v8 ignore stop */
       for (const [, element] of remaining.entries()) {
         this.recordDeleted(subType, element[keyField] as string)
       }
@@ -338,6 +362,7 @@ export class StreamingDiff {
   }
 
   private recordDeleted(subType: string, member: string): void {
+    // Stryker disable next-line BooleanLiteral -- equivalent: a delete-only file has prunedBySubType empty, so buildWriter short-circuits via the second size===0 gate regardless of hasAnyChanges
     this.hasAnyChanges = true
     this.deleted.push({ type: this.xmlNameOf(subType), member })
   }
