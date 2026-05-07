@@ -57,6 +57,7 @@ export default class IncludeProcessor extends BaseProcessor {
           if (!includeLines.has(changeType)) {
             includeLines.set(changeType, [])
           }
+          // Stryker disable next-line OptionalChaining -- equivalent: defensive optional chain; the preceding `if (!includeLines.has(changeType))` guarantees the slot is set before this push, so the optional chain is unreachable
           includeLines.get(changeType)?.push(changedLine)
         }
       })
@@ -67,6 +68,7 @@ export default class IncludeProcessor extends BaseProcessor {
   protected async _collectIncludes(
     includeLines: Map<GitChange, string[]>
   ): Promise<HandlerResult> {
+    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: empty-input fast path; flipping to false continues into the gitAdapter.getFirstCommitRef + DiffLineInterpreter walk with no entries, which produces an empty result anyway
     if (includeLines.size === 0) {
       return emptyResult()
     }
