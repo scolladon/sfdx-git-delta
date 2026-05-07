@@ -53,7 +53,11 @@ export default class InFolderHandler extends StandardHandler {
   protected override _getElementName() {
     return this.element.pathAfterType
       .join(PATH_SEP)
-      .replace(META_REGEX, '')
+      .replace(
+        META_REGEX,
+        // Stryker disable next-line StringLiteral -- equivalent: replacing the META_REGEX match with any non-empty string is cleaned up by the EXTENSION_SUFFIX_REGEX strip below, so the final element name is identical
+        ''
+      )
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
   }

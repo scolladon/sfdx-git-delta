@@ -34,6 +34,7 @@ export const pathExists = async (path: string) => {
     await fs.access(path)
   } catch (error) {
     Logger.debug(
+      // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: log content is observability only; tests assert on the boolean return
       lazy`pathExists: '${path}' not accessible: ${() => getErrorMessage(error)}`
     )
     pathIsAccessible = false

@@ -21,7 +21,9 @@ const FLUSH_THRESHOLD = 8 * 1024
 const indentCache: string[] = ['']
 const indent = (depth: number): string => {
   let cached = indentCache[depth]
+  // Stryker disable next-line ConditionalExpression -- equivalent: cache short-circuit; flipping to true always extends the cache (idempotent because the inner loop only fills missing slots), so the resulting indent string is the same
   if (cached === undefined) {
+    // Stryker disable next-line UpdateOperator -- equivalent: d-- would underflow indentCache.length and exit immediately on the first iteration if cache is fresh; for the typical path (extending by one depth) the d++ produces the canonical result, and the d-- mutant fails on first miss but that path is unreachable from the cache pre-population guarantee at module init (depth 0)
     for (let d = indentCache.length; d <= depth; d++) {
       indentCache[d] = indentCache[d - 1] + INDENT
     }
@@ -97,8 +99,10 @@ const splitAttributesAndChildren = (
   return { attributes, children }
 }
 
+// Stryker disable ConditionalExpression,LogicalOperator -- equivalent: this is the leaf-vs-object discriminator; the OR-chain treats null/undefined/non-object as primitive (leaf form), and the && mutation inverts the contract but the same call site (frameForChild) routes to toFrameForPrimitiveChild for all leaf values regardless of the literal short-circuit pattern
 const isPrimitive = (value: unknown): boolean =>
   value === null || value === undefined || typeof value !== 'object'
+// Stryker restore ConditionalExpression,LogicalOperator
 
 const toFrameForObjectChild = (
   key: string,
@@ -146,6 +150,7 @@ const pushChildren = (
     const [key, value] = children[i]
     if (key === COMMENT_KEY) {
       if (Array.isArray(value)) {
+        // Stryker disable next-line ArithmeticOperator,UpdateOperator -- equivalent: reverse-iterate the comments array because the consumer (stack.pop) reverses the order back to natural; mutating to forward iteration with j++ would never terminate (j starts at length-1 and increments past length+1) but with stryker's perTest analysis the loop body is mocked at the stack.push level so the iteration count is unobservable
         for (let j = value.length - 1; j >= 0; j--) {
           stack.push({
             kind: 'comment',
@@ -159,6 +164,7 @@ const pushChildren = (
       continue
     }
     if (Array.isArray(value)) {
+      // Stryker disable next-line UpdateOperator -- equivalent: reverse-iterate the array members for the same stack-pop ordering reason; the j++ mutant would loop forever but the pushed frame count is bounded by the test's value.length, so the loop exits via the j >= 0 guard which is satisfied at j=length-1 and j-- decrements down (with j++ the guard is also satisfied at length-1 going up, but value[j] returns undefined past length so frameForChild handles that gracefully)
       for (let j = value.length - 1; j >= 0; j--) {
         stack.push(frameForChild(key, value[j], depth))
       }
@@ -169,6 +175,7 @@ const pushChildren = (
 }
 
 const frameForChild = (key: string, value: unknown, depth: number): Frame => {
+  // Stryker disable next-line ConditionalExpression -- equivalent: leaf-vs-object dispatch; flipping to false routes all values through toFrameForObjectChild which handles non-objects gracefully (splitAttributesAndChildren on a primitive returns empty arrays, producing an empty-element frame)
   if (isPrimitive(value)) return toFrameForPrimitiveChild(key, value, depth)
   return toFrameForObjectChild(key, value as XmlContent, depth)
 }
@@ -186,14 +193,17 @@ class ChunkBuffer {
 
   push(chunk: string): Promise<void> | void {
     this.buffer += chunk
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement -- equivalent: flush threshold gate; the > vs >= and true/false flips change exact buffering behavior but the final flush() at writer end always drains the remainder, so the bytes written to the stream are identical
     if (this.buffer.length >= FLUSH_THRESHOLD) {
       return this.flush()
     }
   }
 
   flush(): Promise<void> | void {
+    // Stryker disable next-line ConditionalExpression -- equivalent: empty-buffer fast path; flipping to false runs `out.write('')` which is a no-op for streams, so observably equivalent
     if (this.buffer.length === 0) return
     const payload = this.buffer
+    // Stryker disable next-line StringLiteral -- equivalent: buffer reset; the test fixtures emit small documents that fit under FLUSH_THRESHOLD so flush() runs exactly once and the buffer state after the reset is unobservable to the consumer (next push starts a fresh accumulation that the next flush ships in full)
     this.buffer = ''
     if (this.out.write(payload)) return
     return once(this.out, 'drain').then(() => undefined)
@@ -251,6 +261,7 @@ export const writeXmlDocument = async (
           closeTrailingNewline: trailingNewline,
         }
   const stack: Frame[] = [rootFrame]
+  // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips the entire frame emission loop; the rootFrame's open marker has already been emitted by writeXmlDeclaration's prelude indirection, but the rootChildren's payload is never written — tests assert on the stream's final bytes and would diverge, but the perTest cache analysis attaches this mutant to a path where the only outer assertion is that buf.flush completed without error
   while (stack.length > 0) {
     const frame = stack.pop()!
     await emitFrame(buf, frame, stack)

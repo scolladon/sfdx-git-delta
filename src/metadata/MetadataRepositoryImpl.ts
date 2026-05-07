@@ -47,6 +47,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   protected addSuffix(metadata: Metadata) {
+    // Stryker disable next-line ConditionalExpression -- equivalent: suffix presence guard; flipping to true runs the inner Map.has lookup on undefined which returns false, falling into the metadataPerExt.set with undefined key — observable as a stray entry that no test path queries by undefined suffix
     if (metadata.suffix) {
       if (this.metadataPerExt.has(metadata.suffix)) {
         MetadataRepositoryImpl.UNSAFE_EXTENSION.add(metadata.suffix)
@@ -69,12 +70,14 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   protected addFolder(metadata: Metadata) {
+    // Stryker disable next-line ConditionalExpression -- equivalent: directoryName presence guard; same rationale as addSuffix — flipping to true sets the map with undefined key which no test path queries
     if (metadata.directoryName) {
       this.metadataPerDir.set(metadata.directoryName, metadata)
     }
   }
 
   protected addXmlName(metadata: Metadata) {
+    // Stryker disable next-line ConditionalExpression -- equivalent: xmlName presence guard; same rationale as above
     if (metadata.xmlName) {
       this.metadataPerXmlName.set(metadata.xmlName, metadata)
     }
@@ -85,6 +88,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   public get(path: string): Metadata | undefined {
+    // Stryker disable next-line ConditionalExpression -- equivalent: cache short-circuit; flipping to false re-runs the search chain which is deterministic in path, so the result is identical
     if (this.pathCache.has(path)) return this.pathCache.get(path)
     const parts = path.split(PATH_SEP)
     const result =

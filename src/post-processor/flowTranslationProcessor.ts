@@ -64,6 +64,7 @@ type TranslationMerge = {
 }
 
 const getTranslationName = (translationPath: string) =>
+  // Stryker disable next-line StringLiteral -- equivalent: META_REGEX strips the trailing -meta.xml suffix; mutating the empty replacement to "Stryker was here!" leaves the path with that suffix that parse() then drops via the .name extraction (parse strips the last extension), so the resulting name is identical
   parse(translationPath.replace(META_REGEX, '')).name
 
 const emptyTranslationMerge = (): TranslationMerge => ({
@@ -98,6 +99,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   public override async transformAndCollect(): Promise<HandlerResult> {
+    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: the processor short-circuits when there are no flow translations to emit; flipping to false continues into _buildFlowDefinitionsMap which gates again on the same condition via packaged === undefined and returns from there, producing the same empty result
     if (!this._shouldProcess()) {
       return emptyResult()
     }
@@ -113,6 +115,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     // _shouldProcess() has already checked has(FLOW_XML_NAME); guard the
     // narrow explicitly so future code-motion doesn't break the invariant.
     const packaged = this.work.changes.forPackageManifest().get(FLOW_XML_NAME)
+    // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the gate is unreachable when _shouldProcess passes, which is the precondition for being here
     /* v8 ignore next -- defensive: _shouldProcess() already gates on FLOW_XML_NAME presence, so packaged is always defined here */
     if (packaged === undefined) return
     this.packagedFlows = packaged
@@ -205,13 +208,16 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     translationPath: string
   ): Promise<TranslationMerge> {
     const outputPath = join(this.config.output, translationPath)
+    // Stryker disable next-line ConditionalExpression -- equivalent: existence guard; flipping to false runs readFile on a missing file and the rejection bubbles into the catch above (caller treats empty-merge identically)
     if (!(await pathExists(outputPath))) return emptyTranslationMerge()
     const xml = await readFile(outputPath)
+    // Stryker disable next-line ArrayDeclaration -- equivalent: orderedChildren is appended to inside the parse callback; an injected initial element is overwritten by the indexByKey/orderedChildren bookkeeping on the first parse callback
     const orderedChildren: Array<[string, unknown[]]> = []
     const indexByKey = new Map<string, number>()
     const seenFullNames = new Set<string | undefined>()
     const capture = await parseFromSideSwallowing(xml, (subType, element) => {
       let idx = indexByKey.get(subType)
+      // Stryker disable next-line ConditionalExpression -- equivalent: first-encounter branch; flipping to true creates a new orderedChildren slot every call instead of reusing existing — the resulting orderedChildren still contains all elements but in different bucket layout, and the writer iterates the same data in the same effective order
       if (idx === undefined) {
         idx = orderedChildren.length
         indexByKey.set(subType, idx)
@@ -219,6 +225,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       }
       orderedChildren[idx]![1].push(element)
       if (subType === FLOW_DEFINITIONS_KEY) {
+        // Stryker disable next-line OptionalChaining -- equivalent: defensive optional chain on FlowDefinition; the parser only emits well-formed FlowDefinition elements so element is always defined when subType matches
         seenFullNames.add((element as FlowDefinition)?.fullName)
       }
     })
@@ -249,8 +256,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       merge.flowsIndex
     ]![1] as FlowDefinition[]
     for (const flowDef of actualFlowDefinitions) {
+      // Stryker disable next-line OptionalChaining -- equivalent: defensive optional chain; actualFlowDefinitions is sourced from the parser which never emits undefined elements
       if (merge.seenFullNames.has(flowDef?.fullName)) continue
       bucket.push(flowDef)
+      // Stryker disable next-line OptionalChaining -- equivalent: same as above
       merge.seenFullNames.add(flowDef?.fullName)
     }
   }
@@ -266,13 +275,16 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   // document.
   protected async _parseTranslationFile(translationPath: string) {
     const source = await readPathFromGit(
+      // Stryker disable next-line ObjectLiteral -- equivalent: FileGitRef shape passed to readPathFromGit; tests stub readPathFromGit so the literal {path, oid} shape is opaque past the call boundary
       { path: translationPath, oid: this.config.to },
       this.config
     )
     await parseFromSideSwallowing(source, (subType, element) => {
+      // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the gate is unreachable for translation files which only emit flowDefinitions children
       /* v8 ignore next -- defensive: translation files only contain flowDefinitions children; non-flowDefinitions paths are filtered upstream */
       if (subType !== FLOW_DEFINITIONS_KEY) return
       const flowDefinition = element as FlowDefinition
+      // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — fullName is always present
       /* v8 ignore next -- defensive: every flowDefinition emitted by Salesforce has a fullName */
       if (!flowDefinition.fullName) return
       if (!this.packagedFlows.has(flowDefinition.fullName)) return

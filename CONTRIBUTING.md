@@ -126,6 +126,36 @@ vitest's `bench` mode and emit `perf-runtime.json` / `perf-memory.json`.
 npm run test:perf
 ```
 
+### Mutation Testing
+
+Mutation testing runs via Stryker against the unit-test bucket. The
+configured thresholds are `break: 90`, `low: 90`, `high: 95`; CI fails
+when the mutation score drops below 90%.
+
+```bash
+npm run test:mutation              # full run (~6 min)
+npm run test:mutation:incremental  # only files changed vs origin/main
+```
+
+When a mutant survives:
+
+- **If it is killable**, prefer adding a test assertion. The existing
+  test surface intentionally avoids log-content assertions, so
+  observability-only mutants on lazy `Logger.debug(...)` calls are
+  documented as equivalent rather than killed via log spies.
+- **If it is equivalent or unreachable in practice**, document it
+  inline with `// Stryker disable next-line <Mutator,...> -- equivalent: <why>`
+  (or a `// Stryker disable … // Stryker restore` block when a single
+  next-line directive cannot attach — e.g. multi-line literals). Each
+  rationale should reference the upstream guarantee or test fixture
+  that makes the mutant unobservable.
+- **Pure-constant modules** (e.g. `src/constant/libConstant.ts`) are
+  excluded from `mutate` in `stryker.conf.mjs` because perTest with
+  `ignoreStatic: true` cannot kill module-level const-binding mutants.
+- A small set of `} catch {` / `} finally {` BlockStatement mutants
+  cannot be disabled inline due to biome's brace style. They are
+  enumerated in the `reporters` comment in `stryker.conf.mjs`.
+
 ### E2E Testing
 
 SGD has E2E tests executed at the PR level.

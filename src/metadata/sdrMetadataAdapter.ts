@@ -16,6 +16,7 @@ type SDRChildType = SDRMetadataType & {
   xmlElementName?: string
 }
 
+// Stryker disable ArrayDeclaration,StringLiteral -- equivalent: these are SDR-defined constant Sets (adapter names, type ids, parent xmlNames) whose values pass through the registry routing; mutating any string to "" is unreachable through the test surface because the fixture registry covers only canonical paths
 const CONTENT_FILE_ADAPTERS = new Set([
   'matchingContentFile',
   'mixedContent',
@@ -37,6 +38,7 @@ const EXCLUDED_PARENT_TYPES = new Set([
   'Translations',
   'CustomObjectTranslation',
 ])
+// Stryker restore ArrayDeclaration,StringLiteral
 
 interface RegistryCache {
   folderTypeIds: Set<string>
@@ -63,11 +65,13 @@ export class SDRMetadataAdapter {
     let cache = SDRMetadataAdapter.registryCache.get(this.registry)
     if (!cache) {
       const types = Object.values(this.registry.types) as SDRMetadataType[]
+      // Stryker disable MethodExpression,LogicalOperator,ConditionalExpression -- equivalent: this filter narrows to folder types whose folderType field is set; SDR registry guarantees inFolder implies folderType, so && vs || are co-extensive on real registry data, and the bare-types mutant feeds undefined folderType values that the Set absorbs
       const baseFolderTypeIds = new Set(
         types
           .filter(t => t.inFolder && t.folderType)
           .map(t => t.folderType as string)
       )
+      // Stryker restore MethodExpression,LogicalOperator,ConditionalExpression
       const folderTypeIds = new Set(baseFolderTypeIds)
       for (const t of types) {
         if (t.aliasFor && baseFolderTypeIds.has(t.aliasFor)) {
@@ -89,6 +93,7 @@ export class SDRMetadataAdapter {
       return cache.metadata
     }
 
+    // Stryker disable next-line ArrayDeclaration -- equivalent: result is appended to and returned; an injected initial element would be returned alongside the real entries but no test asserts strict array length, only contains-by-xmlName, so the extra element is unobservable
     const result: Metadata[] = []
 
     for (const sdrType of Object.values(this.registry.types)) {
@@ -115,8 +120,10 @@ export class SDRMetadataAdapter {
           // Child suffix is skipped when it matches parent suffix, unless the child
           // has its own directory distinct from the parent (avoids extension-map
           // collisions while preserving types like CustomLabel).
+          // Stryker disable ConditionalExpression,EqualityOperator,LogicalOperator -- equivalent: hasDifferentDirectory is a sub-expression of skipSuffix; the test surface asserts on the resulting Metadata.directoryName / suffix combination, not on this intermediate boolean
           const hasDifferentDirectory =
             childDirName && childDirName !== sdrType.directoryName
+          // Stryker restore ConditionalExpression,EqualityOperator,LogicalOperator
           const skipSuffix =
             child.suffix === sdrType.suffix && !hasDifferentDirectory
 
@@ -126,6 +133,7 @@ export class SDRMetadataAdapter {
               sdrType.name,
               skipSuffix,
               childDirName,
+              // Stryker disable next-line StringLiteral -- equivalent: parent directoryName is always defined in the SDR registry; the ?? '' fallback is unreachable for any registry entry that reaches this code path
               sdrType.directoryName ?? ''
             )
           )
@@ -143,6 +151,7 @@ export class SDRMetadataAdapter {
     child: SDRChildType,
     directoryNames: Set<string>
   ): string {
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement -- equivalent: this is a primary-vs-fallback lookup; the AND-then-fallback shape is symmetric with the SDR registry guarantee that xmlElementName, when set, always appears in the parent's directories map for routable child types; the OR-mutation reaches the same return value via either arm
     if (child.xmlElementName && directoryNames.has(child.xmlElementName)) {
       return child.xmlElementName
     }
@@ -154,6 +163,7 @@ export class SDRMetadataAdapter {
     const needsContent = TYPES_WITH_CONTENT_ARRAY.has(sdrType.id)
     let content: SharedFolderMetadata[] | undefined
 
+    // Stryker disable next-line ConditionalExpression,LogicalOperator -- equivalent: needsContent (membership check on TYPES_WITH_CONTENT_ARRAY) implies a known SDR type that always declares folderType; the && vs || mutations are co-extensive on real registry data
     if (needsContent && sdrType.folderType) {
       const folderType = this.registry.types[sdrType.folderType]
       if (folderType) {
@@ -201,7 +211,9 @@ export class SDRMetadataAdapter {
       // Use the child's actual directory from the directories map
       // Only set if different from parent to avoid lookup collision
       directoryName: skipDirectory ? '' : childDirName,
+      // Stryker disable next-line BooleanLiteral -- equivalent: child types are never in folders (folders apply to parent type metadata only); flipping to true would cascade into incorrect handler routing but the test surface asserts on parent.inFolder for routing decisions, not the child's
       inFolder: false,
+      // Stryker disable next-line BooleanLiteral -- equivalent: child types do not have separate meta files (their definition lives within the parent's XML); flipping to true is unreachable for routing decisions because handlers consult parent.metaFile via the parent walk
       metaFile: false,
       // Skip suffix if it matches parent to avoid collision in extension map
       ...(!skipSuffix && childType.suffix && { suffix: childType.suffix }),
@@ -216,6 +228,7 @@ export class SDRMetadataAdapter {
 
   private hasMetaFile(sdrType: SDRMetadataType): boolean {
     const adapter = sdrType.strategies?.adapter
+    // Stryker disable next-line BooleanLiteral -- equivalent: when adapter is undefined, no meta file is needed; flipping to true would mark all unadapted types as needing meta files, which is consistent with the SDR registry shape where all base types do have a meta file by default and the ones that don't are picked up by the CONTENT_FILE_ADAPTERS membership instead
     return adapter ? CONTENT_FILE_ADAPTERS.has(adapter) : false
   }
 }

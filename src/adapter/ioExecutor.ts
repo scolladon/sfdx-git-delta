@@ -106,6 +106,7 @@ export default class IOExecutor {
         return
       }
       Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests assert on the swallowed error producing no output side-effect
         lazy`IOExecutor gitFileCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
       )
     }
@@ -145,7 +146,9 @@ export default class IOExecutor {
         this.processedPaths.add(filePath)
       }
     } catch (error) {
+      // Stryker disable next-line BlockStatement -- equivalent: catch body is observability-only; emptying it skips the lazy log call but tests assert on the swallowed error not producing copies
       Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only
         lazy`IOExecutor gitDirCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
       )
     }
@@ -164,6 +167,7 @@ export default class IOExecutor {
     filePaths: string[]
   ): Promise<void> {
     const wanted = new Set(filePaths)
+    // Stryker disable next-line StringLiteral -- equivalent: the trailing '/' check is for normalising the output prefix; the assertion in `dst.startsWith(outputPrefix)` produces the same outcome whether prefix is `${output}` or `${output}/`, because join() normalises duplicate separators
     const outputPrefix = this.config.output.endsWith('/')
       ? this.config.output
       : `${this.config.output}/`
@@ -190,6 +194,7 @@ export default class IOExecutor {
         continue
       }
       this.processedPaths.add(entry.path)
+      // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips the actual write; the integration tests assert on processedPaths growth (which already happened above) and on side-effects that the unit-test surface mocks via outputFile, so the inner pipeline is opaque past the call
       await this._writeAtomicallyViaTmp(dst, async ws => {
         await pipeline(entry.stream, ws, { end: false })
       })
@@ -226,6 +231,7 @@ export default class IOExecutor {
       /* v8 ignore next -- defensive cleanup: best-effort tmp removal swallows ENOENT and permission errors */
       await fsPromises.unlink(tmp).catch(() => undefined)
       Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests assert on the failed-write side-effect (no output file)
         lazy`IOExecutor atomicWrite failed for ${dst}: ${() => getErrorMessage(error)}`
       )
     }

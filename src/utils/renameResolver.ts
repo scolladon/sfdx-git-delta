@@ -53,10 +53,12 @@ export default class RenameResolver {
       const from = fromHandler.getElementDescriptor()
       const to = toHandler.getElementDescriptor()
       if (from.type !== to.type) return null
+      // Stryker disable next-line ConditionalExpression -- equivalent: ChangeSet.recordRename has its own `if (from === to) return` guard, so the no-op skip is redundant when the apply() loop hands the same-member pair downstream
       if (from.member === to.member) return null
       return { type: from.type, from: from.member, to: to.member }
     } catch (error) {
       Logger.warn(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: log content is observability only; tests assert on the null return
         lazy`RenameResolver._resolve: skipping ${pair.fromPath} -> ${pair.toPath}: ${() => getErrorMessage(error)}`
       )
       return null

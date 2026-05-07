@@ -341,6 +341,16 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
+      // Kills main L43/L49/L53: when needsScopeFromDiff is false the
+      // production code must hand the raw async iterable returned by
+      // getLines() to process(). The materialize branch (mutant) would
+      // substitute a string[]; the empty-else BlockStatement mutant would
+      // leave `lines` undefined and skip getLines() entirely.
+      expect(mockGetLines).toHaveBeenCalledTimes(1)
+      const passedLines = mockProcess.mock.calls[0]?.[0]
+      expect(passedLines).toBeDefined()
+      expect(Array.isArray(passedLines)).toBe(false)
+      expect(passedLines).toBe(mockGetLines.mock.results[0]?.value)
     })
 
     it('Given generateDelta is false BUT source is populated, When sgd runs, Then preBuildTreeIndex is still not called (the generateDelta gate short-circuits before the scope computation)', async () => {

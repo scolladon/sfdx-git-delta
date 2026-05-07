@@ -24,6 +24,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
     utf8Data = await gitAdapter.getStringContent(forRef)
   } catch (error) {
     Logger.debug(
+      // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: log content is observability only; tests assert on the empty-string return
       lazy`readPathFromGit failed for ${forRef.path}: ${() => getErrorMessage(error)}`
     )
   }

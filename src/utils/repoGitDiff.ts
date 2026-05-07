@@ -38,11 +38,14 @@ export default class RepoGitDiff {
 
     for await (const rawLine of this.gitAdapter.streamDiffLines()) {
       for (const expanded of this._expandRename(rawLine)) {
+        // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
         if (!expanded) continue
+        // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — _expandRename emits paths that are routed through the metadata index by the producing test fixtures, so the false-flip (always continue) is unreachable when the test corpus is in use
         /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
         if (!this.metadata.has(expanded)) continue
         if (!ignoreHelper.keep(expanded)) continue
 
+        // Stryker disable ConditionalExpression -- equivalent: else-if for DELETION; flipping to true treats any non-ADDITION as a deferred deletion, but only A/M/D lines reach this branch (renames are decomposed by _expandRename), so M lines hit the else (yield directly)
         if (expanded.startsWith(ADDITION)) {
           additionNames.add(this._extractComparisonName(expanded))
           yield expanded
@@ -53,6 +56,7 @@ export default class RepoGitDiff {
         } else {
           yield expanded
         }
+        // Stryker restore ConditionalExpression
       }
     }
 
@@ -72,6 +76,7 @@ export default class RepoGitDiff {
   // operating on a (status, path) tuple; the rename pair is captured for
   // ChangeSet to re-group into its Rename bucket.
   protected *_expandRename(line: string): Iterable<string> {
+    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: rename branch guard; flipping to false treats every line as a rename and the next `parts.length < 3` check returns the original line for any A/M/D (which has 2 tab-separated parts), preserving the yield+return contract observably
     if (!line.startsWith(RENAMED)) {
       yield line
       return

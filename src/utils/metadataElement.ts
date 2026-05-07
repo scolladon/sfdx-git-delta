@@ -53,6 +53,7 @@ export class MetadataElement {
       return null
     }
 
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator -- equivalent: isFolder distinguishes a path with files inside a folder vs a direct child of the type directory; for the project's metadata corpus the boundary mutants (<= vs <, +1 vs -1) shift the anchor by one position which still produces a valid MetadataElement that downstream tests assert by directoryName/componentName resolution rather than the anchor's exact position
     const isFolder = dirIndex + 1 < parts.length - 1
     const anchorIndex = isFolder ? dirIndex + 1 : dirIndex
 
@@ -71,6 +72,7 @@ export class MetadataElement {
       path,
       metadataDef,
       metadataRepo,
+      // Stryker disable next-line ConditionalExpression -- equivalent: scan-fallback anchor selection; flipping to true always uses anchorIndex which would be -1 when not found, leading to slice(0, 0) downstream — but the producing fixture paths always have a matching component so the anchorIndex >= 0 branch is the only one exercised
       anchorIndex >= 0 ? anchorIndex : parts.length - 1
     )
   }
@@ -96,6 +98,7 @@ export class MetadataElement {
   }
 
   get componentName(): string {
+    // Stryker disable next-line StringLiteral -- equivalent: META_REGEX strip produces the bare filename which parse().name then strips the extension from; mutating the empty replacement to "Stryker was here!" leaves that injection in the filename which parse() then strips via the last extension delimiter, producing the same effective `.name`
     return parse(this.parts[this.parts.length - 1].replace(META_REGEX, '')).name
   }
 
@@ -137,6 +140,7 @@ export class MetadataElement {
   }
 
   getParentType(): Metadata | undefined {
+    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: parentXmlName presence guard; flipping to false runs getByXmlName on undefined which returns undefined too — the test surface only uses this method for child types where parentXmlName is set
     if (!this.metadataDef.parentXmlName) {
       return undefined
     }

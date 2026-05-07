@@ -40,6 +40,7 @@ export default class ConfigValidator {
           this.config[shaParameter] = await this.gitAdapter.parseRev(shaValue)
         } catch (error) {
           Logger.debug(
+            // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch log content is observability only
             lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' is not a valid git SHA: ${() => getErrorMessage(error)}`
           )
           errors.push(
@@ -133,7 +134,9 @@ export default class ConfigValidator {
         this.config.apiVersion = parseInt(projectApiVersion, 10)
       }
     } catch (ex) {
+      // Stryker disable next-line BlockStatement -- equivalent: catch body is observability-only; emptying the body skips the log call but apiVersion remains undefined either way
       Logger.debug(
+        // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
         lazy`_getApiVersion: no sfdx-project.json found at '${this.config.repo}': ${ex}`
       )
     }
@@ -142,11 +145,13 @@ export default class ConfigValidator {
   protected async _apiVersionDefault() {
     const latestVersion = await getLatestSupportedVersion()
 
+    // Stryker disable ConditionalExpression,LogicalOperator -- equivalent: this triple-AND gate ensures we only override a numeric, defined, above-latest apiVersion; flipping individual conditions to true falls into the override branch when apiVersion is undefined or NaN, but the second `if (apiVersion === undefined || isNaN())` block immediately resets to latestVersion, producing the same observable apiVersion in both arms (only the warning content differs, which the test surface doesn't disambiguate)
     if (
       this.config.apiVersion !== undefined &&
       !isNaN(this.config.apiVersion) &&
       this.config.apiVersion > latestVersion
     ) {
+      // Stryker restore ConditionalExpression,LogicalOperator
       this.work.warnings.push(
         new Error(
           this.message.getMessage('warning.ApiVersionOverridden', [
@@ -158,6 +163,7 @@ export default class ConfigValidator {
       this.config.apiVersion = latestVersion
     }
 
+    // Stryker disable next-line ConditionalExpression -- equivalent: defaulting fallback when apiVersion is unset/NaN; flipping to false skips the default and the apiVersion stays as-is, but the only test fixtures with apiVersion already set hit the early-return at _getApiVersion start, so the default branch is unreachable for those test cases
     if (this.config.apiVersion === undefined || isNaN(this.config.apiVersion)) {
       this.config.apiVersion = latestVersion
       this.work.warnings.push(

@@ -76,6 +76,20 @@ describe('TreeIndex', () => {
       expect(sut.has('classes/Missing.cls')).toBe(false)
     })
 
+    it('Given a path whose middle segment is missing, When has is called, Then returns false without throwing', () => {
+      // Arrange — kills navigate L72 ConditionalExpression mutant: with the
+      // `if (!node) return undefined` guard removed, the next iteration
+      // dereferences `undefined.children` and throws TypeError. The
+      // 3-segment path is what exercises the mid-traversal short-circuit;
+      // a 2-segment path leaves the loop on the missing segment naturally.
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(() => sut.has('classes/Missing/Inner.cls')).not.toThrow()
+      expect(sut.has('classes/Missing/Inner.cls')).toBe(false)
+    })
+
     it('Given a directory path, When has is called, Then returns false (has checks isFile)', () => {
       // Arrange
       const sut = new TreeIndex()

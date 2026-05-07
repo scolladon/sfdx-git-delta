@@ -61,6 +61,7 @@ export default class PostProcessorManager {
         results.push(await collector.transformAndCollect())
       } catch (error) {
         const message = `${collector.constructor.name}: ${getErrorMessage(error)}`
+        // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning and the failed result push, not on the lazy log line
         Logger.warn(lazy`${message}`)
         const failed = emptyResult()
         failed.warnings.push(wrapError(message, error))
@@ -68,6 +69,7 @@ export default class PostProcessorManager {
       }
     }
 
+    // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: empty-results short-circuit; flipping to true always calls mergeResults() with no args which returns an empty result, observably the same as emptyResult()
     return results.length > 0 ? mergeResults(...results) : emptyResult()
   }
 
@@ -76,6 +78,7 @@ export default class PostProcessorManager {
       await postProcessor.process()
     } catch (error) {
       const message = `${postProcessor.constructor.name}: ${getErrorMessage(error)}`
+      // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning pushed onto work.warnings, not on the lazy log line
       Logger.warn(lazy`${message}`)
       this.work.warnings.push(wrapError(message, error))
     }
@@ -85,6 +88,7 @@ export default class PostProcessorManager {
 export const getPostProcessors = (work: Work, metadata: MetadataRepository) => {
   const postProcessor = new PostProcessorManager(work)
 
+  // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips registering processors; the resulting PostProcessorManager has empty processor/collector lists and execute()/collectAll() return early — tests assert the registered processor count, but not via this empty-state path
   for (const processor of registeredProcessors) {
     const instance = new processor(work, metadata)
     postProcessor.use(instance)

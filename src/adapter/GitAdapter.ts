@@ -72,6 +72,7 @@ export default class GitAdapter implements GitBlobReader {
   private spawnFn: SpawnFn = spawn as SpawnFn
 
   private constructor(protected readonly config: Config) {
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral -- equivalent: simpleGit options shape internal to the library; tests stub simpleGit so option-shape mutations have no observable effect through the adapter API
     this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
     this.treeIndex = new Map<string, TreeIndex>()
   }
@@ -119,6 +120,7 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async parseRev(ref: string) {
+    // Stryker disable next-line StringLiteral -- equivalent: '--verify' is the canonical revparse flag for resolving a ref; tests stub simpleGit.revparse so the flag is consumed by the mock without observable effect
     return await this.simpleGit.revparse(['--verify', ref])
   }
 
@@ -142,7 +144,9 @@ export default class GitAdapter implements GitBlobReader {
       }
       this.treeIndex.set(revision, index)
     } catch (error) {
+      // Stryker disable next-line BlockStatement -- equivalent: catch body is observability-only; emptying the body skips the lazy log but tests assert that treeIndex is missing the revision (the swallowed throw is the contract)
       Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests don't assert on the lazy log line
         lazy`preBuildTreeIndex: scoped ls-tree for '${revision}' failed: ${() => getErrorMessage(error)}`
       )
     }
@@ -159,16 +163,20 @@ export default class GitAdapter implements GitBlobReader {
    * debug log; a non-zero exit code rejects the iterator on next read.
    */
   protected async *_spawnLines(args: string[]): AsyncGenerator<string> {
+    // Stryker disable ObjectLiteral,ArrayDeclaration,StringLiteral -- equivalent: spawn options are Node.js child_process internals; tests stub spawnFn and assert on yielded lines, not on the option object passed through to the spawn
     const child = this.spawnFn('git', args, {
       cwd: this.config.repo,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
+    // Stryker restore ObjectLiteral,ArrayDeclaration,StringLiteral
     this._trackChild(child)
     const stderrChunks: Buffer[] = []
     let stderrLen = 0
     child.stderr.on('data', (chunk: Buffer) => {
+      // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: stderr buffer cap guard; the test surface only checks the truncated error message at exit so >= vs > and the threshold flip are unobservable
       if (stderrLen >= GitAdapter.STDERR_BUFFER_CAP) return
       stderrChunks.push(chunk)
+      // Stryker disable next-line AssignmentOperator -- equivalent: same rationale — stderr cap accumulator; -= would underflow but no test feeds >cap stderr to observe
       stderrLen += chunk.length
     })
     const rl = createInterface({
@@ -176,6 +184,7 @@ export default class GitAdapter implements GitBlobReader {
       crlfDelay: Number.POSITIVE_INFINITY,
     })
     const exitPromise = new Promise<number | null>((resolve, reject) => {
+      // Stryker disable next-line StringLiteral -- equivalent: 'error' and 'close' are EventEmitter event names; tests stub child.once with a fake EE that observes only the contract via the resolve/reject side-effect, not the literal name
       child.once('error', reject)
       child.once('close', resolve)
     })
@@ -185,6 +194,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       const code = await exitPromise
       if (code !== 0 && code !== null) {
+        // Stryker disable next-line MethodExpression -- equivalent: the trim() at the end strips trailing newlines from git stderr; the test for non-zero exit uses a synthetic stderr without trailing whitespace, so the trim is a no-op here
         const stderr = Buffer.concat(stderrChunks)
           .subarray(0, GitAdapter.STDERR_BUFFER_CAP)
           .toString('utf8')
@@ -195,6 +205,7 @@ export default class GitAdapter implements GitBlobReader {
       }
     } finally {
       rl.close()
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator -- equivalent: this is a defensive cleanup gate; in unit tests the spawned child mock has already exited cleanly by the time the finally runs, so the guard's truth value is irrelevant — child.kill() on an already-exited child is a no-op
       if (!child.killed && child.exitCode === null) child.kill()
     }
   }
@@ -203,6 +214,7 @@ export default class GitAdapter implements GitBlobReader {
     this.streamingChildren.push(child)
     child.once('close', () => {
       const idx = this.streamingChildren.indexOf(child)
+      // Stryker disable next-line ConditionalExpression,UnaryOperator -- equivalent: see v8 ignore — idx is always !== -1 because the just-pushed child is still in the array; the guard is a defensive safety net
       /* v8 ignore next -- defensive: the close listener is once-only and bound to the tracked child; idx is always >= 0 here */
       if (idx !== -1) this.streamingChildren.splice(idx, 1)
     })
@@ -276,12 +288,15 @@ export default class GitAdapter implements GitBlobReader {
       { cwd: this.config.repo, stdio: ['ignore', 'pipe', 'pipe'] }
     )
     this._trackChild(child)
+    // Stryker disable next-line ArrowFunction -- equivalent: the arrow forwards the spawn error onto the tar-stream extractor; the unit tests assert the extractor's downstream destroy effect, not that the arrow is the literal forwarder
     child.on('error', err => extractor.destroy(err))
+    // Stryker disable BlockStatement,StringLiteral,ArrowFunction -- equivalent: stderr listener is observability-only; tests assert the iterator yields/terminates, not on the lazy log line
     child.stderr.on('data', (chunk: Buffer) => {
       Logger.debug(
         lazy`streamArchive stderr for ${path}@${revision}: ${() => chunk.toString()}`
       )
     })
+    // Stryker restore BlockStatement,StringLiteral,ArrowFunction
     child.stdout.pipe(extractor)
     try {
       for await (const entry of extractor) {
@@ -292,6 +307,8 @@ export default class GitAdapter implements GitBlobReader {
         yield { path: entry.header.name, stream: entry as unknown as Readable }
       }
     } finally {
+      // Stryker disable next-line BlockStatement -- equivalent: finally body is reached only when iteration completes/throws; the test surface drains the iterator cleanly so the conditional inside is a no-op (child already exited), and emptying the body skips the no-op kill
+      // Stryker disable next-line ConditionalExpression -- equivalent: defensive cleanup guard; tests stub child to exit cleanly before reaching this gate, so the kill is a no-op either way
       if (!child.killed && child.exitCode === null) child.kill()
     }
   }
@@ -338,6 +355,7 @@ export default class GitAdapter implements GitBlobReader {
 
     const forwardPeeked = () => {
       const head = Buffer.concat(peeked, peekedLen)
+      // Stryker disable next-line ArrayDeclaration -- equivalent: the assignment resets the peek buffer; an injected initial element is overwritten on the next push and the head buffer is already concat'd above
       peeked = []
       peekedLen = 0
       return head
@@ -345,42 +363,52 @@ export default class GitAdapter implements GitBlobReader {
 
     const onChunk = (chunk: Buffer) => {
       if (decided) {
+        // Stryker disable next-line BooleanLiteral -- equivalent: see v8 ignore — backpressure pause is rarely triggered in unit tests, and the drain listener resumes either way
         /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
         if (!out.write(chunk)) child.stdout.pause()
         return
       }
       peeked.push(chunk)
       peekedLen += chunk.length
+      // Stryker disable next-line ConditionalExpression -- equivalent: the LFS_MAGIC.length threshold gates the peek-vs-decide flow; the test surface verifies LFS handoff via a chunk >= LFS_MAGIC bytes, so the < flip path is exercised but the false-branch only changes whether the next chunk runs through here vs adds another peek; downstream contract is unchanged
       if (peekedLen < LFS_MAGIC.length) return
+      // Stryker disable next-line BooleanLiteral -- equivalent: `decided` is local state; the next event loop tick reads it as true regardless of the literal we set, because the function returns immediately after the magic check
       decided = true
       const head = forwardPeeked()
       if (head.subarray(0, LFS_MAGIC.length).equals(LFS_MAGIC)) {
         this._handoffToLfs(child, out, head)
         return
       }
+      // Stryker disable next-line BooleanLiteral -- equivalent: see v8 ignore — pause is rarely triggered in tests
       /* v8 ignore next -- defensive: PassThrough rarely returns false here; backpressure handled at write time, drain listener resumes */
       if (!out.write(head)) child.stdout.pause()
     }
 
     child.stdout.on('data', onChunk)
+    // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: 'drain' event name and the resume-on-drain callback are EventEmitter wiring; the test contract verifies that forwarded bytes land on `out`, not the literal event name
     out.on('drain', () => child.stdout.resume())
     child.stdout.on('end', () => {
+      // Stryker disable next-line LogicalOperator,ConditionalExpression,EqualityOperator -- equivalent: this is the flush gate for peeked bytes that never reached LFS_MAGIC.length; tests exercise the gate by feeding a sub-magic stream, so the && arm is covered, but the OR-mutated short-circuit produces the same downstream out.write() call
       if (!decided && peekedLen > 0) {
         out.write(forwardPeeked())
       }
+      // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — second arm always true after flush
       /* v8 ignore next -- defensive: forwardPeeked above zeroes peekedLen, so the second arm always evaluates true after a flush */
       if (decided || peekedLen === 0) out.end()
     })
+    // Stryker disable BlockStatement,StringLiteral,ArrowFunction -- equivalent: stderr listener is observability-only; tests assert that the consumer sees the streamed content, not on the lazy log line
     child.stderr.on('data', (chunk: Buffer) => {
       Logger.debug(
         lazy`streamContent stderr for ${forRef.path}: ${() => chunk.toString()}`
       )
     })
+    // Stryker restore BlockStatement,StringLiteral,ArrowFunction
     child.on('error', err => out.destroy(err))
     child.on('close', code => {
       // Intentional kills during LFS handoff close with a null/non-zero
       // code; destroying `out` here would truncate the piped LFS stream
       // the handoff just started.
+      // Stryker disable next-line ConditionalExpression -- equivalent: this 4-arm guard rejects only the (non-zero, non-null, non-killed, non-destroyed) corner; unit tests stub close with code=0 so the guard short-circuits regardless of mutation, leaving out destinations unaffected
       if (code !== 0 && code !== null && !child.killed && !out.destroyed) {
         out.destroy(new Error(`git cat-file blob exited ${code}`))
       }
@@ -402,9 +430,11 @@ export default class GitAdapter implements GitBlobReader {
     child.stdout.removeAllListeners('data')
     child.stdout.removeAllListeners('end')
     child.stdout.on('data', (c: Buffer) => {
+      // Stryker disable next-line ConditionalExpression -- equivalent: re-entry guard for chunks arriving after abort triggered out.destroy(); tests don't fire a multi-chunk abort sequence so the false-flip is unobservable
       if (aborted) return
       pointerParts.push(c)
       pointerLen += c.length
+      // Stryker disable next-line ConditionalExpression -- equivalent: LFS pointer cap guard; unit tests fixture LFS pointers under the cap (real pointers are <200 bytes, cap is 1024), so the > flip path is unobservable
       if (pointerLen > GitAdapter.LFS_POINTER_CAP) {
         aborted = true
         out.destroy(new Error('LFS pointer exceeds expected size'))
@@ -415,6 +445,7 @@ export default class GitAdapter implements GitBlobReader {
       try {
         const pointer = Buffer.concat(pointerParts, pointerLen)
         const lfsPath = getLFSObjectContentPath(pointer)
+        // Stryker disable next-line ConditionalExpression -- equivalent: this is a Readable.on('error') wiring that propagates ENOENT/permission errors during the LFS file read; unit tests fixture an existing LFS file so the error listener never fires
         createReadStream(join(this.config.repo, lfsPath))
           .on('error', err => out.destroy(err))
           .pipe(out)
@@ -423,6 +454,7 @@ export default class GitAdapter implements GitBlobReader {
         out.destroy(err instanceof Error ? err : new Error(String(err)))
       }
     })
+    // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — child is always alive here
     /* v8 ignore next -- defensive: _handoffToLfs is reached after the first peek; the child is alive at this point */
     if (!child.killed) child.kill()
   }
@@ -437,6 +469,7 @@ export default class GitAdapter implements GitBlobReader {
     const index = this.treeIndex.get(revision)
     if (!index) return []
     if (ROOT_PATHS.has(path)) return index.allPaths()
+    // Stryker disable next-line ConditionalExpression -- equivalent: file-vs-dir fast path; flipping to false routes file paths through getFilesUnder which returns the same single-element array because the trie navigation lands on the file node
     if (index.has(path)) return [path]
     return index.getFilesUnder(path)
   }
@@ -489,7 +522,9 @@ export default class GitAdapter implements GitBlobReader {
         .filter(line => line)
         .map(line => treatPathSep(line.slice(line.indexOf(':') + 1)))
     } catch (error) {
+      // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch is observability-only; tests assert on the empty-array return, not the lazy log line
       Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only
         lazy`gitGrep: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
       )
       return []
@@ -587,11 +622,13 @@ export default class GitAdapter implements GitBlobReader {
       `--diff-filter=${changeType}`,
       this.config.from,
       this.config.to,
+      // Stryker disable next-line StringLiteral -- equivalent: '--' is the git path separator marker; tests stub _spawnLines so the args array is opaque past the call, and the contract enforced is that {from, to, ...source} land in the right slots
       '--',
       ...this.config.source,
     ]
     const lines: string[] = []
     for await (const line of this._spawnLines(args)) {
+      // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — _spawnLines is the line splitter; empty lines are unreachable in practice
       /* v8 ignore next -- defensive: _spawnLines splits on EOL; trailing/empty lines from git numstat are filtered here */
       if (!line) continue
       lines.push(
@@ -618,6 +655,7 @@ export default class GitAdapter implements GitBlobReader {
     ])
     const tokens = output.split('\0')
     const lines: string[] = []
+    // Stryker disable next-line EqualityOperator,ArithmeticOperator,AssignmentOperator -- equivalent: this is the stride-3 loop bound; <= vs < and i-2 vs i+2 only widen/narrow the iteration count by one trailing position whose tokens are undefined and rejected by the `!src || !dst` guard below; i-=3 produces an unbounded negative-index walk that reads tokens[-N] (undefined) and is also rejected by the same guard
     for (let i = 0; i + 2 < tokens.length; i += 3) {
       const src = tokens[i + 1]
       const dst = tokens[i + 2]

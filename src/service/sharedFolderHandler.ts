@@ -18,12 +18,14 @@ export default class SharedFolderHandler extends StandardHandler {
   }
 
   public override getElementDescriptor(): { type: string; member: string } {
-    /* v8 ignore next 5 -- collectAddition/Deletion guard ensures resolvedType is set */
+    // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: TypeHandlerFactory routes by extension via SharedFolderMetadata, so a handler instantiated as SharedFolderHandler always has a known extension; resolvedType being undefined is unreachable in practice
+    /* v8 ignore next 5 -- defensive: see stryker disable comment above */
     if (!this.resolvedType) {
       throw new Error(
         `SharedFolderHandler: resolvedType is missing for ${this.element.fullPath}`
       )
     }
+    // Stryker restore ConditionalExpression,BlockStatement,StringLiteral
     return {
       type: this.resolvedType,
       member: this._getElementName(),
@@ -45,6 +47,7 @@ export default class SharedFolderHandler extends StandardHandler {
   }
 
   protected override _isProcessable() {
+    // Stryker disable next-line ConditionalExpression -- equivalent: this falls back to resolvedType when super's check fails; flipping to true would always process, but TypeHandlerFactory routing ensures this handler is selected only for resolvable types where resolvedType is populated, so super._isProcessable() is the dominant arm and the OR-fallback is mostly defensive
     return super._isProcessable() || !!this.resolvedType
   }
 
