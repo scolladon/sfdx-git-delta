@@ -1,10 +1,5 @@
 'use strict'
 
-// txml ships .d.ts via `tXml.d.ts` but its package.json `exports` map only
-// re-exports the runtime entry, so TypeScript can't pick the declarations
-// up automatically. Declare the slice we use explicitly.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error -- type declarations not exposed via package exports
 import { parse as txmlParse } from 'txml'
 
 import {
