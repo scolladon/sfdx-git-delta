@@ -1,6 +1,4 @@
 'use strict'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error -- txml does not re-export its .d.ts via package.json exports
 import { parse as txmlParse } from 'txml'
 
 import { getErrorMessage } from '../errorUtils.js'
@@ -192,7 +190,7 @@ const streamRootChildren = (
       parseNode: true,
       setPos: true,
       keepComments: true,
-    }) as TxmlNode & { pos: number }
+    }) as unknown as TxmlNode & { pos: number }
     onElement(res.tagName, tNodeToXmlContent(res) as XmlContent)
     pos = res.pos
   }

@@ -29,7 +29,7 @@ jobs:
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 'lts/*'
 
       - name: Install dependencies
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
@@ -188,9 +188,18 @@ jobs:
         if: steps.registry-check.outputs.registry_changed == 'true'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           TITLE=$(cat /tmp/pr-title.txt)
           gh pr edit "$PR_URL" --title "$TITLE"
-          gh pr review --approve "$PR_URL"
+          # Approve via REST endpoint — `gh pr review` resolves the reviewer
+          # identity through GraphQL fields (login/name/slug) that require
+          # `read:org` scope, which GITHUB_TOKEN cannot be granted.
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${REPO}/pulls/${PR_NUMBER}/reviews" \
+            -f event=APPROVE
           gh pr merge --auto --squash --subject "$TITLE" --body-file /tmp/pr-body.md "$PR_URL"

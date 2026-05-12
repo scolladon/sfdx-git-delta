@@ -33,7 +33,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 'lts/*'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -60,7 +60,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 'lts/*'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -112,7 +112,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 'lts/*'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
