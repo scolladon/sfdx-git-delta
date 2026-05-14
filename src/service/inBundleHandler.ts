@@ -82,8 +82,10 @@ export default class BundleHandler extends InResourceHandler {
     if (!this._pageContentSegments()) {
       return super._collectResourceCopies(copies)
     }
-    // page element: _getMetadataName() resolves to the content folder
-    const contentFolder = this._getMetadataName()
+    // `metadataName` already holds the content folder — InResourceHandler.collect*
+    // sets it to `_getMetadataName()` before calling this, the same contract the
+    // parent's own `_collectResourceCopies` relies on. Reuse it, don't recompute.
+    const contentFolder = this.metadataName!
     for (const coreFile of [PAGE_META_FILE, PAGE_CONTENT_FILE]) {
       const corePath = join(contentFolder, coreFile)
       // the changed file is already collected by `_collectCopyWithMetaFile`
