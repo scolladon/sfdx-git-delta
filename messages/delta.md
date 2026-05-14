@@ -111,6 +111,10 @@ could not process '%s', please ensure it is properly formatted xml in both '%s' 
 # warning.FlowDeleted
 
 Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expected (see https://github.com/scolladon/sfdx-git-delta#handle-flow-deletion)
+
+# warning.DigitalExperienceBundleDeletion
+
+Deleting the DigitalExperienceBundle '%s' via destructiveChanges.xml requires the related Experience site to be deactivated first for the deployment to succeed
  
 # info.CommandIsRunning
 

@@ -8,6 +8,7 @@ import { Logger, lazy } from '../utils/LoggingService.js'
 
 import BaseProcessor from './baseProcessor.js'
 import ChangesManifestProcessor from './changesManifestProcessor.js'
+import DigitalExperienceBundleProcessor from './digitalExperienceBundleProcessor.js'
 import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
@@ -20,6 +21,7 @@ type ProcessorConstructor = new (
 const registeredProcessors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
   IncludeProcessor,
+  DigitalExperienceBundleProcessor,
 ]
 
 // PackageGenerator must run last among legacy processors — it writes the final

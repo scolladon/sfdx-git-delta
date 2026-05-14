@@ -1,6 +1,7 @@
 'use strict'
 export const CUSTOM_APPLICATION_SUFFIX = 'app'
 export const CUSTOM_METADATA_SUFFIX = 'md'
+export const DIGITAL_EXPERIENCE_BUNDLE_TYPE = 'DigitalExperienceBundle'
 export const DIGITAL_EXPERIENCE_TYPE = 'DigitalExperience'
 export const EMAIL_SERVICES_FUNCTION_SUFFIX = 'xml'
 export const FIELD_DIRECTORY_NAME = 'fields'
