@@ -168,6 +168,9 @@ describe('InBundleHandler', () => {
           }),
         ])
       )
+      // bundle element copies the content file + its meta companion
+      // (_shouldCopyMetaFile stays true on the coarse path)
+      expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
 

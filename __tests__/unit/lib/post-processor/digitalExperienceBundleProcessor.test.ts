@@ -145,4 +145,22 @@ describe('DigitalExperienceBundleProcessor', () => {
       expect(pkg.has('DigitalExperience')).toBe(false)
     })
   })
+
+  describe('Given a non-DigitalExperience member whose name matches a bundle prefix', () => {
+    it('When process runs, Then only DigitalExperience members are rolled up — other types are left untouched', async () => {
+      // Arrange — the roll-up is scoped to the DigitalExperience type, even
+      // when another type's member happens to share the bundle's prefix
+      addPackage('DigitalExperienceBundle', 'site/foo')
+      addPackage('SomeOtherType', 'site/foo.sfdc_cms__view/home')
+      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+
+      // Act
+      await sut.process()
+
+      // Assert
+      expect(work.changes.forPackageManifest().get('SomeOtherType')).toEqual(
+        new Set(['site/foo.sfdc_cms__view/home'])
+      )
+    })
+  })
 })
