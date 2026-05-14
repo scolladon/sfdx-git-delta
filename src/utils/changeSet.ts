@@ -89,13 +89,15 @@ export default class ChangeSet {
     )
   }
 
-  // Diagnostic / test-only: reconstructs the (target, type, member, changeKind)
-  // tuples by joining byTarget × byKind on (type, member). Production diff
-  // lines never insert the same (type, member) under two different changeKind
-  // values, so the join is unambiguous in practice. Production code should
-  // use forPackageManifest / forDestructiveManifest / byChangeKind for the
-  // indexed views — this method exists only so tests can list inserted
-  // elements without paying a per-addElement push in the hot path.
+  // Reconstructs the (target, type, member, changeKind) tuples by joining
+  // byTarget × byKind on (type, member). Production diff lines never insert the
+  // same (type, member) under two different changeKind values, so the join is
+  // unambiguous in practice. Most callers use the indexed views
+  // (forPackageManifest / forDestructiveManifest / byChangeKind); this method
+  // serves the ones that need the full per-element tuples — tests listing
+  // inserted elements, and post-processors that reshape the manifest through
+  // removeElement. It is reconstructed on demand rather than maintained as a
+  // hot-path structure, so call it once per pass, not per element.
   toElements(): ManifestElement[] {
     const targets = [
       ManifestTarget.Package,

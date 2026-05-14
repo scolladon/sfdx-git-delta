@@ -215,7 +215,9 @@ describe('InBundleHandler', () => {
           }),
         ])
       )
-      // the changed file + the mandatory _meta.json/content.json — no full-folder scan
+      // the changed file + the mandatory _meta.json — no full-folder scan, and
+      // the changed content.json is not copied twice
+      expect(result.copies).toHaveLength(2)
       expect(new Set(result.copies.map(copy => copy.path))).toEqual(
         new Set([`${pageFolder}/content.json`, `${pageFolder}/_meta.json`])
       )
@@ -232,6 +234,7 @@ describe('InBundleHandler', () => {
       const result = await sut.collect()
 
       // Assert
+      expect(result.copies).toHaveLength(3)
       expect(new Set(result.copies.map(copy => copy.path))).toEqual(
         new Set([
           `${pageFolder}/fr.json`,

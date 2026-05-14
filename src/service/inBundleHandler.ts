@@ -82,10 +82,15 @@ export default class BundleHandler extends InResourceHandler {
     if (!this._pageContentSegments()) {
       return super._collectResourceCopies(copies)
     }
-    // page element: metadataName is the content folder (set by collectAddition)
-    const contentFolder = this.metadataName!
-    this._collectCopy(copies, join(contentFolder, PAGE_META_FILE))
-    this._collectCopy(copies, join(contentFolder, PAGE_CONTENT_FILE))
+    // page element: _getMetadataName() resolves to the content folder
+    const contentFolder = this._getMetadataName()
+    for (const coreFile of [PAGE_META_FILE, PAGE_CONTENT_FILE]) {
+      const corePath = join(contentFolder, coreFile)
+      // the changed file is already collected by `_collectCopyWithMetaFile`
+      if (corePath !== this.element.basePath) {
+        this._collectCopy(copies, corePath)
+      }
+    }
   }
 
   // A `DigitalExperience` page keeps its metadata as `_meta.json` inside the
