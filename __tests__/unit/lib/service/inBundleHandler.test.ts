@@ -197,14 +197,9 @@ describe('InBundleHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given a page content file addition, When collect, Then adds a page-scoped member and copies only its content folder', async () => {
+    it('Given a page content file addition, When collect, Then adds a page-scoped member and copies the changed file plus the two mandatory core files', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([
-        `${pageFolder}/content.json`,
-        `${pageFolder}/_meta.json`,
-        `${pageFolder}/fr.json`,
-        `${root}/site/Site_A/sfdc_cms__view/page_b/content.json`,
-      ])
+      mockedReadDirs.mockResolvedValue([])
       const sut = buildSut(`A       ${pageContentPath}`)
 
       // Act
@@ -220,12 +215,28 @@ describe('InBundleHandler', () => {
           }),
         ])
       )
-      // only the changed page's content folder — sibling page_b is excluded
+      // the changed file + the mandatory _meta.json/content.json — no full-folder scan
+      expect(new Set(result.copies.map(copy => copy.path))).toEqual(
+        new Set([`${pageFolder}/content.json`, `${pageFolder}/_meta.json`])
+      )
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given a page sibling (non-core) file change, When collect, Then copies that file plus _meta.json and content.json', async () => {
+      // Arrange — a locale file changed; _meta.json and content.json are
+      // mandatory for the deploy even though they were not the changed file
+      mockedReadDirs.mockResolvedValue([])
+      const sut = buildSut(`M       ${pageFolder}/fr.json`)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
       expect(new Set(result.copies.map(copy => copy.path))).toEqual(
         new Set([
-          `${pageFolder}/content.json`,
-          `${pageFolder}/_meta.json`,
           `${pageFolder}/fr.json`,
+          `${pageFolder}/_meta.json`,
+          `${pageFolder}/content.json`,
         ])
       )
       expect(result.warnings).toHaveLength(0)

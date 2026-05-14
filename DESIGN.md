@@ -281,11 +281,13 @@ For a **page-level** change — a content file inside the canonical
 `<baseType>/<spaceApiName>/<contentType>/<contentApiName>/...` layout (more than four path segments
 after the `digitalExperiences` directory) — it instead emits the fine-grained `DigitalExperience`
 child type (`<baseType>/<spaceApiName>.<contentType>/<contentApiName>`) and scopes the component to
-the content folder, so the delete-vs-modify existence check and the file copy cover only the changed
-page rather than the whole site. Shorter paths (the bundle's own `*.digitalExperience-meta.xml`, or
-any non-canonical shallow path) keep the coarse `DigitalExperienceBundle` behaviour. Whole-bundle
-add/delete is collapsed back to a single `DigitalExperienceBundle` member by
-`DigitalExperienceBundleProcessor` (see Stage 5).
+the content folder. The delete-vs-modify existence check then covers only that page, and the file
+copy ships just the changed file plus the page's two mandatory core files (`_meta.json` +
+`content.json`, required by the Metadata API) — `DigitalExperience` deploys merge, so untouched
+siblings (locales, css, media) stay in the org. Shorter paths (the bundle's own
+`*.digitalExperience-meta.xml`, or any non-canonical shallow path) keep the coarse
+`DigitalExperienceBundle` behaviour. Whole-bundle add/delete is collapsed back to a single
+`DigitalExperienceBundle` member by `DigitalExperienceBundleProcessor` (see Stage 5).
 
 #### LwcHandler
 
