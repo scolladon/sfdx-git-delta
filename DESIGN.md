@@ -277,6 +277,16 @@ Handles bundle-like resources where changing any file within the bundle triggers
 
 Like InResourceHandler but element names use two path segments (`bundleType/bundleName`) instead of one.
 
+For a **page-level** change — a content file inside the canonical
+`<baseType>/<spaceApiName>/<contentType>/<contentApiName>/...` layout (more than four path segments
+after the `digitalExperiences` directory) — it instead emits the fine-grained `DigitalExperience`
+child type (`<baseType>/<spaceApiName>.<contentType>/<contentApiName>`) and scopes the component to
+the content folder, so the delete-vs-modify existence check and the file copy cover only the changed
+page rather than the whole site. Shorter paths (the bundle's own `*.digitalExperience-meta.xml`, or
+any non-canonical shallow path) keep the coarse `DigitalExperienceBundle` behaviour. Whole-bundle
+add/delete is collapsed back to a single `DigitalExperienceBundle` member by
+`DigitalExperienceBundleProcessor` (see Stage 5).
+
 #### LwcHandler
 
 **Extends**: InResourceHandler
@@ -354,12 +364,14 @@ flowchart TD
     end
 
     subgraph Processors
+        DEB["DigitalExperienceBundleProcessor"]
         PG["PackageGenerator"]
         CM["ChangesManifestProcessor"]
     end
 
     C --> FT
     C --> IP
+    P --> DEB
     P --> PG
     P --> CM
 ```
@@ -373,6 +385,7 @@ flowchart TD
 
 **Processors** (`isCollector = false`) run last via `executeRemaining()`, in registration order:
 
+- **DigitalExperienceBundleProcessor**: runs before `PackageGenerator` so it shapes the manifest the generator reads. Per manifest (`package` / `destructiveChanges` independently): when a `DigitalExperienceBundle` member is present it drops the redundant `DigitalExperience` members of that same site (`DigitalExperienceBundle` deploys/deletes every child), via `ChangeSet.removeElement`. It also warns when a `DigitalExperienceBundle` lands in `destructiveChanges` — whole-bundle deletion is org-gated on the Experience site being deactivated first.
 - **PackageGenerator**: writes `package.xml` (from `ChangeSet.forPackageManifest()`), `destructiveChanges.xml` (from `ChangeSet.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
 - **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serializes `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`, plus `rename` as `{from, to}` pairs when git `-M` detects component renames). Powered by the `changeKind` field carried on every `ManifestElement` for add/modify/delete and by `RenameResolver` feeding `ChangeSet.recordRename` for rename pairs.
 
