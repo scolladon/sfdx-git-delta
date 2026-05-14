@@ -220,6 +220,22 @@ describe('computeTreeIndexScope', () => {
       )
       expect(sut.size).toBe(1)
     })
+
+    it('When computed for a canonical page content path, Then returns the base type directory', () => {
+      // Arrange
+      const lines = [
+        'A\tforce-app/main/default/digitalExperiences/site/Site_A/sfdc_cms__view/page_a/content.json',
+      ]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, metadata)
+
+      // Assert
+      expect(sut.has('force-app/main/default/digitalExperiences/site')).toBe(
+        true
+      )
+      expect(sut.size).toBe(1)
+    })
   })
 
   describe('Given Dashboard diff lines (explicit handlerMap)', () => {
