@@ -259,6 +259,112 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('removeElement', () => {
+    it('Given a package element, When removed, Then it is dropped from both the package view and the byChangeKind view', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      const element: ManifestElement = {
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Foo',
+        changeKind: ChangeKind.Add,
+      }
+      sut.addElement(element)
+
+      // Act
+      sut.removeElement(element)
+
+      // Assert
+      expect(sut.forPackageManifest().has('ApexClass')).toBe(false)
+      expect(sut.byChangeKind()[ChangeKind.Add].has('ApexClass')).toBe(false)
+    })
+
+    it('Given a destructive element, When removed, Then it is dropped from both the destructive view and the byChangeKind view', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      const element: ManifestElement = {
+        target: ManifestTarget.DestructiveChanges,
+        type: 'ApexTrigger',
+        member: 'Old',
+        changeKind: ChangeKind.Delete,
+      }
+      sut.addElement(element)
+
+      // Act
+      sut.removeElement(element)
+
+      // Assert
+      expect(sut.forDestructiveManifest().has('ApexTrigger')).toBe(false)
+      expect(sut.byChangeKind()[ChangeKind.Delete].has('ApexTrigger')).toBe(
+        false
+      )
+    })
+
+    it('Given a type with several members, When one is removed, Then the type is kept with the remaining members', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, 'ApexClass', 'Kept')
+      sut.add(ChangeKind.Add, 'ApexClass', 'Removed')
+
+      // Act
+      sut.removeElement({
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Removed',
+        changeKind: ChangeKind.Add,
+      })
+
+      // Assert
+      expect(sut.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Kept'])
+      )
+    })
+
+    it('Given an element absent from the ChangeSet, When removed, Then it is a no-op', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, 'ApexClass', 'Kept')
+
+      // Act
+      sut.removeElement({
+        target: ManifestTarget.Package,
+        type: 'CustomObject',
+        member: 'Absent',
+        changeKind: ChangeKind.Add,
+      })
+
+      // Assert
+      expect(sut.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Kept'])
+      )
+    })
+
+    it('Given recorded renames, When an unrelated element is removed, Then the renames are untouched', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.addElement({
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Foo',
+        changeKind: ChangeKind.Add,
+      })
+      sut.recordRename('ApexClass', 'OldName', 'NewName')
+
+      // Act
+      sut.removeElement({
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Foo',
+        changeKind: ChangeKind.Add,
+      })
+
+      // Assert
+      expect([
+        ...sut.byChangeKind()[ChangeKind.Rename].get('ApexClass')!.values(),
+      ]).toEqual([{ from: 'OldName', to: 'NewName' }])
+    })
+  })
+
   describe('Given two ChangeSets merged together', () => {
     it('When the source has rename pairs, Then merge propagates them into the destination (changeSet L158-160)', () => {
       // Arrange — destination already has a couple of entries; source

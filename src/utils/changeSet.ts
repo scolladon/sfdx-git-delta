@@ -72,6 +72,23 @@ export default class ChangeSet {
     )
   }
 
+  // Generic inverse of `addElement` — removes a component from both the target
+  // and the kind index. Post-processors use it to reshape the manifest (e.g.
+  // collapsing entries covered by a coarser member). Removing an absent
+  // component is a no-op; renames are untouched.
+  removeElement(element: ManifestElement): void {
+    this._removeFromManifest(
+      this.byTarget[element.target],
+      element.type,
+      element.member
+    )
+    this._removeFromManifest(
+      this.byKind[element.changeKind],
+      element.type,
+      element.member
+    )
+  }
+
   // Diagnostic / test-only: reconstructs the (target, type, member, changeKind)
   // tuples by joining byTarget × byKind on (type, member). Production diff
   // lines never insert the same (type, member) under two different changeKind
@@ -220,6 +237,19 @@ export default class ChangeSet {
       manifest.set(type, new Set())
     }
     manifest.get(type)!.add(member)
+  }
+
+  private _removeFromManifest(
+    manifest: Manifest,
+    type: string,
+    member: string
+  ): void {
+    const members = manifest.get(type)
+    if (!members) return
+    members.delete(member)
+    if (members.size === 0) {
+      manifest.delete(type)
+    }
   }
 
   private _cloneManifest(manifest: Manifest): Manifest {
