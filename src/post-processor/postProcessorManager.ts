@@ -21,6 +21,9 @@ type ProcessorConstructor = new (
 const registeredProcessors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
   IncludeProcessor,
+  // DigitalExperienceBundleProcessor must run before PackageGenerator: it
+  // reshapes work.changes (collapsing DigitalExperience members under their
+  // DigitalExperienceBundle), and PackageGenerator reads that ChangeSet.
   DigitalExperienceBundleProcessor,
 ]
 
