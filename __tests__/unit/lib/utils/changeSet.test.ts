@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ManifestElement } from '../../../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
-import ChangeSet from '../../../../src/utils/changeSet'
+import ChangeSet, { SHRINKABLE_TYPES } from '../../../../src/utils/changeSet'
 
 describe('ChangeSet', () => {
   describe('Given a fresh ChangeSet', () => {
@@ -358,15 +358,24 @@ describe('ChangeSet', () => {
       ]).toEqual([{ from: 'OldName', to: 'NewName' }])
     })
 
-    it('Given a non-shrinkable type, When removeMember is called, Then it throws to flag the missing SHRINKABLE_TYPES registration', () => {
-      // Arrange
+    it('Given a non-shrinkable type, When removeMember is called, Then it is a no-op (the entry stays in the manifest, uniform with the "absent entry" no-op)', () => {
+      // Arrange — ApexClass is intentionally not in SHRINKABLE_TYPES, so it is
+      // not tracked in `byCoord` and `removeMember` cannot reach it. The
+      // contract is documented: register a type in SHRINKABLE_TYPES when a new
+      // post-processor needs to remove it.
       const sut = new ChangeSet()
       sut.add(ChangeKind.Add, 'ApexClass', 'Foo')
 
-      // Act & Assert
-      expect(() =>
-        sut.removeMember(ManifestTarget.Package, 'ApexClass', 'Foo')
-      ).toThrow(/ApexClass.*SHRINKABLE_TYPES/)
+      // Act
+      sut.removeMember(ManifestTarget.Package, 'ApexClass', 'Foo')
+
+      // Assert
+      expect(sut.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Foo'])
+      )
+      expect(sut.byChangeKind()[ChangeKind.Add].get('ApexClass')).toEqual(
+        new Set(['Foo'])
+      )
     })
   })
 
@@ -412,32 +421,31 @@ describe('ChangeSet', () => {
       ])
     })
 
-    it('When the source has a shrinkable member, Then merge propagates the byCoord index so the destination can removeMember it', () => {
-      // Arrange — source carries a DigitalExperience (the only shrinkable
-      // type today), so merging must transfer its (target, type, member) →
-      // kind entry. If byCoord is not propagated, the post-merge
-      // `removeMember` is a silent no-op and the manifest keeps the stale
-      // entry.
-      const pageMember = 'site/Site_A.sfdc_cms__view/page_a'
+    it.each([
+      ...SHRINKABLE_TYPES,
+    ])('When the source has a shrinkable %s member, Then merge propagates the byCoord index so the destination can removeMember it', type => {
+      // Arrange — any type in SHRINKABLE_TYPES must round-trip through
+      // merge: addElement on the source populates byCoord, merge must copy
+      // it to the destination, and the destination's removeMember must then
+      // find the kind to clear both byTarget and byKind. If byCoord were
+      // not propagated, removeMember would silently no-op.
+      const member = 'rollup-test-member'
       const dst = new ChangeSet()
       const src = new ChangeSet()
       src.addElement({
         target: ManifestTarget.Package,
-        type: 'DigitalExperience',
-        member: pageMember,
+        type,
+        member,
         changeKind: ChangeKind.Add,
       })
 
       // Act
       dst.merge(src)
-      dst.removeMember(ManifestTarget.Package, 'DigitalExperience', pageMember)
+      dst.removeMember(ManifestTarget.Package, type, member)
 
-      // Assert — the merged entry was indexed in byCoord, so removeMember
-      // could find its kind and clear both byTarget and byKind.
-      expect(dst.forPackageManifest().has('DigitalExperience')).toBe(false)
-      expect(dst.byChangeKind()[ChangeKind.Add].has('DigitalExperience')).toBe(
-        false
-      )
+      // Assert
+      expect(dst.forPackageManifest().has(type)).toBe(false)
+      expect(dst.byChangeKind()[ChangeKind.Add].has(type)).toBe(false)
     })
   })
 })

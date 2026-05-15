@@ -26,10 +26,12 @@ const coordKey = (target: ManifestTarget, type: string, member: string) =>
 // shrinkable element costs one extra `byCoord` entry on `addElement`, so the
 // list is intentionally narrow — limited to the types a post-processor
 // actually reshapes after handler emission. Add a type here when introducing
-// a post-processor that needs to mutate the manifest for that type; calling
-// `removeMember` on a type outside this list throws to surface the omission
-// loudly instead of silently leaking a stale entry into the manifest.
-const SHRINKABLE_TYPES: ReadonlySet<string> = new Set([DIGITAL_EXPERIENCE_TYPE])
+// a post-processor that needs to mutate the manifest for that type;
+// `removeMember` on a type outside this list is a no-op (uniform with the
+// "entry not in manifest" no-op semantics).
+export const SHRINKABLE_TYPES: ReadonlySet<string> = new Set([
+  DIGITAL_EXPERIENCE_TYPE,
+])
 
 /**
  * Domain object that collects every component change observed in a diff and
@@ -99,15 +101,10 @@ export default class ChangeSet {
   // Coordinate-keyed inverse of `addElement` — removes a component from the
   // target and kind indices without the caller having to know `changeKind`,
   // which ChangeSet already tracks. Post-processors use it to reshape the
-  // manifest (e.g. collapsing entries covered by a coarser member). Removing
-  // an absent component is a no-op; renames are untouched. Only types in
-  // SHRINKABLE_TYPES are supported — calling on any other type throws.
+  // manifest (e.g. collapsing entries covered by a coarser member). No-op when
+  // the entry isn't tracked in `byCoord` — either it was never added, or its
+  // type isn't in `SHRINKABLE_TYPES`. Renames are untouched in either case.
   removeMember(target: ManifestTarget, type: string, member: string): void {
-    if (!SHRINKABLE_TYPES.has(type)) {
-      throw new Error(
-        `removeMember called on non-shrinkable type "${type}". Add it to SHRINKABLE_TYPES in changeSet.ts when a new post-processor needs to mutate this type.`
-      )
-    }
     const key = coordKey(target, type, member)
     const kind = this.byCoord.get(key)
     if (kind === undefined) return

@@ -30,6 +30,7 @@ export default class BundleRollupProcessor extends BaseProcessor {
 
     for (const element of elements) {
       if (
+        // Stryker disable next-line ConditionalExpression -- equivalent: flipping the type guard to `true` would also attempt to remove non-DE elements covered by a same-prefix bundle member, but `ChangeSet.removeMember` is a no-op for non-shrinkable types — so the post-process manifest is byte-identical to the original.
         element.type === DIGITAL_EXPERIENCE_TYPE &&
         this._isCoveredByBundle(element, bundleMembersByTarget)
       ) {
