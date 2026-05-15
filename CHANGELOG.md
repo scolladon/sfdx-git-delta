@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.44.2](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.1...v6.44.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* **metadata:** emit page-scoped DigitalExperience members ([#1305](https://github.com/scolladon/sfdx-git-delta/issues/1305)) ([ef64856](https://github.com/scolladon/sfdx-git-delta/commit/ef64856d32536f53ff7b75ec7746d87a2755512d))
+
 ## [6.44.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.0...v6.44.1) (2026-05-07)
 
 
