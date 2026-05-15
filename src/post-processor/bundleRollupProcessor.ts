@@ -12,13 +12,17 @@ import { MessageService } from '../utils/MessageService.js'
 
 import BaseProcessor from './baseProcessor.js'
 
-// A `DigitalExperienceBundle` member deploys (or deletes) every
-// `DigitalExperience` child of its site, so when both appear in the same
-// manifest the page-scoped `DigitalExperience` members are redundant. This
-// processor collapses them per manifest, and — because a whole-bundle deletion
-// is org-gated — warns when a `DigitalExperienceBundle` lands in
-// destructiveChanges.
-export default class DigitalExperienceBundleProcessor extends BaseProcessor {
+// Generic shape (one concrete pair today): a parent metadata type whose
+// member subsumes every child of the same site/bundle in the deploy contract.
+// For DigitalExperienceBundle → DigitalExperience, a DEB member deploys (or
+// deletes) every DE child, so DE entries covered by a same-manifest DEB are
+// redundant. This processor collapses them per manifest and — because a
+// whole-bundle deletion is org-gated — warns when a DEB lands in
+// destructiveChanges. When a second parent/child pair appears, generalize to
+// a `BundleRollupProcessor` that takes a list of (parentType, childType,
+// parentMemberOf) configs; until then we keep the implementation focused on
+// the only pair we have empirical deploy semantics for.
+export default class BundleRollupProcessor extends BaseProcessor {
   @log
   public override async process(): Promise<void> {
     const elements = this.work.changes.toElements()
@@ -29,7 +33,11 @@ export default class DigitalExperienceBundleProcessor extends BaseProcessor {
         element.type === DIGITAL_EXPERIENCE_TYPE &&
         this._isCoveredByBundle(element, bundleMembersByTarget)
       ) {
-        this.work.changes.removeElement(element)
+        this.work.changes.removeMember(
+          element.target,
+          element.type,
+          element.member
+        )
       }
     }
 

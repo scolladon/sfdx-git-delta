@@ -2,12 +2,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
-import DigitalExperienceBundleProcessor from '../../../../src/post-processor/digitalExperienceBundleProcessor'
+import BundleRollupProcessor from '../../../../src/post-processor/bundleRollupProcessor'
 import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import { getWork } from '../../../__utils__/testWork'
 
-describe('DigitalExperienceBundleProcessor', () => {
+describe('BundleRollupProcessor', () => {
   let work: Work
   // The processor never reads the metadata registry — a stub keeps the suite
   // fast without loading the real registry.
@@ -38,7 +38,7 @@ describe('DigitalExperienceBundleProcessor', () => {
       addPackage('DigitalExperience', 'site/foo.sfdc_cms__view/home')
       addPackage('DigitalExperience', 'site/foo.sfdc_cms__route/Home')
       addPackage('ApexClass', 'Untouched')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()
@@ -57,7 +57,7 @@ describe('DigitalExperienceBundleProcessor', () => {
       // Arrange
       addDestructive('DigitalExperienceBundle', 'site/foo')
       addDestructive('DigitalExperience', 'site/foo.sfdc_cms__view/home')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()
@@ -78,7 +78,7 @@ describe('DigitalExperienceBundleProcessor', () => {
       // Arrange
       addPackage('DigitalExperienceBundle', 'site/foo')
       addDestructive('DigitalExperience', 'site/foo.sfdc_cms__view/home')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()
@@ -96,7 +96,7 @@ describe('DigitalExperienceBundleProcessor', () => {
       // Arrange — `site/foo` must not cover `site/foobar.*`
       addPackage('DigitalExperienceBundle', 'site/foo')
       addPackage('DigitalExperience', 'site/foobar.sfdc_cms__view/home')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()
@@ -112,7 +112,7 @@ describe('DigitalExperienceBundleProcessor', () => {
     it('When process runs, Then the members are kept untouched', async () => {
       // Arrange
       addPackage('DigitalExperience', 'site/foo.sfdc_cms__view/home')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()
@@ -132,7 +132,7 @@ describe('DigitalExperienceBundleProcessor', () => {
       addPackage('DigitalExperienceBundle', 'site/bar')
       addPackage('DigitalExperience', 'site/foo.sfdc_cms__view/home')
       addPackage('DigitalExperience', 'site/bar.sfdc_cms__view/login')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()
@@ -152,7 +152,7 @@ describe('DigitalExperienceBundleProcessor', () => {
       // when another type's member happens to share the bundle's prefix
       addPackage('DigitalExperienceBundle', 'site/foo')
       addPackage('SomeOtherType', 'site/foo.sfdc_cms__view/home')
-      const sut = new DigitalExperienceBundleProcessor(work, metadata)
+      const sut = new BundleRollupProcessor(work, metadata)
 
       // Act
       await sut.process()

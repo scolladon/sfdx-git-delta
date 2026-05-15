@@ -287,7 +287,7 @@ copy ships just the changed file plus the page's two mandatory core files (`_met
 siblings (locales, css, media) stay in the org. Shorter paths (the bundle's own
 `*.digitalExperience-meta.xml`, or any non-canonical shallow path) keep the coarse
 `DigitalExperienceBundle` behaviour. Whole-bundle add/delete is collapsed back to a single
-`DigitalExperienceBundle` member by `DigitalExperienceBundleProcessor` (see Stage 5).
+`DigitalExperienceBundle` member by `BundleRollupProcessor` (see Stage 5).
 
 #### LwcHandler
 
@@ -366,7 +366,7 @@ flowchart TD
     end
 
     subgraph Processors
-        DEB["DigitalExperienceBundleProcessor"]
+        DEB["BundleRollupProcessor"]
         PG["PackageGenerator"]
         CM["ChangesManifestProcessor"]
     end
@@ -387,7 +387,7 @@ flowchart TD
 
 **Processors** (`isCollector = false`) run last via `executeRemaining()`, in registration order:
 
-- **DigitalExperienceBundleProcessor**: runs before `PackageGenerator` so it shapes the manifest the generator reads. Per manifest (`package` / `destructiveChanges` independently): when a `DigitalExperienceBundle` member is present it drops the redundant `DigitalExperience` members of that same site (`DigitalExperienceBundle` deploys/deletes every child), via `ChangeSet.removeElement`. It also warns when a `DigitalExperienceBundle` lands in `destructiveChanges` — whole-bundle deletion is org-gated on the Experience site being deactivated first.
+- **BundleRollupProcessor**: runs before `PackageGenerator` so it shapes the manifest the generator reads. Per manifest (`package` / `destructiveChanges` independently): when a `DigitalExperienceBundle` member is present it drops the redundant `DigitalExperience` members of that same site (`DigitalExperienceBundle` deploys/deletes every child), via `ChangeSet.removeMember`. It also warns when a `DigitalExperienceBundle` lands in `destructiveChanges` — whole-bundle deletion is org-gated on the Experience site being deactivated first. Today's implementation is specific to the DEB/DE pair; the class name leaves room for a generic parent/child rollup config when a second concrete pair appears.
 - **PackageGenerator**: writes `package.xml` (from `ChangeSet.forPackageManifest()`), `destructiveChanges.xml` (from `ChangeSet.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
 - **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serializes `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`, plus `rename` as `{from, to}` pairs when git `-M` detects component renames). Powered by the `changeKind` field carried on every `ManifestElement` for add/modify/delete and by `RenameResolver` feeding `ChangeSet.recordRename` for rename pairs.
 

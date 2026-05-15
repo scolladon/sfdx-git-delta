@@ -259,83 +259,82 @@ describe('ChangeSet', () => {
     })
   })
 
-  describe('removeElement', () => {
+  describe('removeMember', () => {
+    // Tests use `DigitalExperience` because it is the only type currently
+    // listed in SHRINKABLE_TYPES — the narrow gate `removeMember` enforces.
+    const DE = 'DigitalExperience'
+    const pageMember = 'site/Site_A.sfdc_cms__view/page_a'
+
     it('Given a package element, When removed, Then it is dropped from both the package view and the byChangeKind view', () => {
       // Arrange
       const sut = new ChangeSet()
-      const element: ManifestElement = {
+      sut.addElement({
         target: ManifestTarget.Package,
-        type: 'ApexClass',
-        member: 'Foo',
+        type: DE,
+        member: pageMember,
         changeKind: ChangeKind.Add,
-      }
-      sut.addElement(element)
+      })
 
       // Act
-      sut.removeElement(element)
+      sut.removeMember(ManifestTarget.Package, DE, pageMember)
 
       // Assert
-      expect(sut.forPackageManifest().has('ApexClass')).toBe(false)
-      expect(sut.byChangeKind()[ChangeKind.Add].has('ApexClass')).toBe(false)
+      expect(sut.forPackageManifest().has(DE)).toBe(false)
+      expect(sut.byChangeKind()[ChangeKind.Add].has(DE)).toBe(false)
     })
 
     it('Given a destructive element, When removed, Then it is dropped from both the destructive view and the byChangeKind view', () => {
       // Arrange
       const sut = new ChangeSet()
-      const element: ManifestElement = {
+      sut.addElement({
         target: ManifestTarget.DestructiveChanges,
-        type: 'ApexTrigger',
-        member: 'Old',
+        type: DE,
+        member: pageMember,
         changeKind: ChangeKind.Delete,
-      }
-      sut.addElement(element)
+      })
 
       // Act
-      sut.removeElement(element)
+      sut.removeMember(ManifestTarget.DestructiveChanges, DE, pageMember)
 
       // Assert
-      expect(sut.forDestructiveManifest().has('ApexTrigger')).toBe(false)
-      expect(sut.byChangeKind()[ChangeKind.Delete].has('ApexTrigger')).toBe(
-        false
-      )
+      expect(sut.forDestructiveManifest().has(DE)).toBe(false)
+      expect(sut.byChangeKind()[ChangeKind.Delete].has(DE)).toBe(false)
     })
 
     it('Given a type with several members, When one is removed, Then the type is kept with the remaining members', () => {
       // Arrange
       const sut = new ChangeSet()
-      sut.add(ChangeKind.Add, 'ApexClass', 'Kept')
-      sut.add(ChangeKind.Add, 'ApexClass', 'Removed')
+      sut.add(ChangeKind.Add, DE, 'site/Site_A.sfdc_cms__view/kept')
+      sut.add(ChangeKind.Add, DE, 'site/Site_A.sfdc_cms__view/removed')
 
       // Act
-      sut.removeElement({
-        target: ManifestTarget.Package,
-        type: 'ApexClass',
-        member: 'Removed',
-        changeKind: ChangeKind.Add,
-      })
+      sut.removeMember(
+        ManifestTarget.Package,
+        DE,
+        'site/Site_A.sfdc_cms__view/removed'
+      )
 
       // Assert
-      expect(sut.forPackageManifest().get('ApexClass')).toEqual(
-        new Set(['Kept'])
+      expect(sut.forPackageManifest().get(DE)).toEqual(
+        new Set(['site/Site_A.sfdc_cms__view/kept'])
       )
     })
 
     it('Given an element absent from the ChangeSet, When removed, Then it is a no-op', () => {
       // Arrange
       const sut = new ChangeSet()
-      sut.add(ChangeKind.Add, 'ApexClass', 'Kept')
+      sut.add(ChangeKind.Add, DE, 'site/Site_A.sfdc_cms__view/kept')
 
       // Act
-      sut.removeElement({
-        target: ManifestTarget.Package,
-        type: 'CustomObject',
-        member: 'Absent',
-        changeKind: ChangeKind.Add,
-      })
+      sut.removeMember(
+        ManifestTarget.Package,
+        DE,
+        'site/Site_A.sfdc_cms__view/absent'
+      )
 
       // Assert
-      expect(sut.forPackageManifest().get('ApexClass')).toEqual(
-        new Set(['Kept'])
+      expect(sut.forPackageManifest().get(DE)).toEqual(
+        new Set(['site/Site_A.sfdc_cms__view/kept'])
       )
     })
 
@@ -344,24 +343,30 @@ describe('ChangeSet', () => {
       const sut = new ChangeSet()
       sut.addElement({
         target: ManifestTarget.Package,
-        type: 'ApexClass',
-        member: 'Foo',
+        type: DE,
+        member: pageMember,
         changeKind: ChangeKind.Add,
       })
-      sut.recordRename('ApexClass', 'OldName', 'NewName')
+      sut.recordRename(DE, 'OldName', 'NewName')
 
       // Act
-      sut.removeElement({
-        target: ManifestTarget.Package,
-        type: 'ApexClass',
-        member: 'Foo',
-        changeKind: ChangeKind.Add,
-      })
+      sut.removeMember(ManifestTarget.Package, DE, pageMember)
 
       // Assert
       expect([
-        ...sut.byChangeKind()[ChangeKind.Rename].get('ApexClass')!.values(),
+        ...sut.byChangeKind()[ChangeKind.Rename].get(DE)!.values(),
       ]).toEqual([{ from: 'OldName', to: 'NewName' }])
+    })
+
+    it('Given a non-shrinkable type, When removeMember is called, Then it throws to flag the missing SHRINKABLE_TYPES registration', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, 'ApexClass', 'Foo')
+
+      // Act & Assert
+      expect(() =>
+        sut.removeMember(ManifestTarget.Package, 'ApexClass', 'Foo')
+      ).toThrow(/ApexClass.*SHRINKABLE_TYPES/)
     })
   })
 
@@ -405,6 +410,34 @@ describe('ChangeSet', () => {
       expect([...renameByKind.get('ApexTrigger')!.values()]).toEqual([
         { from: 'OldTrigger', to: 'NewTrigger' },
       ])
+    })
+
+    it('When the source has a shrinkable member, Then merge propagates the byCoord index so the destination can removeMember it', () => {
+      // Arrange — source carries a DigitalExperience (the only shrinkable
+      // type today), so merging must transfer its (target, type, member) →
+      // kind entry. If byCoord is not propagated, the post-merge
+      // `removeMember` is a silent no-op and the manifest keeps the stale
+      // entry.
+      const pageMember = 'site/Site_A.sfdc_cms__view/page_a'
+      const dst = new ChangeSet()
+      const src = new ChangeSet()
+      src.addElement({
+        target: ManifestTarget.Package,
+        type: 'DigitalExperience',
+        member: pageMember,
+        changeKind: ChangeKind.Add,
+      })
+
+      // Act
+      dst.merge(src)
+      dst.removeMember(ManifestTarget.Package, 'DigitalExperience', pageMember)
+
+      // Assert — the merged entry was indexed in byCoord, so removeMember
+      // could find its kind and clear both byTarget and byKind.
+      expect(dst.forPackageManifest().has('DigitalExperience')).toBe(false)
+      expect(dst.byChangeKind()[ChangeKind.Add].has('DigitalExperience')).toBe(
+        false
+      )
     })
   })
 })
