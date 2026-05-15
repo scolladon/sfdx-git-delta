@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ManifestElement } from '../../../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
-import ChangeSet from '../../../../src/utils/changeSet'
+import ChangeSet, { SHRINKABLE_TYPES } from '../../../../src/utils/changeSet'
 
 describe('ChangeSet', () => {
   describe('Given a fresh ChangeSet', () => {
@@ -259,6 +259,126 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('removeMember', () => {
+    // Tests use `DigitalExperience` because it is the only type currently
+    // listed in SHRINKABLE_TYPES — the narrow gate `removeMember` enforces.
+    const DE = 'DigitalExperience'
+    const pageMember = 'site/Site_A.sfdc_cms__view/page_a'
+
+    it('Given a package element, When removed, Then it is dropped from both the package view and the byChangeKind view', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.addElement({
+        target: ManifestTarget.Package,
+        type: DE,
+        member: pageMember,
+        changeKind: ChangeKind.Add,
+      })
+
+      // Act
+      sut.removeMember(ManifestTarget.Package, DE, pageMember)
+
+      // Assert
+      expect(sut.forPackageManifest().has(DE)).toBe(false)
+      expect(sut.byChangeKind()[ChangeKind.Add].has(DE)).toBe(false)
+    })
+
+    it('Given a destructive element, When removed, Then it is dropped from both the destructive view and the byChangeKind view', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.addElement({
+        target: ManifestTarget.DestructiveChanges,
+        type: DE,
+        member: pageMember,
+        changeKind: ChangeKind.Delete,
+      })
+
+      // Act
+      sut.removeMember(ManifestTarget.DestructiveChanges, DE, pageMember)
+
+      // Assert
+      expect(sut.forDestructiveManifest().has(DE)).toBe(false)
+      expect(sut.byChangeKind()[ChangeKind.Delete].has(DE)).toBe(false)
+    })
+
+    it('Given a type with several members, When one is removed, Then the type is kept with the remaining members', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, DE, 'site/Site_A.sfdc_cms__view/kept')
+      sut.add(ChangeKind.Add, DE, 'site/Site_A.sfdc_cms__view/removed')
+
+      // Act
+      sut.removeMember(
+        ManifestTarget.Package,
+        DE,
+        'site/Site_A.sfdc_cms__view/removed'
+      )
+
+      // Assert
+      expect(sut.forPackageManifest().get(DE)).toEqual(
+        new Set(['site/Site_A.sfdc_cms__view/kept'])
+      )
+    })
+
+    it('Given an element absent from the ChangeSet, When removed, Then it is a no-op', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, DE, 'site/Site_A.sfdc_cms__view/kept')
+
+      // Act
+      sut.removeMember(
+        ManifestTarget.Package,
+        DE,
+        'site/Site_A.sfdc_cms__view/absent'
+      )
+
+      // Assert
+      expect(sut.forPackageManifest().get(DE)).toEqual(
+        new Set(['site/Site_A.sfdc_cms__view/kept'])
+      )
+    })
+
+    it('Given recorded renames, When an unrelated element is removed, Then the renames are untouched', () => {
+      // Arrange
+      const sut = new ChangeSet()
+      sut.addElement({
+        target: ManifestTarget.Package,
+        type: DE,
+        member: pageMember,
+        changeKind: ChangeKind.Add,
+      })
+      sut.recordRename(DE, 'OldName', 'NewName')
+
+      // Act
+      sut.removeMember(ManifestTarget.Package, DE, pageMember)
+
+      // Assert
+      expect([
+        ...sut.byChangeKind()[ChangeKind.Rename].get(DE)!.values(),
+      ]).toEqual([{ from: 'OldName', to: 'NewName' }])
+    })
+
+    it('Given a non-shrinkable type, When removeMember is called, Then it is a no-op (the entry stays in the manifest, uniform with the "absent entry" no-op)', () => {
+      // Arrange — ApexClass is intentionally not in SHRINKABLE_TYPES, so it is
+      // not tracked in `byCoord` and `removeMember` cannot reach it. The
+      // contract is documented: register a type in SHRINKABLE_TYPES when a new
+      // post-processor needs to remove it.
+      const sut = new ChangeSet()
+      sut.add(ChangeKind.Add, 'ApexClass', 'Foo')
+
+      // Act
+      sut.removeMember(ManifestTarget.Package, 'ApexClass', 'Foo')
+
+      // Assert
+      expect(sut.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Foo'])
+      )
+      expect(sut.byChangeKind()[ChangeKind.Add].get('ApexClass')).toEqual(
+        new Set(['Foo'])
+      )
+    })
+  })
+
   describe('Given two ChangeSets merged together', () => {
     it('When the source has rename pairs, Then merge propagates them into the destination (changeSet L158-160)', () => {
       // Arrange — destination already has a couple of entries; source
@@ -299,6 +419,33 @@ describe('ChangeSet', () => {
       expect([...renameByKind.get('ApexTrigger')!.values()]).toEqual([
         { from: 'OldTrigger', to: 'NewTrigger' },
       ])
+    })
+
+    it.each([
+      ...SHRINKABLE_TYPES,
+    ])('When the source has a shrinkable %s member, Then merge propagates the byCoord index so the destination can removeMember it', type => {
+      // Arrange — any type in SHRINKABLE_TYPES must round-trip through
+      // merge: addElement on the source populates byCoord, merge must copy
+      // it to the destination, and the destination's removeMember must then
+      // find the kind to clear both byTarget and byKind. If byCoord were
+      // not propagated, removeMember would silently no-op.
+      const member = 'rollup-test-member'
+      const dst = new ChangeSet()
+      const src = new ChangeSet()
+      src.addElement({
+        target: ManifestTarget.Package,
+        type,
+        member,
+        changeKind: ChangeKind.Add,
+      })
+
+      // Act
+      dst.merge(src)
+      dst.removeMember(ManifestTarget.Package, type, member)
+
+      // Assert
+      expect(dst.forPackageManifest().has(type)).toBe(false)
+      expect(dst.byChangeKind()[ChangeKind.Add].has(type)).toBe(false)
     })
   })
 })

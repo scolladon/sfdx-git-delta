@@ -332,6 +332,16 @@ const testContext = [
     'DigitalExperienceBundle',
   ],
   [
+    'force-app/main/default/digitalExperiences/site/Site_A/Site_A.digitalExperience-meta.xml',
+    new Set(['site/Site_A']),
+    'DigitalExperienceBundle',
+  ],
+  [
+    'force-app/main/default/digitalExperiences/site/Site_A/sfdc_cms__view/page_a/content.json',
+    new Set(['site/Site_A.sfdc_cms__view/page_a']),
+    'DigitalExperience',
+  ],
+  [
     'force-app/main/default/quickActions/Account.New.quickAction-meta.xml',
     new Set(['Account.New']),
     'QuickAction',

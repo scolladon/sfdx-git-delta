@@ -7,6 +7,7 @@ import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 
 import BaseProcessor from './baseProcessor.js'
+import BundleRollupProcessor from './bundleRollupProcessor.js'
 import ChangesManifestProcessor from './changesManifestProcessor.js'
 import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
@@ -20,6 +21,10 @@ type ProcessorConstructor = new (
 const registeredProcessors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
   IncludeProcessor,
+  // BundleRollupProcessor must run before PackageGenerator: it reshapes
+  // work.changes (collapsing DigitalExperience members under their
+  // DigitalExperienceBundle), and PackageGenerator reads that ChangeSet.
+  BundleRollupProcessor,
 ]
 
 // PackageGenerator must run last among legacy processors — it writes the final

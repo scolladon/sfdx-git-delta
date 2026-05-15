@@ -1,5 +1,6 @@
 'use strict'
 
+import { DIGITAL_EXPERIENCE_TYPE } from '../constant/metadataConstants.js'
 import {
   type AddKind,
   ChangeKind,
@@ -12,12 +13,25 @@ export type RenamePair = Readonly<{ from: string; to: string }>
 // Keyed by type; each inner map dedupes pairs by `${from}\0${to}` so bundle
 // renames re-emitted per file collapse to a single entry. NUL is chosen as
 // the separator because Salesforce member names and git paths cannot contain
-// it, eliminating any collision surface across from/to boundaries.
+// it, eliminating any collision surface across from/to boundaries. The same
+// NUL separator is reused for `byCoord` keys for the same reason.
 export type RenameBucket = Map<string, Map<string, RenamePair>>
 
-const RENAME_KEY_SEPARATOR = '\0'
-const renameKey = (from: string, to: string) =>
-  `${from}${RENAME_KEY_SEPARATOR}${to}`
+const KEY_SEPARATOR = '\0'
+const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
+const coordKey = (target: ManifestTarget, type: string, member: string) =>
+  `${target}${KEY_SEPARATOR}${type}${KEY_SEPARATOR}${member}`
+
+// Types eligible for O(1) coordinate-keyed removal via `removeMember`. Each
+// shrinkable element costs one extra `byCoord` entry on `addElement`, so the
+// list is intentionally narrow — limited to the types a post-processor
+// actually reshapes after handler emission. Add a type here when introducing
+// a post-processor that needs to mutate the manifest for that type;
+// `removeMember` on a type outside this list is a no-op (uniform with the
+// "entry not in manifest" no-op semantics).
+export const SHRINKABLE_TYPES: ReadonlySet<string> = new Set([
+  DIGITAL_EXPERIENCE_TYPE,
+])
 
 /**
  * Domain object that collects every component change observed in a diff and
@@ -46,6 +60,11 @@ export default class ChangeSet {
     [ChangeKind.Modify]: new Map(),
     [ChangeKind.Delete]: new Map(),
   }
+  // Reverse index `(target, type, member) → changeKind` populated only for
+  // SHRINKABLE_TYPES. Lets `removeMember` look up the kind in O(1) without
+  // requiring the caller to carry it through — ChangeSet owns kind tracking
+  // via `addElement`, so re-declaring it on removal is redundant work.
+  private readonly byCoord: Map<string, AddKind> = new Map()
   private readonly renames: RenameBucket = new Map()
 
   static from(elements: readonly ManifestElement[]): ChangeSet {
@@ -70,15 +89,40 @@ export default class ChangeSet {
       element.type,
       element.member
     )
+    // Stryker disable next-line ConditionalExpression -- equivalent: flipping the guard to `true` populates `byCoord` for non-shrinkable types too, but `removeMember` throws on those before reading `byCoord`, so the wider index has no observable consequence beyond heap usage (which is precisely the cost this gate exists to avoid).
+    if (SHRINKABLE_TYPES.has(element.type)) {
+      this.byCoord.set(
+        coordKey(element.target, element.type, element.member),
+        element.changeKind
+      )
+    }
   }
 
-  // Diagnostic / test-only: reconstructs the (target, type, member, changeKind)
-  // tuples by joining byTarget × byKind on (type, member). Production diff
-  // lines never insert the same (type, member) under two different changeKind
-  // values, so the join is unambiguous in practice. Production code should
-  // use forPackageManifest / forDestructiveManifest / byChangeKind for the
-  // indexed views — this method exists only so tests can list inserted
-  // elements without paying a per-addElement push in the hot path.
+  // Coordinate-keyed inverse of `addElement` — removes a component from the
+  // target and kind indices without the caller having to know `changeKind`,
+  // which ChangeSet already tracks. Post-processors use it to reshape the
+  // manifest (e.g. collapsing entries covered by a coarser member). No-op when
+  // the entry isn't tracked in `byCoord` — either it was never added, or its
+  // type isn't in `SHRINKABLE_TYPES`. Renames are untouched in either case.
+  removeMember(target: ManifestTarget, type: string, member: string): void {
+    const key = coordKey(target, type, member)
+    const kind = this.byCoord.get(key)
+    if (kind === undefined) return
+    this._removeFromManifest(this.byTarget[target], type, member)
+    this._removeFromManifest(this.byKind[kind], type, member)
+    this.byCoord.delete(key)
+  }
+
+  // Reconstructs the (target, type, member, changeKind) tuples by joining
+  // byTarget × byKind on (type, member). Production diff lines never insert the
+  // same (type, member) under two different changeKind values, so the join is
+  // unambiguous in practice. Most callers use the indexed views
+  // (forPackageManifest / forDestructiveManifest / byChangeKind); this method
+  // serves the ones that need the full per-element tuples — primarily tests
+  // listing inserted elements, and post-processors enumerating candidates
+  // before reshaping the manifest via `removeMember`. It is reconstructed on
+  // demand rather than maintained as a hot-path structure, so call it once
+  // per pass, not per element.
   toElements(): ManifestElement[] {
     const targets = [
       ManifestTarget.Package,
@@ -157,6 +201,9 @@ export default class ChangeSet {
         }
       }
     }
+    for (const [key, kind] of other.byCoord) {
+      this.byCoord.set(key, kind)
+    }
     for (const [type, pairs] of other.renames) {
       for (const { from, to } of pairs.values()) {
         this.recordRename(type, from, to)
@@ -220,6 +267,21 @@ export default class ChangeSet {
       manifest.set(type, new Set())
     }
     manifest.get(type)!.add(member)
+  }
+
+  private _removeFromManifest(
+    manifest: Manifest,
+    type: string,
+    member: string
+  ): void {
+    // `removeMember` checks `byCoord` first, and `addElement` keeps `byCoord`,
+    // `byTarget`, and `byKind` in lockstep — so when this runs the type Set is
+    // guaranteed present. No defensive `?.` needed.
+    const members = manifest.get(type)!
+    members.delete(member)
+    if (members.size === 0) {
+      manifest.delete(type)
+    }
   }
 
   private _cloneManifest(manifest: Manifest): Manifest {
