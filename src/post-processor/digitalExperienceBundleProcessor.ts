@@ -60,11 +60,15 @@ export default class DigitalExperienceBundleProcessor extends BaseProcessor {
   ): boolean {
     const bundleMembers = bundleMembersByTarget.get(element.target)
     if (!bundleMembers) return false
-    for (const bundleMember of bundleMembers) {
-      // literal dot separator: `site/foo` must not swallow `site/foobar.<ct>/<cn>`
-      if (element.member.startsWith(`${bundleMember}${DOT}`)) return true
-    }
-    return false
+    // A canonical `DigitalExperience` member is `<base>/<space>.<ct>/<cn>` and
+    // `<space>` (a Salesforce API name) cannot contain `.`, so the first `.`
+    // delimits the parent bundle's member exactly. One Set lookup vs. an
+    // `O(B)` linear `startsWith` scan over `bundleMembers`.
+    const dotIdx = element.member.indexOf(DOT)
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement,BooleanLiteral -- equivalent/defensive: `BundleHandler.getElementDescriptor` constructs every `DigitalExperience` member as `<base>/<space>.<ct>/<cn>`, so a dotless member cannot reach this branch from the production pipeline.
+    /* v8 ignore next -- defensive: a DigitalExperience member without `.` is unreachable in production */
+    if (dotIdx < 0) return false
+    return bundleMembers.has(element.member.slice(0, dotIdx))
   }
 
   private _warnBundleDeletions(bundleMembers: Set<string> | undefined): void {
