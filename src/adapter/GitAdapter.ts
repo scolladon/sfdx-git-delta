@@ -210,6 +210,49 @@ export default class GitAdapter implements GitBlobReader {
     }
   }
 
+  /**
+   * One-shot buffered git invocation. Spawns `git <args>`, drains stdout
+   * fully, and returns the trimmed UTF-8 string. Used by callers that
+   * need the complete output as a single string (revparse, raw-style
+   * commands, config writes) rather than a line-by-line stream.
+   *
+   * Mirrors _spawnLines' exit-code handling: non-zero exits throw with
+   * the stderr tail (capped at STDERR_BUFFER_CAP) in the message.
+   * The .trim() matches the legacy `simpleGit({ trimmed: true })` contract.
+   */
+  protected async _gitBuffered(args: string[]): Promise<string> {
+    const child = this.spawnFn('git', args, {
+      cwd: this.config.repo,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    this._trackChild(child)
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+    let stderrLen = 0
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdoutChunks.push(chunk)
+    })
+    child.stderr.on('data', (chunk: Buffer) => {
+      if (stderrLen >= GitAdapter.STDERR_BUFFER_CAP) return
+      stderrChunks.push(chunk)
+      stderrLen += chunk.length
+    })
+    const code = await new Promise<number | null>((resolve, reject) => {
+      child.once('error', reject)
+      child.once('close', resolve)
+    })
+    if (code !== 0 && code !== null) {
+      const stderr = Buffer.concat(stderrChunks)
+        .subarray(0, GitAdapter.STDERR_BUFFER_CAP)
+        .toString('utf8')
+        .trim()
+      throw new Error(
+        `git ${args[0]} exited ${code}${stderr ? `: ${stderr}` : ''}`
+      )
+    }
+    return Buffer.concat(stdoutChunks).toString('utf8').trim()
+  }
+
   private _trackChild(child: ChildProcessWithoutNullStreams): void {
     this.streamingChildren.push(child)
     child.once('close', () => {

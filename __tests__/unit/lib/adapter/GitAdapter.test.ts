@@ -3293,4 +3293,107 @@ describe('GitAdapter', () => {
       expect(result).toEqual(['R\told.cls\tnew.cls'])
     })
   })
+
+  describe('_gitBuffered', () => {
+    const createBufferedFake = (
+      stdoutText: string,
+      stderrText = '',
+      exitCode: number | null = 0
+    ) => {
+      const stdout = new PassThrough()
+      const stderr = new PassThrough()
+      const fake = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout,
+        stderr,
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      process.nextTick(() => {
+        if (stdoutText.length > 0) stdout.write(stdoutText)
+        if (stderrText.length > 0) stderr.write(stderrText)
+        stdout.end()
+        stderr.end()
+        fake.emit('close', exitCode)
+      })
+      return fake
+    }
+
+    it('Given a git invocation that returns stdout, When _gitBuffered is awaited, Then it resolves with the trimmed stdout', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config) as GitAdapter & {
+        _gitBuffered: (args: string[]) => Promise<string>
+      }
+      const spawnFn = vi.fn((cmd: string, args: string[]) => {
+        spawnCalls.push({ cmd, args })
+        return createBufferedFake('  abc123\n\n') as never
+      })
+      gitAdapter.setSpawnFn(spawnFn)
+
+      // Act
+      const result = await gitAdapter._gitBuffered(['rev-parse', 'HEAD'])
+
+      // Assert
+      expect(result).toBe('abc123')
+      expect(spawnCalls).toContainEqual({
+        cmd: 'git',
+        args: ['rev-parse', 'HEAD'],
+      })
+    })
+
+    it('Given a git invocation that exits non-zero with stderr, When _gitBuffered is awaited, Then it rejects with the stderr tail in the message', async () => {
+      // Arrange
+      const gitAdapter = GitAdapter.getInstance(config) as GitAdapter & {
+        _gitBuffered: (args: string[]) => Promise<string>
+      }
+      const spawnFn = vi.fn(() => {
+        return createBufferedFake('', 'fatal: bad revision\n', 128) as never
+      })
+      gitAdapter.setSpawnFn(spawnFn)
+
+      // Act / Assert
+      await expect(
+        gitAdapter._gitBuffered(['rev-parse', 'bogus'])
+      ).rejects.toThrow('git rev-parse exited 128: fatal: bad revision')
+    })
+
+    it('Given a git invocation that exits with null code (signaled), When _gitBuffered is awaited, Then it resolves successfully', async () => {
+      // Arrange — null exit code matches _spawnLines' treatment of signaled exits
+      const gitAdapter = GitAdapter.getInstance(config) as GitAdapter & {
+        _gitBuffered: (args: string[]) => Promise<string>
+      }
+      const spawnFn = vi.fn(() => createBufferedFake('ok', '', null) as never)
+      gitAdapter.setSpawnFn(spawnFn)
+
+      // Act
+      const result = await gitAdapter._gitBuffered(['config', 'core.x', 'y'])
+
+      // Assert
+      expect(result).toBe('ok')
+    })
+
+    it('Given a stderr stream that exceeds the buffer cap, When _gitBuffered rejects, Then the error message stays bounded by the cap', async () => {
+      // Arrange — write 16 KB of stderr; cap is 8 KB
+      const huge = 'X'.repeat(16 * 1024)
+      const gitAdapter = GitAdapter.getInstance(config) as GitAdapter & {
+        _gitBuffered: (args: string[]) => Promise<string>
+      }
+      const spawnFn = vi.fn(() => createBufferedFake('', huge, 1) as never)
+      gitAdapter.setSpawnFn(spawnFn)
+
+      // Act
+      let captured: Error | undefined
+      try {
+        await gitAdapter._gitBuffered(['anything'])
+      } catch (err) {
+        captured = err as Error
+      }
+
+      // Assert
+      expect(captured).toBeDefined()
+      // Header "git anything exited 1: " is ~24 chars; stderr tail is the cap (8 KB)
+      expect(captured!.message.length).toBeLessThanOrEqual(8 * 1024 + 64)
+    })
+  })
 })
