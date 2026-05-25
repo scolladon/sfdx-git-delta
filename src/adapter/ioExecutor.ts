@@ -4,8 +4,6 @@ import { dirname, join } from 'node:path/posix'
 import type { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import { outputFile } from 'fs-extra'
-
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import type {
@@ -16,6 +14,7 @@ import { CopyOperationKind } from '../types/handlerResult.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
+import { outputFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
