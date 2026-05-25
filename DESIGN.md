@@ -461,7 +461,7 @@ Error types form a hierarchy:
 
 Every parallel operation uses `getConcurrencyThreshold()` from `src/utils/concurrencyUtils.ts`, which returns `min(availableParallelism(), 6)`. The cap at 6 is a deliberate CI/CD safety constraint — the plugin runs on small CI machines.
 
-The `async` library's `queue`, `eachLimit`, `mapLimit`, and `filterLimit` are used throughout. Unbounded `Promise.all` is never used for file or git operations.
+Bounded concurrency is provided by `src/utils/concurrency/` — an in-house module exposing `BoundedQueue<T>`, `eachLimit`, and `filterLimit`. `BoundedQueue` is the core primitive: synchronous `push`, idle-aware `drain`, fail-fast error propagation. `eachLimit` and `filterLimit` wrap it; `filterLimit` preserves input order in its output. Unbounded `Promise.all` is never used for file or git operations.
 
 ### Logging
 
