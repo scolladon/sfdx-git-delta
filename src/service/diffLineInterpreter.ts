@@ -51,9 +51,7 @@ export default class DiffLineInterpreter {
       processor.push(handler)
     }
 
-    if (!processor.idle()) {
-      await processor.drain()
-    }
+    await processor.drain()
 
     return { changes: sink, copies, warnings }
   }
