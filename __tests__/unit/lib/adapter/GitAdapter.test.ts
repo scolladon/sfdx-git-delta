@@ -3387,14 +3387,37 @@ describe('GitAdapter', () => {
       expect(result).toBe('ok')
     })
 
-    it('Given a stderr stream that exceeds the buffer cap, When _gitBuffered rejects, Then the error message stays bounded by the cap', async () => {
-      // Arrange — write 16 KB of stderr; cap is 8 KB
-      const huge = 'X'.repeat(16 * 1024)
+    it('Given a stderr stream that exceeds the buffer cap across multiple chunks, When _gitBuffered rejects, Then the error message stays bounded by the cap', async () => {
+      // Arrange — emit two stderr chunks. The first chunk fills the cap;
+      // the second must hit the early-return branch (stderrLen >= cap).
       const gitAdapter = GitAdapter.getInstance(config) as GitAdapter & {
         _gitBuffered: (args: string[]) => Promise<string>
       }
-      const spawnFn = vi.fn(() => createBufferedFake('', huge, 1) as never)
+      const stdout = new PassThrough()
+      const stderr = new PassThrough()
+      const fake = Object.assign(new EventEmitter(), {
+        stdin: { write: vi.fn(), end: vi.fn() },
+        stdout,
+        stderr,
+        killed: false,
+        exitCode: null as number | null,
+        kill: vi.fn(),
+      })
+      const spawnFn = vi.fn(() => fake as never)
       gitAdapter.setSpawnFn(spawnFn)
+      const firstChunk = 'X'.repeat(10 * 1024)
+      const secondChunk = 'Y'.repeat(4 * 1024)
+      process.nextTick(() => {
+        stderr.write(firstChunk)
+        process.nextTick(() => {
+          stderr.write(secondChunk)
+          process.nextTick(() => {
+            stdout.end()
+            stderr.end()
+            fake.emit('close', 1)
+          })
+        })
+      })
 
       // Act
       let captured: Error | undefined
@@ -3406,8 +3429,10 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(captured).toBeDefined()
-      // Header "git anything exited 1: " is ~24 chars; stderr tail is the cap (8 KB)
+      // Header "git anything exited 1: " is ~24 chars; stderr tail capped at 8 KB
       expect(captured!.message.length).toBeLessThanOrEqual(8 * 1024 + 64)
+      // Second chunk dropped at the >= cap guard, so its marker char is absent
+      expect(captured!.message).not.toContain('Y')
     })
   })
 })
