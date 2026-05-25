@@ -1,11 +1,10 @@
 'use strict'
 import type { Writable } from 'node:stream'
 
-import { deepEqual } from 'fast-equals'
-
 import type { ManifestElement } from '../../types/handlerResult.js'
 import type { SharedFileMetadata } from '../../types/metadata.js'
 import type { XmlContent } from '../xmlHelper.js'
+import { deepEqualJson } from './deepEqualJson.js'
 import type { RootCapture, SubTypeElementHandler } from './xmlEventReader.js'
 import { writeXmlDocument } from './xmlWriter.js'
 
@@ -227,7 +226,7 @@ export class StreamingDiff {
       return
     }
     fromMap.delete(key)
-    if (deepEqual(fromElem, element)) return
+    if (deepEqualJson(fromElem, element)) return
     this.recordModified(subType, key)
     this.retainSubTypeElement(subType, element)
   }
@@ -273,7 +272,7 @@ export class StreamingDiff {
     for (const [subType, toArr] of this.passTwo.toArrays.entries()) {
       // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in deepEqual, so the change-detected outcome is identical
       const fromArr = this.passOne.fromArrays.get(subType) ?? []
-      if (!deepEqual(fromArr, toArr)) {
+      if (!deepEqualJson(fromArr, toArr)) {
         this.hasAnyChanges = true
         this.hasSurvivingChange = true
         // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
@@ -307,7 +306,7 @@ export class StreamingDiff {
       // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
       const fromArr = this.passOne.fromKeyless.get(subType) ?? []
       // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasAnyChanges stay false and the writer short-circuits, leaving produced output empty (covered by the "drainKeyless deepEqual false path" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
-      const changed = fromArr.length === 0 || !deepEqual(fromArr, toArr)
+      const changed = fromArr.length === 0 || !deepEqualJson(fromArr, toArr)
       if (changed) this.hasAnyChanges = true
       // Legacy JsonTransformer retains keyless content unconditionally when
       // toMeta is non-empty (matches getPartialContentWithoutKey). Keep that
@@ -331,7 +330,7 @@ export class StreamingDiff {
       // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
       const fromArr = this.passOne.fromUnknown.get(subType) ?? []
       // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasAnyChanges stay false and the writer short-circuits, leaving produced output empty (covered by the "drainUnknown deepEqual false" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
-      const changed = fromArr.length === 0 || !deepEqual(fromArr, toArr)
+      const changed = fromArr.length === 0 || !deepEqualJson(fromArr, toArr)
       if (changed) this.hasAnyChanges = true
       /* v8 ignore start -- defensive: passTwo.toUnknown entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable */
       // Stryker disable next-line ConditionalExpression,EqualityOperator
