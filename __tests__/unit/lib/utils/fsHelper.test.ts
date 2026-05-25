@@ -1,5 +1,4 @@
 'use strict'
-import { outputFile } from 'fs-extra'
 import { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -14,13 +13,17 @@ import {
   resetWrittenFiles,
   writeFile,
 } from '../../../../src/utils/fsHelper'
+import { outputFile } from '../../../../src/utils/fsUtils'
 import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { getWork } from '../../../__utils__/testWork'
 
-vi.mock('fs-extra')
+vi.mock('../../../../src/utils/fsUtils', async orig => ({
+  ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
+  outputFile: vi.fn(),
+}))
 
 vi.mock('../../../../src/utils/ignoreHelper')
 

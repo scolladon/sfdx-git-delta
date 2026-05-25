@@ -1,13 +1,13 @@
 'use strict'
 import { PassThrough, Readable, Writable } from 'node:stream'
 
-import { outputFile } from 'fs-extra'
 import type { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EscalateToStreamingSignal } from '../../../../src/adapter/gitBlobReader'
 import IOExecutor from '../../../../src/adapter/ioExecutor'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
+import { outputFile } from '../../../../src/utils/fsUtils'
 import {
   buildIgnoreHelper,
   IgnoreHelper,
@@ -37,7 +37,10 @@ vi.mock('node:fs', async () => {
   }
 })
 
-vi.mock('fs-extra')
+vi.mock('../../../../src/utils/fsUtils', async orig => ({
+  ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
+  outputFile: vi.fn(),
+}))
 
 vi.mock('../../../../src/utils/ignoreHelper')
 

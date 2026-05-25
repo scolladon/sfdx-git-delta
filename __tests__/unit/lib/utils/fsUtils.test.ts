@@ -4,6 +4,7 @@ import {
   fs,
   isSamePath,
   isSubDir,
+  outputFile,
   pathExists,
   readFile,
   sanitizePath,
@@ -13,6 +14,8 @@ import { Logger } from '../../../../src/utils/LoggingService'
 
 const mockedReadFile = vi.spyOn(fs, 'readFile')
 const mockedAccess = vi.spyOn(fs, 'access')
+const mockedMkdir = vi.spyOn(fs, 'mkdir')
+const mockedWriteFile = vi.spyOn(fs, 'writeFile')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -238,5 +241,53 @@ describe('pathExists', () => {
     expect(result).toBe(false)
     expect(debugSpy).toHaveBeenCalled()
     debugSpy.mockRestore()
+  })
+})
+
+describe('outputFile', () => {
+  it('Given a destination and content, When called, Then mkdir is invoked recursively on the parent and writeFile writes the content', async () => {
+    // Arrange
+    mockedMkdir.mockResolvedValue(undefined as never)
+    mockedWriteFile.mockResolvedValue(undefined as never)
+
+    // Act
+    await outputFile('out/nested/dir/file.txt', 'payload')
+
+    // Assert
+    expect(mockedMkdir).toHaveBeenCalledWith('out/nested/dir', {
+      recursive: true,
+    })
+    expect(mockedWriteFile).toHaveBeenCalledWith(
+      'out/nested/dir/file.txt',
+      'payload'
+    )
+    // Ordering: mkdir must complete before writeFile is called so the parent
+    // directory exists. Kills the swap-order mutation.
+    const mkdirOrder = mockedMkdir.mock.invocationCallOrder[0]!
+    const writeOrder = mockedWriteFile.mock.invocationCallOrder[0]!
+    expect(mkdirOrder).toBeLessThan(writeOrder)
+  })
+
+  it('Given a Buffer payload, When called, Then writeFile receives the same Buffer reference', async () => {
+    // Arrange
+    mockedMkdir.mockResolvedValue(undefined as never)
+    mockedWriteFile.mockResolvedValue(undefined as never)
+    const buf = Buffer.from([0x01, 0x02, 0x03])
+
+    // Act
+    await outputFile('out/binary.bin', buf)
+
+    // Assert
+    expect(mockedWriteFile).toHaveBeenCalledWith('out/binary.bin', buf)
+  })
+
+  it('Given mkdir rejects, When called, Then the error propagates and writeFile is not invoked', async () => {
+    // Arrange
+    const boom = new Error('permission denied')
+    mockedMkdir.mockRejectedValue(boom as never)
+
+    // Act / Assert
+    await expect(outputFile('out/file.txt', 'payload')).rejects.toBe(boom)
+    expect(mockedWriteFile).not.toHaveBeenCalled()
   })
 })

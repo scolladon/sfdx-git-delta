@@ -1,5 +1,5 @@
 import * as fsImpl from 'node:fs/promises'
-import { isAbsolute, normalize, relative } from 'node:path/posix'
+import { dirname, isAbsolute, normalize, relative } from 'node:path/posix'
 
 import {
   PATH_SEP,
@@ -12,6 +12,8 @@ import { Logger, lazy } from './LoggingService.js'
 export const fs = {
   access: fsImpl.access,
   readFile: fsImpl.readFile,
+  mkdir: fsImpl.mkdir,
+  writeFile: fsImpl.writeFile,
 }
 
 export const treatPathSep = (data: string) =>
@@ -47,4 +49,15 @@ export const readFile = async (path: string) => {
     encoding: UTF8_ENCODING,
   })
   return file
+}
+
+// Replaces fs-extra's outputFile: creates the parent directory recursively
+// and writes the file in one step. Used by every code path that produces
+// SGD output, since the destination subtree may not exist yet.
+export const outputFile = async (
+  path: string,
+  content: string | Buffer
+): Promise<void> => {
+  await fs.mkdir(dirname(path), { recursive: true })
+  await fs.writeFile(path, content)
 }

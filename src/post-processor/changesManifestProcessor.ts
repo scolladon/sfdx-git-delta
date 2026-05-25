@@ -1,9 +1,9 @@
 'use strict'
 
-import { outputFile } from 'fs-extra'
 import { ChangeKind } from '../types/handlerResult.js'
 import type { Manifest } from '../types/work.js'
 import type { RenameBucket } from '../utils/changeSet.js'
+import { outputFile } from '../utils/fsUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import BaseProcessor from './baseProcessor.js'
 

@@ -1,13 +1,12 @@
 'use strict'
 import { join } from 'node:path/posix'
 
-import { outputFile } from 'fs-extra'
-
 import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
 import { getErrorMessage } from './errorUtils.js'
+import { outputFile } from './fsUtils.js'
 import { buildIgnoreHelper } from './ignoreHelper.js'
 import { Logger, lazy } from './LoggingService.js'
 
