@@ -1,14 +1,17 @@
 'use strict'
-import { outputFile } from 'fs-extra'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import ChangesManifestProcessor from '../../../../src/post-processor/changesManifestProcessor'
 import { ChangeKind } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import { outputFile } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/testWork'
 
-vi.mock('fs-extra')
+vi.mock('../../../../src/utils/fsUtils', async orig => ({
+  ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
+  outputFile: vi.fn(),
+}))
 
 describe('ChangesManifestProcessor', () => {
   let work: Work
