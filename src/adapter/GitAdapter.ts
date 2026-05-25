@@ -5,7 +5,6 @@ import { join } from 'node:path/posix'
 import { createInterface } from 'node:readline'
 import { PassThrough, type Readable } from 'node:stream'
 
-import { SimpleGit, simpleGit } from 'simple-git'
 import { TAB } from '../constant/cliConstants.js'
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
 import {
@@ -53,7 +52,6 @@ export default class GitAdapter implements GitBlobReader {
     return GitAdapter.instances.get(key)!
   }
 
-  protected readonly simpleGit: SimpleGit
   protected readonly treeIndex: Map<string, TreeIndex>
   protected batchCatFile: GitBatchCatFile | null = null
   // Live-only list of streaming subprocesses: children are appended when
@@ -72,8 +70,6 @@ export default class GitAdapter implements GitBlobReader {
   private spawnFn: SpawnFn = spawn as SpawnFn
 
   private constructor(protected readonly config: Config) {
-    // Stryker disable next-line ObjectLiteral,BooleanLiteral -- equivalent: simpleGit options shape internal to the library; tests stub simpleGit so option-shape mutations have no observable effect through the adapter API
-    this.simpleGit = simpleGit({ baseDir: config.repo, trimmed: true })
     this.treeIndex = new Map<string, TreeIndex>()
   }
 
@@ -114,14 +110,13 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async configureRepository() {
-    await this.simpleGit.addConfig('core.longpaths', 'true')
-    await this.simpleGit.addConfig('core.quotepath', 'off')
+    await this._gitBuffered(['config', 'core.longpaths', 'true'])
+    await this._gitBuffered(['config', 'core.quotepath', 'off'])
   }
 
   @log
   public async parseRev(ref: string) {
-    // Stryker disable next-line StringLiteral -- equivalent: '--verify' is the canonical revparse flag for resolving a ref; tests stub simpleGit.revparse so the flag is consumed by the mock without observable effect
-    return await this.simpleGit.revparse(['--verify', ref])
+    return await this._gitBuffered(['rev-parse', '--verify', ref])
   }
 
   @log
@@ -217,8 +212,9 @@ export default class GitAdapter implements GitBlobReader {
    * commands, config writes) rather than a line-by-line stream.
    *
    * Mirrors _spawnLines' exit-code handling: non-zero exits throw with
-   * the stderr tail (capped at STDERR_BUFFER_CAP) in the message.
-   * The .trim() matches the legacy `simpleGit({ trimmed: true })` contract.
+   * the stderr tail (capped at STDERR_BUFFER_CAP) in the message. Output
+   * is trimmed so callers receive the same shape they used to get from
+   * the legacy `simpleGit({ trimmed: true })` configuration.
    */
   protected async _gitBuffered(args: string[]): Promise<string> {
     const child = this.spawnFn('git', args, {
@@ -277,7 +273,7 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async getFirstCommitRef() {
-    return await this.simpleGit.raw(['rev-list', '--max-parents=0', HEAD])
+    return await this._gitBuffered(['rev-list', '--max-parents=0', HEAD])
   }
 
   public async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
@@ -552,7 +548,7 @@ export default class GitAdapter implements GitBlobReader {
   ): Promise<string[]> {
     try {
       const paths = Array.isArray(path) ? path : [path]
-      const result = await this.simpleGit.raw([
+      const result = await this._gitBuffered([
         'grep',
         '-l',
         pattern,
@@ -647,7 +643,7 @@ export default class GitAdapter implements GitBlobReader {
   //
   // A/M/D: streamed via _spawnLines + readline, per-line transform strips
   // the leading `N\tM\t` counts and rewrites them to the status prefix.
-  // R (NUL-delimited): buffered via simpleGit.raw because readline is
+  // R (NUL-delimited): buffered via _gitBuffered because readline is
   // newline-oriented and the whole-string split remains cheap for the
   // rare rename set.
   protected async _getNumstatLines(
@@ -684,7 +680,7 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   private async _getRenameLines(): Promise<string[]> {
-    const output = await this.simpleGit.raw([
+    const output = await this._gitBuffered([
       'diff',
       '--numstat',
       '-M',
