@@ -161,5 +161,18 @@ describe('deepEqualJson', () => {
       // Both have one key; "a" vs "b" — caught by hasOwnProperty guard
       expect(deepEqualJson({ a: undefined }, { b: undefined })).toBe(false)
     })
+
+    it('When one side has an inherited (non-own) property matching the other side own key, Then returns false', () => {
+      // Hardens against a `key in b` mutation: `in` would walk the prototype
+      // chain and report `true` for inherited properties, defeating the
+      // own-keys-only contract.
+      const proto = { shared: 'inherited' }
+      const a = { shared: 'inherited' }
+      const bInherits = Object.create(proto) as Record<string, unknown>
+      // bInherits has zero own keys; key counts differ → false even before the
+      // hasOwn check. Add an own decoy to force same length without own match.
+      bInherits['decoy'] = 'x'
+      expect(deepEqualJson(a, bInherits)).toBe(false)
+    })
   })
 })
