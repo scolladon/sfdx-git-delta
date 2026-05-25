@@ -1,5 +1,4 @@
-import { filterLimit } from 'async'
-
+import { filterLimit } from './concurrency/index.js'
 import { getConcurrencyThreshold } from './concurrencyUtils.js'
 
 const asyncFilter = async (

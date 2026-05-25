@@ -4,7 +4,6 @@ import { dirname, join } from 'node:path/posix'
 import type { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
-import { eachLimit } from 'async'
 import { outputFile } from 'fs-extra'
 
 import type { Config } from '../types/config.js'
@@ -14,6 +13,7 @@ import type {
   StreamedContentOperation,
 } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
+import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'

@@ -1,11 +1,10 @@
 'use strict'
-import { queue } from 'async'
-
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import ChangeSet from '../utils/changeSet.js'
+import { BoundedQueue } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import StandardHandler from './standardHandler.js'
@@ -38,7 +37,7 @@ export default class DiffLineInterpreter {
     const warnings: Error[] = []
     const MAX_PARALLELISM = getConcurrencyThreshold()
 
-    const processor = queue(async (handler: StandardHandler) => {
+    const processor = new BoundedQueue<StandardHandler>(async handler => {
       const result = await handler.collect(sink)
       pushAll(copies, result.copies)
       pushAll(warnings, result.warnings)
