@@ -1,0 +1,13 @@
+import { defineConfig } from 'vitest/config'
+
+export const sharedTestConfig = defineConfig({
+  test: {
+    globals: false,
+    environment: 'node',
+    clearMocks: true,
+    exclude: ['src', 'node_modules', '__tests__/__utils__', 'reports', 'e2e'],
+  },
+  resolve: {
+    alias: [{ find: /^(.+)\.js$/, replacement: '$1' }],
+  },
+})

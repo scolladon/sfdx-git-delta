@@ -2,8 +2,6 @@
 import { join, parse } from 'node:path/posix'
 import type { Writable } from 'node:stream'
 
-import { eachLimit } from 'async'
-
 import {
   FLOW_XML_NAME,
   META_REGEX,
@@ -20,6 +18,7 @@ import {
   ManifestTarget,
 } from '../types/handlerResult.js'
 import type { Work } from '../types/work.js'
+import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { grepContent, readPathFromGit } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
