@@ -9,7 +9,7 @@
     "exactOptionalPropertyTypes": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
+    "importHelpers": false,
     "noImplicitAny": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
