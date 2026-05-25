@@ -261,6 +261,11 @@ describe('outputFile', () => {
       'out/nested/dir/file.txt',
       'payload'
     )
+    // Ordering: mkdir must complete before writeFile is called so the parent
+    // directory exists. Kills the swap-order mutation.
+    const mkdirOrder = mockedMkdir.mock.invocationCallOrder[0]!
+    const writeOrder = mockedWriteFile.mock.invocationCallOrder[0]!
+    expect(mkdirOrder).toBeLessThan(writeOrder)
   })
 
   it('Given a Buffer payload, When called, Then writeFile receives the same Buffer reference', async () => {
