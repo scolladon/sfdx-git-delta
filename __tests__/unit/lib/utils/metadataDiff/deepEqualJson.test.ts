@@ -74,6 +74,15 @@ describe('deepEqualJson', () => {
       const a = [1, 2, [3]]
       expect(deepEqualJson(a, a)).toBe(true)
     })
+
+    it('When nested children share a reference, Then the work-stack short-circuits on identity for the sub-tree', () => {
+      // Shared nested object lands on the work stack; the in-loop `ai === bi`
+      // identity check makes the comparison skip its sub-tree entirely.
+      const shared = { inner: { deep: 'value' } }
+      const a = { wrapper: shared, other: 'x' }
+      const b = { wrapper: shared, other: 'x' }
+      expect(deepEqualJson(a, b)).toBe(true)
+    })
   })
 
   describe('Given empty structures', () => {
