@@ -189,14 +189,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       const code = await exitPromise
       if (code !== 0 && code !== null) {
-        // Stryker disable next-line MethodExpression -- equivalent: the trim() at the end strips trailing newlines from git stderr; the test for non-zero exit uses a synthetic stderr without trailing whitespace, so the trim is a no-op here
-        const stderr = Buffer.concat(stderrChunks)
-          .subarray(0, GitAdapter.STDERR_BUFFER_CAP)
-          .toString('utf8')
-          .trim()
-        throw new Error(
-          `git ${args[0]} exited ${code}${stderr ? `: ${stderr}` : ''}`
-        )
+        throw this._buildExitError(args, code, stderrChunks)
       }
     } finally {
       rl.close()
@@ -238,15 +231,27 @@ export default class GitAdapter implements GitBlobReader {
       child.once('close', resolve)
     })
     if (code !== 0 && code !== null) {
-      const stderr = Buffer.concat(stderrChunks)
-        .subarray(0, GitAdapter.STDERR_BUFFER_CAP)
-        .toString('utf8')
-        .trim()
-      throw new Error(
-        `git ${args[0]} exited ${code}${stderr ? `: ${stderr}` : ''}`
-      )
+      throw this._buildExitError(args, code, stderrChunks)
     }
     return Buffer.concat(stdoutChunks).toString('utf8').trim()
+  }
+
+  // Shared by _spawnLines and _gitBuffered: build the rejection thrown when
+  // git exits with a non-zero, non-null code. Captures the stderr tail
+  // (capped at STDERR_BUFFER_CAP) into the message for diagnostics.
+  private _buildExitError(
+    args: string[],
+    code: number,
+    stderrChunks: Buffer[]
+  ): Error {
+    // Stryker disable next-line MethodExpression -- equivalent: trim() strips trailing newlines from git stderr; tests synthesise stderr without trailing whitespace
+    const stderr = Buffer.concat(stderrChunks)
+      .subarray(0, GitAdapter.STDERR_BUFFER_CAP)
+      .toString('utf8')
+      .trim()
+    return new Error(
+      `git ${args[0]} exited ${code}${stderr ? `: ${stderr}` : ''}`
+    )
   }
 
   private _trackChild(child: ChildProcessWithoutNullStreams): void {
