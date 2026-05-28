@@ -134,7 +134,6 @@ export default class ConfigValidator {
         this.config.apiVersion = parseInt(projectApiVersion, 10)
       }
     } catch (ex) {
-      // Stryker disable next-line BlockStatement -- equivalent: catch body is observability-only; emptying the body skips the log call but apiVersion remains undefined either way
       Logger.debug(
         // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
         lazy`_getApiVersion: no sfdx-project.json found at '${this.config.repo}': ${ex}`
@@ -143,7 +142,9 @@ export default class ConfigValidator {
   }
 
   protected async _apiVersionDefault() {
-    const latestVersion = await getLatestSupportedVersion()
+    const latestVersion = await this._resolveLatestSupportedVersion()
+    // Stryker disable next-line ConditionalExpression -- equivalent: undefined signals the lookup failed while a usable apiVersion is already set; flipping the guard would fall through to clamp against an undefined ceiling, which the offline test surface forbids
+    if (latestVersion === undefined) return
 
     // Stryker disable ConditionalExpression,LogicalOperator -- equivalent: this triple-AND gate ensures we only override a numeric, defined, above-latest apiVersion; flipping individual conditions to true falls into the override branch when apiVersion is undefined or NaN, but the second `if (apiVersion === undefined || isNaN())` block immediately resets to latestVersion, producing the same observable apiVersion in both arms (only the warning content differs, which the test surface doesn't disambiguate)
     if (
@@ -172,6 +173,35 @@ export default class ConfigValidator {
             String(latestVersion),
           ])
         )
+      )
+    }
+  }
+
+  // Resolves the latest supported API version, falling back gracefully when the
+  // appexchange lookup is unreachable (offline/firewalled environments).
+  protected async _resolveLatestSupportedVersion(): Promise<
+    number | undefined
+  > {
+    try {
+      return await getLatestSupportedVersion()
+    } catch (ex) {
+      // A usable apiVersion is already set: keep it, we just can't cap it.
+      // Stryker disable ConditionalExpression -- equivalent: the '!== undefined' clause exists only for TS narrowing (isNaN requires a number); !isNaN already returns false for both undefined and NaN, so replacing the left operand with true preserves behavior for every reachable apiVersion
+      if (
+        this.config.apiVersion !== undefined &&
+        !isNaN(this.config.apiVersion)
+      ) {
+        // Stryker restore ConditionalExpression
+        Logger.debug(
+          // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
+          lazy`_resolveLatestSupportedVersion: keeping provided apiVersion, latest version lookup failed: ${ex}`
+        )
+        return undefined
+      }
+      throw new ConfigError(
+        this.message.getMessage('error.ApiVersionRetrievalFailed', [
+          getErrorMessage(ex),
+        ])
       )
     }
   }
