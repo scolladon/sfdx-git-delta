@@ -5,6 +5,7 @@ import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Work } from '../../../../src/types/work'
 import ConfigValidator from '../../../../src/utils/configValidator'
 import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
+import { Logger } from '../../../../src/utils/LoggingService'
 import { getWork } from '../../../__utils__/testWork'
 
 const {
@@ -427,6 +428,70 @@ describe('Given a ConfigValidator', () => {
       })
     })
 
+    describe('when the latest version lookup fails (e.g. offline)', () => {
+      beforeEach(() => {
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+          new Error(
+            'Unable to get a current API version from the appexchange org'
+          )
+        )
+      })
+
+      describe('when apiVersion is provided', () => {
+        it('When the lookup fails, Then the provided apiVersion is kept without warning', async () => {
+          // Arrange
+          work.config.apiVersion = 46
+          const sut = new ConfigValidator(work)
+
+          // Act
+          await sut['_handleDefault']()
+
+          // Assert
+          expect(work.config.apiVersion).toEqual(46)
+          expect(work.warnings).toHaveLength(0)
+        })
+      })
+
+      describe('when apiVersion is not resolvable', () => {
+        it('When the lookup fails and no version is available, Then it throws an actionable ConfigError', async () => {
+          // Arrange
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          work.config.apiVersion = undefined
+          const sut = new ConfigValidator(work)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message: expect.stringContaining(
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org'
+              ),
+            })
+          )
+        })
+      })
+
+      describe('when apiVersion is NaN', () => {
+        it('When the lookup fails and apiVersion is NaN, Then it throws an actionable ConfigError', async () => {
+          // Arrange
+          work.config.apiVersion = NaN
+          const sut = new ConfigValidator(work)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message: expect.stringContaining(
+                'error.ApiVersionRetrievalFailed'
+              ),
+            })
+          )
+        })
+      })
+    })
+
     describe('when apiVersion equals the latest supported version', () => {
       it('When apiVersion equals latestVersion, Then no warning and no override', async () => {
         // Arrange
@@ -495,6 +560,23 @@ describe('Given a ConfigValidator', () => {
         expect(work.warnings[0].message).toContain(
           'warning.ApiVersionDefaulted'
         )
+      })
+    })
+
+    describe('_getApiVersion diagnostic logging', () => {
+      it('When sfdx-project.json resolution fails, Then the failure is logged for diagnostics', async () => {
+        // Arrange
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        work.config.apiVersion = undefined
+        const sut = new ConfigValidator(work)
+
+        // Act
+        await sut['_getApiVersion']()
+
+        // Assert
+        expect(Logger.debug).toHaveBeenCalledOnce()
       })
     })
 

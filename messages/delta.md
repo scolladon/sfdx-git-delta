@@ -104,6 +104,10 @@ API version '%s' is not supported, using '%s' instead
 
 No API version found (no --api-version flag, no sourceApiVersion in sfdx-project.json), using '%s'
 
+# error.ApiVersionRetrievalFailed
+
+Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: %s
+
 # warning.MalformedXML
 
 could not process '%s', please ensure it is properly formatted xml in both '%s' and '%s' revision

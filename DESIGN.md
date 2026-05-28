@@ -33,7 +33,7 @@ Validates and normalizes user inputs:
 
 - Resolves symbolic git refs (`HEAD`, branch names) to full SHA via `git rev-parse`
 - Validates that `from` and `to` SHAs exist in the repository
-- Defaults `apiVersion` from `sfdx-project.json` or the latest SDR version; caps at the max supported version
+- Defaults `apiVersion` from `sfdx-project.json` or the latest SDR version; caps at the max supported version. The latest-version lookup is a live call to the appexchange org: when it is unreachable (offline/firewalled) a provided `apiVersion` is kept as-is, otherwise a `ConfigError` advises supplying one
 - Sanitizes file paths (output dir, source dirs, ignore files)
 
 Fatal errors (`ConfigError`) at this stage abort the pipeline entirely. This is one of only two places where exceptions propagate to the CLI layer.
