@@ -67,7 +67,7 @@ flowchart LR
 | Index | Key | Use case |
 | ----- | --- | -------- |
 | `extIndex` | File extension (`.cls`, `.trigger`) | Primary lookup for most types |
-| `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous — picks deepest match, stops at `inFolder` types |
+| `dirIndex` | Directory name (`classes`, `triggers`) | Fallback when extension is ambiguous — picks deepest match, stops at `inFolder` types and content containers (SDR adapters `bundle`/`digitalExperience`/`mixedContent`) so a nested content folder colliding with a metadata directory name (e.g. an `icons/` folder inside a StaticResource) cannot override the container type |
 | `xmlNameIndex` | XML name (`ApexClass`, `ApexTrigger`) | Direct lookup by type name, exposed as `getByXmlName(xmlName)` on the interface for handler-resolution and parent-type lookup |
 
 ### Key Metadata Fields

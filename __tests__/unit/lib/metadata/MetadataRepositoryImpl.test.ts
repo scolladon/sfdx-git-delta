@@ -85,6 +85,7 @@ describe('MetadataRepositoryImpl', () => {
         xmlName: 'CustomObject',
       },
       {
+        adapter: 'matchingContentFile',
         directoryName: 'classes',
         inFolder: false,
         metaFile: true,
@@ -92,17 +93,26 @@ describe('MetadataRepositoryImpl', () => {
         xmlName: 'ApexClass',
       },
       {
+        adapter: 'bundle',
         directoryName: 'lwc',
         inFolder: false,
         metaFile: false,
         xmlName: 'LightningComponentBundle',
       },
       {
+        adapter: 'mixedContent',
         directoryName: 'staticresources',
         inFolder: false,
         metaFile: true,
         suffix: 'resource',
         xmlName: 'StaticResource',
+      },
+      {
+        directoryName: 'icons',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'icon',
+        xmlName: 'Icon',
       },
       {
         directoryName: 'emailservices',
@@ -126,11 +136,19 @@ describe('MetadataRepositoryImpl', () => {
         xmlName: 'SiteDotCom',
       },
       {
+        adapter: 'mixedContent',
         directoryName: 'experiences',
         inFolder: false,
         metaFile: true,
         suffix: 'site',
         xmlName: 'ExperienceBundle',
+      },
+      {
+        adapter: 'digitalExperience',
+        directoryName: 'digitalExperiences',
+        inFolder: false,
+        metaFile: false,
+        xmlName: 'DigitalExperienceBundle',
       },
       {
         directoryName: 'portals',
@@ -262,6 +280,52 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(result).toStrictEqual(
           expect.objectContaining({ directoryName: 'experiences' })
+        )
+      })
+
+      it('matches the mixedContent container type when a nested content folder collides with a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/staticresources/myResource/assets/icons/new.svg'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'staticresources' })
+        )
+      })
+
+      it('matches the bundle container type when a nested content folder collides with a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/lwc/myComponent/icons/spinner.svg'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'lwc' })
+        )
+      })
+
+      it('matches the digitalExperience container type when a nested content folder collides with a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/digitalExperiences/site/home/classes/data.json'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'digitalExperiences' })
+        )
+      })
+
+      it('keeps matching the deepest type when a non-container type owns a colliding nested folder', () => {
+        // Act
+        const result = sut.get('Z force-app/main/classes/sub/icons/glyph.svg')
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'icons' })
         )
       })
 
