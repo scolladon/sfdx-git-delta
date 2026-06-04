@@ -117,21 +117,25 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       const found = this.metadataPerDir.get(part)
       if (found) {
         metadata = found
-        // inFolder types and content containers own everything below their
-        // directory: deeper segments are user-named content, so a nested
-        // folder that happens to match another type's directoryName (e.g. an
-        // `icons/` folder inside a StaticResource) must not override it.
-        if (found.inFolder || this.ownsNestedContent(found)) break
+        // Stop at any type that owns every path nested below its directory, so
+        // a deeper folder matching another type's directoryName (e.g. an
+        // `icons/` folder inside a StaticResource) cannot override it.
+        if (this.ownsNestedPaths(found)) break
       }
     }
     return metadata
   }
 
-  protected ownsNestedContent(metadata: Metadata): boolean {
+  // A type owns its nested paths when it is folder-organized (`inFolder`, e.g.
+  // Report/Dashboard) or a content container (SDR adapter bundle/
+  // digitalExperience/mixedContent, e.g. LWC/StaticResource). In both cases the
+  // segments below its directory are user-named content, not metadata dirs.
+  protected ownsNestedPaths(metadata: Metadata): boolean {
     return (
+      metadata.inFolder ||
       // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
-      metadata.adapter !== undefined &&
-      CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)
+      (metadata.adapter !== undefined &&
+        CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter))
     )
   }
 
