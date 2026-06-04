@@ -1,9 +1,13 @@
 'use strict'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
+import { CONTENT_CONTAINER_ADAPTERS } from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Metadata } from '../types/metadata.js'
 
+// Bundle-style adapters get a deeper scope slice in scopeForType than the
+// flat mixedContent containers, so this stays distinct from the broader
+// CONTENT_CONTAINER_ADAPTERS membership used by needsTreeIndex.
 const BUNDLE_ADAPTERS = new Set(['bundle', 'digitalExperience'])
 
 const TREE_INDEX_XML_NAMES = new Set([
@@ -20,11 +24,7 @@ const TREE_INDEX_XML_NAMES = new Set([
 const needsTreeIndex = (type: Metadata): boolean => {
   if (type.xmlName && TREE_INDEX_XML_NAMES.has(type.xmlName)) return true
   if (type.inFolder) return true
-  if (
-    type.adapter &&
-    (BUNDLE_ADAPTERS.has(type.adapter) || type.adapter === 'mixedContent')
-  )
-    return true
+  if (type.adapter && CONTENT_CONTAINER_ADAPTERS.has(type.adapter)) return true
   return false
 }
 
