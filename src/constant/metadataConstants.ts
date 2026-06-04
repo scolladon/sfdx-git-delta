@@ -1,4 +1,14 @@
 'use strict'
+// SDR adapters whose component is a directory owning an opaque content subtree
+// (StaticResource/ExperienceBundle/Document via mixedContent, Aura/LWC via
+// bundle, DigitalExperienceBundle via digitalExperience). When such a type is
+// matched while resolving a path, deeper segments are user-named content — not
+// metadata directories — so type resolution must stop there.
+export const CONTENT_CONTAINER_ADAPTERS = new Set([
+  'bundle',
+  'digitalExperience',
+  'mixedContent',
+])
 export const CUSTOM_APPLICATION_SUFFIX = 'app'
 export const CUSTOM_METADATA_SUFFIX = 'md'
 export const DIGITAL_EXPERIENCE_BUNDLE_TYPE = 'DigitalExperienceBundle'

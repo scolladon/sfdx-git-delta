@@ -4,6 +4,7 @@ import { parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {
+  CONTENT_CONTAINER_ADAPTERS,
   CUSTOM_APPLICATION_SUFFIX,
   CUSTOM_METADATA_SUFFIX,
   EMAIL_SERVICES_FUNCTION_SUFFIX,
@@ -116,10 +117,22 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       const found = this.metadataPerDir.get(part)
       if (found) {
         metadata = found
-        if (found.inFolder) break
+        // inFolder types and content containers own everything below their
+        // directory: deeper segments are user-named content, so a nested
+        // folder that happens to match another type's directoryName (e.g. an
+        // `icons/` folder inside a StaticResource) must not override it.
+        if (found.inFolder || this.ownsNestedContent(found)) break
       }
     }
     return metadata
+  }
+
+  protected ownsNestedContent(metadata: Metadata): boolean {
+    return (
+      // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
+      metadata.adapter !== undefined &&
+      CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)
+    )
   }
 
   protected searchByXmlName(xmlName: string): Metadata | undefined {
