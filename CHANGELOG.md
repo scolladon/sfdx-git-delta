@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.44.5](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.4...v6.44.5) (2026-06-04)
+
+
+### Bug Fixes
+
+* detect changes in nested content-container folders (StaticResource, bundles) ([#1322](https://github.com/scolladon/sfdx-git-delta/issues/1322)) ([e41f345](https://github.com/scolladon/sfdx-git-delta/commit/e41f345c2d38045109082da6beccd4789a2d6076))
+
 ## [6.44.4](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.3...v6.44.4) (2026-05-28)
 
 
