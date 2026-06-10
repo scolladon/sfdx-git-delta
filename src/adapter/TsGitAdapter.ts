@@ -319,9 +319,10 @@ export default class TsGitAdapter implements GitBlobReader {
       const paths = Array.isArray(path) ? path : [path]
       const blobIds = await this.indexRevision(revision)
       const matcher = new RegExp(pattern)
+      const matchesPathspec = buildPathspecMatcher(paths)
       const matches: string[] = []
       for (const [filePath, blobId] of blobIds) {
-        if (!inScope(filePath, paths)) continue
+        if (!matchesPathspec(filePath)) continue
         const blob = await repo.primitives.readBlob(blobId)
         if (matcher.test(Buffer.from(blob.content).toString(UTF8_ENCODING))) {
           matches.push(filePath)
@@ -552,6 +553,35 @@ const inScope = (path: string, scopes: string[]): boolean =>
 
 const joinPath = (prefix: string, name: string): string =>
   prefix ? `${prefix}/${name}` : name
+
+const GLOB_CHARS = /[*?[]/
+const REGEXP_SPECIALS = /[.+^${}()|\\\]]/g
+
+// Git pathspec semantics: a literal pathspec matches by directory prefix; a
+// pathspec containing wildcards uses wildmatch where `*` also crosses `/`
+// (no `:(glob)` magic). Callers mix both shapes (e.g. flow translations use
+// `<source>/*.translation-meta.xml`).
+const buildPathspecMatcher = (specs: string[]): ((path: string) => boolean) => {
+  // Git normalizes leading `./` (and the `.//*` shape produced by the
+  // default `./` source dir) away before matching; repo paths never carry
+  // either prefix.
+  const normalized = specs.map(spec =>
+    spec.replace(/^(\.\/)+/, '').replace(/^\/+/, '')
+  )
+  const literals = normalized.filter(spec => !GLOB_CHARS.test(spec))
+  const globs = normalized
+    .filter(spec => GLOB_CHARS.test(spec))
+    .map(spec => {
+      const escaped = spec
+        .replace(REGEXP_SPECIALS, '\\$&')
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.')
+      return new RegExp(`^${escaped}$`)
+    })
+  return (path: string): boolean =>
+    (literals.length > 0 && inScope(path, literals)) ||
+    globs.some(glob => glob.test(path))
+}
 
 // Exact-rename detection: pair an added and a deleted path carrying the
 // same blob id (similarity 100%). Content-similarity renames (< 100%) are

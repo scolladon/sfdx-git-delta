@@ -26,7 +26,16 @@ import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { GitBatchCatFile } from './gitBatchCatFile.js'
 import type { GitBlobReader, SpawnFn } from './gitBlobReader.js'
+import TsGitAdapter from './TsGitAdapter.js'
 import { TreeIndex } from './treeIndex.js'
+
+// SPIKE: opt-in pure-TypeScript git backend (@scolladon/tsgit). The two
+// classes share the same public surface but no common base class yet; the
+// cast is the spike-level seam, to be replaced by a proper port interface
+// if the backend is promoted.
+const TSGIT_BACKEND = 'tsgit'
+const isTsGitBackend = (): boolean =>
+  process.env['SGD_GIT_BACKEND'] === TSGIT_BACKEND
 
 const LFS_MAGIC = Buffer.from('version https://git-lfs.github.com/spec/v1\n')
 
@@ -44,6 +53,9 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   public static getInstance(config: Config): GitAdapter {
+    if (isTsGitBackend()) {
+      return TsGitAdapter.getInstance(config) as unknown as GitAdapter
+    }
     const key = GitAdapter.keyFor(config)
     if (!GitAdapter.instances.has(key)) {
       GitAdapter.instances.set(key, new GitAdapter(config))
@@ -106,6 +118,9 @@ export default class GitAdapter implements GitBlobReader {
       instance.closeBatchProcess()
     }
     GitAdapter.instances.clear()
+    // SPIKE: tsgit disposal is async (aborts in-flight work then releases
+    // adapters); fire-and-forget keeps closeAll's sync signature for now.
+    void TsGitAdapter.closeAll()
   }
 
   @log
