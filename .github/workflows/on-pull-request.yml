@@ -120,6 +120,13 @@ jobs:
       - name: Incremental Mutation testing
         run: npm run test:mutation:incremental
 
+      - name: Post mutation results comment
+        if: always() && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: stryker-mutation
+          path: reports/mutation/comment.md
+
       - uses: actions/upload-artifact@v7
         with:
           name: mutation-testing-reports

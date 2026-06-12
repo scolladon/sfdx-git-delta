@@ -314,7 +314,7 @@
       ]
     },
     "test:mutation:incremental": {
-      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -) && [ -n \"$FILES\" ] && stryker run --mutate \"$FILES\" || echo 'No source files changed — skipping mutation testing'",
+      "command": "node tooling/incremental-mutation.mjs",
       "files": [
         "src/**/*.ts",
         "__tests__/**/*.ts",
@@ -322,7 +322,8 @@
         "**/tsconfig.json"
       ],
       "output": [
-        ".stryker-tmp/**"
+        ".stryker-tmp/**",
+        "reports/mutation/**"
       ],
       "dependencies": [
         "lint"
