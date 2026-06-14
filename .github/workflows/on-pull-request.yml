@@ -121,7 +121,7 @@ jobs:
         run: npm run test:mutation:incremental
 
       - name: Post mutation results comment
-        if: always() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request' && github.repository_owner == 'scolladon'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: stryker-mutation
