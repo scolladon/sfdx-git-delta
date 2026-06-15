@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.44.6](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.5...v6.44.6) (2026-06-15)
+
+
+### Bug Fixes
+
+* **deps:** remove all unnecessary overrides and improve knip config ([#1329](https://github.com/scolladon/sfdx-git-delta/issues/1329)) ([e224401](https://github.com/scolladon/sfdx-git-delta/commit/e2244016f958ce9be10e89ebd2996fb50ba2d51e))
+
 ## [6.44.5](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.4...v6.44.5) (2026-06-04)
 
 
