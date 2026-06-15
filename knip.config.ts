@@ -8,8 +8,14 @@ export default {
     'vitest.config.perf.ts',
     '.github/**/*.yml',
   ],
-  project: ['**/*.{ts,js,json,yml}', '!src/metadata/v*.ts'],
-  ignoreBinaries: ['npm-check-updates'],
+  project: ['**/*.{ts,js}', '!src/metadata/v*.ts'],
+  ignore: [
+    // Temporary directories created by mutation testing and AI tools
+    '.stryker-tmp/**',
+    '.claude/**',
+    // Config files that don't need analysis
+    '**/*.{json,yml,yaml}',
+  ],
   // Schemas in src/schemas/metadata.ts and discriminated-union variants
   // (CopyOperation, etc.) chain through one another in the same file —
   // knip treats those as unused exports because nothing imports them

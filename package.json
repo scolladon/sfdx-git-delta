@@ -48,8 +48,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "4.11.4",
-    "@salesforce/core": "8.31.0",
+    "@oclif/core": "4.11.5",
+    "@salesforce/core": "8.31.1",
     "@salesforce/sf-plugins-core": "12.2.24",
     "@salesforce/source-deploy-retrieve": "12.36.2",
     "ignore": "7.0.5",
@@ -57,35 +57,28 @@
     "txml": "6.0.0",
     "zod": "4.4.3"
   },
-  "overrides": {
-    "basic-ftp": "^5.3.0",
-    "@nodable/base-output-builder": "1.0.5",
-    "@nodable/compact-builder": "1.0.6",
-    "path-expression-matcher": "1.5.0",
-    "strnum": "2.2.3"
-  },
   "devDependencies": {
-    "@biomejs/biome": "2.4.16",
+    "@biomejs/biome": "2.5.0",
     "@commitlint/cli": "21.0.2",
     "@commitlint/config-conventional": "21.0.2",
     "@ls-lint/ls-lint": "2.3.1",
     "@oclif/plugin-help": "6.2.50",
-    "@salesforce/cli-plugins-testkit": "5.3.58",
+    "@salesforce/cli-plugins-testkit": "5.3.59",
     "@salesforce/dev-config": "4.3.3",
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/vitest-runner": "9.6.1",
-    "@types/node": "25.9.1",
+    "@types/node": "25.9.3",
     "@types/tar-stream": "3.1.4",
-    "@vitest/coverage-v8": "4.1.8",
+    "@vitest/coverage-v8": "4.1.9",
     "husky": "9.1.7",
-    "knip": "6.15.0",
+    "knip": "6.16.1",
     "lint-staged": "17.0.7",
-    "oclif": "4.23.10",
+    "oclif": "4.23.16",
     "shx": "0.4.0",
     "ts-node": "10.9.2",
     "typescript": "6.0.3",
     "validate-branch-name": "1.3.2",
-    "vitest": "4.1.8",
+    "vitest": "4.1.9",
     "wireit": "0.14.12"
   },
   "scripts": {
