@@ -236,6 +236,12 @@ export type WriteOptions = {
 
 type TextEscaper = (value: string) => string
 
+// Default text transform: element text is written verbatim. The round-trip
+// callers feed values that came pre-escaped from the txml passthrough reader,
+// so the identity keeps the output byte-identical. PackageBuilder opts into
+// escapeXmlText via WriteOptions.escape (its member names are raw domain data).
+const passthroughText: TextEscaper = value => value
+
 /**
  * Streams a generic XML document to `out`. Iterative depth-first traversal
  * with an explicit LIFO frame stack — safe under unexpectedly-deep input,
@@ -253,7 +259,8 @@ export const writeXmlDocument = async (
 ): Promise<void> => {
   const buf = new ChunkBuffer(out)
   await writeXmlDeclaration(buf, rootCapture.xmlHeader)
-  const escapeText = options.escape === true ? escapeXmlText : undefined
+  const escapeText: TextEscaper =
+    options.escape === true ? escapeXmlText : passthroughText
   const trailingNewline = options.trailingNewline !== false
   const rootFrame: Frame =
     rootChildren.length === 0
@@ -287,7 +294,7 @@ const emitFrame = async (
   buf: ChunkBuffer,
   frame: Frame,
   stack: Frame[],
-  escapeText: TextEscaper | undefined
+  escapeText: TextEscaper
 ): Promise<void> => {
   switch (frame.kind) {
     case 'open':
@@ -301,13 +308,11 @@ const emitFrame = async (
     case 'comment':
       await buf.push(`${indent(frame.depth)}<!--${frame.value}-->${NEWLINE}`)
       break
-    case 'leaf': {
-      const value = escapeText ? escapeText(frame.value) : frame.value
+    case 'leaf':
       await buf.push(
-        `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}>${value}</${frame.name}>${NEWLINE}`
+        `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}>${escapeText(frame.value)}</${frame.name}>${NEWLINE}`
       )
       break
-    }
     case 'empty':
       await buf.push(
         `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}></${frame.name}>${frame.trailingNewline ? NEWLINE : ''}`
