@@ -185,4 +185,38 @@ describe('Given a PackageBuilder', () => {
       expect(customObjectIdx).toBeLessThan(apexClassIdx)
     })
   })
+
+  describe('member names containing XML-special characters', () => {
+    it('When member names contain & < >, Then they are escaped so the manifest is valid XML', async () => {
+      // Arrange — names arrive raw from the diff handlers / filesystem:
+      // a CustomLabel, a report folder, an email template with markup.
+      const manifest = new Map([
+        [
+          'CustomLabel',
+          new Set(['R&D_Label', 'Sales & Marketing', 'Quote <Final>']),
+        ],
+      ])
+
+      // Act
+      const out = await buildToString(sut, manifest)
+
+      // Assert — & < > escaped; no raw special char leaks into element text
+      expect(out).toContain('<members>R&amp;D_Label</members>')
+      expect(out).toContain('<members>Sales &amp; Marketing</members>')
+      expect(out).toContain('<members>Quote &lt;Final&gt;</members>')
+      expect(out).not.toContain('<members>R&D_Label</members>')
+      expect(out).not.toContain('<members>Quote <Final></members>')
+    })
+
+    it('When member names contain quotes, Then quotes are preserved (valid in element text)', async () => {
+      // Arrange
+      const manifest = new Map([['ApexClass', new Set([`O'Brien "VIP"`])]])
+
+      // Act
+      const out = await buildToString(sut, manifest)
+
+      // Assert — quotes are valid unescaped in element text; only & < > are escaped
+      expect(out).toContain(`<members>O'Brien "VIP"</members>`)
+    })
+  })
 })

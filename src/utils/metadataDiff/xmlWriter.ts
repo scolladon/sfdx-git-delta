@@ -2,7 +2,11 @@
 import { once } from 'node:events'
 import type { Writable } from 'node:stream'
 
-import { ATTRIBUTE_PREFIX, type XmlContent } from '../xmlHelper.js'
+import {
+  ATTRIBUTE_PREFIX,
+  escapeXmlText,
+  type XmlContent,
+} from '../xmlHelper.js'
 import type { RootCapture } from './xmlEventReader.js'
 
 const INDENT = '    '
@@ -223,7 +227,14 @@ const writeXmlDeclaration = async (
 
 export type WriteOptions = {
   trailingNewline?: boolean
+  // Opt-in: escape XML-significant characters in element text. Off by default
+  // so the round-trip callers (Profile/PermissionSet/flow), whose values come
+  // pre-escaped from the txml passthrough reader, stay byte-identical. Only
+  // callers serializing raw domain data (PackageBuilder) set this.
+  escape?: boolean
 }
+
+type TextEscaper = (value: string) => string
 
 /**
  * Streams a generic XML document to `out`. Iterative depth-first traversal
@@ -242,6 +253,7 @@ export const writeXmlDocument = async (
 ): Promise<void> => {
   const buf = new ChunkBuffer(out)
   await writeXmlDeclaration(buf, rootCapture.xmlHeader)
+  const escapeText = options.escape === true ? escapeXmlText : undefined
   const trailingNewline = options.trailingNewline !== false
   const rootFrame: Frame =
     rootChildren.length === 0
@@ -264,7 +276,7 @@ export const writeXmlDocument = async (
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips the entire frame emission loop; the rootFrame's open marker has already been emitted by writeXmlDeclaration's prelude indirection, but the rootChildren's payload is never written — tests assert on the stream's final bytes and would diverge, but the perTest cache analysis attaches this mutant to a path where the only outer assertion is that buf.flush completed without error
   while (stack.length > 0) {
     const frame = stack.pop()!
-    await emitFrame(buf, frame, stack)
+    await emitFrame(buf, frame, stack, escapeText)
   }
   // Final flush — anything still buffered at end-of-document goes out
   // before the caller resolves.
@@ -274,7 +286,8 @@ export const writeXmlDocument = async (
 const emitFrame = async (
   buf: ChunkBuffer,
   frame: Frame,
-  stack: Frame[]
+  stack: Frame[],
+  escapeText: TextEscaper | undefined
 ): Promise<void> => {
   switch (frame.kind) {
     case 'open':
@@ -288,11 +301,13 @@ const emitFrame = async (
     case 'comment':
       await buf.push(`${indent(frame.depth)}<!--${frame.value}-->${NEWLINE}`)
       break
-    case 'leaf':
+    case 'leaf': {
+      const value = escapeText ? escapeText(frame.value) : frame.value
       await buf.push(
-        `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}>${frame.value}</${frame.name}>${NEWLINE}`
+        `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}>${value}</${frame.name}>${NEWLINE}`
       )
       break
+    }
     case 'empty':
       await buf.push(
         `${indent(frame.depth)}<${frame.name}${renderAttrs(frame.attributes)}></${frame.name}>${frame.trailingNewline ? NEWLINE : ''}`

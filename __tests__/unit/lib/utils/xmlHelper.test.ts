@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseXml } from '../../../../src/utils/txmlAdapter'
+import { escapeXmlText } from '../../../../src/utils/xmlHelper'
 
 describe('xmlHelper', () => {
   describe('parseXml', () => {
@@ -276,6 +277,76 @@ describe('xmlHelper', () => {
       // Assert — parsed content must be present
       expect(sut).not.toStrictEqual({})
       expect(sut).toHaveProperty('root')
+    })
+  })
+
+  describe('Given escapeXmlText for raw element text', () => {
+    it.each([
+      ['&', '&amp;'],
+      ['<', '&lt;'],
+      ['>', '&gt;'],
+    ])('When the value is %s, Then it is escaped to %s', (raw, escaped) => {
+      // Act
+      const sut = escapeXmlText(raw)
+
+      // Assert
+      expect(sut).toBe(escaped)
+    })
+
+    it('When the value mixes all three special characters, Then each is escaped in place', () => {
+      // Act
+      const sut = escapeXmlText('a & b < c > d')
+
+      // Assert
+      expect(sut).toBe('a &amp; b &lt; c &gt; d')
+    })
+
+    it('When the value contains both < and >, Then each maps to its own distinct entity', () => {
+      // Act — guards against < and > being escaped to the same / swapped entity
+      const sut = escapeXmlText('<>')
+
+      // Assert
+      expect(sut).toBe('&lt;&gt;')
+    })
+
+    it('When a special character repeats, Then every occurrence is escaped', () => {
+      // Act — guards the regex global flag
+      const sut = escapeXmlText('&&')
+
+      // Assert
+      expect(sut).toBe('&amp;&amp;')
+    })
+
+    it('When the value already looks like an entity, Then only the ampersand is escaped (single pass, no re-scan)', () => {
+      // Act — raw input is the 4 chars & l t ; not a decoded entity
+      const sut = escapeXmlText('&lt;')
+
+      // Assert
+      expect(sut).toBe('&amp;lt;')
+    })
+
+    it('When the value has no special characters, Then it is returned unchanged', () => {
+      // Act
+      const sut = escapeXmlText('plain Name 42')
+
+      // Assert
+      expect(sut).toBe('plain Name 42')
+    })
+
+    it('When the value is empty, Then it returns empty', () => {
+      // Act
+      const sut = escapeXmlText('')
+
+      // Assert
+      expect(sut).toBe('')
+    })
+
+    it('When the value contains quotes, Then they are left untouched (valid in element text)', () => {
+      // Act — quotes need escaping only in attributes, never in text
+      const sut = escapeXmlText(`O'Brien "Q" & Co`)
+
+      // Assert
+      expect(sut).toBe(`O'Brien "Q" &amp; Co`)
     })
   })
 })
