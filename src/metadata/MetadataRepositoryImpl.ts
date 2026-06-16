@@ -127,16 +127,27 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   // A type owns its nested paths when it is folder-organized (`inFolder`, e.g.
-  // Report/Dashboard) or a content container (SDR adapter bundle/
-  // digitalExperience/mixedContent, e.g. LWC/StaticResource). In both cases the
-  // segments below its directory are user-named content, not metadata dirs.
+  // Report/Dashboard), a content container (SDR adapter bundle/
+  // digitalExperience/mixedContent, e.g. LWC/StaticResource), or a virtual
+  // content-container (Wave/Bot/Discovery) whose sub-directories are
+  // user-named content matched by suffix, not metadata directories.
   protected ownsNestedPaths(metadata: Metadata): boolean {
     return (
       metadata.inFolder ||
       // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
       (metadata.adapter !== undefined &&
-        CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter))
+        CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)) ||
+      this.isVirtualContentContainer(metadata)
     )
+  }
+
+  // A virtual content-container holds several suffix-keyed sub-types in one
+  // directory (Wave/Bot/Discovery/Moderation); the segments below its directory
+  // are user-named content matched by suffix within content[], not metadata
+  // directories, so the walk must stop here. Distinguished from a decomposed
+  // container (CustomObject) by its non-empty content[].
+  private isVirtualContentContainer(metadata: Metadata): boolean {
+    return metadata.metaFile === true && (metadata.content?.length ?? 0) > 0
   }
 
   protected searchByXmlName(xmlName: string): Metadata | undefined {

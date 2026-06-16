@@ -157,6 +157,31 @@ describe('MetadataRepositoryImpl', () => {
         suffix: 'portal',
         xmlName: 'Portal',
       },
+      {
+        adapter: 'matchingContentFile',
+        directoryName: 'wave',
+        inFolder: false,
+        metaFile: true,
+        suffix: 'wdash',
+        xmlName: 'WaveDashboard',
+      },
+      {
+        directoryName: 'wave',
+        inFolder: false,
+        metaFile: true,
+        content: [
+          { suffix: 'wdash', xmlName: 'WaveDashboard' },
+          { suffix: 'xmd', xmlName: 'WaveXmd' },
+        ],
+        xmlName: 'VirtualWave',
+      } as Metadata,
+      {
+        directoryName: 'dashboards',
+        inFolder: true,
+        metaFile: true,
+        suffix: 'dashboard',
+        xmlName: 'Dashboard',
+      },
     ])
   })
   describe('has', () => {
@@ -326,6 +351,54 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(result).toStrictEqual(
           expect.objectContaining({ directoryName: 'icons' })
+        )
+      })
+
+      it('matches the virtual content-container when a nested content folder collides with a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/src-base/crma/wave/dashboards/Account_KPI_Dashboard.wdash'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'wave' })
+        )
+      })
+
+      it('does not stop at a content-bearing folder whose metaFile is false', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/moderation/dashboards/site.block.rule-meta.xml'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'dashboards' })
+        )
+      })
+
+      it('does not stop at a metaFile container whose content is empty', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/siteDotComSites/dashboards/aSitedotcom.site'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'dashboards' })
+        )
+      })
+
+      it('matches the virtual content-container for a file directly under it', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/wave/Seller_Homepage.wdash'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'wave' })
         )
       })
 
