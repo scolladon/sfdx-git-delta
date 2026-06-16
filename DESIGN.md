@@ -498,6 +498,8 @@ The strict failure contract that `metadataDiff` depends on (txml is otherwise to
 
 XML writing is in-house (`xmlWriter.ts`). Iterative depth-first traversal with an explicit LIFO frame stack — safe under unexpectedly-deep input, cancellation-friendly. Frame chunks are batched in a `ChunkBuffer` (8 KB threshold) before flushing to the underlying `Writable` so a 3 000-element Profile prune flushes in tens of stream writes instead of thousands. Backpressure is honoured at flush time via `once(out, 'drain')`. Indent strings are cached in a lazily-extended array keyed by depth, replacing the per-frame `INDENT.repeat(depth)` allocation.
 
+Element text is written **verbatim by default** — the metadata-diff and flow-translation callers feed it values that came from the txml passthrough reader (already XML-escaped), so re-escaping would corrupt the byte-identical round-trip. The opt-in `WriteOptions.escape` flag turns on `escapeXmlText` for element text (`&`→`&amp;`, `<`→`&lt;`, `>`→`&gt;`); only `PackageBuilder` sets it, because package.xml / destructiveChanges.xml member names are raw domain data (component names from the diff) rather than parsed-back XML. Attributes are never escaped: the only attribute values emitted are fixed (`xmlns`, the `<?xml?>` declaration) or already-escaped passthrough content.
+
 ### Lookup Caches
 
 Two memoization caches sit on the lookup hot path; both have lifetime scoped to the surrounding instance and need no eviction:
