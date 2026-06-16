@@ -157,6 +157,11 @@ describe('MetadataRepositoryImpl', () => {
         suffix: 'portal',
         xmlName: 'Portal',
       },
+      // The SDR-style WaveDashboard/WaveXmd entries register `wdash`/`xmd` a
+      // second time (alongside VirtualWave.content below), marking those
+      // suffixes UNSAFE so searchByExtension yields and the directory walk —
+      // where the nested-folder bug lives — becomes the deciding path. Mirrors
+      // the real registry, where SDR and the internal registry both define them.
       {
         adapter: 'matchingContentFile',
         directoryName: 'wave',
@@ -164,6 +169,14 @@ describe('MetadataRepositoryImpl', () => {
         metaFile: true,
         suffix: 'wdash',
         xmlName: 'WaveDashboard',
+      },
+      {
+        adapter: 'matchingContentFile',
+        directoryName: 'wave',
+        inFolder: false,
+        metaFile: true,
+        suffix: 'xmd',
+        xmlName: 'WaveXmd',
       },
       {
         directoryName: 'wave',
@@ -182,6 +195,27 @@ describe('MetadataRepositoryImpl', () => {
         suffix: 'dashboard',
         xmlName: 'Dashboard',
       },
+      // VirtualBot is a sibling virtual content-container; it locks the fix's
+      // symmetry across all virtual content-container types — the predicate
+      // keys off shape (metaFile + non-empty content), never xmlName.
+      {
+        adapter: 'matchingContentFile',
+        directoryName: 'bots',
+        inFolder: false,
+        metaFile: true,
+        suffix: 'botVersion',
+        xmlName: 'BotVersion',
+      },
+      {
+        directoryName: 'bots',
+        inFolder: false,
+        metaFile: true,
+        content: [
+          { suffix: 'bot', xmlName: 'Bot' },
+          { suffix: 'botVersion', xmlName: 'BotVersion' },
+        ],
+        xmlName: 'VirtualBot',
+      } as Metadata,
     ])
   })
   describe('has', () => {
@@ -394,6 +428,30 @@ describe('MetadataRepositoryImpl', () => {
         // Act
         const result = sut.get(
           'Z force-app/main/default/wave/Seller_Homepage.wdash'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'wave' })
+        )
+      })
+
+      it('matches a sibling virtual content-container when a nested content folder collides with a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/bots/MyBot/dashboards/v1.botVersion'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          expect.objectContaining({ directoryName: 'bots' })
+        )
+      })
+
+      it('matches the virtual content-container for a nested non-first content suffix colliding with a metadata directory name', () => {
+        // Act
+        const result = sut.get(
+          'Z force-app/main/default/src-base/crma/wave/dashboards/Account_KPI_Dashboard.xmd-meta.xml'
         )
 
         // Assert
