@@ -4,6 +4,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.45.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.6...v6.45.0) (2026-06-17)
+
+
+### Features
+
+* **metadata:** refresh SDR registry to 12.36.3 ([24dd522](https://github.com/scolladon/sfdx-git-delta/commit/24dd5222d3e6dab66cc832efd7cfea252a4a4f72))
+
+
+### Bug Fixes
+
+* escape XML entities in generated manifest member names ([#1332](https://github.com/scolladon/sfdx-git-delta/issues/1332)) ([8eebeb2](https://github.com/scolladon/sfdx-git-delta/commit/8eebeb2108c3ee0cdd2cb7b0d56bd0806303d921))
+* resolve nested Wave (and virtual content-container) files dropped from package.xml ([#1335](https://github.com/scolladon/sfdx-git-delta/issues/1335)) ([fff83dd](https://github.com/scolladon/sfdx-git-delta/commit/fff83dd78daf35ea87019f56f2dc31e5d6e568d1))
+
 ## [6.44.6](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.5...v6.44.6) (2026-06-15)
 
 
