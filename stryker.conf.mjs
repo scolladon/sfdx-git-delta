@@ -17,9 +17,11 @@ const config = {
     // module is loaded once per worker and the mutated value never
     // re-propagates between tests. Tests that consume these constants
     // assert their effect via downstream behavior; equivalent here.
+    // (xmlHelper.ts is NOT excluded: its constants are static — and so
+    // ignored — while its escapeXmlText function is behavioral and killed
+    // by its own unit tests.)
     '!src/constant/cliConstants.ts',
     '!src/constant/libConstant.ts',
-    '!src/utils/xmlHelper.ts',
     '!src/utils/__mocks__/**/*.ts',
   ],
   // Known surviving BlockStatement mutants on `} catch (error) {` /

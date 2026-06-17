@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "4.11.5",
+    "@oclif/core": "4.11.6",
     "@salesforce/core": "8.31.1",
     "@salesforce/sf-plugins-core": "12.2.24",
     "@salesforce/source-deploy-retrieve": "12.36.3",
@@ -352,5 +352,8 @@
         "lint"
       ]
     }
+  },
+  "overrides": {
+    "qs": "6.15.2"
   }
 }

@@ -39,6 +39,9 @@ export default class PackageBuilder {
     }
     await writeXmlDocument(out, capture, rootChildren, {
       trailingNewline: false,
+      // Member names are raw domain data (from the diff handlers); escape
+      // XML-significant characters so the manifest stays valid XML.
+      escape: true,
     })
   }
 

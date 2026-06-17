@@ -61,6 +61,34 @@ describe('writeXmlDocument', () => {
     )
   })
 
+  it('Given the escape option, When a leaf value has XML-significant characters, Then the text is escaped', async () => {
+    // Arrange & Act
+    const out = await collect(async stream => {
+      await writeXmlDocument(
+        stream,
+        profileCapture,
+        [['members', 'R&D <Lab>']],
+        { escape: true }
+      )
+    })
+
+    // Assert
+    expect(out).toContain('<members>R&amp;D &lt;Lab&gt;</members>')
+  })
+
+  it('Given no escape option, When a leaf value has XML-significant characters, Then the text is emitted verbatim', async () => {
+    // Arrange & Act — round-trip callers rely on this passthrough default to
+    // stay byte-identical; already-escaped content must NOT be re-escaped.
+    const out = await collect(async stream => {
+      await writeXmlDocument(stream, profileCapture, [
+        ['description', 'a &amp; b'],
+      ])
+    })
+
+    // Assert
+    expect(out).toContain('<description>a &amp; b</description>')
+  })
+
   it('Given an array of elements under one key, When the writer runs, Then elements render in insertion order', async () => {
     // Arrange & Act
     const out = await collect(async stream => {
