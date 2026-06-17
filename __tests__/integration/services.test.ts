@@ -522,6 +522,16 @@ const testContext = [
     'WaveXmd',
   ],
   [
+    'force-app/main/default/src-base/crma/wave/dashboards/Account_KPI_Dashboard.wdash',
+    new Set(['Account_KPI_Dashboard']),
+    'WaveDashboard',
+  ],
+  [
+    'force-app/main/default/src-base/crma/wave/components/AccountKpi.wcomp',
+    new Set(['AccountKpi']),
+    'WaveComponent',
+  ],
+  [
     'force-app/main/default/featureParameters/FeatureParameterIntegerTest.featureParameterInteger',
     new Set(['FeatureParameterIntegerTest']),
     'FeatureParameterInteger',
