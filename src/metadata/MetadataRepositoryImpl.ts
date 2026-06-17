@@ -127,27 +127,36 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   // A type owns its nested paths when it is folder-organized (`inFolder`, e.g.
-  // Report/Dashboard), a content container (SDR adapter bundle/
-  // digitalExperience/mixedContent, e.g. LWC/StaticResource), or a virtual
-  // content-container (Wave/Bot/Discovery) whose sub-directories are
-  // user-named content matched by suffix, not metadata directories.
+  // Report/Dashboard), an SDR content container (adapter bundle/
+  // digitalExperience/mixedContent, e.g. LWC/StaticResource), or declares its
+  // own suffix-keyed nested content (Wave/Bot/Discovery/Moderation). In each
+  // case the segments below its directory are user-named content, not metadata
+  // directories.
   protected ownsNestedPaths(metadata: Metadata): boolean {
     return (
       metadata.inFolder ||
       // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
       (metadata.adapter !== undefined &&
         CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)) ||
-      this.isVirtualContentContainer(metadata)
+      this.declaresNestedContent(metadata)
     )
   }
 
-  // A virtual content-container holds several suffix-keyed sub-types in one
-  // directory (Wave/Bot/Discovery/Moderation); the segments below its directory
-  // are user-named content matched by suffix within content[], not metadata
-  // directories, so the walk must stop here. Distinguished from a decomposed
-  // container (CustomObject) by its non-empty content[].
-  private isVirtualContentContainer(metadata: Metadata): boolean {
-    return metadata.metaFile === true && (metadata.content?.length ?? 0) > 0
+  // A type declares nested content when its `content[]` lists suffix-keyed
+  // sub-types sharing one directory (Wave/Bot/Discovery/Moderation): the
+  // segments below that directory are then user-named content, not metadata
+  // directories, so the walk must stop here. A non-empty `content[]` is the
+  // whole test — it is exactly what separates these containers from a
+  // decomposed `CustomObject`, whose empty `content[]` signals that its
+  // children ARE deeper metadata directories (`fields/`, `listViews/`, …) the
+  // walk must keep descending into. `metaFile` is deliberately not checked:
+  // every registry type carrying a non-empty `content[]` owns its nested paths
+  // (the folder-organized ones — Dashboard/Report/EmailTemplate — also satisfy
+  // it but already stop via the `inFolder` arm above). The "empty content keeps
+  // descending" branch is covered by the existing non-container nested-folder
+  // test (a class file under a colliding `icons/` directory).
+  private declaresNestedContent(metadata: Metadata): boolean {
+    return (metadata.content?.length ?? 0) > 0
   }
 
   protected searchByXmlName(xmlName: string): Metadata | undefined {

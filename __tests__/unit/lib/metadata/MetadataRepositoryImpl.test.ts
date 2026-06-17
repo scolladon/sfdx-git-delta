@@ -197,7 +197,7 @@ describe('MetadataRepositoryImpl', () => {
       },
       // VirtualBot is a sibling virtual content-container; it locks the fix's
       // symmetry across all virtual content-container types — the predicate
-      // keys off shape (metaFile + non-empty content), never xmlName.
+      // keys off the non-empty content[], never xmlName.
       {
         adapter: 'matchingContentFile',
         directoryName: 'bots',
@@ -397,30 +397,6 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(result).toStrictEqual(
           expect.objectContaining({ directoryName: 'wave' })
-        )
-      })
-
-      it('does not stop at a content-bearing folder whose metaFile is false', () => {
-        // Act
-        const result = sut.get(
-          'Z force-app/main/default/moderation/dashboards/site.block.rule-meta.xml'
-        )
-
-        // Assert
-        expect(result).toStrictEqual(
-          expect.objectContaining({ directoryName: 'dashboards' })
-        )
-      })
-
-      it('does not stop at a metaFile container whose content is empty', () => {
-        // Act
-        const result = sut.get(
-          'Z force-app/main/default/siteDotComSites/dashboards/aSitedotcom.site'
-        )
-
-        // Assert
-        expect(result).toStrictEqual(
-          expect.objectContaining({ directoryName: 'dashboards' })
         )
       })
 
