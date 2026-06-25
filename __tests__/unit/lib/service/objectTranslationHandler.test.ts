@@ -147,9 +147,9 @@ describe('ObjectTranslation', () => {
       ).toBe(true)
     })
 
-    it('Given writer is null, When collectAddition, Then does not push StreamedContent copy', async () => {
-      // Arrange — writer is null, so the `if (writer)` guard must prevent pushing the copy
-      // Mutation `[ConditionalExpression] true` would always push, producing a copy with writer=null
+    it('Given writer is null, When collectAddition, Then does not push StreamedContent copy and pushes parent GitCopy', async () => {
+      // Arrange — writer is null, so the `if (writer)` guard must prevent pushing StreamedContent
+      // and the `else` branch must fall back to a parent GitCopy
       work.config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
@@ -169,6 +169,51 @@ describe('ObjectTranslation', () => {
       // Assert
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
+      ).toBe(false)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('Account-es.objectTranslation')
+        )
+      ).toBe(true)
+    })
+
+    it('Given fieldTranslation-only addition and writer undefined, When collectAddition, Then pushes parent GitCopy and no parent StreamedContent', async () => {
+      // Arrange — mirrors the #1341 regression: only a child fieldTranslation changed,
+      // parent has no surviving pruned content, so buildWriter returns undefined
+      work.config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasPackageContent: true,
+        writer: undefined,
+      })
+      const fieldTranslationLine =
+        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+      const { changeType, element } = createElement(
+        fieldTranslationLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('Account-es.objectTranslation')
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.StreamedContent &&
+            c.path.includes('Account-es.objectTranslation')
+        )
       ).toBe(false)
     })
 

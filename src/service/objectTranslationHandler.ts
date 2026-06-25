@@ -30,6 +30,8 @@ export default class ObjectTranslationHandler extends ResourceHandler {
         path: objectTranslationPath,
         writer,
       })
+    } else {
+      this._collectCopy(result.copies, objectTranslationPath)
     }
     return result
   }
