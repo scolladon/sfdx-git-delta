@@ -219,6 +219,31 @@ describe('ObjectTranslation', () => {
       ).toBe(false)
     })
 
+    it('Given fieldTranslation-only addition, When collectAddition, Then does not push a copy for an unresolved parent meta path', async () => {
+      // Arrange — the inherited meta-file copy must not emit a bogus "undefined.*"
+      // path; the parent objectTranslation is handled by the writer/fallback branch
+      work.config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasPackageContent: true,
+        writer: undefined,
+      })
+      const fieldTranslationLine =
+        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+      const { changeType, element } = createElement(
+        fieldTranslationLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(result.copies.some(c => c.path.includes('undefined'))).toBe(false)
+    })
+
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
       // Arrange
       const fieldTranslationLine =
