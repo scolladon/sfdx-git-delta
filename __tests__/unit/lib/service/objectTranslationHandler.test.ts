@@ -37,6 +37,8 @@ const objectType = {
 }
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
+const parentObjectTranslationPath =
+  'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
 let work: Work
 beforeEach(() => {
@@ -174,7 +176,7 @@ describe('ObjectTranslation', () => {
         result.copies.some(
           c =>
             c.kind === CopyOperationKind.GitCopy &&
-            c.path.includes('Account-es.objectTranslation')
+            c.path === parentObjectTranslationPath
         )
       ).toBe(true)
     })
@@ -205,14 +207,14 @@ describe('ObjectTranslation', () => {
         result.copies.some(
           c =>
             c.kind === CopyOperationKind.GitCopy &&
-            c.path.includes('Account-es.objectTranslation')
+            c.path === parentObjectTranslationPath
         )
       ).toBe(true)
       expect(
         result.copies.some(
           c =>
             c.kind === CopyOperationKind.StreamedContent &&
-            c.path.includes('Account-es.objectTranslation')
+            c.path === parentObjectTranslationPath
         )
       ).toBe(false)
     })
