@@ -301,7 +301,7 @@ Like InResourceHandler but skips files directly in the type directory (e.g. top-
 **Extends**: InResourceHandler
 **Used by**: CustomFieldTranslation, CustomObjectTranslation
 
-Field translation files are not independently deployable. The handler produces a pruned version of the parent `objectTranslation` file containing only changed field translations, emitted as computed content.
+Field translation files are not independently deployable, so the parent `objectTranslation` file must always accompany its field-translation children in the output. When the parent has its own surviving changes, the handler emits a pruned version containing only the changed field translations as computed content; when it has none (a child-only change), it falls back to copying the whole parent file verbatim at the target revision.
 
 #### DecomposedHandler
 
