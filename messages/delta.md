@@ -64,6 +64,10 @@ generate delta files in [--output-dir] folder
 
 ignore git diff whitespace (space, tab, eol) changes
 
+# flags.scope-to-package-directories.summary
+
+scope the diff to package directories defined in sfdx-project.json
+
 # flags.include.summary
 
 file listing paths to explicitly include for any diff actions

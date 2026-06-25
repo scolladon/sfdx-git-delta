@@ -120,6 +120,29 @@ export default class ConfigValidator {
   protected async _handleDefault() {
     await this._getApiVersion()
     await this._apiVersionDefault()
+    await this._getScopeFromPackageDirectories()
+  }
+
+  protected async _getScopeFromPackageDirectories() {
+    if (!this.config.scopeToPackageDirectories) return
+
+    try {
+      const sfProject = await SfProject.resolve(this.config.repo)
+      const packageDirectories = sfProject
+        .getSfProjectJson()
+        .getContents().packageDirectories
+
+      if (!packageDirectories?.length) return
+
+      this.config.source = packageDirectories.map(
+        dir => sanitizePath(join(this.config.repo, dir.path))!
+      )
+    } catch (ex) {
+      Logger.debug(
+        // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
+        lazy`_getScopeFromPackageDirectories: no sfdx-project.json found at '${this.config.repo}': ${ex}`
+      )
+    }
   }
 
   protected async _getApiVersion() {

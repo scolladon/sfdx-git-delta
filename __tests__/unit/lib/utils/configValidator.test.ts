@@ -1033,6 +1033,109 @@ describe('Given a ConfigValidator', () => {
     })
   })
 
+  describe('_getScopeFromPackageDirectories', () => {
+    it('When scopeToPackageDirectories is false, Then source is unchanged and SfProject is not resolved', async () => {
+      // Arrange
+      work.config.scopeToPackageDirectories = false
+      work.config.source = ['./']
+      const sut = new ConfigValidator(work)
+
+      // Act
+      await sut['_getScopeFromPackageDirectories']()
+
+      // Assert
+      expect(work.config.source).toEqual(['./'])
+      expect(mockSfProjectResolve).not.toHaveBeenCalled()
+    })
+
+    it('When scopeToPackageDirectories is undefined, Then source is unchanged and SfProject is not resolved', async () => {
+      // Arrange
+      work.config.scopeToPackageDirectories = undefined
+      work.config.source = ['./']
+      const sut = new ConfigValidator(work)
+
+      // Act
+      await sut['_getScopeFromPackageDirectories']()
+
+      // Assert
+      expect(work.config.source).toEqual(['./'])
+      expect(mockSfProjectResolve).not.toHaveBeenCalled()
+    })
+
+    it('When scopeToPackageDirectories is true and packageDirectories exist, Then source is set to resolved package directory paths', async () => {
+      // Arrange
+      mockSfProjectResolve.mockResolvedValue({
+        getSfProjectJson: () => ({
+          getContents: () => ({
+            packageDirectories: [{ path: 'force-app' }, { path: 'src' }],
+          }),
+        }),
+      })
+      work.config.scopeToPackageDirectories = true
+      work.config.repo = '.'
+      const sut = new ConfigValidator(work)
+
+      // Act
+      await sut['_getScopeFromPackageDirectories']()
+
+      // Assert
+      expect(work.config.source).toEqual(['force-app', 'src'])
+    })
+
+    it('When scopeToPackageDirectories is true and packageDirectories is empty, Then source is unchanged', async () => {
+      // Arrange
+      mockSfProjectResolve.mockResolvedValue({
+        getSfProjectJson: () => ({
+          getContents: () => ({ packageDirectories: [] }),
+        }),
+      })
+      work.config.scopeToPackageDirectories = true
+      work.config.source = ['./']
+      const sut = new ConfigValidator(work)
+
+      // Act
+      await sut['_getScopeFromPackageDirectories']()
+
+      // Assert
+      expect(work.config.source).toEqual(['./'])
+    })
+
+    it('When scopeToPackageDirectories is true and packageDirectories is undefined, Then source is unchanged', async () => {
+      // Arrange
+      mockSfProjectResolve.mockResolvedValue({
+        getSfProjectJson: () => ({
+          getContents: () => ({}),
+        }),
+      })
+      work.config.scopeToPackageDirectories = true
+      work.config.source = ['./']
+      const sut = new ConfigValidator(work)
+
+      // Act
+      await sut['_getScopeFromPackageDirectories']()
+
+      // Assert
+      expect(work.config.source).toEqual(['./'])
+    })
+
+    it('When scopeToPackageDirectories is true and sfdx-project.json is not found, Then source is unchanged and failure is logged', async () => {
+      // Arrange
+      mockSfProjectResolve.mockRejectedValue(
+        new Error('No sfdx-project.json found')
+      )
+      work.config.scopeToPackageDirectories = true
+      work.config.source = ['./']
+      const sut = new ConfigValidator(work)
+
+      // Act
+      await sut['_getScopeFromPackageDirectories']()
+
+      // Assert
+      expect(work.config.source).toEqual(['./'])
+      expect(Logger.debug).toHaveBeenCalledOnce()
+    })
+  })
+
   describe('changesManifest validation', () => {
     beforeEach(() => {
       mockedPathExists.mockResolvedValue(true as never)

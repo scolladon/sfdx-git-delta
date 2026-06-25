@@ -13,4 +13,5 @@ export type Config = {
   includeDestructive?: string | undefined
   additionalMetadataRegistryPath?: string | undefined
   changesManifest?: string | undefined
+  scopeToPackageDirectories?: boolean | undefined
 }

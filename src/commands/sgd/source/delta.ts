@@ -108,6 +108,11 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       char: 'W',
       summary: messages.getMessage('flags.ignore-whitespace.summary'),
     }),
+    'scope-to-package-directories': Flags.boolean({
+      summary: messages.getMessage(
+        'flags.scope-to-package-directories.summary'
+      ),
+    }),
     'api-version': Flags.orgApiVersion({
       char: 'a',
       summary: messages.getMessage('flags.api-version.summary'),
@@ -158,6 +163,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       includeDestructive: flags['include-destructive-file'],
       output: flags['output-dir'],
       repo: flags['repo-dir'],
+      scopeToPackageDirectories: flags['scope-to-package-directories'],
       source: flags['source-dir'],
       to: flags['to'],
     }
