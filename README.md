@@ -51,6 +51,7 @@
   - [Exclude some metadata only from destructiveChanges.xml](#exclude-some-metadata-only-from-destructivechangesxml)
   - [Explicitly including specific files for inclusion or destruction regardless of diff](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
   - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
+  - [Scope delta generation to the sfdx-project.json package directories](#scope-delta-generation-to-the-sfdx-projectjson-package-directories)
   - [Generate a comma-separated list of the added and modified Apex classes](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
@@ -512,6 +513,22 @@ $ sf sgd source delta --from commit --source-dir force-app/unpackaged/admin --so
 
 > The ignored patterns specified using `--ignore-file [-i]` and `--ignore-destructive-file [-D]` still apply.
 > The `--source-dir` path must be relative to the `--repo-dir` path
+
+### Scope delta generation to the sfdx-project.json package directories
+
+SGD intentionally works without an `sfdx-project.json` and treats the whole repository as in scope. As a result, files living outside your declared package directories (for example `.claude/` metadata templates, samples or tooling fixtures) are picked up as soon as they change.
+
+When you want the delta to cover **only** the package directories declared in `sfdx-project.json`, feed each of them to the repeatable `--source-dir [-s]` parameter. Anything outside those directories is then excluded:
+
+```sh
+sf sgd source delta --from baseline --to HEAD --output-dir ./delta --generate-delta \
+  $(jq -r '.packageDirectories[] | "--source-dir", .path' sfdx-project.json)
+```
+
+[jq](https://jqlang.github.io/jq/) reads every `packageDirectories[].path` entry and expands it into a `--source-dir` argument.
+
+> See [Scoping delta generation to specific folders](#scoping-delta-generation-to-specific-folders) for the `--source-dir` behavior.
+> Prefer `--ignore-file [-i]` when you only need to skip a few known paths (e.g. `**/.claude/**`) without coupling to `sfdx-project.json`.
 
 ### Generate a comma-separated list of the added and modified Apex classes
 
