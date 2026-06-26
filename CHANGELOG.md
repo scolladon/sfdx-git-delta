@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.45.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.45.0...v6.45.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* copy objectTranslation parent file when only field translation changes ([#1343](https://github.com/scolladon/sfdx-git-delta/issues/1343)) ([4a87d2f](https://github.com/scolladon/sfdx-git-delta/commit/4a87d2f2da3e6412a9b12843491d437b9aabf04d))
+
 ## [6.45.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.44.6...v6.45.0) (2026-06-17)
 
 
