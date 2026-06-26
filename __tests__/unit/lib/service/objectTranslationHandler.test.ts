@@ -37,6 +37,8 @@ const objectType = {
 }
 const line =
   'A       force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
+const parentObjectTranslationPath =
+  'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
 let work: Work
 beforeEach(() => {
@@ -147,9 +149,9 @@ describe('ObjectTranslation', () => {
       ).toBe(true)
     })
 
-    it('Given writer is null, When collectAddition, Then does not push StreamedContent copy', async () => {
-      // Arrange — writer is null, so the `if (writer)` guard must prevent pushing the copy
-      // Mutation `[ConditionalExpression] true` would always push, producing a copy with writer=null
+    it('Given writer is null, When collectAddition, Then does not push StreamedContent copy and pushes parent GitCopy', async () => {
+      // Arrange — writer is null, so the `if (writer)` guard must prevent pushing StreamedContent
+      // and the `else` branch must fall back to a parent GitCopy
       work.config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
@@ -170,6 +172,76 @@ describe('ObjectTranslation', () => {
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(false)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path === parentObjectTranslationPath
+        )
+      ).toBe(true)
+    })
+
+    it('Given fieldTranslation-only addition and writer undefined, When collectAddition, Then pushes parent GitCopy and no parent StreamedContent', async () => {
+      // Arrange — mirrors the #1341 regression: only a child fieldTranslation changed,
+      // parent has no surviving pruned content, so buildWriter returns undefined
+      work.config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasPackageContent: true,
+        writer: undefined,
+      })
+      const fieldTranslationLine =
+        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+      const { changeType, element } = createElement(
+        fieldTranslationLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path === parentObjectTranslationPath
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.StreamedContent &&
+            c.path === parentObjectTranslationPath
+        )
+      ).toBe(false)
+    })
+
+    it('Given fieldTranslation-only addition, When collectAddition, Then does not push a copy for an unresolved parent meta path', async () => {
+      // Arrange — the inherited meta-file copy must not emit a bogus "undefined.*"
+      // path; the parent objectTranslation is handled by the writer/fallback branch
+      work.config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasPackageContent: true,
+        writer: undefined,
+      })
+      const fieldTranslationLine =
+        'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
+      const { changeType, element } = createElement(
+        fieldTranslationLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(changeType, element, work)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(result.copies.some(c => c.path.includes('undefined'))).toBe(false)
     })
 
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {

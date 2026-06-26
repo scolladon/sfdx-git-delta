@@ -30,6 +30,8 @@ export default class ObjectTranslationHandler extends ResourceHandler {
         path: objectTranslationPath,
         writer,
       })
+    } else {
+      this._collectCopy(result.copies, objectTranslationPath)
     }
     return result
   }
@@ -49,6 +51,14 @@ export default class ObjectTranslationHandler extends ResourceHandler {
 
   protected override _delegateFileCopy() {
     return !this.element.fullPath.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
+  }
+
+  // The parent objectTranslation file is emitted by collectAddition's own
+  // writer/fallback branch. Opt out of the inherited meta-file copy, which would
+  // otherwise resolve to a bogus path (metadataName is unset on this handler's
+  // StandardHandler-direct call) and silently fail downstream.
+  protected override _shouldCopyMetaFile() {
+    return false
   }
 
   protected override _getElementName() {
