@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.46.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.45.1...v6.46.0) (2026-06-30)
+
+
+### Features
+
+* **metadata:** support IdpConfiguration ([51e0f9d](https://github.com/scolladon/sfdx-git-delta/commit/51e0f9ddad86564213e0047a04c1201c6e8e6ace))
+
 ## [6.45.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.45.0...v6.45.1) (2026-06-26)
 
 
