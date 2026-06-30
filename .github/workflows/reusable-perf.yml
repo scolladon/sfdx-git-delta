@@ -124,7 +124,7 @@ jobs:
           benchmark-data-dir-path: dev/bench/memory
 
       - name: Upload benchmark report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: perf-report
           path: |
