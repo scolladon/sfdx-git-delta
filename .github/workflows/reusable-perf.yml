@@ -25,7 +25,7 @@ jobs:
       HUSKY: '0'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -40,7 +40,7 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Checkout gh-pages baseline data
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: gh-pages
           path: gh-pages-data

@@ -20,7 +20,7 @@ jobs:
 
       - name: Checkout PR branch
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.RELEASE_PAT }}
