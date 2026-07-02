@@ -51,7 +51,7 @@
     "@oclif/core": "4.11.11",
     "@salesforce/core": "8.31.3",
     "@salesforce/sf-plugins-core": "12.2.24",
-    "@salesforce/source-deploy-retrieve": "12.36.9",
+    "@salesforce/source-deploy-retrieve": "12.37.0",
     "ignore": "7.0.5",
     "tar-stream": "3.2.0",
     "txml": "6.0.0",
