@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782800814579,
+  "lastUpdate": 1782973566109,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -5839,6 +5839,258 @@ window.BENCHMARK_DATA = {
             "name": "writeXmlDocument-largeProfile",
             "value": 6.2284,
             "range": "±8.06%",
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "01c409bcbaf045a4ac56f91f6918cf90a8b0b174",
+          "message": "feat(metadata): support UiWidgetBundle\n\nBumps @salesforce/source-deploy-retrieve from 12.36.9 to 12.37.0.\n\n### New types\n\n- UiWidgetBundle",
+          "timestamp": "2026-07-02T08:23:07+02:00",
+          "tree_id": "4143c8386629631be2be913b2cc274e3f3ed63de",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/01c409bcbaf045a4ac56f91f6918cf90a8b0b174"
+        },
+        "date": 1782973566076,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "shallow-equal",
+            "value": 0.0003,
+            "range": "±0.15%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 0.0003,
+            "range": "±0.15%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-equal",
+            "value": 0.0021,
+            "range": "±0.18%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 0.001,
+            "range": "±0.35%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 0.0228,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 0.0014,
+            "range": "±0.42%",
+            "unit": "ms"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 0.0001,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.2997,
+            "range": "±3.03%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 1.4552,
+            "range": "±15.07%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 4.7765,
+            "range": "±2.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.15,
+            "range": "±0.62%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 0.0002,
+            "range": "±0.11%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 0.0002,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 0.0165,
+            "range": "±0.42%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 0.0023,
+            "range": "±0.11%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 0.0024,
+            "range": "±0.58%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 0.1045,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 0.0124,
+            "range": "±0.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 0.0124,
+            "range": "±0.10%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 0.4434,
+            "range": "±0.45%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.0451,
+            "range": "±0.50%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0016,
+            "range": "±1.61%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.1433,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.0101,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 0.4949,
+            "range": "±0.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0424,
+            "range": "±0.38%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 0.0505,
+            "range": "±0.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 0.0591,
+            "range": "±0.50%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 0.0576,
+            "range": "±0.38%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 0.7525,
+            "range": "±0.76%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 0.8245,
+            "range": "±0.42%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 0.8234,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 8.2263,
+            "range": "±4.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 8.1592,
+            "range": "±0.32%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 8.1583,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 0.0469,
+            "range": "±1.46%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 0.604,
+            "range": "±1.93%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 6.2664,
+            "range": "±6.18%",
             "unit": "ms"
           }
         ]
