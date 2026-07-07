@@ -178,6 +178,9 @@
         "wlens",
         "worktree",
         "xmlbuilder",
-        "zizmor"
+        "zizmor",
+        "nvmrc",
+        "oxc",
+        "rolldown"
     ]
 }

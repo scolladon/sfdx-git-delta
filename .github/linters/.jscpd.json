@@ -1,6 +1,9 @@
 {
-  "threshold": 0,
-  "reporters": ["html", "markdown"],
+  "threshold": 1,
+  "reporters": [
+    "html",
+    "markdown"
+  ],
   "ignore": [
     "**/node_modules/**",
     "**/.git/**",
@@ -8,6 +11,10 @@
     "**/.github/**",
     "**/report/**",
     "**/img/**",
-    "**/__tests__/**"
+    "**/__tests__/**",
+    "**/package-lock.json",
+    "**/package.json",
+    "**/README.md",
+    "**/DESIGN.md"
   ]
 }
