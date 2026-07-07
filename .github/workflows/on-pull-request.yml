@@ -33,7 +33,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -60,7 +60,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -70,6 +70,9 @@ jobs:
 
       - name: Check unused dependencies
         run: npm run lint:dependencies
+
+      - name: Check dependencies node engines
+        run: npm run lint:deps
 
       - name: Audit dependencies
         run: npm audit || true
@@ -112,7 +115,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install

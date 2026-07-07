@@ -14,7 +14,7 @@
     "sf-plugin"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19"
   },
   "files": [
     "/lib",
@@ -73,6 +73,7 @@
     "husky": "9.1.7",
     "knip": "6.20.0",
     "lint-staged": "17.0.8",
+    "ls-engines": "0.10.1",
     "oclif": "4.23.21",
     "shx": "0.4.0",
     "ts-node": "10.9.2",
@@ -92,6 +93,7 @@
     "devops:cleanup:dev-tag:all": "./tooling/devops-cleanup-all.sh",
     "devops:move-tag": "./tooling/devops-movetag.sh",
     "lint:dependencies": "wireit",
+    "lint:deps": "wireit",
     "lint:fs": "wireit",
     "lint": "wireit",
     "lint:fix": "wireit",
@@ -176,7 +178,8 @@
       ],
       "output": [],
       "dependencies": [
-        "lint:fs"
+        "lint:fs",
+        "lint:deps"
       ]
     },
     "lint:fix": {
@@ -206,6 +209,14 @@
       "dependencies": [
         "lint"
       ]
+    },
+    "lint:deps": {
+      "command": "ls-engines --no-current --no-dev --mode=virtual",
+      "files": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "output": []
     },
     "lint:fs": {
       "command": "ls-lint",

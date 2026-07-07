@@ -32,7 +32,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version-file: '.nvmrc'
 
       - uses: google/wireit@setup-github-actions-caching/v2
 

@@ -6,3 +6,4 @@ npm run test
 npm outdated || true
 npm audit || true
 npm run lint:dependencies || true
+npm run lint:deps
