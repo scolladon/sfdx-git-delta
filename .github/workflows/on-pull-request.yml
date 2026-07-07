@@ -72,7 +72,7 @@ jobs:
         run: npm run lint:dependencies
 
       - name: Check dependencies node engines
-        run: npm run lint:deps
+        run: npm run lint:engine
 
       - name: Audit dependencies
         run: npm audit || true

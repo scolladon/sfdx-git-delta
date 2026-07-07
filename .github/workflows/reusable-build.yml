@@ -6,10 +6,6 @@ on:
 jobs:
   source:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [22, 24, 26]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -17,7 +13,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node }}
+          node-version-file: '.nvmrc'
 
       - uses: google/wireit@setup-github-actions-caching/v2
 
@@ -34,7 +30,6 @@ jobs:
         run: npm run test:unit
 
       - name: Upload coverage
-        if: matrix.node == 24
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -57,7 +52,6 @@ jobs:
         run: npm run test:functional
 
       - uses: actions/upload-artifact@v7
-        if: matrix.node == 24
         with:
           name: coverage-test-report
           path: reports/coverage
