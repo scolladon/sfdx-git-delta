@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitest/config'
 
+import { oxc } from './vitest.shared'
+
 export default defineConfig({
   test: {
     globals: false,
@@ -7,6 +9,7 @@ export default defineConfig({
     include: ['__tests__/nut/**/*.nut.ts'],
     testTimeout: 60000,
   },
+  oxc,
   resolve: {
     alias: [{ find: /^(.+)\.js$/, replacement: '$1' }],
   },

@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitest/config'
 
+import { oxc } from './vitest.shared'
+
 export default defineConfig({
   test: {
     benchmark: {
@@ -7,4 +9,5 @@ export default defineConfig({
     },
     include: ['__tests__/perf/**/*.bench.ts'],
   },
+  oxc,
 })

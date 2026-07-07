@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitest/config'
 
+import { oxc } from './vitest.shared'
+
 export default defineConfig({
   test: {
     globals: false,
@@ -20,6 +22,7 @@ export default defineConfig({
       },
     },
   },
+  oxc,
   resolve: {
     alias: [{ find: /^(.+)\.js$/, replacement: '$1' }],
   },
