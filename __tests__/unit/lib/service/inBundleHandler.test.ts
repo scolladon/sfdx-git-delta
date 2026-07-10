@@ -31,6 +31,12 @@ const contentTypeFilePath = `${root}/site/Site_A/sfdc_cms__view/file.json`
 const pageFolder = `${root}/site/Site_A/sfdc_cms__view/page_a`
 const pageContentPath = `${pageFolder}/content.json`
 const pageVariantPath = `${pageFolder}/mobile/mobile.json`
+const pageFolderListing = [
+  `${pageFolder}/content.json`,
+  `${pageFolder}/_meta.json`,
+  `${pageFolder}/mobile/mobile.json`,
+  `${pageFolder}/tablet/tablet.json`,
+]
 
 let work: Work
 beforeEach(() => {
@@ -197,9 +203,9 @@ describe('InBundleHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given a page content file addition, When collect, Then adds a page-scoped member and copies the changed file plus the two mandatory core files', async () => {
+    it('Given a page content file addition, When collect, Then adds a page-scoped member and copies the full content folder recursively', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
+      mockedReadDirs.mockResolvedValue([...pageFolderListing])
       const sut = buildSut(`A       ${pageContentPath}`)
 
       // Act
@@ -215,32 +221,53 @@ describe('InBundleHandler', () => {
           }),
         ])
       )
-      // the changed file + the mandatory _meta.json — no full-folder scan, and
-      // the changed content.json is not copied twice
-      expect(result.copies).toHaveLength(2)
       expect(new Set(result.copies.map(copy => copy.path))).toEqual(
-        new Set([`${pageFolder}/content.json`, `${pageFolder}/_meta.json`])
+        new Set(pageFolderListing)
       )
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given a page sibling (non-core) file change, When collect, Then copies that file plus _meta.json and content.json', async () => {
-      // Arrange — a locale file changed; _meta.json and content.json are
-      // mandatory for the deploy even though they were not the changed file
-      mockedReadDirs.mockResolvedValue([])
-      const sut = buildSut(`M       ${pageFolder}/fr.json`)
+    it('Given a page content change with a sibling page present, When collect, Then no sibling path is copied', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([
+        ...pageFolderListing,
+        `${root}/site/Site_A/sfdc_cms__view/page_b/content.json`,
+      ])
+      const sut = buildSut(`A       ${pageContentPath}`)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.copies).toHaveLength(3)
+      expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(
+        false
+      )
       expect(new Set(result.copies.map(copy => copy.path))).toEqual(
-        new Set([
-          `${pageFolder}/fr.json`,
-          `${pageFolder}/_meta.json`,
-          `${pageFolder}/content.json`,
+        new Set(pageFolderListing)
+      )
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given a page variant file change, When collect, Then the full page_a tree still ships and the member stays page-scoped', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValue([...pageFolderListing])
+      const sut = buildSut(`M       ${pageVariantPath}`)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.changes.toElements()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'DigitalExperience',
+            member: 'site/Site_A.sfdc_cms__view/page_a',
+          }),
         ])
+      )
+      expect(new Set(result.copies.map(copy => copy.path))).toEqual(
+        new Set(pageFolderListing)
       )
       expect(result.warnings).toHaveLength(0)
     })

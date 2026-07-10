@@ -6,8 +6,6 @@ import {
   DIGITAL_EXPERIENCE_TYPE,
   META_REGEX,
 } from '../constant/metadataConstants.js'
-import type { CopyOperation } from '../types/handlerResult.js'
-
 import InResourceHandler from './inResourceHandler.js'
 
 const suffixRegexCache = new Map<string, RegExp>()
@@ -20,13 +18,6 @@ const suffixRegexCache = new Map<string, RegExp>()
 // `*.digitalExperience-meta.xml`) or a non-canonical layout, and keep the
 // coarse `DigitalExperienceBundle` behaviour.
 const CONTENT_FOLDER_DEPTH = 4
-
-// A `DigitalExperience` deploy is a merge but the Metadata API rejects a page
-// folder missing either of these two core files (verified against a real org).
-// Untouched siblings (locales, css, media) can stay in the org, so a page
-// change ships the changed file plus only these two mandatory files.
-const PAGE_META_FILE = '_meta.json'
-const PAGE_CONTENT_FILE = 'content.json'
 
 export default class BundleHandler extends InResourceHandler {
   protected override _getElementName() {
@@ -70,29 +61,6 @@ export default class BundleHandler extends InResourceHandler {
       return super._getMetadataName()
     }
     return join(this.element.typeDirectoryPath, ...segments)
-  }
-
-  // For a page change, copy only the two mandatory core files alongside the
-  // changed file (already copied by `_collectCopyWithMetaFile`) — not the whole
-  // content folder. `DigitalExperience` deploys merge, so untouched siblings
-  // stay in the org. Bundle elements keep the inherited whole-directory scan.
-  protected override async _collectResourceCopies(
-    copies: CopyOperation[]
-  ): Promise<void> {
-    if (!this._pageContentSegments()) {
-      return super._collectResourceCopies(copies)
-    }
-    // `metadataName` already holds the content folder — InResourceHandler.collect*
-    // sets it to `_getMetadataName()` before calling this, the same contract the
-    // parent's own `_collectResourceCopies` relies on. Reuse it, don't recompute.
-    const contentFolder = this.metadataName!
-    for (const coreFile of [PAGE_META_FILE, PAGE_CONTENT_FILE]) {
-      const corePath = join(contentFolder, coreFile)
-      // the changed file is already collected by `_collectCopyWithMetaFile`
-      if (corePath !== this.element.basePath) {
-        this._collectCopy(copies, corePath)
-      }
-    }
   }
 
   // A `DigitalExperience` page keeps its metadata as `_meta.json` inside the
