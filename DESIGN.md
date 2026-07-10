@@ -282,12 +282,14 @@ For a **page-level** change — a content file inside the canonical
 after the `digitalExperiences` directory) — it instead emits the fine-grained `DigitalExperience`
 child type (`<baseType>/<spaceApiName>.<contentType>/<contentApiName>`) and scopes the component to
 the content folder. The delete-vs-modify existence check then covers only that page, and the file
-copy ships just the changed file plus the page's two mandatory core files (`_meta.json` +
-`content.json`, required by the Metadata API) — `DigitalExperience` deploys merge, so untouched
-siblings (locales, css, media) stay in the org. Shorter paths (the bundle's own
-`*.digitalExperience-meta.xml`, or any non-canonical shallow path) keep the coarse
-`DigitalExperienceBundle` behaviour. Whole-bundle add/delete is collapsed back to a single
-`DigitalExperienceBundle` member by `BundleRollupProcessor` (see Stage 5).
+copy ships the full content folder recursively — all core files (`_meta.json`, `content.json`),
+nested device-variant subfolders (`mobile/`, `tablet/`), and any locale/media files — scoped to the
+single content folder. A `DigitalExperience` view deploy replaces the view's full device-version
+set, so absent variant folders would read as deletions and be rejected; the delta must therefore
+carry the whole folder. Shorter paths (the bundle's own `*.digitalExperience-meta.xml`, or any
+non-canonical shallow path) keep the coarse `DigitalExperienceBundle` behaviour. Whole-bundle
+add/delete is collapsed back to a single `DigitalExperienceBundle` member by `BundleRollupProcessor`
+(see Stage 5).
 
 #### LwcHandler
 
