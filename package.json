@@ -52,7 +52,7 @@
     "@salesforce/core": "8.32.2",
     "@salesforce/sf-plugins-core": "12.2.26",
     "@salesforce/source-deploy-retrieve": "12.37.1",
-    "ignore": "7.0.5",
+    "ignore": "7.0.6",
     "tar-stream": "3.2.0",
     "txml": "6.0.0",
     "zod": "4.4.3"
@@ -71,7 +71,7 @@
     "@types/tar-stream": "3.1.4",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "9.1.7",
-    "knip": "6.25.0",
+    "knip": "6.26.0",
     "lint-staged": "17.0.8",
     "ls-engines": "0.10.1",
     "oclif": "4.23.27",
