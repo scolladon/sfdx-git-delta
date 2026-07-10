@@ -239,6 +239,13 @@ describe('InBundleHandler', () => {
       const result = await sut.collect()
 
       // Assert
+      // the scan root is the content-type folder — dirname of the page-scoped
+      // metadataName (`_getMetadataName`) — proving the copy scope is derived
+      // from the page folder, not the whole bundle
+      expect(mockedReadDirs).toHaveBeenCalledWith(
+        `${root}/site/Site_A/sfdc_cms__view`,
+        expect.anything()
+      )
       expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(
         false
       )
