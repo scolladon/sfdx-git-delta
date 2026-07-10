@@ -1,8 +1,9 @@
-# brace-expansion@4.0.1 is a transitive of wireit (dev dependency).
-# Fixed in 5.0.5 but the upgrade is a breaking change that wireit's
-# minimatch chain does not support yet (no default export). This is a
-# build-tool path with no runtime exposure to user input — DoS via
-# pathological glob is not reachable from SGD's CLI surface.
+# qs@6.15.1 is a transitive of @stryker-mutator/core (dev dependency) via
+# typed-rest-client, used only by the mutation-testing tooling. Fixed in 6.15.2
+# but typed-rest-client has not released a build pinning it, and an override is
+# not warranted: this is a dev/build-tool path with no runtime exposure —
+# qs.stringify is never called on user-controlled input from SGD's CLI surface,
+# so the DoS is not reachable.
 [[IgnoredVulns]]
-id = "GHSA-f886-m6hf-6m8v"
-reason = "wireit dev dependency; not reachable from runtime; awaiting upstream fix"
+id = "GHSA-q8mj-m7cp-5q26"
+reason = "qs via stryker/typed-rest-client dev dependency; not reachable from runtime; not exposed"
