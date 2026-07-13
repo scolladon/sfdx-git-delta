@@ -4,6 +4,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.0.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.45.1...v7.0.0) (2026-07-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* support node 22/24/26, lint dependency engines, upgrade deps ([#1354](https://github.com/scolladon/sfdx-git-delta/issues/1354))
+
+### Features
+
+* **metadata:** support IdpConfiguration ([51e0f9d](https://github.com/scolladon/sfdx-git-delta/commit/51e0f9ddad86564213e0047a04c1201c6e8e6ace))
+* **metadata:** support UiWidgetBundle ([01c409b](https://github.com/scolladon/sfdx-git-delta/commit/01c409bcbaf045a4ac56f91f6918cf90a8b0b174))
+
+
+### Bug Fixes
+
+* **metadata:** ship full content folder for page-scoped DigitalExperience ([#1357](https://github.com/scolladon/sfdx-git-delta/issues/1357)) ([c297160](https://github.com/scolladon/sfdx-git-delta/commit/c29716076ff829809ac46176b495f5b8b0675cf0))
+
+
+### Build System
+
+* support node 22/24/26, lint dependency engines, upgrade deps ([#1354](https://github.com/scolladon/sfdx-git-delta/issues/1354)) ([ce8ed4a](https://github.com/scolladon/sfdx-git-delta/commit/ce8ed4ac3360420c5d65f39dd8925f0c7db86463))
+
 ## [6.45.1](https://github.com/scolladon/sfdx-git-delta/compare/v6.45.0...v6.45.1) (2026-06-26)
 
 
