@@ -10,6 +10,7 @@
 /test
 install-state.gz
 megalinter-reports/
+npm-shrinkwrap.json
 package.tgz
 perf-preview.html
 perf-raw.json

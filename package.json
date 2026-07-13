@@ -100,7 +100,7 @@
     "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
     "prepack": "wireit",
     "prepare": "husky",
-    "prepublishOnly": "npm shrinkwrap",
+    "prepublishOnly": "shx cp package-lock.json npm-shrinkwrap.json",
     "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
     "test:build": "wireit",
     "test:functional": "wireit",
