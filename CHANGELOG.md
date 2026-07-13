@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.0.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.0.0...v7.0.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* restore npm publish after npm 12 removed the shrinkwrap command ([#1358](https://github.com/scolladon/sfdx-git-delta/issues/1358)) ([65cef14](https://github.com/scolladon/sfdx-git-delta/commit/65cef14709bcdae1e19f25eb15b885d875beaedb))
+
 ## [7.0.0](https://github.com/scolladon/sfdx-git-delta/compare/v6.45.1...v7.0.0) (2026-07-13)
 
 
