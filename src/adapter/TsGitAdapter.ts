@@ -9,22 +9,25 @@
  *   git ls-tree --name-only -r <rev>    -> repo.primitives.walkTree (recursive)
  *   git rev-list --max-parents=0 HEAD   -> repo.primitives.walkCommits
  *   git cat-file --batch / blob         -> repo.primitives.readBlob
- *   git diff --name-status/-M/--numstat -> repo.diff({ format: 'tree' })
- *   git archive --format=tar            -> tree walk + readBlob streaming
+ *   git diff --name-status -M -w        -> repo.diff({ recursive,
+ *                                            detectRenames, ignoreWhitespace })
+ *   git archive --format=tar            -> tree walk + streamBlob
  *   git grep -l                         -> tree walk + readBlob + RegExp
  *   git config core.*                   -> no-op (no subprocess output to fix)
  *
  * Known fidelity gaps (see spike findings):
- *   - ignoreWhitespace: tsgit's diff has no whitespace knobs; emulated by
- *     dropping modifications whose blobs are identical after stripping all
- *     whitespace (approximates --ignore-all-space --ignore-blank-lines).
  *   - gitGrep: pattern interpreted as a JS RegExp, not POSIX basic regex.
  */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
 
-import { openRepository, type Repository } from '@scolladon/tsgit'
+import {
+  type DiffChange,
+  type ObjectId,
+  openRepository,
+  type Repository,
+} from '@scolladon/tsgit'
 
 import { TAB } from '../constant/cliConstants.js'
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
@@ -47,28 +50,19 @@ import type { GitBlobReader } from './gitBlobReader.js'
 import { TreeIndex } from './treeIndex.js'
 
 const ROOT_PATHS = new Set(['', '.', './'])
-const ANY_WHITESPACE = /\s+/g
-const RENAME_SCORE = 100
 // walkTree yields directories and gitlinks too; only blob-bearing modes
 // belong in the path -> blob id index (ls-tree -r parity).
 const BLOB_MODES = new Set(['100644', '100755', '120000'])
 
-// tsgit brands ObjectId but does not re-export the type from its Node entry
-// point (nor PatchResult/TreeDiff); derive them from the facade so blob ids
-// stay branded.
-type BlobId = Awaited<ReturnType<Repository['revParse']>>
-
-const DIRECTORY_MODE = '40000'
 const GITLINK_MODE = '160000'
 
-// File-level change synthesized from the recursive tree walk. tsgit's
-// diffTrees is single-level (libgit2-style): directory entries surface as
-// one change and the caller recurses, so paths here are already prefixed
-// back to repo-relative form.
-type FileChange =
-  | { kind: typeof ADDITION; path: string; id: BlobId }
-  | { kind: typeof DELETION; path: string; id: BlobId }
-  | { kind: typeof MODIFICATION; path: string; oldId: BlobId; newId: BlobId }
+// Maps `--ignore-all-space --ignore-blank-lines` (IGNORE_WHITESPACE_PARAMS
+// on the subprocess side) onto tsgit's data-mode whitespace knobs:
+// whitespace-only modifications drop out of the TreeDiff.
+const IGNORE_WHITESPACE_OPTIONS = {
+  ignoreWhitespace: 'all',
+  ignoreBlankLines: true,
+} as const
 
 export default class TsGitAdapter implements GitBlobReader {
   private static instances: Map<string, TsGitAdapter> = new Map()
@@ -95,12 +89,12 @@ export default class TsGitAdapter implements GitBlobReader {
   protected readonly treeIndex: Map<string, TreeIndex>
   // Per revision: repo-relative path -> blob ObjectId. The tsgit counterpart
   // of `git cat-file --batch` oid:path resolution.
-  protected readonly blobIdIndex: Map<string, Map<string, BlobId>>
+  protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
   private repoHandle: Promise<Repository> | null = null
 
   private constructor(protected readonly config: Config) {
     this.treeIndex = new Map<string, TreeIndex>()
-    this.blobIdIndex = new Map<string, Map<string, BlobId>>()
+    this.blobIdIndex = new Map<string, Map<string, ObjectId>>()
   }
 
   protected getRepo(): Promise<Repository> {
@@ -160,7 +154,7 @@ export default class TsGitAdapter implements GitBlobReader {
   // Shared by the tree index, blob reads, archive streaming and grep.
   protected async indexRevision(
     revision: string
-  ): Promise<Map<string, BlobId>> {
+  ): Promise<Map<string, ObjectId>> {
     const cached = this.blobIdIndex.get(revision)
     if (cached) {
       return cached
@@ -168,7 +162,7 @@ export default class TsGitAdapter implements GitBlobReader {
     const repo = await this.getRepo()
     const commitId = await repo.revParse(revision)
     const tree = await repo.primitives.readTree(commitId)
-    const blobIds = new Map<string, BlobId>()
+    const blobIds = new Map<string, ObjectId>()
     for await (const entry of repo.primitives.walkTree(tree, {
       recursive: true,
     })) {
@@ -211,7 +205,7 @@ export default class TsGitAdapter implements GitBlobReader {
     return firstCommit
   }
 
-  protected async resolveBlobId(forRef: FileGitRef): Promise<BlobId> {
+  protected async resolveObjectId(forRef: FileGitRef): Promise<ObjectId> {
     const blobIds = await this.indexRevision(forRef.oid)
     const blobId = blobIds.get(treatPathSep(forRef.path))
     if (!blobId) {
@@ -222,7 +216,7 @@ export default class TsGitAdapter implements GitBlobReader {
 
   protected async readBlobBuffer(forRef: FileGitRef): Promise<Buffer> {
     const repo = await this.getRepo()
-    const blobId = await this.resolveBlobId(forRef)
+    const blobId = await this.resolveObjectId(forRef)
     const blob = await repo.primitives.readBlob(blobId)
     return Buffer.from(blob.content)
   }
@@ -264,8 +258,11 @@ export default class TsGitAdapter implements GitBlobReader {
     const blobIds = await this.indexRevision(revision)
     for (const [filePath, blobId] of blobIds) {
       if (!inScope(filePath, [path])) continue
-      const blob = await repo.primitives.readBlob(blobId)
-      yield { path: filePath, stream: Readable.from(Buffer.from(blob.content)) }
+      const blob = await repo.primitives.streamBlob(blobId)
+      yield {
+        path: filePath,
+        stream: Readable.from(blob, { objectMode: false }),
+      }
     }
   }
 
@@ -337,211 +334,25 @@ export default class TsGitAdapter implements GitBlobReader {
     }
   }
 
+  // One facade diff call carries the whole subprocess contract: `recursive`
+  // is `git diff -r`, `detectRenames` is `-M` (similarity-based, gated
+  // behind `config.changesManifest` like the subprocess `-M`), and the
+  // whitespace options drop whitespace-only modifications the way the
+  // subprocess numstat path does.
   @log
   public async *streamDiffLines(): AsyncGenerator<string> {
-    const detectRenames = Boolean(this.config.changesManifest)
     const repo = await this.getRepo()
-    const [fromTree, toTree] = await Promise.all([
-      this.resolveTreeId(this.config.from),
-      this.resolveTreeId(this.config.to),
-    ])
+    const { changes } = await repo.diff({
+      from: this.config.from,
+      to: this.config.to,
+      recursive: true,
+      detectRenames: Boolean(this.config.changesManifest),
+      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
+    })
     const scopes = this.config.source.filter(scope => !ROOT_PATHS.has(scope))
-    const changes: FileChange[] = []
-    for await (const change of this.walkDiff(repo, fromTree, toTree, '')) {
-      if (scopes.length === 0 || inScope(change.path, scopes)) {
-        changes.push(change)
-      }
-    }
-    const { renames, rest } = detectRenames
-      ? pairExactRenames(changes)
-      : { renames: [], rest: changes }
-    for (const [oldPath, newPath] of renames) {
-      yield `${RENAMED}${RENAME_SCORE}${TAB}${treatPathSep(oldPath)}${TAB}${treatPathSep(newPath)}`
-    }
-    for (const change of rest) {
-      const line = await this.toDiffLine(change)
-      if (line) {
-        yield line
-      }
-    }
-  }
-
-  protected async resolveTreeId(revision: string): Promise<BlobId> {
-    const repo = await this.getRepo()
-    const commitId = await repo.revParse(revision)
-    const commit = await repo.primitives.readObject(commitId)
-    if (commit.type !== 'commit') {
-      throw new Error(`'${revision}' does not resolve to a commit`)
-    }
-    return commit.data.tree
-  }
-
-  // tsgit's diffTrees compares one tree level: a changed directory surfaces
-  // as a single entry carrying the two sub-tree ids. Recurse into directory
-  // entries and yield repo-relative file changes, mirroring
-  // `git diff -r` semantics. Gitlinks are skipped (submodule pointer moves
-  // are not deployable metadata). File-level type changes (symlink <-> file)
-  // are dropped for parity with the subprocess `--diff-filter=AMD`.
-  protected async *walkDiff(
-    repo: Repository,
-    oldTree: BlobId | undefined,
-    newTree: BlobId | undefined,
-    prefix: string
-  ): AsyncGenerator<FileChange> {
-    const { changes } = await repo.primitives.diffTrees(oldTree, newTree)
     for (const change of changes) {
-      switch (change.type) {
-        case 'add':
-          yield* this.expandSide(
-            repo,
-            ADDITION,
-            change.newMode,
-            change.newId,
-            joinPath(prefix, change.newPath)
-          )
-          break
-        case 'delete':
-          yield* this.expandSide(
-            repo,
-            DELETION,
-            change.oldMode,
-            change.oldId,
-            joinPath(prefix, change.oldPath)
-          )
-          break
-        case 'modify':
-          yield* this.expandModify(repo, change, prefix)
-          break
-        case 'rename':
-          // diffTrees is invoked without rename detection; renames are
-          // re-derived globally by pairExactRenames. Defensive split.
-          yield* this.expandSide(
-            repo,
-            DELETION,
-            change.oldMode,
-            change.oldId,
-            joinPath(prefix, change.oldPath)
-          )
-          yield* this.expandSide(
-            repo,
-            ADDITION,
-            change.newMode,
-            change.newId,
-            joinPath(prefix, change.newPath)
-          )
-          break
-        case 'type-change':
-          yield* this.expandTypeChange(repo, change, prefix)
-          break
-      }
+      yield* toDiffLines(change, scopes)
     }
-  }
-
-  protected async *expandSide(
-    repo: Repository,
-    kind: typeof ADDITION | typeof DELETION,
-    mode: string,
-    id: BlobId,
-    path: string
-  ): AsyncGenerator<FileChange> {
-    if (mode === GITLINK_MODE) return
-    if (mode !== DIRECTORY_MODE) {
-      yield kind === ADDITION
-        ? { kind: ADDITION, path, id }
-        : { kind: DELETION, path, id }
-      return
-    }
-    const [oldTree, newTree] =
-      kind === ADDITION ? [undefined, id] : [id, undefined]
-    yield* this.walkDiff(repo, oldTree, newTree, path)
-  }
-
-  protected async *expandModify(
-    repo: Repository,
-    change: {
-      oldMode: string
-      newMode: string
-      oldId: BlobId
-      newId: BlobId
-      path: string
-    },
-    prefix: string
-  ): AsyncGenerator<FileChange> {
-    const path = joinPath(prefix, change.path)
-    if (change.oldMode === GITLINK_MODE || change.newMode === GITLINK_MODE) {
-      return
-    }
-    const bothDirectories =
-      change.oldMode === DIRECTORY_MODE && change.newMode === DIRECTORY_MODE
-    if (bothDirectories) {
-      yield* this.walkDiff(repo, change.oldId, change.newId, path)
-      return
-    }
-    yield {
-      kind: MODIFICATION,
-      path,
-      oldId: change.oldId,
-      newId: change.newId,
-    }
-  }
-
-  protected async *expandTypeChange(
-    repo: Repository,
-    change: {
-      oldMode: string
-      newMode: string
-      oldId: BlobId
-      newId: BlobId
-      path: string
-    },
-    prefix: string
-  ): AsyncGenerator<FileChange> {
-    const path = joinPath(prefix, change.path)
-    if (change.oldMode === DIRECTORY_MODE) {
-      yield* this.expandSide(repo, DELETION, change.oldMode, change.oldId, path)
-      yield* this.expandSide(repo, ADDITION, change.newMode, change.newId, path)
-      return
-    }
-    if (change.newMode === DIRECTORY_MODE) {
-      yield* this.expandSide(repo, DELETION, change.oldMode, change.oldId, path)
-      yield* this.expandSide(repo, ADDITION, change.newMode, change.newId, path)
-    }
-    // file <-> symlink type changes are dropped (--diff-filter=AMD parity)
-  }
-
-  protected async toDiffLine(change: FileChange): Promise<string | null> {
-    switch (change.kind) {
-      case ADDITION:
-        return `${ADDITION}${TAB}${treatPathSep(change.path)}`
-      case DELETION:
-        return `${DELETION}${TAB}${treatPathSep(change.path)}`
-      case MODIFICATION: {
-        if (
-          this.config.ignoreWhitespace &&
-          (await this.isWhitespaceOnlyChange(change.oldId, change.newId))
-        ) {
-          return null
-        }
-        return `${MODIFICATION}${TAB}${treatPathSep(change.path)}`
-      }
-    }
-  }
-
-  // Approximates `--ignore-all-space --ignore-blank-lines`: a modification
-  // whose blobs are byte-identical once all whitespace is stripped carries
-  // no deployable content change.
-  protected async isWhitespaceOnlyChange(
-    oldId: BlobId,
-    newId: BlobId
-  ): Promise<boolean> {
-    const repo = await this.getRepo()
-    const [oldBlob, newBlob] = await Promise.all([
-      repo.primitives.readBlob(oldId),
-      repo.primitives.readBlob(newId),
-    ])
-    const normalize = (content: Uint8Array) =>
-      Buffer.from(content).toString(UTF8_ENCODING).replace(ANY_WHITESPACE, '')
-    return normalize(oldBlob.content) === normalize(newBlob.content)
   }
 }
 
@@ -551,8 +362,61 @@ const inScope = (path: string, scopes: string[]): boolean =>
       ROOT_PATHS.has(scope) || path === scope || path.startsWith(`${scope}/`)
   )
 
-const joinPath = (prefix: string, name: string): string =>
-  prefix ? `${prefix}/${name}` : name
+const keepSide = (mode: string, path: string, scopes: string[]): boolean =>
+  mode !== GITLINK_MODE && (scopes.length === 0 || inScope(path, scopes))
+
+// git prints rename similarity as a zero-padded three-digit percent (R087),
+// truncating like its `(int)(score * 100 / MAX_SCORE)`. tsgit declares
+// toSimilarityPercent in its types but does not ship it at runtime.
+const similarityPercent = (similarity: {
+  score: number
+  maxScore: number
+}): string =>
+  String(Math.trunc((similarity.score * 100) / similarity.maxScore)).padStart(
+    3,
+    '0'
+  )
+
+// The facade diff takes no pathspec, so `-- <source>` scoping is replicated
+// per side. Gitlink changes are skipped (submodule pointer moves are not
+// deployable metadata) and `type-change`/`copy` entries are dropped for
+// parity with the subprocess `--diff-filter=AMD(R)`. A rename with only one
+// side in scope degrades to that side's A/D line, matching what the
+// subprocess pathspec does to a broken rename pair.
+function* toDiffLines(change: DiffChange, scopes: string[]): Generator<string> {
+  switch (change.type) {
+    case 'add':
+      if (keepSide(change.newMode, change.newPath, scopes)) {
+        yield `${ADDITION}${TAB}${treatPathSep(change.newPath)}`
+      }
+      break
+    case 'delete':
+      if (keepSide(change.oldMode, change.oldPath, scopes)) {
+        yield `${DELETION}${TAB}${treatPathSep(change.oldPath)}`
+      }
+      break
+    case 'modify':
+      if (
+        change.oldMode !== GITLINK_MODE &&
+        keepSide(change.newMode, change.path, scopes)
+      ) {
+        yield `${MODIFICATION}${TAB}${treatPathSep(change.path)}`
+      }
+      break
+    case 'rename': {
+      const oldKept = keepSide(change.oldMode, change.oldPath, scopes)
+      const newKept = keepSide(change.newMode, change.newPath, scopes)
+      if (oldKept && newKept) {
+        yield `${RENAMED}${similarityPercent(change.similarity)}${TAB}${treatPathSep(change.oldPath)}${TAB}${treatPathSep(change.newPath)}`
+      } else if (newKept) {
+        yield `${ADDITION}${TAB}${treatPathSep(change.newPath)}`
+      } else if (oldKept) {
+        yield `${DELETION}${TAB}${treatPathSep(change.oldPath)}`
+      }
+      break
+    }
+  }
+}
 
 const GLOB_CHARS = /[*?[]/
 const REGEXP_SPECIALS = /[.+^${}()|\\\]]/g
@@ -581,33 +445,4 @@ const buildPathspecMatcher = (specs: string[]): ((path: string) => boolean) => {
   return (path: string): boolean =>
     (literals.length > 0 && inScope(path, literals)) ||
     globs.some(glob => glob.test(path))
-}
-
-// Exact-rename detection: pair an added and a deleted path carrying the
-// same blob id (similarity 100%). Content-similarity renames (< 100%) are
-// NOT detected — a known fidelity gap versus `git diff -M`.
-const pairExactRenames = (
-  changes: FileChange[]
-): { renames: Array<[string, string]>; rest: FileChange[] } => {
-  const deletesById = new Map<string, FileChange[]>()
-  for (const change of changes) {
-    if (change.kind === DELETION) {
-      const queue = deletesById.get(change.id) ?? []
-      queue.push(change)
-      deletesById.set(change.id, queue)
-    }
-  }
-  const renames: Array<[string, string]> = []
-  const paired = new Set<FileChange>()
-  for (const change of changes) {
-    if (change.kind !== ADDITION) continue
-    const queue = deletesById.get(change.id)
-    const deleted = queue?.shift()
-    if (deleted) {
-      renames.push([deleted.path, change.path])
-      paired.add(deleted)
-      paired.add(change)
-    }
-  }
-  return { renames, rest: changes.filter(change => !paired.has(change)) }
 }
