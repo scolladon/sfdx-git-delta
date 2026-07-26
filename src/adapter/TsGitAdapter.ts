@@ -418,15 +418,15 @@ export default class TsGitAdapter implements GitBlobReader {
           yield* this.expandSide(
             repo,
             DELETION,
-            change.mode,
-            change.id,
+            change.oldMode,
+            change.oldId,
             joinPath(prefix, change.oldPath)
           )
           yield* this.expandSide(
             repo,
             ADDITION,
-            change.mode,
-            change.id,
+            change.newMode,
+            change.newId,
             joinPath(prefix, change.newPath)
           )
           break
