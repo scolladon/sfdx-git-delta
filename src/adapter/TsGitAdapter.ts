@@ -27,6 +27,7 @@ import {
   type ObjectId,
   openRepository,
   type Repository,
+  toSimilarityPercent,
 } from '@scolladon/tsgit'
 
 import { TAB } from '../constant/cliConstants.js'
@@ -150,8 +151,10 @@ export default class TsGitAdapter implements GitBlobReader {
     }
   }
 
-  // Walks the full tree at `revision` once and caches path -> blob oid.
+  // Flattens the full tree at `revision` once and caches path -> blob oid.
   // Shared by the tree index, blob reads, archive streaming and grep.
+  // flattenTree is the bulk traversal path (one call, no per-entry yields);
+  // it takes a tree oid, so the commit is peeled first.
   protected async indexRevision(
     revision: string
   ): Promise<Map<string, ObjectId>> {
@@ -161,13 +164,15 @@ export default class TsGitAdapter implements GitBlobReader {
     }
     const repo = await this.getRepo()
     const commitId = await repo.revParse(revision)
-    const tree = await repo.primitives.readTree(commitId)
+    const commit = await repo.primitives.readObject(commitId)
+    if (commit.type !== 'commit') {
+      throw new Error(`'${revision}' does not resolve to a commit`)
+    }
+    const { entries } = await repo.primitives.flattenTree(commit.data.tree)
     const blobIds = new Map<string, ObjectId>()
-    for await (const entry of repo.primitives.walkTree(tree, {
-      recursive: true,
-    })) {
+    for (const [path, entry] of entries) {
       if (BLOB_MODES.has(entry.mode)) {
-        blobIds.set(treatPathSep(entry.path), entry.id)
+        blobIds.set(treatPathSep(path), entry.id)
       }
     }
     this.blobIdIndex.set(revision, blobIds)
@@ -365,17 +370,9 @@ const inScope = (path: string, scopes: string[]): boolean =>
 const keepSide = (mode: string, path: string, scopes: string[]): boolean =>
   mode !== GITLINK_MODE && (scopes.length === 0 || inScope(path, scopes))
 
-// git prints rename similarity as a zero-padded three-digit percent (R087),
-// truncating like its `(int)(score * 100 / MAX_SCORE)`. tsgit declares
-// toSimilarityPercent in its types but does not ship it at runtime.
-const similarityPercent = (similarity: {
-  score: number
-  maxScore: number
-}): string =>
-  String(Math.trunc((similarity.score * 100) / similarity.maxScore)).padStart(
-    3,
-    '0'
-  )
+// git prints rename similarity as a zero-padded three-digit percent (R087).
+const similarityPercent = (similarity: { score: number }): string =>
+  String(toSimilarityPercent(similarity.score)).padStart(3, '0')
 
 // The facade diff takes no pathspec, so `-- <source>` scoping is replicated
 // per side. Gitlink changes are skipped (submodule pointer moves are not
