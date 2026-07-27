@@ -71,46 +71,13 @@ describe('InNestedFolderHandler', () => {
     globalMetadata = await getDefinition({})
   })
 
-  describe.each(
-    testContext
-  )('when called with generateDelta false', (changePath: string, expectedMember: string, expectedType: string) => {
-    beforeEach(() => {
-      work.config.generateDelta = false
-    })
-    it(`should add manifest entry when adding ${expectedType}`, async () => {
-      // Arrange
-      const { changeType, element } = createElement(
-        changePath,
-        objectType,
-        globalMetadata
-      )
-      const sut = new ReportingFolderHandler(changeType, element, work)
-
-      // Act
-      const result = await sut.collectAddition()
-
-      // Assert
-      expect(result.changes.toElements()).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            target: ManifestTarget.Package,
-            type: expectedType,
-            member: expectedMember,
-          }),
-        ])
-      )
-    })
-  })
-
-  describe.each(
-    testContext
-  )('when called with generateDelta true', (changePath: string, expectedMember: string, expectedType: string) => {
-    beforeEach(() => {
-      work.config.generateDelta = true
-    })
-
-    describe(`when readDirs does not return files`, () => {
-      it(`should return manifest and copy entries for ${expectedType}`, async () => {
+  describe.each(testContext)(
+    'when called with generateDelta false',
+    (changePath: string, expectedMember: string, expectedType: string) => {
+      beforeEach(() => {
+        work.config.generateDelta = false
+      })
+      it(`should add manifest entry when adding ${expectedType}`, async () => {
         // Arrange
         const { changeType, element } = createElement(
           changePath,
@@ -118,7 +85,6 @@ describe('InNestedFolderHandler', () => {
           globalMetadata
         )
         const sut = new ReportingFolderHandler(changeType, element, work)
-        mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
         // Act
         const result = await sut.collectAddition()
@@ -133,49 +99,85 @@ describe('InNestedFolderHandler', () => {
             }),
           ])
         )
-        expect(readDirs).toHaveBeenCalledTimes(1)
-        expect(result.copies).toHaveLength(3)
-        expect(result.copies).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              kind: CopyOperationKind.GitCopy,
-            }),
-          ])
-        )
       })
-    })
+    }
+  )
 
-    describe('when readDirs returns files', () => {
-      it('should include special extension copies', async () => {
-        // Arrange
-        const { changeType, element } = createElement(
-          changePath,
-          objectType,
-          globalMetadata
-        )
-        const sut = new ReportingFolderHandler(changeType, element, work)
-        mockedReadDirs.mockImplementationOnce(() =>
-          Promise.resolve([entity, 'not/matching'])
-        )
-
-        // Act
-        const result = await sut.collectAddition()
-
-        // Assert
-        expect(result.changes.toElements()).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              target: ManifestTarget.Package,
-              type: expectedType,
-              member: expectedMember,
-            }),
-          ])
-        )
-        expect(readDirs).toHaveBeenCalledTimes(1)
-        expect(result.copies).toHaveLength(5)
+  describe.each(testContext)(
+    'when called with generateDelta true',
+    (changePath: string, expectedMember: string, expectedType: string) => {
+      beforeEach(() => {
+        work.config.generateDelta = true
       })
-    })
-  })
+
+      describe(`when readDirs does not return files`, () => {
+        it(`should return manifest and copy entries for ${expectedType}`, async () => {
+          // Arrange
+          const { changeType, element } = createElement(
+            changePath,
+            objectType,
+            globalMetadata
+          )
+          const sut = new ReportingFolderHandler(changeType, element, work)
+          mockedReadDirs.mockImplementation(() => Promise.resolve([]))
+
+          // Act
+          const result = await sut.collectAddition()
+
+          // Assert
+          expect(result.changes.toElements()).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: expectedType,
+                member: expectedMember,
+              }),
+            ])
+          )
+          expect(readDirs).toHaveBeenCalledTimes(1)
+          expect(result.copies).toHaveLength(3)
+          expect(result.copies).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                kind: CopyOperationKind.GitCopy,
+              }),
+            ])
+          )
+        })
+      })
+
+      describe('when readDirs returns files', () => {
+        it('should include special extension copies', async () => {
+          // Arrange
+          const { changeType, element } = createElement(
+            changePath,
+            objectType,
+            globalMetadata
+          )
+          const sut = new ReportingFolderHandler(changeType, element, work)
+          mockedReadDirs.mockImplementationOnce(() =>
+            Promise.resolve([entity, 'not/matching'])
+          )
+
+          // Act
+          const result = await sut.collectAddition()
+
+          // Assert
+          expect(result.changes.toElements()).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: expectedType,
+                member: expectedMember,
+              }),
+            ])
+          )
+          expect(readDirs).toHaveBeenCalledTimes(1)
+          expect(result.copies).toHaveLength(5)
+        })
+      })
+    }
+  )
 
   describe('when the line should not be processed', () => {
     it.each([

@@ -57,89 +57,88 @@ describe('ContainedDecomposedHandler', () => {
       expect(result.copies).toHaveLength(0)
     })
 
-    describe.each([
-      'permissionsets',
-      'other',
-      'permissionsets/subFolder',
-    ])('Given non-decomposed format in folder %s', folder => {
-      it('When addition, Then returns Package manifest with file copy', async () => {
-        // Arrange
-        const line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
-        const { changeType, element } = createElement(
-          `A       ${line}`,
-          globalMetadata.get('permissionsets')!,
-          globalMetadata
-        )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+    describe.each(['permissionsets', 'other', 'permissionsets/subFolder'])(
+      'Given non-decomposed format in folder %s',
+      folder => {
+        it('When addition, Then returns Package manifest with file copy', async () => {
+          // Arrange
+          const line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
+          const { changeType, element } = createElement(
+            `A       ${line}`,
+            globalMetadata.get('permissionsets')!,
+            globalMetadata
+          )
+          const sut = new ContainedDecomposedHandler(changeType, element, work)
 
-        // Act
-        const result = await sut.collect()
+          // Act
+          const result = await sut.collect()
 
-        // Assert
-        expect(result.changes.toElements()).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              target: ManifestTarget.Package,
-              type: 'PermissionSet',
-              member: 'Subject',
-            }),
-          ])
-        )
-        expect(result.copies.length).toBeGreaterThan(0)
-      })
+          // Assert
+          expect(result.changes.toElements()).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: 'PermissionSet',
+                member: 'Subject',
+              }),
+            ])
+          )
+          expect(result.copies.length).toBeGreaterThan(0)
+        })
 
-      it('When modification, Then returns Package manifest with file copy', async () => {
-        // Arrange
-        const line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
-        const { changeType, element } = createElement(
-          `M       ${line}`,
-          globalMetadata.get('permissionsets')!,
-          globalMetadata
-        )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        it('When modification, Then returns Package manifest with file copy', async () => {
+          // Arrange
+          const line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
+          const { changeType, element } = createElement(
+            `M       ${line}`,
+            globalMetadata.get('permissionsets')!,
+            globalMetadata
+          )
+          const sut = new ContainedDecomposedHandler(changeType, element, work)
 
-        // Act
-        const result = await sut.collect()
+          // Act
+          const result = await sut.collect()
 
-        // Assert
-        expect(result.changes.toElements()).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              target: ManifestTarget.Package,
-              type: 'PermissionSet',
-              member: 'Subject',
-            }),
-          ])
-        )
-        expect(result.copies.length).toBeGreaterThan(0)
-      })
+          // Assert
+          expect(result.changes.toElements()).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.Package,
+                type: 'PermissionSet',
+                member: 'Subject',
+              }),
+            ])
+          )
+          expect(result.copies.length).toBeGreaterThan(0)
+        })
 
-      it('When deletion, Then returns DestructiveChanges manifest without copies', async () => {
-        // Arrange
-        const line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
-        const { changeType, element } = createElement(
-          `D       ${line}`,
-          globalMetadata.get('permissionsets')!,
-          globalMetadata
-        )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        it('When deletion, Then returns DestructiveChanges manifest without copies', async () => {
+          // Arrange
+          const line = `force-app/main/${folder}/Subject.permissionset-meta.xml`
+          const { changeType, element } = createElement(
+            `D       ${line}`,
+            globalMetadata.get('permissionsets')!,
+            globalMetadata
+          )
+          const sut = new ContainedDecomposedHandler(changeType, element, work)
 
-        // Act
-        const result = await sut.collect()
+          // Act
+          const result = await sut.collect()
 
-        // Assert
-        expect(result.changes.toElements()).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              target: ManifestTarget.DestructiveChanges,
-              type: 'PermissionSet',
-              member: 'Subject',
-            }),
-          ])
-        )
-        expect(result.copies).toHaveLength(0)
-      })
-    })
+          // Assert
+          expect(result.changes.toElements()).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                target: ManifestTarget.DestructiveChanges,
+                type: 'PermissionSet',
+                member: 'Subject',
+              }),
+            ])
+          )
+          expect(result.copies).toHaveLength(0)
+        })
+      }
+    )
 
     describe.each([
       'force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml',

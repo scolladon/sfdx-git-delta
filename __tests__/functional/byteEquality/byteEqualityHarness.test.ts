@@ -143,66 +143,68 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
   // declares its expected hasPackageContent flag and manifest entries in a
   // hand-authored expected.json sidecar (see parseExpectation above), which
   // the snapshot alone cannot catch a regression in.
-  it.each(
-    fixtures
-  )('Given fixture $name, When streaming run() executes, Then hasPackageContent, manifests and file presence match the fixture expectation', async (fixture: Fixture) => {
-    // Arrange
-    stubGitContent(fixture)
-    const expectation = parseExpectation(fixture)
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+  it.each(fixtures)(
+    'Given fixture $name, When streaming run() executes, Then hasPackageContent, manifests and file presence match the fixture expectation',
+    async (fixture: Fixture) => {
+      // Arrange
+      stubGitContent(fixture)
+      const expectation = parseExpectation(fixture)
+      const sut = new MetadataDiff(work.config, inFileAttributes)
 
-    // Act
-    const outcome = await sut.run('file/path')
+      // Act
+      const outcome = await sut.run('file/path')
 
-    // Assert
-    expect(outcome.hasPackageContent).toBe(expectation.hasPackageContent)
-    expect(outcome.manifests.added).toEqual(expectation.added)
-    expect(outcome.manifests.modified).toEqual(expectation.modified)
-    expect(outcome.manifests.deleted).toEqual(expectation.deleted)
+      // Assert
+      expect(outcome.hasPackageContent).toBe(expectation.hasPackageContent)
+      expect(outcome.manifests.added).toEqual(expectation.added)
+      expect(outcome.manifests.modified).toEqual(expectation.modified)
+      expect(outcome.manifests.deleted).toEqual(expectation.deleted)
 
-    if (outcome.writer) {
-      const chunks: Buffer[] = []
-      const stream = new PassThrough()
-      stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
-      await outcome.writer(stream)
-      stream.end()
-      const produced = Buffer.concat(chunks).toString('utf8')
+      if (outcome.writer) {
+        const chunks: Buffer[] = []
+        const stream = new PassThrough()
+        stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
+        await outcome.writer(stream)
+        stream.end()
+        const produced = Buffer.concat(chunks).toString('utf8')
 
-      if (UPDATE_SNAPSHOTS) {
-        writeFileSync(fixture.expectedPath, produced, 'utf8')
-      } else if (fixture.expected === null) {
+        if (UPDATE_SNAPSHOTS) {
+          writeFileSync(fixture.expectedPath, produced, 'utf8')
+        } else if (fixture.expected === null) {
+          throw new Error(
+            `Writer fired but no snapshot is committed for fixture ${fixture.name} at ${fixture.expectedPath}. Rerun with UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 to create it.`
+          )
+        } else {
+          expect(produced).toBe(fixture.expected)
+        }
+      } else if (fixture.expected !== null) {
         throw new Error(
-          `Writer fired but no snapshot is committed for fixture ${fixture.name} at ${fixture.expectedPath}. Rerun with UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 to create it.`
+          `Snapshot is committed but no writer fires for fixture ${fixture.name} at ${fixture.expectedPath}. Delete the stale snapshot.`
         )
-      } else {
-        expect(produced).toBe(fixture.expected)
       }
-    } else if (fixture.expected !== null) {
-      throw new Error(
-        `Snapshot is committed but no writer fires for fixture ${fixture.name} at ${fixture.expectedPath}. Delete the stale snapshot.`
-      )
     }
-  })
+  )
 
-  it.each(
-    fixtures
-  )('Given fixture $name, When run() executes with generateDelta false, Then hasPackageContent and manifests are unchanged and no writer is produced', async (fixture: Fixture) => {
-    // Arrange
-    stubGitContent(fixture)
-    const expectation = parseExpectation(fixture)
-    const sut = new MetadataDiff(
-      { ...work.config, generateDelta: false },
-      inFileAttributes
-    )
+  it.each(fixtures)(
+    'Given fixture $name, When run() executes with generateDelta false, Then hasPackageContent and manifests are unchanged and no writer is produced',
+    async (fixture: Fixture) => {
+      // Arrange
+      stubGitContent(fixture)
+      const expectation = parseExpectation(fixture)
+      const sut = new MetadataDiff(
+        { ...work.config, generateDelta: false },
+        inFileAttributes
+      )
 
-    // Act
-    const outcome = await sut.run('file/path')
+      // Act
+      const outcome = await sut.run('file/path')
 
-    // Assert
-    expect(outcome.hasPackageContent).toBe(expectation.hasPackageContent)
-    expect(outcome.manifests.added).toEqual(expectation.added)
-    expect(outcome.manifests.modified).toEqual(expectation.modified)
-    expect(outcome.manifests.deleted).toEqual(expectation.deleted)
-    expect(outcome.writer).toBeUndefined()
-  })
+      // Assert
+      expect(outcome.hasPackageContent).toBe(expectation.hasPackageContent)
+      expect(outcome.manifests.added).toEqual(expectation.added)
+      expect(outcome.manifests.modified).toEqual(expectation.modified)
+      expect(outcome.manifests.deleted).toEqual(expectation.deleted)
+      expect(outcome.writer).toBeUndefined()
+    }
+  )
 })

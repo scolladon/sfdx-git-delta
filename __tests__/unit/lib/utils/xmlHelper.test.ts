@@ -252,21 +252,19 @@ describe('xmlHelper', () => {
   })
 
   describe('Given the xmlContent guard (if (!xmlContent) return {})', () => {
-    it.each([
-      null,
-      undefined,
-      0,
-      false,
-    ])('When parseXml receives falsy value %s, Then returns empty object without calling parser', falsy => {
-      // Arrange — any falsy xmlContent must trigger the early-return guard
-      // at L34. If the ConditionalExpression is mutated to `false` the
-      // guard never fires and the parser is called with a falsy string,
-      // producing either an error or unexpected output.
-      const sut = parseXml(falsy as unknown as string)
+    it.each([null, undefined, 0, false])(
+      'When parseXml receives falsy value %s, Then returns empty object without calling parser',
+      falsy => {
+        // Arrange — any falsy xmlContent must trigger the early-return guard
+        // at L34. If the ConditionalExpression is mutated to `false` the
+        // guard never fires and the parser is called with a falsy string,
+        // producing either an error or unexpected output.
+        const sut = parseXml(falsy as unknown as string)
 
-      // Assert
-      expect(sut).toStrictEqual({})
-    })
+        // Assert
+        expect(sut).toStrictEqual({})
+      }
+    )
 
     it('When parseXml receives a non-empty string, Then does NOT early-return (guard only fires for falsy)', () => {
       // Arrange — verifies the guard does not fire for truthy input.

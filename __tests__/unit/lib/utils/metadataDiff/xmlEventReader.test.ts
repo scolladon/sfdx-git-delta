@@ -74,10 +74,15 @@ describe('xmlEventReader', () => {
       ['no name in open tag', '<>foo</>'],
       ['malformed close tag in body', '<Root></></Root>'],
       ['unterminated close tag', '<Root></Root'],
-    ])('Given %s, When parseToSidePropagating runs, Then it rejects', async (_label, source) => {
-      const onElement = vi.fn()
-      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
-    })
+    ])(
+      'Given %s, When parseToSidePropagating runs, Then it rejects',
+      async (_label, source) => {
+        const onElement = vi.fn()
+        await expect(
+          parseToSidePropagating(source, onElement)
+        ).rejects.toThrow()
+      }
+    )
 
     it('Given trailing whitespace after the root close, When parseToSidePropagating runs, Then it is tolerated', async () => {
       // Arrange — exercises the trailing-whitespace branch of verifyTail.

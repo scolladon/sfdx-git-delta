@@ -600,93 +600,94 @@ beforeEach(() => {
     return Promise.resolve(existingFiles.includes(path))
   })
 })
-describe.each(testContext)(`integration test %s`, (changePath:
-  | string
-  | Set<string>, expected: string | Set<string>, expectedType:
-  | string
-  | Set<string>, xmlTo: string | Set<string>, xmlFrom:
-  | string
-  | Set<string>) => {
-  it(`addition ${expectedType}`, async () => {
-    // Arrange
-    if (xmlTo && xmlFrom) {
-      mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
-      mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
-    }
-    const sut = await handlerFactory.getTypeHandler(
-      `${ADDITION}       ${changePath}`
-    )
+describe.each(testContext)(
+  `integration test %s`,
+  (changePath: string | Set<string>, expected:
+    | string
+    | Set<string>, expectedType: string | Set<string>, xmlTo:
+    | string
+    | Set<string>, xmlFrom: string | Set<string>) => {
+    it(`addition ${expectedType}`, async () => {
+      // Arrange
+      if (xmlTo && xmlFrom) {
+        mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
+        mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
+      }
+      const sut = await handlerFactory.getTypeHandler(
+        `${ADDITION}       ${changePath}`
+      )
 
-    // Act
-    const result = await sut.collect()
+      // Act
+      const result = await sut.collect()
 
-    // Assert
-    const members = new Set(
-      result.changes
-        .toElements()
-        .filter(
-          m => m.target === ManifestTarget.Package && m.type === expectedType
-        )
-        .map(m => m.member)
-    )
-    expect(members).toEqual(expected)
-  })
-  it(`deletion ${expectedType}`, async () => {
-    // Arrange
-    if (xmlTo && xmlFrom) {
-      mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
-      mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
-    }
+      // Assert
+      const members = new Set(
+        result.changes
+          .toElements()
+          .filter(
+            m => m.target === ManifestTarget.Package && m.type === expectedType
+          )
+          .map(m => m.member)
+      )
+      expect(members).toEqual(expected)
+    })
+    it(`deletion ${expectedType}`, async () => {
+      // Arrange
+      if (xmlTo && xmlFrom) {
+        mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
+        mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
+      }
 
-    mockedReadDirs.mockResolvedValue([])
-    mockedPathExists.mockResolvedValue(false)
+      mockedReadDirs.mockResolvedValue([])
+      mockedPathExists.mockResolvedValue(false)
 
-    const sut = await handlerFactory.getTypeHandler(
-      `${DELETION}       ${changePath}`
-    )
+      const sut = await handlerFactory.getTypeHandler(
+        `${DELETION}       ${changePath}`
+      )
 
-    // Act
-    const result = await sut.collect()
+      // Act
+      const result = await sut.collect()
 
-    // Assert
-    const members = new Set(
-      result.changes
-        .toElements()
-        .filter(
-          m =>
-            m.target === ManifestTarget.DestructiveChanges &&
-            m.type === expectedType
-        )
-        .map(m => m.member)
-    )
-    expect(members).toEqual(expected)
-  })
-  it(`modification ${expectedType}`, async () => {
-    // Arrange
-    if (xmlTo && xmlFrom) {
-      mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
-      mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
-    }
+      // Assert
+      const members = new Set(
+        result.changes
+          .toElements()
+          .filter(
+            m =>
+              m.target === ManifestTarget.DestructiveChanges &&
+              m.type === expectedType
+          )
+          .map(m => m.member)
+      )
+      expect(members).toEqual(expected)
+    })
+    it(`modification ${expectedType}`, async () => {
+      // Arrange
+      if (xmlTo && xmlFrom) {
+        mockedReadPathFromGit.mockResolvedValueOnce(xmlTo as string)
+        mockedReadPathFromGit.mockResolvedValueOnce(xmlFrom as string)
+      }
 
-    const sut = await handlerFactory.getTypeHandler(
-      `${MODIFICATION}       ${changePath}`
-    )
+      const sut = await handlerFactory.getTypeHandler(
+        `${MODIFICATION}       ${changePath}`
+      )
 
-    // Act
-    const result = await sut.collect()
+      // Act
+      const result = await sut.collect()
 
-    // Assert
-    const members = new Set(
-      result.changes
-        .toElements()
-        .filter(
-          m => m.target === ManifestTarget.Package && m.type === expectedType
-        )
-        .map(m => m.member)
-    )
-    expect(members).toEqual(expected)
-  })
-})
+      // Assert
+      const members = new Set(
+        result.changes
+          .toElements()
+          .filter(
+            m => m.target === ManifestTarget.Package && m.type === expectedType
+          )
+          .map(m => m.member)
+      )
+      expect(members).toEqual(expected)
+    })
+  }
+)
 
 describe('InFile container manifest under generateDelta=false', () => {
   // End-to-end lock: real TypeHandlerFactory + real InFileHandler + real

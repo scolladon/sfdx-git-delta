@@ -40,33 +40,33 @@ describe('DecomposedHandler', () => {
       parentXmlName: 'CustomObject',
     }
 
-    it.each([
-      'collectAddition',
-      'collectModification',
-    ])('Given %s, When called, Then element name has the parent metadata', async method => {
-      // Arrange
-      const { changeType, element } = createElement(
-        line,
-        recordTypeWithParent,
-        globalMetadata
-      )
-      const sut = new DecomposedHandler(changeType, element, work)
+    it.each(['collectAddition', 'collectModification'])(
+      'Given %s, When called, Then element name has the parent metadata',
+      async method => {
+        // Arrange
+        const { changeType, element } = createElement(
+          line,
+          recordTypeWithParent,
+          globalMetadata
+        )
+        const sut = new DecomposedHandler(changeType, element, work)
 
-      // Act
-      const result =
-        await sut[method as 'collectAddition' | 'collectModification']()
+        // Act
+        const result =
+          await sut[method as 'collectAddition' | 'collectModification']()
 
-      // Assert
-      expect(result.changes.toElements()).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            target: ManifestTarget.Package,
-            type: 'RecordType',
-            member: 'Account.Test',
-          }),
-        ])
-      )
-    })
+        // Assert
+        expect(result.changes.toElements()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: 'RecordType',
+              member: 'Account.Test',
+            }),
+          ])
+        )
+      }
+    )
 
     it('Given collectDeletion, When called, Then element name has the parent metadata in destructiveChanges', async () => {
       // Arrange

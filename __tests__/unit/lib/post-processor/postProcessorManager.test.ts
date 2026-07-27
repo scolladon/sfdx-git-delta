@@ -134,24 +134,25 @@ describe('postProcessorManager', () => {
   })
 
   describe('processor count', () => {
-    describe.each([
-      0, 1, 2,
-    ])('when calling `execute` with %i processors', expectedCount => {
-      it(`should execute ${expectedCount} processors`, async () => {
-        // Arrange
-        const localWork = getWork()
-        const sut = new PostProcessorManager(localWork)
-        for (let i = 0; i < expectedCount; i++) {
-          sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
-        }
+    describe.each([0, 1, 2])(
+      'when calling `execute` with %i processors',
+      expectedCount => {
+        it(`should execute ${expectedCount} processors`, async () => {
+          // Arrange
+          const localWork = getWork()
+          const sut = new PostProcessorManager(localWork)
+          for (let i = 0; i < expectedCount; i++) {
+            sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+          }
 
-        // Act
-        await sut.execute()
+          // Act
+          await sut.execute()
 
-        // Assert
-        expect(processSpy).toHaveBeenCalledTimes(expectedCount)
-      })
-    })
+          // Assert
+          expect(processSpy).toHaveBeenCalledTimes(expectedCount)
+        })
+      }
+    )
   })
 
   describe('when postProcessor `process` throws', () => {

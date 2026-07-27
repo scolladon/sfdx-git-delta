@@ -283,36 +283,38 @@ describe('Given a ConfigValidator', () => {
       )
     })
     describe('when apiVersion parameter is set with supported value', () => {
-      it.each([
-        46, 52, 55,
-      ])('config.apiVersion (%s) equals the parameter', async version => {
-        // Arrange
-        work.config.apiVersion = version
-        const sut = new ConfigValidator(work)
+      it.each([46, 52, 55])(
+        'config.apiVersion (%s) equals the parameter',
+        async version => {
+          // Arrange
+          work.config.apiVersion = version
+          const sut = new ConfigValidator(work)
 
-        // Act
-        await sut['_handleDefault']()
+          // Act
+          await sut['_handleDefault']()
 
-        // Assert
-        expect(work.config.apiVersion).toEqual(version)
-        expect(work.warnings.length).toEqual(0)
-      })
+          // Assert
+          expect(work.config.apiVersion).toEqual(version)
+          expect(work.warnings.length).toEqual(0)
+        }
+      )
     })
     describe('when apiVersion parameter is set with unsupported value', () => {
-      it.each([
-        40, 55.1, 0,
-      ])(`config.apiVersion (%s) equals the parameter `, async version => {
-        // Arrange
-        work.config.apiVersion = version
-        const sut = new ConfigValidator(work)
+      it.each([40, 55.1, 0])(
+        `config.apiVersion (%s) equals the parameter `,
+        async version => {
+          // Arrange
+          work.config.apiVersion = version
+          const sut = new ConfigValidator(work)
 
-        // Act
-        await sut['_handleDefault']()
+          // Act
+          await sut['_handleDefault']()
 
-        // Assert
-        expect(work.config.apiVersion).toEqual(version)
-        expect(work.warnings.length).toEqual(0)
-      })
+          // Assert
+          expect(work.config.apiVersion).toEqual(version)
+          expect(work.warnings.length).toEqual(0)
+        }
+      )
     })
 
     describe('when apiVersion parameter is not set', () => {
@@ -327,40 +329,40 @@ describe('Given a ConfigValidator', () => {
         }
 
         describe('when "sourceApiVersion" attribute is set with supported value', () => {
-          it.each([
-            46, 52, 53, 46.0, 52.0, 55.0,
-          ])('config.apiVersion (%s) equals the "sourceApiVersion" attribute', async version => {
-            // Arrange
-            mockSfProject(String(version))
-            work.config.apiVersion = undefined
-            const sut = new ConfigValidator(work)
+          it.each([46, 52, 53, 46.0, 52.0, 55.0])(
+            'config.apiVersion (%s) equals the "sourceApiVersion" attribute',
+            async version => {
+              // Arrange
+              mockSfProject(String(version))
+              work.config.apiVersion = undefined
+              const sut = new ConfigValidator(work)
 
-            // Act
-            await sut['_handleDefault']()
+              // Act
+              await sut['_handleDefault']()
 
-            // Assert
-            expect(work.config.apiVersion).toEqual(+version)
-            expect(work.warnings.length).toEqual(0)
-          })
+              // Assert
+              expect(work.config.apiVersion).toEqual(+version)
+              expect(work.warnings.length).toEqual(0)
+            }
+          )
         })
         describe('when "sourceApiVersion" attribute is set with invalid value', () => {
-          it.each([
-            'NaN',
-            'awesome',
-            '',
-          ])('config.apiVersion (%s) defaults to latest version with warning', async version => {
-            // Arrange
-            mockSfProject(version)
-            work.config.apiVersion = undefined
-            const sut = new ConfigValidator(work)
+          it.each(['NaN', 'awesome', ''])(
+            'config.apiVersion (%s) defaults to latest version with warning',
+            async version => {
+              // Arrange
+              mockSfProject(version)
+              work.config.apiVersion = undefined
+              const sut = new ConfigValidator(work)
 
-            // Act
-            await sut['_handleDefault']()
+              // Act
+              await sut['_handleDefault']()
 
-            // Assert
-            expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-            expect(work.warnings.length).toEqual(1)
-          })
+              // Assert
+              expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
+              expect(work.warnings.length).toEqual(1)
+            }
+          )
         })
 
         describe('when "sourceApiVersion" attribute is set with valid low value', () => {

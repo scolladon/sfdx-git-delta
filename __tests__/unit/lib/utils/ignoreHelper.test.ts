@@ -119,33 +119,40 @@ describe('ignoreHelper', () => {
         `${DELETION} path/to/file.ext`,
         `${DELETION} anotherPath/to/file.ext`,
         `${DELETION} path/to/anotherFile.ext`,
-      ])('should keep deleted "%s" line not matching ignoreDestructive pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      ])(
+        'should keep deleted "%s" line not matching ignoreDestructive pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(true)
-      })
+          // Assert
+          expect(keep).toBe(true)
+        }
+      )
 
-      it.each([
-        `${DELETION} path/to/ignoreFile.ext`,
-      ])('should not keep deleted "%s" line matching ignoreDestructive pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      it.each([`${DELETION} path/to/ignoreFile.ext`])(
+        'should not keep deleted "%s" line matching ignoreDestructive pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(false)
-      })
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
 
       it.each([
         `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])('should not keep deleted "%s" line matching default ignore pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      ])(
+        'should not keep deleted "%s" line matching default ignore pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(false)
-      })
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
 
       it.each([
         `${ADDITION} path/to/file.ext`,
@@ -228,13 +235,16 @@ describe('ignoreHelper', () => {
 
       it.each([
         `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])('should not keep deleted "%s" line matching default ignore pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      ])(
+        'should not keep deleted "%s" line matching default ignore pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(false)
-      })
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
     })
     describe('when config has ignore and destructive ignore', () => {
       beforeAll(async () => {
@@ -307,13 +317,16 @@ describe('ignoreHelper', () => {
 
       it.each([
         `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])('should not keep deleted "%s" line matching default ignore pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      ])(
+        'should not keep deleted "%s" line matching default ignore pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(false)
-      })
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
     })
   })
 
@@ -387,23 +400,27 @@ describe('ignoreHelper', () => {
         `${DELETION} path/to/file.ext`,
         `${DELETION} anotherPath/to/file.ext`,
         `${DELETION} path/to/anotherFile.ext`,
-      ])('should keep deleted "%s" line not matching includeDestructive pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      ])(
+        'should keep deleted "%s" line not matching includeDestructive pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(true)
-      })
+          // Assert
+          expect(keep).toBe(true)
+        }
+      )
 
-      it.each([
-        `${DELETION} path/to/ignoreFile.ext`,
-      ])('should not keep deleted "%s" line matching includeDestructive pattern', line => {
-        // Act
-        const keep = sut.keep(line)
+      it.each([`${DELETION} path/to/ignoreFile.ext`])(
+        'should not keep deleted "%s" line matching includeDestructive pattern',
+        line => {
+          // Act
+          const keep = sut.keep(line)
 
-        // Assert
-        expect(keep).toBe(false)
-      })
+          // Assert
+          expect(keep).toBe(false)
+        }
+      )
 
       it.each([
         `${ADDITION} path/to/file.ext`,
