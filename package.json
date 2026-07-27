@@ -82,6 +82,14 @@
     "vitest": "4.1.10",
     "wireit": "0.14.13"
   },
+  "overrides": {
+    "@salesforce/source-deploy-retrieve": {
+      "minimatch": "^10.1.2"
+    },
+    "filelist": {
+      "minimatch": "^10.1.2"
+    }
+  },
   "scripts": {
     "build": "wireit",
     "clean": "wireit",
@@ -317,7 +325,7 @@
       ]
     },
     "test:mutation:incremental": {
-      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -) && [ -n \"$FILES\" ] && stryker run --mutate \"$FILES\" || echo 'No source files changed — skipping mutation testing'",
+      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -) && [ -n \"$FILES\" ] && stryker run --mutate \"$FILES\" || echo 'No source files changed \u2014 skipping mutation testing'",
       "files": [
         "src/**/*.ts",
         "__tests__/**/*.ts",
