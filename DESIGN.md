@@ -223,7 +223,7 @@ Key behavior:
 - Additions/modifications: XML diff produces fine-grained manifest entries per changed sub-element
 - Deletions: if `pruneOnly` is set, treats as standard deletion; otherwise re-diffs to extract sub-element removals
 - File copy: disabled for standard git-copy; uses computed content (pruned XML) instead
-- Container manifest entry: the container is listed in `package.xml` only when at least one child survives as an add or a modify; a delete-only diff produces destructive entries only, and no delta file either
+- Container manifest entry: the container is listed in `package.xml` only when the to-side has a surviving add or modify in any bucket — including registry-excluded children and scalar/unknown tags, neither of which produce their own manifest entry. A delete-only diff lists nothing in `package.xml` and emits no delta file; it produces `destructiveChanges.xml` entries only for children that are not registry-excluded
 
 #### CustomLabelHandler
 

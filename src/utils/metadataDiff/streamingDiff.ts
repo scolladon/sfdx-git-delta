@@ -299,13 +299,14 @@ export class StreamingDiff {
     for (const [subType, toArr] of toBucket.entries()) {
       // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
       const fromArr = fromBucket.get(subType) ?? []
-      // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasSurvivingChange stay false and the writer short-circuits, leaving produced output empty (covered by the "drainWholeBucket deepEqual false path" tests). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
-      const changed = fromArr.length === 0 || !deepEqualJson(fromArr, toArr)
+      // An empty fromArr never deep-equals a non-empty toArr, so the
+      // absent-bucket case needs no dedicated guard.
+      const changed = !deepEqualJson(fromArr, toArr)
       if (changed) this.hasSurvivingChange = true
-      // <why: the pruned file must carry the container's scalar/identity
-      //  tags alongside whichever children changed, otherwise the emitted
-      //  XML is not deployable — so retention is unconditional even when
-      //  the bucket content is byte-identical.>
+      // The pruned file must carry the container's scalar/identity tags
+      // alongside whichever children changed, otherwise the emitted XML is
+      // not deployable — so retention is unconditional even when the bucket
+      // content is byte-identical.
       // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
       if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
     }
