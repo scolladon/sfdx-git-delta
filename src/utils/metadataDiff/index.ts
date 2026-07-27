@@ -81,5 +81,3 @@ export default class MetadataDiff {
     }
   }
 }
-
-export type { CompareEntry, RootCapture }
