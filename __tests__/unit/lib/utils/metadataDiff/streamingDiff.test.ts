@@ -682,7 +682,7 @@ describe('StreamingDiff', () => {
 
   it('Given changes and valid rootCapture and generateDelta true, When buildWriter called after finalize, Then writer is defined (not true-mutant)', async () => {
     // Directly tests the non-mutant path: all three conditions true → writer returned.
-    // Kills L328 ConditionalExpression true (mutant always returns undefined).
+    // Kills buildWriter's all-conditions-true path (mutant always returns undefined).
     const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
     const sut = new StreamingDiff(inFileAttributes, true)
     const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
