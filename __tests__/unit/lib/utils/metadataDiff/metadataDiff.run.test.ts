@@ -50,11 +50,8 @@ describe('MetadataDiff.run', () => {
   }
 
   it('Given identical content, When run runs, Then writer is undefined and no manifest entries are produced', async () => {
-    // Arrange — userLicense is keyless; identical content makes the
-    // internal hasAnyChanges stay false (writer short-circuits) but
-    // drainKeyless still retains the to-side content for byte-equality
-    // parity, which leaves hasPackageContent=true. The latter is
-    // harmless: real diffs never deliver an unchanged file to run().
+    // Arrange — userLicense is a whole-bucket (unknown) subType; identical
+    // content means nothing changed, so hasPackageContent must stay false.
     const xml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <userLicense>Salesforce</userLicense>\n</Profile>\n`
     serveXml(xml, xml)
     const sut = new MetadataDiff(work.config, inFileAttributes)
@@ -64,9 +61,74 @@ describe('MetadataDiff.run', () => {
 
     // Assert
     expect(outcome.writer).toBeUndefined()
+    expect(outcome.hasPackageContent).toBe(false)
     expect(outcome.manifests.added).toHaveLength(0)
     expect(outcome.manifests.modified).toHaveLength(0)
     expect(outcome.manifests.deleted).toHaveLength(0)
+  })
+
+  it('Given a Profile with an excluded userPermissions removed and unchanged custom/userLicense, When run runs, Then hasPackageContent is false and all manifests stay empty', async () => {
+    // Arrange — the reported repro: a Profile whose only change is a
+    // removed <userPermissions> (registry-excluded) must not be listed
+    // in package.xml, and since userPermissions is excluded, the removal
+    // produces no destructiveChanges entry either.
+    const fromXml =
+      `${XML_HEADER}\n<Profile ${NAMESPACE}>\n` +
+      `    <custom>true</custom>\n` +
+      `    <userLicense>Salesforce</userLicense>\n` +
+      `    <userPermissions>\n        <enabled>true</enabled>\n        <name>PermissionA</name>\n    </userPermissions>\n` +
+      `    <userPermissions>\n        <enabled>true</enabled>\n        <name>PermissionB</name>\n    </userPermissions>\n` +
+      `</Profile>\n`
+    const toXml =
+      `${XML_HEADER}\n<Profile ${NAMESPACE}>\n` +
+      `    <custom>true</custom>\n` +
+      `    <userLicense>Salesforce</userLicense>\n` +
+      `    <userPermissions>\n        <enabled>true</enabled>\n        <name>PermissionA</name>\n    </userPermissions>\n` +
+      `</Profile>\n`
+    serveXml(fromXml, toXml)
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act
+    const outcome = await sut.run('file/path')
+
+    // Assert
+    expect(outcome.hasPackageContent).toBe(false)
+    expect(outcome.manifests.added).toHaveLength(0)
+    expect(outcome.manifests.modified).toHaveLength(0)
+    expect(outcome.manifests.deleted).toHaveLength(0)
+    expect(outcome.writer).toBeUndefined()
+  })
+
+  it('Given a Profile with a surviving userPermissions flipped enabled true to false, When run runs, Then hasPackageContent is true, manifests stay empty, and writer is defined', async () => {
+    // Arrange — requirement 2: a real content change on an excluded
+    // keyed child still flips hasPackageContent, even though the child
+    // itself never appears in any manifest.
+    const fromXml =
+      `${XML_HEADER}\n<Profile ${NAMESPACE}>\n` +
+      `    <custom>true</custom>\n` +
+      `    <userLicense>Salesforce</userLicense>\n` +
+      `    <userPermissions>\n        <enabled>true</enabled>\n        <name>PermissionA</name>\n    </userPermissions>\n` +
+      `    <userPermissions>\n        <enabled>true</enabled>\n        <name>PermissionB</name>\n    </userPermissions>\n` +
+      `</Profile>\n`
+    const toXml =
+      `${XML_HEADER}\n<Profile ${NAMESPACE}>\n` +
+      `    <custom>true</custom>\n` +
+      `    <userLicense>Salesforce</userLicense>\n` +
+      `    <userPermissions>\n        <enabled>false</enabled>\n        <name>PermissionA</name>\n    </userPermissions>\n` +
+      `    <userPermissions>\n        <enabled>true</enabled>\n        <name>PermissionB</name>\n    </userPermissions>\n` +
+      `</Profile>\n`
+    serveXml(fromXml, toXml)
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act
+    const outcome = await sut.run('file/path')
+
+    // Assert
+    expect(outcome.hasPackageContent).toBe(true)
+    expect(outcome.manifests.added).toHaveLength(0)
+    expect(outcome.manifests.modified).toHaveLength(0)
+    expect(outcome.manifests.deleted).toHaveLength(0)
+    expect(outcome.writer).toBeDefined()
   })
 
   it('Given a modified Profile, When run runs with generateDelta=true, Then hasPackageContent is true and writer produces pruned XML', async () => {

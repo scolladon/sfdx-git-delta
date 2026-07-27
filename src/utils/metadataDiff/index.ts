@@ -18,11 +18,9 @@ export type DiffOutcome = {
     modified: CompareEntry[]
     deleted: CompareEntry[]
   }
-  // True when the to-side has retained content that warrants the parent
-  // container in package.xml (any add/modify, or deferred-bucket change
-  // with non-empty to-side). Independent of generateDelta — the writer
-  // is gated separately. See StreamingDiff.hasPackageContent for the
-  // full contract.
+  // True when the to-side has any surviving add or modify, in any bucket.
+  // Independent of generateDelta. See StreamingDiff.hasPackageContent for
+  // the full contract.
   hasPackageContent: boolean
   writer?: (out: Writable) => Promise<void>
 }
