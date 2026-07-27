@@ -1,0 +1,6 @@
+{
+  "hasPackageContent": true,
+  "added": [{ "type": "WorkflowAlert", "member": "Alert_Three" }],
+  "modified": [{ "type": "WorkflowAlert", "member": "Alert_One" }],
+  "deleted": [{ "type": "WorkflowAlert", "member": "Alert_Two" }]
+}

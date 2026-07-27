@@ -13,9 +13,7 @@ import {
 import type { SharedFileMetadata } from '../../../src/types/metadata'
 import type { Work } from '../../../src/types/work'
 import { readPathFromGit } from '../../../src/utils/fsHelper'
-import MetadataDiff, {
-  type CompareEntry,
-} from '../../../src/utils/metadataDiff/index.js'
+import MetadataDiff from '../../../src/utils/metadataDiff/index.js'
 import { getWork } from '../../__utils__/testWork'
 
 vi.mock('../../../src/utils/fsHelper', async () => {
@@ -42,38 +40,40 @@ type Fixture = {
   expectationSource: string | null
 }
 
+// Absence is the only legitimate read failure: a sidecar or snapshot that
+// exists but cannot be read must surface, not masquerade as missing.
 const readOrNull = (path: string): string | null => {
   try {
     return readFileSync(path, 'utf8')
-  } catch {
-    return null
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null
+    }
+    throw error
   }
 }
 
-const listFixtures = (): Fixture[] => {
-  const names = readdirSync(FIXTURES_DIR).filter(name => {
-    try {
-      readFileSync(join(FIXTURES_DIR, name, 'from.xml'))
-      readFileSync(join(FIXTURES_DIR, name, 'to.xml'))
-      return true
-    } catch {
-      return false
-    }
-  })
-  return names.sort().map(name => {
-    const expectedPath = join(FIXTURES_DIR, name, 'expected.xml')
-    const expectationPath = join(FIXTURES_DIR, name, 'expected.json')
-    return {
-      name,
-      fromXml: readFileSync(join(FIXTURES_DIR, name, 'from.xml'), 'utf8'),
-      toXml: readFileSync(join(FIXTURES_DIR, name, 'to.xml'), 'utf8'),
-      expectedPath,
-      expected: readOrNull(expectedPath),
-      expectationPath,
-      expectationSource: readOrNull(expectationPath),
-    }
-  })
-}
+// Every directory under fixtures/ is a fixture: a missing from.xml or
+// to.xml throws at collection instead of silently dropping the fixture,
+// matching the sidecar's hard-fail contract.
+const listFixtures = (): Fixture[] =>
+  readdirSync(FIXTURES_DIR, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .sort()
+    .map(name => {
+      const expectedPath = join(FIXTURES_DIR, name, 'expected.xml')
+      const expectationPath = join(FIXTURES_DIR, name, 'expected.json')
+      return {
+        name,
+        fromXml: readFileSync(join(FIXTURES_DIR, name, 'from.xml'), 'utf8'),
+        toXml: readFileSync(join(FIXTURES_DIR, name, 'to.xml'), 'utf8'),
+        expectedPath,
+        expected: readOrNull(expectedPath),
+        expectationPath,
+        expectationSource: readOrNull(expectationPath),
+      }
+    })
 
 // The sidecar is a trust boundary: validate its shape rather than cast the
 // parsed JSON onto it, so a malformed file fails its own fixture with a
@@ -90,12 +90,7 @@ const fixtureExpectationSchema = z.object({
   deleted: z.array(compareEntrySchema),
 })
 
-type FixtureExpectation = {
-  hasPackageContent: boolean
-  added: CompareEntry[]
-  modified: CompareEntry[]
-  deleted: CompareEntry[]
-}
+type FixtureExpectation = z.infer<typeof fixtureExpectationSchema>
 
 const parseExpectation = (
   fixture: Pick<Fixture, 'name' | 'expectationPath' | 'expectationSource'>
@@ -105,9 +100,15 @@ const parseExpectation = (
       `Missing expectation sidecar for fixture ${fixture.name} at ${fixture.expectationPath}`
     )
   }
-  const result = fixtureExpectationSchema.safeParse(
-    JSON.parse(fixture.expectationSource)
-  )
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(fixture.expectationSource)
+  } catch (error) {
+    throw new Error(
+      `Unparseable expectation sidecar for fixture ${fixture.name} at ${fixture.expectationPath}: ${(error as Error).message}`
+    )
+  }
+  const result = fixtureExpectationSchema.safeParse(parsed)
   if (!result.success) {
     throw new Error(
       `Invalid expectation sidecar for fixture ${fixture.name} at ${fixture.expectationPath}: ${result.error.message}`
@@ -130,6 +131,11 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
 
   const fixtures = listFixtures()
 
+  const stubGitContent = (fixture: Fixture) =>
+    mockedReadPathFromGit.mockImplementation(async ref =>
+      ref.oid === work.config.to ? fixture.toXml : fixture.fromXml
+    )
+
   // Snapshots originated from the legacy compare+prune pipeline; run()'s
   // writer output matching the committed snapshot IS the parity assertion.
   // Regenerate with the UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 env var if the
@@ -141,9 +147,7 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
     fixtures
   )('Given fixture $name, When streaming run() executes, Then hasPackageContent, manifests and file presence match the fixture expectation', async (fixture: Fixture) => {
     // Arrange
-    mockedReadPathFromGit.mockImplementation(async ref =>
-      ref.oid === work.config.to ? fixture.toXml : fixture.fromXml
-    )
+    stubGitContent(fixture)
     const expectation = parseExpectation(fixture)
     const sut = new MetadataDiff(work.config, inFileAttributes)
 
@@ -178,19 +182,27 @@ describe('byteEqualityHarness — legacy snapshot parity', () => {
         `Snapshot is committed but no writer fires for fixture ${fixture.name} at ${fixture.expectedPath}. Delete the stale snapshot.`
       )
     }
+  })
 
-    // A generateDelta:false pass must see the identical hasPackageContent
-    // and manifests (the flag and manifests are independent of
-    // generateDelta) and never produce a writer.
-    const noDeltaSut = new MetadataDiff(
+  it.each(
+    fixtures
+  )('Given fixture $name, When run() executes with generateDelta false, Then hasPackageContent and manifests are unchanged and no writer is produced', async (fixture: Fixture) => {
+    // Arrange
+    stubGitContent(fixture)
+    const expectation = parseExpectation(fixture)
+    const sut = new MetadataDiff(
       { ...work.config, generateDelta: false },
       inFileAttributes
     )
-    const noDeltaOutcome = await noDeltaSut.run('file/path')
-    expect(noDeltaOutcome.hasPackageContent).toBe(expectation.hasPackageContent)
-    expect(noDeltaOutcome.manifests.added).toEqual(expectation.added)
-    expect(noDeltaOutcome.manifests.modified).toEqual(expectation.modified)
-    expect(noDeltaOutcome.manifests.deleted).toEqual(expectation.deleted)
-    expect(noDeltaOutcome.writer).toBeUndefined()
+
+    // Act
+    const outcome = await sut.run('file/path')
+
+    // Assert
+    expect(outcome.hasPackageContent).toBe(expectation.hasPackageContent)
+    expect(outcome.manifests.added).toEqual(expectation.added)
+    expect(outcome.manifests.modified).toEqual(expectation.modified)
+    expect(outcome.manifests.deleted).toEqual(expectation.deleted)
+    expect(outcome.writer).toBeUndefined()
   })
 })
