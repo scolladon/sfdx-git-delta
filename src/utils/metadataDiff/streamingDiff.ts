@@ -18,12 +18,12 @@ export type StreamingDiffResult = {
   added: CompareEntry[]
   modified: CompareEntry[]
   deleted: CompareEntry[]
-  // True when the to-side has retained content that warrants a parent
-  // manifest entry (any add/modify, or a deferred-bucket change with
-  // non-empty to). Drives InFileHandler's container manifest decision
-  // independent of generateDelta. A delete-only file leaves this false —
-  // the parent must not be re-listed in package.xml because nothing
-  // deployable remains.
+  // True when the to-side has any surviving add or modify, in any bucket
+  // (keyed, array, object, keyless, or unknown). Drives InFileHandler's
+  // container manifest decision AND gates the per-file writer — one flag,
+  // not two. Independent of generateDelta. A delete-only file leaves this
+  // false — the parent must not be re-listed in package.xml because
+  // nothing deployable remains.
   hasPackageContent: boolean
   writer?: (out: Writable) => Promise<void>
 }
@@ -88,7 +88,6 @@ export class StreamingDiff {
   private readonly added: CompareEntry[] = []
   private readonly modified: CompareEntry[] = []
   private readonly deleted: CompareEntry[] = []
-  private hasAnyChanges = false
   private hasSurvivingChange = false
 
   constructor(
@@ -165,8 +164,8 @@ export class StreamingDiff {
   > {
     this.drainArrays()
     this.drainObjectFingerprints()
-    this.drainKeyless()
-    this.drainUnknown()
+    this.drainWholeBucket(this.passTwo.toKeyless, this.passOne.fromKeyless)
+    this.drainWholeBucket(this.passTwo.toUnknown, this.passOne.fromUnknown)
     this.drainDeletions()
     return {
       added: this.added,
@@ -177,13 +176,9 @@ export class StreamingDiff {
   }
 
   public buildWriter(rootCapture: RootCapture | null) {
-    if (!this.generateDelta || !this.hasAnyChanges || !rootCapture) {
+    if (!this.generateDelta || !this.hasSurvivingChange || !rootCapture) {
       return undefined
     }
-    // No surviving children means the pruned output is just the empty
-    // root tag, which legacy treated as "do not emit". Skipping here keeps
-    // delete-only files out of the delta output entirely.
-    if (this.prunedBySubType.size === 0) return undefined
     const rootChildren = this.collectRootChildren(rootCapture)
     return async (out: Writable) => {
       // Per-file pruned XML retains the legacy trailing newline (matches
@@ -232,14 +227,12 @@ export class StreamingDiff {
   }
 
   private recordAdded(subType: string, member: string): void {
-    this.hasAnyChanges = true
     if (this.isPackageable(subType)) {
       this.added.push({ type: this.xmlNameOf(subType), member })
     }
   }
 
   private recordModified(subType: string, member: string): void {
-    this.hasAnyChanges = true
     if (this.isPackageable(subType)) {
       this.modified.push({ type: this.xmlNameOf(subType), member })
     }
@@ -273,7 +266,6 @@ export class StreamingDiff {
       // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in deepEqual, so the change-detected outcome is identical
       const fromArr = this.passOne.fromArrays.get(subType) ?? []
       if (!deepEqualJson(fromArr, toArr)) {
-        this.hasAnyChanges = true
         this.hasSurvivingChange = true
         // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
         if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
@@ -293,7 +285,6 @@ export class StreamingDiff {
         if (!fromSet.has(fingerprint)) retained.push(element)
       }
       if (retained.length > 0) {
-        this.hasAnyChanges = true
         this.hasSurvivingChange = true
         // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
         if (this.generateDelta) this.prunedBySubType.set(subType, retained)
@@ -301,45 +292,23 @@ export class StreamingDiff {
     }
   }
 
-  private drainKeyless(): void {
-    for (const [subType, toArr] of this.passTwo.toKeyless.entries()) {
+  private drainWholeBucket(
+    toBucket: Map<string, XmlContent[]>,
+    fromBucket: Map<string, XmlContent[]>
+  ): void {
+    for (const [subType, toArr] of toBucket.entries()) {
       // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
-      const fromArr = this.passOne.fromKeyless.get(subType) ?? []
-      // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasAnyChanges stay false and the writer short-circuits, leaving produced output empty (covered by the "drainKeyless deepEqual false path" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
-      const changed = fromArr.length === 0 || !deepEqualJson(fromArr, toArr)
-      if (changed) this.hasAnyChanges = true
-      // Legacy JsonTransformer retains keyless content unconditionally when
-      // toMeta is non-empty (matches getPartialContentWithoutKey). Keep that
-      // behavior for byte-equality. The retention also drives the parent
-      // container manifest decision via hasSurvivingChange — a non-empty
-      // keyless to-side keeps the parent in package.xml even when content
-      // happens to match the from-side.
-      /* v8 ignore start -- defensive: passTwo.toKeyless entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable */
-      // Stryker disable next-line ConditionalExpression,EqualityOperator
-      if (toArr.length > 0) {
-        /* v8 ignore stop */
-        this.hasSurvivingChange = true
-        // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
-        if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
-      }
-    }
-  }
-
-  private drainUnknown(): void {
-    for (const [subType, toArr] of this.passTwo.toUnknown.entries()) {
-      // Stryker disable next-line ArrayDeclaration -- equivalent: an injected default never matches a real toArr in the changed/deepEqual computation, so the outcome is identical
-      const fromArr = this.passOne.fromUnknown.get(subType) ?? []
-      // Stryker disable next-line ConditionalExpression -- killable in principle: forcing changed=false makes hasAnyChanges stay false and the writer short-circuits, leaving produced output empty (covered by the "drainUnknown deepEqual false" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; manual mutation simulation confirms the test fails under it.
-      const changed = fromArr.length === 0 || !deepEqualJson(fromArr, toArr)
-      if (changed) this.hasAnyChanges = true
-      /* v8 ignore start -- defensive: passTwo.toUnknown entries are populated only via appendBounded which always pushes at least one element, so toArr.length === 0 is unreachable */
-      // Stryker disable next-line ConditionalExpression,EqualityOperator
-      if (toArr.length > 0) {
-        /* v8 ignore stop */
-        this.hasSurvivingChange = true
-        // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
-        if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
-      }
+      const fromArr = fromBucket.get(subType) ?? []
+      // An empty fromArr never deep-equals a non-empty toArr, so the
+      // absent-bucket case needs no dedicated guard.
+      const changed = !deepEqualJson(fromArr, toArr)
+      if (changed) this.hasSurvivingChange = true
+      // The pruned file must carry the container's scalar/identity tags
+      // alongside whichever children changed, otherwise the emitted XML is
+      // not deployable — so retention is unconditional even when the bucket
+      // content is byte-identical.
+      // Stryker disable next-line ConditionalExpression -- equivalent: dropping the generateDelta guard only fills prunedBySubType under generateDelta=false, which is unobservable (buildWriter gates on generateDelta first)
+      if (this.generateDelta) this.prunedBySubType.set(subType, toArr)
     }
   }
 
@@ -361,8 +330,6 @@ export class StreamingDiff {
   }
 
   private recordDeleted(subType: string, member: string): void {
-    // Stryker disable next-line BooleanLiteral -- equivalent: a delete-only file has prunedBySubType empty, so buildWriter short-circuits via the second size===0 gate regardless of hasAnyChanges
-    this.hasAnyChanges = true
     this.deleted.push({ type: this.xmlNameOf(subType), member })
   }
 

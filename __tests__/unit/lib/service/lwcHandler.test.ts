@@ -42,54 +42,54 @@ describe('lwcHandler', () => {
     globalMetadata = await getDefinition({})
   })
   describe('when the line should not be processed', () => {
-    it.each([
-      `${basePath}/.eslintrc.json`,
-      `${basePath}/jsconfig.json`,
-    ])('does not handle the line', async entityPath => {
-      // Arrange
-      const { changeType, element: el } = createElement(
-        `${ADDITION}       ${entityPath}`,
-        objectType,
-        globalMetadata
-      )
-      const sut = new LwcHandler(changeType, el, work)
+    it.each([`${basePath}/.eslintrc.json`, `${basePath}/jsconfig.json`])(
+      'does not handle the line',
+      async entityPath => {
+        // Arrange
+        const { changeType, element: el } = createElement(
+          `${ADDITION}       ${entityPath}`,
+          objectType,
+          globalMetadata
+        )
+        const sut = new LwcHandler(changeType, el, work)
 
-      // Act
-      const result = await sut.collect()
+        // Act
+        const result = await sut.collect()
 
-      // Assert
-      expect(result.changes.toElements()).toEqual([])
-      expect(result.copies).toEqual([])
-    })
+        // Assert
+        expect(result.changes.toElements()).toEqual([])
+        expect(result.copies).toEqual([])
+      }
+    )
   })
 
   describe('when the line should be processed', () => {
-    it.each([
-      ADDITION,
-      MODIFICATION,
-    ])('handles the line for "%s" type change', async changeType => {
-      // Arrange
-      const { changeType: ct, element: el } = createElement(
-        `${changeType}       ${entityPath}`,
-        objectType,
-        globalMetadata
-      )
-      const sut = new LwcHandler(ct, el, work)
+    it.each([ADDITION, MODIFICATION])(
+      'handles the line for "%s" type change',
+      async changeType => {
+        // Arrange
+        const { changeType: ct, element: el } = createElement(
+          `${changeType}       ${entityPath}`,
+          objectType,
+          globalMetadata
+        )
+        const sut = new LwcHandler(ct, el, work)
 
-      // Act
-      const result = await sut.collect()
+        // Act
+        const result = await sut.collect()
 
-      // Assert
-      expect(result.changes.toElements()).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            target: ManifestTarget.Package,
-            type: xmlName,
-            member: element,
-          }),
-        ])
-      )
-    })
+        // Assert
+        expect(result.changes.toElements()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: xmlName,
+              member: element,
+            }),
+          ])
+        )
+      }
+    )
 
     it('handles the line for "D" type change', async () => {
       // Arrange

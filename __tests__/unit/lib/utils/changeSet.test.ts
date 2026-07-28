@@ -421,31 +421,32 @@ describe('ChangeSet', () => {
       ])
     })
 
-    it.each([
-      ...SHRINKABLE_TYPES,
-    ])('When the source has a shrinkable %s member, Then merge propagates the byCoord index so the destination can removeMember it', type => {
-      // Arrange — any type in SHRINKABLE_TYPES must round-trip through
-      // merge: addElement on the source populates byCoord, merge must copy
-      // it to the destination, and the destination's removeMember must then
-      // find the kind to clear both byTarget and byKind. If byCoord were
-      // not propagated, removeMember would silently no-op.
-      const member = 'rollup-test-member'
-      const dst = new ChangeSet()
-      const src = new ChangeSet()
-      src.addElement({
-        target: ManifestTarget.Package,
-        type,
-        member,
-        changeKind: ChangeKind.Add,
-      })
+    it.each([...SHRINKABLE_TYPES])(
+      'When the source has a shrinkable %s member, Then merge propagates the byCoord index so the destination can removeMember it',
+      type => {
+        // Arrange — any type in SHRINKABLE_TYPES must round-trip through
+        // merge: addElement on the source populates byCoord, merge must copy
+        // it to the destination, and the destination's removeMember must then
+        // find the kind to clear both byTarget and byKind. If byCoord were
+        // not propagated, removeMember would silently no-op.
+        const member = 'rollup-test-member'
+        const dst = new ChangeSet()
+        const src = new ChangeSet()
+        src.addElement({
+          target: ManifestTarget.Package,
+          type,
+          member,
+          changeKind: ChangeKind.Add,
+        })
 
-      // Act
-      dst.merge(src)
-      dst.removeMember(ManifestTarget.Package, type, member)
+        // Act
+        dst.merge(src)
+        dst.removeMember(ManifestTarget.Package, type, member)
 
-      // Assert
-      expect(dst.forPackageManifest().has(type)).toBe(false)
-      expect(dst.byChangeKind()[ChangeKind.Add].has(type)).toBe(false)
-    })
+        // Assert
+        expect(dst.forPackageManifest().has(type)).toBe(false)
+        expect(dst.byChangeKind()[ChangeKind.Add].has(type)).toBe(false)
+      }
+    )
   })
 })

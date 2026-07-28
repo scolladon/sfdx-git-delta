@@ -91,9 +91,10 @@ export default class InFileHandler extends StandardHandler {
         result.changes.merge(containerResult.changes)
       }
 
-      // run() returns a writer iff generateDelta is on and the to-side
-      // has retained content. Subclasses like CustomLabelHandler may
-      // still veto via _shouldCollectCopies.
+      // run() returns a writer iff generateDelta is on and the diff has a
+      // surviving add or modify — the same hasPackageContent signal above,
+      // one flag driving both decisions. Subclasses like CustomLabelHandler
+      // may still veto via _shouldCollectCopies.
       if (outcome.writer && this._shouldCollectCopies()) {
         result.copies.push({
           kind: CopyOperationKind.StreamedContent,

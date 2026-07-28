@@ -577,31 +577,28 @@ describe('computeTreeIndexScope', () => {
         path: 'force-app/main/default/territory2Models/EU/EU.territory2Model-meta.xml',
         expected: 'force-app/main/default/territory2Models',
       },
-    ])('When $xmlName diff line is computed, Then returns correct scope', ({
-      xmlName,
-      directoryName,
-      adapter,
-      path,
-      expected,
-    }) => {
-      // Arrange
-      const type: Metadata = {
-        directoryName,
-        inFolder: false,
-        metaFile: false,
-        xmlName,
-        ...(adapter ? { adapter } : {}),
+    ])(
+      'When $xmlName diff line is computed, Then returns correct scope',
+      ({ xmlName, directoryName, adapter, path, expected }) => {
+        // Arrange
+        const type: Metadata = {
+          directoryName,
+          inFolder: false,
+          metaFile: false,
+          xmlName,
+          ...(adapter ? { adapter } : {}),
+        }
+        const repo = mockMetadata([type])
+        const lines = [`A\t${path}`]
+
+        // Act
+        const sut = computeTreeIndexScope(lines, repo)
+
+        // Assert
+        expect(sut.has(expected)).toBe(true)
+        expect(sut.size).toBe(1)
       }
-      const repo = mockMetadata([type])
-      const lines = [`A\t${path}`]
-
-      // Act
-      const sut = computeTreeIndexScope(lines, repo)
-
-      // Assert
-      expect(sut.has(expected)).toBe(true)
-      expect(sut.size).toBe(1)
-    })
+    )
   })
 
   describe('Given bundle type where dirIndex + 1 equals parts.length', () => {
@@ -743,27 +740,27 @@ describe('computeTreeIndexScope', () => {
   })
 
   describe('Given BUNDLE_ADAPTERS set membership', () => {
-    it.each([
-      'bundle',
-      'digitalExperience',
-    ])('When adapter is %s, Then component directory is included in scope', adapter => {
-      // Arrange
-      const bundleType: Metadata = {
-        directoryName: 'mydir',
-        inFolder: false,
-        metaFile: false,
-        xmlName: 'SomeBundleType',
-        adapter,
+    it.each(['bundle', 'digitalExperience'])(
+      'When adapter is %s, Then component directory is included in scope',
+      adapter => {
+        // Arrange
+        const bundleType: Metadata = {
+          directoryName: 'mydir',
+          inFolder: false,
+          metaFile: false,
+          xmlName: 'SomeBundleType',
+          adapter,
+        }
+        const repo = mockMetadata([bundleType])
+        const lines = [`A\tmydir/myComp/file.js`]
+
+        // Act
+        const sut = computeTreeIndexScope(lines, repo)
+
+        // Assert
+        expect(sut.has('mydir/myComp')).toBe(true)
       }
-      const repo = mockMetadata([bundleType])
-      const lines = [`A\tmydir/myComp/file.js`]
-
-      // Act
-      const sut = computeTreeIndexScope(lines, repo)
-
-      // Assert
-      expect(sut.has('mydir/myComp')).toBe(true)
-    })
+    )
 
     it('When adapter is mixedContent, Then type directory (not component dir) is included', () => {
       // Arrange — mixedContent is NOT in BUNDLE_ADAPTERS so takes the

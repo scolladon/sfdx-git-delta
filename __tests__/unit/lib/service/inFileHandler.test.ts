@@ -819,7 +819,7 @@ describe('inFileHandler collect', () => {
     expect(result.warnings).toHaveLength(0)
   })
 
-  it('Given generateDelta false, When collect with hasAnyChanges, Then no StreamedContent copy is emitted', async () => {
+  it('Given generateDelta false, When collect with changes, Then no StreamedContent copy is emitted', async () => {
     // Arrange
     work.config.generateDelta = false
     const { changeType, element } = createElement(
@@ -848,7 +848,7 @@ describe('inFileHandler collect', () => {
     expect(mockWriter).not.toHaveBeenCalled()
   })
 
-  it('Given generateDelta true with hasAnyChanges, When collect, Then prune is called and ComputedContent is produced', async () => {
+  it('Given generateDelta true with a writer, When collect runs, Then prune is called and ComputedContent is produced', async () => {
     // Arrange
     work.config.generateDelta = true
     const { changeType, element } = createElement(

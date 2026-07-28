@@ -103,9 +103,20 @@ npm run test:nut
 
 ### Functional Testing
 
-Functional tests live in `__tests__/functional/byteEquality/`. They
-assert byte-for-byte parity of the streaming pipeline against committed
-fixtures.
+Functional tests live in `__tests__/functional/byteEquality/`. Each
+fixture directory holds `from.xml` + `to.xml`, a hand-authored
+`expected.json` sidecar, and — only when the pipeline emits a delta
+file for that fixture — an `expected.xml` snapshot.
+
+`expected.json` declares the fixture's expected `hasPackageContent`
+flag and its `added` / `modified` / `deleted` manifests as
+`{ type, member }` entries. It is required: a fixture without one
+fails.
+
+`expected.xml` must exist exactly when a writer fires for that
+fixture. Both mismatch directions fail the test, so a stale snapshot
+can never silently stop being compared, and a writer can never
+silently start or stop firing unnoticed.
 
 ```bash
 npm run test:functional
@@ -116,6 +127,13 @@ To regenerate fixtures after intentional output-format changes:
 ```bash
 UPDATE_BYTE_EQUALITY_SNAPSHOTS=1 npm run test:functional
 ```
+
+This regenerates `expected.xml` only. It never writes or repairs
+`expected.json`, never bypasses the missing-sidecar failure, and never
+deletes a stale snapshot — a human deletes that after reading the
+failure message. A self-regenerating expectation cannot catch a wrong
+`hasPackageContent`: the sidecar declares intent, the snapshot records
+format, and only format is safe to regenerate.
 
 ### Performance Testing
 

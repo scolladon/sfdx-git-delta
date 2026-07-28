@@ -21,16 +21,16 @@ describe('getErrorMessage', () => {
     { input: null, expected: 'null', desc: 'null' },
     { input: undefined, expected: 'undefined', desc: 'undefined' },
     { input: { code: 'ERR_001' }, expected: '[object Object]', desc: 'object' },
-  ])('Given $desc, When called, Then returns "$expected"', ({
-    input,
-    expected,
-  }) => {
-    // Act
-    const result = getErrorMessage(input)
+  ])(
+    'Given $desc, When called, Then returns "$expected"',
+    ({ input, expected }) => {
+      // Act
+      const result = getErrorMessage(input)
 
-    // Assert
-    expect(result).toBe(expected)
-  })
+      // Assert
+      expect(result).toBe(expected)
+    }
+  )
 })
 
 describe('SgdError', () => {

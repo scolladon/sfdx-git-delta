@@ -397,21 +397,20 @@ describe('GitAdapter', () => {
     })
 
     describe('Given root path, When pathExists, Then returns true if tree has files', () => {
-      it.each([
-        '',
-        '.',
-        './',
-      ])('returns true for root path "%s"', async rootPath => {
-        // Arrange
-        const gitAdapter = GitAdapter.getInstance(config)
-        await setupTreeIndex(gitAdapter, ['src/file.ts'], config.to)
+      it.each(['', '.', './'])(
+        'returns true for root path "%s"',
+        async rootPath => {
+          // Arrange
+          const gitAdapter = GitAdapter.getInstance(config)
+          await setupTreeIndex(gitAdapter, ['src/file.ts'], config.to)
 
-        // Act
-        const result = await gitAdapter.pathExists(rootPath)
+          // Act
+          const result = await gitAdapter.pathExists(rootPath)
 
-        // Assert
-        expect(result).toBe(true)
-      })
+          // Assert
+          expect(result).toBe(true)
+        }
+      )
     })
   })
 
@@ -769,23 +768,22 @@ describe('GitAdapter', () => {
       expect(result).toEqual([])
     })
 
-    it.each([
-      '',
-      '.',
-      './',
-    ])('Given root path "%s", When getFilesPath, Then returns all files', async rootPath => {
-      // Arrange
-      const gitAdapter = GitAdapter.getInstance(config)
-      const allFiles = ['src/a.ts', 'src/b.ts', 'lib/c.js']
-      await setupTreeIndex(gitAdapter, allFiles, config.to)
+    it.each(['', '.', './'])(
+      'Given root path "%s", When getFilesPath, Then returns all files',
+      async rootPath => {
+        // Arrange
+        const gitAdapter = GitAdapter.getInstance(config)
+        const allFiles = ['src/a.ts', 'src/b.ts', 'lib/c.js']
+        await setupTreeIndex(gitAdapter, allFiles, config.to)
 
-      // Act
-      const result = await gitAdapter.getFilesPath(rootPath)
+        // Act
+        const result = await gitAdapter.getFilesPath(rootPath)
 
-      // Assert
-      expect(result).toEqual(expect.arrayContaining(allFiles))
-      expect(result).toHaveLength(allFiles.length)
-    })
+        // Assert
+        expect(result).toEqual(expect.arrayContaining(allFiles))
+        expect(result).toHaveLength(allFiles.length)
+      }
+    )
   })
 
   describe('getDiffLines', () => {
