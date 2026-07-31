@@ -74,8 +74,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - uses: google/wireit@setup-github-actions-caching/v2
-
+      # No wireit GitHub-Actions caching here: the cache layer's tar
+      # archiving fails on windows runners ("tar error" in every task).
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
