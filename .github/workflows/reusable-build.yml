@@ -100,9 +100,12 @@ jobs:
           fetch-depth: 0
           path: ./e2e
 
-      - name: Fetch e2e base and head branches
+      # The checkout above already materialized e2e/head as the current
+      # local branch (fetching into it would be refused); only e2e/base
+      # needs a local branch for the suite's diff endpoints.
+      - name: Fetch e2e base branch
         working-directory: ./e2e
-        run: git fetch origin e2e/base:e2e/base e2e/head:e2e/head
+        run: git fetch origin e2e/base:e2e/base
 
       - name: Setup e2e dependencies
         working-directory: ./e2e
