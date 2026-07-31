@@ -111,6 +111,12 @@ jobs:
         working-directory: ./e2e
         run: npm ci
 
+      # The e2e suite's scripts invoke `../bin/run.js` shebang-style, which
+      # cmd.exe (npm's default script shell on windows) cannot execute; the
+      # e2e branches are immutable fixtures, so route npm scripts through
+      # bash instead of editing them.
       - name: E2E byte-equality
         working-directory: ./e2e
+        env:
+          npm_config_script_shell: bash
         run: npm run clean && npm run test:e2e:local && npm run validate
