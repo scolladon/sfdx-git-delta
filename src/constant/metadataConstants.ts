@@ -15,6 +15,7 @@ export const DIGITAL_EXPERIENCE_BUNDLE_TYPE = 'DigitalExperienceBundle'
 export const DIGITAL_EXPERIENCE_TYPE = 'DigitalExperience'
 export const EMAIL_SERVICES_FUNCTION_SUFFIX = 'xml'
 export const FIELD_DIRECTORY_NAME = 'fields'
+export const FLOW_DEFINITIONS_KEY = 'flowDefinitions'
 export const FLOW_XML_NAME = 'Flow'
 export const INFOLDER_SUFFIX = `Folder`
 export const LABEL_DECOMPOSED_SUFFIX = 'label'

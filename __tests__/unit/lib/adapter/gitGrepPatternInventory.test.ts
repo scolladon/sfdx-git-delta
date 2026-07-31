@@ -1,6 +1,9 @@
 'use strict'
 import { describe, expect, it } from 'vitest'
-import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
+import {
+  FLOW_DEFINITIONS_KEY,
+  MASTER_DETAIL_TAG,
+} from '../../../../src/constant/metadataConstants'
 
 // gitGrep compiles every pattern via `new RegExp(pattern)` (JS regex, not
 // POSIX basic regex — see the fidelity note atop GitAdapter.ts). Every
@@ -10,10 +13,9 @@ import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 // passes and locks that contract down.
 const REGEX_METACHARACTERS = /[.*+?^${}()|[\]\\]/
 
-// Passed at src/post-processor/flowTranslationProcessor.ts:126. Its
-// module-local FLOW_DEFINITIONS_KEY constant is not exported, so the
-// literal is hardcoded here.
-const FLOW_DEFINITIONS_PATTERN = 'flowDefinitions'
+// Both patterns are imported from the same constants the production callers
+// use, so the inventory cannot drift from the source. Any NEW gitGrep caller
+// must add its pattern constant here.
 
 const CURATED_GIT_GREP_PATTERNS: Array<{ pattern: string; samples: string[] }> =
   [
@@ -25,7 +27,7 @@ const CURATED_GIT_GREP_PATTERNS: Array<{ pattern: string; samples: string[] }> =
       ],
     },
     {
-      pattern: FLOW_DEFINITIONS_PATTERN,
+      pattern: FLOW_DEFINITIONS_KEY,
       samples: ['{"flowDefinitions":{"MyFlow":"1"}}', '{"otherKey":"value"}'],
     },
   ]
