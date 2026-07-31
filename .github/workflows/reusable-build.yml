@@ -84,11 +84,14 @@ jobs:
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
-      - name: Integration test
-        run: npm run test:integration
-
+      # Build before the integration bucket: the lifecycle test spawns the
+      # compiled CLI (bin/run.js -> lib/), which wireit's test:integration
+      # does not itself produce.
       - name: Build plugin
         run: npm pack
+
+      - name: Integration test
+        run: npm run test:integration
 
       - name: Checkout e2e sources
         uses: actions/checkout@v6
