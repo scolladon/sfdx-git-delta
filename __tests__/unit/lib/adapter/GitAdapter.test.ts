@@ -1,6 +1,6 @@
 'use strict'
 import { createReadStream } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
 
@@ -35,6 +35,7 @@ const mockToSimilarityPercent = vi.mocked(toSimilarityPercent)
 const isLFSMocked = vi.mocked(isLFS)
 const getLFSObjectContentPathMocked = vi.mocked(getLFSObjectContentPath)
 const readFileMocked = vi.mocked(readFile)
+const statMocked = vi.mocked(stat)
 const createReadStreamMocked = vi.mocked(createReadStream)
 
 // Mirrors the module-private LFS constants in GitAdapter.ts (not exported —
@@ -114,6 +115,7 @@ beforeEach(() => {
   mockOpenRepository.mockResolvedValue(fakeRepo as unknown as Repository)
   mockToSimilarityPercent.mockImplementation((score: number) => score)
   isLFSMocked.mockReturnValue(false)
+  statMocked.mockResolvedValue({ size: 0 } as never)
 })
 
 afterEach(async () => {
@@ -491,6 +493,54 @@ describe('GitAdapter', () => {
       ).rejects.toThrow("'HEAD' does not resolve to a commit")
     })
 
+    it('When the revision is an annotated tag, Then the tag chain is peeled down to the tagged commit', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.primitives.readObject
+        .mockResolvedValueOnce({
+          type: 'tag',
+          data: { object: 'nested-tag-oid' },
+        })
+        .mockResolvedValueOnce({
+          type: 'tag',
+          data: { object: 'commit-oid' },
+        })
+        .mockResolvedValueOnce(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      await sut.preBuildTreeIndex('v1.0.0', [])
+
+      // Act
+      const files = await sut.getFilesPath('', 'v1.0.0')
+
+      // Assert
+      expect(files).toEqual(['force-app/foo.cls'])
+      expect(fakeRepo.primitives.readObject).toHaveBeenCalledWith('commit-oid')
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledWith('tree-oid')
+    })
+
+    it('When an annotated tag peels to a non-commit object, Then it rejects with a descriptive error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.primitives.readObject
+        .mockResolvedValueOnce({
+          type: 'tag',
+          data: { object: 'blob-oid' },
+        })
+        .mockResolvedValueOnce({
+          type: 'blob',
+          data: {},
+        })
+
+      // Act & Assert
+      await expect(
+        sut.getBufferContent({ path: 'force-app/foo.cls', oid: 'v1.0.0' })
+      ).rejects.toThrow("'v1.0.0' does not resolve to a commit")
+    })
+
     it('When the path is not present in the indexed tree, Then it rejects with a not-found error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
@@ -591,7 +641,7 @@ describe('GitAdapter', () => {
       expect(fakeRepo.primitives.streamBlob).toHaveBeenCalledWith('blob-1')
     })
 
-    it('When the accumulated content is an LFS pointer, Then it resolves the content from the LFS object file', async () => {
+    it('When the accumulated content is an LFS pointer under the threshold, Then it resolves the content from the LFS object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
       fakeRepo.revParse.mockResolvedValue('commit-oid')
@@ -604,6 +654,7 @@ describe('GitAdapter', () => {
       getLFSObjectContentPathMocked.mockReturnValue(
         '.git/lfs/objects/aa/bb/aabb'
       )
+      statMocked.mockResolvedValue({ size: 42 } as never)
       readFileMocked.mockResolvedValue(Buffer.from('resolved-content') as never)
 
       // Act
@@ -617,6 +668,33 @@ describe('GitAdapter', () => {
       expect(readFileMocked).toHaveBeenCalledWith(
         join('/repo', '.git/lfs/objects/aa/bb/aabb')
       )
+    })
+
+    it('When the resolved LFS object exceeds SIZE_THRESHOLD, Then it rejects with an EscalateToStreamingSignal sized from the object file', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.streamBlob.mockResolvedValue([Buffer.from('pointer')])
+      isLFSMocked.mockReturnValue(true)
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/aabb'
+      )
+      statMocked.mockResolvedValue({ size: SIZE_THRESHOLD + 1 } as never)
+      const forRef = { path: 'force-app/foo.cls', oid: 'HEAD' }
+
+      // Act
+      const error = await sut
+        .getBufferContentOrEscalate(forRef)
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(EscalateToStreamingSignal)
+      expect((error as EscalateToStreamingSignal).size).toBe(SIZE_THRESHOLD + 1)
+      expect(readFileMocked).not.toHaveBeenCalled()
     })
 
     it('When the accumulated blob exceeds SIZE_THRESHOLD, Then it rejects with an EscalateToStreamingSignal carrying the size and ref', async () => {

@@ -1,5 +1,6 @@
 'use strict'
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -420,6 +421,39 @@ describe('Given the sfdx-git-delta repository', () => {
     })
   })
 
+  describe('When the revision is an annotated tag', () => {
+    it('Then tree index and content reads match git peeling the tag to its commit', async () => {
+      // Arrange: annotated tags resolve to the tag OBJECT (no auto-peel from
+      // rev-parse), so the adapter must peel the chain like `git ls-tree`.
+      const tagDir = await createTempDir('sgd-parity-tag-')
+      execFileSync('git', ['clone', REPO_ROOT, tagDir])
+      execFileSync(
+        'git',
+        ['-c', 'tag.gpgSign=false', 'tag', '-a', 'parity-tag', '-m', 'parity'],
+        { cwd: tagDir }
+      )
+      const config = makeConfig({ repo: tagDir, to: 'parity-tag' })
+      const sut = GitAdapter.getInstance(config)
+
+      // Act
+      await sut.preBuildTreeIndex('parity-tag', [])
+      const actualFiles = (await sut.getFilesPath('')).sort()
+      const actualContent = await sut.getBufferContent({
+        path: 'package.json',
+        oid: 'parity-tag',
+      })
+
+      // Assert
+      expect(actualFiles.length).toBeGreaterThan(0)
+      expect(actualFiles).toEqual(
+        runGitLines(['ls-tree', '--name-only', '-r', 'parity-tag'], tagDir)
+      )
+      expect(actualContent.toString('utf8')).toBe(
+        runGitText(['cat-file', 'blob', 'parity-tag:package.json'], tagDir)
+      )
+    })
+  })
+
   describe('When the repo is a shallow clone', () => {
     it('Then getFirstCommitRef matches the graft boundary reported by git rev-list', async () => {
       // Arrange: `--depth` is a no-op on local-path clones unless the
@@ -439,7 +473,13 @@ describe('Given the sfdx-git-delta repository', () => {
       // Act
       const actual = await sut.getFirstCommitRef()
 
-      // Assert
+      // Assert — the clone must actually be shallow, otherwise the graft
+      // boundary silently degenerates to the true root and the scenario
+      // stops exercising `.git/shallow` at all.
+      expect(existsSync(join(shallowDir, '.git', 'shallow'))).toBe(true)
+      expect(actual).not.toBe(
+        runGitText(['rev-list', '--max-parents=0', 'HEAD'], REPO_ROOT).trim()
+      )
       expect(actual).toBe(
         runGitText(['rev-list', '--max-parents=0', 'HEAD'], shallowDir).trim()
       )

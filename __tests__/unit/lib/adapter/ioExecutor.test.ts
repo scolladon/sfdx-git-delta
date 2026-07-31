@@ -159,6 +159,57 @@ describe('IOExecutor', () => {
     })
   })
 
+  describe('Given a GitCopy operation whose path escapes the output directory', () => {
+    it('When executed, Then the copy is skipped before any content read', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: '../escape.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).not.toHaveBeenCalled()
+      expect(outputFile).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given a GitDirCopy child path that escapes the output directory', () => {
+    it('When executed, Then that child is skipped and in-bound children still copy', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+      mockGetFilesPath.mockResolvedValue(['../escape.cls', 'objects/Kept.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('kept'))
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'objects',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContent).toHaveBeenCalledTimes(1)
+      expect(outputFile).toHaveBeenCalledWith(
+        'output/objects/Kept.cls',
+        Buffer.from('kept')
+      )
+    })
+  })
+
   describe('Given duplicate paths', () => {
     it('When executed, Then deduplicates by path', async () => {
       // Arrange

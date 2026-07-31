@@ -14,12 +14,13 @@
  *   git config core.*                   -> no-op (nothing to configure)
  *
  * Fidelity note: gitGrep matches with JS RegExp semantics, not POSIX basic
- * regex — callers only ever pass metacharacter-free literals (guarded by
- * gitGrepPatternInventory.test.ts), so the two semantics agree in practice.
+ * regex. Callers are expected to pass metacharacter-free literals so the two
+ * semantics agree; the known pattern set is pinned by
+ * gitGrepPatternInventory.test.ts (new callers must extend that inventory).
  */
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
 
@@ -179,12 +180,18 @@ export default class GitAdapter implements GitBlobReader {
       return cached
     }
     const repo = await this.getRepo()
-    const commitId = await repo.revParse(revision)
-    const commit = await repo.primitives.readObject(commitId)
-    if (commit.type !== 'commit') {
+    const revisionId = await repo.revParse(revision)
+    // revParse returns the tag OBJECT oid for annotated tags (no auto-peel),
+    // so follow the tag chain down to the tagged commit before reading its
+    // tree — matching `git ls-tree -r <tag>` semantics.
+    let target = await repo.primitives.readObject(revisionId)
+    while (target.type === 'tag') {
+      target = await repo.primitives.readObject(target.data.object)
+    }
+    if (target.type !== 'commit') {
       throw new Error(`'${revision}' does not resolve to a commit`)
     }
-    const { entries } = await repo.primitives.flattenTree(commit.data.tree)
+    const { entries } = await repo.primitives.flattenTree(target.data.tree)
     const blobIds = new Map<string, ObjectId>()
     for (const [path, entry] of entries) {
       if (BLOB_MODES.has(entry.mode)) {
@@ -278,8 +285,15 @@ export default class GitAdapter implements GitBlobReader {
     }
     let content = Buffer.concat(parts, length)
     if (isLFS(content)) {
-      const lfsPath = getLFSObjectContentPath(content)
-      content = await readFile(join(this.config.repo, lfsPath))
+      // The pointer itself is tiny, so the accumulated-length guard above
+      // never fires for LFS-backed files — size the resolved object instead
+      // and escalate oversized ones onto the streaming path.
+      const lfsFile = join(this.config.repo, getLFSObjectContentPath(content))
+      const { size } = await stat(lfsFile)
+      if (size > SIZE_THRESHOLD) {
+        throw new EscalateToStreamingSignal(size, forRef)
+      }
+      content = await readFile(lfsFile)
     }
     return content
   }
@@ -345,12 +359,10 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async getStringContent(forRef: FileGitRef): Promise<string> {
-    try {
-      const content = await this.getBufferContent(forRef)
-      return content.toString(UTF8_ENCODING)
-    } catch (error) {
-      throw mapTsgitError(error, forRef.oid)
-    }
+    // getBufferContent already maps raw tsgit errors — mapping exactly once
+    // keeps the released error shapes intact (no double-wrapped messages).
+    const content = await this.getBufferContent(forRef)
+    return content.toString(UTF8_ENCODING)
   }
 
   protected getFilesPathCached(path: string, revision: string): string[] {
