@@ -55,3 +55,51 @@ jobs:
         with:
           name: coverage-test-report
           path: reports/coverage
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24, 26]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: google/wireit@setup-github-actions-caching/v2
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Integration test
+        run: npm run test:integration
+
+      - name: Build plugin
+        run: npm pack
+
+      - name: Checkout e2e sources
+        uses: actions/checkout@v6
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
+
+      - name: Fetch e2e base and head branches
+        working-directory: ./e2e
+        run: git fetch origin e2e/base:e2e/base e2e/head:e2e/head
+
+      - name: Setup e2e dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      - name: E2E byte-equality
+        working-directory: ./e2e
+        run: npm run clean && npm run test:e2e:local && npm run validate
