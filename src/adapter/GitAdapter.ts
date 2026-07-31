@@ -54,6 +54,7 @@ import {
   SIZE_THRESHOLD,
 } from './gitBlobReader.js'
 import { TreeIndex } from './treeIndex.js'
+import { mapTsgitError } from './tsgitErrorMap.js'
 
 const ROOT_PATHS = new Set(['', '.', './'])
 // walkTree yields directories and gitlinks too; only blob-bearing modes
@@ -133,8 +134,12 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async parseRev(ref: string): Promise<string> {
-    const repo = await this.getRepo()
-    return await repo.revParse(ref)
+    try {
+      const repo = await this.getRepo()
+      return await repo.revParse(ref)
+    } catch (error) {
+      throw mapTsgitError(error, ref)
+    }
   }
 
   @log
@@ -207,18 +212,22 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async getFirstCommitRef(): Promise<string> {
-    const repo = await this.getRepo()
-    const head = await repo.revParse(HEAD)
-    let firstCommit = head
-    for await (const commit of repo.primitives.walkCommits({
-      from: [head],
-    })) {
-      if (commit.data.parents.length === 0) {
-        firstCommit = commit.id
-        break
+    try {
+      const repo = await this.getRepo()
+      const head = await repo.revParse(HEAD)
+      let firstCommit = head
+      for await (const commit of repo.primitives.walkCommits({
+        from: [head],
+      })) {
+        if (commit.data.parents.length === 0) {
+          firstCommit = commit.id
+          break
+        }
       }
+      return firstCommit
+    } catch (error) {
+      throw mapTsgitError(error, HEAD)
     }
-    return firstCommit
   }
 
   protected async resolveObjectId(forRef: FileGitRef): Promise<ObjectId> {
@@ -238,12 +247,16 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   public async getBufferContent(forRef: FileGitRef): Promise<Buffer> {
-    let content = await this.readBlobBuffer(forRef)
-    if (isLFS(content)) {
-      const lfsPath = getLFSObjectContentPath(content)
-      content = await readFile(join(this.config.repo, lfsPath))
+    try {
+      let content = await this.readBlobBuffer(forRef)
+      if (isLFS(content)) {
+        const lfsPath = getLFSObjectContentPath(content)
+        content = await readFile(join(this.config.repo, lfsPath))
+      }
+      return content
+    } catch (error) {
+      throw mapTsgitError(error, forRef.oid)
     }
-    return content
   }
 
   // tsgit's Blob/BlobStream carry no size field, so the only way to know a
@@ -332,8 +345,12 @@ export default class GitAdapter implements GitBlobReader {
 
   @log
   public async getStringContent(forRef: FileGitRef): Promise<string> {
-    const content = await this.getBufferContent(forRef)
-    return content.toString(UTF8_ENCODING)
+    try {
+      const content = await this.getBufferContent(forRef)
+      return content.toString(UTF8_ENCODING)
+    } catch (error) {
+      throw mapTsgitError(error, forRef.oid)
+    }
   }
 
   protected getFilesPathCached(path: string, revision: string): string[] {
@@ -405,17 +422,25 @@ export default class GitAdapter implements GitBlobReader {
   // subprocess numstat path does.
   @log
   public async *streamDiffLines(): AsyncGenerator<string> {
-    const repo = await this.getRepo()
-    const { changes } = await repo.diff({
-      from: this.config.from,
-      to: this.config.to,
-      recursive: true,
-      detectRenames: Boolean(this.config.changesManifest),
-      ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
-    })
+    const { changes } = await this.requestDiff()
     const scopes = this.config.source.filter(scope => !ROOT_PATHS.has(scope))
     for (const change of changes) {
       yield* toDiffLines(change, scopes)
+    }
+  }
+
+  private async requestDiff(): Promise<{ changes: readonly DiffChange[] }> {
+    try {
+      const repo = await this.getRepo()
+      return await repo.diff({
+        from: this.config.from,
+        to: this.config.to,
+        recursive: true,
+        detectRenames: Boolean(this.config.changesManifest),
+        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
+      })
+    } catch (error) {
+      throw mapTsgitError(error, `${this.config.from}..${this.config.to}`)
     }
   }
 }

@@ -241,6 +241,25 @@ describe('GitAdapter', () => {
       expect(result).toBe('deadbeef')
       expect(fakeRepo.revParse).toHaveBeenCalledWith('HEAD')
     })
+
+    it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: bad-ref'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .parseRev('bad-ref')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe('bad-ref: not a valid git revision')
+      expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
+    })
   })
 
   describe('Given getFirstCommitRef', () => {
@@ -280,6 +299,25 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toBe('head-oid')
+    })
+
+    it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: HEAD'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getFirstCommitRef()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe('HEAD: not a valid git revision')
+      expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
     })
   })
 
@@ -485,6 +523,25 @@ describe('GitAdapter', () => {
       // Assert
       expect(files).toEqual(['force-app/foo.cls'])
     })
+
+    it('When resolving the revision rejects with a raw tsgit error, Then getBufferContent rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: bad-oid'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getBufferContent({ path: 'force-app/foo.cls', oid: 'bad-oid' })
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe('bad-oid: not a valid git revision')
+      expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
+    })
   })
 
   describe('Given getBufferContentOrEscalate', () => {
@@ -587,6 +644,24 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toBe('hello world')
+    })
+
+    it('When resolving the revision rejects with a raw tsgit error, Then getStringContent rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: bad-oid'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getStringContent({ path: 'force-app/foo.cls', oid: 'bad-oid' })
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
     })
   })
 
@@ -1209,6 +1284,25 @@ describe('GitAdapter', () => {
       // Assert — 'other/Unrelated.cls' is out of the 'force-app' scope; if
       // '.' were not stripped it would keep everything regardless of scope.
       expect(result).toEqual([])
+    })
+
+    it('When repo.diff rejects with a raw tsgit error, Then streamDiffLines rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.diff.mockRejectedValue(
+        Object.assign(new Error('object not found: HEAD~1'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await streamDiff(sut).catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'HEAD~1..HEAD: not a valid git revision'
+      )
+      expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
     })
   })
 
