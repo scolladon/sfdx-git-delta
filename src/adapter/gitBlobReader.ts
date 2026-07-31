@@ -1,17 +1,7 @@
 'use strict'
-import type {
-  ChildProcessWithoutNullStreams,
-  SpawnOptions,
-} from 'node:child_process'
 import type { Readable } from 'node:stream'
 
 import type { FileGitRef } from '../types/git.js'
-
-export type SpawnFn = (
-  cmd: string,
-  args: string[],
-  opts: SpawnOptions
-) => ChildProcessWithoutNullStreams
 
 /**
  * Signal (not Error) used to redirect _executeGitFileCopy from the buffered
@@ -31,30 +21,30 @@ export class EscalateToStreamingSignal {
 
 /**
  * Narrow adapter-boundary port consumed by IOExecutor. GitAdapter implements
- * it. The port lets unit tests swap in a fake blob reader without spawning
- * real `git cat-file` subprocesses, while integration tests exercise the
+ * it. The port lets unit tests swap in a fake blob reader without touching
+ * the real tsgit-backed object store, while integration tests exercise the
  * real GitAdapter end-to-end.
  */
 export interface GitBlobReader {
   getBufferContent(ref: FileGitRef): Promise<Buffer>
   /**
-   * Reads ref's blob via the batched cat-file subprocess. Rejects with
+   * Reads ref's blob from the tsgit object store. Rejects with
    * `EscalateToStreamingSignal` when the blob exceeds `SIZE_THRESHOLD` — the
    * caller is expected to catch that signal and route the copy through
    * `streamContent` instead.
    */
   getBufferContentOrEscalate(ref: FileGitRef): Promise<Buffer>
   /**
-   * Spawns a dedicated `git cat-file blob <oid>` subprocess, peeks the LFS
-   * pointer magic, and returns a Readable that either forwards the blob
-   * stream or (on LFS match) opens the underlying LFS object file.
+   * Streams ref's blob from the tsgit object store, peeks the LFS pointer
+   * magic, and returns a Readable that either forwards the blob stream or
+   * (on LFS match) opens the underlying LFS object file.
    */
   streamContent(ref: FileGitRef): Readable
   /**
-   * Streams `git archive --format=tar <revision> -- <path>` and yields one
+   * Streams every blob under `<path>` at `<revision>` and yields one
    * `{ path, stream }` per file entry. Directories are filtered out.
    * Callers must consume every yielded stream (or call stream.resume() to
-   * drain-and-discard) otherwise tar-stream back-pressures.
+   * drain-and-discard) to avoid leaving the underlying blob stream unread.
    */
   streamArchive(
     path: string,

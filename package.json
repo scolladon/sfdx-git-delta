@@ -54,7 +54,6 @@
     "@salesforce/source-deploy-retrieve": "12.37.2",
     "@scolladon/tsgit": "^3.2.0",
     "ignore": "7.0.6",
-    "tar-stream": "3.2.0",
     "txml": "6.0.0",
     "zod": "4.4.3"
   },
@@ -69,7 +68,6 @@
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/vitest-runner": "9.6.1",
     "@types/node": "26.1.1",
-    "@types/tar-stream": "3.1.4",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "9.1.7",
     "knip": "6.29.0",

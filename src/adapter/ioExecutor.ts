@@ -154,9 +154,9 @@ export default class IOExecutor {
   }
 
   /**
-   * Streams a directory via `git archive --format=tar` + tar-stream. One
-   * subprocess replaces N batch-cat-file round trips for large dirs
-   * (ExperienceBundle, static resource folders). Each entry pipes
+   * Streams a directory via the adapter's per-blob `streamArchive`. One
+   * tree walk replaces N per-file `getBufferContent` round trips for large
+   * dirs (ExperienceBundle, static resource folders). Each entry pipes
    * directly into a sibling .tmp + rename; a per-entry
    * processedPaths.has check matches today's dedup contract.
    */

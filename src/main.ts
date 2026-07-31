@@ -97,7 +97,7 @@ export default async (config: Config): Promise<Work> => {
     await new IOExecutor(config).execute(combinedResult.copies)
     await postProcessors.executeRemaining()
   } finally {
-    GitAdapter.closeAll()
+    await GitAdapter.closeAll()
   }
 
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
