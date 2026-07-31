@@ -17,8 +17,11 @@ import {
 const BLOB_SIZE = 105 * 1024 * 1024
 const BLOB_PATH = 'big.bin'
 // Generous ceiling for the RSS delta a genuinely chunked pipe should cause:
-// stream high-water marks are tens of KB, not the blob size.
-const RSS_DELTA_CEILING = 64 * 1024 * 1024
+// stream high-water marks are tens of KB, not the blob size. RSS is
+// process-global and GC-timing dependent (observed 36-72 MB across local
+// and shared CI runners), so the ceiling sits well above that noise band
+// while staying far below the >300 MB a materialize regression measures.
+const RSS_DELTA_CEILING = 96 * 1024 * 1024
 
 const tempDirs: string[] = []
 
