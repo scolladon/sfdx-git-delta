@@ -24,6 +24,10 @@ const objectNotFoundByMessage = new Error(
 
 const genericTsgitError = new Error('TsgitError: something else broke')
 
+const realpathMessageWithoutEnoentCode = new Error(
+  'some other failure mentioning realpath, but not an ENOENT'
+)
+
 describe('Given mapTsgitError', () => {
   it.each([
     [
@@ -55,6 +59,12 @@ describe('Given mapTsgitError', () => {
       genericTsgitError,
       'op',
       'git operation failed: TsgitError: something else broke',
+    ],
+    [
+      'an error whose message mentions realpath but whose code is not ENOENT',
+      realpathMessageWithoutEnoentCode,
+      '/some/repo',
+      'git operation failed: some other failure mentioning realpath, but not an ENOENT',
     ],
     [
       'a non-Error thrown value',

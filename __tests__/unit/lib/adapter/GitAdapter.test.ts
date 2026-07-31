@@ -2,7 +2,7 @@
 import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
-import { PassThrough } from 'node:stream'
+import { PassThrough, Readable } from 'node:stream'
 
 import type { Repository } from '@scolladon/tsgit'
 import { openRepository, toSimilarityPercent } from '@scolladon/tsgit'
@@ -159,6 +159,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledOnce()
+      expect(mockOpenRepository).toHaveBeenCalledWith({ cwd: '/repo' })
     })
   })
 
@@ -368,6 +369,27 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(await sut.getFilesPath('', 'BAD')).toEqual([])
+    })
+
+    it('When called a second time for an already-indexed revision with different scopePaths, Then the first index is preserved (no rebuild)', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([
+          ['force-app/foo.cls', { mode: '100644', id: 'blob-1' }],
+          ['other/bar.cls', { mode: '100644', id: 'blob-2' }],
+        ])
+      )
+
+      // Act — the first call scopes the index to 'force-app'; the second
+      // call (broader scope) must be a no-op since the revision is cached
+      await sut.preBuildTreeIndex('HEAD', ['force-app'])
+      await sut.preBuildTreeIndex('HEAD', [])
+
+      // Assert
+      expect(await sut.getFilesPath('')).toEqual(['force-app/foo.cls'])
     })
   })
 
@@ -618,6 +640,30 @@ describe('GitAdapter', () => {
       expect(error).toBeInstanceOf(EscalateToStreamingSignal)
       expect((error as EscalateToStreamingSignal).size).toBe(SIZE_THRESHOLD + 1)
       expect((error as EscalateToStreamingSignal).ref).toEqual(forRef)
+      expect((error as EscalateToStreamingSignal).name).toBe(
+        'EscalateToStreamingSignal'
+      )
+    })
+
+    it('When the accumulated blob length is exactly SIZE_THRESHOLD, Then it resolves without escalating', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/exact.bin', { mode: '100644', id: 'blob-exact' }]])
+      )
+      const exactChunk = Buffer.alloc(SIZE_THRESHOLD, 0x61)
+      fakeRepo.primitives.streamBlob.mockResolvedValue([exactChunk])
+
+      // Act
+      const result = await sut.getBufferContentOrEscalate({
+        path: 'force-app/exact.bin',
+        oid: 'HEAD',
+      })
+
+      // Assert
+      expect(result).toEqual(exactChunk)
     })
   })
 
@@ -782,6 +828,34 @@ describe('GitAdapter', () => {
       ).rejects.toThrow('LFS pointer exceeds expected size')
     })
 
+    it('When the LFS pointer body is exactly LFS_POINTER_CAP bytes, Then it resolves without throwing', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const filler = Buffer.alloc(LFS_POINTER_CAP - LFS_MAGIC.length, 0x61)
+      fakeRepo.primitives.streamBlob.mockResolvedValue([LFS_MAGIC, filler])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act
+      const resultPromise = drain(
+        sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' })
+      )
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.end(Buffer.from('lfs-content'))
+      const result = await resultPromise
+
+      // Assert
+      expect(result).toEqual(Buffer.from('lfs-content'))
+    })
+
     it('When the resolved LFS object file errors while reading, Then the stream is destroyed with that error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
@@ -854,6 +928,29 @@ describe('GitAdapter', () => {
       expect(entries).toHaveLength(1)
       expect(entries[0]?.path).toBe('force-app/foo.cls')
       expect(await drain(entries[0]!.stream)).toEqual(Buffer.from('archived'))
+    })
+
+    it('When streaming an archive entry, Then Readable.from is invoked in binary (non-object) mode', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.streamBlob.mockResolvedValue([
+        Buffer.from('archived'),
+      ])
+      const fromSpy = vi.spyOn(Readable, 'from')
+
+      // Act
+      await collect(sut.streamArchive('force-app', 'HEAD'))
+
+      // Assert
+      expect(fromSpy).toHaveBeenCalledWith(expect.anything(), {
+        objectMode: false,
+      })
+      fromSpy.mockRestore()
     })
   })
 
@@ -998,6 +1095,73 @@ describe('GitAdapter', () => {
         ['force-app/foo.cls', 'force-app/sub/bar.cls', 'other/baz.cls'].sort()
       )
     })
+
+    it('When a pathspec has multiple leading "./" segments, Then all of them are normalized away', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'any',
+        content: new Uint8Array(Buffer.from('needle')),
+      })
+
+      // Act
+      const result = await sut.gitGrep('needle', './././force-app')
+
+      // Assert
+      expect(result).toEqual(['force-app/foo.cls'])
+    })
+
+    it('When a pathspec has multiple leading slashes, Then all of them are normalized away', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'any',
+        content: new Uint8Array(Buffer.from('needle')),
+      })
+
+      // Act
+      const result = await sut.gitGrep('needle', '///force-app')
+
+      // Assert
+      expect(result).toEqual(['force-app/foo.cls'])
+    })
+
+    it('When a pathspec contains "./" that is not a leading segment, Then only the leading occurrence is eligible for stripping', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([
+          ['x./y/foo.cls', { mode: '100644', id: 'blob-1' }],
+          ['xy/bar.cls', { mode: '100644', id: 'blob-2' }],
+        ])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'any',
+        content: new Uint8Array(Buffer.from('needle')),
+      })
+
+      // Act
+      const result = await sut.gitGrep('needle', 'x./y')
+
+      // Assert — the embedded './' is left untouched (only a LEADING './'
+      // is normalized), so the literal pathspec stays 'x./y'
+      expect(result).toEqual(['x./y/foo.cls'])
+    })
   })
 
   describe('Given getFilesPath', () => {
@@ -1032,6 +1196,24 @@ describe('GitAdapter', () => {
 
       // Act
       const result = await sut.getFilesPath('')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        [
+          'force-app/classes/Foo.cls',
+          'force-app/classes/Bar.cls',
+          'force-app/objects/Baz.object',
+        ].sort()
+      )
+    })
+
+    it('When called with the "." root path variant, Then it returns every indexed path', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      await setUpIndex(sut)
+
+      // Act
+      const result = await sut.getFilesPath('.')
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1128,6 +1310,21 @@ describe('GitAdapter', () => {
       expect(result).toBe(true)
     })
 
+    it('When called with the root path against an empty index, Then it returns false', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(flatten([]))
+      await sut.preBuildTreeIndex('HEAD', [])
+
+      // Act
+      const result = await sut.pathExists('')
+
+      // Assert
+      expect(result).toBe(false)
+    })
+
     it('When called with a specific path, Then it delegates to the tree index hasPath check', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
@@ -1209,7 +1406,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(fakeRepo.diff).toHaveBeenCalledWith(
-        expect.objectContaining({ detectRenames: false })
+        expect.objectContaining({ detectRenames: false, recursive: true })
       )
     })
 
@@ -1397,6 +1594,12 @@ describe('GitAdapter', () => {
         change.add({ newPath: 'force-app' }),
         ['force-app'],
         ['A\tforce-app'],
+      ],
+      [
+        'add in scope when only one of several configured scopes matches',
+        change.add(),
+        ['other', 'force-app'],
+        ['A\tforce-app/New.cls'],
       ],
       [
         'delete in scope',
