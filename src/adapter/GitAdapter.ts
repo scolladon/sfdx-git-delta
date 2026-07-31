@@ -17,6 +17,8 @@
  * regex — callers only ever pass metacharacter-free literals (guarded by
  * gitGrepPatternInventory.test.ts), so the two semantics agree in practice.
  */
+import { once } from 'node:events'
+import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
@@ -46,7 +48,11 @@ import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
-import type { GitBlobReader } from './gitBlobReader.js'
+import {
+  EscalateToStreamingSignal,
+  type GitBlobReader,
+  SIZE_THRESHOLD,
+} from './gitBlobReader.js'
 import { TreeIndex } from './treeIndex.js'
 
 const ROOT_PATHS = new Set(['', '.', './'])
@@ -62,6 +68,13 @@ const IGNORE_WHITESPACE_OPTIONS = {
   ignoreWhitespace: 'all',
   ignoreBlankLines: true,
 } as const
+
+// Streaming LFS-pointer detection for streamContent: the literal magic
+// prefix released LFS pointer files start with, and a generous upper
+// bound on pointer body size (real pointers are ~130 bytes; this guards
+// against a corrupt/oversized "pointer" masquerading as one).
+const LFS_MAGIC = Buffer.from('version https://git-lfs.github.com/spec/v1\n')
+const LFS_POINTER_CAP = 1024
 
 export default class GitAdapter implements GitBlobReader {
   private static instances: Map<string, GitAdapter> = new Map()
@@ -233,24 +246,72 @@ export default class GitAdapter implements GitBlobReader {
     return content
   }
 
-  // No subprocess in this backend: there is no cheaper streaming path to
-  // escalate to, so the escalation contract degrades to a plain read.
+  // tsgit's Blob/BlobStream carry no size field, so the only way to know a
+  // blob is oversized is to accumulate streamBlob chunks and watch the
+  // running total: crossing SIZE_THRESHOLD escalates the caller onto the
+  // dedicated streamContent path instead of materializing further.
   public async getBufferContentOrEscalate(forRef: FileGitRef): Promise<Buffer> {
-    return await this.getBufferContent(forRef)
+    const repo = await this.getRepo()
+    const blobId = await this.resolveObjectId(forRef)
+    const blobStream = await repo.primitives.streamBlob(blobId)
+    const parts: Uint8Array[] = []
+    let length = 0
+    for await (const chunk of blobStream) {
+      parts.push(chunk)
+      length += chunk.length
+      if (length > SIZE_THRESHOLD) {
+        throw new EscalateToStreamingSignal(length, forRef)
+      }
+    }
+    let content = Buffer.concat(parts, length)
+    if (isLFS(content)) {
+      const lfsPath = getLFSObjectContentPath(content)
+      content = await readFile(join(this.config.repo, lfsPath))
+    }
+    return content
   }
 
+  // Peeks the first LFS_MAGIC.length bytes off the pull-based streamBlob
+  // iterator: a match hands off to the resolved LFS object file, otherwise
+  // the peeked head and every remaining chunk are forwarded as-is. Backed
+  // by the async iterator's own pull semantics, so no pause/resume is
+  // needed to respect backpressure — only out.write()'s own signal.
   public streamContent(forRef: FileGitRef): Readable {
     const out = new PassThrough()
-    this.getBufferContent(forRef)
-      .then(content => {
-        out.end(content)
-      })
-      .catch((error: unknown) => {
-        out.destroy(
-          error instanceof Error ? error : new Error(getErrorMessage(error))
-        )
-      })
+    this.pipeBlobContent(forRef, out).catch((error: unknown) => {
+      out.destroy(
+        error instanceof Error ? error : new Error(getErrorMessage(error))
+      )
+    })
     return out
+  }
+
+  private async pipeBlobContent(
+    forRef: FileGitRef,
+    out: PassThrough
+  ): Promise<void> {
+    const repo = await this.getRepo()
+    const blobId = await this.resolveObjectId(forRef)
+    const blobStream = await repo.primitives.streamBlob(blobId)
+    const chunks = normalizeChunks(blobStream)
+    const { head, exhausted } = await peekHead(chunks)
+    if (isLfsPointer(head)) {
+      await this.pipeLfsObject(chunks, head, out)
+      return
+    }
+    await forwardChunks(chunks, out, head, exhausted)
+  }
+
+  private async pipeLfsObject(
+    chunks: AsyncGenerator<Uint8Array>,
+    head: Buffer,
+    out: PassThrough
+  ): Promise<void> {
+    const pointer = await accumulatePointer(chunks, head)
+    const lfsPath = getLFSObjectContentPath(pointer)
+    createReadStream(join(this.config.repo, lfsPath))
+      .on('error', (error: Error) => out.destroy(error))
+      .pipe(out)
   }
 
   public async *streamArchive(
@@ -357,6 +418,83 @@ export default class GitAdapter implements GitBlobReader {
       yield* toDiffLines(change, scopes)
     }
   }
+}
+
+// Normalizes streamBlob's result (a real BlobStream in production, plain
+// arrays of chunks in unit fakes) into a single stateful AsyncGenerator so
+// streamContent can peek a few chunks via next() and later hand the same
+// cursor to a for-await loop without losing its place.
+async function* normalizeChunks(
+  source: AsyncIterable<Uint8Array>
+): AsyncGenerator<Uint8Array> {
+  yield* source
+}
+
+const isLfsPointer = (head: Buffer): boolean =>
+  head.length >= LFS_MAGIC.length &&
+  head.subarray(0, LFS_MAGIC.length).equals(LFS_MAGIC)
+
+const peekHead = async (
+  chunks: AsyncGenerator<Uint8Array>
+): Promise<{ head: Buffer; exhausted: boolean }> => {
+  const parts: Uint8Array[] = []
+  let length = 0
+  while (length < LFS_MAGIC.length) {
+    const result = await chunks.next()
+    if (result.done) {
+      return { head: Buffer.concat(parts, length), exhausted: true }
+    }
+    parts.push(result.value)
+    length += result.value.length
+  }
+  return { head: Buffer.concat(parts, length), exhausted: false }
+}
+
+const writeChunk = async (
+  out: PassThrough,
+  chunk: Uint8Array
+): Promise<void> => {
+  if (!out.write(chunk)) {
+    await once(out, 'drain')
+  }
+}
+
+const forwardChunks = async (
+  chunks: AsyncGenerator<Uint8Array>,
+  out: PassThrough,
+  head: Buffer,
+  exhausted: boolean
+): Promise<void> => {
+  if (head.length > 0) {
+    await writeChunk(out, head)
+  }
+  if (!exhausted) {
+    for await (const chunk of chunks) {
+      await writeChunk(out, chunk)
+    }
+  }
+  out.end()
+}
+
+const assertWithinPointerCap = (length: number): void => {
+  if (length > LFS_POINTER_CAP) {
+    throw new Error('LFS pointer exceeds expected size')
+  }
+}
+
+const accumulatePointer = async (
+  chunks: AsyncGenerator<Uint8Array>,
+  head: Buffer
+): Promise<Buffer> => {
+  const parts: Uint8Array[] = [head]
+  let length = head.length
+  assertWithinPointerCap(length)
+  for await (const chunk of chunks) {
+    parts.push(chunk)
+    length += chunk.length
+    assertWithinPointerCap(length)
+  }
+  return Buffer.concat(parts, length)
 }
 
 const inScope = (path: string, scopes: string[]): boolean =>

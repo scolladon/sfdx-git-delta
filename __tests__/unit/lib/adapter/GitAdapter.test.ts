@@ -1,11 +1,17 @@
 'use strict'
+import { createReadStream } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path/posix'
+import { PassThrough } from 'node:stream'
 
 import type { Repository } from '@scolladon/tsgit'
 import { openRepository, toSimilarityPercent } from '@scolladon/tsgit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import GitAdapter from '../../../../src/adapter/GitAdapter'
+import {
+  EscalateToStreamingSignal,
+  SIZE_THRESHOLD,
+} from '../../../../src/adapter/gitBlobReader'
 import type { Config } from '../../../../src/types/config'
 import {
   getLFSObjectContentPath,
@@ -17,6 +23,10 @@ vi.mock('@scolladon/tsgit', () => ({
   toSimilarityPercent: vi.fn((score: number) => score),
 }))
 vi.mock('../../../../src/utils/gitLfsHelper')
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+  return { ...actual, createReadStream: vi.fn() }
+})
 vi.mock('node:fs/promises')
 vi.mock('../../../../src/utils/LoggingService')
 
@@ -25,6 +35,12 @@ const mockToSimilarityPercent = vi.mocked(toSimilarityPercent)
 const isLFSMocked = vi.mocked(isLFS)
 const getLFSObjectContentPathMocked = vi.mocked(getLFSObjectContentPath)
 const readFileMocked = vi.mocked(readFile)
+const createReadStreamMocked = vi.mocked(createReadStream)
+
+// Mirrors the module-private LFS constants in GitAdapter.ts (not exported —
+// tests assert the streaming peek against the same literal values).
+const LFS_MAGIC = Buffer.from('version https://git-lfs.github.com/spec/v1\n')
+const LFS_POINTER_CAP = 1024
 
 // Configurable fake Repository: every tsgit surface GitAdapter touches is a
 // per-test vi.fn() so each test shapes only the branches it drives.
@@ -472,7 +488,7 @@ describe('GitAdapter', () => {
   })
 
   describe('Given getBufferContentOrEscalate', () => {
-    it('When called, Then it delegates to getBufferContent and returns the same content', async () => {
+    it('When the accumulated blob stays under SIZE_THRESHOLD, Then it resolves with the concatenated content', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockResolvedValue('commit-oid')
@@ -480,11 +496,10 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      fakeRepo.primitives.readBlob.mockResolvedValue({
-        type: 'blob',
-        id: 'blob-1',
-        content: new Uint8Array(Buffer.from('escalate-me')),
-      })
+      fakeRepo.primitives.streamBlob.mockResolvedValue([
+        Buffer.from('escal'),
+        Buffer.from('ate-me'),
+      ])
 
       // Act
       const result = await sut.getBufferContentOrEscalate({
@@ -494,6 +509,58 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual(Buffer.from('escalate-me'))
+      expect(fakeRepo.primitives.streamBlob).toHaveBeenCalledWith('blob-1')
+    })
+
+    it('When the accumulated content is an LFS pointer, Then it resolves the content from the LFS object file', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.streamBlob.mockResolvedValue([Buffer.from('pointer')])
+      isLFSMocked.mockReturnValue(true)
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/aabb'
+      )
+      readFileMocked.mockResolvedValue(Buffer.from('resolved-content') as never)
+
+      // Act
+      const result = await sut.getBufferContentOrEscalate({
+        path: 'force-app/foo.cls',
+        oid: 'HEAD',
+      })
+
+      // Assert
+      expect(result).toEqual(Buffer.from('resolved-content'))
+      expect(readFileMocked).toHaveBeenCalledWith(
+        join('/repo', '.git/lfs/objects/aa/bb/aabb')
+      )
+    })
+
+    it('When the accumulated blob exceeds SIZE_THRESHOLD, Then it rejects with an EscalateToStreamingSignal carrying the size and ref', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/big.bin', { mode: '100644', id: 'blob-big' }]])
+      )
+      const oversizedChunk = Buffer.alloc(SIZE_THRESHOLD + 1, 0x61)
+      fakeRepo.primitives.streamBlob.mockResolvedValue([oversizedChunk])
+      const forRef = { path: 'force-app/big.bin', oid: 'HEAD' }
+
+      // Act
+      const error = await sut
+        .getBufferContentOrEscalate(forRef)
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(EscalateToStreamingSignal)
+      expect((error as EscalateToStreamingSignal).size).toBe(SIZE_THRESHOLD + 1)
+      expect((error as EscalateToStreamingSignal).ref).toEqual(forRef)
     })
   })
 
@@ -524,7 +591,7 @@ describe('GitAdapter', () => {
   })
 
   describe('Given streamContent', () => {
-    it('When the content resolves, Then the stream ends with the full buffer', async () => {
+    it('When the blob is shorter than the LFS magic length, Then the stream ends with the full buffer', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockResolvedValue('commit-oid')
@@ -532,11 +599,9 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      fakeRepo.primitives.readBlob.mockResolvedValue({
-        type: 'blob',
-        id: 'blob-1',
-        content: new Uint8Array(Buffer.from('streamed')),
-      })
+      fakeRepo.primitives.streamBlob.mockResolvedValue([
+        Buffer.from('streamed'),
+      ])
 
       // Act
       const result = await drain(
@@ -545,6 +610,127 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual(Buffer.from('streamed'))
+    })
+
+    it('When the blob is empty, Then the stream ends without writing any chunk', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/empty.cls', { mode: '100644', id: 'blob-empty' }]])
+      )
+      fakeRepo.primitives.streamBlob.mockResolvedValue([])
+
+      // Act
+      const result = await drain(
+        sut.streamContent({ path: 'force-app/empty.cls', oid: 'HEAD' })
+      )
+
+      // Assert
+      expect(result).toEqual(Buffer.alloc(0))
+    })
+
+    it('When the blob is not an LFS pointer, Then the stream forwards every chunk unchanged, respecting backpressure', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      const firstChunk = Buffer.alloc(100_000, 0x61)
+      const secondChunk = Buffer.from('tail')
+      fakeRepo.primitives.streamBlob.mockResolvedValue([
+        firstChunk,
+        secondChunk,
+      ])
+
+      // Act
+      const result = await drain(
+        sut.streamContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+      )
+
+      // Assert
+      expect(result).toEqual(Buffer.concat([firstChunk, secondChunk]))
+    })
+
+    it('When the blob starts with the LFS pointer magic, Then it pipes content from the resolved LFS object file', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const pointer = Buffer.concat([
+        LFS_MAGIC,
+        Buffer.from('oid sha256:abc\nsize 3\n'),
+      ])
+      fakeRepo.primitives.streamBlob.mockResolvedValue([pointer])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act
+      const resultPromise = drain(
+        sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' })
+      )
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.end(Buffer.from('lfs-content'))
+      const result = await resultPromise
+
+      // Assert
+      expect(result).toEqual(Buffer.from('lfs-content'))
+      expect(getLFSObjectContentPathMocked).toHaveBeenCalledWith(pointer)
+      expect(createReadStreamMocked).toHaveBeenCalledWith(
+        join('/repo', '.git/lfs/objects/aa/bb/abc')
+      )
+    })
+
+    it('When the LFS pointer exceeds LFS_POINTER_CAP, Then the stream is destroyed with a pointer-too-large error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const oversized = Buffer.alloc(LFS_POINTER_CAP + 1, 0x61)
+      fakeRepo.primitives.streamBlob.mockResolvedValue([LFS_MAGIC, oversized])
+
+      // Act & Assert
+      await expect(
+        drain(sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' }))
+      ).rejects.toThrow('LFS pointer exceeds expected size')
+    })
+
+    it('When the resolved LFS object file errors while reading, Then the stream is destroyed with that error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      fakeRepo.primitives.streamBlob.mockResolvedValue([LFS_MAGIC])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act
+      const resultPromise = drain(
+        sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' })
+      )
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.destroy(new Error('lfs object read failed'))
+
+      // Assert
+      await expect(resultPromise).rejects.toThrow('lfs object read failed')
     })
 
     it('When the underlying read rejects with an Error, Then the stream is destroyed with that error', async () => {
