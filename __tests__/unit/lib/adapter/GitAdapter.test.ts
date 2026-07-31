@@ -740,8 +740,11 @@ describe('GitAdapter', () => {
         oid: 'HEAD',
       })
 
-      // Assert
-      expect(result).toEqual(exactChunk)
+      // Assert — Buffer.compare keeps the byte-for-byte strictness without
+      // vitest's per-byte deep-equality diff, which dominates the test's
+      // runtime on a 1 MiB buffer and times out under CI CPU contention.
+      expect(result.length).toBe(SIZE_THRESHOLD)
+      expect(Buffer.compare(result, exactChunk)).toBe(0)
     })
   })
 
