@@ -1,30 +1,29 @@
 'use strict'
-import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Readable } from 'node:stream'
 
-import { afterAll, afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
-
-const REPO_ROOT = process.cwd()
-const FROM = 'HEAD~20'
-const TO = 'HEAD'
-
-// HEAD~20..HEAD carries no rename pair: the file that later became
-// GitAdapter.ts was both born and renamed away inside that window, so a
-// two-endpoint tree diff only ever sees a plain modify. This older pair
-// predates the branch and carries a `git diff -M` detected rename.
-const RENAME_FROM = '0197ef07be6328e6a5cdc6a8c67498f6a449974b'
-const RENAME_TO = 'df3c8330076517fa1fdc9f73e60ce1ac54867ab2'
-
-const GREP_PATTERN = 'EscalateToStreamingSignal'
-const GREP_SCOPE = 'src'
-const ARCHIVE_SCOPE = 'src/utils'
+import {
+  ARCHIVE_SCOPE,
+  buildFixtureRepo,
+  type FixtureRefs,
+  GREP_MARKER,
+  RENAME_FROM_PATH,
+  RENAME_TO_PATH,
+  WHITESPACE_ONLY_PATH,
+} from '../../__utils__/gitFixtureRepo'
+import {
+  createTempDir,
+  runGit,
+  runGitLines,
+  runGitText,
+  toFileUrl,
+} from '../../__utils__/gitTestHarness'
 
 const TAR_BLOCK_SIZE = 512
 const TAR_NAME_LENGTH = 100
@@ -32,30 +31,22 @@ const TAR_SIZE_OFFSET = 124
 const TAR_SIZE_LENGTH = 12
 const TAR_TYPEFLAG_OFFSET = 156
 const TAR_REGULAR_FILE_TYPEFLAGS = new Set(['0', '\0'])
+const SHALLOW_DEPTH = '3'
+
+let fixtureDir: string
+let refs: FixtureRefs
+const tempDirs: string[] = []
 
 const makeConfig = (overrides: Partial<Config> = {}): Config => ({
-  to: TO,
-  from: FROM,
+  to: 'HEAD',
+  from: 'HEAD',
   output: '',
   source: ['.'],
-  repo: REPO_ROOT,
+  repo: fixtureDir,
   ignoreWhitespace: false,
   generateDelta: false,
   ...overrides,
 })
-
-const runGit = (args: string[], cwd: string = REPO_ROOT): Buffer =>
-  execFileSync('git', args, { cwd, maxBuffer: 64 * 1024 * 1024 })
-
-const runGitText = (args: string[], cwd: string = REPO_ROOT): string =>
-  runGit(args, cwd).toString('utf8')
-
-const runGitLines = (args: string[], cwd: string = REPO_ROOT): string[] =>
-  runGitText(args, cwd)
-    .trim()
-    .split('\n')
-    .filter(line => line.length > 0)
-    .sort()
 
 const drainLines = async (
   generator: AsyncGenerator<string>
@@ -115,13 +106,16 @@ const parseTarEntries = (archive: Buffer): Map<string, number> => {
   return entries
 }
 
-const tempDirs: string[] = []
-
-const createTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
+const trackedTempDir = async (prefix: string): Promise<string> => {
+  const dir = await createTempDir(prefix)
   tempDirs.push(dir)
   return dir
 }
+
+beforeAll(async () => {
+  fixtureDir = await trackedTempDir('sgd-parity-fixture-')
+  refs = buildFixtureRepo(fixtureDir)
+})
 
 afterEach(async () => {
   // Instances are cached per (repo, to): closing after every test forces
@@ -136,7 +130,7 @@ afterAll(async () => {
   )
 })
 
-describe('Given the sfdx-git-delta repository', () => {
+describe('Given a self-contained git fixture repository', () => {
   describe('When resolving refs', () => {
     it('Then parseRev matches git rev-parse --verify', async () => {
       // Arrange
@@ -144,10 +138,12 @@ describe('Given the sfdx-git-delta repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await sut.parseRev(TO)
+      const actual = await sut.parseRev('HEAD')
 
       // Assert
-      expect(actual).toBe(runGitText(['rev-parse', '--verify', TO]).trim())
+      expect(actual).toBe(
+        runGitText(['rev-parse', '--verify', 'HEAD'], { cwd: fixtureDir })
+      )
     })
 
     it('Then getFirstCommitRef matches git rev-list --max-parents=0 HEAD', async () => {
@@ -159,8 +155,9 @@ describe('Given the sfdx-git-delta repository', () => {
       const actual = await sut.getFirstCommitRef()
 
       // Assert
+      expect(actual).toBe(refs.root)
       expect(actual).toBe(
-        runGitText(['rev-list', '--max-parents=0', 'HEAD']).trim()
+        runGitText(['rev-list', '--max-parents=0', 'HEAD'], { cwd: fixtureDir })
       )
     })
   })
@@ -170,13 +167,15 @@ describe('Given the sfdx-git-delta repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(TO, [])
+      await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
       const actual = (await sut.getFilesPath('')).sort()
 
       // Assert
-      const expected = runGitLines(['ls-tree', '--name-only', '-r', TO])
+      const expected = runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], {
+        cwd: fixtureDir,
+      })
       expect(actual.length).toBeGreaterThan(0)
       expect(actual).toEqual(expected)
     })
@@ -185,26 +184,24 @@ describe('Given the sfdx-git-delta repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(TO, [])
+      await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
-      const actualChildren = (
-        await sut.listDirAtRevision('src/adapter', TO)
-      ).sort()
-      const actualExists = await sut.pathExists('src/adapter')
+      const actualChildren = (await sut.listDirAtRevision('src', 'HEAD')).sort()
+      const actualExists = await sut.pathExists('src')
       const actualMissing = await sut.pathExists('src/does-not-exist')
 
       // Assert
-      const expectedChildren = runGit([
-        'ls-tree',
-        '--name-only',
-        TO,
-        'src/adapter/',
-      ])
+      const expectedChildren = runGit(
+        ['ls-tree', '--name-only', 'HEAD', 'src/'],
+        {
+          cwd: fixtureDir,
+        }
+      )
         .toString('utf8')
         .trim()
         .split('\n')
-        .map(path => path.replace('src/adapter/', ''))
+        .map(path => path.replace('src/', ''))
         .sort()
       expect(actualChildren).toEqual(expectedChildren)
       expect(actualExists).toBe(true)
@@ -215,54 +212,72 @@ describe('Given the sfdx-git-delta repository', () => {
   describe('When diffing two commits', () => {
     it('Then streamDiffLines matches git diff --name-status --no-renames --diff-filter=AMD', async () => {
       // Arrange
-      const config = makeConfig()
+      const config = makeConfig({ from: refs.diffFrom, to: refs.diffTo })
       const sut = GitAdapter.getInstance(config)
 
       // Act
       const actual = await drainLines(sut.streamDiffLines())
 
       // Assert
-      const expected = runGitLines([
-        'diff',
-        '--no-ext-diff',
-        '--name-status',
-        '--no-renames',
-        '--diff-filter=AMD',
-        FROM,
-        TO,
-      ])
+      const expected = runGitLines(
+        [
+          'diff',
+          '--no-ext-diff',
+          '--name-status',
+          '--no-renames',
+          '--diff-filter=AMD',
+          refs.diffFrom,
+          refs.diffTo,
+        ],
+        { cwd: fixtureDir }
+      )
       expect(actual.length).toBeGreaterThan(0)
+      expect(actual.some(line => line.endsWith(WHITESPACE_ONLY_PATH))).toBe(
+        true
+      )
       expect(actual).toEqual(expected)
     })
 
     it('Then streamDiffLines with ignoreWhitespace matches --ignore-all-space --ignore-blank-lines', async () => {
       // Arrange
-      const config = makeConfig({ ignoreWhitespace: true })
+      const config = makeConfig({
+        from: refs.diffFrom,
+        to: refs.diffTo,
+        ignoreWhitespace: true,
+      })
       const sut = GitAdapter.getInstance(config)
 
       // Act
       const actual = await drainLines(sut.streamDiffLines())
 
-      // Assert
-      const expected = runGitLines([
-        'diff',
-        '--no-ext-diff',
-        '--name-status',
-        '--no-renames',
-        '--diff-filter=AMD',
-        '--ignore-all-space',
-        '--ignore-blank-lines',
-        FROM,
-        TO,
-      ])
+      // Assert: the whitespace-only edit to src/index.txt must drop out —
+      // proof the option changes behaviour rather than the two commands
+      // coincidentally agreeing.
+      const expected = runGitLines(
+        [
+          'diff',
+          '--no-ext-diff',
+          '--name-status',
+          '--no-renames',
+          '--diff-filter=AMD',
+          '--ignore-all-space',
+          '--ignore-blank-lines',
+          refs.diffFrom,
+          refs.diffTo,
+        ],
+        { cwd: fixtureDir }
+      )
+      expect(actual.some(line => line.endsWith(WHITESPACE_ONLY_PATH))).toBe(
+        false
+      )
       expect(actual).toEqual(expected)
     })
 
     it('Then streamDiffLines with changesManifest set matches git diff -M --diff-filter=AMDR', async () => {
       // Arrange
       const config = makeConfig({
-        from: RENAME_FROM,
-        to: RENAME_TO,
+        from: refs.diffTo,
+        to: refs.renameTo,
         changesManifest: 'changes.json',
       })
       const sut = GitAdapter.getInstance(config)
@@ -271,16 +286,26 @@ describe('Given the sfdx-git-delta repository', () => {
       const actual = await drainLines(sut.streamDiffLines())
 
       // Assert
-      const expected = runGitLines([
-        'diff',
-        '--no-ext-diff',
-        '--name-status',
-        '-M',
-        '--diff-filter=AMDR',
-        RENAME_FROM,
-        RENAME_TO,
-      ])
-      expect(actual.some(line => line.startsWith('R'))).toBe(true)
+      const expected = runGitLines(
+        [
+          'diff',
+          '--no-ext-diff',
+          '--name-status',
+          '-M',
+          '--diff-filter=AMDR',
+          refs.diffTo,
+          refs.renameTo,
+        ],
+        { cwd: fixtureDir }
+      )
+      expect(
+        actual.some(
+          line =>
+            line.startsWith('R') &&
+            line.includes(RENAME_FROM_PATH) &&
+            line.includes(RENAME_TO_PATH)
+        )
+      ).toBe(true)
       expect(actual).toEqual(expected)
     })
   })
@@ -290,18 +315,20 @@ describe('Given the sfdx-git-delta repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(TO, [])
-      const samples = (await sut.getFilesPath('src')).slice(0, 25)
+      await sut.preBuildTreeIndex('HEAD', [])
+      const paths = (await sut.getFilesPath('')).sort()
 
       // Act
       const actual = await Promise.all(
-        samples.map(path => sut.getBufferContent({ path, oid: TO }))
+        paths.map(path => sut.getBufferContent({ path, oid: 'HEAD' }))
       )
 
       // Assert
-      expect(samples.length).toBeGreaterThan(0)
-      samples.forEach((path, index) => {
-        const expected = runGit(['cat-file', 'blob', `${TO}:${path}`])
+      expect(paths.length).toBeGreaterThan(0)
+      paths.forEach((path, index) => {
+        const expected = runGit(['cat-file', 'blob', `HEAD:${path}`], {
+          cwd: fixtureDir,
+        })
         expect(actual[index]?.equals(expected)).toBe(true)
       })
     })
@@ -310,13 +337,15 @@ describe('Given the sfdx-git-delta repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      const forRef = { path: 'package.json', oid: TO }
+      const forRef = { path: 'README.md', oid: 'HEAD' }
 
       // Act
       const actual = await readAll(sut.streamContent(forRef))
 
       // Assert
-      const expected = runGit(['cat-file', 'blob', `${TO}:${forRef.path}`])
+      const expected = runGit(['cat-file', 'blob', `HEAD:${forRef.path}`], {
+        cwd: fixtureDir,
+      })
       expect(actual.equals(expected)).toBe(true)
     })
   })
@@ -331,19 +360,16 @@ describe('Given the sfdx-git-delta repository', () => {
       const actual = new Map<string, number>()
       for await (const { path, stream } of sut.streamArchive(
         ARCHIVE_SCOPE,
-        TO
+        'HEAD'
       )) {
         actual.set(path, await sizeOf(stream))
       }
 
       // Assert
-      const archive = runGit([
-        'archive',
-        '--format=tar',
-        TO,
-        '--',
-        ARCHIVE_SCOPE,
-      ])
+      const archive = runGit(
+        ['archive', '--format=tar', 'HEAD', '--', ARCHIVE_SCOPE],
+        { cwd: fixtureDir }
+      )
       const expected = parseTarEntries(archive)
       expect(actual.size).toBeGreaterThan(0)
       expect(actual).toEqual(expected)
@@ -357,52 +383,52 @@ describe('Given the sfdx-git-delta repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = (await sut.gitGrep(GREP_PATTERN, GREP_SCOPE, TO)).sort()
+      const actual = (await sut.gitGrep(GREP_MARKER, '.', 'HEAD')).sort()
 
       // Assert
-      const prefix = `${TO}:`
-      const expected = runGitLines([
-        'grep',
-        '-l',
-        GREP_PATTERN,
-        TO,
-        '--',
-        GREP_SCOPE,
-      ]).map(line => line.slice(prefix.length))
-      expect(actual.length).toBeGreaterThan(0)
+      const prefix = 'HEAD:'
+      const expected = runGitLines(
+        ['grep', '-l', GREP_MARKER, 'HEAD', '--', '.'],
+        { cwd: fixtureDir }
+      ).map(line => line.slice(prefix.length))
+      expect(actual.length).toBeGreaterThan(1)
       expect(actual).toEqual(expected)
     })
   })
 
   describe('When the repo is a worktree', () => {
     it('Then parseRev, getFilesPath and streamDiffLines match git run against the worktree', async () => {
-      // Arrange: a `.git` FILE (gitdir: pointer), not a directory
-      const parentDir = await createTempDir('sgd-parity-worktree-')
+      // Arrange: a `.git` FILE (gitdir: pointer), not a directory. Checks
+      // out `diffFrom` (an absolute oid, not a relative HEAD~N) so this
+      // scenario never depends on how deep the fixture's own history is.
+      const parentDir = await trackedTempDir('sgd-parity-worktree-')
       const cloneDir = join(parentDir, 'clone')
       const worktreeDir = join(parentDir, 'wt')
-      execFileSync('git', ['clone', REPO_ROOT, cloneDir])
-      execFileSync('git', ['worktree', 'add', worktreeDir, 'HEAD~1'], {
+      runGit(['clone', fixtureDir, cloneDir])
+      runGit(['worktree', 'add', worktreeDir, refs.diffFrom], {
         cwd: cloneDir,
       })
       const config = makeConfig({
         repo: worktreeDir,
-        from: 'HEAD~1',
-        to: 'HEAD',
+        from: refs.diffFrom,
+        to: refs.diffTo,
       })
       const sut = GitAdapter.getInstance(config)
 
       // Act
       const actualRev = await sut.parseRev('HEAD')
       await sut.preBuildTreeIndex('HEAD', [])
-      const actualFiles = (await sut.getFilesPath('')).sort()
+      const actualFiles = (await sut.getFilesPath('', 'HEAD')).sort()
       const actualDiff = await drainLines(sut.streamDiffLines())
 
       // Assert
       expect(actualRev).toBe(
-        runGitText(['rev-parse', '--verify', 'HEAD'], worktreeDir).trim()
+        runGitText(['rev-parse', '--verify', 'HEAD'], { cwd: worktreeDir })
       )
       expect(actualFiles).toEqual(
-        runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], worktreeDir)
+        runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], {
+          cwd: worktreeDir,
+        })
       )
       expect(actualDiff).toEqual(
         runGitLines(
@@ -412,10 +438,10 @@ describe('Given the sfdx-git-delta repository', () => {
             '--name-status',
             '--no-renames',
             '--diff-filter=AMD',
-            'HEAD~1',
-            'HEAD',
+            refs.diffFrom,
+            refs.diffTo,
           ],
-          worktreeDir
+          { cwd: worktreeDir }
         )
       )
     })
@@ -425,10 +451,9 @@ describe('Given the sfdx-git-delta repository', () => {
     it('Then tree index and content reads match git peeling the tag to its commit', async () => {
       // Arrange: annotated tags resolve to the tag OBJECT (no auto-peel from
       // rev-parse), so the adapter must peel the chain like `git ls-tree`.
-      const tagDir = await createTempDir('sgd-parity-tag-')
-      execFileSync('git', ['clone', REPO_ROOT, tagDir])
-      execFileSync(
-        'git',
+      const tagDir = await trackedTempDir('sgd-parity-tag-')
+      runGit(['clone', fixtureDir, tagDir])
+      runGit(
         ['-c', 'tag.gpgSign=false', 'tag', '-a', 'parity-tag', '-m', 'parity'],
         { cwd: tagDir }
       )
@@ -439,32 +464,35 @@ describe('Given the sfdx-git-delta repository', () => {
       await sut.preBuildTreeIndex('parity-tag', [])
       const actualFiles = (await sut.getFilesPath('')).sort()
       const actualContent = await sut.getBufferContent({
-        path: 'package.json',
+        path: 'README.md',
         oid: 'parity-tag',
       })
 
       // Assert
       expect(actualFiles.length).toBeGreaterThan(0)
       expect(actualFiles).toEqual(
-        runGitLines(['ls-tree', '--name-only', '-r', 'parity-tag'], tagDir)
+        runGitLines(['ls-tree', '--name-only', '-r', 'parity-tag'], {
+          cwd: tagDir,
+        })
       )
-      expect(actualContent.toString('utf8')).toBe(
-        runGitText(['cat-file', 'blob', 'parity-tag:package.json'], tagDir)
+      const expectedContent = runGit(
+        ['cat-file', 'blob', 'parity-tag:README.md'],
+        { cwd: tagDir }
       )
+      expect(actualContent.equals(expectedContent)).toBe(true)
     })
   })
 
   describe('When the repo is a shallow clone', () => {
     it('Then getFirstCommitRef matches the graft boundary reported by git rev-list', async () => {
-      // Arrange: `--depth` is a no-op on local-path clones unless the
-      // source is addressed as a file:// URL, so the shallow boundary is
-      // only real when cloned through that scheme.
-      const shallowDir = await createTempDir('sgd-parity-shallow-')
-      execFileSync('git', [
+      // Arrange: `--depth` is a documented no-op on local-path clones unless
+      // the source is addressed as a file:// URL.
+      const shallowDir = await trackedTempDir('sgd-parity-shallow-')
+      runGit([
         'clone',
         '--depth',
-        '2',
-        `file://${REPO_ROOT}`,
+        SHALLOW_DEPTH,
+        toFileUrl(fixtureDir),
         shallowDir,
       ])
       const config = makeConfig({ repo: shallowDir })
@@ -474,14 +502,12 @@ describe('Given the sfdx-git-delta repository', () => {
       const actual = await sut.getFirstCommitRef()
 
       // Assert — the clone must actually be shallow, otherwise the graft
-      // boundary silently degenerates to the true root and the scenario
-      // stops exercising `.git/shallow` at all.
+      // boundary silently degenerates to the fixture's true root and the
+      // scenario stops exercising `.git/shallow` at all.
       expect(existsSync(join(shallowDir, '.git', 'shallow'))).toBe(true)
-      expect(actual).not.toBe(
-        runGitText(['rev-list', '--max-parents=0', 'HEAD'], REPO_ROOT).trim()
-      )
+      expect(actual).not.toBe(refs.root)
       expect(actual).toBe(
-        runGitText(['rev-list', '--max-parents=0', 'HEAD'], shallowDir).trim()
+        runGitText(['rev-list', '--max-parents=0', 'HEAD'], { cwd: shallowDir })
       )
     })
   })

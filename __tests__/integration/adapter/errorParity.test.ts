@@ -1,8 +1,5 @@
 'use strict'
-import { execFileSync } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 
 import { afterAll, describe, expect, it } from 'vitest'
 
@@ -11,6 +8,7 @@ import type { Config } from '../../../src/types/config'
 import type { Work } from '../../../src/types/work'
 import ChangeSet from '../../../src/utils/changeSet'
 import ConfigValidator from '../../../src/utils/configValidator'
+import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 
 // A missing oid that parses as a well-formed git object id shape but never
 // resolves: tsgit rejects it with `OBJECT_NOT_FOUND: object not found:
@@ -20,26 +18,27 @@ const RAW_CODE_LEAK_PATTERN = /OBJECT_NOT_FOUND|TsgitError|ENOENT.*realpath/
 
 const tempDirs: string[] = []
 
-const createTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
+const trackedTempDir = async (prefix: string): Promise<string> => {
+  const dir = await createTempDir(prefix)
   tempDirs.push(dir)
   return dir
 }
-
-const runGit = (args: string[], cwd: string): Buffer =>
-  execFileSync('git', args, { cwd })
 
 // Plumbing-only commit (write-tree + commit-tree + update-ref): avoids
 // invoking porcelain `git commit`, which would consult the host's
 // `commit.gpgsign` — this throwaway fixture repo has no business
 // triggering a signing prompt.
 const initRepoWithCommit = (repoDir: string): void => {
-  runGit(['init', '--quiet'], repoDir)
-  const treeOid = runGit(['write-tree'], repoDir).toString('utf8').trim()
-  const commitOid = runGit(['commit-tree', treeOid, '-m', 'root'], repoDir)
+  runGit(['init', '--quiet'], { cwd: repoDir })
+  const treeOid = runGit(['write-tree'], { cwd: repoDir })
     .toString('utf8')
     .trim()
-  runGit(['update-ref', 'HEAD', commitOid], repoDir)
+  const commitOid = runGit(['commit-tree', treeOid, '-m', 'root'], {
+    cwd: repoDir,
+  })
+    .toString('utf8')
+    .trim()
+  runGit(['update-ref', 'HEAD', commitOid], { cwd: repoDir })
 }
 
 const makeConfig = (overrides: Partial<Config>): Config => ({
@@ -70,7 +69,7 @@ describe('Given the released error-message contract (validated surface)', () => 
   describe('When ConfigValidator validates a non-existent git SHA', () => {
     it('Then it throws the released error.ParameterIsNotGitSHA message', async () => {
       // Arrange
-      const repoDir = await createTempDir('sgd-error-parity-sha-')
+      const repoDir = await trackedTempDir('sgd-error-parity-sha-')
       initRepoWithCommit(repoDir)
       const config = makeConfig({
         repo: repoDir,
@@ -94,7 +93,7 @@ describe('Given the released error-message contract (validated surface)', () => 
   describe('When ConfigValidator validates a repo path with no .git directory', () => {
     it('Then it throws the released error.PathIsNotGit message', async () => {
       // Arrange
-      const repoDir = await createTempDir('sgd-error-parity-nogit-')
+      const repoDir = await trackedTempDir('sgd-error-parity-nogit-')
       const config = makeConfig({ repo: repoDir })
       const sut = new ConfigValidator(makeWork(config))
 
@@ -115,8 +114,8 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
   describe('When getFirstCommitRef runs against a repo with no commits', () => {
     it('Then it rejects with a mapped error that never leaks the raw tsgit shape', async () => {
       // Arrange
-      const repoDir = await createTempDir('sgd-error-parity-empty-')
-      runGit(['init', '--quiet'], repoDir)
+      const repoDir = await trackedTempDir('sgd-error-parity-empty-')
+      runGit(['init', '--quiet'], { cwd: repoDir })
       const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
 
       // Act
@@ -133,7 +132,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
   describe('When parseRev runs against a missing oid', () => {
     it('Then it rejects with a mapped error that never leaks the raw tsgit shape', async () => {
       // Arrange
-      const repoDir = await createTempDir('sgd-error-parity-badoid-')
+      const repoDir = await trackedTempDir('sgd-error-parity-badoid-')
       initRepoWithCommit(repoDir)
       const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
 

@@ -1,13 +1,15 @@
 'use strict'
-import { execFileSync } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { rm } from 'node:fs/promises'
 
 import { afterAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
+import {
+  createTempDir,
+  runGit,
+  runGitText,
+} from '../../__utils__/gitTestHarness'
 
 // Comfortably above SIZE_THRESHOLD (1 MiB): large enough that a
 // materialize-then-forward regression would balloon RSS by ~100 MB, but
@@ -20,8 +22,8 @@ const RSS_DELTA_CEILING = 64 * 1024 * 1024
 
 const tempDirs: string[] = []
 
-const createTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
+const trackedTempDir = async (prefix: string): Promise<string> => {
+  const dir = await createTempDir(prefix)
   tempDirs.push(dir)
   return dir
 }
@@ -49,24 +51,23 @@ const buildBlobContent = (): Buffer => {
   return content
 }
 
-const runGitText = (args: string[], cwd: string, input?: Buffer): string =>
-  execFileSync('git', args, { cwd, input, maxBuffer: 1024 * 1024 })
-    .toString('utf8')
-    .trim()
-
 // Builds a commit for a single large blob via plumbing only (hash-object +
 // mktree + commit-tree): porcelain `git commit` would consult the host's
 // `commit.gpgsign`, which this throwaway fixture repo has no business
 // triggering. commit-tree never signs unless `-S` is passed explicitly.
 const commitLargeBlob = (repoDir: string, content: Buffer): string => {
-  execFileSync('git', ['init', '--quiet'], { cwd: repoDir })
-  const blobOid = runGitText(['hash-object', '-w', '--stdin'], repoDir, content)
-  const treeOid = runGitText(
-    ['mktree'],
-    repoDir,
-    Buffer.from(`100644 blob ${blobOid}\t${BLOB_PATH}\n`)
-  )
-  return runGitText(['commit-tree', treeOid, '-m', 'add large blob'], repoDir)
+  runGit(['init', '--quiet'], { cwd: repoDir })
+  const blobOid = runGitText(['hash-object', '-w', '--stdin'], {
+    cwd: repoDir,
+    input: content,
+  })
+  const treeOid = runGitText(['mktree'], {
+    cwd: repoDir,
+    input: Buffer.from(`100644 blob ${blobOid}\t${BLOB_PATH}\n`),
+  })
+  return runGitText(['commit-tree', treeOid, '-m', 'add large blob'], {
+    cwd: repoDir,
+  })
 }
 
 const makeConfig = (overrides: Partial<Config>): Config => ({
@@ -91,7 +92,7 @@ describe('Given a repository with a large non-LFS blob', () => {
   describe('When streamContent reads it', () => {
     it('Then RSS grows by only a bounded delta, not by the blob size', async () => {
       // Arrange
-      const repoDir = await createTempDir('sgd-stream-memory-')
+      const repoDir = await trackedTempDir('sgd-stream-memory-')
       const content = buildBlobContent()
       const commitOid = commitLargeBlob(repoDir, content)
       const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
