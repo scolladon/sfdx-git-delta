@@ -14,7 +14,7 @@ import { CopyOperationKind } from '../types/handlerResult.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
-import { outputFile } from '../utils/fsUtils.js'
+import { isSubDir, outputFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
@@ -92,12 +92,10 @@ export default class IOExecutor {
   // Defense-in-depth shared by every copy path: reject any destination that
   // resolves outside `config.output` (zip-slip). Tree paths from the object
   // store should never contain '..', but a crafted store must not be able to
-  // write outside the output directory.
+  // write outside the output directory. Path-relative comparison (not string
+  // prefixing) keeps '.' and trailing-slash outputs correct.
   private _isWithinOutput(dst: string): boolean {
-    const outputPrefix = this.config.output.endsWith('/')
-      ? this.config.output
-      : `${this.config.output}/`
-    return dst.startsWith(outputPrefix)
+    return isSubDir(this.config.output, dst)
   }
 
   protected async _executeGitFileCopy(op: {

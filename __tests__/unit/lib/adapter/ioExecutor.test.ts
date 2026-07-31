@@ -182,6 +182,55 @@ describe('IOExecutor', () => {
     })
   })
 
+  describe('Given a GitCopy operation resolving to a sibling of the output directory', () => {
+    it('When executed, Then the sibling-prefixed destination is rejected', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(work.config)
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: '../outputX/escape.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).not.toHaveBeenCalled()
+      expect(outputFile).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given the output directory is the current directory', () => {
+    it('When an in-bound copy executes, Then it is written (dot output stays functional)', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = '.'
+      const executor = new IOExecutor(work.config)
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'classes/MyClass.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(outputFile).toHaveBeenCalledWith(
+        'classes/MyClass.cls',
+        Buffer.from('content')
+      )
+    })
+  })
+
   describe('Given a GitDirCopy child path that escapes the output directory', () => {
     it('When executed, Then that child is skipped and in-bound children still copy', async () => {
       // Arrange
