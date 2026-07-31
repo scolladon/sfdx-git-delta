@@ -66,6 +66,11 @@ jobs:
       run:
         shell: bash
     steps:
+      # The runner's git ships core.autocrlf=true: unset it before checkout
+      # so sources keep LF and the Biome format check sees committed bytes.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf input
+
       - name: Checkout sources
         uses: actions/checkout@v6
 
