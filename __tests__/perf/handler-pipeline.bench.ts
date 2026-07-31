@@ -13,12 +13,11 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
     listDirAtRevision: vi.fn().mockResolvedValue([]),
     preBuildTreeIndex: vi.fn().mockResolvedValue(undefined),
     gitGrep: vi.fn().mockResolvedValue([]),
-    closeBatchProcess: vi.fn(),
   }
   return {
     default: {
       getInstance: vi.fn().mockReturnValue(mockAdapter),
-      closeAll: vi.fn(),
+      closeAll: vi.fn().mockResolvedValue(undefined),
     },
   }
 })
