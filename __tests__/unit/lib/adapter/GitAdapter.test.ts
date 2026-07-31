@@ -670,6 +670,32 @@ describe('GitAdapter', () => {
       )
     })
 
+    it('When the resolved LFS object is exactly SIZE_THRESHOLD, Then it resolves without escalating', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.streamBlob.mockResolvedValue([Buffer.from('pointer')])
+      isLFSMocked.mockReturnValue(true)
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/aabb'
+      )
+      statMocked.mockResolvedValue({ size: SIZE_THRESHOLD } as never)
+      readFileMocked.mockResolvedValue(Buffer.from('boundary-content') as never)
+
+      // Act
+      const result = await sut.getBufferContentOrEscalate({
+        path: 'force-app/foo.cls',
+        oid: 'HEAD',
+      })
+
+      // Assert
+      expect(result).toEqual(Buffer.from('boundary-content'))
+    })
+
     it('When the resolved LFS object exceeds SIZE_THRESHOLD, Then it rejects with an EscalateToStreamingSignal sized from the object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
