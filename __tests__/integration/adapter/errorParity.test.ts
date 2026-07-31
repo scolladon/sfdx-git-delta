@@ -8,6 +8,7 @@ import type { Config } from '../../../src/types/config'
 import type { Work } from '../../../src/types/work'
 import ChangeSet from '../../../src/utils/changeSet'
 import ConfigValidator from '../../../src/utils/configValidator'
+import { treatPathSep } from '../../../src/utils/fsUtils'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 
 // A missing oid that parses as a well-formed git object id shape but never
@@ -102,9 +103,11 @@ describe('Given the released error-message contract (validated surface)', () => 
         .validateConfig()
         .catch((thrown: unknown) => thrown)
 
-      // Assert
+      // Assert — the CLI sanitizes paths to forward slashes before they
+      // reach messages, so the expected value gets the same treatment
+      // (on win32 mkdtemp returns a backslashed path).
       expect((error as Error).message).toContain(
-        `'${repoDir}' is not a git repository`
+        `'${treatPathSep(repoDir)}' is not a git repository`
       )
     })
   })

@@ -69,9 +69,17 @@ describe('Given the built sfdx-git-delta CLI', () => {
 
       // Assert: a clean exit with no DEP0137 substring is the runtime
       // proof that `await GitAdapter.closeAll()` disposed the tsgit
-      // pack FileHandle before the process attempted to exit.
-      expect(sut.status).toBe(0)
-      expect(sut.stderr).not.toContain(DEP0137_MARKER)
+      // pack FileHandle before the process attempted to exit. The stream
+      // outputs ride along in the compared object so a non-zero exit
+      // reports WHY it failed, not just the code.
+      expect({
+        status: sut.status,
+        stdout: sut.stdout,
+        stderr: sut.stderr,
+      }).toMatchObject({
+        status: 0,
+        stderr: expect.not.stringContaining(DEP0137_MARKER),
+      })
       expect(existsSync(join(outputDir, 'package'))).toBe(true)
     })
   })
