@@ -4,7 +4,9 @@ on:
   workflow_call:
 
 jobs:
-  source:
+  # Platform-independent logic gates: run exactly once, on the reference
+  # environment (ubuntu + .nvmrc node), with wireit GH-Actions caching.
+  quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -35,39 +37,27 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         continue-on-error: true
 
-      - name: Integration test
-        run: npm run test:integration
-
-      - name: Checkout e2e sources
-        uses: actions/checkout@v6
-        with:
-          ref: 'e2e/head'
-          fetch-depth: 0
-          path: ./e2e
-
-      - name: NUT test
-        run: npm run test:nut
-
-      - name: Functional test
-        run: npm run test:functional
-
       - uses: actions/upload-artifact@v7
         with:
           name: coverage-test-report
           path: reports/coverage
 
-  windows:
-    runs-on: windows-latest
+  # Platform-dependent buckets: everything that spawns the compiled CLI or
+  # touches git/filesystem behavior runs on every supported os × node pair.
+  platform:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node: [22, 24, 26]
     defaults:
       run:
         shell: bash
     steps:
-      # The runner's git ships core.autocrlf=true: unset it before checkout
-      # so sources keep LF and the Biome format check sees committed bytes.
+      # The windows runner's git ships core.autocrlf=true: unset it before
+      # checkout so sources keep LF and tools see committed bytes. Harmless
+      # on linux/macos where autocrlf is off anyway.
       - name: Keep LF line endings
         run: git config --global core.autocrlf input
 
@@ -79,7 +69,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      # No wireit GitHub-Actions caching here: the cache layer's tar
+      # No wireit GitHub-Actions caching in this job: the cache layer's tar
       # archiving fails on windows runners ("tar error" in every task).
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -110,6 +100,12 @@ jobs:
       - name: Setup e2e dependencies
         working-directory: ./e2e
         run: npm ci
+
+      - name: NUT test
+        run: npm run test:nut
+
+      - name: Functional test
+        run: npm run test:functional
 
       # The e2e suite's scripts invoke `../bin/run.js` shebang-style, which
       # cmd.exe (npm's default script shell on windows) cannot execute; the

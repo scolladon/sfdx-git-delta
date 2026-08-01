@@ -51,9 +51,12 @@ Rebuild every time you make a change in the source and need to test locally.
 ## Testing
 
 The test suite is organized into five buckets, each backed by its own
-directory and its own `npm` script. They are cumulative: a typical CI
-build runs them in the order below, and `npm test` aggregates all four
-non-perf buckets.
+directory and its own `npm` script. CI splits them across two build jobs:
+a `quality` job runs the platform-independent gates once on ubuntu (lint,
+build, unit with coverage), while a `platform` matrix job replays the
+platform-sensitive buckets (integration, NUT, functional, then the E2E
+suite) on every supported os (ubuntu, macos, windows) × Node (22, 24, 26)
+pair. Locally, `npm test` aggregates all four non-perf buckets.
 
 | Bucket          | Directory                                  | Vitest config                       | npm script             |
 | --------------- | ------------------------------------------ | ----------------------------------- | ---------------------- |
@@ -335,7 +338,9 @@ git push origin ${feature_branch} --force-with-lease
 
 _note: If your pull request needs more changes, keep working on your feature branch as described above._
 
-CI validates prettifying, linting and tests.
+CI validates formatting, linting and unit tests once on ubuntu (`quality`
+job), and runs the platform-sensitive test buckets on an os × node matrix
+(`platform` job).
 
 ### Collaborate on the pull request
 
