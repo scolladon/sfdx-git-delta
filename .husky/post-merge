@@ -1,3 +1,5 @@
 #!/bin/sh
 
-npm run dependencies:reinstall
+# Only argument is the squash flag, so the pre-merge revision comes from ORIG_HEAD.
+git diff --no-ext-diff --quiet ORIG_HEAD HEAD -- package-lock.json 2>/dev/null ||
+	npm run dependencies:reinstall
