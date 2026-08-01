@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785588935718,
+  "lastUpdate": 1785596713605,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Runtime Benchmark": [
@@ -7121,6 +7121,282 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/scolladon/sfdx-git-delta/commit/af1a7f5c2cdf5d106a486c858dd3d73ed0a4ac9b"
         },
         "date": 1785588935046,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "shallow-equal",
+            "value": 3448821,
+            "range": "±0.14%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 3705596,
+            "range": "±0.12%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "nested-equal",
+            "value": 465422,
+            "range": "±0.20%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 976510,
+            "range": "±0.37%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 43008,
+            "range": "±0.37%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 716897,
+            "range": "±0.50%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 15930626,
+            "range": "±0.12%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseRev-HEAD~20-and-HEAD",
+            "value": 586,
+            "range": "±1.82%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "streamDiffLines-HEAD~20..HEAD",
+            "value": 373,
+            "range": "±2.12%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "getBufferContent-HEAD~20-and-HEAD",
+            "value": 27495,
+            "range": "±2.15%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "preBuildTreeIndex-HEAD-cold",
+            "value": 66,
+            "range": "±7.75%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 3439,
+            "range": "±2.66%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 702,
+            "range": "±6.61%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 200,
+            "range": "±2.43%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 6792,
+            "range": "±0.58%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 3867533,
+            "range": "±0.14%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 3626099,
+            "range": "±0.14%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 60821,
+            "range": "±0.46%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 424415,
+            "range": "±0.10%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 430571,
+            "range": "±0.10%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 9534,
+            "range": "±0.58%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 79544,
+            "range": "±0.13%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 79256,
+            "range": "±0.13%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 2274,
+            "range": "±0.47%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 22215,
+            "range": "±0.59%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 692157,
+            "range": "±0.52%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 6525,
+            "range": "±2.11%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 103496,
+            "range": "±0.41%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 2049,
+            "range": "±0.44%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 24671,
+            "range": "±0.40%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 18846,
+            "range": "±0.54%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 16680,
+            "range": "±0.59%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 16689,
+            "range": "±0.62%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 1321,
+            "range": "±1.14%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 1193,
+            "range": "±0.49%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 1205,
+            "range": "±0.43%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 116,
+            "range": "±4.30%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 121,
+            "range": "±0.36%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 121,
+            "range": "±0.45%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 19944,
+            "range": "±3.37%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 1738,
+            "range": "±1.97%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 158,
+            "range": "±6.62%",
+            "unit": "ops/sec"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4080b6286318e091a8a65e385562be23793606ed",
+          "message": "ci: split build into quality and os×node platform matrix (#1368)",
+          "timestamp": "2026-08-01T17:01:38+02:00",
+          "tree_id": "5f27970a4cca65db71ae92c9388e66e56302fbc2",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/4080b6286318e091a8a65e385562be23793606ed"
+        },
+        "date": 1785596713373,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
