@@ -3,6 +3,7 @@ import { join, parse } from 'node:path/posix'
 import type { Writable } from 'node:stream'
 
 import {
+  FLOW_DEFINITIONS_KEY,
   FLOW_XML_NAME,
   META_REGEX,
   METAFILE_SUFFIX,
@@ -32,7 +33,6 @@ import { writeXmlDocument } from '../utils/metadataDiff/xmlWriter.js'
 import type { XmlContent } from '../utils/xmlHelper.js'
 import BaseProcessor from './baseProcessor.js'
 
-const FLOW_DEFINITIONS_KEY = 'flowDefinitions'
 const TRANSLATIONS_ROOT_KEY = 'Translations'
 const TRANSLATIONS_NAMESPACE = 'http://soap.sforce.com/2006/04/metadata'
 const DEFAULT_XML_HEADER: XmlContent = {
@@ -123,7 +123,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       s => `${s}/*${EXTENSION}${METAFILE_SUFFIX}`
     )
     const translationPaths = await grepContent(
-      'flowDefinitions',
+      FLOW_DEFINITIONS_KEY,
       pathspecs,
       this.work.config
     )

@@ -370,7 +370,7 @@ describe('external library inclusion', () => {
       expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
     })
 
-    it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to release batch cat-file processes', async () => {
+    it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to dispose the tsgit repository', async () => {
       // Act
       await sgd({} as Config)
 

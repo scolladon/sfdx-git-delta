@@ -55,3 +55,68 @@ jobs:
         with:
           name: coverage-test-report
           path: reports/coverage
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24, 26]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The runner's git ships core.autocrlf=true: unset it before checkout
+      # so sources keep LF and the Biome format check sees committed bytes.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf input
+
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No wireit GitHub-Actions caching here: the cache layer's tar
+      # archiving fails on windows runners ("tar error" in every task).
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      # Build before the integration bucket: the lifecycle test spawns the
+      # compiled CLI (bin/run.js -> lib/), which wireit's test:integration
+      # does not itself produce.
+      - name: Build plugin
+        run: npm pack
+
+      - name: Integration test
+        run: npm run test:integration
+
+      - name: Checkout e2e sources
+        uses: actions/checkout@v6
+        with:
+          ref: 'e2e/head'
+          fetch-depth: 0
+          path: ./e2e
+
+      # The checkout above already materialized e2e/head as the current
+      # local branch (fetching into it would be refused); only e2e/base
+      # needs a local branch for the suite's diff endpoints.
+      - name: Fetch e2e base branch
+        working-directory: ./e2e
+        run: git fetch origin e2e/base:e2e/base
+
+      - name: Setup e2e dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      # The e2e suite's scripts invoke `../bin/run.js` shebang-style, which
+      # cmd.exe (npm's default script shell on windows) cannot execute; the
+      # e2e branches are immutable fixtures, so route npm scripts through
+      # bash instead of editing them.
+      - name: E2E byte-equality
+        working-directory: ./e2e
+        env:
+          npm_config_script_shell: bash
+        run: npm run clean && npm run test:e2e:local && npm run validate

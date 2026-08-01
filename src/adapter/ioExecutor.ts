@@ -14,7 +14,7 @@ import { CopyOperationKind } from '../types/handlerResult.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
-import { outputFile } from '../utils/fsUtils.js'
+import { isSubDir, outputFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import GitAdapter from './GitAdapter.js'
@@ -89,12 +89,25 @@ export default class IOExecutor {
     return GitAdapter.getInstance(config)
   }
 
+  // Defense-in-depth shared by every copy path: reject any destination that
+  // resolves outside `config.output` (zip-slip). Tree paths from the object
+  // store should never contain '..', but a crafted store must not be able to
+  // write outside the output directory. Path-relative comparison (not string
+  // prefixing) keeps '.' and trailing-slash outputs correct.
+  private _isWithinOutput(dst: string): boolean {
+    return isSubDir(this.config.output, dst)
+  }
+
   protected async _executeGitFileCopy(op: {
     path: string
     revision: string
   }): Promise<void> {
     const ref: FileGitRef = { path: op.path, oid: op.revision }
     const dst = join(this.config.output, op.path)
+    if (!this._isWithinOutput(dst)) {
+      Logger.debug(lazy`IOExecutor gitFileCopy out-of-output dst ${dst}`)
+      return
+    }
     const reader = this.blobReaderForRevision(op.revision)
     try {
       const content = await reader.getBufferContentOrEscalate(ref)
@@ -136,11 +149,15 @@ export default class IOExecutor {
         if (this.ignoreHelper.globalIgnore.ignores(filePath)) {
           continue
         }
+        const dst = join(this.config.output, filePath)
+        if (!this._isWithinOutput(dst)) {
+          Logger.debug(lazy`IOExecutor gitDirCopy out-of-output dst ${dst}`)
+          continue
+        }
         const content = await gitAdapter.getBufferContent({
           path: filePath,
           oid: op.revision,
         })
-        const dst = join(this.config.output, filePath)
         await outputFile(dst, content)
         this.processedPaths.add(filePath)
       }
@@ -154,9 +171,9 @@ export default class IOExecutor {
   }
 
   /**
-   * Streams a directory via `git archive --format=tar` + tar-stream. One
-   * subprocess replaces N batch-cat-file round trips for large dirs
-   * (ExperienceBundle, static resource folders). Each entry pipes
+   * Streams a directory via the adapter's per-blob `streamArchive`. One
+   * tree walk replaces N per-file `getBufferContent` round trips for large
+   * dirs (ExperienceBundle, static resource folders). Each entry pipes
    * directly into a sibling .tmp + rename; a per-entry
    * processedPaths.has check matches today's dedup contract.
    */
@@ -166,10 +183,6 @@ export default class IOExecutor {
     filePaths: string[]
   ): Promise<void> {
     const wanted = new Set(filePaths)
-    // Stryker disable next-line StringLiteral -- equivalent: the trailing '/' check is for normalising the output prefix; the assertion in `dst.startsWith(outputPrefix)` produces the same outcome whether prefix is `${output}` or `${output}/`, because join() normalises duplicate separators
-    const outputPrefix = this.config.output.endsWith('/')
-      ? this.config.output
-      : `${this.config.output}/`
     for await (const entry of gitAdapter.streamArchive(op.path, op.revision)) {
       if (!wanted.has(entry.path)) {
         entry.stream.resume()
@@ -184,11 +197,7 @@ export default class IOExecutor {
         continue
       }
       const dst = join(this.config.output, entry.path)
-      // Defense-in-depth: reject any tar entry whose resolved destination
-      // escapes `config.output` (zip-slip). git-archive itself does not
-      // produce such entries, but a future streamArchive caller or a
-      // mutated registry could; failing here keeps the invariant local.
-      if (!dst.startsWith(outputPrefix)) {
+      if (!this._isWithinOutput(dst)) {
         entry.stream.resume()
         continue
       }
