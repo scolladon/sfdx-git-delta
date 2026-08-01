@@ -4,6 +4,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.1.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.0.1...v7.1.0) (2026-08-01)
+
+
+### Features
+
+* replace subprocess git backend with in-process tsgit engine ([#1367](https://github.com/scolladon/sfdx-git-delta/issues/1367)) ([af1a7f5](https://github.com/scolladon/sfdx-git-delta/commit/af1a7f5c2cdf5d106a486c858dd3d73ed0a4ac9b))
+
+
+### Bug Fixes
+
+* stop packaging in-file containers with no surviving change ([#1363](https://github.com/scolladon/sfdx-git-delta/issues/1363)) ([7da20c9](https://github.com/scolladon/sfdx-git-delta/commit/7da20c9acaedd83a614a3991e2084e93d2b8304a))
+
 ## [7.0.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.0.0...v7.0.1) (2026-07-13)
 
 
