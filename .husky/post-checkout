@@ -1,3 +1,8 @@
 #!/bin/sh
 
-npm run dependencies:reinstall
+# $1 previous HEAD, $2 new HEAD, $3 1=branch checkout 0=file checkout.
+# --no-ext-diff keeps the exit code trustworthy when an external diff is configured.
+[ "$3" = "1" ] || exit 0
+
+git diff --no-ext-diff --quiet "$1" "$2" -- package-lock.json 2>/dev/null ||
+	npm run dependencies:reinstall
