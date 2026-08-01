@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785588937277,
+  "lastUpdate": 1785596715114,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -7123,6 +7123,282 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/scolladon/sfdx-git-delta/commit/af1a7f5c2cdf5d106a486c858dd3d73ed0a4ac9b"
         },
         "date": 1785588937242,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "shallow-equal",
+            "value": 0.0003,
+            "range": "±0.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 0.0003,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-equal",
+            "value": 0.0021,
+            "range": "±0.20%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 0.001,
+            "range": "±0.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 0.0233,
+            "range": "±0.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 0.0014,
+            "range": "±0.50%",
+            "unit": "ms"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 0.0001,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseRev-HEAD~20-and-HEAD",
+            "value": 1.7066,
+            "range": "±1.82%",
+            "unit": "ms"
+          },
+          {
+            "name": "streamDiffLines-HEAD~20..HEAD",
+            "value": 2.6842,
+            "range": "±2.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "getBufferContent-HEAD~20-and-HEAD",
+            "value": 0.0364,
+            "range": "±2.15%",
+            "unit": "ms"
+          },
+          {
+            "name": "preBuildTreeIndex-HEAD-cold",
+            "value": 15.1001,
+            "range": "±7.75%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.2907,
+            "range": "±2.66%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 1.4236,
+            "range": "±6.61%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 5.0121,
+            "range": "±2.43%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.1472,
+            "range": "±0.58%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 0.0003,
+            "range": "±0.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 0.0003,
+            "range": "±0.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 0.0164,
+            "range": "±0.46%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 0.0024,
+            "range": "±0.10%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 0.0023,
+            "range": "±0.10%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 0.1049,
+            "range": "±0.58%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 0.0126,
+            "range": "±0.13%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 0.0126,
+            "range": "±0.13%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 0.4398,
+            "range": "±0.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.045,
+            "range": "±0.59%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0014,
+            "range": "±0.52%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.1533,
+            "range": "±2.11%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.0097,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 0.4881,
+            "range": "±0.44%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0405,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 0.0531,
+            "range": "±0.54%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 0.06,
+            "range": "±0.59%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 0.0599,
+            "range": "±0.62%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 0.757,
+            "range": "±1.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 0.8384,
+            "range": "±0.49%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 0.8299,
+            "range": "±0.43%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 8.643,
+            "range": "±4.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 8.259,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 8.2941,
+            "range": "±0.45%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 0.0501,
+            "range": "±3.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 0.5753,
+            "range": "±1.97%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 6.3409,
+            "range": "±6.62%",
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4080b6286318e091a8a65e385562be23793606ed",
+          "message": "ci: split build into quality and os×node platform matrix (#1368)",
+          "timestamp": "2026-08-01T17:01:38+02:00",
+          "tree_id": "5f27970a4cca65db71ae92c9388e66e56302fbc2",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/4080b6286318e091a8a65e385562be23793606ed"
+        },
+        "date": 1785596715078,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
