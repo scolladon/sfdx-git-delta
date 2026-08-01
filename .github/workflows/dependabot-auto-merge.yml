@@ -14,13 +14,13 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Checkout PR branch
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.RELEASE_PAT }}
