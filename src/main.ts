@@ -6,10 +6,9 @@ import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config } from './types/config.js'
-import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
-import { applyBundleRollup } from './utils/bundleRollup.js'
 import ChangeSet from './utils/changeSet.js'
+import { assembleChanges } from './utils/changesAssembly.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import RenameResolver from './utils/renameResolver.js'
@@ -72,36 +71,26 @@ export default async (config: Config): Promise<Work> => {
     const handlerView = ChangeSet.from(handlerResult.elements) // handler pass ONLY
 
     const postResult = await postProcessors.collectAll(handlerView)
-    const combinedResult = mergeResults(handlerResult, postResult)
-    const { keptElements, warnings: rollupWarnings } = applyBundleRollup(
-      combinedResult.elements
-    )
     // Resolve git-detected renames — the `{fromPath, toPath}` pairs
-    // RepoGitDiff captured from `-M` output — into (type, from, to) triples,
-    // then fold them into the same construction pass as the kept elements.
-    // This must run on the combined set (handler pass ∪ collectors), not the
-    // handler pass alone: rename targets participate in forPackageManifest()
-    // and rename sources in forDestructiveManifest(), so folding renames any
-    // earlier would change which deletions get cancelled. Pairs for ignored
-    // paths or bundle helper files (same member on both sides) resolve to no
-    // triple.
+    // RepoGitDiff captured from `-M` output — into (type, from, to) triples.
+    // Pairs for ignored paths or bundle helper files (same member on both
+    // sides) resolve to no triple.
     const renameTriples = await new RenameResolver(config, metadata).resolve(
       repoGitDiffHelper.getRenamePairs()
     )
-    const changes = ChangeSet.from(keptElements, renameTriples) // built exactly once
+    const {
+      changes,
+      copies,
+      warnings: assemblyWarnings,
+    } = assembleChanges(handlerResult, postResult, renameTriples)
 
-    await new IOExecutor(config).execute(combinedResult.copies)
+    await new IOExecutor(config).execute(copies)
     const processorWarnings = await postProcessors.executeRemaining(changes)
 
     const work: Work = {
       config,
       changes,
-      warnings: [
-        ...configWarnings,
-        ...combinedResult.warnings,
-        ...rollupWarnings,
-        ...processorWarnings,
-      ],
+      warnings: [...configWarnings, ...assemblyWarnings, ...processorWarnings],
     }
     // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
     Logger.debug(lazy`main: return ${work}`)
