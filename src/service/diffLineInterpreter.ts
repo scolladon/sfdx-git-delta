@@ -1,12 +1,17 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
-import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
+import type {
+  CopyOperation,
+  HandlerResult,
+  ManifestElement,
+} from '../types/handlerResult.js'
 import { pushAll } from '../utils/arrayUtils.js'
-import ChangeSet from '../utils/changeSet.js'
 import { BoundedQueue } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
+import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { Logger, lazy } from '../utils/LoggingService.js'
 import StandardHandler from './standardHandler.js'
 import TypeHandlerFactory from './typeHandlerFactory.js'
 
@@ -29,18 +34,28 @@ export default class DiffLineInterpreter {
       effectiveConfig,
       this.metadata
     )
-    // Single ChangeSet shared by every handler in this pass — eliminates the
-    // per-handler ChangeSet allocation and the merge step that used to fold
-    // ~N small ChangeSets together at the end.
-    const sink = new ChangeSet()
+    const elements: ManifestElement[] = []
     const copies: CopyOperation[] = []
     const warnings: Error[] = []
     const MAX_PARALLELISM = getConcurrencyThreshold()
 
+    // The fold itself (pushAll) is total by construction — a plain nested
+    // for…of that cannot throw. This try/catch instead guards the one
+    // remaining way a single handler could abort the whole pass: `collect()`
+    // rejecting. `BoundedQueue._fail` treats any worker rejection as fatal,
+    // clearing `pending` and rejecting every `drain()` waiter — so a per-file
+    // failure must become a warning here, not a rejected worker (ADR 003).
     const processor = new BoundedQueue<StandardHandler>(async handler => {
-      const result = await handler.collect(sink)
-      pushAll(copies, result.copies)
-      pushAll(warnings, result.warnings)
+      try {
+        const result = await handler.collect()
+        pushAll(elements, result.elements)
+        pushAll(copies, result.copies)
+        pushAll(warnings, result.warnings)
+      } catch (error) {
+        const message = `${handler.toString()}: ${getErrorMessage(error)}`
+        Logger.warn(lazy`${message}`)
+        warnings.push(wrapError(message, error))
+      }
     }, MAX_PARALLELISM)
 
     // `for await…of` iterates both Iterable and AsyncIterable so handlers
@@ -53,6 +68,6 @@ export default class DiffLineInterpreter {
 
     await processor.drain()
 
-    return { changes: sink, copies, warnings }
+    return { elements, copies, warnings }
   }
 }

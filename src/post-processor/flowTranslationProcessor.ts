@@ -11,7 +11,11 @@ import {
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { HandlerResult } from '../types/handlerResult.js'
+import type {
+  CopyOperation,
+  HandlerResult,
+  ManifestElement,
+} from '../types/handlerResult.js'
 import {
   ChangeKind,
   CopyOperationKind,
@@ -165,10 +169,11 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected async _collectFlowTranslations(): Promise<HandlerResult> {
-    const result = emptyResult()
+    const elements: ManifestElement[] = []
+    const copies: CopyOperation[] = []
 
     for (const translationPath of this.translations.keys()) {
-      result.changes.addElement({
+      elements.push({
         target: ManifestTarget.Package,
         type: TRANSLATION_TYPE,
         member: getTranslationName(translationPath),
@@ -177,7 +182,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       if (this.config.generateDelta) {
         const merge = await this._mergeTranslationWithOutput(translationPath)
         this._mergeActualFlows(merge, this.translations.get(translationPath)!)
-        result.copies.push({
+        copies.push({
           kind: CopyOperationKind.StreamedContent,
           path: translationPath,
           writer: async (out: Writable) => {
@@ -191,7 +196,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       }
     }
 
-    return result
+    return { elements, copies, warnings: [] }
   }
 
   /**

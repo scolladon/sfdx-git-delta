@@ -8,8 +8,6 @@ import {
   ManifestTarget,
   mergeResults,
 } from '../../../../src/types/handlerResult'
-import ChangeSet from '../../../../src/utils/changeSet'
-import { elementsOf } from '../../../__utils__/handlerResultView'
 
 describe('emptyResult', () => {
   describe('Given no arguments', () => {
@@ -18,26 +16,19 @@ describe('emptyResult', () => {
       const result = emptyResult()
 
       // Assert
-      expect(elementsOf(result)).toEqual([])
+      expect(result.elements).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
 
     it('When called twice, Then returns independent instances', () => {
-      // Arrange
+      // Arrange & Act
       const result1 = emptyResult()
       const result2 = emptyResult()
 
-      // Act
-      result1.changes.addElement({
-        target: ManifestTarget.Package,
-        type: 'ApexClass',
-        member: 'MyClass',
-        changeKind: ChangeKind.Add,
-      })
-
       // Assert
-      expect(elementsOf(result2)).toEqual([])
+      expect(result1).not.toBe(result2)
+      expect(result1.elements).not.toBe(result2.elements)
     })
   })
 })
@@ -49,7 +40,7 @@ describe('mergeResults', () => {
       const result = mergeResults()
 
       // Assert
-      expect(elementsOf(result)).toEqual([])
+      expect(result.elements).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -67,7 +58,7 @@ describe('mergeResults', () => {
         },
       ]
       const input = {
-        changes: ChangeSet.from(elements),
+        elements,
         copies: [
           {
             kind: CopyOperationKind.GitCopy as const,
@@ -82,7 +73,7 @@ describe('mergeResults', () => {
       const result = mergeResults(input)
 
       // Assert
-      expect(elementsOf(result)).toEqual(elements)
+      expect(result.elements).toEqual(elements)
       expect(result.copies).toEqual(input.copies)
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toBe('some warning')
@@ -93,14 +84,14 @@ describe('mergeResults', () => {
     it('When called, Then concatenates all arrays', () => {
       // Arrange
       const result1 = {
-        changes: ChangeSet.from([
+        elements: [
           {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'ClassA',
-            changeKind: ChangeKind.Add,
+            changeKind: ChangeKind.Add as ChangeKind.Add,
           },
-        ]),
+        ],
         copies: [
           {
             kind: CopyOperationKind.GitCopy as const,
@@ -111,14 +102,14 @@ describe('mergeResults', () => {
         warnings: [],
       }
       const result2 = {
-        changes: ChangeSet.from([
+        elements: [
           {
             target: ManifestTarget.DestructiveChanges,
             type: 'ApexClass',
             member: 'ClassB',
-            changeKind: ChangeKind.Delete,
+            changeKind: ChangeKind.Delete as ChangeKind.Delete,
           },
-        ]),
+        ],
         copies: [
           {
             kind: CopyOperationKind.StreamedContent as const,
@@ -133,13 +124,32 @@ describe('mergeResults', () => {
       const result = mergeResults(result1, result2)
 
       // Assert
-      expect(elementsOf(result)).toHaveLength(2)
-      expect(elementsOf(result)[0].member).toBe('ClassA')
-      expect(elementsOf(result)[1].member).toBe('ClassB')
+      expect(result.elements).toHaveLength(2)
+      expect(result.elements[0].member).toBe('ClassA')
+      expect(result.elements[1].member).toBe('ClassB')
       expect(result.copies).toHaveLength(2)
       expect(result.copies[0].kind).toBe(CopyOperationKind.GitCopy)
       expect(result.copies[1].kind).toBe(CopyOperationKind.StreamedContent)
       expect(result.warnings).toHaveLength(1)
+    })
+
+    it('Given the same element twice across two results, When called, Then the merged elements keep both — concat, not set-union', () => {
+      // Arrange — mergeResults is pure concatenation over the flat axes;
+      // de-duplication is the fold's job (ChangeSet.from), not this factory's.
+      const element = {
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'Dup',
+        changeKind: ChangeKind.Add as ChangeKind.Add,
+      }
+      const result1 = { elements: [element], copies: [], warnings: [] }
+      const result2 = { elements: [element], copies: [], warnings: [] }
+
+      // Act
+      const result = mergeResults(result1, result2)
+
+      // Assert
+      expect(result.elements).toEqual([element, element])
     })
   })
 })

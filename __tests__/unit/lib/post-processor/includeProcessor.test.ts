@@ -12,7 +12,6 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import ChangeSet from '../../../../src/utils/changeSet'
 import {
   buildIncludeHelper,
   IgnoreHelper,
@@ -79,7 +78,7 @@ describe('IncludeProcessor', () => {
     work = getWork()
     vi.clearAllMocks()
     mockProcess.mockResolvedValue({
-      changes: ChangeSet.from([includedManifest]),
+      elements: [includedManifest],
       copies: [includedCopy],
       warnings: [],
     })

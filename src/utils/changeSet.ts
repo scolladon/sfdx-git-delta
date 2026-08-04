@@ -47,7 +47,7 @@ export const SHRINKABLE_TYPES: ReadonlySet<string> = new Set([
  * sub-elements. The xml manifests MUST route on `target` (the deployment
  * contract); `changeKind` only drives the review-oriented JSON bucket.
  *
- * Insertion goes through `add` for single-component changes and
+ * Insertion goes through `ChangeSet.from` for handler output and
  * `recordRename` for rename pairs. Views are pure projections.
  */
 export default class ChangeSet {
@@ -70,15 +70,15 @@ export default class ChangeSet {
   static from(elements: readonly ManifestElement[]): ChangeSet {
     const set = new ChangeSet()
     for (const element of elements) {
-      set.addElement(element)
+      set._addElement(element)
     }
     return set
   }
 
   // Precise insertion — respects the full (target, changeKind) discriminator.
-  // Callers that know both axes use this; the handler pipeline feeds
-  // ManifestElements through `from()`.
-  addElement(element: ManifestElement): void {
+  // Private: the handler pipeline feeds ManifestElements through `from()`,
+  // which is the only remaining caller.
+  private _addElement(element: ManifestElement): void {
     this._addToManifest(
       this.byTarget[element.target],
       element.type,
@@ -155,60 +155,12 @@ export default class ChangeSet {
     return out
   }
 
-  // Convenience for callers (mostly tests) that operate under the standard
-  // convention: Add/Modify target Package, Delete targets DestructiveChanges.
-  // Production handlers that diverge from this convention (e.g. InFileHandler
-  // treating a deleted container as an addition) MUST use addElement instead.
-  add(kind: AddKind, type: string, member: string): void {
-    const target =
-      kind === ChangeKind.Delete
-        ? ManifestTarget.DestructiveChanges
-        : ManifestTarget.Package
-    this.addElement({ target, type, member, changeKind: kind })
-  }
-
   recordRename(type: string, from: string, to: string): void {
     if (from === to) return
     if (!this.renames.has(type)) {
       this.renames.set(type, new Map())
     }
     this.renames.get(type)!.set(renameKey(from, to), { from, to })
-  }
-
-  // Folds another ChangeSet's entries into this one. Used to combine
-  // per-handler / per-collector outputs into a single project-wide view.
-  // Mutates `this`; `other` is left untouched so the source can stay
-  // referentially shared if a caller needs the snapshot it represents.
-  merge(other: ChangeSet): void {
-    for (const target of [
-      ManifestTarget.Package,
-      ManifestTarget.DestructiveChanges,
-    ] as const) {
-      for (const [type, members] of other.byTarget[target]) {
-        for (const member of members) {
-          this._addToManifest(this.byTarget[target], type, member)
-        }
-      }
-    }
-    for (const kind of [
-      ChangeKind.Add,
-      ChangeKind.Modify,
-      ChangeKind.Delete,
-    ] as const) {
-      for (const [type, members] of other.byKind[kind]) {
-        for (const member of members) {
-          this._addToManifest(this.byKind[kind], type, member)
-        }
-      }
-    }
-    for (const [key, kind] of other.byCoord) {
-      this.byCoord.set(key, kind)
-    }
-    for (const [type, pairs] of other.renames) {
-      for (const { from, to } of pairs.values()) {
-        this.recordRename(type, from, to)
-      }
-    }
   }
 
   forPackageManifest(): Manifest {
@@ -352,26 +304,5 @@ export default class ChangeSet {
       }
     }
     return result
-  }
-}
-
-// HandlerResult helpers live next to ChangeSet because they construct it
-// at runtime; keeping them here avoids a circular module dep with
-// handlerResult.ts (which only imports the type).
-import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-
-export const emptyResult = (): HandlerResult => ({
-  changes: new ChangeSet(),
-  copies: [] as CopyOperation[],
-  warnings: [] as Error[],
-})
-
-export const mergeResults = (...results: HandlerResult[]): HandlerResult => {
-  const merged = new ChangeSet()
-  for (const r of results) merged.merge(r.changes)
-  return {
-    changes: merged,
-    copies: results.flatMap(r => r.copies),
-    warnings: results.flatMap(r => r.warnings),
   }
 }

@@ -6,9 +6,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
-import { ChangeKind } from '../../../../src/types/handlerResult'
+import type { AddKind } from '../../../../src/types/handlerResult'
+import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
+
+// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
+// sink (ChangeSet.addElement is now private) — this local helper reproduces
+// its (kind → target) convention so fixtures keep reading the same way.
+const addChange = (work: Work, kind: AddKind, type: string, member: string) => {
+  const target =
+    kind === ChangeKind.Delete
+      ? ManifestTarget.DestructiveChanges
+      : ManifestTarget.Package
+  work.changes = ChangeSet.from([
+    ...work.changes.toElements(),
+    { target, type, member, changeKind: kind },
+  ])
+}
 
 const {
   mockBuildPackageStream,
@@ -64,7 +80,7 @@ describe('PackageGenerator', () => {
   describe('process', () => {
     it('writes destructiveChanges.xml, package.xml, and the empty destructive package.xml', async () => {
       // Arrange
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'Foo')
+      addChange(work, ChangeKind.Add, 'ApexClass', 'Foo')
       const sut = new PackageGenerator(work, metadata)
 
       // Act
@@ -96,8 +112,8 @@ describe('PackageGenerator', () => {
 
     it('When process runs, Then buildPackageStream is called three times with distinct manifests (kills L54:42 ObjectLiteral {} for empty Map)', async () => {
       // Arrange
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'Foo')
-      work.changes.add(ChangeKind.Delete, 'ApexClass', 'Bar')
+      addChange(work, ChangeKind.Add, 'ApexClass', 'Foo')
+      addChange(work, ChangeKind.Delete, 'ApexClass', 'Bar')
       const sut = new PackageGenerator(work, metadata)
 
       // Act
@@ -134,10 +150,10 @@ describe('PackageGenerator', () => {
       it('When process runs, Then the destructive view drops cancelled deletions', async () => {
         // Arrange
         for (const [type, member] of add) {
-          work.changes.add(ChangeKind.Add, type, member)
+          addChange(work, ChangeKind.Add, type, member)
         }
         for (const [type, member] of del) {
-          work.changes.add(ChangeKind.Delete, type, member)
+          addChange(work, ChangeKind.Delete, type, member)
         }
         const sut = new PackageGenerator(work, metadata)
 

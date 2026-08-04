@@ -5,25 +5,23 @@ import {
   MASTER_DETAIL_TAG,
   OBJECT_TYPE,
 } from '../constant/metadataConstants.js'
-import type { HandlerResult } from '../types/handlerResult.js'
-import type ChangeSet from '../utils/changeSet.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { grepContent, pathExists } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomObjectHandler extends StandardHandler {
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    const result = await super.collectAddition(sink)
-    await this._collectMasterDetailCopies(result)
-    return result
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
+    const copies = [...result.copies]
+    await this._collectMasterDetailCopies(copies)
+    return { ...result, copies }
   }
 
   // RATIONALE: Why copy Master Detail fields when deploying CustomObject?
   // Master Detail fields must be included with their parent object for deployment to succeed.
   // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#master-detail-fields
   protected async _collectMasterDetailCopies(
-    result: HandlerResult
+    copies: CopyOperation[]
   ): Promise<void> {
     if (!this._shouldCollectCopies()) return
     if (this.element.type.xmlName !== OBJECT_TYPE) return
@@ -42,7 +40,7 @@ export default class CustomObjectHandler extends StandardHandler {
       this.config
     )
     for (const masterDetailField of masterDetailsFields) {
-      this._collectCopyWithMetaFile(result.copies, masterDetailField)
+      this._collectCopyWithMetaFile(copies, masterDetailField)
     }
   }
 }

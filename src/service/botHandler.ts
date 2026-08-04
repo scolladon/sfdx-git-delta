@@ -3,7 +3,6 @@ import { parse } from 'node:path/posix'
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { ManifestTarget } from '../types/handlerResult.js'
-import type ChangeSet from '../utils/changeSet.js'
 import ShareFolderHandler from './sharedFolderHandler.js'
 
 const BOT_TYPE = 'Bot'
@@ -16,21 +15,26 @@ export default class BotHandler extends ShareFolderHandler {
     return [...elementName].join(DOT)
   }
 
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    const result = await super.collectAddition(sink)
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
     const botName = this.element.parentFolder.split(PATH_SEP).pop() as string
-    result.changes.addElement({
-      target: ManifestTarget.Package,
-      type: BOT_TYPE,
-      member: botName,
-      changeKind: this._getChangeKind(),
-    })
+    const copies = [...result.copies]
     const botPath = `${
       parse(this.element.basePath).dir
     }${PATH_SEP}${botName}.${BOT_EXTENSION}`
-    this._collectCopyWithMetaFile(result.copies, botPath)
-    return result
+    this._collectCopyWithMetaFile(copies, botPath)
+    return {
+      ...result,
+      elements: [
+        ...result.elements,
+        {
+          target: ManifestTarget.Package,
+          type: BOT_TYPE,
+          member: botName,
+          changeKind: this._getChangeKind(),
+        },
+      ],
+      copies,
+    }
   }
 }

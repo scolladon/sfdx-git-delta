@@ -68,9 +68,11 @@ export default class PostProcessorManager {
         const message = `${collector.constructor.name}: ${getErrorMessage(error)}`
         // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning and the failed result push, not on the lazy log line
         Logger.warn(lazy`${message}`)
-        const failed = emptyResult()
-        failed.warnings.push(wrapError(message, error))
-        results.push(failed)
+        results.push({
+          elements: [],
+          copies: [],
+          warnings: [wrapError(message, error)],
+        })
       }
     }
 

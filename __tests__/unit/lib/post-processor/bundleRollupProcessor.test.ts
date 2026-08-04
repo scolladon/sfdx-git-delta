@@ -3,33 +3,41 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import BundleRollupProcessor from '../../../../src/post-processor/bundleRollupProcessor'
+import type { ManifestElement } from '../../../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { getWork } from '../../../__utils__/testWork'
 
 describe('BundleRollupProcessor', () => {
   let work: Work
+  let elements: ManifestElement[]
   // The processor never reads the metadata registry — a stub keeps the suite
   // fast without loading the real registry.
   const metadata = {} as MetadataRepository
   beforeEach(() => {
     work = getWork()
+    elements = []
   })
 
-  const addPackage = (type: string, member: string) =>
-    work.changes.addElement({
+  const addPackage = (type: string, member: string) => {
+    elements.push({
       target: ManifestTarget.Package,
       type,
       member,
       changeKind: ChangeKind.Add,
     })
-  const addDestructive = (type: string, member: string) =>
-    work.changes.addElement({
+    work.changes = ChangeSet.from(elements)
+  }
+  const addDestructive = (type: string, member: string) => {
+    elements.push({
       target: ManifestTarget.DestructiveChanges,
       type,
       member,
       changeKind: ChangeKind.Delete,
     })
+    work.changes = ChangeSet.from(elements)
+  }
 
   describe('Given a DigitalExperienceBundle and its DigitalExperience children in the package manifest', () => {
     it('When process runs, Then the page-scoped children are dropped and unrelated types are untouched', async () => {

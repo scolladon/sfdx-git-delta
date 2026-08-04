@@ -15,7 +15,6 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
-import ChangeSet from '../../../../src/utils/changeSet'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getWork } from '../../../__utils__/testWork'
 
@@ -88,7 +87,7 @@ describe('postProcessorManager', () => {
       // since no flows/includes are configured in the default work, but the TYPE is correct.
       expect(result).toEqual(
         expect.objectContaining({
-          changes: expect.any(ChangeSet),
+          elements: expect.any(Array),
           copies: expect.any(Array),
           warnings: expect.any(Array),
         })
@@ -248,14 +247,14 @@ describe('postProcessorManager', () => {
       const sut = new PostProcessorManager(localWork)
       const collector = new TestCollector(localWork, metadata)
       collector.mockResult = {
-        changes: ChangeSet.from([
+        elements: [
           {
             target: ManifestTarget.Package,
             type: 'Flow',
             member: 'MyFlow',
             changeKind: ChangeKind.Add,
           },
-        ]),
+        ],
         copies: [],
         warnings: [],
       }
@@ -275,14 +274,14 @@ describe('postProcessorManager', () => {
       const sut = new PostProcessorManager(localWork)
       const collector = new TestCollector(localWork, metadata)
       collector.mockResult = {
-        changes: ChangeSet.from([
+        elements: [
           {
             target: ManifestTarget.Package,
             type: 'ApexClass',
             member: 'Test',
             changeKind: ChangeKind.Add,
           },
-        ]),
+        ],
         copies: [],
         warnings: [],
       }

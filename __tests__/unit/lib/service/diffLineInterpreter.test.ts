@@ -12,20 +12,13 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import ChangeSet from '../../../../src/utils/changeSet'
 import { getConfig } from '../../../__utils__/testWork'
 
-// `collect(sink?)` writes manifest entries directly into the sink the
-// interpreter passes in. We hoist a mock that accepts the sink, mirrors
-// the production contract by addElement-ing into it, and returns the
-// recorded result for the test's outer assertions.
+// `collect()` returns the elements it contributed — no shared sink. We hoist
+// a mock that resolves a HandlerResult directly, mirroring the production
+// contract.
 const { mockCollect } = vi.hoisted(() => ({
-  mockCollect:
-    vi.fn<
-      (
-        sink?: import('../../../../src/utils/changeSet').default
-      ) => Promise<import('../../../../src/types/handlerResult').HandlerResult>
-    >(),
+  mockCollect: vi.fn<() => Promise<HandlerResult>>(),
 }))
 
 vi.mock('../../../../src/service/typeHandlerFactory', () => {
@@ -68,37 +61,37 @@ describe('DiffLineInterpreter', () => {
         member: 'Foo',
         changeKind: ChangeKind.Add as ChangeKind.Add,
       }
-      mockCollect.mockImplementation(async sink => {
-        sink?.addElement(manifest)
-        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
+      mockCollect.mockResolvedValue({
+        elements: [manifest],
+        copies: [],
+        warnings: [],
       })
 
       // Act
       const result = await sut.process(lines)
 
       // Assert
-      expect(result.changes.toElements()).toEqual([manifest])
+      expect(result.elements).toEqual([manifest])
     })
 
     it('Given slow handlers, When queue workers finish after enqueuing, Then all results are collected', async () => {
       // Arrange — three lines, each handler returns a distinct manifest so
-      // we can verify all three results landed (Set-based ChangeSet dedupes
-      // identical entries, so the per-handler element must differ to
-      // distinguish "all collected" from "one collected three times").
+      // we can verify all three results landed.
       const lines = ['a', 'b', 'c']
       let counter = 0
-      mockCollect.mockImplementation(sink => {
+      mockCollect.mockImplementation(() => {
         const seq = counter++
         return new Promise(resolve =>
           setImmediate(() => {
-            sink?.addElement({
-              target: ManifestTarget.Package,
-              type: 'CustomLabel',
-              member: `test${seq}`,
-              changeKind: ChangeKind.Modify,
-            })
             resolve({
-              changes: sink ?? new ChangeSet(),
+              elements: [
+                {
+                  target: ManifestTarget.Package,
+                  type: 'CustomLabel',
+                  member: `test${seq}`,
+                  changeKind: ChangeKind.Modify,
+                },
+              ],
               copies: [],
               warnings: [],
             })
@@ -111,7 +104,7 @@ describe('DiffLineInterpreter', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(3)
-      expect(result.changes.toElements()).toHaveLength(3)
+      expect(result.elements).toHaveLength(3)
     })
   })
 
@@ -125,7 +118,7 @@ describe('DiffLineInterpreter', () => {
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
-      expect(result.changes.toElements()).toEqual([])
+      expect(result.elements).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -142,16 +135,17 @@ describe('DiffLineInterpreter', () => {
         member: 'Scoped',
         changeKind: ChangeKind.Add as ChangeKind.Add,
       }
-      mockCollect.mockImplementation(async sink => {
-        sink?.addElement(manifest)
-        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
+      mockCollect.mockResolvedValue({
+        elements: [manifest],
+        copies: [],
+        warnings: [],
       })
 
       // Act
       const result = await sut.process(lines, revisions)
 
       // Assert
-      expect(result.changes.toElements()).toEqual([manifest])
+      expect(result.elements).toEqual([manifest])
       expect(result.warnings).toEqual([])
     })
   })
@@ -160,22 +154,25 @@ describe('DiffLineInterpreter', () => {
     it('When processed, Then returns merged result (not empty)', async () => {
       // Arrange
       const lines = ['test']
-      mockCollect.mockImplementation(async sink => {
-        sink?.addElement({
-          target: ManifestTarget.Package,
-          type: 'ApexClass',
-          member: 'Test',
-          changeKind: ChangeKind.Add,
-        })
-        return { changes: sink ?? new ChangeSet(), copies: [], warnings: [] }
+      mockCollect.mockResolvedValue({
+        elements: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Test',
+            changeKind: ChangeKind.Add,
+          },
+        ],
+        copies: [],
+        warnings: [],
       })
 
       // Act
       const result = await sut.process(lines)
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].type).toBe('ApexClass')
+      expect(result.elements).toHaveLength(1)
+      expect(result.elements[0].type).toBe('ApexClass')
     })
   })
 

@@ -6,25 +6,21 @@ import {
   META_REGEX,
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
-import type { HandlerResult } from '../types/handlerResult.js'
-import type ChangeSet from '../utils/changeSet.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export default class InFolderHandler extends StandardHandler {
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    const result = await super.collectAddition(sink)
-    this._collectFolderMetaCopies(result.copies)
-    await this._collectSpecialExtensionCopies(result.copies)
-    return result
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
+    const copies = [...result.copies]
+    this._collectFolderMetaCopies(copies)
+    await this._collectSpecialExtensionCopies(copies)
+    return { ...result, copies }
   }
 
-  protected _collectFolderMetaCopies(
-    copies: import('../types/handlerResult.js').CopyOperation[]
-  ): void {
+  protected _collectFolderMetaCopies(copies: CopyOperation[]): void {
     const folderPath = this.element.typeDirectoryPath
     const folderName = this.element.pathAfterType[0]
 
@@ -37,7 +33,7 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   protected async _collectSpecialExtensionCopies(
-    copies: import('../types/handlerResult.js').CopyOperation[]
+    copies: CopyOperation[]
   ): Promise<void> {
     if (!this._shouldCollectCopies()) return
     const parsedLine = parse(this.element.basePath)

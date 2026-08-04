@@ -3,10 +3,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import ChangesManifestProcessor from '../../../../src/post-processor/changesManifestProcessor'
-import { ChangeKind } from '../../../../src/types/handlerResult'
+import type { AddKind } from '../../../../src/types/handlerResult'
+import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { outputFile } from '../../../../src/utils/fsUtils'
 import { getWork } from '../../../__utils__/testWork'
+
+// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
+// sink (ChangeSet.addElement is now private) — this local helper reproduces
+// its (kind → target) convention so fixtures keep reading the same way.
+const addChange = (work: Work, kind: AddKind, type: string, member: string) => {
+  const target =
+    kind === ChangeKind.Delete
+      ? ManifestTarget.DestructiveChanges
+      : ManifestTarget.Package
+  work.changes = ChangeSet.from([
+    ...work.changes.toElements(),
+    { target, type, member, changeKind: kind },
+  ])
+}
 
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
@@ -41,9 +57,9 @@ describe('ChangesManifestProcessor', () => {
       // Arrange — the CLI layer resolves bare flag + relative path policy
       // before this processor sees config.changesManifest.
       work.config.changesManifest = 'reports/changes.json'
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'NewClass')
-      work.changes.add(ChangeKind.Modify, 'ApexClass', 'EditedClass')
-      work.changes.add(ChangeKind.Delete, 'ApexTrigger', 'OldTrigger')
+      addChange(work, ChangeKind.Add, 'ApexClass', 'NewClass')
+      addChange(work, ChangeKind.Modify, 'ApexClass', 'EditedClass')
+      addChange(work, ChangeKind.Delete, 'ApexTrigger', 'OldTrigger')
       const sut = new ChangesManifestProcessor(work, metadata)
 
       // Act
@@ -82,8 +98,8 @@ describe('ChangesManifestProcessor', () => {
     it('When process runs, Then the rename bucket is emitted as {type: [{from, to}]} with to-sorted order, and rename participants are excluded from add/delete', async () => {
       // Arrange
       work.config.changesManifest = 'changes.json'
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'ZetaNew')
-      work.changes.add(ChangeKind.Delete, 'ApexClass', 'ZetaOld')
+      addChange(work, ChangeKind.Add, 'ApexClass', 'ZetaNew')
+      addChange(work, ChangeKind.Delete, 'ApexClass', 'ZetaOld')
       work.changes.recordRename('ApexClass', 'ZetaOld', 'ZetaNew')
       work.changes.recordRename('ApexClass', 'AlphaOld', 'AlphaNew')
       const sut = new ChangesManifestProcessor(work, metadata)
@@ -109,10 +125,10 @@ describe('ChangesManifestProcessor', () => {
     it('When process runs, Then serialises with deterministic alphabetical sort', async () => {
       // Arrange
       work.config.changesManifest = 'changes.json'
-      work.changes.add(ChangeKind.Add, 'CustomObject', 'Beta__c')
-      work.changes.add(ChangeKind.Add, 'CustomObject', 'Alpha__c')
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'Zeta')
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'Alpha')
+      addChange(work, ChangeKind.Add, 'CustomObject', 'Beta__c')
+      addChange(work, ChangeKind.Add, 'CustomObject', 'Alpha__c')
+      addChange(work, ChangeKind.Add, 'ApexClass', 'Zeta')
+      addChange(work, ChangeKind.Add, 'ApexClass', 'Alpha')
       const sut = new ChangesManifestProcessor(work, metadata)
 
       // Act

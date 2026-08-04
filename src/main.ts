@@ -72,16 +72,15 @@ export default async (config: Config): Promise<Work> => {
     const lineProcessor = new DiffLineInterpreter(config, metadata)
     const postProcessors = getPostProcessors(work, metadata)
 
-    // First pass: build the ChangeSet from handler output so collectors
-    // (e.g. FlowTranslationProcessor) can introspect the package view via
-    // work.changes.forPackageManifest() before emitting their own changes.
+    // First pass: build the read model from handler output alone so collectors
+    // (FlowTranslationProcessor) introspect the handler-pass package view before
+    // include lines exist.
     const handlerResult = await lineProcessor.process(lines)
-    work.changes = handlerResult.changes
+    work.changes = ChangeSet.from(handlerResult.elements)
 
-    // Second pass: fold collector output into the same ChangeSet.
     const postResult = await postProcessors.collectAll()
     const combinedResult = mergeResults(handlerResult, postResult)
-    work.changes = combinedResult.changes
+    work.changes = ChangeSet.from(combinedResult.elements)
 
     // Apply git-detected renames: resolve the `{fromPath, toPath}` pairs that
     // RepoGitDiff captured from `-M` output into (type, from, to) triples and
@@ -94,7 +93,7 @@ export default async (config: Config): Promise<Work> => {
 
     pushAll(work.warnings, combinedResult.warnings)
 
-    await new IOExecutor(config).execute(combinedResult.copies)
+    await new IOExecutor(config).execute([...combinedResult.copies])
     await postProcessors.executeRemaining()
   } finally {
     await GitAdapter.closeAll()

@@ -12,7 +12,6 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import ChangeSet from '../../../../src/utils/changeSet'
 import { getConfig } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
@@ -45,19 +44,19 @@ describe('DiffLineInterpreter.process', () => {
 
   describe('Given lines with handlers returning results', () => {
     it('When process is called, Then merges all handler results', async () => {
-      // Arrange — distinct member per handler so the union ChangeSet keeps
-      // both, not deduplicated.
+      // Arrange — distinct member per handler so the fold keeps both entries.
       let seq = 0
-      mockCollect.mockImplementation((sink?: ChangeSet) => {
+      mockCollect.mockImplementation(() => {
         const i = seq++
-        sink?.addElement({
-          target: ManifestTarget.Package,
-          type: 'ApexClass',
-          member: `MyClass${i}`,
-          changeKind: ChangeKind.Add,
-        })
         return Promise.resolve({
-          changes: sink ?? new ChangeSet(),
+          elements: [
+            {
+              target: ManifestTarget.Package,
+              type: 'ApexClass',
+              member: `MyClass${i}`,
+              changeKind: ChangeKind.Add,
+            },
+          ],
           copies: [
             {
               kind: CopyOperationKind.GitCopy,
@@ -75,7 +74,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(2)
-      expect(result.changes.toElements()).toHaveLength(2)
+      expect(result.elements).toHaveLength(2)
       expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
@@ -91,7 +90,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
-      expect(result.changes.toElements()).toEqual([])
+      expect(result.elements).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -111,7 +110,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(1)
-      expect(result.changes.toElements()).toEqual([])
+      expect(result.elements).toEqual([])
     })
   })
 

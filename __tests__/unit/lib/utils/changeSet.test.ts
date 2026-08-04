@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ManifestElement } from '../../../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
-import ChangeSet, { SHRINKABLE_TYPES } from '../../../../src/utils/changeSet'
+import ChangeSet from '../../../../src/utils/changeSet'
 
 describe('ChangeSet', () => {
   describe('Given a fresh ChangeSet', () => {
@@ -52,20 +52,6 @@ describe('ChangeSet', () => {
       // Assert
       expect(result.get('ApexClass')).toEqual(new Set(['New', 'Edited']))
       expect(result.get('CustomObject')).toEqual(new Set(['Account']))
-    })
-  })
-
-  describe('Given only delete entries', () => {
-    it('When reading forDestructiveManifest, Then it returns all deletions', () => {
-      // Arrange
-      const sut = new ChangeSet()
-      sut.add(ChangeKind.Delete, 'ApexTrigger', 'Old')
-
-      // Act
-      const result = sut.forDestructiveManifest()
-
-      // Assert
-      expect(result.get('ApexTrigger')).toEqual(new Set(['Old']))
     })
   })
 
@@ -189,19 +175,20 @@ describe('ChangeSet', () => {
 
   describe('Given a non-conventional (target, changeKind) pair (e.g. InFileHandler stamping a deleted container as Package+Delete to preserve surviving sub-elements)', () => {
     it('When reading the xml and JSON views, Then the xml manifests route on target (package) while byChangeKind routes on changeKind (delete)', () => {
-      // Arrange — addElement takes both axes explicitly so callers that
-      // diverge from the add()-convention (Delete → DestructiveChanges)
-      // can stamp Package+Delete. This is the case InFileHandler hits
-      // when a CustomLabels container file is deleted but some children
-      // survive: the deployment manifest must keep it in package.xml
-      // while reviewers still see a delete in the JSON.
-      const sut = new ChangeSet()
-      sut.addElement({
-        target: ManifestTarget.Package,
-        type: 'CustomLabels',
-        member: 'CustomLabels',
-        changeKind: ChangeKind.Delete,
-      })
+      // Arrange — ManifestElement carries both axes explicitly so callers
+      // that diverge from the conventional Delete → DestructiveChanges
+      // pairing can stamp Package+Delete. This is the case InFileHandler
+      // hits when a CustomLabels container file is deleted but some
+      // children survive: the deployment manifest must keep it in
+      // package.xml while reviewers still see a delete in the JSON.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'CustomLabels',
+          member: 'CustomLabels',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
 
       // Act
       const pkg = sut.forPackageManifest()
@@ -354,13 +341,14 @@ describe('ChangeSet', () => {
 
     it('Given a package element, When removed, Then it is dropped from both the package view and the byChangeKind view', () => {
       // Arrange
-      const sut = new ChangeSet()
-      sut.addElement({
-        target: ManifestTarget.Package,
-        type: DE,
-        member: pageMember,
-        changeKind: ChangeKind.Add,
-      })
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: DE,
+          member: pageMember,
+          changeKind: ChangeKind.Add,
+        },
+      ])
 
       // Act
       sut.removeMember(ManifestTarget.Package, DE, pageMember)
@@ -372,13 +360,14 @@ describe('ChangeSet', () => {
 
     it('Given a destructive element, When removed, Then it is dropped from both the destructive view and the byChangeKind view', () => {
       // Arrange
-      const sut = new ChangeSet()
-      sut.addElement({
-        target: ManifestTarget.DestructiveChanges,
-        type: DE,
-        member: pageMember,
-        changeKind: ChangeKind.Delete,
-      })
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: DE,
+          member: pageMember,
+          changeKind: ChangeKind.Delete,
+        },
+      ])
 
       // Act
       sut.removeMember(ManifestTarget.DestructiveChanges, DE, pageMember)
@@ -444,13 +433,14 @@ describe('ChangeSet', () => {
 
     it('Given recorded renames, When an unrelated element is removed, Then the renames are untouched', () => {
       // Arrange
-      const sut = new ChangeSet()
-      sut.addElement({
-        target: ManifestTarget.Package,
-        type: DE,
-        member: pageMember,
-        changeKind: ChangeKind.Add,
-      })
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: DE,
+          member: pageMember,
+          changeKind: ChangeKind.Add,
+        },
+      ])
       sut.recordRename(DE, 'OldName', 'NewName')
 
       // Act
@@ -487,76 +477,5 @@ describe('ChangeSet', () => {
         new Set(['Foo'])
       )
     })
-  })
-
-  describe('Given two ChangeSets merged together', () => {
-    it('When the source has rename pairs, Then merge propagates them into the destination (changeSet L158-160)', () => {
-      // Arrange — destination already has a couple of entries; source
-      // contributes a different rename pair plus an addition.
-      const dst = new ChangeSet()
-      dst.addElement({
-        target: ManifestTarget.Package,
-        type: 'ApexClass',
-        member: 'Existing',
-        changeKind: ChangeKind.Add,
-      })
-      dst.recordRename('ApexClass', 'before', 'after')
-
-      const src = new ChangeSet()
-      src.addElement({
-        target: ManifestTarget.Package,
-        type: 'ApexTrigger',
-        member: 'NewTrigger',
-        changeKind: ChangeKind.Add,
-      })
-      src.recordRename('ApexTrigger', 'OldTrigger', 'NewTrigger')
-
-      // Act
-      dst.merge(src)
-
-      // Assert — both manifests folded
-      expect(dst.forPackageManifest().get('ApexClass')).toEqual(
-        new Set(['Existing', 'after'])
-      )
-      expect(dst.forPackageManifest().get('ApexTrigger')).toEqual(
-        new Set(['NewTrigger'])
-      )
-      // Both renames present in the rename bucket
-      const renameByKind = dst.byChangeKind()[ChangeKind.Rename]
-      expect([...renameByKind.get('ApexClass')!.values()]).toEqual([
-        { from: 'before', to: 'after' },
-      ])
-      expect([...renameByKind.get('ApexTrigger')!.values()]).toEqual([
-        { from: 'OldTrigger', to: 'NewTrigger' },
-      ])
-    })
-
-    it.each([...SHRINKABLE_TYPES])(
-      'When the source has a shrinkable %s member, Then merge propagates the byCoord index so the destination can removeMember it',
-      type => {
-        // Arrange — any type in SHRINKABLE_TYPES must round-trip through
-        // merge: addElement on the source populates byCoord, merge must copy
-        // it to the destination, and the destination's removeMember must then
-        // find the kind to clear both byTarget and byKind. If byCoord were
-        // not propagated, removeMember would silently no-op.
-        const member = 'rollup-test-member'
-        const dst = new ChangeSet()
-        const src = new ChangeSet()
-        src.addElement({
-          target: ManifestTarget.Package,
-          type,
-          member,
-          changeKind: ChangeKind.Add,
-        })
-
-        // Act
-        dst.merge(src)
-        dst.removeMember(ManifestTarget.Package, type, member)
-
-        // Assert
-        expect(dst.forPackageManifest().has(type)).toBe(false)
-        expect(dst.byChangeKind()[ChangeKind.Add].has(type)).toBe(false)
-      }
-    )
   })
 })

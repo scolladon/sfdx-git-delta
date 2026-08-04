@@ -15,7 +15,6 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
-import type ChangeSet from '../utils/changeSet.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -43,26 +42,21 @@ export default class StandardHandler {
     protected readonly config: Config
   ) {}
 
-  // `sink` lets the orchestrator (DiffLineInterpreter) share one ChangeSet
-  // across every handler in a pass, eliminating ~N per-handler ChangeSet
-  // allocations and their later merge. When omitted (tests, ad-hoc callers)
-  // each call still gets its own fresh ChangeSet via `emptyResult()`, so the
-  // existing test API (`await sut.collectAddition()`) stays unchanged.
   @log
-  public async collect(sink?: ChangeSet): Promise<HandlerResult> {
+  public async collect(): Promise<HandlerResult> {
     if (!this._isProcessable()) {
-      return this._emptyResultFor(sink)
+      return emptyResult()
     }
     try {
       switch (this.changeType) {
         case ADDITION:
-          return await this.collectAddition(sink)
+          return await this.collectAddition()
         case DELETION:
-          return await this.collectDeletion(sink)
+          return await this.collectDeletion()
         case MODIFICATION:
-          return await this.collectModification(sink)
+          return await this.collectModification()
         default:
-          return this._emptyResultFor(sink)
+          return emptyResult()
       }
     } catch (error) {
       const message = `${this.element.basePath}: ${getErrorMessage(error)}`
@@ -72,37 +66,32 @@ export default class StandardHandler {
         // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: same as above, debug log is observability only
         lazy`${this.constructor.name}.collect: ${this.changeType} ${this.element.type.xmlName} '${this.element.basePath}' failed: ${() => getErrorMessage(error)}`
       )
-      const failed = this._emptyResultFor(sink)
-      failed.warnings.push(wrapError(message, error))
-      return failed
+      return { elements: [], copies: [], warnings: [wrapError(message, error)] }
     }
   }
 
-  public async collectAddition(sink?: ChangeSet): Promise<HandlerResult> {
-    const result = this._emptyResultFor(sink)
-    result.changes.addElement(
-      this._collectManifestElement(ManifestTarget.Package)
-    )
-    this._collectCopyWithMetaFile(result.copies, this.element.basePath)
-    return result
+  public async collectAddition(): Promise<HandlerResult> {
+    const copies: CopyOperation[] = []
+    this._collectCopyWithMetaFile(copies, this.element.basePath)
+    return {
+      elements: [this._collectManifestElement(ManifestTarget.Package)],
+      copies,
+      warnings: [],
+    }
   }
 
-  public async collectDeletion(sink?: ChangeSet): Promise<HandlerResult> {
-    const result = this._emptyResultFor(sink)
-    result.changes.addElement(
-      this._collectManifestElement(ManifestTarget.DestructiveChanges)
-    )
-    return result
+  public async collectDeletion(): Promise<HandlerResult> {
+    return {
+      elements: [
+        this._collectManifestElement(ManifestTarget.DestructiveChanges),
+      ],
+      copies: [],
+      warnings: [],
+    }
   }
 
-  public async collectModification(sink?: ChangeSet): Promise<HandlerResult> {
-    return await this.collectAddition(sink)
-  }
-
-  protected _emptyResultFor(sink?: ChangeSet): HandlerResult {
-    // Stryker disable next-line ObjectLiteral,ArrayDeclaration -- equivalent: see v8 ignore — production callers always pass a sink, so the truthy branch is the only reachable one and the {changes,copies,warnings} shape is asserted by the consumer via specific keys
-    /* v8 ignore next -- defensive: production callers always pass a sink; the no-sink fallback exists for legacy / direct-handler tests */
-    return sink ? { changes: sink, copies: [], warnings: [] } : emptyResult()
+  public async collectModification(): Promise<HandlerResult> {
+    return await this.collectAddition()
   }
 
   protected _getElementName() {

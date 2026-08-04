@@ -22,12 +22,14 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
+import type { AddKind } from '../../../../src/types/handlerResult'
 import {
   ChangeKind,
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { grepContent, readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
@@ -48,6 +50,20 @@ const mockedPathExists = vi.mocked(pathExists)
 const mockedReadFile = vi.mocked(readFile)
 const mockTreatPathSep = vi.mocked(treatPathSep)
 mockTreatPathSep.mockImplementation(data => data)
+
+// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
+// sink (ChangeSet.addElement is now private) — this local helper reproduces
+// its (kind → target) convention so fixtures keep reading the same way.
+const addChange = (work: Work, kind: AddKind, type: string, member: string) => {
+  const target =
+    kind === ChangeKind.Delete
+      ? ManifestTarget.DestructiveChanges
+      : ManifestTarget.Package
+  work.changes = ChangeSet.from([
+    ...work.changes.toElements(),
+    { target, type, member, changeKind: kind },
+  ])
+}
 
 const translationXml = (flowDefinitions: Array<{ fullName: string }>) => {
   const defs = flowDefinitions
@@ -104,7 +120,7 @@ describe('FlowTranslationProcessor', () => {
       work.config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -188,7 +204,7 @@ describe('FlowTranslationProcessor', () => {
       work.config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -303,7 +319,7 @@ describe('FlowTranslationProcessor', () => {
       work.config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -337,7 +353,7 @@ describe('FlowTranslationProcessor', () => {
       work.config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -548,7 +564,7 @@ describe('FlowTranslationProcessor', () => {
       describe('when flow have been modified', () => {
         beforeEach(() => {
           // Arrange
-          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+          addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
           mockedReadPathFromGit.mockResolvedValue(
             translationXml([{ fullName: flowFullName }])
           )
@@ -637,8 +653,8 @@ describe('FlowTranslationProcessor', () => {
             // unchanged while flowDefinitions are merged. Also verifies that
             // `subType === FLOW_DEFINITIONS_KEY` in the parse callback actually
             // gates the seenFullNames population.
-            work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            addChange(work, ChangeKind.Modify, TRANSLATION_TYPE, FR)
+            addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
             mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name><label>Custom</label></customFieldTranslations><flowDefinitions><fullName>TestA</fullName></flowDefinitions></Translations>`
@@ -663,8 +679,8 @@ describe('FlowTranslationProcessor', () => {
 
         describe('when the output translation has a flowDefinition whose fullName matches the new one', () => {
           beforeEach(() => {
-            work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            addChange(work, ChangeKind.Modify, TRANSLATION_TYPE, FR)
+            addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
             mockedPathExists.mockResolvedValue(true as never)
             // Output already has `<fullName>test-flow</fullName>` — the new
             // flow with the same fullName must NOT duplicate (output-wins).
@@ -693,8 +709,8 @@ describe('FlowTranslationProcessor', () => {
         describe('when there is already a translation with flow definition related to a flow', () => {
           beforeEach(() => {
             // Arrange
-            work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            addChange(work, ChangeKind.Modify, TRANSLATION_TYPE, FR)
+            addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
             mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
@@ -731,7 +747,7 @@ describe('FlowTranslationProcessor', () => {
           beforeEach(() => {
             // Arrange
             // Note: TRANSLATION_TYPE / FR deliberately not added here
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
             mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
@@ -807,16 +823,13 @@ describe('FlowTranslationProcessor', () => {
                       { fullName: 'otherFlow' },
                     ])
                   )
-                  work.changes.add(
+                  addChange(
+                    work,
                     ChangeKind.Modify,
                     FLOW_XML_NAME,
                     flowFullName
                   )
-                  work.changes.add(
-                    ChangeKind.Modify,
-                    FLOW_XML_NAME,
-                    'otherFlow'
-                  )
+                  addChange(work, ChangeKind.Modify, FLOW_XML_NAME, 'otherFlow')
                   work.config.generateDelta = generateDelta
                 })
                 it('should add translation', async () => {
@@ -880,7 +893,7 @@ describe('FlowTranslationProcessor', () => {
         describe('when translation files are not ignored', () => {
           beforeEach(() => {
             // Arrange
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            addChange(work, ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
             work.config.ignore = '.forceignore'
             mockIgnores.mockReturnValue(false)
           })
