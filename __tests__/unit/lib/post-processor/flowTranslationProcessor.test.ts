@@ -24,10 +24,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import { emptyOutcome } from '../../../../src/post-processor/baseProcessor'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import type { Config } from '../../../../src/types/config'
-import type {
-  AddKind,
-  HandlerResult,
-} from '../../../../src/types/handlerResult'
+import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
   ChangeKind,
   CopyOperationKind,
@@ -41,7 +38,7 @@ import {
   readFile,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
-import { elementsOf } from '../../../__utils__/handlerResultView'
+import { addChange, elementsOf } from '../../../__utils__/handlerResultView'
 import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
@@ -54,25 +51,6 @@ const mockedPathExists = vi.mocked(pathExists)
 const mockedReadFile = vi.mocked(readFile)
 const mockTreatPathSep = vi.mocked(treatPathSep)
 mockTreatPathSep.mockImplementation(data => data)
-
-// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
-// sink (ChangeSet.addElement is now private) — this local helper reproduces
-// its (kind → target) convention so fixtures keep reading the same way.
-const addChange = (
-  changes: ChangeSet,
-  kind: AddKind,
-  type: string,
-  member: string
-): ChangeSet => {
-  const target =
-    kind === ChangeKind.Delete
-      ? ManifestTarget.DestructiveChanges
-      : ManifestTarget.Package
-  return ChangeSet.from([
-    ...changes.toElements(),
-    { target, type, member, changeKind: kind },
-  ])
-}
 
 const translationXml = (flowDefinitions: Array<{ fullName: string }>) => {
   const defs = flowDefinitions

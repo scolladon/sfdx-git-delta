@@ -1,8 +1,11 @@
 'use strict'
-import type {
-  CopyOperation,
-  HandlerResult,
-  ManifestElement,
+import {
+  type AddKind,
+  ChangeKind,
+  type CopyOperation,
+  type HandlerResult,
+  type ManifestElement,
+  ManifestTarget,
 } from '../../src/types/handlerResult'
 import ChangeSet from '../../src/utils/changeSet'
 
@@ -22,3 +25,44 @@ export const makeHandlerResult = (parts: {
   copies: parts.copies ?? [],
   warnings: parts.warnings ?? [],
 })
+
+// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
+// sink (ChangeSet.addElement is now private) — this helper reproduces its
+// (kind → target) convention so fixtures across the suite keep reading the
+// same way.
+export const addChange = (
+  changes: ChangeSet,
+  kind: AddKind,
+  type: string,
+  member: string
+): ChangeSet => {
+  const target =
+    kind === ChangeKind.Delete
+      ? ManifestTarget.DestructiveChanges
+      : ManifestTarget.Package
+  return ChangeSet.from([
+    ...changes.toElements(),
+    { target, type, member, changeKind: kind },
+  ])
+}
+
+// `ChangeSet.recordRename` is private — renames fold in through
+// `ChangeSet.from`'s renames parameter — this helper reproduces the old
+// mutate-in-place convenience so fixtures across the suite keep reading the
+// same way.
+export const addRename = (
+  changes: ChangeSet,
+  type: string,
+  from: string,
+  to: string
+): ChangeSet => {
+  const existingRenames = [
+    ...changes.byChangeKind()[ChangeKind.Rename],
+  ].flatMap(([renameType, pairs]) =>
+    [...pairs.values()].map(pair => ({ type: renameType, ...pair }))
+  )
+  return ChangeSet.from(changes.toElements(), [
+    ...existingRenames,
+    { type, from, to },
+  ])
+}

@@ -4,50 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import ChangesManifestProcessor from '../../../../src/post-processor/changesManifestProcessor'
 import type { Config } from '../../../../src/types/config'
-import type { AddKind } from '../../../../src/types/handlerResult'
-import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
+import { ChangeKind } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { outputFile } from '../../../../src/utils/fsUtils'
+import { addChange, addRename } from '../../../__utils__/handlerResultView'
 import { getConfig } from '../../../__utils__/testWork'
-
-// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
-// sink (ChangeSet.addElement is now private) — this local helper reproduces
-// its (kind → target) convention so fixtures keep reading the same way.
-const addChange = (
-  changes: ChangeSet,
-  kind: AddKind,
-  type: string,
-  member: string
-): ChangeSet => {
-  const target =
-    kind === ChangeKind.Delete
-      ? ManifestTarget.DestructiveChanges
-      : ManifestTarget.Package
-  return ChangeSet.from([
-    ...changes.toElements(),
-    { target, type, member, changeKind: kind },
-  ])
-}
-
-// `ChangeSet.recordRename` is private after Part 6 (renames fold in through
-// `ChangeSet.from`'s renames parameter) — this local helper reproduces the
-// old mutate-in-place convenience so fixtures keep reading the same way.
-const addRename = (
-  changes: ChangeSet,
-  type: string,
-  from: string,
-  to: string
-): ChangeSet => {
-  const existingRenames = [
-    ...changes.byChangeKind()[ChangeKind.Rename],
-  ].flatMap(([renameType, pairs]) =>
-    [...pairs.values()].map(pair => ({ type: renameType, ...pair }))
-  )
-  return ChangeSet.from(changes.toElements(), [
-    ...existingRenames,
-    { type, from, to },
-  ])
-}
 
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),

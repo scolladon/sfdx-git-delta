@@ -7,29 +7,10 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
 import type { Config } from '../../../../src/types/config'
-import type { AddKind } from '../../../../src/types/handlerResult'
-import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
+import { ChangeKind } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
+import { addChange } from '../../../__utils__/handlerResultView'
 import { getConfig } from '../../../__utils__/testWork'
-
-// `ChangeSet.add` was a test-facing convenience deleted alongside the shared
-// sink (ChangeSet.addElement is now private) — this local helper reproduces
-// its (kind → target) convention so fixtures keep reading the same way.
-const addChange = (
-  changes: ChangeSet,
-  kind: AddKind,
-  type: string,
-  member: string
-): ChangeSet => {
-  const target =
-    kind === ChangeKind.Delete
-      ? ManifestTarget.DestructiveChanges
-      : ManifestTarget.Package
-  return ChangeSet.from([
-    ...changes.toElements(),
-    { target, type, member, changeKind: kind },
-  ])
-}
 
 const {
   mockBuildPackageStream,
