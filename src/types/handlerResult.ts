@@ -56,7 +56,7 @@ export type CopyOperation =
 
 // Handlers and collectors emit a HandlerResult describing only what they
 // themselves contributed: a flat, readonly sequence of manifest elements,
-// never a container shared with anyone else (ADR 001). `ChangeSet.from`
+// never a container shared with anyone else. `ChangeSet.from`
 // is the single construction path that folds this wire format into the
 // indexed read model consumed downstream by forPackageManifest /
 // forDestructiveManifest.

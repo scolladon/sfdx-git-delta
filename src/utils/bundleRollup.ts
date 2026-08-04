@@ -27,6 +27,11 @@ export const applyBundleRollup = (
   elements: readonly ManifestElement[]
 ): BundleRollupOutcome => {
   const bundleMembersByTarget = collectBundleMembers(elements)
+  // Most diffs carry no bundle at all; skip the filter allocation entirely
+  // rather than copying the whole element sequence to drop nothing.
+  if (bundleMembersByTarget.size === 0) {
+    return { keptElements: elements, warnings: [] }
+  }
   const keptElements = elements.filter(
     element =>
       !(

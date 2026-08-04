@@ -3,10 +3,10 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
+import { pushAll } from '../utils/arrayUtils.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
-
 import BaseProcessor from './baseProcessor.js'
 import ChangesManifestProcessor from './changesManifestProcessor.js'
 import FlowTranslationProcessor from './flowTranslationProcessor.js'
@@ -43,7 +43,7 @@ export default class PostProcessorManager {
   public async executeRemaining(changes: ChangeSet): Promise<readonly Error[]> {
     const warnings: Error[] = []
     for (const postProcessor of this.processors) {
-      warnings.push(...(await this._safeProcess(postProcessor, changes)))
+      pushAll(warnings, await this._safeProcess(postProcessor, changes))
     }
     return warnings
   }

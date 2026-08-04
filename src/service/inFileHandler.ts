@@ -15,6 +15,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../types/handlerResult.js'
+import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
@@ -84,7 +85,7 @@ export default class InFileHandler extends StandardHandler {
       if (this._collectsContainer() && outcome.hasPackageContent) {
         const containerResult =
           await StandardHandler.prototype.collectAddition.call(this)
-        elements.push(...containerResult.elements)
+        pushAll(elements, containerResult.elements)
       }
 
       // run() returns a writer iff generateDelta is on and the diff has a

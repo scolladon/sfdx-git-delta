@@ -30,7 +30,7 @@ describe('DiffLineInterpreter fold', () => {
     globalMetadata = await getDefinition({})
   })
 
-  describe('T4 (R3) — completeness', () => {
+  describe('completeness', () => {
     it("Given a corpus of diff lines, including one that routes to ReportingFolderHandler with a falsy resolvedType, When process folds the pass, Then the whole element multiset equals the concatenation of each handler's own returned elements", async () => {
       // Arrange — 'reports/folder/entity.unknownext-meta.xml' is processable
       // (nested subfolder makes _parentFolderIsNotTheType true) but its
@@ -66,38 +66,39 @@ describe('DiffLineInterpreter fold', () => {
     })
   })
 
-  describe('T5b (ADR 003) — fold totality', () => {
-    it("Given a pass where one handler's collect() rejects, When process runs, Then it still drains and every other handler's elements are present", async () => {
-      // Arrange — guards BoundedQueue._fail turning a per-file failure into
-      // a whole-run abort: without the worker's own try/catch, a rejected
-      // handler.collect() clears `pending` and rejects every drain() waiter,
-      // silently discarding every already-collected result. Every family in
-      // this corpus shares StandardHandler.prototype.collect, and
-      // BoundedQueue._pump drives pushed items through their first await
-      // point synchronously and in push order, so the "once" rejection lands
-      // on the first line's handler deterministically.
+  describe('fold totality', () => {
+    it('Given a handler that fails internally, When process runs, Then the pass still drains and the failure arrives as a warning', async () => {
+      // Arrange — the aggregation step must never be what breaks a pass.
+      // BoundedQueue treats a worker rejection as fatal: it clears `pending`
+      // and rejects every drain() waiter, discarding results already
+      // collected. A per-file failure is contained inside collect(), which
+      // returns it as a warning, and folding that result must not reject.
       const lines = [
         'A\tforce-app/main/default/classes/A.cls',
         'A\tforce-app/main/default/classes/B.cls',
         'A\tforce-app/main/default/classes/C.cls',
       ]
+      const failure = new Error('handler failed internally')
       const collectSpy = vi.spyOn(StandardHandler.prototype, 'collect')
-      collectSpy.mockRejectedValueOnce(new Error('handler exploded'))
+      collectSpy.mockResolvedValueOnce({
+        elements: [],
+        copies: [],
+        warnings: [failure],
+      })
       const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(lines)
       collectSpy.mockRestore()
 
-      // Assert — drains (resolves) despite the rejection, and the two
-      // surviving handlers' elements are present.
+      // Assert — the two healthy handlers' elements survive, and the failing
+      // one contributes only its warning.
       expect(result.elements.map(e => e.member).sort()).toEqual(['B', 'C'])
-      expect(result.warnings).toHaveLength(1)
-      expect(result.warnings[0].message).toContain('handler exploded')
+      expect(result.warnings).toEqual([failure])
     })
   })
 
-  describe('T6 (D2/D5) — fold order-independence', () => {
+  describe('fold order-independence', () => {
     it('Given a corpus with a cancel pair, a duplicate, a DigitalExperience/DigitalExperienceBundle pair, and a rename leg, When the input line order and the rename order are both permuted, Then the manifest views built from the fold are invariant', async () => {
       // Arrange
       const cancelAdd = 'A\tforce-app/main/default/classes/Foo.cls'

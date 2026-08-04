@@ -175,7 +175,7 @@ describe('applyBundleRollup', () => {
     })
   })
 
-  describe('T5c — rollup-filter totality', () => {
+  describe('rollup-filter totality', () => {
     it.each([
       { label: 'empty input', corpus: [] as ManifestElement[] },
       {
@@ -220,13 +220,16 @@ describe('applyBundleRollup', () => {
         })(),
       },
     ])(
-      'Given $label, When applied, Then it does not throw and returns both keptElements and warnings',
+      'Given $label, When applied, Then every element survives because none is covered',
       ({ corpus }) => {
-        // Act & Assert
-        expect(() => applyBundleRollup(corpus)).not.toThrow()
+        // Act
         const result = applyBundleRollup(corpus)
-        expect(Array.isArray(result.keptElements)).toBe(true)
-        expect(Array.isArray(result.warnings)).toBe(true)
+
+        // Assert — each corpus is a near-miss for the coverage rule, so the
+        // meaningful property is that nothing is dropped. Asserting the kept
+        // set (rather than that the call returned arrays) is what makes this
+        // catch an over-eager filter.
+        expect(result.keptElements).toEqual(corpus)
       }
     )
   })

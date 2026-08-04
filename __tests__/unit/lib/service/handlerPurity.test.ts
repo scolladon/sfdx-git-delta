@@ -187,7 +187,7 @@ describe('handler purity', () => {
     globalMetadata = await getDefinition({})
   })
 
-  describe('T1 (R2) — frozen inputs', () => {
+  describe('frozen inputs', () => {
     it.each(families.map(f => [f.name, f.build] as const))(
       'Given a frozen Config and a frozen element, When %s.collect runs, Then it resolves with no warnings instead of writing to a frozen input',
       async (_name, build) => {
@@ -203,13 +203,17 @@ describe('handler purity', () => {
         // Act
         const result = await sut.collect()
 
-        // Assert
+        // Assert — the processability anchor matters: collect() returns an
+        // empty result without doing any work when _isProcessable() is false,
+        // so without it this passes whether or not the frozen inputs were
+        // ever touched.
+        expect(sut['_isProcessable']()).toBe(true)
         expect(result.warnings).toEqual([])
       }
     )
   })
 
-  describe('T2 — referential transparency', () => {
+  describe('referential transparency', () => {
     it('Given the same handler, When collect is called twice, Then both calls resolve to deep-equal results built from distinct array instances', async () => {
       // Arrange
       config.to = 'sha123'
@@ -225,13 +229,15 @@ describe('handler purity', () => {
       const first = await sut.collect()
       const second = await sut.collect()
 
-      // Assert
+      // Assert — anchored on real output, since two empty results would
+      // satisfy both of the following without proving anything.
+      expect(first.elements).not.toHaveLength(0)
       expect(second).toEqual(first)
       expect(second.elements).not.toBe(first.elements)
     })
   })
 
-  describe('T3 (R1) — isolation', () => {
+  describe('isolation', () => {
     it('Given two handlers built from the same Config over different elements, When both collect, Then each result is an independent axis triple unaffected by the other', async () => {
       // Arrange — a shared Config instance is safe to reuse (it is never
       // written to); each handler still owns its own result axes.
@@ -268,7 +274,7 @@ describe('handler purity', () => {
     })
   })
 
-  describe('T5a (D1) — error transactionality', () => {
+  describe('error transactionality', () => {
     it('Given metadataDiff.run rejects inside an InFileHandler, When collect runs, Then the result is exactly one wrapped warning with empty elements and copies', async () => {
       // Arrange — strengthens today's behaviour: the only reachable throw
       // sites (metadataDiff.run, isPackable) fire before any write, so no

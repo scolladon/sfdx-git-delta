@@ -69,7 +69,7 @@ export default async (config: Config): Promise<Work> => {
     // (FlowTranslationProcessor) introspect the handler-pass package view before
     // include lines exist.
     const handlerResult = await lineProcessor.process(lines)
-    const handlerView = ChangeSet.from(handlerResult.elements) // Seam B: handler pass ONLY
+    const handlerView = ChangeSet.from(handlerResult.elements) // handler pass ONLY
 
     const postResult = await postProcessors.collectAll(handlerView)
     const combinedResult = mergeResults(handlerResult, postResult)
@@ -90,7 +90,7 @@ export default async (config: Config): Promise<Work> => {
     )
     const changes = ChangeSet.from(keptElements, renameTriples) // built exactly once
 
-    await new IOExecutor(config).execute([...combinedResult.copies])
+    await new IOExecutor(config).execute(combinedResult.copies)
     const processorWarnings = await postProcessors.executeRemaining(changes)
 
     const work: Work = {

@@ -10,8 +10,9 @@ import { ChangeKind, ManifestTarget } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import PackageBuilder from '../../src/utils/packageHelper'
 
-// T7 — ADR 009's mandated seam test, ratifying ADR 004's filter-in-fold
-// conditional on this guard. It drives main() end-to-end with a real
+// The manifest seam guard: the ChangeSet placed on the returned Work.changes
+// must be the same post-filter value PackageGenerator wrote to disk. It drives
+// main() end-to-end with a real
 // PostProcessorManager/PackageGenerator/ChangesManifestProcessor/ChangeSet,
 // and only stubs the boundaries (git, config validation, line processing,
 // I/O) — the same seam every other assembly test in this file stubs.
@@ -60,10 +61,9 @@ vi.mock('../../src/utils/treeIndexScope', () => ({
 }))
 
 vi.mock('../../src/utils/configValidator', async () => {
-  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const actualModule: any = await vi.importActual(
-    '../../src/utils/configValidator'
-  )
+  const actualModule = await vi.importActual<
+    typeof import('../../src/utils/configValidator')
+  >('../../src/utils/configValidator')
   return {
     default: vi.fn().mockImplementation(function () {
       return {
@@ -75,8 +75,9 @@ vi.mock('../../src/utils/configValidator', async () => {
 })
 
 vi.mock('../../src/utils/repoGitDiff', async () => {
-  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const actualModule: any = await vi.importActual('../../src/utils/repoGitDiff')
+  const actualModule = await vi.importActual<
+    typeof import('../../src/utils/repoGitDiff')
+  >('../../src/utils/repoGitDiff')
   return {
     default: vi.fn().mockImplementation(function () {
       return {
@@ -96,10 +97,9 @@ vi.mock('../../src/service/typeHandlerFactory', () => ({
 }))
 
 vi.mock('../../src/service/diffLineInterpreter', async () => {
-  // biome-ignore lint/suspicious/noExplicitAny: let TS know it is an object
-  const actualModule: any = await vi.importActual(
-    '../../src/service/diffLineInterpreter'
-  )
+  const actualModule = await vi.importActual<
+    typeof import('../../src/service/diffLineInterpreter')
+  >('../../src/service/diffLineInterpreter')
   return {
     default: vi.fn().mockImplementation(function () {
       return {
@@ -167,8 +167,8 @@ beforeEach(() => {
 // once (rather than mocking the whole module, and rather than re-spying per
 // test which vitest treats as a no-op on an already-spied method) so the
 // manifest argument is captured without needing to serialise real XML,
-// which this test deliberately does not assert (serialisation is frozen by
-// Seam B / ADR 002; re-asserting it here would re-litigate ADR 009).
+// which this test deliberately does not assert (ChangeSet's read projections
+// are unchanged by this refactor, so serialisation is covered elsewhere).
 const buildPackageStreamSpy = vi.spyOn(
   PackageBuilder.prototype,
   'buildPackageStream'
@@ -184,7 +184,7 @@ const manifestByPath = (): Map<string, Manifest> => {
   return byPath
 }
 
-describe('main — manifest seam (T7)', () => {
+describe('main — manifest seam', () => {
   const bundleMember = 'site/Foo'
   const coveredMember = 'site/Foo.sfdc_cms__view/home'
   const survivingMember = 'site/Bar.sfdc_cms__view/home'
@@ -257,7 +257,7 @@ describe('main — manifest seam (T7)', () => {
     )
   })
 
-  it('Given a handler warning and a bundle-deletion warning, When sgd runs, Then the bundle-deletion warning is appended after the handler warning (R6)', async () => {
+  it('Given a handler warning and a bundle-deletion warning, When sgd runs, Then the bundle-deletion warning is appended after the handler warning', async () => {
     // Act
     const result = await sgd({ output: 'output' } as Config)
 

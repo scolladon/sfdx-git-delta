@@ -55,6 +55,26 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given only delete entries', () => {
+    it('When reading forDestructiveManifest, Then it returns all deletions', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'ApexTrigger',
+          member: 'Old',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('ApexTrigger')).toEqual(new Set(['Old']))
+    })
+  })
+
   describe('Given a delete cancelled by an add', () => {
     it('When reading forDestructiveManifest, Then the cancelled entry is dropped but the add remains', () => {
       // Arrange

@@ -490,6 +490,33 @@ describe('Given a ConfigValidator', () => {
         expect(warnings).toHaveLength(1)
         expect(warnings[0].message).toContain('warning.ApiVersionDefaulted')
       })
+
+      it('When apiVersion is NaN, Then validateConfig returns that same warning to its caller', async () => {
+        // Arrange — validateConfig is the only surface main() sees, so the
+        // warnings it returns are what reaches the user. Assert the channel,
+        // not just the value the private helper computed.
+        config.apiVersion = NaN
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut.validateConfig()
+
+        // Assert
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0]!.message).toContain('warning.ApiVersionDefaulted')
+      })
+
+      it('When apiVersion is supported, Then validateConfig returns no warnings', async () => {
+        // Arrange
+        config.apiVersion = 52
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut.validateConfig()
+
+        // Assert
+        expect(warnings).toEqual([])
+      })
     })
 
     describe('when apiVersion exceeds latest supported version', () => {

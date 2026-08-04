@@ -9,9 +9,7 @@ import type {
 import { pushAll } from '../utils/arrayUtils.js'
 import { BoundedQueue } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
-import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
-import { Logger, lazy } from '../utils/LoggingService.js'
 import StandardHandler from './standardHandler.js'
 import TypeHandlerFactory from './typeHandlerFactory.js'
 
@@ -39,23 +37,18 @@ export default class DiffLineInterpreter {
     const warnings: Error[] = []
     const MAX_PARALLELISM = getConcurrencyThreshold()
 
-    // The fold itself (pushAll) is total by construction — a plain nested
-    // for…of that cannot throw. This try/catch instead guards the one
-    // remaining way a single handler could abort the whole pass: `collect()`
-    // rejecting. `BoundedQueue._fail` treats any worker rejection as fatal,
-    // clearing `pending` and rejecting every `drain()` waiter — so a per-file
-    // failure must become a warning here, not a rejected worker (ADR 003).
+    // The fold is total by construction: pushAll is a plain nested for…of over
+    // arrays, so the worker cannot reject on aggregation. That matters because
+    // BoundedQueue treats any worker rejection as fatal — it clears `pending`
+    // and rejects every drain() waiter — so an aggregation step that could
+    // throw would turn a per-file failure into a whole-run abort. Per-file
+    // failures are already contained inside StandardHandler.collect, which
+    // returns them as warnings rather than rejecting.
     const processor = new BoundedQueue<StandardHandler>(async handler => {
-      try {
-        const result = await handler.collect()
-        pushAll(elements, result.elements)
-        pushAll(copies, result.copies)
-        pushAll(warnings, result.warnings)
-      } catch (error) {
-        const message = `${handler.toString()}: ${getErrorMessage(error)}`
-        Logger.warn(lazy`${message}`)
-        warnings.push(wrapError(message, error))
-      }
+      const result = await handler.collect()
+      pushAll(elements, result.elements)
+      pushAll(copies, result.copies)
+      pushAll(warnings, result.warnings)
     }, MAX_PARALLELISM)
 
     // `for await…of` iterates both Iterable and AsyncIterable so handlers
