@@ -6,22 +6,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
+import type { Config } from '../../../../src/types/config'
 import type { AddKind } from '../../../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 // `ChangeSet.add` was a test-facing convenience deleted alongside the shared
 // sink (ChangeSet.addElement is now private) — this local helper reproduces
 // its (kind → target) convention so fixtures keep reading the same way.
-const addChange = (work: Work, kind: AddKind, type: string, member: string) => {
+const addChange = (
+  changes: ChangeSet,
+  kind: AddKind,
+  type: string,
+  member: string
+): ChangeSet => {
   const target =
     kind === ChangeKind.Delete
       ? ManifestTarget.DestructiveChanges
       : ManifestTarget.Package
-  work.changes = ChangeSet.from([
-    ...work.changes.toElements(),
+  return ChangeSet.from([
+    ...changes.toElements(),
     { target, type, member, changeKind: kind },
   ])
 }
@@ -69,22 +74,24 @@ beforeEach(() => {
 })
 
 describe('PackageGenerator', () => {
-  let work: Work
+  let config: Config
   let metadata: MetadataRepository
+  let changes: ChangeSet
   beforeEach(async () => {
-    work = getWork()
+    config = getConfig()
     metadata = await getDefinition({})
-    work.config.output = 'test'
+    config.output = 'test'
+    changes = new ChangeSet()
   })
 
   describe('process', () => {
     it('writes destructiveChanges.xml, package.xml, and the empty destructive package.xml', async () => {
       // Arrange
-      addChange(work, ChangeKind.Add, 'ApexClass', 'Foo')
-      const sut = new PackageGenerator(work, metadata)
+      changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Foo')
+      const sut = new PackageGenerator(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       expect(new Set(writtenPaths)).toEqual(
@@ -98,10 +105,10 @@ describe('PackageGenerator', () => {
 
     it('When process runs, Then mkdir is called with recursive: true for each write (kills L54 ObjectLiteral {} and BooleanLiteral false)', async () => {
       // Arrange
-      const sut = new PackageGenerator(work, metadata)
+      const sut = new PackageGenerator(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert — three WriteOps → three mkdir calls, each must pass recursive: true
       expect(mockMkdir).toHaveBeenCalledTimes(3)
@@ -112,12 +119,12 @@ describe('PackageGenerator', () => {
 
     it('When process runs, Then buildPackageStream is called three times with distinct manifests (kills L54:42 ObjectLiteral {} for empty Map)', async () => {
       // Arrange
-      addChange(work, ChangeKind.Add, 'ApexClass', 'Foo')
-      addChange(work, ChangeKind.Delete, 'ApexClass', 'Bar')
-      const sut = new PackageGenerator(work, metadata)
+      changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Foo')
+      changes = addChange(changes, ChangeKind.Delete, 'ApexClass', 'Bar')
+      const sut = new PackageGenerator(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert — three calls: destructive manifest, package manifest, empty Map
       expect(mockBuildPackageStream).toHaveBeenCalledTimes(3)
@@ -150,20 +157,18 @@ describe('PackageGenerator', () => {
       it('When process runs, Then the destructive view drops cancelled deletions', async () => {
         // Arrange
         for (const [type, member] of add) {
-          addChange(work, ChangeKind.Add, type, member)
+          changes = addChange(changes, ChangeKind.Add, type, member)
         }
         for (const [type, member] of del) {
-          addChange(work, ChangeKind.Delete, type, member)
+          changes = addChange(changes, ChangeKind.Delete, type, member)
         }
-        const sut = new PackageGenerator(work, metadata)
+        const sut = new PackageGenerator(config, metadata)
 
         // Act
-        await sut.process()
+        await sut.process(changes)
 
         // Assert
-        expect(work.changes.forDestructiveManifest()).toEqual(
-          expectedDestructive
-        )
+        expect(changes.forDestructiveManifest()).toEqual(expectedDestructive)
       })
     })
   })

@@ -8,7 +8,6 @@ import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config } from './types/config.js'
 import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
-import { pushAll } from './utils/arrayUtils.js'
 import { applyBundleRollup } from './utils/bundleRollup.js'
 import ChangeSet from './utils/changeSet.js'
 import ConfigValidator from './utils/configValidator.js'
@@ -22,15 +21,8 @@ export default async (config: Config): Promise<Work> => {
   Logger.trace('main: entry')
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
   Logger.debug(lazy`main: arguments ${config}`)
-
-  const work: Work = {
-    config,
-    changes: new ChangeSet(),
-    warnings: [],
-  }
   try {
-    const configValidator = new ConfigValidator(work)
-    await configValidator.validateConfig()
+    const configWarnings = await new ConfigValidator(config).validateConfig()
 
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
@@ -71,15 +63,15 @@ export default async (config: Config): Promise<Work> => {
       }
     }
     const lineProcessor = new DiffLineInterpreter(config, metadata)
-    const postProcessors = getPostProcessors(work, metadata)
+    const postProcessors = getPostProcessors(config, metadata)
 
     // First pass: build the read model from handler output alone so collectors
     // (FlowTranslationProcessor) introspect the handler-pass package view before
     // include lines exist.
     const handlerResult = await lineProcessor.process(lines)
-    work.changes = ChangeSet.from(handlerResult.elements)
+    const handlerView = ChangeSet.from(handlerResult.elements) // Seam B: handler pass ONLY
 
-    const postResult = await postProcessors.collectAll()
+    const postResult = await postProcessors.collectAll(handlerView)
     const combinedResult = mergeResults(handlerResult, postResult)
     const { keptElements, warnings: rollupWarnings } = applyBundleRollup(
       combinedResult.elements
@@ -96,20 +88,27 @@ export default async (config: Config): Promise<Work> => {
     const renameTriples = await new RenameResolver(config, metadata).resolve(
       repoGitDiffHelper.getRenamePairs()
     )
-    work.changes = ChangeSet.from(keptElements, renameTriples)
-
-    pushAll(work.warnings, combinedResult.warnings)
-    pushAll(work.warnings, rollupWarnings)
+    const changes = ChangeSet.from(keptElements, renameTriples) // built exactly once
 
     await new IOExecutor(config).execute([...combinedResult.copies])
-    await postProcessors.executeRemaining()
+    const processorWarnings = await postProcessors.executeRemaining(changes)
+
+    const work: Work = {
+      config,
+      changes,
+      warnings: [
+        ...configWarnings,
+        ...combinedResult.warnings,
+        ...rollupWarnings,
+        ...processorWarnings,
+      ],
+    }
+    // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
+    Logger.debug(lazy`main: return ${work}`)
+    // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
+    Logger.trace('main: exit')
+    return work
   } finally {
     await GitAdapter.closeAll()
   }
-
-  // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
-  Logger.debug(lazy`main: return ${work}`)
-  // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
-  Logger.trace('main: exit')
-  return work
 }

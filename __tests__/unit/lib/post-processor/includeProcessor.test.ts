@@ -3,7 +3,9 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
+import { emptyOutcome } from '../../../../src/post-processor/baseProcessor'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
+import type { Config } from '../../../../src/types/config'
 import {
   ChangeKind,
   CopyOperationKind,
@@ -11,13 +13,13 @@ import {
   type HandlerResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import {
   buildIncludeHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const { mockProcess, mockGetFilesPath, mockGetFirstCommitRef } = vi.hoisted(
   () => ({
@@ -55,7 +57,7 @@ mockedBuildIncludeHelper.mockResolvedValue({
 } as unknown as IgnoreHelper)
 
 describe('IncludeProcessor', () => {
-  let work: Work
+  let config: Config
   let metadata: MetadataRepository
 
   beforeAll(async () => {
@@ -75,7 +77,7 @@ describe('IncludeProcessor', () => {
   }
 
   beforeEach(() => {
-    work = getWork()
+    config = getConfig()
     vi.clearAllMocks()
     mockProcess.mockResolvedValue({
       elements: [includedManifest],
@@ -87,20 +89,22 @@ describe('IncludeProcessor', () => {
   describe('process', () => {
     it('Given IncludeProcessor, When process is called, Then it is a no-op', async () => {
       // Arrange
-      const sut = new IncludeProcessor(work, metadata)
+      const sut = new IncludeProcessor(config, metadata)
 
       // Act & Assert
-      await expect(sut.process()).resolves.toBeUndefined()
+      await expect(sut.process(new ChangeSet())).resolves.toEqual(
+        emptyOutcome()
+      )
     })
   })
 
   describe('when no include is configured', () => {
     it('does not process include', async () => {
       // Arrange
-      const sut = new IncludeProcessor(work, metadata)
+      const sut = new IncludeProcessor(config, metadata)
 
       // Act
-      const result = await sut.transformAndCollect()
+      const result = await sut.transformAndCollect(new ChangeSet())
 
       // Assert
       expect(elementsOf(result)).toEqual([])
@@ -119,11 +123,11 @@ describe('IncludeProcessor', () => {
       })
       it('Then returns an empty result', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(result).toEqual(emptyResult())
@@ -131,11 +135,11 @@ describe('IncludeProcessor', () => {
 
       it('Then does not call DiffLineInterpreter.process (kills L70 ConditionalExpression false)', async () => {
         // Arrange — keep returns true for all lines, so includeLines map is empty
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // Assert — emptyResult path taken, process never called
         expect(mockProcess).not.toHaveBeenCalled()
@@ -148,11 +152,11 @@ describe('IncludeProcessor', () => {
       })
       it('Then aggregates the processed manifest and copy into the result', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(elementsOf(result).length).toBeGreaterThan(0)
@@ -170,14 +174,16 @@ describe('IncludeProcessor', () => {
       })
       it('Then aggregates at least one manifest entry per matched file', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
         const baseline = elementsOf(
-          await new IncludeProcessor(getWork(), metadata).transformAndCollect()
+          await new IncludeProcessor(getConfig(), metadata).transformAndCollect(
+            new ChangeSet()
+          )
         ).length
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(elementsOf(result).length).toBeGreaterThan(baseline)
@@ -194,11 +200,11 @@ describe('IncludeProcessor', () => {
       })
       it('Then collects include manifest entries (additions only)', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(elementsOf(result)).toContainEqual(includedManifest)
@@ -206,11 +212,11 @@ describe('IncludeProcessor', () => {
 
       it('Then calls process with ADDITION lines only, not DELETION (kills L78 ConditionalExpression false)', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // Assert — process called exactly once (for ADDITION), not twice
         expect(mockProcess).toHaveBeenCalledTimes(1)
@@ -226,11 +232,11 @@ describe('IncludeProcessor', () => {
       })
       it('Then collects include manifest entries (deletions only)', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(elementsOf(result)).toContainEqual(includedManifest)
@@ -238,11 +244,11 @@ describe('IncludeProcessor', () => {
 
       it('Then calls process with DELETION lines only, not ADDITION (kills L86 ConditionalExpression true)', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // Assert — process called exactly once (for DELETION), not twice
         expect(mockProcess).toHaveBeenCalledTimes(1)
@@ -259,11 +265,11 @@ describe('IncludeProcessor', () => {
 
       it('Then keep is called with TAB-separated changeType+path line', async () => {
         // Arrange
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // Assert — changedLine must be "A\tmyFile.cls" and "D\tmyFile.cls"
         // StringLiteral mutation "" would call keep("") instead
@@ -286,10 +292,10 @@ describe('IncludeProcessor', () => {
         // L57 mutant: if (true) → always reinitializes the array for each file,
         // so second file overwrites first → only 1 line per changeType.
         // Real: array initialized once, both lines pushed → 2 lines.
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // ADDITION lines array should have exactly 2 entries (one per file)
         const additionCallArgs = mockProcess.mock.calls.find(call =>
@@ -302,10 +308,10 @@ describe('IncludeProcessor', () => {
         // L58 mutant: includeLines.set(changeType, ["Stryker was here"]) → stray entry
         // → process receives ["Stryker was here", "A\tfile.cls"] instead of ["A\tfile.cls"]
         mockGetFilesPath.mockImplementation(() => Promise.resolve(['only.cls']))
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // The ADDITION lines passed to process must contain only the real line, not "Stryker was here"
         const additionLines = mockProcess.mock.calls.find(call =>
@@ -321,11 +327,11 @@ describe('IncludeProcessor', () => {
         // → getFirstCommitRef() and DiffLineInterpreter.process() would be called even with no lines
         // L70:34 {}: the emptyResult() return is a no-op → same effect
         mockKeep.mockReturnValue(true) // keep all = nothing included
-        work.config.include = '.sgdinclude'
+        config.include = '.sgdinclude'
         mockGetFilesPath.mockResolvedValue(['test.cls'])
-        const sut = new IncludeProcessor(work, metadata)
+        const sut = new IncludeProcessor(config, metadata)
 
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // process must NOT be called since includeLines is empty
         expect(mockProcess).not.toHaveBeenCalled()
@@ -340,10 +346,10 @@ describe('IncludeProcessor', () => {
         // The exact manifests array would differ (has an undefined entry).
         mockGetFilesPath.mockResolvedValue(['file.cls'])
         mockKeep.mockReturnValue(false)
-        work.config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(work, metadata)
+        config.include = '.sgdinclude'
+        const sut = new IncludeProcessor(config, metadata)
 
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // All manifests must be valid HandlerResult manifest objects (no undefined from stray entry)
         for (const m of elementsOf(result)) {
@@ -363,14 +369,14 @@ describe('IncludeProcessor', () => {
 
       it('Then ADDITION process is called with from=firstSHA, to=config.to', async () => {
         // Arrange — keep only deletion lines so only ADDITION lines are collected
-        work.config.include = '.sgdinclude'
-        work.config.to = 'HEAD'
+        config.include = '.sgdinclude'
+        config.to = 'HEAD'
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('D')) as typeof mockKeep)
-        const sut = new IncludeProcessor(work, metadata)
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // Assert — kills ObjectLiteral {} replacing { from: firstSHA, to: config.to }
         expect(mockProcess).toHaveBeenCalledWith(
@@ -381,14 +387,14 @@ describe('IncludeProcessor', () => {
 
       it('Then DELETION process is called with from=config.to, to=firstSHA', async () => {
         // Arrange — keep only addition lines so only DELETION lines are collected
-        work.config.include = '.sgdinclude'
-        work.config.to = 'HEAD'
+        config.include = '.sgdinclude'
+        config.to = 'HEAD'
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('A')) as typeof mockKeep)
-        const sut = new IncludeProcessor(work, metadata)
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        await sut.transformAndCollect()
+        await sut.transformAndCollect(new ChangeSet())
 
         // Assert — kills ObjectLiteral {} replacing { from: config.to, to: firstSHA }
         expect(mockProcess).toHaveBeenCalledWith(
@@ -409,11 +415,11 @@ describe('IncludeProcessor', () => {
       })
       it('Then returns an empty result', async () => {
         // Arrange
-        work.config.includeDestructive = '.sgdincludedestructive'
-        const sut = new IncludeProcessor(work, metadata)
+        config.includeDestructive = '.sgdincludedestructive'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(result).toEqual(emptyResult())
@@ -426,11 +432,11 @@ describe('IncludeProcessor', () => {
       })
       it('Then collects the destructive include entry', async () => {
         // Arrange
-        work.config.includeDestructive = '.sgdincludedestructive'
-        const sut = new IncludeProcessor(work, metadata)
+        config.includeDestructive = '.sgdincludedestructive'
+        const sut = new IncludeProcessor(config, metadata)
 
         // Act
-        const result = await sut.transformAndCollect()
+        const result = await sut.transformAndCollect(new ChangeSet())
 
         // Assert
         expect(elementsOf(result)).toContainEqual(includedManifest)

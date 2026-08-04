@@ -140,8 +140,10 @@ const asAsyncIterable = (lines: string[]): AsyncIterable<string> => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockValidateConfig.mockResolvedValue([])
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
+  mockExecuteRemaining.mockResolvedValue([])
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())

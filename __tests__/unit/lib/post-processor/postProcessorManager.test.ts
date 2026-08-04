@@ -3,20 +3,24 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
-import BaseProcessor from '../../../../src/post-processor/baseProcessor'
+import BaseProcessor, {
+  emptyOutcome,
+  type ProcessorOutcome,
+} from '../../../../src/post-processor/baseProcessor'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import PostProcessorManager, {
   getPostProcessors,
 } from '../../../../src/post-processor/postProcessorManager'
+import type { Config } from '../../../../src/types/config'
 import {
   ChangeKind,
   emptyResult,
   type HandlerResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { elementsOf } from '../../../__utils__/handlerResultView'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/adapter/GitAdapter')
 vi.mock('../../../../src/utils/LoggingService')
@@ -24,30 +28,35 @@ vi.mock('../../../../src/utils/LoggingService')
 const processSpy = vi.fn()
 
 class TestProcessor extends BaseProcessor {
-  constructor(work: Work, metadata: MetadataRepository) {
-    super(work, metadata)
+  constructor(config: Config, metadata: MetadataRepository) {
+    super(config, metadata)
   }
-  override async process() {
-    return processSpy() as Promise<void>
+  override async process(_changes: ChangeSet): Promise<ProcessorOutcome> {
+    await processSpy()
+    return emptyOutcome()
   }
 }
 
 class TestCollector extends BaseProcessor {
   public mockResult: HandlerResult = emptyResult()
-  constructor(work: Work, metadata: MetadataRepository) {
-    super(work, metadata)
+  constructor(config: Config, metadata: MetadataRepository) {
+    super(config, metadata)
   }
   override get isCollector(): boolean {
     return true
   }
-  override async process() {}
-  override async transformAndCollect(): Promise<HandlerResult> {
+  override async process(_changes: ChangeSet): Promise<ProcessorOutcome> {
+    return emptyOutcome()
+  }
+  override async transformAndCollect(
+    _changes: ChangeSet
+  ): Promise<HandlerResult> {
     return this.mockResult
   }
 }
 
 describe('postProcessorManager', () => {
-  let work: Work
+  let config: Config
   let metadata: MetadataRepository
   beforeAll(async () => {
     metadata = await getDefinition({})
@@ -55,36 +64,36 @@ describe('postProcessorManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    work = getWork()
+    config = getConfig()
   })
 
   describe('getPostProcessors', () => {
-    it('Given work and metadata, When called, Then returns manager that can execute', async () => {
+    it('Given config and metadata, When called, Then returns manager that can execute', async () => {
       // Arrange
-      const sut = getPostProcessors(work, metadata)
+      const sut = getPostProcessors(config, metadata)
 
       // Act & Assert
-      await expect(sut.collectAll()).resolves.toBeDefined()
+      await expect(sut.collectAll(new ChangeSet())).resolves.toBeDefined()
     })
 
     it('Given registered processors, When getPostProcessors, Then collectors are wired (kills L20 ArrayDeclaration [])', async () => {
       // Arrange — FlowTranslationProcessor and IncludeProcessor are registered collectors.
-      // With registeredProcessors=[] mutant, no collectors exist and executeRemaining/execute
+      // With registeredProcessors=[] mutant, no collectors exist and executeRemaining/collectAll
       // would be no-ops. We verify that executeRemaining() is a no-op for non-Include
       // processors — i.e., processSpy is NOT called by getPostProcessors alone.
-      const sut = getPostProcessors(work, metadata)
+      const sut = getPostProcessors(config, metadata)
 
-      // Act — execute() runs all processors (including collectors)
+      // Act — executeRemaining() runs all non-collector processors
       // If registeredProcessors=[] the manager has no processors at all.
-      await sut.execute()
+      await sut.executeRemaining(new ChangeSet())
 
       // Assert — with real registeredProcessors, at least 4 processors were registered
       // (FlowTranslationProcessor, IncludeProcessor, PackageGenerator, ChangesManifestProcessor).
       // We cannot call processSpy on built-in processors, but we can verify that
       // collectAll does NOT throw and returns the correct structure produced by actual collectors.
-      const result = await sut.collectAll()
+      const result = await sut.collectAll(new ChangeSet())
       // The result must be a properly merged HandlerResult — exact structure matches emptyResult
-      // since no flows/includes are configured in the default work, but the TYPE is correct.
+      // since no flows/includes are configured in the default config, but the TYPE is correct.
       expect(result).toEqual(
         expect.objectContaining({
           elements: expect.any(Array),
@@ -98,10 +107,10 @@ describe('postProcessorManager', () => {
       // Mutant registeredProcessors=[]: manager gets no processors from getPostProcessors.
       // We add a TestProcessor via use() after getPostProcessors and verify executeRemaining
       // runs it — this confirms use() works AND that getPostProcessors returns a live manager.
-      const sut = getPostProcessors(work, metadata)
-      sut.use(new TestProcessor(work, metadata) as BaseProcessor)
+      const sut = getPostProcessors(config, metadata)
+      sut.use(new TestProcessor(config, metadata) as BaseProcessor)
 
-      await sut.executeRemaining()
+      await sut.executeRemaining(new ChangeSet())
 
       // TestProcessor.process() was called, proving the manager is live
       expect(processSpy).toHaveBeenCalledTimes(1)
@@ -109,24 +118,24 @@ describe('postProcessorManager', () => {
 
     it('Given getPostProcessors, When use is called on returned manager, Then processor is executed (kills L90 BlockStatement {})', async () => {
       // Arrange
-      const sut = getPostProcessors(work, metadata)
-      sut.use(new TestProcessor(work, metadata) as BaseProcessor)
+      const sut = getPostProcessors(config, metadata)
+      sut.use(new TestProcessor(config, metadata) as BaseProcessor)
 
       // Act
-      await sut.executeRemaining()
+      await sut.executeRemaining(new ChangeSet())
 
       // Assert — TestProcessor.process() was called, meaning use() actually registered it
       expect(processSpy).toHaveBeenCalledTimes(1)
     })
   })
   describe('when calling `use`', () => {
-    it('Given a new processor, When use is called, Then execute invokes it', async () => {
+    it('Given a new processor, When use is called, Then executeRemaining invokes it', async () => {
       // Arrange
-      const sut = new PostProcessorManager(work)
-      sut.use(new TestProcessor(work, metadata) as BaseProcessor)
+      const sut = new PostProcessorManager()
+      sut.use(new TestProcessor(config, metadata) as BaseProcessor)
 
       // Act
-      await sut.execute()
+      await sut.executeRemaining(new ChangeSet())
 
       // Assert
       expect(processSpy).toHaveBeenCalledTimes(1)
@@ -135,18 +144,18 @@ describe('postProcessorManager', () => {
 
   describe('processor count', () => {
     describe.each([0, 1, 2])(
-      'when calling `execute` with %i processors',
+      'when calling `executeRemaining` with %i processors',
       expectedCount => {
         it(`should execute ${expectedCount} processors`, async () => {
           // Arrange
-          const localWork = getWork()
-          const sut = new PostProcessorManager(localWork)
+          const localConfig = getConfig()
+          const sut = new PostProcessorManager()
           for (let i = 0; i < expectedCount; i++) {
-            sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+            sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
           }
 
           // Act
-          await sut.execute()
+          await sut.executeRemaining(new ChangeSet())
 
           // Assert
           expect(processSpy).toHaveBeenCalledTimes(expectedCount)
@@ -156,68 +165,68 @@ describe('postProcessorManager', () => {
   })
 
   describe('when postProcessor `process` throws', () => {
-    it('should append the error in warnings with processor class name', async () => {
+    it('should return the error in warnings with processor class name', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
       processSpy.mockImplementationOnce(() =>
         Promise.reject(new Error('Some error'))
       )
 
       // Act
-      await sut.execute()
+      const warnings = await sut.executeRemaining(new ChangeSet())
 
       // Assert
-      expect(localWork.warnings).toHaveLength(1)
-      expect(localWork.warnings[0].message).toContain('TestProcessor')
-      expect(localWork.warnings[0].message).toContain('Some error')
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0].message).toContain('TestProcessor')
+      expect(warnings[0].message).toContain('Some error')
     })
   })
 
   describe('executeRemaining', () => {
     it('Given processors including IncludeProcessor, When executeRemaining, Then skips IncludeProcessor', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
-      sut.use(new IncludeProcessor(localWork, metadata) as BaseProcessor)
-      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(new IncludeProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
 
       // Act
-      await sut.executeRemaining()
+      await sut.executeRemaining(new ChangeSet())
 
       // Assert
       expect(processSpy).toHaveBeenCalledTimes(2)
     })
 
-    it('Given processor that throws, When executeRemaining, Then appends error to warnings', async () => {
+    it('Given processor that throws, When executeRemaining, Then returns the error in warnings', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
       processSpy.mockImplementationOnce(() =>
         Promise.reject(new Error('executeRemaining error'))
       )
 
       // Act
-      await sut.executeRemaining()
+      const warnings = await sut.executeRemaining(new ChangeSet())
 
       // Assert
-      expect(localWork.warnings).toHaveLength(1)
-      expect(localWork.warnings[0].message).toContain('executeRemaining error')
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0].message).toContain('executeRemaining error')
     })
   })
 
   describe('collectAll', () => {
     it('Given no IncludeProcessor, When collectAll, Then returns empty result', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
 
       // Act
-      const result = await sut.collectAll()
+      const result = await sut.collectAll(new ChangeSet())
 
       // Assert
       expect(elementsOf(result)).toEqual([])
@@ -227,12 +236,12 @@ describe('postProcessorManager', () => {
 
     it('Given no collectors at all, When collectAll, Then returns emptyResult (kills L73 EqualityOperator >= 0 and ConditionalExpression true)', async () => {
       // Arrange — manager with only a non-collector processor
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      sut.use(new TestProcessor(localWork, metadata) as BaseProcessor)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
 
       // Act
-      const result = await sut.collectAll()
+      const result = await sut.collectAll(new ChangeSet())
 
       // Assert — results.length is 0, so emptyResult() must be returned, not mergeResults()
       // Kills: ConditionalExpression true (always mergeResults) and EqualityOperator >= 0 (>= vs >)
@@ -243,9 +252,9 @@ describe('postProcessorManager', () => {
 
     it('Given one collector with data and no collectors at all variant, When collectAll, Then mergeResults is called with the one result (kills L73 ConditionalExpression true boundary)', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      const collector = new TestCollector(localWork, metadata)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      const collector = new TestCollector(localConfig, metadata)
       collector.mockResult = {
         elements: [
           {
@@ -261,7 +270,7 @@ describe('postProcessorManager', () => {
       sut.use(collector as BaseProcessor)
 
       // Act
-      const result = await sut.collectAll()
+      const result = await sut.collectAll(new ChangeSet())
 
       // Assert — exactly one result, must come through mergeResults path
       expect(elementsOf(result)).toHaveLength(1)
@@ -270,9 +279,9 @@ describe('postProcessorManager', () => {
 
     it('Given collector with results, When collectAll, Then returns merged result', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      const collector = new TestCollector(localWork, metadata)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      const collector = new TestCollector(localConfig, metadata)
       collector.mockResult = {
         elements: [
           {
@@ -288,7 +297,7 @@ describe('postProcessorManager', () => {
       sut.use(collector as BaseProcessor)
 
       // Act
-      const result = await sut.collectAll()
+      const result = await sut.collectAll(new ChangeSet())
 
       // Assert
       expect(elementsOf(result)).toHaveLength(1)
@@ -297,16 +306,16 @@ describe('postProcessorManager', () => {
 
     it('Given IncludeProcessor that throws, When collectAll, Then returns result with warnings', async () => {
       // Arrange
-      const localWork = getWork()
-      const sut = new PostProcessorManager(localWork)
-      const includeProcessor = new IncludeProcessor(localWork, metadata)
+      const localConfig = getConfig()
+      const sut = new PostProcessorManager()
+      const includeProcessor = new IncludeProcessor(localConfig, metadata)
       vi.spyOn(includeProcessor, 'transformAndCollect').mockRejectedValueOnce(
         new Error('collectAll error')
       )
       sut.use(includeProcessor as BaseProcessor)
 
       // Act
-      const result = await sut.collectAll()
+      const result = await sut.collectAll(new ChangeSet())
 
       // Assert
       expect(result.warnings).toHaveLength(1)

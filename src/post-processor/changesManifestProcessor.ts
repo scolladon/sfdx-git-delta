@@ -2,10 +2,14 @@
 
 import { ChangeKind } from '../types/handlerResult.js'
 import type { Manifest } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import type { RenameBucket } from '../utils/changeSet.js'
 import { outputFile } from '../utils/fsUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
-import BaseProcessor from './baseProcessor.js'
+import BaseProcessor, {
+  emptyOutcome,
+  type ProcessorOutcome,
+} from './baseProcessor.js'
 
 type RenameEntry = { from: string; to: string }
 type KindBucket = Record<string, string[]>
@@ -19,18 +23,18 @@ type ChangesManifestOutput = {
 
 export default class ChangesManifestProcessor extends BaseProcessor {
   @log
-  public override async process(): Promise<void> {
+  public override async process(changes: ChangeSet): Promise<ProcessorOutcome> {
     // Path resolution policy (see delta.ts flag parsing):
     //   - bare `-c` is rewritten to <output>/changes.manifest.json at CLI time
     //   - explicit value is resolved against cwd (relative) or used as-is
     //     (absolute) — same convention as --ignore-file etc.
     const targetPath = this.config.changesManifest
-    if (!targetPath) return
+    if (!targetPath) return emptyOutcome()
 
     // ChangeSet.byChangeKind() already coalesces the delete bucket against
     // add/modify/rename, and removes rename participants from add/delete, so
     // the JSON view never lists the same component twice.
-    const view = this.work.changes.byChangeKind()
+    const view = changes.byChangeKind()
     const payload: ChangesManifestOutput = {
       [ChangeKind.Add]: this._buildKindBucket(view[ChangeKind.Add]),
       [ChangeKind.Modify]: this._buildKindBucket(view[ChangeKind.Modify]),
@@ -38,6 +42,7 @@ export default class ChangesManifestProcessor extends BaseProcessor {
       [ChangeKind.Rename]: this._buildRenameBucket(view[ChangeKind.Rename]),
     }
     await outputFile(targetPath, JSON.stringify(payload, null, 2))
+    return emptyOutcome()
   }
 
   protected _buildKindBucket(manifest: Manifest): KindBucket {

@@ -147,6 +147,7 @@ const pathByStream = new Map<PassThrough, string>()
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockValidateConfig.mockResolvedValue([])
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())
