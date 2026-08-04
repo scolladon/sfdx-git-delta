@@ -2,6 +2,7 @@ import { bench, describe, vi } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Work } from '../../src/types/work.js'
+import ChangeSet from '../../src/utils/changeSet.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
@@ -25,10 +26,7 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
 const metadata = await getDefinition({})
 
 const createWork = (): Work => ({
-  diffs: {
-    package: new Map(),
-    destructiveChanges: new Map(),
-  },
+  changes: new ChangeSet(),
   config: {
     source: ['force-app/main/default'],
     output: '/tmp/output',
