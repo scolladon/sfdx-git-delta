@@ -9,11 +9,11 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import LwcHandler from '../../../../src/service/lwcHandler'
+import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -29,10 +29,10 @@ const element = 'component'
 const basePath = `force-app/main/default/${objectType.directoryName}`
 const entityPath = `${basePath}/${element}/${element}.js`
 const xmlName = 'LightningComponentBundle'
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
   mockedReadDirs.mockResolvedValue([])
 })
 
@@ -51,7 +51,7 @@ describe('lwcHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new LwcHandler(changeType, el, work)
+        const sut = new LwcHandler(changeType, el, config)
 
         // Act
         const result = await sut.collect()
@@ -73,7 +73,7 @@ describe('lwcHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new LwcHandler(ct, el, work)
+        const sut = new LwcHandler(ct, el, config)
 
         // Act
         const result = await sut.collect()
@@ -98,7 +98,7 @@ describe('lwcHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new LwcHandler(changeType, el, work)
+      const sut = new LwcHandler(changeType, el, config)
 
       // Act
       const result = await sut.collect()

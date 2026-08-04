@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
+import type { Config } from '../../../../src/types/config'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
   ChangeKind,
@@ -11,9 +12,8 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
   mockCollect: vi.fn<() => Promise<HandlerResult>>(),
@@ -31,10 +31,10 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => {
   }
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('DiffLineInterpreter.process', () => {
@@ -68,7 +68,7 @@ describe('DiffLineInterpreter.process', () => {
           warnings: [],
         })
       })
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(['line1', 'line2'])
@@ -84,7 +84,7 @@ describe('DiffLineInterpreter.process', () => {
   describe('Given empty lines', () => {
     it('When process is called, Then returns empty result', async () => {
       // Arrange
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process([])
@@ -101,7 +101,7 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called with revisions, Then uses override revisions', async () => {
       // Arrange
       mockCollect.mockResolvedValue(emptyResult())
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(['line1'], {
@@ -122,7 +122,7 @@ describe('DiffLineInterpreter.process', () => {
         ...emptyResult(),
         warnings: [new Error('test warning')],
       })
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(['line1'])

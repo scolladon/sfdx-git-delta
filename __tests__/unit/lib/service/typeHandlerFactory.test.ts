@@ -17,16 +17,16 @@ import ReportingFolderHandler from '../../../../src/service/reportingFolderHandl
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
-import type { Work } from '../../../../src/types/work'
-import { getWork } from '../../../__utils__/testWork'
+import type { Config } from '../../../../src/types/config'
+import { getConfig } from '../../../__utils__/testWork'
 
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
   beforeAll(async () => {
     const globalMetadata: MetadataRepository = await getDefinition({})
-    const work: Work = getWork()
-    work.config.apiVersion = 46
-    typeHandlerFactory = new TypeHandlerFactory(work, globalMetadata)
+    const config: Config = getConfig()
+    config.apiVersion = 46
+    typeHandlerFactory = new TypeHandlerFactory(config, globalMetadata)
   })
   describe.each([
     [CustomField, ['fields']],
@@ -289,8 +289,8 @@ describe('the type handler factory', () => {
         getFullyQualifiedName: (path: string) => path,
         values: () => [orphanType],
       }
-      const work = getWork()
-      work.config.apiVersion = 46
+      const config = getConfig()
+      config.apiVersion = 46
       // Mock GitAdapter to avoid real git operations
       const mockResolver = {
         createElement: vi.fn().mockResolvedValue({
@@ -308,7 +308,7 @@ describe('the type handler factory', () => {
           componentPath: 'force-app/orphans/file',
         }),
       }
-      const factory = new TypeHandlerFactory(work, stubMetadata as never)
+      const factory = new TypeHandlerFactory(config, stubMetadata as never)
       // Inject the mock resolver
       ;(factory as unknown as { resolver: typeof mockResolver }).resolver =
         mockResolver

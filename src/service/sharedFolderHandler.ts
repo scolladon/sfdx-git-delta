@@ -1,9 +1,9 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
 import type ChangeSet from '../utils/changeSet.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 
@@ -12,8 +12,8 @@ import StandardHandler from './standardHandler.js'
 export default class SharedFolderHandler extends StandardHandler {
   protected readonly resolvedType: string | undefined
 
-  constructor(changeType: string, element: MetadataElement, work: Work) {
-    super(changeType, element, work)
+  constructor(changeType: string, element: MetadataElement, config: Config) {
+    super(changeType, element, config)
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 

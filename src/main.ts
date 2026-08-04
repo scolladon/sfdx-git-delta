@@ -69,7 +69,7 @@ export default async (config: Config): Promise<Work> => {
         ])
       }
     }
-    const lineProcessor = new DiffLineInterpreter(work, metadata)
+    const lineProcessor = new DiffLineInterpreter(config, metadata)
     const postProcessors = getPostProcessors(work, metadata)
 
     // First pass: build the ChangeSet from handler output so collectors
@@ -87,7 +87,7 @@ export default async (config: Config): Promise<Work> => {
     // RepoGitDiff captured from `-M` output into (type, from, to) triples and
     // re-group them into the ChangeSet's rename bucket. Pairs for ignored
     // paths or bundle helper files (same member on both sides) are no-ops.
-    await new RenameResolver(work, metadata).apply(
+    await new RenameResolver(config, metadata).apply(
       work.changes,
       repoGitDiffHelper.getRenamePairs()
     )

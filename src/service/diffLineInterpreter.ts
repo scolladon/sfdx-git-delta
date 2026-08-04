@@ -1,7 +1,7 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Config } from '../types/config.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import ChangeSet from '../utils/changeSet.js'
 import { BoundedQueue } from '../utils/concurrency/index.js'
@@ -12,7 +12,7 @@ import TypeHandlerFactory from './typeHandlerFactory.js'
 
 export default class DiffLineInterpreter {
   constructor(
-    protected readonly work: Work,
+    protected readonly config: Config,
     protected readonly metadata: MetadataRepository
   ) {}
 
@@ -21,12 +21,12 @@ export default class DiffLineInterpreter {
     lines: Iterable<string> | AsyncIterable<string>,
     revisions?: { from: string; to: string }
   ): Promise<HandlerResult> {
-    const effectiveWork = revisions
-      ? { ...this.work, config: { ...this.work.config, ...revisions } }
-      : this.work
+    const effectiveConfig = revisions
+      ? { ...this.config, ...revisions }
+      : this.config
 
     const typeHandlerFactory = new TypeHandlerFactory(
-      effectiveWork,
+      effectiveConfig,
       this.metadata
     )
     // Single ChangeSet shared by every handler in this pass — eliminates the

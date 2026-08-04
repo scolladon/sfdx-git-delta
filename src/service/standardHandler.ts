@@ -15,7 +15,6 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -38,15 +37,11 @@ const CHANGE_KIND_BY_GIT_TYPE: Readonly<Record<string, AddKind>> = {
  * by TypeHandlerFactory based on metadata type definitions.
  */
 export default class StandardHandler {
-  protected readonly config: Config
-
   constructor(
     protected readonly changeType: string,
     protected readonly element: MetadataElement,
-    protected readonly work: Work
-  ) {
-    this.config = work.config
-  }
+    protected readonly config: Config
+  ) {}
 
   // `sink` lets the orchestrator (DiffLineInterpreter) share one ChangeSet
   // across every handler in a pass, eliminating ~N per-handler ChangeSet

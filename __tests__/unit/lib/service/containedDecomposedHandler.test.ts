@@ -4,14 +4,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -22,24 +22,24 @@ beforeAll(async () => {
   globalMetadata = await getDefinition({})
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
-  work.config.generateDelta = true
+  config = getConfig()
+  config.generateDelta = true
 })
 
 describe('ContainedDecomposedHandler', () => {
   describe('collect', () => {
     it('Given non-decomposed addition with generateDelta false, When collect, Then returns manifest with copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         `A       force-app/main/permissionsets/Subject.permissionset-meta.xml`,
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -68,7 +68,11 @@ describe('ContainedDecomposedHandler', () => {
             globalMetadata.get('permissionsets')!,
             globalMetadata
           )
-          const sut = new ContainedDecomposedHandler(changeType, element, work)
+          const sut = new ContainedDecomposedHandler(
+            changeType,
+            element,
+            config
+          )
 
           // Act
           const result = await sut.collect()
@@ -94,7 +98,11 @@ describe('ContainedDecomposedHandler', () => {
             globalMetadata.get('permissionsets')!,
             globalMetadata
           )
-          const sut = new ContainedDecomposedHandler(changeType, element, work)
+          const sut = new ContainedDecomposedHandler(
+            changeType,
+            element,
+            config
+          )
 
           // Act
           const result = await sut.collect()
@@ -120,7 +128,11 @@ describe('ContainedDecomposedHandler', () => {
             globalMetadata.get('permissionsets')!,
             globalMetadata
           )
-          const sut = new ContainedDecomposedHandler(changeType, element, work)
+          const sut = new ContainedDecomposedHandler(
+            changeType,
+            element,
+            config
+          )
 
           // Act
           const result = await sut.collect()
@@ -164,7 +176,7 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
@@ -196,7 +208,7 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
@@ -228,7 +240,7 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
@@ -255,7 +267,7 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
@@ -291,7 +303,7 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -313,7 +325,7 @@ describe('ContainedDecomposedHandler', () => {
 
     it('Given decomposed addition with generateDelta false, When collect, Then no GitDirCopy in copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const decomposedLine =
         'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
       const { changeType, element } = createElement(
@@ -321,7 +333,7 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -341,7 +353,7 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -373,7 +385,7 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()

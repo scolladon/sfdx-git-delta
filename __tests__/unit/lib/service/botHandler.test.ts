@@ -4,14 +4,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BotHandler from '../../../../src/service/botHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import { Metadata } from '../../../../src/types/metadata'
-import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -33,10 +33,10 @@ const objectType: Metadata = {
 const line =
   'A       force-app/main/default/bots/TestBot/v1.botVersion-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('BotHandler', () => {
@@ -53,7 +53,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(changeType, element, work)
+      const sut = new BotHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -90,7 +90,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(changeType, element, work)
+      const sut = new BotHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -119,7 +119,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(changeType, element, work)
+      const sut = new BotHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()

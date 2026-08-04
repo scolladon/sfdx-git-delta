@@ -3,6 +3,7 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
+import type { Config } from '../types/config.js'
 import type { AddKind, HandlerResult } from '../types/handlerResult.js'
 import {
   ChangeKind,
@@ -10,7 +11,6 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -24,8 +24,8 @@ const getRootType = (line: string) => basename(line).split(DOT)[0]
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
 
-  constructor(changeType: string, element: MetadataElement, work: Work) {
-    super(changeType, element, work)
+  constructor(changeType: string, element: MetadataElement, config: Config) {
+    super(changeType, element, config)
     const inFileMetadata = element.getInFileAttributes()
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }

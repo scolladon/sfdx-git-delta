@@ -4,13 +4,13 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DecomposedHandler from '../../../../src/service/decomposedHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -22,11 +22,11 @@ beforeAll(async () => {
   globalMetadata = await getDefinition({})
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
-  work.config.generateDelta = false
+  config = getConfig()
+  config.generateDelta = false
 })
 
 describe('DecomposedHandler', () => {
@@ -49,7 +49,7 @@ describe('DecomposedHandler', () => {
           recordTypeWithParent,
           globalMetadata
         )
-        const sut = new DecomposedHandler(changeType, element, work)
+        const sut = new DecomposedHandler(changeType, element, config)
 
         // Act
         const result =
@@ -75,7 +75,7 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, work)
+      const sut = new DecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectDeletion()
@@ -94,13 +94,13 @@ describe('DecomposedHandler', () => {
 
     it('Given addition, When collectAddition, Then returns manifest and parent meta copies', async () => {
       // Arrange
-      work.config.generateDelta = true
+      config.generateDelta = true
       const { changeType, element } = createElement(
         line,
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, work)
+      const sut = new DecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -132,7 +132,7 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, work)
+      const sut = new DecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -156,7 +156,7 @@ describe('DecomposedHandler', () => {
       // resolves to undefined / no-suffix; the early-return arm fires.
       // Without this guard, _collectParentCopies would join a path with
       // an undefined suffix and emit a junk copy.
-      work.config.generateDelta = true
+      config.generateDelta = true
       const recordTypeWithoutParent = {
         directoryName: 'recordTypes',
         inFolder: false,
@@ -170,7 +170,7 @@ describe('DecomposedHandler', () => {
         recordTypeWithoutParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, work)
+      const sut = new DecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()

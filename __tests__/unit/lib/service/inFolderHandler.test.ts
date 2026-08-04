@@ -5,14 +5,14 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFolder from '../../../../src/service/inFolderHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -28,10 +28,10 @@ const objectType = {
 }
 const line = `A       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('InFolderHandler', () => {
@@ -48,7 +48,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -66,7 +66,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -99,7 +99,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -127,7 +127,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -160,7 +160,7 @@ describe('InFolderHandler', () => {
         upperSuffixType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -176,13 +176,13 @@ describe('InFolderHandler', () => {
 
     it('Given addition with generateDelta false, When collect, Then _shouldCollectCopies prevents special extension copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -200,7 +200,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -219,7 +219,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -241,7 +241,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -264,7 +264,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -287,7 +287,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()

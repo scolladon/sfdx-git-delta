@@ -4,11 +4,11 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
+import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -38,10 +38,10 @@ const pageFolderListing = [
   `${pageFolder}/tablet/tablet.json`,
 ]
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('InBundleHandler', () => {
@@ -56,7 +56,7 @@ describe('InBundleHandler', () => {
       objectType,
       globalMetadata
     )
-    return new InBundleHandler(changeType, element, work)
+    return new InBundleHandler(changeType, element, config)
   }
 
   describe('_getElementName', () => {

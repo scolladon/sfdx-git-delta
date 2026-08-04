@@ -5,12 +5,12 @@ vi.mock('../../../../src/utils/LoggingService')
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
+import type { Config } from '../../../../src/types/config'
 import { ChangeKind } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { Logger } from '../../../../src/utils/LoggingService'
 import RenameResolver from '../../../../src/utils/renameResolver'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const mockGetTypeHandler = vi.fn()
 vi.mock('../../../../src/service/typeHandlerFactory', () => ({
@@ -20,11 +20,11 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => ({
 }))
 
 describe('RenameResolver', () => {
-  let work: Work
+  let config: Config
   let metadata: MetadataRepository
 
   beforeEach(async () => {
-    work = getWork()
+    config = getConfig()
     metadata = await getDefinition({})
     mockGetTypeHandler.mockReset()
   })
@@ -40,7 +40,7 @@ describe('RenameResolver', () => {
           getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
         })
       const changes = new ChangeSet()
-      const sut = new RenameResolver(work, metadata)
+      const sut = new RenameResolver(config, metadata)
 
       // Act
       await sut.apply(changes, [
@@ -81,7 +81,7 @@ describe('RenameResolver', () => {
           }),
         })
       const changes = new ChangeSet()
-      const sut = new RenameResolver(work, metadata)
+      const sut = new RenameResolver(config, metadata)
 
       // Act
       await sut.apply(changes, [
@@ -115,7 +115,7 @@ describe('RenameResolver', () => {
           getElementDescriptor: () => ({ type: 'ApexTrigger', member: 'Bar' }),
         })
       const changes = new ChangeSet()
-      const sut = new RenameResolver(work, metadata)
+      const sut = new RenameResolver(config, metadata)
 
       // Act
       await sut.apply(changes, [{ fromPath: 'old.cls', toPath: 'new.trigger' }])
@@ -133,7 +133,7 @@ describe('RenameResolver', () => {
         new Error('Unknown metadata type for path: ignored/path')
       )
       const changes = new ChangeSet()
-      const sut = new RenameResolver(work, metadata)
+      const sut = new RenameResolver(config, metadata)
 
       // Act & Assert — apply resolves without throwing
       await expect(

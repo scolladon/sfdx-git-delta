@@ -4,14 +4,14 @@ import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectHandler from '../../../../src/service/customObjectHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -52,10 +52,10 @@ const objectType = {
 const line =
   'A       force-app/main/default/objects/Account/Account.object-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('CustomObjectHandler', () => {
@@ -73,7 +73,7 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -96,13 +96,13 @@ describe('CustomObjectHandler', () => {
 
     it('Given object addition with generateDelta false, When collect, Then returns manifest without master detail copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -122,7 +122,7 @@ describe('CustomObjectHandler', () => {
         territoryModelType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -154,7 +154,7 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()

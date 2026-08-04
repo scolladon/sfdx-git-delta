@@ -9,8 +9,8 @@ import {
 import { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../src/metadata/metadataManager'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
+import type { Config } from '../../src/types/config'
 import { ManifestTarget } from '../../src/types/handlerResult'
-import type { Work } from '../../src/types/work'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 
 vi.mock('../../src/utils/fsHelper')
@@ -570,29 +570,25 @@ let globalMetadata: MetadataRepository
 beforeAll(async () => {
   globalMetadata = await getDefinition({})
 })
-let work: Work
+let config: Config
 let handlerFactory: TypeHandlerFactory
 beforeEach(() => {
   vi.resetAllMocks()
-  work = {
-    config: {
-      output: '',
-      source: [''],
-      repo: '',
-      generateDelta: true,
-      to: '',
-      from: '',
-      ignore: '',
-      ignoreDestructive: '',
-      apiVersion: 0,
-      ignoreWhitespace: false,
-      include: '',
-      includeDestructive: '',
-    },
-    diffs: { package: new Map(), destructiveChanges: new Map() },
-    warnings: [],
+  config = {
+    output: '',
+    source: [''],
+    repo: '',
+    generateDelta: true,
+    to: '',
+    from: '',
+    ignore: '',
+    ignoreDestructive: '',
+    apiVersion: 0,
+    ignoreWhitespace: false,
+    include: '',
+    includeDestructive: '',
   }
-  handlerFactory = new TypeHandlerFactory(work, globalMetadata)
+  handlerFactory = new TypeHandlerFactory(config, globalMetadata)
 
   mockedReadPathFromGit.mockResolvedValue('')
   mockedReadDirs.mockResolvedValue(existingFiles)
@@ -699,7 +695,7 @@ describe('InFile container manifest under generateDelta=false', () => {
   // deploy with 'pre-existing sibling Not in package.xml'.
   it('Given a new sharingCriteriaRules added to a file with an existing sibling and generateDelta=false, When the handler collects, Then both SharingRules and SharingCriteriaRule appear in the package manifest', async () => {
     // Arrange
-    work.config.generateDelta = false
+    config.generateDelta = false
     const path =
       'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
     const ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
@@ -735,7 +731,7 @@ describe('InFile container manifest under generateDelta=false', () => {
     // Locks the recordModified flag-set path: when a child's content
     // changes (no add, no delete), hasSurvivingChange must still flip
     // and the parent must still go in package.xml.
-    work.config.generateDelta = false
+    config.generateDelta = false
     const path =
       'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
     const ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
@@ -773,7 +769,7 @@ describe('InFile container manifest under generateDelta=false', () => {
     // exists on disk with its surviving sibling, so it must NOT appear
     // in package.xml (nothing to deploy) NOR in destructiveChanges.xml
     // (the file isn't being deleted, just one child).
-    work.config.generateDelta = false
+    config.generateDelta = false
     const path =
       'force-app/main/default/sharingRules/Account.sharingRules-meta.xml'
     const ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'

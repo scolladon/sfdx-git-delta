@@ -74,7 +74,7 @@ export default class IncludeProcessor extends BaseProcessor {
     }
 
     const firstSHA = await this.gitAdapter.getFirstCommitRef()
-    const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
+    const lineProcessor = new DiffLineInterpreter(this.config, this.metadata)
     const results: HandlerResult[] = []
 
     if (includeLines.has(ADDITION)) {

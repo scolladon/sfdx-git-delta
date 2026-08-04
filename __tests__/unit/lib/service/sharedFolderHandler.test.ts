@@ -6,13 +6,13 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const objectType = {
   directoryName: 'discovery',
@@ -35,11 +35,11 @@ const basePath = `force-app/main/default/`
 const line = `A       ${basePath}${objectType}/${entityName}.${entityExtension}`
 const entityType = 'DiscoveryAIModel'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
-  work.config.generateDelta = false
+  config = getConfig()
+  config.generateDelta = false
 })
 
 describe('SharedFolderHandler', () => {
@@ -55,7 +55,7 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, work)
+    const sut = new SharedFolderHandler(changeType, element, config)
 
     // Act
     const result = await sut.collectAddition()
@@ -79,7 +79,7 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, work)
+    const sut = new SharedFolderHandler(changeType, element, config)
 
     // Act
     const result = await sut.collect()
@@ -104,7 +104,7 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, work)
+    const sut = new SharedFolderHandler(changeType, element, config)
 
     // Act
     const result = await sut.collect()
@@ -123,7 +123,7 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, work)
+      const sut = new SharedFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()
@@ -140,7 +140,7 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, work)
+      const sut = new SharedFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectDeletion()
@@ -160,7 +160,7 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, work)
+      const sut = new SharedFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectDeletion()
@@ -180,7 +180,7 @@ describe('SharedFolderHandler', () => {
   })
   describe('when it should generate output file', () => {
     beforeEach(() => {
-      work.config.generateDelta = true
+      config.generateDelta = true
     })
     it('should add and copy the metadata', async () => {
       // Arrange
@@ -189,7 +189,7 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, work)
+      const sut = new SharedFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()

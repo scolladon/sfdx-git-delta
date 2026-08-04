@@ -4,7 +4,7 @@ import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import TypeHandlerFactory from '../service/typeHandlerFactory.js'
-import type { Work } from '../types/work.js'
+import type { Config } from '../types/config.js'
 import type ChangeSet from './changeSet.js'
 import { getErrorMessage } from './errorUtils.js'
 import { log } from './LoggingDecorator.js'
@@ -23,8 +23,8 @@ import type { RenamePathPair } from './repoGitDiff.js'
 export default class RenameResolver {
   private readonly factory: TypeHandlerFactory
 
-  constructor(work: Work, metadata: MetadataRepository) {
-    this.factory = new TypeHandlerFactory(work, metadata)
+  constructor(config: Config, metadata: MetadataRepository) {
+    this.factory = new TypeHandlerFactory(config, metadata)
   }
 
   @log

@@ -4,14 +4,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomFieldHandler from '../../../../src/service/customFieldHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { contentIncludes } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -28,10 +28,10 @@ const objectType = {
 const line =
   'A       force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('CustomFieldHandler', () => {
@@ -49,7 +49,7 @@ describe('CustomFieldHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomFieldHandler(changeType, element, work)
+      const sut = new CustomFieldHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -71,13 +71,13 @@ describe('CustomFieldHandler', () => {
 
     it('Given addition with generateDelta false, When collect, Then returns manifest without copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new CustomFieldHandler(changeType, element, work)
+      const sut = new CustomFieldHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -97,7 +97,7 @@ describe('CustomFieldHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomFieldHandler(changeType, element, work)
+      const sut = new CustomFieldHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()

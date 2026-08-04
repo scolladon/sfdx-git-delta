@@ -5,15 +5,15 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
+import type { Config } from '../../../../src/types/config'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
   ChangeKind,
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 // `collect(sink?)` writes manifest entries directly into the sink the
 // interpreter passes in. We hoist a mock that accepts the sink, mirrors
@@ -40,11 +40,11 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => {
   }
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   mockCollect.mockResolvedValue(emptyResult())
-  work = getWork()
+  config = getConfig()
 })
 
 describe('DiffLineInterpreter', () => {
@@ -55,7 +55,7 @@ describe('DiffLineInterpreter', () => {
   })
 
   beforeEach(() => {
-    sut = new DiffLineInterpreter(work, globalMetadata)
+    sut = new DiffLineInterpreter(config, globalMetadata)
   })
 
   describe('when called with lines', () => {
@@ -179,58 +179,58 @@ describe('DiffLineInterpreter', () => {
     })
   })
 
-  describe('Given revisions override, effectiveWork construction', () => {
+  describe('Given revisions override, effectiveConfig construction', () => {
     const MockedTypeHandlerFactory = vi.mocked(TypeHandlerFactory)
 
-    it('When revisions provided, Then TypeHandlerFactory receives work with merged config containing revision from', async () => {
-      // Arrange — L25:33 mutant replaces `{ ...this.work.config, ...revisions }` with `{}`
-      // so effectiveWork.config would be missing the revision values
+    it('When revisions provided, Then TypeHandlerFactory receives config merged with revision from', async () => {
+      // Arrange — L25:33 mutant replaces `{ ...this.config, ...revisions }` with `{}`
+      // so effectiveConfig would be missing the revision values
       mockCollect.mockResolvedValue(emptyResult())
       const revisions = { from: 'rev-from', to: 'rev-to' }
 
       // Act
       await sut.process(['line'], revisions)
 
-      // Assert — TypeHandlerFactory constructor first arg is effectiveWork
-      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+      // Assert — TypeHandlerFactory constructor first arg is effectiveConfig
+      const effectiveConfig = MockedTypeHandlerFactory.mock.calls.at(
         -1
-      )![0] as Work
-      expect(effectiveWork.config.from).toBe('rev-from')
-      expect(effectiveWork.config.to).toBe('rev-to')
+      )![0] as Config
+      expect(effectiveConfig.from).toBe('rev-from')
+      expect(effectiveConfig.to).toBe('rev-to')
     })
 
-    it('When revisions provided, Then TypeHandlerFactory receives work with all original work fields preserved', async () => {
-      // Arrange — L25:9 mutant replaces `{ ...this.work, config: ... }` with `{}`
-      // so effectiveWork would be empty, losing all work fields (changes, warnings, etc.)
+    it('When revisions provided, Then TypeHandlerFactory receives config with all original config fields preserved', async () => {
+      // Arrange — L25:9 mutant replaces `{ ...this.config, ...revisions }` with `{}`
+      // so effectiveConfig would be empty, losing all original config fields
       mockCollect.mockResolvedValue(emptyResult())
-      work.config.generateDelta = true
-      work.config.output = 'custom-output'
+      config.generateDelta = true
+      config.output = 'custom-output'
       const revisions = { from: 'sha-a', to: 'sha-b' }
 
       // Act
       await sut.process(['line'], revisions)
 
-      // Assert — effectiveWork must retain all original work properties
-      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+      // Assert — effectiveConfig must retain all original config properties
+      const effectiveConfig = MockedTypeHandlerFactory.mock.calls.at(
         -1
-      )![0] as Work
-      expect(effectiveWork.config.generateDelta).toBe(true)
-      expect(effectiveWork.config.output).toBe('custom-output')
-      expect(effectiveWork.warnings).toBe(work.warnings)
+      )![0] as Config
+      expect(effectiveConfig.generateDelta).toBe(true)
+      expect(effectiveConfig.output).toBe('custom-output')
+      expect(effectiveConfig.source).toBe(config.source)
     })
 
-    it('When no revisions provided, Then TypeHandlerFactory receives the original work reference', async () => {
-      // Arrange — when revisions is undefined, effectiveWork should equal work (same reference)
+    it('When no revisions provided, Then TypeHandlerFactory receives the original config reference', async () => {
+      // Arrange — when revisions is undefined, effectiveConfig should equal config (same reference)
       mockCollect.mockResolvedValue(emptyResult())
 
       // Act
       await sut.process(['line'])
 
       // Assert
-      const effectiveWork = MockedTypeHandlerFactory.mock.calls.at(
+      const effectiveConfig = MockedTypeHandlerFactory.mock.calls.at(
         -1
-      )![0] as Work
-      expect(effectiveWork).toBe(work)
+      )![0] as Config
+      expect(effectiveConfig).toBe(config)
     })
   })
 })

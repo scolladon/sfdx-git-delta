@@ -5,8 +5,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
-import type { Work } from '../../../../src/types/work'
-import { getWork } from '../../../__utils__/testWork'
+import type { Config } from '../../../../src/types/config'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('node:os', async () => ({
   ...((await vi.importActual('node:os')) as object),
@@ -32,11 +32,11 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => {
   }
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   mockCollect.mockResolvedValue(emptyResult())
-  work = getWork()
+  config = getConfig()
 })
 
 describe('DiffLineInterpreter', () => {
@@ -48,7 +48,7 @@ describe('DiffLineInterpreter', () => {
 
   describe('compatibility test', () => {
     beforeEach(() => {
-      sut = new DiffLineInterpreter(work, globalMetadata)
+      sut = new DiffLineInterpreter(config, globalMetadata)
     })
     describe('when `availableParallelism` is not defined', () => {
       it('fallback gracefully', async () => {
