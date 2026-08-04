@@ -11,6 +11,7 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -78,7 +79,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -103,7 +104,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -131,7 +132,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements().length).toBeGreaterThan(0)
+        expect(elementsOf(result).length).toBeGreaterThan(0)
         expect(result.copies).toHaveLength(0)
       })
 
@@ -157,7 +158,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -199,7 +200,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -250,7 +251,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -359,7 +360,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -404,7 +405,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -443,7 +444,7 @@ describe('InResourceHandler', () => {
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -490,7 +491,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -522,7 +523,7 @@ describe('InResourceHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -602,9 +603,7 @@ describe('InResourceHandler', () => {
           config
         )
         expect(
-          result.changes
-            .toElements()
-            .some(m => m.target === 'destructiveChanges')
+          elementsOf(result).some(m => m.target === 'destructiveChanges')
         ).toBe(true)
       })
     })

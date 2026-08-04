@@ -10,6 +10,7 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -79,7 +80,7 @@ describe('CustomObjectHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -108,8 +109,8 @@ describe('CustomObjectHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
       expect(mockedPathExist).not.toHaveBeenCalled()
       expect(mockedGrepContent).not.toHaveBeenCalled()
@@ -128,7 +129,7 @@ describe('CustomObjectHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

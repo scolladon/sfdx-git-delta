@@ -9,6 +9,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -101,7 +102,7 @@ describe('inFileHandler', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -116,9 +117,9 @@ describe('inFileHandler', () => {
         ])
       )
       expect(
-        result.changes
-          .toElements()
-          .some(m => m.target === ManifestTarget.DestructiveChanges)
+        elementsOf(result).some(
+          m => m.target === ManifestTarget.DestructiveChanges
+        )
       ).toBe(false)
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
@@ -153,11 +154,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.changes
-              .toElements()
-              .some(m => m.target === ManifestTarget.DestructiveChanges)
+            elementsOf(result).some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
           ).toBe(false)
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -166,9 +167,9 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.changes
-            .toElements()
-            .filter(m => m.target === ManifestTarget.Package)
+          const packageManifests = elementsOf(result).filter(
+            m => m.target === ManifestTarget.Package
+          )
           expect(packageManifests).toHaveLength(1)
           expect(
             result.copies.some(
@@ -205,11 +206,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.changes
-              .toElements()
-              .some(m => m.target === ManifestTarget.DestructiveChanges)
+            elementsOf(result).some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
           ).toBe(false)
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -218,9 +219,9 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.changes
-            .toElements()
-            .filter(m => m.target === ManifestTarget.Package)
+          const packageManifests = elementsOf(result).filter(
+            m => m.target === ManifestTarget.Package
+          )
           expect(packageManifests).toHaveLength(1)
           expect(
             result.copies.some(
@@ -261,7 +262,7 @@ describe('inFileHandler', () => {
         const result = await sut.collectModification()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -281,13 +282,11 @@ describe('inFileHandler', () => {
           ])
         )
         expect(
-          result.changes
-            .toElements()
-            .some(
-              m =>
-                m.target === ManifestTarget.DestructiveChanges &&
-                m.type === 'Workflow'
-            )
+          elementsOf(result).some(
+            m =>
+              m.target === ManifestTarget.DestructiveChanges &&
+              m.type === 'Workflow'
+          )
         ).toBe(false)
         expect(
           result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
@@ -320,11 +319,11 @@ describe('inFileHandler', () => {
         const result = await sut.collectModification()
 
         // Assert
-        const packageManifests = result.changes
-          .toElements()
-          .filter(m => m.target === ManifestTarget.Package)
+        const packageManifests = elementsOf(result).filter(
+          m => m.target === ManifestTarget.Package
+        )
         expect(packageManifests).toHaveLength(0)
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -334,13 +333,11 @@ describe('inFileHandler', () => {
           ])
         )
         expect(
-          result.changes
-            .toElements()
-            .some(
-              m =>
-                m.target === ManifestTarget.DestructiveChanges &&
-                m.type === 'Workflow'
-            )
+          elementsOf(result).some(
+            m =>
+              m.target === ManifestTarget.DestructiveChanges &&
+              m.type === 'Workflow'
+          )
         ).toBe(false)
         expect(
           result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
@@ -373,7 +370,7 @@ describe('inFileHandler', () => {
           const result = await sut.collectModification()
 
           // Assert
-          expect(result.changes.toElements()).toHaveLength(0)
+          expect(elementsOf(result)).toHaveLength(0)
           expect(result.copies).toHaveLength(0)
         })
       })
@@ -403,11 +400,11 @@ describe('inFileHandler', () => {
           const result = await sut.collectModification()
 
           // Assert
-          const packageManifests = result.changes
-            .toElements()
-            .filter(m => m.target === ManifestTarget.Package)
+          const packageManifests = elementsOf(result).filter(
+            m => m.target === ManifestTarget.Package
+          )
           expect(packageManifests).toHaveLength(0)
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.DestructiveChanges,
@@ -453,11 +450,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.changes
-              .toElements()
-              .some(m => m.target === ManifestTarget.DestructiveChanges)
+            elementsOf(result).some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
           ).toBe(false)
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -466,9 +463,9 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.changes
-            .toElements()
-            .filter(m => m.target === ManifestTarget.Package)
+          const packageManifests = elementsOf(result).filter(
+            m => m.target === ManifestTarget.Package
+          )
           expect(packageManifests).toHaveLength(1)
           expect(
             result.copies.some(
@@ -505,11 +502,11 @@ describe('inFileHandler', () => {
 
           // Assert
           expect(
-            result.changes
-              .toElements()
-              .some(m => m.target === ManifestTarget.DestructiveChanges)
+            elementsOf(result).some(
+              m => m.target === ManifestTarget.DestructiveChanges
+            )
           ).toBe(false)
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -518,9 +515,9 @@ describe('inFileHandler', () => {
               }),
             ])
           )
-          const packageManifests = result.changes
-            .toElements()
-            .filter(m => m.target === ManifestTarget.Package)
+          const packageManifests = elementsOf(result).filter(
+            m => m.target === ManifestTarget.Package
+          )
           expect(packageManifests).toHaveLength(1)
           expect(
             result.copies.some(
@@ -558,11 +555,11 @@ describe('inFileHandler', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      const packageManifests = result.changes
-        .toElements()
-        .filter(m => m.target === ManifestTarget.Package)
+      const packageManifests = elementsOf(result).filter(
+        m => m.target === ManifestTarget.Package
+      )
       expect(packageManifests).toHaveLength(0)
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -572,13 +569,11 @@ describe('inFileHandler', () => {
         ])
       )
       expect(
-        result.changes
-          .toElements()
-          .some(
-            m =>
-              m.target === ManifestTarget.DestructiveChanges &&
-              m.type === 'Workflow'
-          )
+        elementsOf(result).some(
+          m =>
+            m.target === ManifestTarget.DestructiveChanges &&
+            m.type === 'Workflow'
+        )
       ).toBe(false)
       expect(mockRun).toHaveBeenCalled()
       expect(
@@ -600,11 +595,11 @@ describe('inFileHandler', () => {
         const result = await sut.collectDeletion()
 
         // Assert
-        const packageManifests = result.changes
-          .toElements()
-          .filter(m => m.target === ManifestTarget.Package)
+        const packageManifests = elementsOf(result).filter(
+          m => m.target === ManifestTarget.Package
+        )
         expect(packageManifests).toHaveLength(0)
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -614,7 +609,7 @@ describe('inFileHandler', () => {
           ])
         )
         expect(
-          result.changes.toElements().some(m => m.type === 'ValueTranslation')
+          elementsOf(result).some(m => m.type === 'ValueTranslation')
         ).toBe(false)
         expect(mockRun).not.toHaveBeenCalled()
         expect(result.copies).toHaveLength(0)
@@ -660,7 +655,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.changes.toElements()).toEqual(
+    expect(elementsOf(result)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,
@@ -705,7 +700,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.changes.toElements().length).toBeGreaterThan(0)
+    expect(elementsOf(result).length).toBeGreaterThan(0)
     expect(result.copies).toHaveLength(0)
     expect(result.warnings).toHaveLength(0)
   })
@@ -730,7 +725,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.changes.toElements()).toHaveLength(0)
+    expect(elementsOf(result)).toHaveLength(0)
     expect(result.copies).toHaveLength(0)
     expect(result.warnings).toHaveLength(1)
     expect(mockGetMessage).toHaveBeenCalledWith('warning.MalformedXML', [
@@ -802,7 +797,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.changes.toElements()).toEqual(
+    expect(elementsOf(result)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,
@@ -905,7 +900,7 @@ describe('inFileHandler collect', () => {
     const result = await sut.collect()
 
     // Assert — parent Workflow container present in package manifest
-    expect(result.changes.toElements()).toEqual(
+    expect(elementsOf(result)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           target: ManifestTarget.Package,

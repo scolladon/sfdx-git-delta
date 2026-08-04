@@ -17,6 +17,7 @@ import {
   buildIncludeHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getWork } from '../../../__utils__/testWork'
 
 const { mockProcess, mockGetFilesPath, mockGetFirstCommitRef } = vi.hoisted(
@@ -103,7 +104,7 @@ describe('IncludeProcessor', () => {
       const result = await sut.transformAndCollect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(mockedBuildIncludeHelper).not.toHaveBeenCalled()
     })
   })
@@ -155,8 +156,8 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.changes.toElements().length).toBeGreaterThan(0)
-        expect(result.changes.toElements()).toContainEqual(includedManifest)
+        expect(elementsOf(result).length).toBeGreaterThan(0)
+        expect(elementsOf(result)).toContainEqual(includedManifest)
         expect(result.copies).toContainEqual(includedCopy)
       })
     })
@@ -172,16 +173,16 @@ describe('IncludeProcessor', () => {
         // Arrange
         work.config.include = '.sgdinclude'
         const sut = new IncludeProcessor(work, metadata)
-        const baseline = (
+        const baseline = elementsOf(
           await new IncludeProcessor(getWork(), metadata).transformAndCollect()
-        ).changes.toElements().length
+        ).length
 
         // Act
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.changes.toElements().length).toBeGreaterThan(baseline)
-        expect(result.changes.toElements()).toContainEqual(includedManifest)
+        expect(elementsOf(result).length).toBeGreaterThan(baseline)
+        expect(elementsOf(result)).toContainEqual(includedManifest)
       })
     })
 
@@ -201,7 +202,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.changes.toElements()).toContainEqual(includedManifest)
+        expect(elementsOf(result)).toContainEqual(includedManifest)
       })
 
       it('Then calls process with ADDITION lines only, not DELETION (kills L78 ConditionalExpression false)', async () => {
@@ -233,7 +234,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.changes.toElements()).toContainEqual(includedManifest)
+        expect(elementsOf(result)).toContainEqual(includedManifest)
       })
 
       it('Then calls process with DELETION lines only, not ADDITION (kills L86 ConditionalExpression true)', async () => {
@@ -346,7 +347,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // All manifests must be valid HandlerResult manifest objects (no undefined from stray entry)
-        for (const m of result.changes.toElements()) {
+        for (const m of elementsOf(result)) {
           expect(m).toBeDefined()
           expect(m).toMatchObject({ type: expect.any(String) })
         }
@@ -433,7 +434,7 @@ describe('IncludeProcessor', () => {
         const result = await sut.transformAndCollect()
 
         // Assert
-        expect(result.changes.toElements()).toContainEqual(includedManifest)
+        expect(elementsOf(result)).toContainEqual(includedManifest)
       })
     })
   })

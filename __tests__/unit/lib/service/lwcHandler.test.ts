@@ -12,6 +12,7 @@ import LwcHandler from '../../../../src/service/lwcHandler'
 import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
 import { readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -57,7 +58,7 @@ describe('lwcHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual([])
+        expect(elementsOf(result)).toEqual([])
         expect(result.copies).toEqual([])
       }
     )
@@ -79,7 +80,7 @@ describe('lwcHandler', () => {
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -104,7 +105,7 @@ describe('lwcHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,

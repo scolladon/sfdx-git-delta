@@ -11,6 +11,7 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import { readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -54,7 +55,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(0)
+      expect(elementsOf(result)).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -72,7 +73,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -105,7 +106,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -133,7 +134,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -188,7 +189,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements().length).toBeGreaterThan(0)
+      expect(elementsOf(result).length).toBeGreaterThan(0)
       expect(mockedReadDirs).not.toHaveBeenCalled()
     })
 
@@ -206,7 +207,7 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(0)
+      expect(elementsOf(result)).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -225,9 +226,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBeDefined()
       expect(manifestMember).not.toContain(METAFILE_SUFFIX)
       expect(manifestMember).not.toContain('-meta.xml')
@@ -247,9 +248,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBe(entity)
       expect(manifestMember).not.toMatch(/\.[^/.]+$/)
     })
@@ -270,9 +271,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBeDefined()
       // INFOLDER_SUFFIX_REGEX (/Folder$/) must strip "Folder" → member is "my", not "myFolder"
       expect(manifestMember).toBe('my')
@@ -293,9 +294,9 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBeDefined()
       // META_REGEX must strip "-meta.xml" before EXTENSION_SUFFIX_REGEX runs;
       // without it the member would still contain "meta"

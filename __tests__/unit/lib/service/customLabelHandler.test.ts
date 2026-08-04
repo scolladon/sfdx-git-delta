@@ -9,6 +9,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -65,7 +66,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -89,7 +90,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectModification()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -113,7 +114,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -140,7 +141,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -181,7 +182,7 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -222,12 +223,12 @@ describe('Decomposed CustomLabel spec', () => {
       const result = await sut.collect()
 
       // Assert
-      const containerManifest = result.changes
-        .toElements()
-        .find(m => m.type === 'CustomLabels')
+      const containerManifest = elementsOf(result).find(
+        m => m.type === 'CustomLabels'
+      )
       expect(containerManifest).toBeUndefined()
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].type).toBe('CustomLabel')
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].type).toBe('CustomLabel')
     })
   })
 })

@@ -16,6 +16,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import type { Work } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/adapter/GitAdapter')
@@ -220,7 +221,7 @@ describe('postProcessorManager', () => {
       const result = await sut.collectAll()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -236,7 +237,7 @@ describe('postProcessorManager', () => {
 
       // Assert — results.length is 0, so emptyResult() must be returned, not mergeResults()
       // Kills: ConditionalExpression true (always mergeResults) and EqualityOperator >= 0 (>= vs >)
-      expect(result.changes.toElements()).toHaveLength(0)
+      expect(elementsOf(result)).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
       expect(result.warnings).toHaveLength(0)
     })
@@ -264,8 +265,8 @@ describe('postProcessorManager', () => {
       const result = await sut.collectAll()
 
       // Assert — exactly one result, must come through mergeResults path
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].member).toBe('MyFlow')
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].member).toBe('MyFlow')
     })
 
     it('Given collector with results, When collectAll, Then returns merged result', async () => {
@@ -291,8 +292,8 @@ describe('postProcessorManager', () => {
       const result = await sut.collectAll()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].type).toBe('ApexClass')
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].type).toBe('ApexClass')
     })
 
     it('Given IncludeProcessor that throws, When collectAll, Then returns result with warnings', async () => {
@@ -311,7 +312,7 @@ describe('postProcessorManager', () => {
       // Assert
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('collectAll error')
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
     })
   })

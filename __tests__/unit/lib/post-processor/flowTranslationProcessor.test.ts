@@ -35,6 +35,7 @@ import {
   readFile,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
@@ -75,7 +76,7 @@ const cardinalProduct = (a: string[], b: string[]): string[][] =>
   a.reduce((acc, x) => [...acc, ...b.map(y => [x, y])], [] as string[][])
 
 const hasTranslationManifest = (result: { manifests: { type: string }[] }) =>
-  result.changes.toElements().some(m => m.type === TRANSLATION_TYPE)
+  elementsOf(result).some(m => m.type === TRANSLATION_TYPE)
 
 describe('FlowTranslationProcessor', () => {
   let work: Work
@@ -156,7 +157,7 @@ describe('FlowTranslationProcessor', () => {
       const output = await drainWriter(copy.writer)
 
       // Assert — kills getTranslationName ArrowFunction → undefined
-      expect(result.changes.toElements()[0].member).toBe(FR)
+      expect(elementsOf(result)[0].member).toBe(FR)
       expect(output).toContain(flowFullName)
     })
   })
@@ -826,7 +827,7 @@ describe('FlowTranslationProcessor', () => {
 
                   // Assert
                   expect(hasTranslationManifest(result)).toBe(true)
-                  expect(result.changes.toElements()).toEqual(
+                  expect(elementsOf(result)).toEqual(
                     expect.arrayContaining([
                       expect.objectContaining({
                         target: ManifestTarget.Package,

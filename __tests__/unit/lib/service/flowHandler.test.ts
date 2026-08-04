@@ -7,6 +7,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowHandler from '../../../../src/service/flowHandler'
 import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -45,11 +46,11 @@ describe('flowHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(
         ManifestTarget.DestructiveChanges
       )
-      expect(result.changes.toElements()[0].type).toBe('Flow')
+      expect(elementsOf(result)[0].type).toBe('Flow')
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('MyFlow')
     })

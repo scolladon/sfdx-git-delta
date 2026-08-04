@@ -5,6 +5,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BaseProcessor from '../../../../src/post-processor/baseProcessor'
 import type { Work } from '../../../../src/types/work'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getWork } from '../../../__utils__/testWork'
 
 class TestProcessor extends BaseProcessor {
@@ -44,7 +45,7 @@ describe('BaseProcessor', () => {
       const result = await sut.transformAndCollect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })

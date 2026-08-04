@@ -12,6 +12,7 @@ import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
 import type { Config } from '../../src/types/config'
 import { ManifestTarget } from '../../src/types/handlerResult'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
+import { elementsOf } from '../__utils__/handlerResultView'
 
 vi.mock('../../src/utils/fsHelper')
 
@@ -618,8 +619,7 @@ describe.each(testContext)(
 
       // Assert
       const members = new Set(
-        result.changes
-          .toElements()
+        elementsOf(result)
           .filter(
             m => m.target === ManifestTarget.Package && m.type === expectedType
           )
@@ -646,8 +646,7 @@ describe.each(testContext)(
 
       // Assert
       const members = new Set(
-        result.changes
-          .toElements()
+        elementsOf(result)
           .filter(
             m =>
               m.target === ManifestTarget.DestructiveChanges &&
@@ -673,8 +672,7 @@ describe.each(testContext)(
 
       // Assert
       const members = new Set(
-        result.changes
-          .toElements()
+        elementsOf(result)
           .filter(
             m => m.target === ManifestTarget.Package && m.type === expectedType
           )
@@ -713,9 +711,9 @@ describe('InFile container manifest under generateDelta=false', () => {
 
     // Assert — package manifest must contain both the parent container
     // and the newly added child sub-element.
-    const packageEntries = result.changes
-      .toElements()
-      .filter(m => m.target === ManifestTarget.Package)
+    const packageEntries = elementsOf(result).filter(
+      m => m.target === ManifestTarget.Package
+    )
     expect(packageEntries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'SharingRules', member: 'Account' }),
@@ -748,9 +746,9 @@ describe('InFile container manifest under generateDelta=false', () => {
     const result = await sut.collect()
 
     // Assert
-    const packageEntries = result.changes
-      .toElements()
-      .filter(m => m.target === ManifestTarget.Package)
+    const packageEntries = elementsOf(result).filter(
+      m => m.target === ManifestTarget.Package
+    )
     expect(packageEntries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'SharingRules', member: 'Account' }),
@@ -786,7 +784,7 @@ describe('InFile container manifest under generateDelta=false', () => {
     const result = await sut.collect()
 
     // Assert — child in destructiveChanges, no parent anywhere.
-    const elements = result.changes.toElements()
+    const elements = elementsOf(result)
     const destructive = elements.filter(
       m => m.target === ManifestTarget.DestructiveChanges
     )

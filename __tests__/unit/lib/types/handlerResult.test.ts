@@ -9,6 +9,7 @@ import {
   mergeResults,
 } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 
 describe('emptyResult', () => {
   describe('Given no arguments', () => {
@@ -17,7 +18,7 @@ describe('emptyResult', () => {
       const result = emptyResult()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -36,7 +37,7 @@ describe('emptyResult', () => {
       })
 
       // Assert
-      expect(result2.changes.toElements()).toEqual([])
+      expect(elementsOf(result2)).toEqual([])
     })
   })
 })
@@ -48,7 +49,7 @@ describe('mergeResults', () => {
       const result = mergeResults()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -81,7 +82,7 @@ describe('mergeResults', () => {
       const result = mergeResults(input)
 
       // Assert
-      expect(result.changes.toElements()).toEqual(elements)
+      expect(elementsOf(result)).toEqual(elements)
       expect(result.copies).toEqual(input.copies)
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toBe('some warning')
@@ -132,9 +133,9 @@ describe('mergeResults', () => {
       const result = mergeResults(result1, result2)
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(2)
-      expect(result.changes.toElements()[0].member).toBe('ClassA')
-      expect(result.changes.toElements()[1].member).toBe('ClassB')
+      expect(elementsOf(result)).toHaveLength(2)
+      expect(elementsOf(result)[0].member).toBe('ClassA')
+      expect(elementsOf(result)[1].member).toBe('ClassB')
       expect(result.copies).toHaveLength(2)
       expect(result.copies[0].kind).toBe(CopyOperationKind.GitCopy)
       expect(result.copies[1].kind).toBe(CopyOperationKind.StreamedContent)

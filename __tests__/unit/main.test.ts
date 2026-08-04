@@ -3,31 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
-import type {
-  CopyOperation,
-  HandlerResult,
-  ManifestElement,
-} from '../../src/types/handlerResult'
+import type { HandlerResult } from '../../src/types/handlerResult'
 import {
   ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
 } from '../../src/types/handlerResult'
-import ChangeSet from '../../src/utils/changeSet'
-
-// Test ergonomics: tests express their fixtures as ManifestElement arrays
-// (the legacy wire format) for readability; this builder folds them into
-// the new ChangeSet-shaped HandlerResult.
-const handlerResult = (parts: {
-  manifests?: ManifestElement[]
-  copies?: CopyOperation[]
-  warnings?: Error[]
-}): HandlerResult => ({
-  changes: ChangeSet.from(parts.manifests ?? []),
-  copies: parts.copies ?? [],
-  warnings: parts.warnings ?? [],
-})
+import { makeHandlerResult } from '../__utils__/handlerResultView'
 
 const {
   mockPreBuildTreeIndex,
@@ -229,7 +212,7 @@ describe('external library inclusion', () => {
         revision: 'HEAD',
       }
       mockProcess.mockResolvedValueOnce(
-        handlerResult({ copies: [handlerCopy] })
+        makeHandlerResult({ copies: [handlerCopy] })
       )
 
       // Act
@@ -244,7 +227,7 @@ describe('external library inclusion', () => {
     it('Given post-processor produces results, When sgd runs, Then results are merged into work', async () => {
       // Arrange
       mockCollectAll.mockResolvedValueOnce(
-        handlerResult({
+        makeHandlerResult({
           manifests: [
             {
               target: ManifestTarget.Package,
@@ -278,7 +261,7 @@ describe('external library inclusion', () => {
           getElementDescriptor: () => ({ type: 'ApexClass', member: 'Bar' }),
         })
       mockProcess.mockResolvedValueOnce(
-        handlerResult({
+        makeHandlerResult({
           manifests: [
             {
               target: ManifestTarget.Package,
@@ -318,10 +301,10 @@ describe('external library inclusion', () => {
       const handlerWarning = new Error('handler warning')
       const postWarning = new Error('post-processor warning')
       mockProcess.mockResolvedValueOnce(
-        handlerResult({ warnings: [handlerWarning] })
+        makeHandlerResult({ warnings: [handlerWarning] })
       )
       mockCollectAll.mockResolvedValueOnce(
-        handlerResult({ warnings: [postWarning] })
+        makeHandlerResult({ warnings: [postWarning] })
       )
 
       // Act
