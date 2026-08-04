@@ -9,6 +9,7 @@ import {
 import type { Manifest } from '../types/work.js'
 
 export type RenamePair = Readonly<{ from: string; to: string }>
+export type RenameTriple = Readonly<{ type: string; from: string; to: string }>
 // Keyed by type; each inner map dedupes pairs by `${from}\0${to}` so bundle
 // renames re-emitted per file collapse to a single entry. NUL is chosen as
 // the separator because Salesforce member names and git paths cannot contain
@@ -32,8 +33,8 @@ const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
  * sub-elements. The xml manifests MUST route on `target` (the deployment
  * contract); `changeKind` only drives the review-oriented JSON bucket.
  *
- * Insertion goes through `ChangeSet.from` for handler output and
- * `recordRename` for rename pairs. Views are pure projections.
+ * Insertion goes through `ChangeSet.from`, for both handler output and
+ * rename triples. Views are pure projections.
  */
 export default class ChangeSet {
   private readonly byTarget: Record<ManifestTarget, Manifest> = {
@@ -47,10 +48,16 @@ export default class ChangeSet {
   }
   private readonly renames: RenameBucket = new Map()
 
-  static from(elements: readonly ManifestElement[]): ChangeSet {
+  static from(
+    elements: readonly ManifestElement[],
+    renames: readonly RenameTriple[] = []
+  ): ChangeSet {
     const set = new ChangeSet()
     for (const element of elements) {
       set._addElement(element)
+    }
+    for (const { type, from, to } of renames) {
+      set._recordRename(type, from, to)
     }
     return set
   }
@@ -112,7 +119,7 @@ export default class ChangeSet {
     return out
   }
 
-  recordRename(type: string, from: string, to: string): void {
+  private _recordRename(type: string, from: string, to: string): void {
     if (from === to) return
     if (!this.renames.has(type)) {
       this.renames.set(type, new Map())
@@ -186,7 +193,7 @@ export default class ChangeSet {
     return clone
   }
 
-  // `recordRename` always inserts at least one pair per type key, so the
+  // `_recordRename` always inserts at least one pair per type key, so the
   // inner Set is non-empty by construction. No size check needed.
   private _renameTargetsByType(): Manifest {
     const result: Manifest = new Map()

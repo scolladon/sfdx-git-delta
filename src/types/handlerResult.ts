@@ -15,7 +15,7 @@ export enum ChangeKind {
 
 // Handlers can only produce single-component change kinds — rename carries a
 // (from, to) pair that the flat ManifestElement shape can't represent, so it
-// is captured separately via ChangeSet.recordRename.
+// is captured separately via ChangeSet.from's renames channel.
 export type AddKind = ChangeKind.Add | ChangeKind.Modify | ChangeKind.Delete
 
 export enum CopyOperationKind {

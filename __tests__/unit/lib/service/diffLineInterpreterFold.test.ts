@@ -11,7 +11,7 @@ import type {
   HandlerResult,
   ManifestElement,
 } from '../../../../src/types/handlerResult'
-import ChangeSet from '../../../../src/utils/changeSet'
+import ChangeSet, { type RenameTriple } from '../../../../src/utils/changeSet'
 import { getConfig } from '../../../__utils__/testWork'
 
 const sortKey = (e: ManifestElement) =>
@@ -98,7 +98,7 @@ describe('DiffLineInterpreter fold', () => {
   })
 
   describe('T6 (D2/D5) — fold order-independence', () => {
-    it('Given a corpus with a cancel pair, a duplicate, and a DigitalExperience/DigitalExperienceBundle pair, When the input line order is permuted, Then the manifest views built from the fold are invariant', async () => {
+    it('Given a corpus with a cancel pair, a duplicate, a DigitalExperience/DigitalExperienceBundle pair, and a rename leg, When the input line order and the rename order are both permuted, Then the manifest views built from the fold are invariant', async () => {
       // Arrange
       const cancelAdd = 'A\tforce-app/main/default/classes/Foo.cls'
       const cancelDelete = 'D\tforce-app/main/default/classes/Foo.cls'
@@ -116,22 +116,32 @@ describe('DiffLineInterpreter fold', () => {
         bundle,
         page,
       ]
-      const permutations = [
+      const linePermutations = [
         original,
         [...original].reverse(),
         [page, cancelDelete, duplicateB, bundle, cancelAdd, duplicateA],
       ]
+      const renameTriples: RenameTriple[] = [
+        { type: 'ApexTrigger', from: 'OldTrigger', to: 'NewTrigger' },
+        { type: 'CustomObject', from: 'OldObj__c', to: 'NewObj__c' },
+      ]
+      const renamePermutations = [renameTriples, [...renameTriples].reverse()]
 
-      // Act
-      const folds = await Promise.all(
-        permutations.map(async lines => {
+      // Act — the fold and the rename channel are independent inputs to
+      // ChangeSet.from, so every (line order, rename order) combination is
+      // exercised without re-running the handler pipeline per rename order.
+      const elementsByLinePermutation = await Promise.all(
+        linePermutations.map(async lines => {
           const sut = new DiffLineInterpreter(config, globalMetadata)
           const result = await sut.process(lines)
-          return ChangeSet.from(result.elements)
+          return result.elements
         })
       )
+      const folds = elementsByLinePermutation.flatMap(elements =>
+        renamePermutations.map(renames => ChangeSet.from(elements, renames))
+      )
 
-      // Assert — every permutation converges to the same manifest views.
+      // Assert — every combination converges to the same manifest views.
       const [reference, ...rest] = folds
       for (const changeSet of rest) {
         expect(changeSet.forPackageManifest()).toEqual(
@@ -142,8 +152,9 @@ describe('DiffLineInterpreter fold', () => {
         )
         expect(changeSet.byChangeKind()).toEqual(reference!.byChangeKind())
       }
-      // Sanity: the cancel pair actually cancelled and the bundle/page pair
-      // actually landed, so the invariance check isn't vacuous.
+      // Sanity: the cancel pair actually cancelled, the bundle/page pair
+      // actually landed, and the rename leg actually folded into both
+      // manifest views — so the invariance check isn't vacuous.
       expect(reference!.forDestructiveManifest().has('ApexClass')).toBe(false)
       expect(reference!.forPackageManifest().get('ApexClass')).toEqual(
         new Set(['Foo', 'Bar'])
@@ -151,6 +162,15 @@ describe('DiffLineInterpreter fold', () => {
       expect(
         reference!.forPackageManifest().get('DigitalExperienceBundle')
       ).toEqual(new Set(['site/Site_A']))
+      expect(reference!.forPackageManifest().get('ApexTrigger')).toEqual(
+        new Set(['NewTrigger'])
+      )
+      expect(reference!.forDestructiveManifest().get('ApexTrigger')).toEqual(
+        new Set(['OldTrigger'])
+      )
+      expect(reference!.forPackageManifest().get('CustomObject')).toEqual(
+        new Set(['NewObj__c'])
+      )
     })
   })
 })

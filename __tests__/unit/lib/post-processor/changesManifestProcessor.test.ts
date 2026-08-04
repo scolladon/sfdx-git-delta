@@ -24,6 +24,21 @@ const addChange = (work: Work, kind: AddKind, type: string, member: string) => {
   ])
 }
 
+// `ChangeSet.recordRename` is private after Part 6 (renames fold in through
+// `ChangeSet.from`'s renames parameter) — this local helper reproduces the
+// old mutate-in-place convenience so fixtures keep reading the same way.
+const addRename = (work: Work, type: string, from: string, to: string) => {
+  const existingRenames = [
+    ...work.changes.byChangeKind()[ChangeKind.Rename],
+  ].flatMap(([renameType, pairs]) =>
+    [...pairs.values()].map(pair => ({ type: renameType, ...pair }))
+  )
+  work.changes = ChangeSet.from(work.changes.toElements(), [
+    ...existingRenames,
+    { type, from, to },
+  ])
+}
+
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
   outputFile: vi.fn(),
@@ -100,8 +115,8 @@ describe('ChangesManifestProcessor', () => {
       work.config.changesManifest = 'changes.json'
       addChange(work, ChangeKind.Add, 'ApexClass', 'ZetaNew')
       addChange(work, ChangeKind.Delete, 'ApexClass', 'ZetaOld')
-      work.changes.recordRename('ApexClass', 'ZetaOld', 'ZetaNew')
-      work.changes.recordRename('ApexClass', 'AlphaOld', 'AlphaNew')
+      addRename(work, 'ApexClass', 'ZetaOld', 'ZetaNew')
+      addRename(work, 'ApexClass', 'AlphaOld', 'AlphaNew')
       const sut = new ChangesManifestProcessor(work, metadata)
 
       // Act
@@ -150,8 +165,8 @@ describe('ChangesManifestProcessor', () => {
       // (Map iteration) would produce spurious diffs whenever handler visit
       // order shifts. Alphabetical ordering is the stable choice.
       work.config.changesManifest = 'changes.json'
-      work.changes.recordRename('ZetaType', 'z.old', 'z.new')
-      work.changes.recordRename('AlphaType', 'a.old', 'a.new')
+      addRename(work, 'ZetaType', 'z.old', 'z.new')
+      addRename(work, 'AlphaType', 'a.old', 'a.new')
       const sut = new ChangesManifestProcessor(work, metadata)
 
       // Act

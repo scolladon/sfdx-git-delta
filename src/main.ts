@@ -84,16 +84,19 @@ export default async (config: Config): Promise<Work> => {
     const { keptElements, warnings: rollupWarnings } = applyBundleRollup(
       combinedResult.elements
     )
-    work.changes = ChangeSet.from(keptElements)
-
-    // Apply git-detected renames: resolve the `{fromPath, toPath}` pairs that
-    // RepoGitDiff captured from `-M` output into (type, from, to) triples and
-    // re-group them into the ChangeSet's rename bucket. Pairs for ignored
-    // paths or bundle helper files (same member on both sides) are no-ops.
-    await new RenameResolver(config, metadata).apply(
-      work.changes,
+    // Resolve git-detected renames — the `{fromPath, toPath}` pairs
+    // RepoGitDiff captured from `-M` output — into (type, from, to) triples,
+    // then fold them into the same construction pass as the kept elements.
+    // This must run on the combined set (handler pass ∪ collectors), not the
+    // handler pass alone: rename targets participate in forPackageManifest()
+    // and rename sources in forDestructiveManifest(), so folding renames any
+    // earlier would change which deletions get cancelled. Pairs for ignored
+    // paths or bundle helper files (same member on both sides) resolve to no
+    // triple.
+    const renameTriples = await new RenameResolver(config, metadata).resolve(
       repoGitDiffHelper.getRenamePairs()
     )
+    work.changes = ChangeSet.from(keptElements, renameTriples)
 
     pushAll(work.warnings, combinedResult.warnings)
     pushAll(work.warnings, rollupWarnings)

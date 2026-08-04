@@ -247,15 +247,17 @@ describe('ChangeSet', () => {
       // Arrange — exercises the _unionByType "type already exists, merge
       // members into the existing Set" branch. Without the merge, the
       // rename-target entry would overwrite the direct Package add.
-      const sut = ChangeSet.from([
-        {
-          target: ManifestTarget.Package,
-          type: 'ApexClass',
-          member: 'DirectAdd',
-          changeKind: ChangeKind.Add,
-        },
-      ])
-      sut.recordRename('ApexClass', 'OldName', 'RenamedTo')
+      const sut = ChangeSet.from(
+        [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'DirectAdd',
+            changeKind: ChangeKind.Add,
+          },
+        ],
+        [{ type: 'ApexClass', from: 'OldName', to: 'RenamedTo' }]
+      )
 
       // Act
       const pkg = sut.forPackageManifest()
@@ -265,25 +267,27 @@ describe('ChangeSet', () => {
     })
   })
 
-  describe('recordRename', () => {
-    it('Given matching synthetic add/delete, When recording a rename, Then the package view keeps to-member, destructive view keeps from-member, and by-kind add/delete drop them', () => {
+  describe('ChangeSet.from renames channel', () => {
+    it('Given matching synthetic add/delete, When constructing with a rename triple, Then the package view keeps to-member, destructive view keeps from-member, and by-kind add/delete drop them', () => {
       // Arrange — the handler pipeline first sees the split A/D lines, then
-      // main.ts resolves the rename pair and calls recordRename.
-      const sut = ChangeSet.from([
-        {
-          target: ManifestTarget.Package,
-          type: 'ApexClass',
-          member: 'NewName',
-          changeKind: ChangeKind.Add,
-        },
-        {
-          target: ManifestTarget.DestructiveChanges,
-          type: 'ApexClass',
-          member: 'OldName',
-          changeKind: ChangeKind.Delete,
-        },
-      ])
-      sut.recordRename('ApexClass', 'OldName', 'NewName')
+      // main.ts resolves the rename pair and folds it in via ChangeSet.from.
+      const sut = ChangeSet.from(
+        [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'NewName',
+            changeKind: ChangeKind.Add,
+          },
+          {
+            target: ManifestTarget.DestructiveChanges,
+            type: 'ApexClass',
+            member: 'OldName',
+            changeKind: ChangeKind.Delete,
+          },
+        ],
+        [{ type: 'ApexClass', from: 'OldName', to: 'NewName' }]
+      )
 
       // Act
       const pkg = sut.forPackageManifest()
@@ -301,26 +305,30 @@ describe('ChangeSet', () => {
       ])
     })
 
-    it('Given a no-op rename where from equals to, When recording, Then it is ignored', () => {
+    it('Given a no-op rename where from equals to, When constructing, Then it is ignored', () => {
       // Arrange
-      const sut = new ChangeSet()
+      const sut = ChangeSet.from(
+        [],
+        [{ type: 'ApexClass', from: 'Same', to: 'Same' }]
+      )
 
-      // Act
-      sut.recordRename('ApexClass', 'Same', 'Same')
-
-      // Assert
+      // Act & Assert
       expect(sut.byChangeKind()[ChangeKind.Rename].size).toBe(0)
     })
 
-    it('Given the same rename pair recorded twice (e.g. bundle rename re-emitted per file), When recording, Then it collapses to a single entry', () => {
+    it('Given the same rename pair passed twice (e.g. bundle rename re-emitted per file), When constructing, Then it collapses to a single entry', () => {
       // Arrange — the dedup key is `${from}\0${to}`, so only *identical*
       // pairs collapse. Collisions where `from` matches but `to` differs
       // (or vice versa) are not reachable in practice: RenameResolver is
       // fed one git-detected rename per component, and LWC bundle files
       // only synthesise duplicate identical pairs. Omitted from coverage.
-      const sut = new ChangeSet()
-      sut.recordRename('LightningComponentBundle', 'old', 'new')
-      sut.recordRename('LightningComponentBundle', 'old', 'new')
+      const sut = ChangeSet.from(
+        [],
+        [
+          { type: 'LightningComponentBundle', from: 'old', to: 'new' },
+          { type: 'LightningComponentBundle', from: 'old', to: 'new' },
+        ]
+      )
 
       // Act
       const bucket = sut
