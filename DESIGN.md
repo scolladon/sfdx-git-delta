@@ -19,9 +19,9 @@ flowchart TD
     style IO fill:#e8f5e9
 ```
 
-The pipeline is orchestrated by `src/main.ts`, which receives a `Config` object and returns a `Work` result containing the accumulated manifests and warnings.
+The pipeline is orchestrated by `src/main.ts`, which receives a `Config` object and returns a `Work` result containing the folded manifests and warnings.
 
-Key design principle: **collection is separated from execution**. Handlers write manifest entries into a shared `ChangeSet` sink and accumulate `CopyOperation` plans in their `HandlerResult`; nothing is written to disk until `IOExecutor` runs at stage 6, after collectors have folded their own contributions in. This separation enables deduplication and conflict resolution before any I/O occurs, and lets the diff stream be consumed as it arrives from git rather than buffered up front — `RepoGitDiff.getLines()` returns an `AsyncGenerator<string>` that handlers begin draining while git is still emitting.
+Key design principle: **collection is separated from execution, and handlers are pure**. Each handler's `collect()` is a function of its `(changeType, element, config)` construction inputs alone: it returns a flat `HandlerResult` (`elements`, `copies`, `warnings`) and holds no reference to anything another handler or the orchestrator can see. `DiffLineInterpreter.process()` owns the only accumulator — it folds every handler's returned elements into three orchestrator-local arrays as handlers complete, then hands the folded result to `assembleChanges()` (`src/utils/changesAssembly.ts`), which builds the single `ChangeSet` read model the rest of the pipeline consumes. Nothing is written to disk until `IOExecutor` runs at stage 6, after collectors have folded their own contributions in. This separation enables deduplication and conflict resolution before any I/O occurs, and lets the diff stream be consumed as it arrives from git rather than buffered up front — `RepoGitDiff.getLines()` returns an `AsyncGenerator<string>` that handlers begin draining while git is still emitting.
 
 ---
 
@@ -137,16 +137,16 @@ flowchart TD
     T4 -->|No| T5{"parent of<br/>InFile children?"}
     T5 -->|Yes| IFH["InFileHandler"]
     T5 -->|No| DH["StandardHandler"]
-    CH --> C["handler.collect(sink)"]
+    CH --> C["handler.collect()"]
     SH --> C
     IF --> C
     AH --> C
     IFH --> C
     DH --> C
-    C --> HR["HandlerResult<br/>{changes: ChangeSet, copies, warnings}"]
+    C --> HR["HandlerResult<br/>{elements, copies, warnings}"]
 ```
 
-`DiffLineInterpreter.process()` allocates a single `ChangeSet` sink up-front and passes it to every handler's `collect(sink)` call. Handlers write manifest entries directly into the shared sink; the per-handler `ChangeSet` allocation and the end-of-pass merge step that the original design implied are both gone. The `sink` parameter is optional on `collect` / `collectAddition` / `collectDeletion` / `collectModification` so tests can still call those methods without an argument and get a fresh `ChangeSet` back via `result.changes`.
+`DiffLineInterpreter.process()` allocates no shared state up front. Each handler's `collect()` takes no parameter and returns a `HandlerResult` describing only what that handler contributed. The `BoundedQueue` worker folds every returned `elements` / `copies` / `warnings` triple into three orchestrator-owned local arrays via `pushAll` as each handler completes — up to `MAX_PARALLELISM` handlers write concurrently, but each write is a plain array push, so there is no shared object a handler can corrupt. This fold step must itself never throw: `BoundedQueue` treats a worker rejection as fatal to the whole pass, so aggregation is total, side-effect-free array work over results handlers have already caught internally. `process()` returns the folded arrays as one `HandlerResult`.
 
 ### Handler Resolution Tiers
 
@@ -206,6 +206,8 @@ classDiagram
 1. `_isProcessable()` — gate: does this file match the expected suffix?
 2. Switch on change type → `collectAddition()` / `collectDeletion()` / `collectModification()`
 3. Errors are caught and converted to warnings — a single broken file does not abort processing
+
+Every hook is a pure function of the handler's constructor inputs (`changeType`, `element`, `config`): calling `collect()` twice on the same inputs returns deep-equal results and touches nothing outside the handler instance. A few subclasses set instance-local scratch fields during construction or inside a single `collect()` call (e.g. `InResourceHandler.metadataName`, `ContainedDecomposedHandler.holderFolder`) — that stays single-owner state, not shared state, because a fresh handler instance is created per diff line and `collect()`ed exactly once.
 
 Subclasses override specific hooks to customize behavior. Even thin subclasses that override a single method justify their existence because they are selected at runtime based on metadata type definitions.
 
@@ -288,8 +290,8 @@ single content folder. A `DigitalExperience` view deploy replaces the view's ful
 set, so absent variant folders would read as deletions and be rejected; the delta must therefore
 carry the whole folder. Shorter paths (the bundle's own `*.digitalExperience-meta.xml`, or any
 non-canonical shallow path) keep the coarse `DigitalExperienceBundle` behaviour. Whole-bundle
-add/delete is collapsed back to a single `DigitalExperienceBundle` member by `BundleRollupProcessor`
-(see Stage 5).
+add/delete is collapsed back to a single `DigitalExperienceBundle` member by the bundle-rollup filter
+applied during assembly (see Stage 5).
 
 #### LwcHandler
 
@@ -357,10 +359,12 @@ After handlers produce their results, post-processors run in two phases:
 
 ```mermaid
 flowchart TD
-    HR["Handler sink<br/>(work.changes: ChangeSet)"] --> C["Collectors phase<br/>(transformAndCollect)"]
-    C --> M["mergeResults()"]
-    M --> IO["I/O Execution"]
-    IO --> P["Processors phase<br/>(process)"]
+    HR["Handler pass<br/>HandlerResult{elements}"] --> HV["handlerView =<br/>ChangeSet.from(elements)"]
+    HV --> C["Collectors phase<br/>(collectAll)"]
+    C --> F["assembleChanges()<br/>fold + rollup filter + renames"]
+    HR --> F
+    F --> IO["I/O Execution"]
+    IO --> P["Processors phase<br/>(executeRemaining)"]
 
     subgraph Collectors
         FT["FlowTranslationProcessor"]
@@ -368,32 +372,45 @@ flowchart TD
     end
 
     subgraph Processors
-        DEB["BundleRollupProcessor"]
         PG["PackageGenerator"]
         CM["ChangesManifestProcessor"]
     end
 
     C --> FT
     C --> IP
-    P --> DEB
     P --> PG
     P --> CM
 ```
 
 ### Two-Phase Execution
 
-**Collectors** (`isCollector = true`) run first via `collectAll()`. They produce additional `HandlerResult` data that gets merged into the main result:
+**Collectors** (`isCollector = true`) run first via `collectAll(handlerView)`, where `handlerView` is a `ChangeSet` built from the handler pass's elements alone (`ChangeSet.from(handlerResult.elements)`) — before any collector output exists. Each collector returns its own `HandlerResult`:
 
-- **FlowTranslationProcessor**: when Flows are being deployed, uses `GitAdapter.gitGrep()` — a tree walk over the per-revision blob index filtered by pathspec (`<source>/*<extension><metaFileSuffix>`, literal + glob), reading each candidate via `repo.primitives.readBlob` and testing it with a JS `RegExp` — to find `.translation-meta.xml` files containing `flowDefinitions` elements matching deployed flows. This avoids requiring the (separate) `TreeIndex` used by `getFilesPath`. Produces pruned translation files as computed content.
+- **FlowTranslationProcessor**: when Flows are being deployed, uses `GitAdapter.gitGrep()` — a tree walk over the per-revision blob index filtered by pathspec (`<source>/*<extension><metaFileSuffix>`, literal + glob), reading each candidate via `repo.primitives.readBlob` and testing it with a JS `RegExp` — to find `.translation-meta.xml` files containing `flowDefinitions` elements matching deployed flows. It reads `handlerView.forPackageManifest()` to decide which flows are in scope, so a Flow that only enters the manifest through `--include` or another collector is invisible to it — the handler-pass-only view is what keeps that scoping deterministic regardless of collector registration order. This avoids requiring the (separate) `TreeIndex` used by `getFilesPath`. Produces pruned translation files as computed content.
 - **IncludeProcessor**: handles `--include` and `--include-destructive` flags. Lists all files in source directories, filters through include patterns, then processes matching lines through `DiffLineInterpreter` as synthetic additions/deletions.
 
-**Processors** (`isCollector = false`) run last via `executeRemaining()`, in registration order:
+**Processors** (`isCollector = false`) run last via `executeRemaining(changes)`, in registration order, where `changes` is the fully assembled `ChangeSet` (see "Assembly — the explicit fold" below):
 
-- **BundleRollupProcessor**: runs before `PackageGenerator` so it shapes the manifest the generator reads. Per manifest (`package` / `destructiveChanges` independently): when a `DigitalExperienceBundle` member is present it drops the redundant `DigitalExperience` members of that same site (`DigitalExperienceBundle` deploys/deletes every child), via `ChangeSet.removeMember`. It also warns when a `DigitalExperienceBundle` lands in `destructiveChanges` — whole-bundle deletion is org-gated on the Experience site being deactivated first. Today's implementation is specific to the DEB/DE pair; the class name leaves room for a generic parent/child rollup config when a second concrete pair appears.
-- **PackageGenerator**: writes `package.xml` (from `ChangeSet.forPackageManifest()`), `destructiveChanges.xml` (from `ChangeSet.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
-- **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serializes `ChangeSet.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`, plus `rename` as `{from, to}` pairs when git `-M` detects component renames). Powered by the `changeKind` field carried on every `ManifestElement` for add/modify/delete and by `RenameResolver` feeding `ChangeSet.recordRename` for rename pairs.
+- **PackageGenerator**: writes `package.xml` (from `changes.forPackageManifest()`), `destructiveChanges.xml` (from `changes.forDestructiveManifest()` — already coalesced to drop delete entries that are re-added or re-modified in the same diff), and the required companion empty `package.xml` for destructive deployments.
+- **ChangesManifestProcessor**: opt-in via `--changes-manifest`. Serializes `changes.byChangeKind()` into a JSON file alongside the xml manifests, grouped by `ChangeKind` (`add` / `modify` / `delete`, plus `rename` as `{from, to}` pairs when git `-M` detects component renames). Powered by the `changeKind` field carried on every `ManifestElement` for add/modify/delete and by the rename triples folded into `changes` at assembly time.
 
 Each processor is wrapped in error isolation — failures produce warnings rather than crashing the pipeline.
+
+### Assembly — the explicit fold
+
+Stage 4 and the collectors phase each return a `HandlerResult` — a flat, readonly `{ elements, copies, warnings }` value, never a container shared with anyone else. `assembleChanges()` (`src/utils/changesAssembly.ts`), called once from `main.ts`, is the single place these get folded into the `ChangeSet` read model that `IOExecutor` and the processors phase consume:
+
+1. `mergeResults(handlerResult, postResult)` concatenates the handler pass's and the collectors' `elements` / `copies` / `warnings` arrays.
+2. `applyBundleRollup(combinedResult.elements)` (`src/utils/bundleRollup.ts`) is a pure filter, `(elements) → { keptElements, warnings }`. Per manifest target (`package` / `destructiveChanges` independently): when a `DigitalExperienceBundle` member is present it drops the redundant `DigitalExperience` members of that same site — a `DigitalExperienceBundle` deploys or deletes every child, so listing both is redundant — and warns when a `DigitalExperienceBundle` lands in `destructiveChanges` (whole-bundle deletion is org-gated on the Experience site being deactivated first). Today's implementation is specific to the DEB/DE pair; the function shape leaves room for a generic parent/child config when a second pair appears.
+3. `ChangeSet.from(keptElements, renameTriples)` builds the run's `changes` read model exactly once, folding in the `{type, from, to}` triples `RenameResolver.resolve()` produced from git's detected rename pairs.
+
+The ordering here is load-bearing:
+
+- The rollup filter runs on the **combined** (handler + collector) elements, and its output — `keptElements` — is the only value that feeds `ChangeSet.from`. `PackageGenerator` and the `changes` returned on `Work` therefore always read the same post-filter value; nothing downstream can see a pre-rollup manifest.
+- Renames fold in on that same combined set, never on the handler-pass-only `handlerView` — rename targets participate in `forPackageManifest()` and rename sources in `forDestructiveManifest()`, so folding them earlier would change which deletions get cancelled.
+- The rollup filter never reads renames, so its relative order versus the rename fold does not matter — only which elements it sees does.
+
+`assembleChanges()`'s `warnings` output is `[...combinedResult.warnings, ...rollupWarnings]` — the rollup's warnings (e.g. the DEB-deletion notice) join the sequence immediately after the handler-and-collector warnings, which is where `main.ts` places them in the run's final warning list (see "Work" in Key Types Reference).
 
 ### Change-kind pipeline
 
@@ -403,12 +420,12 @@ Every `ManifestElement` produced by a handler is tagged with a `ChangeKind`. Thi
 - **`InFileHandler._collectManifestFromComparison`** takes the kind as a parameter so sub-elements get the correct label from `MetadataDiff.compare()` — which returns three disjoint buckets: `added` (key absent in `from`), `modified` (key present but content differs), `deleted` (key absent in `to`). The keyless-element case is bucketed as modified.
 - **Direct constructors** (`BotHandler`, `FlowTranslationProcessor`) stamp the kind explicitly at their push site.
 
-`ChangeSet.addElement(element)` is the single ingestion point. Each `ManifestElement` carries two orthogonal axes — `target` (deployment contract: `Package` vs `DestructiveChanges`) and `changeKind` (review semantics: `Add` / `Modify` / `Delete`) — and the ChangeSet stores both:
+`ChangeSet.from(elements, renames)` is the single ingestion point — construction happens exactly once per run, in `assembleChanges()`. Each `ManifestElement` carries two orthogonal axes — `target` (deployment contract: `Package` vs `DestructiveChanges`) and `changeKind` (review semantics: `Add` / `Modify` / `Delete`) — and the ChangeSet stores both:
 
 - `byTarget: Record<ManifestTarget, Manifest>` drives the xml manifests.
 - `byKind: Record<AddKind, Manifest>` drives the review-oriented JSON.
 
-The sink is the wire format end-to-end: `DiffLineInterpreter.process()` creates one `ChangeSet`, every handler writes into it via `result.changes.addElement(...)` (where `result.changes` is the shared sink reference), and the orchestrator merges the collector output back into the same instance via `ChangeSet.merge()`. There is no separate `ManifestElement[]` carrier on `HandlerResult`; the `toElements()` view reconstructs `(target, type, member, changeKind)` tuples from the indexed buckets on demand for tests and diagnostics, joining `byTarget × byKind` on `(type, member)`.
+The wire format is a flat array end-to-end, never a `ChangeSet` instance: `HandlerResult.elements` (`readonly ManifestElement[]`) is what every handler and collector returns, and `DiffLineInterpreter.process()` folds those arrays with a plain array push — no handler ever sees another handler's output, let alone writes into it. The `toElements()` view is the inverse: it reconstructs `(target, type, member, changeKind)` tuples from the indexed buckets on demand for tests and diagnostics, joining `byTarget × byKind` on `(type, member)`.
 
 The two axes are **not redundant**: a single element can be `(target=Package, changeKind=Delete)`, which is what `InFileHandler` stamps when a container file (e.g. `CustomLabels`) is deleted but child elements survive — the deployment must still list the container under `package.xml` while the JSON manifest surfaces a delete for reviewer visibility. Views route on the correct axis:
 
@@ -416,7 +433,7 @@ The two axes are **not redundant**: a single element can be `(target=Package, ch
 - `forDestructiveManifest()` — `byTarget[DestructiveChanges]` ∪ rename-source, minus anything that winds up in the package view (drops cancelled deletions and covers rename semantics in a single coalesce).
 - `byChangeKind()` — per-kind record. Rename participants are removed from the add/delete buckets so every emitted entry lives in exactly one user-visible bucket; the `rename` bucket contains `{from, to}` pairs deduplicated per type.
 
-Rename detection uses tsgit's `detectRenames` diff option, **gated on `config.changesManifest`**. Default sgd runs pass `detectRenames: false` so line shape matches the pre-feature output; only `--changes-manifest <file>` turns it on, independent of `--ignore-whitespace`. When enabled, `RepoGitDiff` splits each `R<score>\tfrom\tto` line into a synthetic `D\tfrom` + `A\tto` pair so the existing handler pipeline processes them normally, while capturing the pair. `RenameResolver` resolves each pair's paths back through `TypeHandlerFactory` to recover `(type, from-member, to-member)` — bundle renames re-emitted per file collapse to a single entry via the Map-keyed `recordRename` dedupe.
+Rename detection uses tsgit's `detectRenames` diff option, **gated on `config.changesManifest`**. Default sgd runs pass `detectRenames: false` so line shape matches the pre-feature output; only `--changes-manifest <file>` turns it on, independent of `--ignore-whitespace`. When enabled, `RepoGitDiff` splits each `R<score>\tfrom\tto` line into a synthetic `D\tfrom` + `A\tto` pair so the existing handler pipeline processes them normally, while capturing the pair. `RenameResolver.resolve(pairs)` resolves each pair's paths back through `TypeHandlerFactory` to recover `(type, from-member, to-member)` triples, returned rather than written anywhere — `ChangeSet.from` folds them in with a Map-keyed dedupe (`` `${from}\0${to}` ``) so bundle renames re-emitted per file collapse to a single entry.
 
 Package.xml remains byte-identical to the pre-feature output because `InFileHandler` still routes both `added` and `modified` sub-elements to `ManifestTarget.Package`; the ChangeSet merely tags them differently.
 
@@ -448,6 +465,7 @@ SGD follows a **warnings-not-exceptions** philosophy for per-file errors:
 | ----- | -------- |
 | Config validation | Fatal: throws `ConfigError` / `MetadataRegistryError` → propagates to CLI |
 | Handlers (`collect()`) | Catches all errors → converts to warnings in `HandlerResult` |
+| Aggregation fold (`DiffLineInterpreter` worker, `assembleChanges`) | Must be total, not per-file: a throw here aborts the whole pass. Both are array pushes / `ChangeSet.from` inserts over results handlers already caught, not fallible I/O |
 | Post-processors | Each wrapped in `_safeProcess` → failures become warnings |
 | Git operations | Debug-logged, return empty/false → silent degradation |
 | XML parsing | Produces "MalformedXML" warning with file path and revision |
@@ -557,23 +575,25 @@ All user inputs flowing through the pipeline:
 
 ### Work (`src/types/work.ts`)
 
-Mutable context accumulating outputs:
+Terminal value object — the pipeline's return type, constructed exactly once at the end of `main()` from already-folded values. Nothing writes into it after construction:
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `config` | `Config` | The configuration |
-| `changes` | `ChangeSet` | Aggregated manifest entries — handlers, collectors, and `RenameResolver` all write into this single instance. Views (`forPackageManifest`, `forDestructiveManifest`, `byChangeKind`) are pure projections. |
-| `warnings` | `Error[]` | Non-fatal warnings |
+| `changes` | `ChangeSet` | The final read model, built once by `ChangeSet.from(keptElements, renameTriples)` in `assembleChanges()`. Views (`forPackageManifest`, `forDestructiveManifest`, `byChangeKind`) are pure projections. |
+| `warnings` | `readonly Error[]` | Non-fatal warnings, concatenated in the order they were produced: config warnings, then handler+collector warnings, then rollup warnings, then post-processor warnings |
 
 ### HandlerResult (`src/types/handlerResult.ts`)
 
-Universal handler/processor output:
+Universal handler/collector output — a flat, readonly description of what the producer contributed, never a container shared with anyone else:
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| `changes` | `ChangeSet` | The shared sink the handler/collector wrote manifest entries into. In the handler dispatch path this is a reference to `DiffLineInterpreter`'s sink (so `mergeResults` is a no-op for the changes axis). For collectors and ad-hoc test calls, a fresh `ChangeSet` is allocated. |
-| `copies` | `CopyOperation[]` | `GitCopy`, `GitDirCopy`, or `StreamedContent` operations |
-| `warnings` | `Error[]` | Non-fatal warnings |
+| `elements` | `readonly ManifestElement[]` | The `{target, type, member, changeKind}` entries this handler/collector produced |
+| `copies` | `readonly CopyOperation[]` | `GitCopy`, `GitDirCopy`, or `StreamedContent` operations |
+| `warnings` | `readonly Error[]` | Non-fatal warnings |
+
+`emptyResult()` and `mergeResults(...results)` (both in `src/types/handlerResult.ts`) are the two module-level helpers: `emptyResult()` is a factory returning a fresh empty value, and `mergeResults` concatenates each axis across multiple results — a plain array `flatMap`, with no index structure to rebuild.
 
 ### Metadata (`src/schemas/metadata.ts`)
 
