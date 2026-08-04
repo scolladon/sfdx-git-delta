@@ -7,7 +7,7 @@ import {
   type ManifestElement,
   ManifestTarget,
 } from '../../src/types/handlerResult'
-import ChangeSet from '../../src/utils/changeSet'
+import ChangeSet, { type RenameTriple } from '../../src/utils/changeSet'
 
 // The read-model projection of a handler result. `ChangeSet.from` folds the
 // flat element sequence into the indexed read model, and `toElements()`
@@ -40,10 +40,10 @@ export const addChange = (
     kind === ChangeKind.Delete
       ? ManifestTarget.DestructiveChanges
       : ManifestTarget.Package
-  return ChangeSet.from([
-    ...changes.toElements(),
-    { target, type, member, changeKind: kind },
-  ])
+  return ChangeSet.from(
+    [...changes.toElements(), { target, type, member, changeKind: kind }],
+    renamesOf(changes)
+  )
 }
 
 // `ChangeSet.recordRename` is private — renames fold in through
@@ -55,14 +55,16 @@ export const addRename = (
   type: string,
   from: string,
   to: string
-): ChangeSet => {
-  const existingRenames = [
-    ...changes.byChangeKind()[ChangeKind.Rename],
-  ].flatMap(([renameType, pairs]) =>
-    [...pairs.values()].map(pair => ({ type: renameType, ...pair }))
-  )
-  return ChangeSet.from(changes.toElements(), [
-    ...existingRenames,
+): ChangeSet =>
+  ChangeSet.from(changes.toElements(), [
+    ...renamesOf(changes),
     { type, from, to },
   ])
-}
+
+// Both helpers rebuild the whole set, so each must carry the other's channel
+// forward or interleaving them silently drops one.
+const renamesOf = (changes: ChangeSet): RenameTriple[] =>
+  [...changes.byChangeKind()[ChangeKind.Rename]].flatMap(
+    ([renameType, pairs]) =>
+      [...pairs.values()].map(pair => ({ type: renameType, ...pair }))
+  )

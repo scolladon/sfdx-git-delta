@@ -16,7 +16,7 @@ import { assembleChanges } from '../../../../src/utils/changesAssembly'
 import { makeHandlerResult } from '../../../__utils__/handlerResultView'
 
 describe('assembleChanges', () => {
-  describe('Given the handler pass and the collector pass each emit a warning, and a covered DigitalExperience member triggers a roll-up warning', () => {
+  describe('Given the handler pass and the collector pass each emit a warning, and a DigitalExperienceBundle deletion triggers a roll-up warning', () => {
     it('When assembleChanges runs, Then the returned warnings are the combined-result warnings followed by the roll-up warnings', () => {
       // Arrange
       const handlerWarning = new Error('handler warning')
@@ -55,6 +55,9 @@ describe('assembleChanges', () => {
   describe('Given a DigitalExperience member covered by a same-target DigitalExperienceBundle member', () => {
     it('When assembleChanges runs, Then the returned changes drop the covered member and keep the survivor', () => {
       // Arrange
+      // The bundle comes from the handler pass and the member it covers from
+      // the collector pass, so the filter only drops it if the roll-up runs on
+      // the merged set. A per-pass roll-up leaves the covered member in place.
       const handlerResult = makeHandlerResult({
         manifests: [
           {
@@ -63,16 +66,16 @@ describe('assembleChanges', () => {
             member: 'site/foo',
             changeKind: ChangeKind.Add,
           },
+        ],
+      })
+      const postResult = makeHandlerResult({
+        manifests: [
           {
             target: ManifestTarget.Package,
             type: DIGITAL_EXPERIENCE_TYPE,
             member: 'site/foo.sfdc_cms__view/home',
             changeKind: ChangeKind.Add,
           },
-        ],
-      })
-      const postResult = makeHandlerResult({
-        manifests: [
           {
             target: ManifestTarget.Package,
             type: DIGITAL_EXPERIENCE_TYPE,
@@ -85,8 +88,8 @@ describe('assembleChanges', () => {
       // Act
       const result = assembleChanges(handlerResult, postResult, [])
 
-      // Assert — the handler-pass member covered by the bundle is dropped;
-      // the collector-pass member (a different site, not covered) survives.
+      // Assert — the collector-pass member covered by the handler-pass bundle
+      // is dropped; the uncovered member (a different site) survives.
       expect(
         result.changes.forPackageManifest().get(DIGITAL_EXPERIENCE_TYPE)
       ).toEqual(new Set(['site/bar.sfdc_cms__view/home']))
@@ -96,27 +99,73 @@ describe('assembleChanges', () => {
     })
   })
 
-  describe('Given rename triples resolved from the handler and collector passes', () => {
-    it('When assembleChanges runs, Then the rename target lands on the package view and the rename source lands on the destructive view', () => {
-      // Arrange
+  describe('Given rename triples resolved alongside elements from both passes', () => {
+    it('When assembleChanges runs, Then the rename target unions with the package view and the rename source lands on the destructive view', () => {
+      // Arrange — renames and elements must land in the SAME construction
+      // pass: the rename target unions with whatever elements survived the
+      // roll-up rather than replacing them.
       const renameTriples: readonly RenameTriple[] = [
         { type: 'ApexClass', from: 'Old', to: 'New' },
       ]
+      const handlerResult = makeHandlerResult({
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Untouched',
+            changeKind: ChangeKind.Add,
+          },
+        ],
+      })
 
       // Act
       const result = assembleChanges(
-        emptyResult(),
+        handlerResult,
         emptyResult(),
         renameTriples
       )
 
       // Assert
       expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
-        new Set(['New'])
+        new Set(['Untouched', 'New'])
       )
       expect(result.changes.forDestructiveManifest().get('ApexClass')).toEqual(
         new Set(['Old'])
       )
+    })
+  })
+
+  describe('Given a rename whose source is also emitted as an addition by the collector pass', () => {
+    it('When assembleChanges runs, Then the rename cancels the source out of the destructive view', () => {
+      // Arrange — this is the interaction that forces renames to fold on the
+      // combined set rather than the handler pass alone: the rename source is
+      // cancelled by whatever landed in the package view, including elements
+      // contributed by collectors.
+      const renameTriples: readonly RenameTriple[] = [
+        { type: 'ApexClass', from: 'Old', to: 'New' },
+      ]
+      const postResult = makeHandlerResult({
+        manifests: [
+          {
+            target: ManifestTarget.Package,
+            type: 'ApexClass',
+            member: 'Old',
+            changeKind: ChangeKind.Add,
+          },
+        ],
+      })
+
+      // Act
+      const result = assembleChanges(emptyResult(), postResult, renameTriples)
+
+      // Assert — the source is packaged by the collector pass, so it must not
+      // also appear as a deletion.
+      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Old', 'New'])
+      )
+      expect(
+        result.changes.forDestructiveManifest().get('ApexClass')
+      ).toBeUndefined()
     })
   })
 
