@@ -257,6 +257,39 @@ describe('main — manifest seam', () => {
     )
   })
 
+  it('Given a rename alongside the element channel, When sgd returns, Then Work.changes still agrees with what was written', async () => {
+    // Arrange — the returned ChangeSet is built from two inputs, elements and
+    // renames. Exercising only the element channel would leave a regression
+    // that folds renames into one side of the seam but not the other
+    // invisible, since renames participate in both manifest views.
+    mockGetRenamePairs.mockReturnValue([
+      { fromPath: 'force-app/Old.cls', toPath: 'force-app/New.cls' },
+    ])
+    mockGetTypeHandler
+      .mockResolvedValueOnce({
+        getElementDescriptor: () => ({ type: 'ApexClass', member: 'Old' }),
+      })
+      .mockResolvedValueOnce({
+        getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
+      })
+
+    // Act
+    const result = await sgd({ output: 'output' } as Config)
+
+    // Assert — the rename reached the written manifests, and both views still
+    // agree with what PackageGenerator serialised.
+    const byPath = manifestByPath()
+    expect(byPath.get('output/package/package.xml')!.get('ApexClass')).toEqual(
+      new Set(['Foo', 'New'])
+    )
+    expect(result.changes.forPackageManifest()).toEqual(
+      byPath.get('output/package/package.xml')
+    )
+    expect(result.changes.forDestructiveManifest()).toEqual(
+      byPath.get('output/destructiveChanges/destructiveChanges.xml')
+    )
+  })
+
   it('Given a handler warning and a bundle-deletion warning, When sgd runs, Then the bundle-deletion warning is appended after the handler warning', async () => {
     // Act
     const result = await sgd({ output: 'output' } as Config)
