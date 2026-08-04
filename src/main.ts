@@ -9,6 +9,7 @@ import type { Config } from './types/config.js'
 import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
 import { pushAll } from './utils/arrayUtils.js'
+import { applyBundleRollup } from './utils/bundleRollup.js'
 import ChangeSet from './utils/changeSet.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
@@ -80,7 +81,10 @@ export default async (config: Config): Promise<Work> => {
 
     const postResult = await postProcessors.collectAll()
     const combinedResult = mergeResults(handlerResult, postResult)
-    work.changes = ChangeSet.from(combinedResult.elements)
+    const { keptElements, warnings: rollupWarnings } = applyBundleRollup(
+      combinedResult.elements
+    )
+    work.changes = ChangeSet.from(keptElements)
 
     // Apply git-detected renames: resolve the `{fromPath, toPath}` pairs that
     // RepoGitDiff captured from `-M` output into (type, from, to) triples and
@@ -92,6 +96,7 @@ export default async (config: Config): Promise<Work> => {
     )
 
     pushAll(work.warnings, combinedResult.warnings)
+    pushAll(work.warnings, rollupWarnings)
 
     await new IOExecutor(config).execute([...combinedResult.copies])
     await postProcessors.executeRemaining()
