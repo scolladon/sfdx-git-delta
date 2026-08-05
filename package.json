@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "4.13.2",
+    "@oclif/core": "4.13.3",
     "@salesforce/core": "^9.1.0",
     "@salesforce/sf-plugins-core": "13.0.0",
     "@salesforce/source-deploy-retrieve": "13.0.1",
@@ -58,11 +58,11 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.6",
+    "@biomejs/biome": "2.5.7",
     "@commitlint/cli": "21.2.1",
     "@commitlint/config-conventional": "21.2.0",
     "@ls-lint/ls-lint": "2.3.1",
-    "@oclif/plugin-help": "6.2.55",
+    "@oclif/plugin-help": "6.2.56",
     "@salesforce/cli-plugins-testkit": "5.3.64",
     "@salesforce/dev-config": "4.3.3",
     "@stryker-mutator/core": "9.6.1",
@@ -87,6 +87,9 @@
     },
     "filelist": {
       "minimatch": "^10.1.2"
+    },
+    "typed-rest-client": {
+      "qs": "^6.15.3"
     }
   },
   "scripts": {
