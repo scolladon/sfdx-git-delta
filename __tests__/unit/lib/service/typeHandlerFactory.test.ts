@@ -226,6 +226,26 @@ describe('the type handler factory', () => {
       // lwc resolves via handlerMap → Lwc (InResource subtype), not InFile
       expect(sut).not.toBeInstanceOf(InFileHandler)
     })
+
+    it('Given a factory constructed inside the test body, When a type reachable only through the InFile fallback is resolved, Then it routes to InFileHandler', async () => {
+      // The outer `typeHandlerFactory` is built once in beforeAll, which
+      // Stryker's perTest coverage analysis treats as static setup — not
+      // tied to any single test — so mutants on the index-population gate
+      // (empty body / flipped adapter check) go untested against it even
+      // though the assertion below would catch them. Building the factory
+      // here, inside the test body, attributes buildInFileParentIndex's
+      // execution to this test specifically.
+      const globalMetadata: MetadataRepository = await getDefinition({})
+      const config: Config = getConfig()
+      config.apiVersion = 46
+      const freshFactory = new TypeHandlerFactory(config, globalMetadata)
+
+      const sut = await freshFactory.getTypeHandler(
+        `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
+      )
+
+      expect(sut).toBeInstanceOf(InFileHandler)
+    })
   })
 
   describe('resolveHandler child type branching (L118-L123)', () => {
