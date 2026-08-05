@@ -74,10 +74,13 @@ const BLOB_MODES = new Set(['100644', '100755', '120000'])
 // Owned by the caller (RepoGitDiff in production, one instance per sgd()
 // invocation) rather than by the cached GitAdapter singleton: two
 // concurrent sgd() calls that resolve to the same cache key (repo + to)
-// share a GitAdapter instance, so counters stored on `this` would let one
-// drain reset or overwrite another's in-flight verdict. Threading the
-// verdict through as a plain object sidesteps that entirely — each caller
-// starts its own at zero and nothing here ever mutates shared state.
+// share a GitAdapter instance, so counters — or the scope list used to
+// evaluate them — stored on `this` would let one caller's config bleed
+// into another's result (the cache key carries neither `source` nor
+// `from`). Threading both the verdict and the scope list through as plain
+// arguments sidesteps that entirely — each caller supplies its own on
+// every call and nothing here ever reads or mutates shared state for
+// either.
 export type DiffScopeVerdict = { changesSeen: number; linesYielded: number }
 
 const GITLINK_MODE = '160000'
@@ -478,7 +481,8 @@ export default class GitAdapter implements GitBlobReader {
   // subprocess numstat path does.
   @log
   public async *streamDiffLines(
-    verdict: DiffScopeVerdict = { changesSeen: 0, linesYielded: 0 }
+    verdict: DiffScopeVerdict,
+    scopes: readonly Pathspec[]
   ): AsyncGenerator<string> {
     const { changes } = await this.requestDiff()
     // git unions pathspecs (`-- . src` matches everything), so a root scope
@@ -487,19 +491,11 @@ export default class GitAdapter implements GitBlobReader {
     // (via toDiffLines) expects to reproduce that union.
     for (const change of changes) {
       verdict.changesSeen++
-      for (const line of toDiffLines(change, this.config.source)) {
+      for (const line of toDiffLines(change, scopes)) {
         verdict.linesYielded++
         yield line
       }
     }
-  }
-
-  private hasRootScope(): boolean {
-    return this.config.source.some(scope => ROOT_PATHS.has(scope))
-  }
-
-  private nonRootScopes(): Pathspec[] {
-    return this.config.source.filter(scope => !ROOT_PATHS.has(scope))
   }
 
   // Every non-root scope matched nothing in the drained diff. A path can
@@ -509,14 +505,15 @@ export default class GitAdapter implements GitBlobReader {
   // (union), so naming the non-root scopes as unmatched would be
   // misleading — suppress the verdict entirely when one is present.
   public getUnmatchedSourceScopes(
-    verdict: DiffScopeVerdict
+    verdict: DiffScopeVerdict,
+    scopes: readonly Pathspec[]
   ): readonly string[] {
-    if (this.hasRootScope()) return []
-    const scopes = this.nonRootScopes()
-    return scopes.length > 0 &&
+    if (hasRootScope(scopes)) return []
+    const unmatchable = nonRootScopes(scopes)
+    return unmatchable.length > 0 &&
       verdict.changesSeen > 0 &&
       verdict.linesYielded === 0
-      ? scopes
+      ? unmatchable
       : []
   }
 
@@ -613,14 +610,24 @@ const accumulatePointer = async (
   return Buffer.concat(parts, length)
 }
 
-const inScope = (path: string, scopes: string[]): boolean =>
+const inScope = (path: string, scopes: readonly string[]): boolean =>
   scopes.some(
     scope =>
       ROOT_PATHS.has(scope) || path === scope || path.startsWith(`${scope}/`)
   )
 
-const keepSide = (mode: string, path: string, scopes: string[]): boolean =>
+const keepSide = (
+  mode: string,
+  path: string,
+  scopes: readonly string[]
+): boolean =>
   mode !== GITLINK_MODE && (scopes.length === 0 || inScope(path, scopes))
+
+const hasRootScope = (scopes: readonly Pathspec[]): boolean =>
+  scopes.some(scope => ROOT_PATHS.has(scope))
+
+const nonRootScopes = (scopes: readonly Pathspec[]): Pathspec[] =>
+  scopes.filter(scope => !ROOT_PATHS.has(scope))
 
 // git prints rename similarity as a zero-padded three-digit percent (R087).
 const similarityPercent = (similarity: { score: number }): string =>
@@ -632,7 +639,10 @@ const similarityPercent = (similarity: { score: number }): string =>
 // parity with the subprocess `--diff-filter=AMD(R)`. A rename with only one
 // side in scope degrades to that side's A/D line, matching what the
 // subprocess pathspec does to a broken rename pair.
-function* toDiffLines(change: DiffChange, scopes: string[]): Generator<string> {
+function* toDiffLines(
+  change: DiffChange,
+  scopes: readonly string[]
+): Generator<string> {
   switch (change.type) {
     case 'add':
       if (keepSide(change.newMode, change.newPath, scopes)) {

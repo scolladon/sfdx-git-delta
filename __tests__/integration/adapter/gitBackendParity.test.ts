@@ -61,6 +61,16 @@ const drainLines = async (
   return lines.sort()
 }
 
+// streamDiffLines takes no default verdict or scope list — both are owned
+// by the caller (RepoGitDiff in production). Tests mirror that: each drain
+// gets its own fresh verdict and the scopes matching the config the sut
+// was built with.
+const streamDiff = (
+  sut: GitAdapter,
+  scopes: readonly string[]
+): Promise<string[]> =>
+  drainLines(sut.streamDiffLines({ changesSeen: 0, linesYielded: 0 }, scopes))
+
 const readAll = async (stream: Readable): Promise<Buffer> => {
   const chunks: Buffer[] = []
   for await (const chunk of stream) {
@@ -219,7 +229,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await drainLines(sut.streamDiffLines())
+      const actual = await streamDiff(sut, config.source)
 
       // Assert
       const expected = runGitLines(
@@ -251,7 +261,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await drainLines(sut.streamDiffLines())
+      const actual = await streamDiff(sut, config.source)
 
       // Assert: the whitespace-only edit to src/index.txt must drop out —
       // proof the option changes behaviour rather than the two commands
@@ -286,7 +296,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await drainLines(sut.streamDiffLines())
+      const actual = await streamDiff(sut, config.source)
 
       // Assert
       const expected = runGitLines(
@@ -347,7 +357,7 @@ describe('Given a self-contained git fixture repository', () => {
         const sut = GitAdapter.getInstance(config)
 
         // Act
-        const actual = await drainLines(sut.streamDiffLines())
+        const actual = await streamDiff(sut, config.source)
 
         // Assert
         const expected = runGitLines(
@@ -478,7 +488,7 @@ describe('Given a self-contained git fixture repository', () => {
       const actualRev = await sut.parseRev('HEAD')
       await sut.preBuildTreeIndex('HEAD', [])
       const actualFiles = (await sut.getFilesPath('', 'HEAD')).sort()
-      const actualDiff = await drainLines(sut.streamDiffLines())
+      const actualDiff = await streamDiff(sut, config.source)
 
       // Assert
       expect(actualRev).toBe(

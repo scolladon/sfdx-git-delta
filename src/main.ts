@@ -114,7 +114,11 @@ export default async (configInput: ConfigInput): Promise<Work> => {
               new MessageService().getMessage(
                 'warning.SourceDirMatchedNothing',
                 [
-                  sanitizeForMessage(unmatchedScopes.join(', ')),
+                  // Sanitize each scope before joining: the length cap in
+                  // sanitizeForMessage must apply per scope, not to the
+                  // joined aggregate, or one long scope name silently
+                  // elides every scope listed after it.
+                  unmatchedScopes.map(sanitizeForMessage).join(', '),
                   requestedFrom,
                   requestedTo,
                 ]

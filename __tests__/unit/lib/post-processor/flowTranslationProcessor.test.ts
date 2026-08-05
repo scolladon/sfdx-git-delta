@@ -864,18 +864,8 @@ describe('FlowTranslationProcessor', () => {
               expect(mockedGrepContent).toHaveBeenCalledTimes(1)
               expect(mockedGrepContent).toHaveBeenCalledWith(
                 'flowDefinitions',
-<<<<<<< HEAD
-                config.source.map((s: string) => `${s}/*.translation-meta.xml`),
-                config
-||||||| parent of 7a78326f (test(source-dir): replace self-fulfilling assertions with literal expectations)
-                work.config.source.map(
-                  (s: string) => `${s}/*.translation-meta.xml`
-                ),
-                work.config
-=======
                 ['./*.translation-meta.xml'],
-                work.config
->>>>>>> 7a78326f (test(source-dir): replace self-fulfilling assertions with literal expectations)
+                config
               )
               expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
               expect(result.copies).toHaveLength(0)
@@ -926,20 +916,8 @@ describe('FlowTranslationProcessor', () => {
                   expect(mockedGrepContent).toHaveBeenCalledTimes(1)
                   expect(mockedGrepContent).toHaveBeenCalledWith(
                     'flowDefinitions',
-<<<<<<< HEAD
-                    config.source.map(
-                      (s: string) => `${s}/*.translation-meta.xml`
-                    ),
-                    config
-||||||| parent of 7a78326f (test(source-dir): replace self-fulfilling assertions with literal expectations)
-                    work.config.source.map(
-                      (s: string) => `${s}/*.translation-meta.xml`
-                    ),
-                    work.config
-=======
                     ['./*.translation-meta.xml'],
-                    work.config
->>>>>>> 7a78326f (test(source-dir): replace self-fulfilling assertions with literal expectations)
+                    config
                   )
                   expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
                   if (generateDelta) expect(result.copies).toHaveLength(2)

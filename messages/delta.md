@@ -108,7 +108,7 @@ path to a JSON file grouping changed components by kind (add, modify, delete, re
 
 # error.SourceDirEscapesRepository
 
---source-dir must stay within the repository; '..' segments that escape it are not allowed (received: '%s')
+--source-dir does not accept '..' path segments; use a literal repository-relative path instead (received: '%s')
 
 # error.SourceDirContainsWildcard
 

@@ -602,6 +602,71 @@ describe('external library inclusion', () => {
       )
     })
 
+    it('Given RepoGitDiff reports two unmatched source scopes, When sgd runs, Then the warning message renders both scopes joined by a comma', async () => {
+      // Arrange
+      mockGetUnmatchedSourceScopes.mockReturnValueOnce(['force-app', 'other'])
+      const sut = {
+        source: ['force-app', 'other'],
+        from: 'HEAD~1',
+        to: 'HEAD',
+      } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert — both scopes must survive rendering; a join('|') or an
+      // unmatchedScopes[0]! mutant would silently drop 'other'.
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        'warning.SourceDirMatchedNothing:force-app, other,HEAD~1,HEAD'
+      )
+    })
+
+    it('Given RepoGitDiff reports an unmatched scope containing a control character, When sgd runs, Then the warning message carries the escaped form and never the raw character', async () => {
+      // Arrange
+      const scopeWithNewline = 'force-app\nPASSED'
+      mockGetUnmatchedSourceScopes.mockReturnValueOnce([scopeWithNewline])
+      const sut = {
+        source: [scopeWithNewline],
+        from: 'HEAD~1',
+        to: 'HEAD',
+      } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert — proves sanitizeForMessage is still applied at this
+      // warning site: a newline is a legal git path character that would
+      // otherwise forge an extra log line.
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        'warning.SourceDirMatchedNothing:force-app\\x0aPASSED,HEAD~1,HEAD'
+      )
+      expect(result.warnings[0]?.message).not.toContain(scopeWithNewline)
+    })
+
+    it('Given RepoGitDiff reports two unmatched scopes where the first exceeds the sanitizer length cap, When sgd runs, Then the second scope still appears in the message', async () => {
+      // Arrange — the cap must apply per scope before joining; capping
+      // the joined aggregate instead would let one long scope name elide
+      // every scope listed after it.
+      const longScope = 'a'.repeat(250)
+      mockGetUnmatchedSourceScopes.mockReturnValueOnce([longScope, 'force-app'])
+      const sut = {
+        source: [longScope, 'force-app'],
+        from: 'HEAD~1',
+        to: 'HEAD',
+      } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        `warning.SourceDirMatchedNothing:${'a'.repeat(200)}…, force-app,HEAD~1,HEAD`
+      )
+    })
+
     it('Given RepoGitDiff reports unmatched scopes but a post-processor still produced changes, When sgd runs, Then no warning is pushed', async () => {
       // Arrange — mirrors --include-file sourcing members via getFilesPath
       // independent of the diff: the run is not silently empty, so naming

@@ -7,7 +7,9 @@ import { PassThrough, Readable } from 'node:stream'
 import type { Repository } from '@scolladon/tsgit'
 import { openRepository, toSimilarityPercent } from '@scolladon/tsgit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import GitAdapter from '../../../../src/adapter/GitAdapter'
+import GitAdapter, {
+  type DiffScopeVerdict,
+} from '../../../../src/adapter/GitAdapter'
 import {
   EscalateToStreamingSignal,
   SIZE_THRESHOLD,
@@ -107,8 +109,18 @@ const collect = async <T>(source: AsyncIterable<T>): Promise<T[]> => {
   return out
 }
 
-const streamDiff = (sut: GitAdapter): Promise<string[]> =>
-  collect(sut.streamDiffLines())
+// The verdict is owned by the caller (mirroring RepoGitDiff in production),
+// not by the cached GitAdapter singleton — see the concurrency test at the
+// end of the 'Given getUnmatchedSourceScopes' block for why that matters.
+const freshVerdict = (): DiffScopeVerdict => ({
+  changesSeen: 0,
+  linesYielded: 0,
+})
+
+const streamDiff = (
+  sut: GitAdapter,
+  scopes: readonly string[] = sourceDirs('force-app')
+): Promise<string[]> => collect(sut.streamDiffLines(freshVerdict(), scopes))
 
 let fakeRepo: FakeRepo
 
@@ -1662,7 +1674,7 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await streamDiff(sut)
+      const result = await streamDiff(sut, sourceDirs('.', 'force-app'))
 
       // Assert — git unions pathspecs (`-- . src` matches everything), so
       // 'other/Unrelated.cls' stays in scope even though it is outside
@@ -1850,7 +1862,7 @@ describe('GitAdapter', () => {
         fakeRepo.diff.mockResolvedValue({ changes: [diffChange] })
 
         // Act
-        const result = await streamDiff(sut)
+        const result = await streamDiff(sut, sourceDirs(...source))
 
         // Assert
         expect(result).toEqual(expected)
@@ -1859,14 +1871,6 @@ describe('GitAdapter', () => {
   })
 
   describe('Given getUnmatchedSourceScopes', () => {
-    // The verdict is owned by the caller (mirroring RepoGitDiff in
-    // production), not by the cached GitAdapter singleton — see the
-    // concurrency test at the end of this block for why that matters.
-    const freshVerdict = (): { changesSeen: number; linesYielded: number } => ({
-      changesSeen: 0,
-      linesYielded: 0,
-    })
-
     it('Given a freshly created verdict, When getUnmatchedSourceScopes is called before any drain, Then it returns an empty array', () => {
       // Arrange
       const sut = GitAdapter.getInstance(
@@ -1874,7 +1878,9 @@ describe('GitAdapter', () => {
       )
 
       // Act & Assert
-      expect(sut.getUnmatchedSourceScopes(freshVerdict())).toEqual([])
+      expect(
+        sut.getUnmatchedSourceScopes(freshVerdict(), sourceDirs('force-app'))
+      ).toEqual([])
     })
 
     it('When changes are present but none is in scope, Then it returns the non-root scopes', async () => {
@@ -1895,10 +1901,12 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual(['force-app'])
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app'))
+      ).toEqual(['force-app'])
     })
 
     it('When at least one change is in scope, Then it returns an empty array', async () => {
@@ -1919,10 +1927,12 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app'))
+      ).toEqual([])
     })
 
     it('When there are no changes at all, Then it returns an empty array', async () => {
@@ -1934,10 +1944,12 @@ describe('GitAdapter', () => {
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app'))
+      ).toEqual([])
     })
 
     it('When the only configured scope is root, Then it returns an empty array even though no change is in scope', async () => {
@@ -1958,15 +1970,20 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(sut.streamDiffLines(verdict, sourceDirs('.')))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+      expect(sut.getUnmatchedSourceScopes(verdict, sourceDirs('.'))).toEqual([])
     })
 
     it('When configured scopes mix a root entry with an unmatched non-root entry, Then the root entry suppresses the warning', async () => {
-      // Arrange — a root scope means "everything is in scope" (union), so
-      // naming 'force-app' as unmatched would be misleading.
+      // Arrange — the change is a gitlink-only diff: keepSide filters it
+      // out via the GITLINK_MODE check regardless of scope, so
+      // linesYielded stays 0 even though the root scope would otherwise
+      // put a normal path in scope. This isolates the guard: without it,
+      // getUnmatchedSourceScopes would report 'force-app' as unmatched
+      // (changesSeen > 0, linesYielded === 0) — the guard must be the
+      // sole reason the result is [].
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('.', 'force-app') })
       )
@@ -1975,18 +1992,20 @@ describe('GitAdapter', () => {
         changes: [
           {
             type: 'add',
-            newPath: 'other/Unrelated.cls',
+            newPath: 'vendor/submodule',
             newId: 'oid',
-            newMode: '100644',
+            newMode: '160000',
           },
         ],
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(sut.streamDiffLines(verdict, sourceDirs('.', 'force-app')))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('.', 'force-app'))
+      ).toEqual([])
     })
 
     it('When two non-root scopes are configured and one of them matches, Then it returns an empty array', async () => {
@@ -2007,10 +2026,14 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(
+        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+      )
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app', 'other'))
+      ).toEqual([])
     })
 
     it('When two non-root scopes are configured and neither matches, Then it returns both scopes', async () => {
@@ -2031,13 +2054,14 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict))
+      await collect(
+        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+      )
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([
-        'force-app',
-        'other',
-      ])
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app', 'other'))
+      ).toEqual(['force-app', 'other'])
     })
 
     it('Given two independent verdicts against the same cached instance, When only one is drained, Then the other verdict is untouched', async () => {
@@ -2060,11 +2084,56 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(drainedVerdict))
+      await collect(
+        sut.streamDiffLines(drainedVerdict, sourceDirs('force-app'))
+      )
 
       // Assert
       expect(drainedVerdict).toEqual({ changesSeen: 1, linesYielded: 0 })
       expect(untouchedVerdict).toEqual({ changesSeen: 0, linesYielded: 0 })
+    })
+
+    it('Given two callers configure different source scopes but share a cached instance (same repo + to), When each drains its own verdict against its own scopes, Then getUnmatchedSourceScopes evaluates each caller against the scopes it passed in rather than the config that first created the instance', async () => {
+      // Arrange — caller A creates the cached instance with source
+      // ['force-app']; caller B resolves to the SAME cache key (repo + to
+      // only — neither source nor from is part of the key) but configures
+      // a different scope. Before the fix, GitAdapter read this.config.source
+      // internally, so caller B's evaluation would silently use caller A's
+      // scope instead of its own.
+      const sutA = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const sutB = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('other') })
+      )
+      expect(sutB).toBe(sutA)
+
+      const verdictA = freshVerdict()
+      const verdictB = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/A.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sutA.streamDiffLines(verdictA, sourceDirs('force-app')))
+      await collect(sutB.streamDiffLines(verdictB, sourceDirs('other')))
+
+      // Assert — caller A's scope matched the only change; caller B's
+      // scope ('other') never matches 'force-app/A.cls', so it must be
+      // reported as unmatched against caller B's OWN scope.
+      expect(
+        sutA.getUnmatchedSourceScopes(verdictA, sourceDirs('force-app'))
+      ).toEqual([])
+      expect(
+        sutB.getUnmatchedSourceScopes(verdictB, sourceDirs('other'))
+      ).toEqual(['other'])
     })
   })
 })
