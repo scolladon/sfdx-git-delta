@@ -2,8 +2,8 @@ import { bench, describe, vi } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
-import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
   const mockAdapter = {
