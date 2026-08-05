@@ -7,6 +7,10 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "build(github-actions)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -29,3 +33,23 @@ updates:
       - "manual-review-only"
     allow:
       - dependency-name: "@nodable/*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    versioning-strategy: increase
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@salesforce/source-deploy-retrieve"
+          - "@nodable/*"
+      development-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
