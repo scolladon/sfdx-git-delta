@@ -74,6 +74,9 @@ jobs:
       - name: Check dependencies node engines
         run: npm run lint:engine
 
+      - name: Check runtime dependencies are exact pins
+        run: npm run lint:pins
+
       - name: Audit dependencies
         run: npm audit || true
 
