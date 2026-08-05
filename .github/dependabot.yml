@@ -41,14 +41,18 @@ updates:
     versioning-strategy: increase
     commit-message:
       prefix: "build(deps)"
+    # Entry-level, not merely excluded from the group: the two entries above
+    # own these packages. Excluding them from a group would still leave this
+    # entry watching them, opening a second ungrouped pull request that
+    # dependabot-auto-merge.yml cannot tell apart from the dedicated one.
+    ignore:
+      - dependency-name: "@salesforce/source-deploy-retrieve"
+      - dependency-name: "@nodable/*"
     groups:
       production-dependencies:
         dependency-type: "production"
         patterns:
           - "*"
-        exclude-patterns:
-          - "@salesforce/source-deploy-retrieve"
-          - "@nodable/*"
       development-dependencies:
         dependency-type: "development"
         patterns:
