@@ -4,11 +4,6 @@ name: NPM Service
 on:
   release:
     types: [published]
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, closed]
-    paths-ignore:
-      - "**.md"
 
 permissions:
   contents: read
@@ -44,90 +39,8 @@ jobs:
           npm publish --provenance --access public --tag "latest-rc"
           echo "channel=sfdx-git-delta@$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
-  dev-release:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.action != 'closed' &&
-      github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    outputs:
-      channel: ${{ steps.release.outputs.channel }}
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-      - uses: ./.github/actions/install
-
-      - name: Build and pack
-        id: pack
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          npm run build
-          TARBALL=$(npm pack 2>/dev/null | tail -1)
-          FIXED_NAME="sfdx-git-delta-dev-pr-${PR_NUMBER}.tgz"
-          mv "$TARBALL" "$FIXED_NAME"
-          echo "tarball=$FIXED_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Upsert prerelease
-        id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          TARBALL: ${{ steps.pack.outputs.tarball }}
-        run: |
-          DEV_TAG="dev-pr-${PR_NUMBER}"
-
-          # Try uploading to existing release, create if it doesn't exist
-          if gh release view "$DEV_TAG" > /dev/null 2>&1; then
-            gh release upload "$DEV_TAG" "$TARBALL" --clobber
-          else
-            gh release create "$DEV_TAG" "$TARBALL" \
-              --title "Dev build for PR #${PR_NUMBER}" \
-              --notes "Automated dev build — not a real release." \
-              --prerelease
-          fi
-
-          ASSET_URL=$(gh release view "$DEV_TAG" --json assets --jq ".assets[] | select(.name == \"$TARBALL\") | .url")
-          echo "channel=$ASSET_URL" >> "$GITHUB_OUTPUT"
-
-      - name: Comment PR
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          message: |
-            Published under `dev-pr-${{ github.event.pull_request.number }}` draft release.
-            ```sh
-            sf plugins install ${{ steps.release.outputs.channel }}
-            ```
-          comment-tag: dev-publish
-          mode: recreate
-
   e2e-tests:
-    needs: [publish, dev-release]
-    if: "!cancelled() && (needs.publish.result == 'success' || needs.dev-release.result == 'success')"
+    needs: [publish]
     uses: ./.github/workflows/run-e2e-tests.yml
     with:
-      channel: ${{ needs.publish.outputs.channel || needs.dev-release.outputs.channel }}
-
-  cleanup:
-    if: >-
-      github.event.action == 'closed' &&
-      github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Delete dev prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          DEV_TAG="dev-pr-${PR_NUMBER}"
-          gh release delete "$DEV_TAG" \
-            --repo "${{ github.repository }}" \
-            --yes \
-            --cleanup-tag 2>/dev/null || echo "No release to clean up"
+      channel: ${{ needs.publish.outputs.channel }}
