@@ -152,6 +152,38 @@ describe('DecomposedHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given addition, When collectAddition, Then the element own copy from the parent call survives alongside the parent meta copy (decomposedHandler L10)', async () => {
+      // Arrange
+      config.generateDelta = true
+      const { changeType, element } = createElement(
+        line,
+        recordTypeWithParent,
+        globalMetadata
+      )
+      const sut = new DecomposedHandler(changeType, element, config)
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert — a `copies = []` regression would discard the copy
+      // super.collectAddition() already produced for the element itself,
+      // leaving only the copy _collectParentCopies appends.
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('recordTypes/Test.recordType-meta.xml')
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('Account.object-meta.xml')
+        )
+      ).toBe(true)
+    })
+
     it('Given a recordType whose parentType has no suffix, When collectAddition runs, Then _collectParentCopies returns early without pushing a parent copy (decomposedHandler L21)', async () => {
       // Arrange — recordType without parentXmlName means getParentType()
       // resolves to undefined / no-suffix; the early-return arm fires.

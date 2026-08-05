@@ -175,6 +175,42 @@ describe('applyBundleRollup', () => {
     })
   })
 
+  describe('Given a DigitalExperienceBundle with an empty member and a DigitalExperience member starting with a dot', () => {
+    it('When applied, Then the leading-dot member is dropped as covered (bundleRollup L75 dotIdx boundary)', () => {
+      // Arrange — dotIdx is 0 here (the dot is the first character), so
+      // `slice(0, dotIdx)` is `''`; only an empty-string bundle member can
+      // match it. This distinguishes `dotIdx < 0` from a mutated `<= 0`,
+      // which would return false before ever reaching the Set lookup.
+      const elements: ManifestElement[] = []
+      addPackage(elements, 'DigitalExperienceBundle', '')
+      addPackage(elements, 'DigitalExperience', '.sfdc_cms__view/home')
+
+      // Act
+      const result = applyBundleRollup(elements)
+
+      // Assert
+      expect(result.keptElements).toEqual([elements[0]])
+    })
+  })
+
+  describe('Given a dotless DigitalExperience member whose all-but-last-character prefix equals a bundle member', () => {
+    it('When applied, Then the member is kept (bundleRollup L75 guard)', () => {
+      // Arrange — no dot means indexOf(DOT) is -1; the `dotIdx < 0` guard
+      // must return false before any slice/lookup happens. Without the
+      // guard, `member.slice(0, -1)` would drop the last character and
+      // collide with the bundle member below, wrongly dropping the element.
+      const elements: ManifestElement[] = []
+      addPackage(elements, 'DigitalExperienceBundle', 'sitefoo')
+      addPackage(elements, 'DigitalExperience', 'sitefooX')
+
+      // Act
+      const result = applyBundleRollup(elements)
+
+      // Assert
+      expect(result.keptElements).toEqual(elements)
+    })
+  })
+
   describe('rollup-filter totality', () => {
     it.each([
       { label: 'empty input', corpus: [] as ManifestElement[] },

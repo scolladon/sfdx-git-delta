@@ -21,7 +21,6 @@ import {
 } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
-import { emptyOutcome } from '../../../../src/post-processor/baseProcessor'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
 import type { Config } from '../../../../src/types/config'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
@@ -97,9 +96,9 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(config, metadata)
 
       // Act & Assert
-      await expect(sut.process(new ChangeSet())).resolves.toEqual(
-        emptyOutcome()
-      )
+      await expect(sut.process(new ChangeSet())).resolves.toEqual({
+        warnings: [],
+      })
     })
   })
 
@@ -170,6 +169,15 @@ describe('FlowTranslationProcessor', () => {
       // Assert — kills getTranslationName ArrowFunction → undefined
       expect(elementsOf(result)[0].member).toBe(FR)
       expect(output).toContain(flowFullName)
+    })
+
+    it('When _collectFlowTranslations succeeds, Then result carries no warnings (kills L208 ArrayDeclaration)', async () => {
+      // Act
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
+
+      // Assert
+      expect(result.warnings).toEqual([])
     })
   })
 

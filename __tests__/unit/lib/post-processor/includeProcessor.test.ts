@@ -3,7 +3,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
-import { emptyOutcome } from '../../../../src/post-processor/baseProcessor'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
 import type { Config } from '../../../../src/types/config'
 import {
@@ -92,9 +91,9 @@ describe('IncludeProcessor', () => {
       const sut = new IncludeProcessor(config, metadata)
 
       // Act & Assert
-      await expect(sut.process(new ChangeSet())).resolves.toEqual(
-        emptyOutcome()
-      )
+      await expect(sut.process(new ChangeSet())).resolves.toEqual({
+        warnings: [],
+      })
     })
   })
 

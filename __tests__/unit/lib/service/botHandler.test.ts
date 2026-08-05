@@ -84,6 +84,38 @@ describe('BotHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given bot version addition, When collect, Then the element own copy from the parent call survives alongside the Bot file copy (botHandler L21)', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new BotHandler(changeType, element, config)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert — a `copies = []` regression would discard the copy
+      // super.collectAddition() already produced for the botVersion file
+      // itself, leaving only the Bot file copy _collectCopyWithMetaFile
+      // appends.
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('TestBot/v1.botVersion')
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('TestBot.bot')
+        )
+      ).toBe(true)
+    })
+
     it('Given bot version in nested folder, When collect, Then returns correct BotVersion and Bot manifests', async () => {
       // Arrange
       const { changeType, element } = createElement(

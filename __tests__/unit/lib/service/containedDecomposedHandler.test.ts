@@ -379,6 +379,39 @@ describe('ContainedDecomposedHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given decomposed addition, When collect, Then the element own copy from the parent call survives alongside the holder folder GitDirCopy (containedDecomposedHandler L28)', async () => {
+      // Arrange
+      const decomposedLine =
+        'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
+      const { changeType, element } = createElement(
+        decomposedLine,
+        globalMetadata.get('permissionsets')!,
+        globalMetadata
+      )
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert — a `copies = []` regression would discard the copy
+      // super.collectAddition() already produced for the element itself,
+      // leaving only the GitDirCopy _collectDirCopy appends.
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('objectSettings/Account.objectSettings-meta.xml')
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitDirCopy &&
+            c.path.includes('permissionsets/Admin')
+        )
+      ).toBe(true)
+    })
+
     it('Given non-decomposed addition, When collect, Then returns manifest and file copy without holder', async () => {
       // Arrange
       const { changeType, element } = createElement(

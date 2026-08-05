@@ -260,6 +260,24 @@ describe('ChangeSet', () => {
         new Set(['C'])
       )
     })
+
+    it('Given no renames argument, When constructing via the 1-argument form, Then the rename bucket stays empty', () => {
+      // Arrange
+      const elements: ManifestElement[] = [
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'A',
+          changeKind: ChangeKind.Add,
+        },
+      ]
+
+      // Act
+      const sut = ChangeSet.from(elements)
+
+      // Assert
+      expect(sut.byChangeKind()[ChangeKind.Rename].size).toBe(0)
+    })
   })
 
   describe('Given a type that appears in both byTarget[Package] and as a rename target', () => {
