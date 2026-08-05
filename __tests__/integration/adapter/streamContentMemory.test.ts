@@ -10,6 +10,7 @@ import {
   runGit,
   runGitText,
 } from '../../__utils__/gitTestHarness'
+import { sourceDirs } from '../../__utils__/sourceDirs'
 
 // Comfortably above SIZE_THRESHOLD (1 MiB): large enough that a
 // materialize-then-forward regression would balloon RSS by ~100 MB, but
@@ -77,7 +78,7 @@ const makeConfig = (overrides: Partial<Config>): Config => ({
   to: 'HEAD',
   from: 'HEAD',
   output: '',
-  source: ['.'],
+  source: sourceDirs('.'),
   repo: '',
   ignoreWhitespace: false,
   generateDelta: false,

@@ -30,7 +30,10 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
-import { grepContent, readPathFromGit } from '../../../../src/utils/fsHelper'
+import {
+  grepContentMatching,
+  readPathFromGit,
+} from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
@@ -38,12 +41,30 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 import { addChange, elementsOf } from '../../../__utils__/handlerResultView'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-vi.mock('../../../../src/utils/fsUtils')
+vi.mock('../../../../src/utils/fsUtils', async orig => {
+  const actual = await orig<typeof import('../../../../src/utils/fsUtils')>()
+  return {
+    fs: {
+      access: vi.fn(),
+      readFile: vi.fn(),
+      mkdir: vi.fn(),
+      writeFile: vi.fn(),
+    },
+    treatPathSep: vi.fn(),
+    sanitizePath: actual.sanitizePath,
+    isSubDir: vi.fn(),
+    isSamePath: vi.fn(),
+    pathExists: vi.fn(),
+    readFile: vi.fn(),
+    outputFile: vi.fn(),
+  }
+})
 
-const mockedGrepContent = vi.mocked(grepContent)
+const mockedGrepContent = vi.mocked(grepContentMatching)
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 const mockedIsSubDir = vi.mocked(isSubDir)
 const mockedPathExists = vi.mocked(pathExists)
@@ -610,6 +631,21 @@ describe('FlowTranslationProcessor', () => {
             expect(hasTranslationManifest(result)).toBe(false)
             expect(result.copies).toHaveLength(0)
           })
+
+          it('When config.source is a non-root "force-app/" scope, Then the pathspec carries no double slash', async () => {
+            // Arrange
+            config.source = sourceDirs('force-app/')
+
+            // Act
+            await sut.transformAndCollect(changes)
+
+            // Assert
+            expect(mockedGrepContent).toHaveBeenCalledWith(
+              'flowDefinitions',
+              ['force-app/*.translation-meta.xml'],
+              config
+            )
+          })
         })
 
         describe('when there is a translation file without flow def', () => {
@@ -626,7 +662,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
@@ -649,7 +685,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
@@ -768,7 +804,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalled()
@@ -808,7 +844,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalled()
@@ -847,7 +883,7 @@ describe('FlowTranslationProcessor', () => {
               expect(mockedGrepContent).toHaveBeenCalledTimes(1)
               expect(mockedGrepContent).toHaveBeenCalledWith(
                 'flowDefinitions',
-                config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+                ['./*.translation-meta.xml'],
                 config
               )
               expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
@@ -899,9 +935,7 @@ describe('FlowTranslationProcessor', () => {
                   expect(mockedGrepContent).toHaveBeenCalledTimes(1)
                   expect(mockedGrepContent).toHaveBeenCalledWith(
                     'flowDefinitions',
-                    config.source.map(
-                      (s: string) => `${s}/*.translation-meta.xml`
-                    ),
+                    ['./*.translation-meta.xml'],
                     config
                   )
                   expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
@@ -928,7 +962,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).not.toHaveBeenCalled()
@@ -957,7 +991,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
@@ -982,7 +1016,7 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              ['./*.translation-meta.xml'],
               config
             )
             expect(mockedReadPathFromGit).not.toHaveBeenCalled()

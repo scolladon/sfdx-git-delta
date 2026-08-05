@@ -4,7 +4,11 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
-import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
+import {
+  pathExists,
+  sanitizePath,
+  treatPathSep,
+} from '../../../../src/utils/fsUtils'
 import { Logger } from '../../../../src/utils/LoggingService'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -83,8 +87,13 @@ vi.mock('../../../../src/utils/MessageService', () => {
 vi.mock('../../../../src/utils/fsUtils')
 const mockedPathExists = vi.mocked(pathExists)
 const mockedSanitizePath = vi.mocked(sanitizePath)
+const mockedTreatPathSep = vi.mocked(treatPathSep)
 
 mockedSanitizePath.mockImplementation(data => data)
+// getWork()'s fixture source goes through sourceDirs() -> parseSourceDirs(),
+// which now calls treatPathSep directly (not just via sanitizePath) to
+// reject '..' segments before normalize() resolves them away.
+mockedTreatPathSep.mockImplementation(data => data)
 
 describe('Given a ConfigValidator', () => {
   let config: Config
@@ -983,19 +992,106 @@ describe('Given a ConfigValidator', () => {
   })
 
   describe('_sanitizeConfig completeness (L173, L175)', () => {
-    it('Given source array with multiple entries, When validateConfig, Then all sources are sanitized', async () => {
+    it('Given a config with sanitizable fields, When validateConfig, Then each field is sanitized', async () => {
       // Mutant BlockStatement {}: sanitizeConfig does nothing → config is not sanitized
-      // Mutant ArrowFunction () => undefined: source.map returns [undefined]
+      // Mutant ArrowFunction () => undefined: a mapped field returns [undefined]
       const sut = new ConfigValidator({
         ...config,
         to: 'HEAD',
         from: 'HEAD',
-        source: ['/path/a', '/path/b'],
       })
-      // sanitizePath is mocked to be identity; just verifies it is called for each source
+      // sanitizePath is mocked to be identity; just verifies it is called for each field.
+      // source is no longer sanitized here — canonicalisation now happens at
+      // the entry point via parseSourceDirs, before ConfigValidator ever runs.
       await expect(sut.validateConfig()).resolves.not.toThrow()
-      expect(mockedSanitizePath).toHaveBeenCalledWith('/path/a')
-      expect(mockedSanitizePath).toHaveBeenCalledWith('/path/b')
+      expect(mockedSanitizePath).toHaveBeenCalledWith(config.repo)
+      expect(mockedSanitizePath).toHaveBeenCalledWith(config.output)
+      expect(mockedSanitizePath).toHaveBeenCalledWith(config.changesManifest)
+    })
+  })
+
+  describe('Given a rejected --source-dir value', () => {
+    it.each([
+      { reason: 'empty', value: '', key: 'error.SourceDirIsEmpty' },
+      {
+        reason: 'magic',
+        value: ':(exclude)force-app',
+        key: 'error.SourceDirUsesPathspecMagic',
+      },
+      {
+        reason: 'wildcard',
+        value: 'force-app/**',
+        key: 'error.SourceDirContainsWildcard',
+      },
+      { reason: 'absolute', value: '/etc', key: 'error.SourceDirIsAbsolute' },
+      {
+        reason: 'escapes',
+        value: '../sibling',
+        key: 'error.SourceDirEscapesRepository',
+      },
+    ])(
+      'Given a $reason rejection for "$value", When validating, Then it rejects with $key and never reads the repository',
+      async ({ reason, value, key }) => {
+        // Arrange
+        const sut = new ConfigValidator(config, [{ value, reason }])
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'ConfigError',
+            message: expect.stringContaining(`${key}:${value}`),
+          })
+        )
+        expect(mockParseRev).not.toHaveBeenCalled()
+      }
+    )
+
+    it('Given a rejection value containing a newline, When validating, Then the message carries the escaped form and never the raw newline', async () => {
+      // Arrange
+      const controlValue = 'force-app\nPASSED'
+      const sut = new ConfigValidator(config, [
+        { value: controlValue, reason: 'empty' },
+      ])
+
+      // Act
+      const error: Error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown as Error)
+
+      // Assert
+      expect(error.message).toContain(
+        'error.SourceDirIsEmpty:force-app\\u{a}PASSED'
+      )
+      expect(error.message).not.toContain(controlValue)
+    })
+
+    it('Given two rejections at once, When validating, Then the joined message carries both keys', async () => {
+      // Arrange
+      const sut = new ConfigValidator(config, [
+        { value: 'force-app/**', reason: 'wildcard' },
+        { value: '../sibling', reason: 'escapes' },
+      ])
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringMatching(
+            /error\.SourceDirContainsWildcard.*error\.SourceDirEscapesRepository/
+          ),
+        })
+      )
+      expect(mockParseRev).not.toHaveBeenCalled()
+    })
+
+    it('Given the flag default, When validating, Then the whole repository stays in scope', async () => {
+      // Arrange — getConfig() now carries sourceDirs('./') = ['.']
+      const sut = new ConfigValidator(config, [])
+
+      // Act
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+
+      // Assert
+      expect(config.source).toEqual(['.'])
     })
   })
 

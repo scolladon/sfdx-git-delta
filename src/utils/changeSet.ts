@@ -142,6 +142,16 @@ export default class ChangeSet {
     return this._subtractByType(baseDeletes, this.forPackageManifest())
   }
 
+  // Whether either manifest view would carry at least one member — the
+  // "did this run actually produce anything" signal callers need without
+  // reaching into both views themselves.
+  isEmpty(): boolean {
+    return (
+      this.forPackageManifest().size === 0 &&
+      this.forDestructiveManifest().size === 0
+    )
+  }
+
   byChangeKind(): Readonly<{
     [ChangeKind.Add]: Manifest
     [ChangeKind.Modify]: Manifest

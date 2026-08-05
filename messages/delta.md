@@ -44,6 +44,8 @@ The folder can exist or not.
 * If the folder exists, its contents will be processed.
 * If the folder doesn't exist, it usually won't show any output—unless the folder was recently deleted and is part of a diff, in which case changes may still be picked up.
 
+Each value must be a literal repository-relative path: wildcards (`*`, `?`, `[`), git pathspec magic (`:(...)`), absolute paths, `..` and the empty string are all rejected. Matching is rooted at the repository root, so `--source-dir force-app` does not match `nested/force-app/...`.
+
 # flags.ignore.summary
 
 file listing paths to explicitly ignore for any diff actions
@@ -96,6 +98,26 @@ path to a JSON file grouping changed components by kind (add, modify, delete, re
 
 --changes-manifest: cannot inspect '%s': %s
 
+# error.SourceDirIsEmpty
+
+--source-dir does not accept an empty value; use '.' to scope the whole repository (received: '%s')
+
+# error.SourceDirIsAbsolute
+
+--source-dir must be a path relative to --repo-dir, not an absolute path (received: '%s')
+
+# error.SourceDirEscapesRepository
+
+--source-dir does not accept '..' path segments; use a literal repository-relative path instead (received: '%s')
+
+# error.SourceDirContainsWildcard
+
+--source-dir does not accept wildcards (*, ?, [); repeat --source-dir once per folder, or use --include-file/--ignore-file to filter by pattern (received: '%s')
+
+# error.SourceDirUsesPathspecMagic
+
+--source-dir does not accept git pathspec magic (e.g. ':(exclude)', ':!'); use a literal repository-relative path instead (received: '%s')
+
 # warning.ApiVersionOverridden
 
 API version '%s' is not supported, using '%s' instead
@@ -119,6 +141,10 @@ Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expec
 # warning.DigitalExperienceBundleDeletion
 
 Deleting the DigitalExperienceBundle '%s' via destructiveChanges.xml requires the related Experience site to be deactivated first for the deployment to succeed
+
+# warning.SourceDirMatchedNothing
+
+No changes found under '%s' between '%s' and '%s'
 
 # info.CommandIsRunning
 

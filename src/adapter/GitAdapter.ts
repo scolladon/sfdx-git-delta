@@ -11,12 +11,20 @@
  *                                            detectRenames, ignoreWhitespace })
  *   git archive --format=tar            -> tree walk + streamBlob
  *   git grep -l                         -> tree walk + readBlob + RegExp
+ *                                          (grepBlobs, shared by
+ *                                          grepUnderPaths and
+ *                                          grepMatchingPathspecs)
  *   git config core.*                   -> no-op (nothing to configure)
  *
- * Fidelity note: gitGrep matches with JS RegExp semantics, not POSIX basic
- * regex. Callers are expected to pass metacharacter-free literals so the two
- * semantics agree; the known pattern set is pinned by
+ * Fidelity note: grepBlobs matches content with JS RegExp semantics, not
+ * POSIX basic regex. Callers are expected to pass metacharacter-free
+ * literals so the two semantics agree; the known pattern set is pinned by
  * gitGrepPatternInventory.test.ts (new callers must extend that inventory).
+ * A second fidelity axis follows from the path-matching split: path
+ * matching is literal-prefix on grepUnderPaths' concrete-path surface and
+ * wildmatch on grepMatchingPathspecs' pattern surface — only sgd-constructed
+ * values, already validated to carry no wildcard metacharacters, reach the
+ * latter.
  */
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
@@ -29,18 +37,10 @@ import {
   type ObjectId,
   openRepository,
   type Repository,
-  toSimilarityPercent,
 } from '@scolladon/tsgit'
 
-import { TAB } from '../constant/cliConstants.js'
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
-import {
-  ADDITION,
-  DELETION,
-  HEAD,
-  MODIFICATION,
-  RENAMED,
-} from '../constant/gitConstants.js'
+import { HEAD } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import { pushAll } from '../utils/arrayUtils.js'
@@ -49,20 +49,39 @@ import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import type { Pathspec } from '../utils/pathspec.js'
 import {
   EscalateToStreamingSignal,
   type GitBlobReader,
   SIZE_THRESHOLD,
 } from './gitBlobReader.js'
+import {
+  buildLiteralMatcher,
+  buildPathspecMatcher,
+  hasRootScope,
+  inScope,
+  nonRootScopes,
+  ROOT_PATHS,
+  toDiffLines,
+} from './pathMatching.js'
 import { TreeIndex } from './treeIndex.js'
 import { mapTsgitError } from './tsgitErrorMap.js'
 
-const ROOT_PATHS = new Set(['', '.', './'])
 // walkTree yields directories and gitlinks too; only blob-bearing modes
 // belong in the path -> blob id index (ls-tree -r parity).
 const BLOB_MODES = new Set(['100644', '100755', '120000'])
 
-const GITLINK_MODE = '160000'
+// Owned by the caller (RepoGitDiff in production, one instance per sgd()
+// invocation) rather than by the cached GitAdapter singleton: two
+// concurrent sgd() calls that resolve to the same cache key (repo + to)
+// share a GitAdapter instance, so counters — or the scope list used to
+// evaluate them — stored on `this` would let one caller's config bleed
+// into another's result (the cache key carries neither `source` nor
+// `from`). Threading both the verdict and the scope list through as plain
+// arguments sidesteps that entirely — each caller supplies its own on
+// every call and nothing here ever reads or mutates shared state for
+// either.
+export type DiffScopeVerdict = { changesSeen: number; linesYielded: number }
 
 // Maps sgd's whitespace-ignoring diff request onto tsgit's data-mode
 // whitespace knobs: whitespace-only modifications drop out of the TreeDiff.
@@ -398,21 +417,47 @@ export default class GitAdapter implements GitBlobReader {
     return index.listChildren(dir)
   }
 
+  // Concrete-path surface: `path` comes straight off the repository (a git
+  // diff path run through treatPathSep, or MetadataElement.basePath) and is
+  // matched by literal directory prefix — never as a wildmatch pathspec, so
+  // a metacharacter incidentally present in a real path (e.g. an object
+  // folder named `Custom[1]__c`) can never be misread as a glob.
   @log
-  public async gitGrep(
+  public async grepUnderPaths(
     pattern: string,
     path: string | string[],
     revision: string = this.config.to
+  ): Promise<string[]> {
+    return this.grepBlobs(pattern, path, revision, buildLiteralMatcher)
+  }
+
+  // Pattern surface: `path` is an sgd-constructed pathspec (e.g.
+  // `<source>/*.translation-meta.xml`) and is matched with git pathspec
+  // wildmatch semantics (literal + glob).
+  @log
+  public async grepMatchingPathspecs(
+    pattern: string,
+    path: string | string[],
+    revision: string = this.config.to
+  ): Promise<string[]> {
+    return this.grepBlobs(pattern, path, revision, buildPathspecMatcher)
+  }
+
+  private async grepBlobs(
+    pattern: string,
+    path: string | string[],
+    revision: string,
+    buildMatcher: (specs: string[]) => (candidate: string) => boolean
   ): Promise<string[]> {
     try {
       const repo = await this.getRepo()
       const paths = Array.isArray(path) ? path : [path]
       const blobIds = await this.indexRevision(revision)
       const matcher = new RegExp(pattern)
-      const matchesPathspec = buildPathspecMatcher(paths)
+      const matchesPath = buildMatcher(paths)
       const matches: string[] = []
       for (const [filePath, blobId] of blobIds) {
-        if (!matchesPathspec(filePath)) continue
+        if (!matchesPath(filePath)) continue
         const blob = await repo.primitives.readBlob(blobId)
         if (matcher.test(Buffer.from(blob.content).toString(UTF8_ENCODING))) {
           matches.push(filePath)
@@ -421,7 +466,7 @@ export default class GitAdapter implements GitBlobReader {
       return matches
     } catch (error) {
       Logger.debug(
-        lazy`gitGrep: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
+        lazy`grepBlobs: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
       )
       return []
     }
@@ -433,12 +478,41 @@ export default class GitAdapter implements GitBlobReader {
   // whitespace options drop whitespace-only modifications the way the
   // subprocess numstat path does.
   @log
-  public async *streamDiffLines(): AsyncGenerator<string> {
+  public async *streamDiffLines(
+    verdict: DiffScopeVerdict,
+    scopes: readonly Pathspec[]
+  ): AsyncGenerator<string> {
     const { changes } = await this.requestDiff()
-    const scopes = this.config.source.filter(scope => !ROOT_PATHS.has(scope))
+    // git unions pathspecs (`-- . src` matches everything), so a root scope
+    // must not be filtered out here even when non-root scopes are also
+    // configured — the full, unfiltered source list is what `inScope`
+    // (via toDiffLines) expects to reproduce that union.
     for (const change of changes) {
-      yield* toDiffLines(change, scopes)
+      verdict.changesSeen++
+      for (const line of toDiffLines(change, scopes)) {
+        verdict.linesYielded++
+        yield line
+      }
     }
+  }
+
+  // Every non-root scope matched nothing in the drained diff. A path can
+  // match several scopes, so this is all-or-nothing rather than per-scope
+  // — per-scope attribution needs bookkeeping that buys nothing. A root
+  // scope alongside non-root ones still means "everything is in scope"
+  // (union), so naming the non-root scopes as unmatched would be
+  // misleading — suppress the verdict entirely when one is present.
+  public getUnmatchedSourceScopes(
+    verdict: DiffScopeVerdict,
+    scopes: readonly Pathspec[]
+  ): readonly string[] {
+    if (hasRootScope(scopes)) return []
+    const unmatchable = nonRootScopes(scopes)
+    return unmatchable.length > 0 &&
+      verdict.changesSeen > 0 &&
+      verdict.linesYielded === 0
+      ? unmatchable
+      : []
   }
 
   private async requestDiff(): Promise<{ changes: readonly DiffChange[] }> {
@@ -532,87 +606,4 @@ const accumulatePointer = async (
     assertWithinPointerCap(length)
   }
   return Buffer.concat(parts, length)
-}
-
-const inScope = (path: string, scopes: string[]): boolean =>
-  scopes.some(
-    scope =>
-      ROOT_PATHS.has(scope) || path === scope || path.startsWith(`${scope}/`)
-  )
-
-const keepSide = (mode: string, path: string, scopes: string[]): boolean =>
-  mode !== GITLINK_MODE && (scopes.length === 0 || inScope(path, scopes))
-
-// git prints rename similarity as a zero-padded three-digit percent (R087).
-const similarityPercent = (similarity: { score: number }): string =>
-  String(toSimilarityPercent(similarity.score)).padStart(3, '0')
-
-// The facade diff takes no pathspec, so `-- <source>` scoping is replicated
-// per side. Gitlink changes are skipped (submodule pointer moves are not
-// deployable metadata) and `type-change`/`copy` entries are dropped for
-// parity with the subprocess `--diff-filter=AMD(R)`. A rename with only one
-// side in scope degrades to that side's A/D line, matching what the
-// subprocess pathspec does to a broken rename pair.
-function* toDiffLines(change: DiffChange, scopes: string[]): Generator<string> {
-  switch (change.type) {
-    case 'add':
-      if (keepSide(change.newMode, change.newPath, scopes)) {
-        yield `${ADDITION}${TAB}${treatPathSep(change.newPath)}`
-      }
-      break
-    case 'delete':
-      if (keepSide(change.oldMode, change.oldPath, scopes)) {
-        yield `${DELETION}${TAB}${treatPathSep(change.oldPath)}`
-      }
-      break
-    case 'modify':
-      if (
-        change.oldMode !== GITLINK_MODE &&
-        keepSide(change.newMode, change.path, scopes)
-      ) {
-        yield `${MODIFICATION}${TAB}${treatPathSep(change.path)}`
-      }
-      break
-    case 'rename': {
-      const oldKept = keepSide(change.oldMode, change.oldPath, scopes)
-      const newKept = keepSide(change.newMode, change.newPath, scopes)
-      if (oldKept && newKept) {
-        yield `${RENAMED}${similarityPercent(change.similarity)}${TAB}${treatPathSep(change.oldPath)}${TAB}${treatPathSep(change.newPath)}`
-      } else if (newKept) {
-        yield `${ADDITION}${TAB}${treatPathSep(change.newPath)}`
-      } else if (oldKept) {
-        yield `${DELETION}${TAB}${treatPathSep(change.oldPath)}`
-      }
-      break
-    }
-  }
-}
-
-const GLOB_CHARS = /[*?[]/
-const REGEXP_SPECIALS = /[.+^${}()|\\\]]/g
-
-// Git pathspec semantics: a literal pathspec matches by directory prefix; a
-// pathspec containing wildcards uses wildmatch where `*` also crosses `/`
-// (no `:(glob)` magic). Callers mix both shapes (e.g. flow translations use
-// `<source>/*.translation-meta.xml`).
-const buildPathspecMatcher = (specs: string[]): ((path: string) => boolean) => {
-  // Git normalizes leading `./` (and the `.//*` shape produced by the
-  // default `./` source dir) away before matching; repo paths never carry
-  // either prefix.
-  const normalized = specs.map(spec =>
-    spec.replace(/^(\.\/)+/, '').replace(/^\/+/, '')
-  )
-  const literals = normalized.filter(spec => !GLOB_CHARS.test(spec))
-  const globs = normalized
-    .filter(spec => GLOB_CHARS.test(spec))
-    .map(spec => {
-      const escaped = spec
-        .replace(REGEXP_SPECIALS, '\\$&')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.')
-      return new RegExp(`^${escaped}$`)
-    })
-  return (path: string): boolean =>
-    (literals.length > 0 && inScope(path, literals)) ||
-    globs.some(glob => glob.test(path))
 }

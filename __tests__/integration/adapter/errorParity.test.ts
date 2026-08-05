@@ -8,6 +8,7 @@ import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
 import { treatPathSep } from '../../../src/utils/fsUtils'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
+import { sourceDirs } from '../../__utils__/sourceDirs'
 
 // A missing oid that parses as a well-formed git object id shape but never
 // resolves: tsgit rejects it with `OBJECT_NOT_FOUND: object not found:
@@ -44,7 +45,7 @@ const makeConfig = (overrides: Partial<Config>): Config => ({
   to: 'HEAD',
   from: 'HEAD',
   output: '',
-  source: ['.'],
+  source: sourceDirs('.'),
   repo: '',
   ignoreWhitespace: false,
   generateDelta: false,

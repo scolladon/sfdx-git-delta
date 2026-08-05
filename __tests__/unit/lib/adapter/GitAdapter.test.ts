@@ -7,16 +7,20 @@ import { PassThrough, Readable } from 'node:stream'
 import type { Repository } from '@scolladon/tsgit'
 import { openRepository, toSimilarityPercent } from '@scolladon/tsgit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import GitAdapter from '../../../../src/adapter/GitAdapter'
+import GitAdapter, {
+  type DiffScopeVerdict,
+} from '../../../../src/adapter/GitAdapter'
 import {
   EscalateToStreamingSignal,
   SIZE_THRESHOLD,
 } from '../../../../src/adapter/gitBlobReader'
+import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
 import {
   getLFSObjectContentPath,
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 vi.mock('@scolladon/tsgit', () => ({
   openRepository: vi.fn(),
@@ -75,7 +79,7 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD~1',
   output: '/out',
-  source: ['force-app'],
+  source: sourceDirs('force-app'),
   repo: '/repo',
   ignoreWhitespace: false,
   generateDelta: true,
@@ -105,8 +109,18 @@ const collect = async <T>(source: AsyncIterable<T>): Promise<T[]> => {
   return out
 }
 
-const streamDiff = (sut: GitAdapter): Promise<string[]> =>
-  collect(sut.streamDiffLines())
+// The verdict is owned by the caller (mirroring RepoGitDiff in production),
+// not by the cached GitAdapter singleton — see the concurrency test at the
+// end of the 'Given getUnmatchedSourceScopes' block for why that matters.
+const freshVerdict = (): DiffScopeVerdict => ({
+  changesSeen: 0,
+  linesYielded: 0,
+})
+
+const streamDiff = (
+  sut: GitAdapter,
+  scopes: readonly string[] = sourceDirs('force-app')
+): Promise<string[]> => collect(sut.streamDiffLines(freshVerdict(), scopes))
 
 let fakeRepo: FakeRepo
 
@@ -1061,7 +1075,7 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('Given gitGrep', () => {
+  describe('Given grepUnderPaths', () => {
     const setUpTree = () => {
       fakeRepo.revParse.mockResolvedValue('commit-oid')
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
@@ -1089,7 +1103,7 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual(['force-app/a.cls'])
@@ -1106,13 +1120,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
     })
 
-    it('When the pathspec is a literal, Then out-of-scope files are never read', async () => {
+    it('When the path is a literal, Then out-of-scope files are never read', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
       setUpTree()
@@ -1127,7 +1141,7 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
@@ -1140,14 +1154,14 @@ describe('GitAdapter', () => {
       fakeRepo.revParse.mockRejectedValue(new Error('grep boom'))
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
     })
   })
 
-  describe('Given gitGrep pathspec matching (buildPathspecMatcher)', () => {
+  describe('Given grepMatchingPathspecs (buildPathspecMatcher)', () => {
     const paths = [
       'force-app/foo.cls',
       'force-app/sub/bar.cls',
@@ -1183,7 +1197,7 @@ describe('GitAdapter', () => {
         const sut = GitAdapter.getInstance(makeConfig())
 
         // Act
-        const result = await sut.gitGrep('match-me', pathspec)
+        const result = await sut.grepMatchingPathspecs('match-me', pathspec)
 
         // Assert
         expect(result.sort()).toEqual([...expected].sort())
@@ -1195,7 +1209,10 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.gitGrep('match-me', ['other', 'force-app/*.cls'])
+      const result = await sut.grepMatchingPathspecs('match-me', [
+        'other',
+        'force-app/*.cls',
+      ])
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1218,7 +1235,10 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', './././force-app')
+      const result = await sut.grepMatchingPathspecs(
+        'needle',
+        './././force-app'
+      )
 
       // Assert
       expect(result).toEqual(['force-app/foo.cls'])
@@ -1239,7 +1259,7 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', '///force-app')
+      const result = await sut.grepMatchingPathspecs('needle', '///force-app')
 
       // Assert
       expect(result).toEqual(['force-app/foo.cls'])
@@ -1263,12 +1283,83 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', 'x./y')
+      const result = await sut.grepMatchingPathspecs('needle', 'x./y')
 
       // Assert — the embedded './' is left untouched (only a LEADING './'
       // is normalized), so the literal pathspec stays 'x./y'
       expect(result).toEqual(['x./y/foo.cls'])
     })
+  })
+
+  describe('Given grepUnderPaths matching a concrete path containing "["', () => {
+    it('When the path is an object folder literally named "Custom[1]__c", Then the file is matched (previously silently degraded to an empty array)', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      const bracketedPath =
+        'force-app/main/default/objects/Custom[1]__c/fields/X.field-meta.xml'
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([[bracketedPath, { mode: '100644', id: 'blob-bracket' }]])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'blob-bracket',
+        content: new Uint8Array(Buffer.from(MASTER_DETAIL_TAG)),
+      })
+
+      // Act
+      const result = await sut.grepUnderPaths(
+        MASTER_DETAIL_TAG,
+        'force-app/main/default/objects/Custom[1]__c/fields',
+        'HEAD'
+      )
+
+      // Assert
+      expect(result).toEqual([bracketedPath])
+    })
+  })
+
+  describe('Given grepUnderPaths behaviour identity for glob-free concrete paths', () => {
+    const paths = [
+      'force-app/foo.cls',
+      'force-app/sub/bar.cls',
+      'other/baz.cls',
+      'force-app-legacy/legacy.cls',
+    ]
+
+    beforeEach(() => {
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten(
+          paths.map(path => [path, { mode: '100644', id: `blob-${path}` }])
+        )
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'any',
+        content: new Uint8Array(Buffer.from('match-me')),
+      })
+    })
+
+    it.each([
+      ['other', ['other/baz.cls']],
+      ['force-app', ['force-app/foo.cls', 'force-app/sub/bar.cls']],
+      ['force-app/foo.cls', ['force-app/foo.cls']],
+    ])(
+      'When the concrete path is %s, Then the matched files are %s (same set as pathspec matching for the equivalent glob-free value, and never the prefix-colliding sibling)',
+      async (path, expected) => {
+        // Arrange
+        const sut = GitAdapter.getInstance(makeConfig())
+
+        // Act
+        const result = await sut.grepUnderPaths('match-me', path)
+
+        // Assert
+        expect(result.sort()).toEqual([...expected].sort())
+      }
+    )
   })
 
   describe('Given getFilesPath', () => {
@@ -1566,10 +1657,10 @@ describe('GitAdapter', () => {
       expect(callArgs).not.toHaveProperty('ignoreBlankLines')
     })
 
-    it('When source scopes include ROOT_PATHS entries, Then they are stripped before filtering changes', async () => {
+    it('When source scopes include a ROOT_PATHS entry alongside a non-root scope, Then the root entry unions and keeps changes outside the non-root scope', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(
-        makeConfig({ source: ['.', 'force-app'] })
+        makeConfig({ source: sourceDirs('.', 'force-app') })
       )
       fakeRepo.diff.mockResolvedValue({
         changes: [
@@ -1583,11 +1674,12 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await streamDiff(sut)
+      const result = await streamDiff(sut, sourceDirs('.', 'force-app'))
 
-      // Assert — 'other/Unrelated.cls' is out of the 'force-app' scope; if
-      // '.' were not stripped it would keep everything regardless of scope.
-      expect(result).toEqual([])
+      // Assert — git unions pathspecs (`-- . src` matches everything), so
+      // 'other/Unrelated.cls' stays in scope even though it is outside
+      // 'force-app': the root entry must not be stripped away.
+      expect(result).toEqual(['A\tother/Unrelated.cls'])
     })
 
     it('When repo.diff rejects with a raw tsgit error, Then streamDiffLines rejects with the mapped error', async () => {
@@ -1764,15 +1856,284 @@ describe('GitAdapter', () => {
       'When the diff reports %s, Then the emitted lines match',
       async (_description, diffChange, source, expected) => {
         // Arrange
-        const sut = GitAdapter.getInstance(makeConfig({ source }))
+        const sut = GitAdapter.getInstance(
+          makeConfig({ source: sourceDirs(...source) })
+        )
         fakeRepo.diff.mockResolvedValue({ changes: [diffChange] })
 
         // Act
-        const result = await streamDiff(sut)
+        const result = await streamDiff(sut, sourceDirs(...source))
 
         // Assert
         expect(result).toEqual(expected)
       }
     )
+  })
+
+  describe('Given getUnmatchedSourceScopes', () => {
+    it('Given a freshly created verdict, When getUnmatchedSourceScopes is called before any drain, Then it returns an empty array', () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+
+      // Act & Assert
+      expect(
+        sut.getUnmatchedSourceScopes(freshVerdict(), sourceDirs('force-app'))
+      ).toEqual([])
+    })
+
+    it('When changes are present but none is in scope, Then it returns the non-root scopes', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'other/Unrelated.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+
+      // Assert
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app'))
+      ).toEqual(['force-app'])
+    })
+
+    it('When at least one change is in scope, Then it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+
+      // Assert
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app'))
+      ).toEqual([])
+    })
+
+    it('When there are no changes at all, Then it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({ changes: [] })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+
+      // Assert
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app'))
+      ).toEqual([])
+    })
+
+    it('When the only configured scope is root, Then it returns an empty array even though no change is in scope', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('.') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'other/Unrelated.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict, sourceDirs('.')))
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes(verdict, sourceDirs('.'))).toEqual([])
+    })
+
+    it('When configured scopes mix a root entry with an unmatched non-root entry, Then the root entry suppresses the warning', async () => {
+      // Arrange — the change is a gitlink-only diff: keepSide filters it
+      // out via the GITLINK_MODE check regardless of scope, so
+      // linesYielded stays 0 even though the root scope would otherwise
+      // put a normal path in scope. This isolates the guard: without it,
+      // getUnmatchedSourceScopes would report 'force-app' as unmatched
+      // (changesSeen > 0, linesYielded === 0) — the guard must be the
+      // sole reason the result is [].
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('.', 'force-app') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'vendor/submodule',
+            newId: 'oid',
+            newMode: '160000',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict, sourceDirs('.', 'force-app')))
+
+      // Assert
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('.', 'force-app'))
+      ).toEqual([])
+    })
+
+    it('When two non-root scopes are configured and one of them matches, Then it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app', 'other') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(
+        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+      )
+
+      // Assert
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app', 'other'))
+      ).toEqual([])
+    })
+
+    it('When two non-root scopes are configured and neither matches, Then it returns both scopes', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app', 'other') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'unrelated/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(
+        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+      )
+
+      // Assert
+      expect(
+        sut.getUnmatchedSourceScopes(verdict, sourceDirs('force-app', 'other'))
+      ).toEqual(['force-app', 'other'])
+    })
+
+    it('Given two independent verdicts against the same cached instance, When only one is drained, Then the other verdict is untouched', async () => {
+      // Arrange — two GitAdapter.getInstance() callers with the same repo
+      // and 'to' share one cached instance; each must own its own verdict.
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const drainedVerdict = freshVerdict()
+      const untouchedVerdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'other/Unrelated.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(
+        sut.streamDiffLines(drainedVerdict, sourceDirs('force-app'))
+      )
+
+      // Assert
+      expect(drainedVerdict).toEqual({ changesSeen: 1, linesYielded: 0 })
+      expect(untouchedVerdict).toEqual({ changesSeen: 0, linesYielded: 0 })
+    })
+
+    it('Given two callers configure different source scopes but share a cached instance (same repo + to), When each drains its own verdict against its own scopes, Then getUnmatchedSourceScopes evaluates each caller against the scopes it passed in rather than the config that first created the instance', async () => {
+      // Arrange — caller A creates the cached instance with source
+      // ['force-app']; caller B resolves to the SAME cache key (repo + to
+      // only — neither source nor from is part of the key) but configures
+      // a different scope. Before the fix, GitAdapter read this.config.source
+      // internally, so caller B's evaluation would silently use caller A's
+      // scope instead of its own.
+      const sutA = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const sutB = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('other') })
+      )
+      expect(sutB).toBe(sutA)
+
+      const verdictA = freshVerdict()
+      const verdictB = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/A.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sutA.streamDiffLines(verdictA, sourceDirs('force-app')))
+      await collect(sutB.streamDiffLines(verdictB, sourceDirs('other')))
+
+      // Assert — caller A's scope matched the only change; caller B's
+      // scope ('other') never matches 'force-app/A.cls', so it must be
+      // reported as unmatched against caller B's OWN scope.
+      expect(
+        sutA.getUnmatchedSourceScopes(verdictA, sourceDirs('force-app'))
+      ).toEqual([])
+      expect(
+        sutB.getUnmatchedSourceScopes(verdictB, sourceDirs('other'))
+      ).toEqual(['other'])
+    })
   })
 })

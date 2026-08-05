@@ -1,5 +1,5 @@
 'use strict'
-import GitAdapter from '../adapter/GitAdapter.js'
+import GitAdapter, { type DiffScopeVerdict } from '../adapter/GitAdapter.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION, RENAMED } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -12,6 +12,14 @@ export type RenamePathPair = Readonly<{ fromPath: string; toPath: string }>
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
   private renamePairs: RenamePathPair[] = []
+  // The field initialiser only zeroes this once, at construction.
+  // getLines() can be called more than once on the same instance (see the
+  // renamePairs reset below), so the verdict is reset explicitly at the
+  // start of every call rather than relying on the initialiser alone.
+  private readonly diffScopeVerdict: DiffScopeVerdict = {
+    changesSeen: 0,
+    linesYielded: 0,
+  }
 
   constructor(
     protected readonly config: Config,
@@ -32,11 +40,16 @@ export default class RepoGitDiff {
    */
   public async *getLines(): AsyncGenerator<string> {
     this.renamePairs = []
+    this.diffScopeVerdict.changesSeen = 0
+    this.diffScopeVerdict.linesYielded = 0
     const ignoreHelper = await buildIgnoreHelper(this.config)
     const additionNames = new Set<string>()
     const deferredDeletions: string[] = []
 
-    for await (const rawLine of this.gitAdapter.streamDiffLines()) {
+    for await (const rawLine of this.gitAdapter.streamDiffLines(
+      this.diffScopeVerdict,
+      this.config.source
+    )) {
       for (const expanded of this._expandRename(rawLine)) {
         // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
         if (!expanded) continue
@@ -69,6 +82,13 @@ export default class RepoGitDiff {
 
   public getRenamePairs(): readonly RenamePathPair[] {
     return this.renamePairs
+  }
+
+  public getUnmatchedSourceScopes(): readonly string[] {
+    return this.gitAdapter.getUnmatchedSourceScopes(
+      this.diffScopeVerdict,
+      this.config.source
+    )
   }
 
   // git emits `R<score>\tfrom\tto` when -M detects a rename. Each rename is

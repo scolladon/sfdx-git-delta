@@ -13,6 +13,8 @@ import {
   buildFixtureRepo,
   type FixtureRefs,
   GREP_MARKER,
+  PREFIX_COLLISION_PATH,
+  REGISTRY_RECOGNISED_PATH,
   RENAME_FROM_PATH,
   RENAME_TO_PATH,
   WHITESPACE_ONLY_PATH,
@@ -24,6 +26,7 @@ import {
   runGitText,
   toFileUrl,
 } from '../../__utils__/gitTestHarness'
+import { sourceDirs } from '../../__utils__/sourceDirs'
 
 const TAR_BLOCK_SIZE = 512
 const TAR_NAME_LENGTH = 100
@@ -41,7 +44,7 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD',
   output: '',
-  source: ['.'],
+  source: sourceDirs('.'),
   repo: fixtureDir,
   ignoreWhitespace: false,
   generateDelta: false,
@@ -57,6 +60,16 @@ const drainLines = async (
   }
   return lines.sort()
 }
+
+// streamDiffLines takes no default verdict or scope list — both are owned
+// by the caller (RepoGitDiff in production). Tests mirror that: each drain
+// gets its own fresh verdict and the scopes matching the config the sut
+// was built with.
+const streamDiff = (
+  sut: GitAdapter,
+  scopes: readonly string[]
+): Promise<string[]> =>
+  drainLines(sut.streamDiffLines({ changesSeen: 0, linesYielded: 0 }, scopes))
 
 const readAll = async (stream: Readable): Promise<Buffer> => {
   const chunks: Buffer[] = []
@@ -216,7 +229,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await drainLines(sut.streamDiffLines())
+      const actual = await streamDiff(sut, config.source)
 
       // Assert
       const expected = runGitLines(
@@ -248,7 +261,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await drainLines(sut.streamDiffLines())
+      const actual = await streamDiff(sut, config.source)
 
       // Assert: the whitespace-only edit to src/index.txt must drop out —
       // proof the option changes behaviour rather than the two commands
@@ -283,7 +296,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await drainLines(sut.streamDiffLines())
+      const actual = await streamDiff(sut, config.source)
 
       // Assert
       const expected = runGitLines(
@@ -308,6 +321,62 @@ describe('Given a self-contained git fixture repository', () => {
       ).toBe(true)
       expect(actual).toEqual(expected)
     })
+  })
+
+  describe('When diffing two commits scoped by a source dir', () => {
+    // The oracle is fed the raw pathspec exactly as a user would type it;
+    // sgd is fed the canonicalised form via sourceDirs(). Their agreement
+    // is the parity claim — never write makeConfig({ source: raw }) here.
+    const rows: string[][] = [
+      ['src'],
+      ['src/'],
+      ['src//'],
+      ['./src'],
+      ['./src/'],
+      ['src/lib'],
+      ['src/./lib'],
+      ['src-legacy'],
+      ['.'],
+      ['./'],
+      ['src/index.txt'],
+      ['does-not-exist'],
+      ['src', 'docs'],
+      ['.', 'src'],
+      ['./', 'src'],
+    ]
+
+    it.each(rows.map(raw => [raw] as const))(
+      'Then streamDiffLines scoped by %j matches the git oracle for the same raw pathspec(s)',
+      async raw => {
+        // Arrange
+        const config = makeConfig({
+          from: refs.diffFrom,
+          to: refs.diffTo,
+          source: sourceDirs(...raw),
+        })
+        const sut = GitAdapter.getInstance(config)
+
+        // Act
+        const actual = await streamDiff(sut, config.source)
+
+        // Assert
+        const expected = runGitLines(
+          [
+            'diff',
+            '--no-ext-diff',
+            '--name-status',
+            '--no-renames',
+            '--diff-filter=AMD',
+            refs.diffFrom,
+            refs.diffTo,
+            '--',
+            ...raw,
+          ],
+          { cwd: fixtureDir }
+        )
+        expect(actual).toEqual(expected)
+      }
+    )
   })
 
   describe('When reading blobs', () => {
@@ -377,13 +446,13 @@ describe('Given a self-contained git fixture repository', () => {
   })
 
   describe('When grepping at a revision', () => {
-    it('Then gitGrep matches git grep -l for the same literal pattern', async () => {
+    it('Then grepUnderPaths matches git grep -l for the same literal pattern', async () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = (await sut.gitGrep(GREP_MARKER, '.', 'HEAD')).sort()
+      const actual = (await sut.grepUnderPaths(GREP_MARKER, '.', 'HEAD')).sort()
 
       // Assert
       const prefix = 'HEAD:'
@@ -419,7 +488,7 @@ describe('Given a self-contained git fixture repository', () => {
       const actualRev = await sut.parseRev('HEAD')
       await sut.preBuildTreeIndex('HEAD', [])
       const actualFiles = (await sut.getFilesPath('', 'HEAD')).sort()
-      const actualDiff = await drainLines(sut.streamDiffLines())
+      const actualDiff = await streamDiff(sut, config.source)
 
       // Assert
       expect(actualRev).toBe(
@@ -510,5 +579,19 @@ describe('Given a self-contained git fixture repository', () => {
         runGitText(['rev-list', '--max-parents=0', 'HEAD'], { cwd: shallowDir })
       )
     })
+  })
+})
+
+describe('Given the fixture repository contract', () => {
+  it('When listing the tree at HEAD, Then it carries a prefix-collision sibling and a registry-recognised file', () => {
+    // Arrange
+    const sut = runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], {
+      cwd: fixtureDir,
+    })
+
+    // Act & Assert
+    expect(sut).toEqual(
+      expect.arrayContaining([PREFIX_COLLISION_PATH, REGISTRY_RECOGNISED_PATH])
+    )
   })
 })

@@ -11,7 +11,7 @@ import {
   TO_DEFAULT_VALUE,
 } from '../../../constant/cliConstants.js'
 import sgd from '../../../main.js'
-import type { Config } from '../../../types/config.js'
+import type { ConfigInput } from '../../../types/config.js'
 import type { SgdResult } from '../../../types/sgdResult.js'
 import { log } from '../../../utils/LoggingDecorator.js'
 import { Logger } from '../../../utils/LoggingService.js'
@@ -145,7 +145,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
         ? join(flags['output-dir'], CHANGES_MANIFEST_DEFAULT_FILENAME)
         : rawChangesManifest
 
-    const config: Config = {
+    const config: ConfigInput = {
       apiVersion: parseInt(flags['api-version']!) || undefined,
       additionalMetadataRegistryPath: flags['additional-metadata-registry'],
       changesManifest,

@@ -26,7 +26,7 @@ import {
 import type ChangeSet from '../utils/changeSet.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
-import { grepContent, readPathFromGit } from '../utils/fsHelper.js'
+import { grepContentMatching, readPathFromGit } from '../utils/fsHelper.js'
 import { isSamePath, isSubDir, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, IgnoreHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -135,7 +135,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     const pathspecs = this.config.source.map(
       s => `${s}/*${EXTENSION}${METAFILE_SUFFIX}`
     )
-    const translationPaths = await grepContent(
+    const translationPaths = await grepContentMatching(
       FLOW_DEFINITIONS_KEY,
       pathspecs,
       this.config

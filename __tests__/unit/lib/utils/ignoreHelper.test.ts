@@ -22,15 +22,19 @@ import {
   buildIncludeHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
-vi.mock('../../../../src/utils/fsUtils')
+vi.mock('../../../../src/utils/fsUtils', async orig => ({
+  ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
+  readFile: vi.fn(),
+}))
 const mockedReadFile = vi.mocked(readFile)
 
 const getConfig = (): Config => ({
   to: '',
   from: '',
   output: '',
-  source: [''],
+  source: sourceDirs('.'),
   ignore: '',
   ignoreDestructive: '',
   apiVersion: 0,

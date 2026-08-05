@@ -20,6 +20,44 @@ describe('ChangeSet', () => {
       expect(byKind[ChangeKind.Delete].size).toBe(0)
       expect(byKind[ChangeKind.Rename].size).toBe(0)
     })
+
+    it('When isEmpty is read, Then it returns true', () => {
+      // Arrange
+      const sut = new ChangeSet()
+
+      // Act & Assert
+      expect(sut.isEmpty()).toBe(true)
+    })
+  })
+
+  describe('Given a ChangeSet with an added element', () => {
+    it('When isEmpty is read, Then it returns false', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'New',
+          changeKind: ChangeKind.Add,
+        },
+      ])
+
+      // Act & Assert
+      expect(sut.isEmpty()).toBe(false)
+    })
+  })
+
+  describe('Given a ChangeSet with only a recorded rename', () => {
+    it('When isEmpty is read, Then it returns false', () => {
+      // Arrange
+      const sut = ChangeSet.from(
+        [],
+        [{ type: 'ApexClass', from: 'Old', to: 'New' }]
+      )
+
+      // Act & Assert
+      expect(sut.isEmpty()).toBe(false)
+    })
   })
 
   describe('Given add and modify entries', () => {

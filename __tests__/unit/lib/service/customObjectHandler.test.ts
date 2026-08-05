@@ -9,7 +9,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
+import { grepContentUnder, pathExists } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
@@ -17,7 +17,7 @@ import { getConfig } from '../../../__utils__/testWork'
 vi.mock('../../../../src/utils/fsHelper')
 
 const mockedPathExist = vi.mocked(pathExists)
-const mockedGrepContent = vi.mocked(grepContent)
+const mockedGrepContent = vi.mocked(grepContentUnder)
 
 mockedPathExist.mockResolvedValue(true)
 mockedGrepContent.mockResolvedValue([])
@@ -175,6 +175,32 @@ describe('CustomObjectHandler', () => {
         ])
       )
       expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given object addition under an object folder literally named "Custom[1]__c", When collect, Then grepContentUnder is called with the literal fields path', async () => {
+      // Arrange — a path containing `[` used to be classified as a glob and
+      // compiled into an invalid regex; the SyntaxError was swallowed into
+      // [], so a Master-Detail field silently failed to pull its parent
+      // object into the deployment. Assert the literal grep surface, not a
+      // derived path.
+      const bracketedLine =
+        'A       force-app/main/default/objects/Custom[1]__c/Custom[1]__c.object-meta.xml'
+      const { changeType, element } = createElement(
+        bracketedLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomObjectHandler(changeType, element, config)
+
+      // Act
+      await sut.collect()
+
+      // Assert
+      expect(mockedGrepContent).toHaveBeenCalledWith(
+        MASTER_DETAIL_TAG,
+        'force-app/main/default/objects/Custom[1]__c/fields',
+        expect.anything()
+      )
     })
   })
 })

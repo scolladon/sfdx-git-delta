@@ -511,6 +511,10 @@ $ tree
 $ sf sgd source delta --from commit --source-dir force-app/unpackaged/admin --source-dir force-app/unpackaged/ui
 ```
 
+Each `--source-dir` value is a **literal** repository-relative folder (or file) path, matched from the repository root — `--source-dir force-app` matches `force-app/...` but never `nested/force-app/...`. A trailing slash or a leading `./` is accepted and canonicalised (`force-app/`, `./force-app` and `force-app` all scope the same folder).
+
+Wildcards (`*`, `?`, `[`), git pathspec magic (`:(exclude)…`, `:!…`, `:(glob)…`, …), absolute paths, `..`, and the empty string are all rejected with an error — `--source-dir` never matches a glob pattern. For pattern matching, repeat `--source-dir` once per folder, or use `--include-file [-n]` / `--ignore-file [-i]` (gitignore-spec patterns) instead.
+
 > The ignored patterns specified using `--ignore-file [-i]` and `--ignore-destructive-file [-D]` still apply.
 > The `--source-dir` path must be relative to the `--repo-dir` path
 
@@ -525,7 +529,7 @@ sf sgd source delta --from baseline --to HEAD --output-dir ./delta --generate-de
   $(jq -r '.packageDirectories[] | "--source-dir", .path' sfdx-project.json)
 ```
 
-[jq](https://jqlang.github.io/jq/) reads every `packageDirectories[].path` entry and expands it into a `--source-dir` argument.
+[jq](https://jqlang.github.io/jq/) reads every `packageDirectories[].path` entry and expands it into a `--source-dir` argument. `sfdx-project.json` package directory paths commonly carry a trailing slash (e.g. `"force-app/"`); since `--source-dir` canonicalises trailing slashes away, this recipe works unchanged whether or not your `packageDirectories[].path` entries end in `/`.
 
 > See [Scoping delta generation to specific folders](#scoping-delta-generation-to-specific-folders) for the `--source-dir` behavior.
 > Prefer `--ignore-file [-i]` when you only need to skip a few known paths (e.g. `**/.claude/**`) without coupling to `sfdx-project.json`.
@@ -604,6 +608,7 @@ const work = await sgd({
   output: '', // source package specific output. [default : "./output"]
   apiVersion: '', // salesforce API version. [default : latest]
   repo: '', // git repository location. [default : "."]
+  source: ['.'], // (required) one or more repo-relative folders to scope the diff to; '.' (or an empty array) means the whole repository
 })
 
 console.log(JSON.stringify(work))

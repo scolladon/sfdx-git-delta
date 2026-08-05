@@ -6,7 +6,7 @@ import {
   OBJECT_TYPE,
 } from '../constant/metadataConstants.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import { grepContent, pathExists } from '../utils/fsHelper.js'
+import { grepContentUnder, pathExists } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class CustomObjectHandler extends StandardHandler {
@@ -31,10 +31,10 @@ export default class CustomObjectHandler extends StandardHandler {
       FIELD_DIRECTORY_NAME
     )
     const exists = await pathExists(fieldsFolder, this.config)
-    // Stryker disable next-line ConditionalExpression -- equivalent: existence guard; flipping to false runs grepContent on a non-existent path which returns [] (gitGrep catch swallows and returns empty), so the for-loop iterates 0 times — observably the same as the early return
+    // Stryker disable next-line ConditionalExpression -- equivalent: existence guard; flipping to false runs grepContentUnder on a non-existent path which returns [] (gitGrep catch swallows and returns empty), so the for-loop iterates 0 times — observably the same as the early return
     if (!exists) return
 
-    const masterDetailsFields = await grepContent(
+    const masterDetailsFields = await grepContentUnder(
       MASTER_DETAIL_TAG,
       fieldsFolder,
       this.config

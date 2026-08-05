@@ -21,6 +21,8 @@ export const RENAME_TO_PATH = 'src/lib/nested/renamed.txt'
 export const ARCHIVE_SCOPE = 'src'
 export const EXECUTABLE_PATH = 'scripts/run.sh'
 export const SYMLINK_PATH = 'assets/link-to-index'
+export const PREFIX_COLLISION_PATH = 'src-legacy/note.txt'
+export const REGISTRY_RECOGNISED_PATH = 'src/lib/FixtureClass.cls'
 
 type FileMode = '100644' | '100755' | '120000'
 
@@ -152,14 +154,31 @@ export const buildFixtureRepo = (dir: string): FixtureRefs => {
           },
         ])
 
-  const withRealChange = makeCommit(dir, diffFrom, 'expand release notes', [
-    {
-      kind: 'add',
-      mode: '100644',
-      path: 'docs/notes.txt',
-      content: `initial notes\n${GREP_MARKER} present\n`,
-    },
-  ])
+  const withRealChange = makeCommit(
+    dir,
+    diffFrom,
+    'expand release notes and add scoping fixtures',
+    [
+      {
+        kind: 'add',
+        mode: '100644',
+        path: 'docs/notes.txt',
+        content: `initial notes\n${GREP_MARKER} present\n`,
+      },
+      {
+        kind: 'add',
+        mode: '100644',
+        path: PREFIX_COLLISION_PATH,
+        content: 'a sibling that merely shares a name prefix with src\n',
+      },
+      {
+        kind: 'add',
+        mode: '100644',
+        path: REGISTRY_RECOGNISED_PATH,
+        content: 'public class FixtureClass {}\n',
+      },
+    ]
+  )
 
   const withWhitespaceOnlyChange = makeCommit(
     dir,

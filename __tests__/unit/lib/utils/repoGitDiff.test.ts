@@ -10,18 +10,42 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Config } from '../../../../src/types/config'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 // streamDiffLines yields lines as they arrive from git. Test setup
 // translates "expected lines" into an async generator so each test
-// reads as a sequence, not a single Promise<array> resolution.
+// reads as a sequence, not a single Promise<array> resolution. It also
+// mirrors the real GitAdapter's verdict bookkeeping (one changesSeen/
+// linesYielded increment per emitted line) and records the (verdict,
+// scopes) it was called with, so tests can pin that RepoGitDiff threads
+// its own diffScopeVerdict and config.source into the adapter rather than
+// letting the adapter read either off shared state.
 const mockGetDiffLines = vi.fn<() => string[]>()
-const streamDiffLines = async function* () {
-  for (const line of mockGetDiffLines()) yield line
+const mockStreamDiffLinesCall =
+  vi.fn<
+    (
+      verdict: { changesSeen: number; linesYielded: number },
+      scopes: readonly string[]
+    ) => void
+  >()
+const streamDiffLines = async function* (
+  verdict: { changesSeen: number; linesYielded: number },
+  scopes: readonly string[]
+) {
+  mockStreamDiffLinesCall(verdict, scopes)
+  for (const line of mockGetDiffLines()) {
+    verdict.changesSeen++
+    verdict.linesYielded++
+    yield line
+  }
 }
+const mockGetUnmatchedSourceScopes =
+  vi.fn<(verdict: unknown, scopes: readonly string[]) => readonly string[]>()
 vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
     getInstance: vi.fn(() => ({
       streamDiffLines,
+      getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
     })),
   },
 }))
@@ -58,7 +82,7 @@ describe('Given a RepoGitDiff', () => {
       to: '',
       from: '',
       output: '',
-      source: [''],
+      source: sourceDirs('.'),
       ignore: '',
       ignoreDestructive: '',
       apiVersion: 0,
@@ -604,6 +628,79 @@ describe('Given a RepoGitDiff', () => {
 
       // Assert
       expect(result).toHaveLength(3)
+    })
+  })
+
+  describe('unmatched source scopes', () => {
+    it('Given GitAdapter reports unmatched source scopes, When getUnmatchedSourceScopes is called, Then it delegates to GitAdapter with the current verdict and config.source', () => {
+      // Arrange
+      config.source = sourceDirs('force-app')
+      mockGetUnmatchedSourceScopes.mockReturnValue(['force-app'])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = sut.getUnmatchedSourceScopes()
+
+      // Assert
+      expect(result).toEqual(['force-app'])
+      // GitAdapter must be told RepoGitDiff's own scope list — not left to
+      // read it off whatever config created the (possibly shared) cached
+      // instance.
+      expect(mockGetUnmatchedSourceScopes).toHaveBeenCalledWith(
+        expect.anything(),
+        sourceDirs('force-app')
+      )
+    })
+
+    it('Given a configured source, When getLines drains, Then GitAdapter.streamDiffLines is called with the instance verdict and config.source', async () => {
+      // Arrange
+      config.source = sourceDirs('force-app')
+      mockGetDiffLines.mockReturnValue([])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+
+      // Assert
+      expect(mockStreamDiffLinesCall).toHaveBeenCalledWith(
+        { changesSeen: 0, linesYielded: 0 },
+        sourceDirs('force-app')
+      )
+    })
+
+    it('Given getLines is called twice, When the first drain matches and the second drain has no changes, Then the second call reports its own (reset) verdict instead of carrying the first drain’s counts forward', async () => {
+      // Arrange — this pins the reset itself: getLines() resets
+      // renamePairs at entry already, but diffScopeVerdict was left
+      // un-reset, so a second, empty drain would silently inherit the
+      // first drain's non-zero linesYielded and getUnmatchedSourceScopes
+      // would misreport it as matched.
+      const sut = new RepoGitDiff(config, globalMetadata)
+      mockGetDiffLines.mockReturnValueOnce([
+        `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
+      ])
+      await collect(sut.getLines())
+
+      // Act — second drain sees no changes at all.
+      mockGetDiffLines.mockReturnValueOnce([])
+      await collect(sut.getLines())
+
+      // Assert — the verdict passed into GitAdapter for this second drain
+      // must start from zero, not from the first drain's { 1, 1 }.
+      const verdictOnSecondDrain =
+        mockStreamDiffLinesCall.mock.calls.at(-1)?.[0]
+      expect(verdictOnSecondDrain).toEqual({ changesSeen: 0, linesYielded: 0 })
+
+      // Assert — object identity, not just value equality. A fresh
+      // `{ changesSeen: 0, linesYielded: 0 }` literal at either call site
+      // (the streamDiffLines call above, or getUnmatchedSourceScopes below)
+      // would satisfy the toEqual assertion too, while severing the seam
+      // that lets a drained verdict ever reach the warning check.
+      // toHaveBeenCalledWith is value-equality and would not catch that —
+      // toBe is required.
+      sut.getUnmatchedSourceScopes()
+      const verdictPassedToGetUnmatchedSourceScopes =
+        mockGetUnmatchedSourceScopes.mock.calls.at(-1)?.[0]
+      expect(verdictPassedToGetUnmatchedSourceScopes).toBe(verdictOnSecondDrain)
     })
   })
 })

@@ -2,6 +2,7 @@ import { bench, describe, vi } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
+import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
@@ -12,7 +13,8 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
     getFilesPath: vi.fn().mockResolvedValue([]),
     listDirAtRevision: vi.fn().mockResolvedValue([]),
     preBuildTreeIndex: vi.fn().mockResolvedValue(undefined),
-    gitGrep: vi.fn().mockResolvedValue([]),
+    grepUnderPaths: vi.fn().mockResolvedValue([]),
+    grepMatchingPathspecs: vi.fn().mockResolvedValue([]),
   }
   return {
     default: {
@@ -25,7 +27,7 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
 const metadata = await getDefinition({})
 
 const createConfig = (): Config => ({
-  source: ['force-app/main/default'],
+  source: sourceDirs('force-app/main/default'),
   output: '/tmp/output',
   generateDelta: true,
   to: 'HEAD',
