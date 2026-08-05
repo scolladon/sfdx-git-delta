@@ -292,6 +292,7 @@
       "files": [
         "src/**/*.ts",
         "__tests__/integration/**/*.test.ts",
+        "tooling/checkExactPins.mjs",
         "**/tsconfig.json",
         "vitest.integration.config.ts"
       ],

@@ -23,6 +23,10 @@ jobs:
       # install. Explicitly bash: the default shell on the windows legs is
       # pwsh, where POSIX test syntax raises a non-terminating error and the
       # step would exit 0 - the guard would silently pass on 3 of 9 legs.
+      # The character set also requires a single, space-free spec. The
+      # producer joins multiple package URLs with a space, so a future
+      # multi-package publish is rejected here rather than silently expanding
+      # into extra install arguments.
       - name: Require a resolved channel
         shell: bash
         env:
