@@ -15,9 +15,10 @@ const renderBody = packages => {
 
   return (
     `${marker}\n\n` +
-    'Preview build for this pull request:\n\n' +
+    'Preview build for this commit:\n\n' +
     `${installLines}\n\n` +
-    'Re-run the command after each push to pick up the latest build.\n'
+    'Preview URLs are per-commit and immutable. After each push, copy the\n' +
+    'command again rather than re-running an earlier one.\n'
   )
 }
 
@@ -33,4 +34,11 @@ const report = body => {
 }
 
 const { packages } = JSON.parse(readFileSync(inputPath, 'utf-8'))
+
+if (!Array.isArray(packages)) {
+  throw new Error(
+    `${inputPath} has no packages array - the publish step wrote an unexpected shape`
+  )
+}
+
 report(renderBody(packages))
