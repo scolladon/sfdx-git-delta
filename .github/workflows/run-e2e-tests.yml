@@ -5,7 +5,7 @@ on:
     inputs:
       channel:
         type: string
-        default: latest-rc
+        required: true
 
 jobs:
   e2e-test:
@@ -17,6 +17,15 @@ jobs:
         cli: ['@salesforce/cli']
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Require a resolved channel
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          if [ -z "$CHANNEL" ]; then
+            echo "::error::channel input is empty - refusing to run e2e against an unspecified build"
+            exit 1
+          fi
+
       - name: Checkout sources
         uses: actions/checkout@v7
         with:
