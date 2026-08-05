@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785614512482,
+  "lastUpdate": 1785934256795,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -8203,6 +8203,282 @@ window.BENCHMARK_DATA = {
             "name": "writeXmlDocument-largeProfile",
             "value": 6.1301,
             "range": "±6.41%",
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0c0f4db8bb2d8a449aeaef3c6bf3ed76de399bbb",
+          "message": "refactor: make metadata handlers pure (#1372)",
+          "timestamp": "2026-08-05T14:46:23+02:00",
+          "tree_id": "0ccd5589bc44f4c41641ed3773334b9c48bad95f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/0c0f4db8bb2d8a449aeaef3c6bf3ed76de399bbb"
+        },
+        "date": 1785934256760,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "shallow-equal",
+            "value": 0.0003,
+            "range": "±0.19%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 0.0003,
+            "range": "±0.11%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-equal",
+            "value": 0.0022,
+            "range": "±0.17%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 0.001,
+            "range": "±0.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 0.0229,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 0.0015,
+            "range": "±0.43%",
+            "unit": "ms"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 0.0001,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseRev-HEAD~20-and-HEAD",
+            "value": 1.6333,
+            "range": "±1.80%",
+            "unit": "ms"
+          },
+          {
+            "name": "streamDiffLines-HEAD~20..HEAD",
+            "value": 2.755,
+            "range": "±2.80%",
+            "unit": "ms"
+          },
+          {
+            "name": "getBufferContent-HEAD~20-and-HEAD",
+            "value": 0.0363,
+            "range": "±2.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "preBuildTreeIndex-HEAD-cold",
+            "value": 14.932,
+            "range": "±8.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.2911,
+            "range": "±2.60%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 1.3948,
+            "range": "±6.91%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 4.718,
+            "range": "±2.00%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.1416,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 0.0003,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 0.0003,
+            "range": "±0.11%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 0.0175,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 0.0023,
+            "range": "±0.10%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 0.0023,
+            "range": "±0.11%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 0.1165,
+            "range": "±5.19%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 0.0125,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 0.0126,
+            "range": "±0.13%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 0.4643,
+            "range": "±0.32%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.0523,
+            "range": "±0.34%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0014,
+            "range": "±0.33%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.1741,
+            "range": "±0.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.0096,
+            "range": "±0.25%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 0.5437,
+            "range": "±0.31%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0405,
+            "range": "±0.32%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 0.0526,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 0.0595,
+            "range": "±0.43%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 0.058,
+            "range": "±0.33%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 0.7788,
+            "range": "±0.98%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 0.8165,
+            "range": "±0.40%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 0.8115,
+            "range": "±0.31%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 8.3831,
+            "range": "±4.35%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 8.1608,
+            "range": "±0.27%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 8.0656,
+            "range": "±0.27%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 0.0487,
+            "range": "±3.43%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 0.5606,
+            "range": "±1.87%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 6.0308,
+            "range": "±6.54%",
             "unit": "ms"
           }
         ]
