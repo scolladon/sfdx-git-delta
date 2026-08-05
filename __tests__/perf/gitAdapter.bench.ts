@@ -2,6 +2,7 @@ import { afterAll, bench, describe } from 'vitest'
 import GitAdapter from '../../src/adapter/GitAdapter.js'
 import type { Config } from '../../src/types/config.js'
 import type { FileGitRef } from '../../src/types/git.js'
+import { sourceDirs } from '../__utils__/sourceDirs.js'
 
 // Regression bench over the sgd repo's OWN history (HEAD~20..HEAD): a
 // lightweight per-run sanity check that a future @scolladon/tsgit upgrade
@@ -30,7 +31,7 @@ const baseConfig: Config = {
   to: TO,
   from: FROM,
   output: '',
-  source: ['.'],
+  source: sourceDirs('.'),
   repo: REPO_ROOT,
   ignoreWhitespace: false,
   generateDelta: false,

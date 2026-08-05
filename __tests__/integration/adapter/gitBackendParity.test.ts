@@ -26,6 +26,7 @@ import {
   runGitText,
   toFileUrl,
 } from '../../__utils__/gitTestHarness'
+import { sourceDirs } from '../../__utils__/sourceDirs'
 
 const TAR_BLOCK_SIZE = 512
 const TAR_NAME_LENGTH = 100
@@ -43,7 +44,7 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD',
   output: '',
-  source: ['.'],
+  source: sourceDirs('.'),
   repo: fixtureDir,
   ignoreWhitespace: false,
   generateDelta: false,

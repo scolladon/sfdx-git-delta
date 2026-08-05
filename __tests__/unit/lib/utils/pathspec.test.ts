@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseSourceDirs } from '../../../../src/utils/pathspec'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 describe('Given a raw --source-dir value', () => {
   const sut = parseSourceDirs
@@ -153,6 +154,27 @@ describe('Given a list of raw --source-dir values', () => {
         pathspecs: ['force-app'],
         rejections: [{ value: 'force-app/**', reason: 'wildcard' }],
       })
+    })
+  })
+})
+
+describe('Given the sourceDirs test helper', () => {
+  const sut = sourceDirs
+
+  describe('When a fixture arranges a rejected value', () => {
+    it('Then it throws naming the value and the reason', () => {
+      // Act & Assert
+      expect(() => sut('force-app/**')).toThrow(/force-app\/\*\*.*wildcard/)
+    })
+  })
+
+  describe('When a fixture arranges a trailing slash', () => {
+    it('Then it yields the canonical value', () => {
+      // Act
+      const result = sut('force-app/')
+
+      // Assert
+      expect(result).toEqual(['force-app'])
     })
   })
 })

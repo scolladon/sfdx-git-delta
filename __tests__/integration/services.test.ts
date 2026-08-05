@@ -13,6 +13,7 @@ import type { Config } from '../../src/types/config'
 import { ManifestTarget } from '../../src/types/handlerResult'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 import { elementsOf } from '../__utils__/handlerResultView'
+import { sourceDirs } from '../__utils__/sourceDirs'
 
 vi.mock('../../src/utils/fsHelper')
 
@@ -577,7 +578,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   config = {
     output: '',
-    source: [''],
+    source: sourceDirs('.'),
     repo: '',
     generateDelta: true,
     to: '',

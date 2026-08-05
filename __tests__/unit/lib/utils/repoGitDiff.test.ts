@@ -10,6 +10,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Config } from '../../../../src/types/config'
 import RepoGitDiff from '../../../../src/utils/repoGitDiff'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 // streamDiffLines yields lines as they arrive from git. Test setup
 // translates "expected lines" into an async generator so each test
@@ -58,7 +59,7 @@ describe('Given a RepoGitDiff', () => {
       to: '',
       from: '',
       output: '',
-      source: [''],
+      source: sourceDirs('.'),
       ignore: '',
       ignoreDestructive: '',
       apiVersion: 0,

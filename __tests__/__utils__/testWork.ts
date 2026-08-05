@@ -2,9 +2,10 @@
 import type { Config } from '../../src/types/config'
 import type { Work } from '../../src/types/work'
 import ChangeSet from '../../src/utils/changeSet'
+import { sourceDirs } from './sourceDirs'
 
 export const getConfig = (): Config => ({
-  source: ['./'],
+  source: sourceDirs('./'),
   output: 'output',
   generateDelta: true,
   to: '',

@@ -17,6 +17,7 @@ import {
   getLFSObjectContentPath,
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 vi.mock('@scolladon/tsgit', () => ({
   openRepository: vi.fn(),
@@ -75,7 +76,7 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD~1',
   output: '/out',
-  source: ['force-app'],
+  source: sourceDirs('force-app'),
   repo: '/repo',
   ignoreWhitespace: false,
   generateDelta: true,
@@ -1569,7 +1570,7 @@ describe('GitAdapter', () => {
     it('When source scopes include ROOT_PATHS entries, Then they are stripped before filtering changes', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(
-        makeConfig({ source: ['.', 'force-app'] })
+        makeConfig({ source: sourceDirs('.', 'force-app') })
       )
       fakeRepo.diff.mockResolvedValue({
         changes: [
@@ -1764,7 +1765,9 @@ describe('GitAdapter', () => {
       'When the diff reports %s, Then the emitted lines match',
       async (_description, diffChange, source, expected) => {
         // Arrange
-        const sut = GitAdapter.getInstance(makeConfig({ source }))
+        const sut = GitAdapter.getInstance(
+          makeConfig({ source: sourceDirs(...source) })
+        )
         fakeRepo.diff.mockResolvedValue({ changes: [diffChange] })
 
         // Act

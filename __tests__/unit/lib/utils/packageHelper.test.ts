@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import type { Config } from '../../../../src/types/config'
 import type { Manifest } from '../../../../src/types/work'
 import PackageBuilder from '../../../../src/utils/packageHelper'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 const buildToString = async (
   builder: PackageBuilder,
@@ -24,7 +25,7 @@ const config: Config = {
   to: '',
   from: '',
   output: '',
-  source: [''],
+  source: sourceDirs('.'),
   ignore: '',
   ignoreDestructive: '',
   repo: '',

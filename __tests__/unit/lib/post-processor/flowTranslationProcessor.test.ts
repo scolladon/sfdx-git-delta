@@ -41,7 +41,24 @@ import { addChange, elementsOf } from '../../../__utils__/handlerResultView'
 import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-vi.mock('../../../../src/utils/fsUtils')
+vi.mock('../../../../src/utils/fsUtils', async orig => {
+  const actual = await orig<typeof import('../../../../src/utils/fsUtils')>()
+  return {
+    fs: {
+      access: vi.fn(),
+      readFile: vi.fn(),
+      mkdir: vi.fn(),
+      writeFile: vi.fn(),
+    },
+    treatPathSep: vi.fn(),
+    sanitizePath: actual.sanitizePath,
+    isSubDir: vi.fn(),
+    isSamePath: vi.fn(),
+    pathExists: vi.fn(),
+    readFile: vi.fn(),
+    outputFile: vi.fn(),
+  }
+})
 
 const mockedGrepContent = vi.mocked(grepContent)
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)

@@ -3,6 +3,7 @@ import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
+import { sourceDirs } from '../__utils__/sourceDirs.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
   const mockAdapter = {
@@ -25,7 +26,7 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
 const metadata = await getDefinition({})
 
 const createConfig = (): Config => ({
-  source: ['force-app/main/default'],
+  source: sourceDirs('force-app/main/default'),
   output: '/tmp/output',
   generateDelta: true,
   to: 'HEAD',
