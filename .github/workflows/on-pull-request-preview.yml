@@ -1,4 +1,15 @@
 ---
+# Publishes a per-commit preview build and runs the e2e matrix against it.
+#
+# Two out-of-repo settings this workflow depends on. Neither is expressible in
+# a workflow file, and changing either changes a security property:
+#   1. The pkg.pr.new GitHub App must be installed on this repository, or the
+#      preview step fails with a 404.
+#   2. "Fork pull request workflows from outside collaborators" must require
+#      approval for ALL outside collaborators. A fork's build is published
+#      under this project's name, and that setting is the only control on it -
+#      the GitHub default gates first-time contributors only, so a returning
+#      contributor would otherwise publish unattended.
 name: PR Preview
 
 on:
@@ -21,12 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     outputs:
       channel: ${{ steps.publish.outputs.urls }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup node
         uses: actions/setup-node@v7
@@ -43,8 +55,28 @@ jobs:
       - name: Report install command
         run: npm run preview:report
 
+      - name: Upload install command
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview-comment
+          path: preview-comment.md
+          retention-days: 1
+
+  # Separate job on purpose: a failed comment upsert must not skip the e2e
+  # matrix. Both jobs fan out from preview, so e2e depends on the build alone.
+  comment:
+    needs: [preview]
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download install command
+        uses: actions/download-artifact@v7
+        with:
+          name: preview-comment
+
       - name: Comment install command
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         uses: actions/github-script@v9
         with:
           script: |
@@ -57,7 +89,9 @@ jobs:
               github.rest.issues.listComments,
               { owner, repo, issue_number }
             )
-            const existing = comments.find(c => (c.body ?? '').startsWith(marker))
+            const existing = comments.find(
+              c => c.user?.type === 'Bot' && (c.body ?? '').startsWith(marker)
+            )
             if (existing) {
               await github.rest.issues.updateComment({
                 owner,

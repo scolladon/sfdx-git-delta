@@ -9,6 +9,8 @@ on:
 
 jobs:
   e2e-test:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -17,7 +19,12 @@ jobs:
         cli: ['@salesforce/cli']
     runs-on: ${{ matrix.os }}
     steps:
+      # Runs before any other step so an unusable channel never reaches an
+      # install. Explicitly bash: the default shell on the windows legs is
+      # pwsh, where POSIX test syntax raises a non-terminating error and the
+      # step would exit 0 - the guard would silently pass on 3 of 9 legs.
       - name: Require a resolved channel
+        shell: bash
         env:
           CHANNEL: ${{ inputs.channel }}
         run: |
@@ -25,6 +32,16 @@ jobs:
             echo "::error::channel input is empty - refusing to run e2e against an unspecified build"
             exit 1
           fi
+          case "$CHANNEL" in
+            *@)
+              echo "::error::channel has an empty version spec: $CHANNEL"
+              exit 1
+              ;;
+            *[!A-Za-z0-9@:/._-]*)
+              echo "::error::channel contains unexpected characters: $CHANNEL"
+              exit 1
+              ;;
+          esac
 
       - name: Checkout sources
         uses: actions/checkout@v7
