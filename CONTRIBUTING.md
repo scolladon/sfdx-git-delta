@@ -389,22 +389,22 @@ The plugin uses [sf CLI parameters convention](https://github.com/salesforcecli/
 
 ## Testing the plugin from a pull request
 
-Dev builds are no longer published to the npm registry. Each open PR gets a dedicated GitHub prerelease (`dev-pr-<number>`) with a signed tarball attached, and the `dev-release` CI job posts a comment on the PR with the exact install command.
+Every push to an open pull request publishes an immutable preview build to [pkg.pr.new](https://pkg.pr.new). Previews are addressed by commit, not by pull request: each push produces a new URL, so re-read the install command after every push instead of re-running the one from a previous commit. There is no cleanup step on close — previews are immutable and expire upstream on their own.
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
-1. Scroll the PR comments for the one titled `Published under dev-pr-<N> draft release.` (posted by `github-actions[bot]`).
-2. Copy the command from that comment — it looks like:
+1. Find the install command. It is published on two surfaces:
+   - the `preview` job's step summary, always written and readable even for pull requests from
+     a fork — a fork's token is read-only, so this is the surface fork contributors must use;
+   - a comment from `github-actions[bot]`, posted only for pull requests from a branch of this
+     repository.
+2. Run the command — it looks like:
 
    ```sh
-   sf plugins install https://github.com/scolladon/sfdx-git-delta/releases/download/dev-pr-<N>/sfdx-git-delta-dev-pr-<N>.tgz
+   sf plugins install https://pkg.pr.new/sfdx-git-delta@abc1234
    ```
 
-   `sf plugins install` accepts either an npm spec or a tarball URL; here we pass the URL to the prerelease asset directly.
-3. Run the command. The tarball is re-uploaded on every push to the PR, so `install` again after a new commit to pick up the latest build.
-4. Test the plugin!
-
-When the PR is closed, the `cleanup` job deletes the prerelease and its tarball — any installs done against that URL need to be refreshed against a new PR.
+3. Test the plugin!
 
 ## How to modify npm tags
 
