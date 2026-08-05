@@ -11,14 +11,19 @@ import {
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { HandlerResult } from '../types/handlerResult.js'
+import type { Config } from '../types/config.js'
+import type {
+  CopyOperation,
+  HandlerResult,
+  ManifestElement,
+} from '../types/handlerResult.js'
 import {
   ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { grepContent, readPathFromGit } from '../utils/fsHelper.js'
@@ -31,7 +36,10 @@ import {
 } from '../utils/metadataDiff/xmlEventReader.js'
 import { writeXmlDocument } from '../utils/metadataDiff/xmlWriter.js'
 import type { XmlContent } from '../utils/xmlHelper.js'
-import BaseProcessor from './baseProcessor.js'
+import BaseProcessor, {
+  emptyOutcome,
+  type ProcessorOutcome,
+} from './baseProcessor.js'
 
 const TRANSLATIONS_ROOT_KEY = 'Translations'
 const TRANSLATIONS_NAMESPACE = 'http://soap.sforce.com/2006/04/metadata'
@@ -83,8 +91,8 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   protected isOutputEqualsToRepo: boolean | undefined
   protected packagedFlows: Set<string> = new Set()
 
-  constructor(work: Work, metadata: MetadataRepository) {
-    super(work, metadata)
+  constructor(config: Config, metadata: MetadataRepository) {
+    super(config, metadata)
     this.translations = new Map()
   }
 
@@ -93,27 +101,32 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   @log
-  public override async process() {
+  public override async process(
+    _changes: ChangeSet
+  ): Promise<ProcessorOutcome> {
     // No-op: FlowTranslationProcessor is handled via transformAndCollect()
+    return emptyOutcome()
   }
 
-  public override async transformAndCollect(): Promise<HandlerResult> {
+  public override async transformAndCollect(
+    changes: ChangeSet
+  ): Promise<HandlerResult> {
     // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: the processor short-circuits when there are no flow translations to emit; flipping to false continues into _buildFlowDefinitionsMap which gates again on the same condition via packaged === undefined and returns from there, producing the same empty result
-    if (!this._shouldProcess()) {
+    if (!this._shouldProcess(changes)) {
       return emptyResult()
     }
 
-    await this._buildFlowDefinitionsMap()
+    await this._buildFlowDefinitionsMap(changes)
     return await this._collectFlowTranslations()
   }
 
-  async _buildFlowDefinitionsMap() {
+  async _buildFlowDefinitionsMap(changes: ChangeSet) {
     this.translations.clear()
     // Cache the package-flow set once per process() invocation — avoids
     // re-computing the union-view of ChangeSet for every parsed flow.
     // _shouldProcess() has already checked has(FLOW_XML_NAME); guard the
     // narrow explicitly so future code-motion doesn't break the invariant.
-    const packaged = this.work.changes.forPackageManifest().get(FLOW_XML_NAME)
+    const packaged = changes.forPackageManifest().get(FLOW_XML_NAME)
     // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the gate is unreachable when _shouldProcess passes, which is the precondition for being here
     /* v8 ignore next -- defensive: _shouldProcess() already gates on FLOW_XML_NAME presence, so packaged is always defined here */
     if (packaged === undefined) return
@@ -125,7 +138,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     const translationPaths = await grepContent(
       FLOW_DEFINITIONS_KEY,
       pathspecs,
-      this.work.config
+      this.config
     )
 
     // Eager-init ignoreHelper + isOutputEqualsToRepo BEFORE the parallel
@@ -165,10 +178,11 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   protected async _collectFlowTranslations(): Promise<HandlerResult> {
-    const result = emptyResult()
+    const elements: ManifestElement[] = []
+    const copies: CopyOperation[] = []
 
     for (const translationPath of this.translations.keys()) {
-      result.changes.addElement({
+      elements.push({
         target: ManifestTarget.Package,
         type: TRANSLATION_TYPE,
         member: getTranslationName(translationPath),
@@ -177,7 +191,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       if (this.config.generateDelta) {
         const merge = await this._mergeTranslationWithOutput(translationPath)
         this._mergeActualFlows(merge, this.translations.get(translationPath)!)
-        result.copies.push({
+        copies.push({
           kind: CopyOperationKind.StreamedContent,
           path: translationPath,
           writer: async (out: Writable) => {
@@ -191,7 +205,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       }
     }
 
-    return result
+    return { elements, copies, warnings: [] }
   }
 
   /**
@@ -307,7 +321,7 @@ export default class FlowTranslationProcessor extends BaseProcessor {
     list.push(flowDefinition)
   }
 
-  protected _shouldProcess() {
-    return this.work.changes.forPackageManifest().has(FLOW_XML_NAME)
+  protected _shouldProcess(changes: ChangeSet) {
+    return changes.forPackageManifest().has(FLOW_XML_NAME)
   }
 }

@@ -4,14 +4,15 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BotHandler from '../../../../src/service/botHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import { Metadata } from '../../../../src/types/metadata'
-import type { Work } from '../../../../src/types/work'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -33,10 +34,10 @@ const objectType: Metadata = {
 const line =
   'A       force-app/main/default/bots/TestBot/v1.botVersion-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('BotHandler', () => {
@@ -53,13 +54,13 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(changeType, element, work)
+      const sut = new BotHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -83,6 +84,38 @@ describe('BotHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given bot version addition, When collect, Then the element own copy from the parent call survives alongside the Bot file copy (botHandler L21)', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new BotHandler(changeType, element, config)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert — a `copies = []` regression would discard the copy
+      // super.collectAddition() already produced for the botVersion file
+      // itself, leaving only the Bot file copy _collectCopyWithMetaFile
+      // appends.
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('TestBot/v1.botVersion')
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('TestBot.bot')
+        )
+      ).toBe(true)
+    })
+
     it('Given bot version in nested folder, When collect, Then returns correct BotVersion and Bot manifests', async () => {
       // Arrange
       const { changeType, element } = createElement(
@@ -90,13 +123,13 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(changeType, element, work)
+      const sut = new BotHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -119,13 +152,13 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(changeType, element, work)
+      const sut = new BotHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

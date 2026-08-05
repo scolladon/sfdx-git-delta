@@ -1,7 +1,7 @@
 import { bench, describe, vi } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
-import type { Work } from '../../src/types/work.js'
+import type { Config } from '../../src/types/config.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
@@ -24,26 +24,19 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
 
 const metadata = await getDefinition({})
 
-const createWork = (): Work => ({
-  diffs: {
-    package: new Map(),
-    destructiveChanges: new Map(),
-  },
-  config: {
-    source: ['force-app/main/default'],
-    output: '/tmp/output',
-    generateDelta: true,
-    to: 'HEAD',
-    from: 'HEAD~1',
-    ignore: '',
-    ignoreDestructive: '',
-    apiVersion: -1,
-    repo: '.',
-    ignoreWhitespace: false,
-    include: '',
-    includeDestructive: '',
-  },
-  warnings: [],
+const createConfig = (): Config => ({
+  source: ['force-app/main/default'],
+  output: '/tmp/output',
+  generateDelta: true,
+  to: 'HEAD',
+  from: 'HEAD~1',
+  ignore: '',
+  ignoreDestructive: '',
+  apiVersion: -1,
+  repo: '.',
+  ignoreWhitespace: false,
+  include: '',
+  includeDestructive: '',
 })
 
 const sizes = ['small', 'medium', 'large'] as const
@@ -53,8 +46,8 @@ for (const size of sizes) {
 
   describe(`pipeline-handler-${size}`, () => {
     bench(`pipeline-handler-dispatch-${size}`, async () => {
-      const work = createWork()
-      const interpreter = new DiffLineInterpreter(work, metadata)
+      const config = createConfig()
+      const interpreter = new DiffLineInterpreter(config, metadata)
       await interpreter.process(lines)
     })
   })

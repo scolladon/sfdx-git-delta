@@ -1,12 +1,6 @@
 'use strict'
 import type { Writable } from 'node:stream'
 
-// Use a type-only import to keep this module purely declarative; the
-// runtime constructors emptyResult/mergeResults live in changeSet.ts to
-// avoid the circular dep that would arise from a value-side ChangeSet
-// import here (changeSet.ts already imports the enums below).
-import type ChangeSet from '../utils/changeSet.js'
-
 export enum ManifestTarget {
   Package = 'package',
   DestructiveChanges = 'destructiveChanges',
@@ -21,7 +15,7 @@ export enum ChangeKind {
 
 // Handlers can only produce single-component change kinds — rename carries a
 // (from, to) pair that the flat ManifestElement shape can't represent, so it
-// is captured separately via ChangeSet.recordRename.
+// is captured separately via ChangeSet.from's renames channel.
 export type AddKind = ChangeKind.Add | ChangeKind.Modify | ChangeKind.Delete
 
 export enum CopyOperationKind {
@@ -60,20 +54,28 @@ export type CopyOperation =
   | GitDirCopyOperation
   | StreamedContentOperation
 
-// Handlers and collectors emit a HandlerResult shaped around a ChangeSet
-// instead of a flat ManifestElement[] list. The wire format is now the
-// same as the storage format used downstream by ChangeSet.forPackageManifest
-// / forDestructiveManifest, removing the dual representation that used to
-// live as `manifests: ManifestElement[]` + `work.changes: ChangeSet`.
-//
-// `emptyResult` and `mergeResults` are exported from changeSet.ts (re-exported
-// here for backward compatibility); they live there because they construct
-// ChangeSet instances at runtime, which would otherwise cycle through this
-// module's enum imports.
-export type HandlerResult = {
-  changes: ChangeSet
-  copies: CopyOperation[]
-  warnings: Error[]
-}
+// Handlers and collectors emit a HandlerResult describing only what they
+// themselves contributed: a flat, readonly sequence of manifest elements,
+// never a container shared with anyone else. `ChangeSet.from`
+// is the single construction path that folds this wire format into the
+// indexed read model consumed downstream by forPackageManifest /
+// forDestructiveManifest.
+export type HandlerResult = Readonly<{
+  elements: readonly ManifestElement[]
+  copies: readonly CopyOperation[]
+  warnings: readonly Error[]
+}>
 
-export { emptyResult, mergeResults } from '../utils/changeSet.js'
+export const emptyResult = (): HandlerResult => ({
+  elements: [],
+  copies: [],
+  warnings: [],
+})
+
+export const mergeResults = (
+  ...results: readonly HandlerResult[]
+): HandlerResult => ({
+  elements: results.flatMap(r => r.elements),
+  copies: results.flatMap(r => r.copies),
+  warnings: results.flatMap(r => r.warnings),
+})

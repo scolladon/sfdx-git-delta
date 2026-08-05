@@ -2,40 +2,33 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { HandlerResult } from '../types/handlerResult.js'
+import type { Config } from '../types/config.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
-import type ChangeSet from '../utils/changeSet.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import InFolderHandler from './inFolderHandler.js'
 
 export default class ReportingFolderHandler extends InFolderHandler {
   protected readonly resolvedType: string | undefined
 
-  constructor(changeType: string, element: MetadataElement, work: Work) {
-    super(changeType, element, work)
+  constructor(changeType: string, element: MetadataElement, config: Config) {
+    super(changeType, element, config)
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 
   /* jscpd:ignore-start */
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  public override async collectAddition(): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
-    return await super.collectAddition(sink)
+    return await super.collectAddition()
   }
 
-  public override async collectDeletion(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  public override async collectDeletion(): Promise<HandlerResult> {
     if (!this.resolvedType) return emptyResult()
-    return await super.collectDeletion(sink)
+    return await super.collectDeletion()
   }
   /* jscpd:ignore-end */
 
-  protected override _collectFolderMetaCopies(
-    copies: import('../types/handlerResult.js').CopyOperation[]
-  ): void {
+  protected override _collectFolderMetaCopies(copies: CopyOperation[]): void {
     const folderPath = this.element.typeDirectoryPath
     const folderName = this.element.pathAfterType[0]
     const folderFileName = `${folderName}${METAFILE_SUFFIX}`

@@ -3,31 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
-import type {
-  CopyOperation,
-  HandlerResult,
-  ManifestElement,
-} from '../../src/types/handlerResult'
+import type { HandlerResult } from '../../src/types/handlerResult'
 import {
   ChangeKind,
   CopyOperationKind,
   emptyResult,
   ManifestTarget,
 } from '../../src/types/handlerResult'
-import ChangeSet from '../../src/utils/changeSet'
-
-// Test ergonomics: tests express their fixtures as ManifestElement arrays
-// (the legacy wire format) for readability; this builder folds them into
-// the new ChangeSet-shaped HandlerResult.
-const handlerResult = (parts: {
-  manifests?: ManifestElement[]
-  copies?: CopyOperation[]
-  warnings?: Error[]
-}): HandlerResult => ({
-  changes: ChangeSet.from(parts.manifests ?? []),
-  copies: parts.copies ?? [],
-  warnings: parts.warnings ?? [],
-})
+import type ChangeSet from '../../src/utils/changeSet'
+import { makeHandlerResult } from '../__utils__/handlerResultView'
 
 const {
   mockPreBuildTreeIndex,
@@ -48,7 +32,7 @@ const {
   mockGetRenamePairs:
     vi.fn<() => Array<{ fromPath: string; toPath: string }>>(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
-  mockCollectAll: vi.fn<() => Promise<HandlerResult>>(),
+  mockCollectAll: vi.fn<(changes: ChangeSet) => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
   mockExecute: vi.fn(),
   mockCloseAll: vi.fn(),
@@ -157,8 +141,10 @@ const asAsyncIterable = (lines: string[]): AsyncIterable<string> => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockValidateConfig.mockResolvedValue([])
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
+  mockExecuteRemaining.mockResolvedValue([])
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())
@@ -229,7 +215,7 @@ describe('external library inclusion', () => {
         revision: 'HEAD',
       }
       mockProcess.mockResolvedValueOnce(
-        handlerResult({ copies: [handlerCopy] })
+        makeHandlerResult({ copies: [handlerCopy] })
       )
 
       // Act
@@ -244,7 +230,7 @@ describe('external library inclusion', () => {
     it('Given post-processor produces results, When sgd runs, Then results are merged into work', async () => {
       // Arrange
       mockCollectAll.mockResolvedValueOnce(
-        handlerResult({
+        makeHandlerResult({
           manifests: [
             {
               target: ManifestTarget.Package,
@@ -278,7 +264,7 @@ describe('external library inclusion', () => {
           getElementDescriptor: () => ({ type: 'ApexClass', member: 'Bar' }),
         })
       mockProcess.mockResolvedValueOnce(
-        handlerResult({
+        makeHandlerResult({
           manifests: [
             {
               target: ManifestTarget.Package,
@@ -318,10 +304,10 @@ describe('external library inclusion', () => {
       const handlerWarning = new Error('handler warning')
       const postWarning = new Error('post-processor warning')
       mockProcess.mockResolvedValueOnce(
-        handlerResult({ warnings: [handlerWarning] })
+        makeHandlerResult({ warnings: [handlerWarning] })
       )
       mockCollectAll.mockResolvedValueOnce(
-        handlerResult({ warnings: [postWarning] })
+        makeHandlerResult({ warnings: [postWarning] })
       )
 
       // Act
@@ -331,6 +317,76 @@ describe('external library inclusion', () => {
       expect(result.warnings).toHaveLength(2)
       expect(result.warnings).toContain(handlerWarning)
       expect(result.warnings).toContain(postWarning)
+    })
+
+    it('Given collectors contribute elements, When sgd runs, Then collectAll sees the handler pass only', async () => {
+      // Arrange — collectors introspect the package view to decide what to
+      // emit, so they must see the handler pass before their own output is
+      // folded in. Feeding them the combined set would let one collector's
+      // output change another's decision.
+      const handlerElement = {
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'FromHandlerPass',
+        changeKind: ChangeKind.Add,
+      }
+      const collectorElement = {
+        target: ManifestTarget.Package,
+        type: 'ApexClass',
+        member: 'FromCollector',
+        changeKind: ChangeKind.Add,
+      }
+      mockProcess.mockResolvedValueOnce(
+        makeHandlerResult({ manifests: [handlerElement] })
+      )
+      mockCollectAll.mockResolvedValueOnce(
+        makeHandlerResult({ manifests: [collectorElement] })
+      )
+
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert — the view handed to the collectors carries the handler
+      // element and not the collector's own, while the final manifest carries
+      // both.
+      const viewPassedToCollectors = mockCollectAll.mock.calls[0]![0]
+      const packagedForCollectors = viewPassedToCollectors
+        .forPackageManifest()
+        .get('ApexClass')
+      expect(packagedForCollectors).toEqual(new Set(['FromHandlerPass']))
+
+      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['FromHandlerPass', 'FromCollector'])
+      )
+    })
+
+    it('Given every producer emits a warning, When sgd runs, Then all are surfaced in producer order', async () => {
+      // Arrange — config validation runs first, then the handler pass and its
+      // collectors, then the remaining processors. That sequence is printed
+      // verbatim to the user, so it is asserted as a sequence, not a set.
+      const configWarning = new Error('config warning')
+      const handlerWarning = new Error('handler warning')
+      const collectorWarning = new Error('collector warning')
+      const processorWarning = new Error('processor warning')
+      mockValidateConfig.mockResolvedValueOnce([configWarning])
+      mockProcess.mockResolvedValueOnce(
+        makeHandlerResult({ warnings: [handlerWarning] })
+      )
+      mockCollectAll.mockResolvedValueOnce(
+        makeHandlerResult({ warnings: [collectorWarning] })
+      )
+      mockExecuteRemaining.mockResolvedValueOnce([processorWarning])
+
+      // Act
+      const result = await sgd({} as Config)
+
+      // Assert
+      expect(result.warnings).toEqual([
+        configWarning,
+        handlerWarning,
+        collectorWarning,
+        processorWarning,
+      ])
     })
   })
 

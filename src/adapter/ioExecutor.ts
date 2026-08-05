@@ -47,7 +47,7 @@ export default class IOExecutor {
     return GitAdapter.getInstance(adapterConfig)
   }
 
-  public async execute(copies: CopyOperation[]): Promise<void> {
+  public async execute(copies: readonly CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
     await eachLimit(
       copies,

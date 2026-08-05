@@ -1,9 +1,12 @@
 'use strict'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
+import type { Config } from '../types/config.js'
+import type {
+  CopyOperation,
+  HandlerResult,
+  ManifestElement,
+} from '../types/handlerResult.js'
 import { pushAll } from '../utils/arrayUtils.js'
-import ChangeSet from '../utils/changeSet.js'
 import { BoundedQueue } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -12,7 +15,7 @@ import TypeHandlerFactory from './typeHandlerFactory.js'
 
 export default class DiffLineInterpreter {
   constructor(
-    protected readonly work: Work,
+    protected readonly config: Config,
     protected readonly metadata: MetadataRepository
   ) {}
 
@@ -21,24 +24,29 @@ export default class DiffLineInterpreter {
     lines: Iterable<string> | AsyncIterable<string>,
     revisions?: { from: string; to: string }
   ): Promise<HandlerResult> {
-    const effectiveWork = revisions
-      ? { ...this.work, config: { ...this.work.config, ...revisions } }
-      : this.work
+    const effectiveConfig = revisions
+      ? { ...this.config, ...revisions }
+      : this.config
 
     const typeHandlerFactory = new TypeHandlerFactory(
-      effectiveWork,
+      effectiveConfig,
       this.metadata
     )
-    // Single ChangeSet shared by every handler in this pass — eliminates the
-    // per-handler ChangeSet allocation and the merge step that used to fold
-    // ~N small ChangeSets together at the end.
-    const sink = new ChangeSet()
+    const elements: ManifestElement[] = []
     const copies: CopyOperation[] = []
     const warnings: Error[] = []
     const MAX_PARALLELISM = getConcurrencyThreshold()
 
+    // The fold is total by construction: pushAll is a plain nested for…of over
+    // arrays, so the worker cannot reject on aggregation. That matters because
+    // BoundedQueue treats any worker rejection as fatal — it clears `pending`
+    // and rejects every drain() waiter — so an aggregation step that could
+    // throw would turn a per-file failure into a whole-run abort. Per-file
+    // failures are already contained inside StandardHandler.collect, which
+    // returns them as warnings rather than rejecting.
     const processor = new BoundedQueue<StandardHandler>(async handler => {
-      const result = await handler.collect(sink)
+      const result = await handler.collect()
+      pushAll(elements, result.elements)
       pushAll(copies, result.copies)
       pushAll(warnings, result.warnings)
     }, MAX_PARALLELISM)
@@ -53,6 +61,6 @@ export default class DiffLineInterpreter {
 
     await processor.drain()
 
-    return { changes: sink, copies, warnings }
+    return { elements, copies, warnings }
   }
 }

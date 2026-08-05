@@ -6,5 +6,5 @@ export type Manifest = Map<string, Set<string>>
 export type Work = {
   config: Config
   changes: ChangeSet
-  warnings: Error[]
+  warnings: readonly Error[]
 }

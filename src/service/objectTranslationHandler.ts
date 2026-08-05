@@ -4,19 +4,13 @@ import { PATH_SEP } from '../constant/fsConstants.js'
 import { OBJECT_TRANSLATION_META_XML_SUFFIX } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
-import type ChangeSet from '../utils/changeSet.js'
 import MetadataDiff from '../utils/metadataDiff/index.js'
 import ResourceHandler from './inResourceHandler.js'
 import StandardHandler from './standardHandler.js'
 
 export default class ObjectTranslationHandler extends ResourceHandler {
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    const result = await StandardHandler.prototype.collectAddition.call(
-      this,
-      sink
-    )
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await StandardHandler.prototype.collectAddition.call(this)
     if (!this._shouldCollectCopies()) return result
 
     // RATIONALE: Why include objectTranslation file even when pruned content is empty?
@@ -24,16 +18,17 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#object-translations
     const objectTranslationPath = this._getObjectTranslationPath()
     const writer = await this._getObjectTranslationWriter(objectTranslationPath)
+    const copies = [...result.copies]
     if (writer) {
-      result.copies.push({
+      copies.push({
         kind: CopyOperationKind.StreamedContent,
         path: objectTranslationPath,
         writer,
       })
     } else {
-      this._collectCopy(result.copies, objectTranslationPath)
+      this._collectCopy(copies, objectTranslationPath)
     }
-    return result
+    return { ...result, copies }
   }
 
   protected async _getObjectTranslationWriter(path: string) {

@@ -6,10 +6,9 @@ import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config } from './types/config.js'
-import { mergeResults } from './types/handlerResult.js'
 import type { Work } from './types/work.js'
-import { pushAll } from './utils/arrayUtils.js'
 import ChangeSet from './utils/changeSet.js'
+import { assembleChanges } from './utils/changesAssembly.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import RenameResolver from './utils/renameResolver.js'
@@ -21,15 +20,8 @@ export default async (config: Config): Promise<Work> => {
   Logger.trace('main: entry')
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
   Logger.debug(lazy`main: arguments ${config}`)
-
-  const work: Work = {
-    config,
-    changes: new ChangeSet(),
-    warnings: [],
-  }
   try {
-    const configValidator = new ConfigValidator(work)
-    await configValidator.validateConfig()
+    const configWarnings = await new ConfigValidator(config).validateConfig()
 
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
@@ -69,40 +61,43 @@ export default async (config: Config): Promise<Work> => {
         ])
       }
     }
-    const lineProcessor = new DiffLineInterpreter(work, metadata)
-    const postProcessors = getPostProcessors(work, metadata)
+    const lineProcessor = new DiffLineInterpreter(config, metadata)
+    const postProcessors = getPostProcessors(config, metadata)
 
-    // First pass: build the ChangeSet from handler output so collectors
-    // (e.g. FlowTranslationProcessor) can introspect the package view via
-    // work.changes.forPackageManifest() before emitting their own changes.
+    // First pass: build the read model from handler output alone so collectors
+    // (FlowTranslationProcessor) introspect the handler-pass package view before
+    // include lines exist.
     const handlerResult = await lineProcessor.process(lines)
-    work.changes = handlerResult.changes
+    const handlerView = ChangeSet.from(handlerResult.elements) // handler pass ONLY
 
-    // Second pass: fold collector output into the same ChangeSet.
-    const postResult = await postProcessors.collectAll()
-    const combinedResult = mergeResults(handlerResult, postResult)
-    work.changes = combinedResult.changes
-
-    // Apply git-detected renames: resolve the `{fromPath, toPath}` pairs that
-    // RepoGitDiff captured from `-M` output into (type, from, to) triples and
-    // re-group them into the ChangeSet's rename bucket. Pairs for ignored
-    // paths or bundle helper files (same member on both sides) are no-ops.
-    await new RenameResolver(work, metadata).apply(
-      work.changes,
+    const postResult = await postProcessors.collectAll(handlerView)
+    // Resolve git-detected renames — the `{fromPath, toPath}` pairs
+    // RepoGitDiff captured from `-M` output — into (type, from, to) triples.
+    // Pairs for ignored paths or bundle helper files (same member on both
+    // sides) resolve to no triple.
+    const renameTriples = await new RenameResolver(config, metadata).resolve(
       repoGitDiffHelper.getRenamePairs()
     )
+    const {
+      changes,
+      copies,
+      warnings: assemblyWarnings,
+    } = assembleChanges(handlerResult, postResult, renameTriples)
 
-    pushAll(work.warnings, combinedResult.warnings)
+    await new IOExecutor(config).execute(copies)
+    const processorWarnings = await postProcessors.executeRemaining(changes)
 
-    await new IOExecutor(config).execute(combinedResult.copies)
-    await postProcessors.executeRemaining()
+    const work: Work = {
+      config,
+      changes,
+      warnings: [...configWarnings, ...assemblyWarnings, ...processorWarnings],
+    }
+    // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
+    Logger.debug(lazy`main: return ${work}`)
+    // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
+    Logger.trace('main: exit')
+    return work
   } finally {
     await GitAdapter.closeAll()
   }
-
-  // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
-  Logger.debug(lazy`main: return ${work}`)
-  // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
-  Logger.trace('main: exit')
-  return work
 }

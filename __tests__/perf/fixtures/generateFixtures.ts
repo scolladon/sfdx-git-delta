@@ -4,13 +4,13 @@ import {
   MODIFICATION,
 } from '../../../src/constant/gitConstants.js'
 import {
+  type AddKind,
   ChangeKind,
-  CopyOperationKind,
-  type HandlerResult,
+  type ManifestElement,
   ManifestTarget,
 } from '../../../src/types/handlerResult.js'
 
-const CHANGE_KIND_BY_GIT: Record<string, ChangeKind> = {
+const CHANGE_KIND_BY_GIT: Record<string, AddKind> = {
   [ADDITION]: ChangeKind.Add,
   [MODIFICATION]: ChangeKind.Modify,
   [DELETION]: ChangeKind.Delete,
@@ -111,10 +111,11 @@ export const generateDiffFixtures = (
   lines: generateDiffLines(SIZE_CONFIGS[size]),
 })
 
-export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
+export const generateManifestElements = (
+  size: FixtureSize
+): readonly ManifestElement[] => {
   const config = SIZE_CONFIGS[size]
-  const manifests = []
-  const copies = []
+  const manifests: ManifestElement[] = []
 
   for (let i = 0; i < config.classes; i++) {
     const gitType =
@@ -127,11 +128,6 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
           ? ManifestTarget.DestructiveChanges
           : ManifestTarget.Package,
       changeKind: CHANGE_KIND_BY_GIT[gitType]!,
-    })
-    copies.push({
-      source: `force-app/main/default/classes/MyClass${pad(i)}.cls`,
-      destination: `output/classes/MyClass${pad(i)}.cls`,
-      kind: CopyOperationKind.SingleFile,
     })
   }
 
@@ -178,5 +174,5 @@ export const generateHandlerResult = (size: FixtureSize): HandlerResult => {
     })
   }
 
-  return { manifests, copies, warnings: [] }
+  return manifests
 }

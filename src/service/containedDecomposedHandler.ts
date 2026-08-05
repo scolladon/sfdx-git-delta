@@ -2,10 +2,9 @@
 import { join, ParsedPath, parse } from 'node:path/posix'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
+import type { Config } from '../types/config.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
-import type ChangeSet from '../utils/changeSet.js'
 import { readDirs } from '../utils/fsHelper.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
@@ -18,31 +17,27 @@ const PS_DIR_OFFSET_FLAT = 2
 export default class ContainedDecomposedHandler extends StandardHandler {
   protected holderFolder: ParsedPath | undefined
 
-  constructor(changeType: string, element: MetadataElement, work: Work) {
-    super(changeType, element, work)
+  constructor(changeType: string, element: MetadataElement, config: Config) {
+    super(changeType, element, config)
     this._setholderFolder()
   }
 
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    const result = await super.collectAddition(sink)
-    if (this._isDecomposedFormat()) {
-      this._collectDirCopy(result.copies, this._getHolderPath())
-    }
-    return result
+  public override async collectAddition(): Promise<HandlerResult> {
+    const result = await super.collectAddition()
+    if (!this._isDecomposedFormat()) return result
+    const copies = [...result.copies]
+    this._collectDirCopy(copies, this._getHolderPath())
+    return { ...result, copies }
   }
 
-  public override async collectDeletion(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  public override async collectDeletion(): Promise<HandlerResult> {
     if (!this._isDecomposedFormat()) {
-      return await super.collectDeletion(sink)
+      return await super.collectDeletion()
     }
     if (await this._hasRelatedContent()) {
-      return await this.collectModification(sink)
+      return await this.collectModification()
     }
-    return await super.collectDeletion(sink)
+    return await super.collectDeletion()
   }
 
   protected _setholderFolder() {

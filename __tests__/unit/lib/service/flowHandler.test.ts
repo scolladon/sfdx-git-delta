@@ -5,10 +5,11 @@ import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowHandler from '../../../../src/service/flowHandler'
+import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -20,10 +21,10 @@ const objectType = {
   xmlName: 'Flow',
 }
 const basePath = `force-app/main/default/${objectType.directoryName}`
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('flowHandler', () => {
@@ -39,17 +40,17 @@ describe('flowHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new FlowHandler(changeType, element, work)
+      const sut = new FlowHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(
         ManifestTarget.DestructiveChanges
       )
-      expect(result.changes.toElements()[0].type).toBe('Flow')
+      expect(elementsOf(result)[0].type).toBe('Flow')
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('MyFlow')
     })

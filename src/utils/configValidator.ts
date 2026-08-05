@@ -8,7 +8,6 @@ import GitAdapter from '../adapter/GitAdapter.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
-import type { Work } from '../types/work.js'
 import { pushAll } from './arrayUtils.js'
 import { ConfigError, getErrorMessage } from './errorUtils.js'
 import { pathExists, sanitizePath } from './fsUtils.js'
@@ -20,13 +19,11 @@ type ShaKey = 'from' | 'to'
 const SHA_KEYS: readonly ShaKey[] = ['from', 'to']
 
 export default class ConfigValidator {
-  protected readonly config: Config
   protected readonly gitAdapter: GitAdapter
   protected readonly message: MessageService
 
-  constructor(protected readonly work: Work) {
-    this.config = work.config
-    this.gitAdapter = GitAdapter.getInstance(work.config)
+  constructor(protected readonly config: Config) {
+    this.gitAdapter = GitAdapter.getInstance(config)
     this.message = new MessageService()
   }
 
@@ -57,15 +54,16 @@ export default class ConfigValidator {
   }
 
   @log
-  public async validateConfig() {
+  public async validateConfig(): Promise<readonly Error[]> {
     this._sanitizeConfig()
 
-    const [, repoExists, gitErrors, changesManifestErrors] = await Promise.all([
-      this._handleDefault(),
-      pathExists(join(this.config.repo, GIT_FOLDER)),
-      this._validateGitSha(),
-      this._validateChangesManifest(),
-    ])
+    const [defaultWarnings, repoExists, gitErrors, changesManifestErrors] =
+      await Promise.all([
+        this._handleDefault(),
+        pathExists(join(this.config.repo, GIT_FOLDER)),
+        this._validateGitSha(),
+        this._validateChangesManifest(),
+      ])
 
     const errors: string[] = []
     if (!repoExists) {
@@ -81,6 +79,7 @@ export default class ConfigValidator {
     }
 
     await this.gitAdapter.configureRepository()
+    return defaultWarnings
   }
 
   // oclif cannot natively validate --changes-manifest (it uses a string flag
@@ -117,9 +116,9 @@ export default class ConfigValidator {
     return []
   }
 
-  protected async _handleDefault() {
+  protected async _handleDefault(): Promise<readonly Error[]> {
     await this._getApiVersion()
-    await this._apiVersionDefault()
+    return await this._apiVersionDefault()
   }
 
   protected async _getApiVersion() {
@@ -141,10 +140,12 @@ export default class ConfigValidator {
     }
   }
 
-  protected async _apiVersionDefault() {
+  protected async _apiVersionDefault(): Promise<readonly Error[]> {
     const latestVersion = await this._resolveLatestSupportedVersion()
     // Stryker disable next-line ConditionalExpression -- equivalent: undefined signals the lookup failed while a usable apiVersion is already set; flipping the guard would fall through to clamp against an undefined ceiling, which the offline test surface forbids
-    if (latestVersion === undefined) return
+    if (latestVersion === undefined) return []
+
+    const warnings: Error[] = []
 
     // Stryker disable ConditionalExpression,LogicalOperator -- equivalent: this triple-AND gate ensures we only override a numeric, defined, above-latest apiVersion; flipping individual conditions to true falls into the override branch when apiVersion is undefined or NaN, but the second `if (apiVersion === undefined || isNaN())` block immediately resets to latestVersion, producing the same observable apiVersion in both arms (only the warning content differs, which the test surface doesn't disambiguate)
     if (
@@ -153,7 +154,7 @@ export default class ConfigValidator {
       this.config.apiVersion > latestVersion
     ) {
       // Stryker restore ConditionalExpression,LogicalOperator
-      this.work.warnings.push(
+      warnings.push(
         new Error(
           this.message.getMessage('warning.ApiVersionOverridden', [
             String(this.config.apiVersion),
@@ -167,7 +168,7 @@ export default class ConfigValidator {
     // Stryker disable next-line ConditionalExpression -- equivalent: defaulting fallback when apiVersion is unset/NaN; flipping to false skips the default and the apiVersion stays as-is, but the only test fixtures with apiVersion already set hit the early-return at _getApiVersion start, so the default branch is unreachable for those test cases
     if (this.config.apiVersion === undefined || isNaN(this.config.apiVersion)) {
       this.config.apiVersion = latestVersion
-      this.work.warnings.push(
+      warnings.push(
         new Error(
           this.message.getMessage('warning.ApiVersionDefaulted', [
             String(latestVersion),
@@ -175,6 +176,8 @@ export default class ConfigValidator {
         )
       )
     }
+
+    return warnings
   }
 
   // Resolves the latest supported API version, falling back gracefully when the

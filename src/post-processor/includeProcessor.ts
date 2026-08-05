@@ -4,20 +4,24 @@ import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
+import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { buildIncludeHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 
-import BaseProcessor from './baseProcessor.js'
+import BaseProcessor, {
+  emptyOutcome,
+  type ProcessorOutcome,
+} from './baseProcessor.js'
 
 type GitChange = typeof ADDITION | typeof DELETION
 
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitAdapter: GitAdapter
-  constructor(work: Work, metadata: MetadataRepository) {
-    super(work, metadata)
+  constructor(config: Config, metadata: MetadataRepository) {
+    super(config, metadata)
     this.gitAdapter = GitAdapter.getInstance(this.config)
   }
 
@@ -30,11 +34,16 @@ export default class IncludeProcessor extends BaseProcessor {
   }
 
   @log
-  public override async process() {
+  public override async process(
+    _changes: ChangeSet
+  ): Promise<ProcessorOutcome> {
     // No-op: IncludeProcessor is handled via transformAndCollect()
+    return emptyOutcome()
   }
 
-  public override async transformAndCollect(): Promise<HandlerResult> {
+  public override async transformAndCollect(
+    _changes: ChangeSet
+  ): Promise<HandlerResult> {
     if (!this._shouldProcess()) {
       return emptyResult()
     }
@@ -74,7 +83,7 @@ export default class IncludeProcessor extends BaseProcessor {
     }
 
     const firstSHA = await this.gitAdapter.getFirstCommitRef()
-    const lineProcessor = new DiffLineInterpreter(this.work, this.metadata)
+    const lineProcessor = new DiffLineInterpreter(this.config, this.metadata)
     const results: HandlerResult[] = []
 
     if (includeLines.has(ADDITION)) {

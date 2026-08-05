@@ -5,8 +5,6 @@ import { afterAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
-import type { Work } from '../../../src/types/work'
-import ChangeSet from '../../../src/utils/changeSet'
 import ConfigValidator from '../../../src/utils/configValidator'
 import { treatPathSep } from '../../../src/utils/fsUtils'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
@@ -53,12 +51,6 @@ const makeConfig = (overrides: Partial<Config>): Config => ({
   ...overrides,
 })
 
-const makeWork = (config: Config): Work => ({
-  config,
-  changes: new ChangeSet(),
-  warnings: [],
-})
-
 afterAll(async () => {
   await GitAdapter.closeAll()
   await Promise.all(
@@ -77,7 +69,7 @@ describe('Given the released error-message contract (validated surface)', () => 
         to: 'not-a-real-ref-zzz',
         from: 'HEAD',
       })
-      const sut = new ConfigValidator(makeWork(config))
+      const sut = new ConfigValidator(config)
 
       // Act
       const error = await sut
@@ -96,7 +88,7 @@ describe('Given the released error-message contract (validated surface)', () => 
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-nogit-')
       const config = makeConfig({ repo: repoDir })
-      const sut = new ConfigValidator(makeWork(config))
+      const sut = new ConfigValidator(config)
 
       // Act
       const error = await sut

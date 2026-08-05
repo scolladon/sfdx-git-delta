@@ -4,14 +4,15 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -22,30 +23,30 @@ beforeAll(async () => {
   globalMetadata = await getDefinition({})
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
-  work.config.generateDelta = true
+  config = getConfig()
+  config.generateDelta = true
 })
 
 describe('ContainedDecomposedHandler', () => {
   describe('collect', () => {
     it('Given non-decomposed addition with generateDelta false, When collect, Then returns manifest with copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         `A       force-app/main/permissionsets/Subject.permissionset-meta.xml`,
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -68,13 +69,17 @@ describe('ContainedDecomposedHandler', () => {
             globalMetadata.get('permissionsets')!,
             globalMetadata
           )
-          const sut = new ContainedDecomposedHandler(changeType, element, work)
+          const sut = new ContainedDecomposedHandler(
+            changeType,
+            element,
+            config
+          )
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -94,13 +99,17 @@ describe('ContainedDecomposedHandler', () => {
             globalMetadata.get('permissionsets')!,
             globalMetadata
           )
-          const sut = new ContainedDecomposedHandler(changeType, element, work)
+          const sut = new ContainedDecomposedHandler(
+            changeType,
+            element,
+            config
+          )
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -120,13 +129,17 @@ describe('ContainedDecomposedHandler', () => {
             globalMetadata.get('permissionsets')!,
             globalMetadata
           )
-          const sut = new ContainedDecomposedHandler(changeType, element, work)
+          const sut = new ContainedDecomposedHandler(
+            changeType,
+            element,
+            config
+          )
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.DestructiveChanges,
@@ -164,13 +177,13 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -196,13 +209,13 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -228,13 +241,13 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -255,13 +268,13 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, work)
+        const sut = new ContainedDecomposedHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -291,13 +304,13 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -313,7 +326,7 @@ describe('ContainedDecomposedHandler', () => {
 
     it('Given decomposed addition with generateDelta false, When collect, Then no GitDirCopy in copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const decomposedLine =
         'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
       const { changeType, element } = createElement(
@@ -321,7 +334,7 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -341,13 +354,13 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -366,6 +379,39 @@ describe('ContainedDecomposedHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
+    it('Given decomposed addition, When collect, Then the element own copy from the parent call survives alongside the holder folder GitDirCopy (containedDecomposedHandler L28)', async () => {
+      // Arrange
+      const decomposedLine =
+        'A       force-app/main/default/permissionsets/Admin/objectSettings/Account.objectSettings-meta.xml'
+      const { changeType, element } = createElement(
+        decomposedLine,
+        globalMetadata.get('permissionsets')!,
+        globalMetadata
+      )
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert — a `copies = []` regression would discard the copy
+      // super.collectAddition() already produced for the element itself,
+      // leaving only the GitDirCopy _collectDirCopy appends.
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path.includes('objectSettings/Account.objectSettings-meta.xml')
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitDirCopy &&
+            c.path.includes('permissionsets/Admin')
+        )
+      ).toBe(true)
+    })
+
     it('Given non-decomposed addition, When collect, Then returns manifest and file copy without holder', async () => {
       // Arrange
       const { changeType, element } = createElement(
@@ -373,13 +419,13 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, work)
+      const sut = new ContainedDecomposedHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

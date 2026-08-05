@@ -4,13 +4,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const { mockRun, mockWriter } = vi.hoisted(() => ({
   mockRun: vi.fn<() => Promise<any>>(),
@@ -40,7 +41,7 @@ const line =
 const parentObjectTranslationPath =
   'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   mockRun.mockResolvedValue({
@@ -48,7 +49,7 @@ beforeEach(() => {
     hasPackageContent: true,
     writer: mockWriter,
   })
-  work = getWork()
+  config = getConfig()
 })
 
 describe('ObjectTranslation', () => {
@@ -65,13 +66,13 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -92,20 +93,20 @@ describe('ObjectTranslation', () => {
 
     it('Given objectTranslation addition with generateDelta false, When collect, Then returns manifest without copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -116,7 +117,7 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -132,13 +133,13 @@ describe('ObjectTranslation', () => {
 
     it('Given objectTranslation addition with generateDelta true, When collect, Then _shouldCollectCopies allows ComputedContent', async () => {
       // Arrange
-      work.config.generateDelta = true
+      config.generateDelta = true
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -152,7 +153,7 @@ describe('ObjectTranslation', () => {
     it('Given writer is null, When collectAddition, Then does not push StreamedContent copy and pushes parent GitCopy', async () => {
       // Arrange — writer is null, so the `if (writer)` guard must prevent pushing StreamedContent
       // and the `else` branch must fall back to a parent GitCopy
-      work.config.generateDelta = true
+      config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
@@ -163,7 +164,7 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()
@@ -184,7 +185,7 @@ describe('ObjectTranslation', () => {
     it('Given fieldTranslation-only addition and writer undefined, When collectAddition, Then pushes parent GitCopy and no parent StreamedContent', async () => {
       // Arrange — mirrors the #1341 regression: only a child fieldTranslation changed,
       // parent has no surviving pruned content, so buildWriter returns undefined
-      work.config.generateDelta = true
+      config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
@@ -197,7 +198,7 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()
@@ -222,7 +223,7 @@ describe('ObjectTranslation', () => {
     it('Given fieldTranslation-only addition, When collectAddition, Then does not push a copy for an unresolved parent meta path', async () => {
       // Arrange — the inherited meta-file copy must not emit a bogus "undefined.*"
       // path; the parent objectTranslation is handled by the writer/fallback branch
-      work.config.generateDelta = true
+      config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
@@ -235,7 +236,7 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()
@@ -253,13 +254,13 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, work)
+      const sut = new ObjectTranslation(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,

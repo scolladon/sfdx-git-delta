@@ -5,14 +5,15 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -47,10 +48,10 @@ const entityPath = `${basePath}/${elementName}.js`
 const xmlName = 'StaticResource'
 const line = `A       ${entityPath}`
 const type = 'resource'
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('InResourceHandler', () => {
@@ -62,7 +63,7 @@ describe('InResourceHandler', () => {
   describe('When entity is added', () => {
     describe('when not generating delta', () => {
       beforeEach(() => {
-        work.config.generateDelta = false
+        config.generateDelta = false
         mockedReadDirs.mockResolvedValue([])
       })
       it('should add manifest entry', async () => {
@@ -72,13 +73,13 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -97,13 +98,13 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -125,13 +126,13 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements().length).toBeGreaterThan(0)
+        expect(elementsOf(result).length).toBeGreaterThan(0)
         expect(result.copies).toHaveLength(0)
       })
 
@@ -151,13 +152,13 @@ describe('InResourceHandler', () => {
           lwcType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -171,7 +172,7 @@ describe('InResourceHandler', () => {
 
     describe('when generating delta', () => {
       beforeEach(() => {
-        work.config.generateDelta = true
+        config.generateDelta = true
       })
       describe('when matching resource exist', () => {
         it('should copy lwc bundle folder and its files (and exclude not matching files)', async () => {
@@ -193,13 +194,13 @@ describe('InResourceHandler', () => {
             lwcType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -244,13 +245,13 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -290,7 +291,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
 
           // Act
           const result = await sut.collect()
@@ -327,7 +328,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
 
           // Act
           await sut.collect()
@@ -335,7 +336,7 @@ describe('InResourceHandler', () => {
           // Assert
           expect(readDirs).toHaveBeenCalledWith(
             `${base}${staticResourceType.directoryName}`,
-            work.config
+            config
           )
         })
 
@@ -353,13 +354,13 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -398,13 +399,13 @@ describe('InResourceHandler', () => {
             experienceBundleType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -436,14 +437,14 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, work)
+          const sut = new InResourceHandler(changeType, element, config)
           mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
           const result = await sut.collect()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -471,7 +472,7 @@ describe('InResourceHandler', () => {
 
   describe('When entity is deleted', () => {
     beforeEach(() => {
-      work.config.generateDelta = false
+      config.generateDelta = false
     })
     describe('When only a resource sub element is deleted', () => {
       beforeEach(() => {
@@ -484,13 +485,13 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -501,7 +502,7 @@ describe('InResourceHandler', () => {
         )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          work.config
+          config
         )
       })
     })
@@ -516,13 +517,13 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.DestructiveChanges,
@@ -534,7 +535,7 @@ describe('InResourceHandler', () => {
         expect(result.copies).toEqual([])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('staticresources'),
-          work.config
+          config
         )
       })
     })
@@ -543,7 +544,7 @@ describe('InResourceHandler', () => {
         // Arrange — resource named "my.Resource" contains a dot which is a regex special char.
         // Without proper escaping, the regex would treat "." as "any char" and could match
         // unrelated files like "myXResource.js". escapeRegex must escape it to "my\\.Resource".
-        work.config.generateDelta = true
+        config.generateDelta = true
         const specialName = 'my.Resource'
         const specialBase = 'force-app/main/default/staticresources'
         const specialLine = `A       ${specialBase}/${specialName}.js`
@@ -555,7 +556,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
@@ -591,7 +592,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, work)
+        const sut = new InResourceHandler(changeType, element, config)
 
         // Act
         const result = await sut.collect()
@@ -599,12 +600,10 @@ describe('InResourceHandler', () => {
         // Assert
         expect(pathExists).toHaveBeenCalledWith(
           `${base}${staticResourceType.directoryName}/${entity}`,
-          work.config
+          config
         )
         expect(
-          result.changes
-            .toElements()
-            .some(m => m.target === 'destructiveChanges')
+          elementsOf(result).some(m => m.target === 'destructiveChanges')
         ).toBe(true)
       })
     })

@@ -3,13 +3,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -24,10 +25,10 @@ const objectType = {
 const line =
   'A       force-app/main/default/objects/Account/recordTypes/awesome.recordType-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('CustomObjectChildHandler', () => {
@@ -44,13 +45,13 @@ describe('CustomObjectChildHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectChildHandler(changeType, element, work)
+      const sut = new CustomObjectChildHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -72,13 +73,13 @@ describe('CustomObjectChildHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectChildHandler(changeType, element, work)
+      const sut = new CustomObjectChildHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,

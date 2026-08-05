@@ -12,14 +12,15 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import StandardHandler from '../../../../src/service/standardHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   ChangeKind,
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const testSuitesType = {
   directoryName: 'testSuites',
@@ -39,10 +40,10 @@ const entity = 'MyClass'
 const basePath = 'force-app/main/default/'
 const entityPath = `${basePath}${classType.directoryName}/${entity}.${classType.suffix}`
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe(`StandardHandler`, () => {
@@ -58,21 +59,21 @@ describe(`StandardHandler`, () => {
   describe('collect', () => {
     it('Given addition, When collect is called, Then returns manifest element and copy operations', async () => {
       // Arrange
-      work.config.to = 'sha123'
+      config.to = 'sha123'
       const line = `${ADDITION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0]).toEqual({
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0]).toEqual({
         target: ManifestTarget.Package,
         type: classType.xmlName,
         member: entity,
@@ -92,14 +93,14 @@ describe(`StandardHandler`, () => {
 
     it('Given addition with metaFile type, When collect is called, Then includes meta file copy', async () => {
       // Arrange
-      work.config.to = 'sha123'
+      config.to = 'sha123'
       const line = `${ADDITION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -118,14 +119,14 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0]).toEqual({
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0]).toEqual({
         target: ManifestTarget.DestructiveChanges,
         type: classType.xmlName,
         member: entity,
@@ -137,21 +138,21 @@ describe(`StandardHandler`, () => {
 
     it('Given modification, When collect is called, Then returns same result as addition', async () => {
       // Arrange
-      work.config.to = 'sha123'
+      config.to = 'sha123'
       const line = `${MODIFICATION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(ManifestTarget.Package)
       expect(result.copies.length).toBeGreaterThan(0)
     })
 
@@ -163,13 +164,13 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -182,27 +183,27 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
 
     it('Given error during collect, When collect is called, Then returns error in warnings', async () => {
       // Arrange
-      work.config.to = 'sha123'
+      config.to = 'sha123'
       const line = `${ADDITION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
       vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(
         new Error('test error')
       )
@@ -211,7 +212,7 @@ describe(`StandardHandler`, () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0].message).toContain('test error')
@@ -219,27 +220,27 @@ describe(`StandardHandler`, () => {
 
     it('Given addition with generateDelta false, When collect, Then returns manifest without copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const line = `${ADDITION}       ${entityPath}`
       const { changeType, element } = createElement(
         line,
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
     })
 
     it('Given type without metaFile, When collectAddition is called, Then does not include meta copy', async () => {
       // Arrange
-      work.config.to = 'sha123'
+      config.to = 'sha123'
       const entityPath = `${basePath}testSuites/suite.testSuite`
       const line = `${ADDITION}       ${entityPath}`
       const { changeType, element } = createElement(
@@ -247,7 +248,7 @@ describe(`StandardHandler`, () => {
         testSuitesType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -267,7 +268,7 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, work)
+      const sut = new StandardHandler(changeType, element, config)
 
       // Act
       const result = sut.toString()

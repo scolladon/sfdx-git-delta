@@ -5,14 +5,15 @@ import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFolder from '../../../../src/service/inFolderHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -28,10 +29,10 @@ const objectType = {
 }
 const line = `A       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('InFolderHandler', () => {
@@ -48,13 +49,13 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(0)
+      expect(elementsOf(result)).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -66,13 +67,13 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -99,13 +100,13 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -127,13 +128,13 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -160,7 +161,7 @@ describe('InFolderHandler', () => {
         upperSuffixType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
@@ -176,19 +177,19 @@ describe('InFolderHandler', () => {
 
     it('Given addition with generateDelta false, When collect, Then _shouldCollectCopies prevents special extension copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements().length).toBeGreaterThan(0)
+      expect(elementsOf(result).length).toBeGreaterThan(0)
       expect(mockedReadDirs).not.toHaveBeenCalled()
     })
 
@@ -200,13 +201,13 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(0)
+      expect(elementsOf(result)).toHaveLength(0)
       expect(result.copies).toHaveLength(0)
     })
 
@@ -219,15 +220,15 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBeDefined()
       expect(manifestMember).not.toContain(METAFILE_SUFFIX)
       expect(manifestMember).not.toContain('-meta.xml')
@@ -241,15 +242,15 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBe(entity)
       expect(manifestMember).not.toMatch(/\.[^/.]+$/)
     })
@@ -264,15 +265,15 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBeDefined()
       // INFOLDER_SUFFIX_REGEX (/Folder$/) must strip "Folder" → member is "my", not "myFolder"
       expect(manifestMember).toBe('my')
@@ -287,15 +288,15 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, work)
+      const sut = new InFolder(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      const manifestMember = result.changes
-        .toElements()
-        .find(m => m.target === ManifestTarget.Package)?.member
+      const manifestMember = elementsOf(result).find(
+        m => m.target === ManifestTarget.Package
+      )?.member
       expect(manifestMember).toBeDefined()
       // META_REGEX must strip "-meta.xml" before EXTENSION_SUFFIX_REGEX runs;
       // without it the member would still contain "meta"

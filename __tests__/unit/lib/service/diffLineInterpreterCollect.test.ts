@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
+import type { Config } from '../../../../src/types/config'
 import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
   ChangeKind,
@@ -11,9 +12,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
-import ChangeSet from '../../../../src/utils/changeSet'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
   mockCollect: vi.fn<() => Promise<HandlerResult>>(),
@@ -31,10 +30,10 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => {
   }
 })
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('DiffLineInterpreter.process', () => {
@@ -45,19 +44,19 @@ describe('DiffLineInterpreter.process', () => {
 
   describe('Given lines with handlers returning results', () => {
     it('When process is called, Then merges all handler results', async () => {
-      // Arrange — distinct member per handler so the union ChangeSet keeps
-      // both, not deduplicated.
+      // Arrange — distinct member per handler so the fold keeps both entries.
       let seq = 0
-      mockCollect.mockImplementation((sink?: ChangeSet) => {
+      mockCollect.mockImplementation(() => {
         const i = seq++
-        sink?.addElement({
-          target: ManifestTarget.Package,
-          type: 'ApexClass',
-          member: `MyClass${i}`,
-          changeKind: ChangeKind.Add,
-        })
         return Promise.resolve({
-          changes: sink ?? new ChangeSet(),
+          elements: [
+            {
+              target: ManifestTarget.Package,
+              type: 'ApexClass',
+              member: `MyClass${i}`,
+              changeKind: ChangeKind.Add,
+            },
+          ],
           copies: [
             {
               kind: CopyOperationKind.GitCopy,
@@ -68,14 +67,14 @@ describe('DiffLineInterpreter.process', () => {
           warnings: [],
         })
       })
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(['line1', 'line2'])
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(2)
-      expect(result.changes.toElements()).toHaveLength(2)
+      expect(result.elements).toHaveLength(2)
       expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
@@ -84,14 +83,14 @@ describe('DiffLineInterpreter.process', () => {
   describe('Given empty lines', () => {
     it('When process is called, Then returns empty result', async () => {
       // Arrange
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process([])
 
       // Assert
       expect(mockCollect).not.toHaveBeenCalled()
-      expect(result.changes.toElements()).toEqual([])
+      expect(result.elements).toEqual([])
       expect(result.copies).toEqual([])
       expect(result.warnings).toEqual([])
     })
@@ -101,7 +100,7 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called with revisions, Then uses override revisions', async () => {
       // Arrange
       mockCollect.mockResolvedValue(emptyResult())
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(['line1'], {
@@ -111,7 +110,7 @@ describe('DiffLineInterpreter.process', () => {
 
       // Assert
       expect(mockCollect).toHaveBeenCalledTimes(1)
-      expect(result.changes.toElements()).toEqual([])
+      expect(result.elements).toEqual([])
     })
   })
 
@@ -122,7 +121,7 @@ describe('DiffLineInterpreter.process', () => {
         ...emptyResult(),
         warnings: [new Error('test warning')],
       })
-      const sut = new DiffLineInterpreter(work, globalMetadata)
+      const sut = new DiffLineInterpreter(config, globalMetadata)
 
       // Act
       const result = await sut.process(['line1'])

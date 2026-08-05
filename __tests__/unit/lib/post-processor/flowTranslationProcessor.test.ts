@@ -22,12 +22,14 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import FlowTranslationProcessor from '../../../../src/post-processor/flowTranslationProcessor'
+import type { Config } from '../../../../src/types/config'
+import type { HandlerResult } from '../../../../src/types/handlerResult'
 import {
   ChangeKind,
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { grepContent, readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
@@ -35,7 +37,8 @@ import {
   readFile,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
-import { getWork } from '../../../__utils__/testWork'
+import { addChange, elementsOf } from '../../../__utils__/handlerResultView'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 vi.mock('../../../../src/utils/fsUtils')
@@ -74,11 +77,12 @@ const flowFullName = 'test-flow'
 const cardinalProduct = (a: string[], b: string[]): string[][] =>
   a.reduce((acc, x) => [...acc, ...b.map(y => [x, y])], [] as string[][])
 
-const hasTranslationManifest = (result: { manifests: { type: string }[] }) =>
-  result.changes.toElements().some(m => m.type === TRANSLATION_TYPE)
+const hasTranslationManifest = (result: HandlerResult) =>
+  elementsOf(result).some(m => m.type === TRANSLATION_TYPE)
 
 describe('FlowTranslationProcessor', () => {
-  let work: Work
+  let config: Config
+  let changes: ChangeSet
   let metadata: MetadataRepository
 
   beforeAll(async () => {
@@ -88,22 +92,29 @@ describe('FlowTranslationProcessor', () => {
   describe('process', () => {
     it('Given flowTranslationProcessor, When process, Then completes without error', async () => {
       // Arrange
-      const work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      const config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
 
       // Act & Assert
-      await expect(sut.process()).resolves.toBeUndefined()
+      await expect(sut.process(new ChangeSet())).resolves.toEqual({
+        warnings: [],
+      })
     })
   })
 
   describe('XML structure constants (kills StringLiteral / ObjectLiteral mutations on L37-42, L66)', () => {
     beforeEach(() => {
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      changes = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        flowFullName
+      )
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -116,8 +127,8 @@ describe('FlowTranslationProcessor', () => {
 
     it('When writer emits XML, Then root element is <Translations> with xmlns namespace', async () => {
       // Act
-      const sut = new FlowTranslationProcessor(work, metadata)
-      const result = await sut.transformAndCollect()
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
       if (copy.kind !== CopyOperationKind.StreamedContent) {
         throw new Error('Expected StreamedContent')
@@ -131,8 +142,8 @@ describe('FlowTranslationProcessor', () => {
 
     it('When writer emits XML, Then XML declaration header is present', async () => {
       // Act
-      const sut = new FlowTranslationProcessor(work, metadata)
-      const result = await sut.transformAndCollect()
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
       if (copy.kind !== CopyOperationKind.StreamedContent) {
         throw new Error('Expected StreamedContent')
@@ -147,8 +158,8 @@ describe('FlowTranslationProcessor', () => {
 
     it('When writer emits XML, Then flowDefinitions element contains the flow fullName', async () => {
       // Act
-      const sut = new FlowTranslationProcessor(work, metadata)
-      const result = await sut.transformAndCollect()
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
       if (copy.kind !== CopyOperationKind.StreamedContent) {
         throw new Error('Expected StreamedContent')
@@ -156,8 +167,17 @@ describe('FlowTranslationProcessor', () => {
       const output = await drainWriter(copy.writer)
 
       // Assert — kills getTranslationName ArrowFunction → undefined
-      expect(result.changes.toElements()[0].member).toBe(FR)
+      expect(elementsOf(result)[0].member).toBe(FR)
       expect(output).toContain(flowFullName)
+    })
+
+    it('When _collectFlowTranslations succeeds, Then result carries no warnings (kills L208 ArrayDeclaration)', async () => {
+      // Act
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
+
+      // Assert
+      expect(result.warnings).toEqual([])
     })
   })
 
@@ -168,8 +188,8 @@ describe('FlowTranslationProcessor', () => {
         '../../../../src/utils/ignoreHelper'
       )
       const mockedBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
-      work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
 
       // Act — call twice
       await (sut as any)._initIgnoreHelper()
@@ -182,12 +202,17 @@ describe('FlowTranslationProcessor', () => {
 
   describe('_mergeTranslationWithOutput when output has no flowDefinitions element (kills L278/L280 ConditionalExpression false)', () => {
     beforeEach(() => {
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      changes = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        flowFullName
+      )
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -203,8 +228,8 @@ describe('FlowTranslationProcessor', () => {
 
     it('Then new flow is appended and sibling is preserved', async () => {
       // Act
-      const sut = new FlowTranslationProcessor(work, metadata)
-      const result = await sut.transformAndCollect()
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
       if (copy.kind !== CopyOperationKind.StreamedContent) {
         throw new Error('Expected StreamedContent')
@@ -220,8 +245,8 @@ describe('FlowTranslationProcessor', () => {
   describe('_addFlowPerTranslation list initialisation (kills L295 ConditionalExpression true)', () => {
     it('Given two flows for the same translation, When _addFlowPerTranslation is called, Then both are stored', () => {
       // Arrange
-      work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
       const path = `${FR}.translation${METAFILE_SUFFIX}`
 
       // Act
@@ -242,8 +267,8 @@ describe('FlowTranslationProcessor', () => {
   describe('_mergeActualFlows deduplication (kills L223/L217 ConditionalExpression)', () => {
     it('Given a flow already in seenFullNames, When _mergeActualFlows is called, Then it is not duplicated', () => {
       // Arrange
-      work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
       const seenFullNames = new Set<string | undefined>(['existing'])
       const bucket: Array<{ fullName?: string }> = [{ fullName: 'existing' }]
       const merge = {
@@ -271,8 +296,8 @@ describe('FlowTranslationProcessor', () => {
 
     it('Given seenFullNames.add is called after push (kills L229 ConditionalExpression true)', () => {
       // Arrange
-      work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
       const seenFullNames = new Set<string | undefined>()
       const bucket: Array<{ fullName?: string }> = []
       const merge = {
@@ -297,12 +322,17 @@ describe('FlowTranslationProcessor', () => {
 
   describe('_mergeTranslationWithOutput capture null path (kills L224 ConditionalExpression false)', () => {
     beforeEach(() => {
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      changes = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        flowFullName
+      )
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -316,8 +346,8 @@ describe('FlowTranslationProcessor', () => {
 
     it('When output XML is unparseable, Then falls back to empty merge and still produces copy', async () => {
       // Act
-      const sut = new FlowTranslationProcessor(work, metadata)
-      const result = await sut.transformAndCollect()
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
 
       // Assert — kills ConditionalExpression false that skips emptyTranslationMerge() fallback
       expect(result.copies).toHaveLength(1)
@@ -331,12 +361,17 @@ describe('FlowTranslationProcessor', () => {
 
   describe('ArrayDeclaration mutations: no stray Stryker entries in output (L75, L209, L217, L228)', () => {
     beforeEach(() => {
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockIgnores.mockReturnValue(false)
       mockedIsSubDir.mockReturnValue(false)
-      work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+      changes = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        flowFullName
+      )
       mockedGrepContent.mockResolvedValue([
         `${FR}.translation${METAFILE_SUFFIX}`,
       ])
@@ -350,8 +385,8 @@ describe('FlowTranslationProcessor', () => {
       // Any ArrayDeclaration mutation that inserts "Stryker was here" into
       // orderedChildren or the translations list would cause the XML serializer
       // to emit that string in the output. This strict negative assertion kills them.
-      const sut = new FlowTranslationProcessor(work, metadata)
-      const result = await sut.transformAndCollect()
+      const sut = new FlowTranslationProcessor(config, metadata)
+      const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
       if (copy.kind !== CopyOperationKind.StreamedContent) {
         throw new Error('Expected StreamedContent')
@@ -366,8 +401,8 @@ describe('FlowTranslationProcessor', () => {
       // L209 mutant: list = ["Stryker was here"] → list starts with 1 stray entry
       // Then list.push(flowDef) makes it 2 elements. After calling twice: 3 elements.
       // Real: list=[], push → 1 element; second push → 2 elements.
-      work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
       const path = `${FR}.translation${METAFILE_SUFFIX}`
 
       // First call creates the list
@@ -386,15 +421,15 @@ describe('FlowTranslationProcessor', () => {
     it('When _mergeTranslationWithOutput finds no flowDefinitions in output, Then new bucket has 0 elements before merge (kills L228)', async () => {
       // L228 mutant: orderedChildren.push([FLOW_DEFINITIONS_KEY, ["Stryker was here"]])
       // → bucket starts with 1 element. After merge the bucket would have stray+actual.
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockedPathExists.mockResolvedValue(true as never)
       // Output XML has no flowDefinitions
       mockedReadFile.mockResolvedValue(
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
       )
-      const sut = new FlowTranslationProcessor(work, metadata)
+      const sut = new FlowTranslationProcessor(config, metadata)
       const merge = await (sut as any)._mergeTranslationWithOutput(
         `${FR}.translation${METAFILE_SUFFIX}`
       )
@@ -407,14 +442,10 @@ describe('FlowTranslationProcessor', () => {
     it('When emptyTranslationMerge is used, Then flowDefinitions bucket starts empty (kills L75)', () => {
       // L75 mutant: orderedChildren: [[FLOW_DEFINITIONS_KEY, ["Stryker was here"]]]
       // The bucket starts with 1 stray entry instead of [].
-      const sut = new FlowTranslationProcessor(getWork(), metadata)
-      const merge = (sut as any).constructor // access via prototype
-      // Call emptyTranslationMerge indirectly via _mergeTranslationWithOutput
-      // when output does not exist
-      work = getWork()
-      work.config.output = 'output'
+      config = getConfig()
+      config.output = 'output'
       mockedPathExists.mockResolvedValue(false as never)
-      const sut2 = new FlowTranslationProcessor(work, metadata)
+      const sut2 = new FlowTranslationProcessor(config, metadata)
       return (sut2 as any)
         ._mergeTranslationWithOutput(`${FR}.translation${METAFILE_SUFFIX}`)
         .then((m: any) => {
@@ -429,14 +460,14 @@ describe('FlowTranslationProcessor', () => {
       // L214 mutant: if (true) → idx always undefined → new bucket created for every element
       // This means two <flowDefinitions> elements each get separate buckets instead of sharing one.
       // The orderedChildren would have 2 flowDefinitions entries instead of 1.
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockedPathExists.mockResolvedValue(true as never)
       mockedReadFile.mockResolvedValue(
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>A</fullName></flowDefinitions><flowDefinitions><fullName>B</fullName></flowDefinitions></Translations>`
       )
-      const sut = new FlowTranslationProcessor(work, metadata)
+      const sut = new FlowTranslationProcessor(config, metadata)
       const merge = await (sut as any)._mergeTranslationWithOutput(
         `${FR}.translation${METAFILE_SUFFIX}`
       )
@@ -459,14 +490,14 @@ describe('FlowTranslationProcessor', () => {
       // → seenFullNames gets populated for ALL sibling types, including customFieldTranslations
       // → when we try to merge a new flow, if customFieldTranslation.fullName matches a flow fullName,
       //   the merge would skip the new flow (incorrectly). We detect via seenFullNames size.
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockedPathExists.mockResolvedValue(true as never)
       mockedReadFile.mockResolvedValue(
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><fullName>SomeField</fullName></customFieldTranslations><flowDefinitions><fullName>MyFlow</fullName></flowDefinitions></Translations>`
       )
-      const sut = new FlowTranslationProcessor(work, metadata)
+      const sut = new FlowTranslationProcessor(config, metadata)
       const merge = await (sut as any)._mergeTranslationWithOutput(
         `${FR}.translation${METAFILE_SUFFIX}`
       )
@@ -483,14 +514,14 @@ describe('FlowTranslationProcessor', () => {
       // L226 mutant: if (true) → always pushes a new flowDefinitions bucket
       // even when one already exists. This means orderedChildren gets 2 flowDefinitions buckets.
       // We detect by checking the number of flowDefinitions entries.
-      work = getWork()
-      work.config.output = 'output'
-      work.config.repo = './'
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
       mockedPathExists.mockResolvedValue(true as never)
       mockedReadFile.mockResolvedValue(
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>Existing</fullName></flowDefinitions></Translations>`
       )
-      const sut = new FlowTranslationProcessor(work, metadata)
+      const sut = new FlowTranslationProcessor(config, metadata)
       const merge = await (sut as any)._mergeTranslationWithOutput(
         `${FR}.translation${METAFILE_SUFFIX}`
       )
@@ -506,8 +537,8 @@ describe('FlowTranslationProcessor', () => {
   describe('isCollector', () => {
     it('Given flowTranslationProcessor, When isCollector, Then returns true', () => {
       // Arrange
-      const work = getWork()
-      const sut = new FlowTranslationProcessor(work, metadata)
+      const config = getConfig()
+      const sut = new FlowTranslationProcessor(config, metadata)
 
       // Act & Assert
       expect(sut.isCollector).toBe(true)
@@ -526,17 +557,18 @@ describe('FlowTranslationProcessor', () => {
       beforeEach(() => {
         mockIgnores.mockReturnValue(false)
         mockedIsSubDir.mockImplementation(() => false)
-        work = getWork()
-        work.config.repo = './'
-        work.config.output = outputPath
-        sut = new FlowTranslationProcessor(work, metadata)
+        config = getConfig()
+        config.repo = './'
+        config.output = outputPath
+        changes = new ChangeSet()
+        sut = new FlowTranslationProcessor(config, metadata)
         mockedGrepContent.mockResolvedValue([translationPath])
       })
 
       describe('when no flow have been modified', () => {
         it('should not even look for translation files', async () => {
           // Act
-          const result = await sut.transformAndCollect()
+          const result = await sut.transformAndCollect(changes)
 
           // Assert
           expect(mockedGrepContent).not.toHaveBeenCalled()
@@ -547,7 +579,12 @@ describe('FlowTranslationProcessor', () => {
       describe('when flow have been modified', () => {
         beforeEach(() => {
           // Arrange
-          work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+          changes = addChange(
+            changes,
+            ChangeKind.Modify,
+            FLOW_XML_NAME,
+            flowFullName
+          )
           mockedReadPathFromGit.mockResolvedValue(
             translationXml([{ fullName: flowFullName }])
           )
@@ -560,16 +597,14 @@ describe('FlowTranslationProcessor', () => {
           })
           it('should not add translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).not.toHaveBeenCalled()
             expect(hasTranslationManifest(result)).toBe(false)
@@ -584,17 +619,15 @@ describe('FlowTranslationProcessor', () => {
           })
           it('should not add translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(hasTranslationManifest(result)).toBe(false)
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
             expect(result.copies).toHaveLength(0)
@@ -610,16 +643,14 @@ describe('FlowTranslationProcessor', () => {
           })
           it('should add translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
             expect(hasTranslationManifest(result)).toBe(true)
@@ -636,8 +667,18 @@ describe('FlowTranslationProcessor', () => {
             // unchanged while flowDefinitions are merged. Also verifies that
             // `subType === FLOW_DEFINITIONS_KEY` in the parse callback actually
             // gates the seenFullNames population.
-            work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              TRANSLATION_TYPE,
+              FR
+            )
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              FLOW_XML_NAME,
+              flowFullName
+            )
             mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name><label>Custom</label></customFieldTranslations><flowDefinitions><fullName>TestA</fullName></flowDefinitions></Translations>`
@@ -645,7 +686,7 @@ describe('FlowTranslationProcessor', () => {
           })
           it('preserves the customFieldTranslations sibling AND merges new flowDefinitions', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(result.copies).toHaveLength(1)
@@ -662,8 +703,18 @@ describe('FlowTranslationProcessor', () => {
 
         describe('when the output translation has a flowDefinition whose fullName matches the new one', () => {
           beforeEach(() => {
-            work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              TRANSLATION_TYPE,
+              FR
+            )
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              FLOW_XML_NAME,
+              flowFullName
+            )
             mockedPathExists.mockResolvedValue(true as never)
             // Output already has `<fullName>test-flow</fullName>` — the new
             // flow with the same fullName must NOT duplicate (output-wins).
@@ -673,7 +724,7 @@ describe('FlowTranslationProcessor', () => {
           })
           it('does not duplicate the flow and keeps the output-side content (output-wins-on-conflict)', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
             const copy = result.copies[0]
 
             // Assert
@@ -692,8 +743,18 @@ describe('FlowTranslationProcessor', () => {
         describe('when there is already a translation with flow definition related to a flow', () => {
           beforeEach(() => {
             // Arrange
-            work.changes.add(ChangeKind.Modify, TRANSLATION_TYPE, FR)
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              TRANSLATION_TYPE,
+              FR
+            )
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              FLOW_XML_NAME,
+              flowFullName
+            )
             mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
@@ -701,16 +762,14 @@ describe('FlowTranslationProcessor', () => {
           })
           it('the flowDefinitions translations should be added to the translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalled()
             expect(result.copies).toHaveLength(1)
@@ -730,7 +789,12 @@ describe('FlowTranslationProcessor', () => {
           beforeEach(() => {
             // Arrange
             // Note: TRANSLATION_TYPE / FR deliberately not added here
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              FLOW_XML_NAME,
+              flowFullName
+            )
             mockedPathExists.mockResolvedValue(true as never)
             mockedReadFile.mockResolvedValue(
               `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
@@ -738,16 +802,14 @@ describe('FlowTranslationProcessor', () => {
           })
           it('the flowDefinitions translations should be added to the translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalled()
             expect(result.copies).toHaveLength(1)
@@ -778,17 +840,15 @@ describe('FlowTranslationProcessor', () => {
               // Arrange
 
               // Act
-              const result = await sut.transformAndCollect()
+              const result = await sut.transformAndCollect(changes)
 
               // Assert
               expect(hasTranslationManifest(result)).toBe(false)
               expect(mockedGrepContent).toHaveBeenCalledTimes(1)
               expect(mockedGrepContent).toHaveBeenCalledWith(
                 'flowDefinitions',
-                work.config.source.map(
-                  (s: string) => `${s}/*.translation-meta.xml`
-                ),
-                work.config
+                config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+                config
               )
               expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
               expect(result.copies).toHaveLength(0)
@@ -806,27 +866,29 @@ describe('FlowTranslationProcessor', () => {
                       { fullName: 'otherFlow' },
                     ])
                   )
-                  work.changes.add(
+                  changes = addChange(
+                    changes,
                     ChangeKind.Modify,
                     FLOW_XML_NAME,
                     flowFullName
                   )
-                  work.changes.add(
+                  changes = addChange(
+                    changes,
                     ChangeKind.Modify,
                     FLOW_XML_NAME,
                     'otherFlow'
                   )
-                  work.config.generateDelta = generateDelta
+                  config.generateDelta = generateDelta
                 })
                 it('should add translation', async () => {
                   // Arrange
 
                   // Act
-                  const result = await sut.transformAndCollect()
+                  const result = await sut.transformAndCollect(changes)
 
                   // Assert
                   expect(hasTranslationManifest(result)).toBe(true)
-                  expect(result.changes.toElements()).toEqual(
+                  expect(elementsOf(result)).toEqual(
                     expect.arrayContaining([
                       expect.objectContaining({
                         target: ManifestTarget.Package,
@@ -837,10 +899,10 @@ describe('FlowTranslationProcessor', () => {
                   expect(mockedGrepContent).toHaveBeenCalledTimes(1)
                   expect(mockedGrepContent).toHaveBeenCalledWith(
                     'flowDefinitions',
-                    work.config.source.map(
+                    config.source.map(
                       (s: string) => `${s}/*.translation-meta.xml`
                     ),
-                    work.config
+                    config
                   )
                   expect(mockedReadPathFromGit).toHaveBeenCalledTimes(2)
                   if (generateDelta) expect(result.copies).toHaveLength(2)
@@ -854,22 +916,20 @@ describe('FlowTranslationProcessor', () => {
         describe('when translation files are ignored', () => {
           beforeEach(() => {
             // Arrange
-            work.config.ignore = '.forceignore'
+            config.ignore = '.forceignore'
             mockIgnores.mockReturnValue(true)
           })
           it('should not add translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(hasTranslationManifest(result)).toBe(false)
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).not.toHaveBeenCalled()
             expect(result.copies).toHaveLength(0)
@@ -879,23 +939,26 @@ describe('FlowTranslationProcessor', () => {
         describe('when translation files are not ignored', () => {
           beforeEach(() => {
             // Arrange
-            work.changes.add(ChangeKind.Modify, FLOW_XML_NAME, flowFullName)
-            work.config.ignore = '.forceignore'
+            changes = addChange(
+              changes,
+              ChangeKind.Modify,
+              FLOW_XML_NAME,
+              flowFullName
+            )
+            config.ignore = '.forceignore'
             mockIgnores.mockReturnValue(false)
           })
           it('should add translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(hasTranslationManifest(result)).toBe(true)
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).toHaveBeenCalledTimes(1)
             expect(result.copies).toHaveLength(1)
@@ -906,23 +969,21 @@ describe('FlowTranslationProcessor', () => {
           beforeEach(() => {
             // Arrange
             const out = 'out'
-            work.config.output = out
+            config.output = out
             mockedReadPathFromGit.mockResolvedValue(emptyTranslationXml)
             mockedIsSubDir.mockImplementation(() => true)
           })
           it('should not add translation file', async () => {
             // Act
-            const result = await sut.transformAndCollect()
+            const result = await sut.transformAndCollect(changes)
 
             // Assert
             expect(hasTranslationManifest(result)).toBe(false)
             expect(mockedGrepContent).toHaveBeenCalledTimes(1)
             expect(mockedGrepContent).toHaveBeenCalledWith(
               'flowDefinitions',
-              work.config.source.map(
-                (s: string) => `${s}/*.translation-meta.xml`
-              ),
-              work.config
+              config.source.map((s: string) => `${s}/*.translation-meta.xml`),
+              config
             )
             expect(mockedReadPathFromGit).not.toHaveBeenCalled()
             expect(result.copies).toHaveLength(0)

@@ -4,8 +4,8 @@ import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import TypeHandlerFactory from '../service/typeHandlerFactory.js'
-import type { Work } from '../types/work.js'
-import type ChangeSet from './changeSet.js'
+import type { Config } from '../types/config.js'
+import type { RenameTriple } from './changeSet.js'
 import { getErrorMessage } from './errorUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
@@ -13,8 +13,8 @@ import type { RenamePathPair } from './repoGitDiff.js'
 
 /**
  * Turns the `{ fromPath, toPath }` pairs git emitted for `-M` renames into
- * `ChangeSet.recordRename(type, from, to)` calls by re-using the handler
- * machinery to resolve each side to its Salesforce (type, member).
+ * `RenameTriple` values by re-using the handler machinery to resolve each
+ * side to its Salesforce (type, member).
  *
  * Pairs where metadata resolution fails (ignored path, unknown type) or where
  * the from/to side land on the same component are skipped — those reduce to
@@ -23,21 +23,20 @@ import type { RenamePathPair } from './repoGitDiff.js'
 export default class RenameResolver {
   private readonly factory: TypeHandlerFactory
 
-  constructor(work: Work, metadata: MetadataRepository) {
-    this.factory = new TypeHandlerFactory(work, metadata)
+  constructor(config: Config, metadata: MetadataRepository) {
+    this.factory = new TypeHandlerFactory(config, metadata)
   }
 
   @log
-  public async apply(
-    changes: ChangeSet,
+  public async resolve(
     pairs: readonly RenamePathPair[]
-  ): Promise<void> {
+  ): Promise<readonly RenameTriple[]> {
+    const triples: RenameTriple[] = []
     for (const pair of pairs) {
       const resolved = await this._resolve(pair)
-      if (resolved) {
-        changes.recordRename(resolved.type, resolved.from, resolved.to)
-      }
+      if (resolved) triples.push(resolved)
     }
+    return triples
   }
 
   private async _resolve(

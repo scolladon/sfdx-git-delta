@@ -2,8 +2,8 @@
 import GitAdapter from '../adapter/GitAdapter.js'
 import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Config } from '../types/config.js'
 import { Metadata } from '../types/metadata.js'
-import type { Work } from '../types/work.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 
@@ -72,10 +72,10 @@ export default class TypeHandlerFactory {
 
   // Stryker disable BlockStatement -- equivalent: constructor body wires the resolver and pre-builds the inFileParent index; tests instantiate via factory paths that exercise the indexed lookups indirectly, but the mutant `{}` constructor would fail at first getTypeHandler call (resolver undefined), and that failure surfaces only outside the unit test surface for the factory's pure-routing tests
   constructor(
-    protected readonly work: Work,
+    protected readonly config: Config,
     protected readonly metadata: MetadataRepository
   ) {
-    const gitAdapter = GitAdapter.getInstance(work.config)
+    const gitAdapter = GitAdapter.getInstance(config)
     this.resolver = new MetadataBoundaryResolver(metadata, gitAdapter)
     this.inFileParentXmlNames = new Set()
     this.buildInFileParentIndex()
@@ -96,12 +96,11 @@ export default class TypeHandlerFactory {
     }
     // Stryker restore ConditionalExpression,BlockStatement,StringLiteral
     // Stryker disable ConditionalExpression,EqualityOperator -- equivalent: the conditional picks `from` for deletions and `to` for additions/modifications; the test surface uses identical from/to values via getWork() defaults so the swap is unobservable
-    const revision =
-      changeType === DELETION ? this.work.config.from : this.work.config.to
+    const revision = changeType === DELETION ? this.config.from : this.config.to
     // Stryker restore ConditionalExpression,EqualityOperator
     const element = await this.resolver.createElement(path, type, revision)
     const Handler = this.resolveHandler(type)
-    return new Handler(changeType, element, this.work)
+    return new Handler(changeType, element, this.config)
   }
 
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body produces an empty inFileParent index; downstream resolveHandler falls back to Standard for inFile parents, which still routes correctly for the pure-routing test surface

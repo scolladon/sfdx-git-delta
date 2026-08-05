@@ -4,14 +4,15 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { readDirs } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -58,10 +59,10 @@ const testContext = [
   ],
 ]
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
   mockedReadDirs.mockResolvedValue([])
 })
 
@@ -75,7 +76,7 @@ describe('InNestedFolderHandler', () => {
     'when called with generateDelta false',
     (changePath: string, expectedMember: string, expectedType: string) => {
       beforeEach(() => {
-        work.config.generateDelta = false
+        config.generateDelta = false
       })
       it(`should add manifest entry when adding ${expectedType}`, async () => {
         // Arrange
@@ -84,13 +85,13 @@ describe('InNestedFolderHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new ReportingFolderHandler(changeType, element, work)
+        const sut = new ReportingFolderHandler(changeType, element, config)
 
         // Act
         const result = await sut.collectAddition()
 
         // Assert
-        expect(result.changes.toElements()).toEqual(
+        expect(elementsOf(result)).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
               target: ManifestTarget.Package,
@@ -107,7 +108,7 @@ describe('InNestedFolderHandler', () => {
     'when called with generateDelta true',
     (changePath: string, expectedMember: string, expectedType: string) => {
       beforeEach(() => {
-        work.config.generateDelta = true
+        config.generateDelta = true
       })
 
       describe(`when readDirs does not return files`, () => {
@@ -118,14 +119,14 @@ describe('InNestedFolderHandler', () => {
             objectType,
             globalMetadata
           )
-          const sut = new ReportingFolderHandler(changeType, element, work)
+          const sut = new ReportingFolderHandler(changeType, element, config)
           mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
           // Act
           const result = await sut.collectAddition()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -154,7 +155,7 @@ describe('InNestedFolderHandler', () => {
             objectType,
             globalMetadata
           )
-          const sut = new ReportingFolderHandler(changeType, element, work)
+          const sut = new ReportingFolderHandler(changeType, element, config)
           mockedReadDirs.mockImplementationOnce(() =>
             Promise.resolve([entity, 'not/matching'])
           )
@@ -163,7 +164,7 @@ describe('InNestedFolderHandler', () => {
           const result = await sut.collectAddition()
 
           // Assert
-          expect(result.changes.toElements()).toEqual(
+          expect(elementsOf(result)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 target: ManifestTarget.Package,
@@ -189,13 +190,13 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, work)
+      const sut = new ReportingFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
     })
   })
@@ -204,39 +205,39 @@ describe('InNestedFolderHandler', () => {
     it('should not add to package but still process the line', async () => {
       // Arrange
       const nestedPath = `force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         `A       ${nestedPath}`,
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, work)
+      const sut = new ReportingFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectAddition()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
     })
   })
 
   describe('collectDeletion', () => {
     it('should return destructive manifest entry when extension matches', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const deletionPath = `D       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`
       const { changeType, element } = createElement(
         deletionPath,
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, work)
+      const sut = new ReportingFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.DestructiveChanges,
@@ -249,20 +250,20 @@ describe('InNestedFolderHandler', () => {
 
     it('should return empty result when extension has no matching type', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const unknownPath = `D       force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
       const { changeType, element } = createElement(
         unknownPath,
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, work)
+      const sut = new ReportingFolderHandler(changeType, element, config)
 
       // Act
       const result = await sut.collectDeletion()
 
       // Assert
-      expect(result.changes.toElements()).toEqual([])
+      expect(elementsOf(result)).toEqual([])
       expect(result.copies).toEqual([])
     })
   })

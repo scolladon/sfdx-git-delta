@@ -3,9 +3,13 @@
 import { createWriteStream, promises as fsPromises } from 'node:fs'
 import { dirname, join } from 'node:path/posix'
 import type { Manifest } from '../types/work.js'
+import type ChangeSet from '../utils/changeSet.js'
 import { log } from '../utils/LoggingDecorator.js'
 import PackageBuilder from '../utils/packageHelper.js'
-import BaseProcessor from './baseProcessor.js'
+import BaseProcessor, {
+  emptyOutcome,
+  type ProcessorOutcome,
+} from './baseProcessor.js'
 
 const DESTRUCTIVE_CHANGES_FILE_NAME = 'destructiveChanges'
 const PACKAGE_FILE_NAME = 'package'
@@ -19,13 +23,13 @@ type WriteOp = {
 
 export default class PackageGenerator extends BaseProcessor {
   @log
-  public override async process() {
+  public override async process(changes: ChangeSet): Promise<ProcessorOutcome> {
     const builder = new PackageBuilder(this.config)
     // ChangeSet.forDestructiveManifest() already cancels delete entries that
     // have been re-added or re-modified in the same diff — no local cleanup
     // needed here.
-    const destructiveManifest = this.work.changes.forDestructiveManifest()
-    const packageManifest = this.work.changes.forPackageManifest()
+    const destructiveManifest = changes.forDestructiveManifest()
+    const packageManifest = changes.forPackageManifest()
     const ops: WriteOp[] = [
       {
         filename: `${DESTRUCTIVE_CHANGES_FILE_NAME}.${XML_FILE_EXTENSION}`,
@@ -44,6 +48,7 @@ export default class PackageGenerator extends BaseProcessor {
       },
     ]
     await Promise.all(ops.map(op => this._writeManifest(builder, op)))
+    return emptyOutcome()
   }
 
   private async _writeManifest(

@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import ChangesManifestProcessor from '../../../../src/post-processor/changesManifestProcessor'
+import type { Config } from '../../../../src/types/config'
 import { ChangeKind } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
+import ChangeSet from '../../../../src/utils/changeSet'
 import { outputFile } from '../../../../src/utils/fsUtils'
-import { getWork } from '../../../__utils__/testWork'
+import { addChange, addRename } from '../../../__utils__/handlerResultView'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
@@ -14,22 +16,24 @@ vi.mock('../../../../src/utils/fsUtils', async orig => ({
 }))
 
 describe('ChangesManifestProcessor', () => {
-  let work: Work
+  let config: Config
+  let changes: ChangeSet
   // ChangesManifestProcessor never reads the metadata registry — a stub keeps
   // the test suite fast without loading the real registry on every beforeEach.
   const metadata = {} as MetadataRepository
   beforeEach(() => {
-    work = getWork()
+    config = getConfig()
+    changes = new ChangeSet()
   })
 
   describe('Given changes-manifest flag is not set', () => {
     it('When process runs, Then writes no file', async () => {
       // Arrange
-      work.config.changesManifest = undefined
-      const sut = new ChangesManifestProcessor(work, metadata)
+      config.changesManifest = undefined
+      const sut = new ChangesManifestProcessor(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       expect(outputFile).not.toHaveBeenCalled()
@@ -40,14 +44,24 @@ describe('ChangesManifestProcessor', () => {
     it('When process runs, Then writes to that path verbatim with the kind-grouped payload', async () => {
       // Arrange — the CLI layer resolves bare flag + relative path policy
       // before this processor sees config.changesManifest.
-      work.config.changesManifest = 'reports/changes.json'
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'NewClass')
-      work.changes.add(ChangeKind.Modify, 'ApexClass', 'EditedClass')
-      work.changes.add(ChangeKind.Delete, 'ApexTrigger', 'OldTrigger')
-      const sut = new ChangesManifestProcessor(work, metadata)
+      config.changesManifest = 'reports/changes.json'
+      changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'NewClass')
+      changes = addChange(
+        changes,
+        ChangeKind.Modify,
+        'ApexClass',
+        'EditedClass'
+      )
+      changes = addChange(
+        changes,
+        ChangeKind.Delete,
+        'ApexTrigger',
+        'OldTrigger'
+      )
+      const sut = new ChangesManifestProcessor(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       expect(outputFile).toHaveBeenCalledTimes(1)
@@ -65,11 +79,11 @@ describe('ChangesManifestProcessor', () => {
   describe('Given changes-manifest is an absolute path', () => {
     it('When process runs, Then writes to that absolute path verbatim', async () => {
       // Arrange
-      work.config.changesManifest = '/tmp/sgd-review.json'
-      const sut = new ChangesManifestProcessor(work, metadata)
+      config.changesManifest = '/tmp/sgd-review.json'
+      const sut = new ChangesManifestProcessor(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       expect(outputFile).toHaveBeenCalledTimes(1)
@@ -81,15 +95,15 @@ describe('ChangesManifestProcessor', () => {
   describe('Given rename pairs recorded on the ChangeSet', () => {
     it('When process runs, Then the rename bucket is emitted as {type: [{from, to}]} with to-sorted order, and rename participants are excluded from add/delete', async () => {
       // Arrange
-      work.config.changesManifest = 'changes.json'
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'ZetaNew')
-      work.changes.add(ChangeKind.Delete, 'ApexClass', 'ZetaOld')
-      work.changes.recordRename('ApexClass', 'ZetaOld', 'ZetaNew')
-      work.changes.recordRename('ApexClass', 'AlphaOld', 'AlphaNew')
-      const sut = new ChangesManifestProcessor(work, metadata)
+      config.changesManifest = 'changes.json'
+      changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'ZetaNew')
+      changes = addChange(changes, ChangeKind.Delete, 'ApexClass', 'ZetaOld')
+      changes = addRename(changes, 'ApexClass', 'ZetaOld', 'ZetaNew')
+      changes = addRename(changes, 'ApexClass', 'AlphaOld', 'AlphaNew')
+      const sut = new ChangesManifestProcessor(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       const [, payload] = vi.mocked(outputFile).mock.calls[0]
@@ -108,15 +122,15 @@ describe('ChangesManifestProcessor', () => {
   describe('Given multiple types and members across kinds', () => {
     it('When process runs, Then serialises with deterministic alphabetical sort', async () => {
       // Arrange
-      work.config.changesManifest = 'changes.json'
-      work.changes.add(ChangeKind.Add, 'CustomObject', 'Beta__c')
-      work.changes.add(ChangeKind.Add, 'CustomObject', 'Alpha__c')
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'Zeta')
-      work.changes.add(ChangeKind.Add, 'ApexClass', 'Alpha')
-      const sut = new ChangesManifestProcessor(work, metadata)
+      config.changesManifest = 'changes.json'
+      changes = addChange(changes, ChangeKind.Add, 'CustomObject', 'Beta__c')
+      changes = addChange(changes, ChangeKind.Add, 'CustomObject', 'Alpha__c')
+      changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Zeta')
+      changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Alpha')
+      const sut = new ChangesManifestProcessor(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       const [, payload] = vi.mocked(outputFile).mock.calls[0]
@@ -133,13 +147,13 @@ describe('ChangesManifestProcessor', () => {
       // reviewers diff this file between CI runs, so insertion-order leakage
       // (Map iteration) would produce spurious diffs whenever handler visit
       // order shifts. Alphabetical ordering is the stable choice.
-      work.config.changesManifest = 'changes.json'
-      work.changes.recordRename('ZetaType', 'z.old', 'z.new')
-      work.changes.recordRename('AlphaType', 'a.old', 'a.new')
-      const sut = new ChangesManifestProcessor(work, metadata)
+      config.changesManifest = 'changes.json'
+      changes = addRename(changes, 'ZetaType', 'z.old', 'z.new')
+      changes = addRename(changes, 'AlphaType', 'a.old', 'a.new')
+      const sut = new ChangesManifestProcessor(config, metadata)
 
       // Act
-      await sut.process()
+      await sut.process(changes)
 
       // Assert
       const [, payload] = vi.mocked(outputFile).mock.calls[0]

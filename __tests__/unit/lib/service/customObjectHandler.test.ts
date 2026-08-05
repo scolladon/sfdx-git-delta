@@ -4,14 +4,15 @@ import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectHandler from '../../../../src/service/customObjectHandler'
+import type { Config } from '../../../../src/types/config'
 import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { Work } from '../../../../src/types/work'
 import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
+import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -52,10 +53,10 @@ const objectType = {
 const line =
   'A       force-app/main/default/objects/Account/Account.object-meta.xml'
 
-let work: Work
+let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
-  work = getWork()
+  config = getConfig()
 })
 
 describe('CustomObjectHandler', () => {
@@ -73,13 +74,13 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -96,20 +97,20 @@ describe('CustomObjectHandler', () => {
 
     it('Given object addition with generateDelta false, When collect, Then returns manifest without master detail copies', async () => {
       // Arrange
-      work.config.generateDelta = false
+      config.generateDelta = false
       const { changeType, element } = createElement(
         line,
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toHaveLength(1)
-      expect(result.changes.toElements()[0].target).toBe(ManifestTarget.Package)
+      expect(elementsOf(result)).toHaveLength(1)
+      expect(elementsOf(result)[0].target).toBe(ManifestTarget.Package)
       expect(result.copies).toHaveLength(0)
       expect(mockedPathExist).not.toHaveBeenCalled()
       expect(mockedGrepContent).not.toHaveBeenCalled()
@@ -122,13 +123,13 @@ describe('CustomObjectHandler', () => {
         territoryModelType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      expect(result.changes.toElements()).toEqual(
+      expect(elementsOf(result)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             target: ManifestTarget.Package,
@@ -154,7 +155,7 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, work)
+      const sut = new CustomObjectHandler(changeType, element, config)
 
       // Act
       const result = await sut.collect()

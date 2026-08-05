@@ -2,8 +2,7 @@
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { HandlerResult } from '../types/handlerResult.js'
-import type ChangeSet from '../utils/changeSet.js'
+import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { pathExists, readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
@@ -16,29 +15,26 @@ const resourceRegexCache = new Map<string, RegExp>()
 export default class ResourceHandler extends StandardHandler {
   protected metadataName: string | undefined
 
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  public override async collectAddition(): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
-    const result = await super.collectAddition(sink)
-    await this._collectResourceCopies(result.copies)
-    return result
+    const result = await super.collectAddition()
+    const copies = [...result.copies]
+    await this._collectResourceCopies(copies)
+    return { ...result, copies }
   }
 
-  public override async collectDeletion(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  public override async collectDeletion(): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
     const componentPath = this.metadataName!
     const exists = await pathExists(componentPath, this.config)
     if (exists) {
-      return await this.collectModification(sink)
+      return await this.collectModification()
     }
-    return await super.collectDeletion(sink)
+    return await super.collectDeletion()
   }
 
   protected async _collectResourceCopies(
-    copies: import('../types/handlerResult.js').CopyOperation[]
+    copies: CopyOperation[]
   ): Promise<void> {
     // Stryker disable next-line ConditionalExpression -- equivalent: shouldCollectCopies guard; flipping to false continues into the resource scan even when copies aren't needed (e.g. generateDelta=false), but the empty path branch still produces no copies because the test fixtures for the generateDelta=false case don't fixture matching resource files
     if (!this._shouldCollectCopies()) return

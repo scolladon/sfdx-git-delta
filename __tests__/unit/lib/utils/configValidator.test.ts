@@ -2,11 +2,11 @@ import { stat } from 'node:fs/promises'
 
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
-import type { Work } from '../../../../src/types/work'
+import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
 import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
 import { Logger } from '../../../../src/utils/LoggingService'
-import { getWork } from '../../../__utils__/testWork'
+import { getConfig } from '../../../__utils__/testWork'
 
 const {
   mockGetMessage,
@@ -87,13 +87,13 @@ const mockedSanitizePath = vi.mocked(sanitizePath)
 mockedSanitizePath.mockImplementation(data => data)
 
 describe('Given a ConfigValidator', () => {
-  let work: Work
+  let config: Config
   beforeEach(() => {
     vi.clearAllMocks()
-    work = getWork()
-    work.config.repo = '.'
-    work.config.to = 'test'
-    work.config.apiVersion = 46
+    config = getConfig()
+    config.repo = '.'
+    config.to = 'test'
+    config.apiVersion = 46
     mockedPathExists.mockResolvedValue(true as never)
     mockParseRev.mockImplementation(() => Promise.resolve('ref'))
   })
@@ -101,12 +101,9 @@ describe('Given a ConfigValidator', () => {
   it('resume nicely when everything is well configured', async () => {
     // Arrange
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        to: 'notblank',
-        from: 'HEAD',
-      },
+      ...config,
+      to: 'notblank',
+      from: 'HEAD',
     })
 
     // Act & Assert
@@ -116,11 +113,8 @@ describe('Given a ConfigValidator', () => {
   it('add errors when repo is not a git repository', async () => {
     mockedPathExists.mockResolvedValue(false as never)
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        to: '',
-      },
+      ...config,
+      to: '',
     })
     expect.assertions(1)
     await expect(sut.validateConfig()).rejects.toThrow()
@@ -129,11 +123,8 @@ describe('Given a ConfigValidator', () => {
   it('throws errors when repo is not git repository', async () => {
     mockedPathExists.mockResolvedValue(false as never)
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        repo: 'not/git/folder',
-      },
+      ...config,
+      repo: 'not/git/folder',
     })
     expect.assertions(1)
     await expect(sut.validateConfig()).rejects.toThrow()
@@ -143,12 +134,9 @@ describe('Given a ConfigValidator', () => {
     mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        to: emptyString,
-        generateDelta: false,
-      },
+      ...config,
+      to: emptyString,
+      generateDelta: false,
     })
     expect.assertions(1)
     await expect(sut.validateConfig()).rejects.toThrow()
@@ -158,12 +146,9 @@ describe('Given a ConfigValidator', () => {
     mockParseRev.mockImplementation(() => Promise.reject())
     const emptyString = ''
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        from: emptyString,
-        generateDelta: false,
-      },
+      ...config,
+      from: emptyString,
+      generateDelta: false,
     })
     expect.assertions(1)
     await expect(sut.validateConfig()).rejects.toThrow()
@@ -175,12 +160,9 @@ describe('Given a ConfigValidator', () => {
     )
     const notHeadSHA = 'test'
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        to: notHeadSHA,
-        generateDelta: false,
-      },
+      ...config,
+      to: notHeadSHA,
+      generateDelta: false,
     })
     expect.assertions(1)
     await expect(sut.validateConfig()).rejects.toThrow()
@@ -193,12 +175,9 @@ describe('Given a ConfigValidator', () => {
     )
     const notHeadSHA = 'test'
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        from: notHeadSHA,
-        generateDelta: false,
-      },
+      ...config,
+      from: notHeadSHA,
+      generateDelta: false,
     })
     expect.assertions(1)
     await expect(sut.validateConfig()).rejects.toThrow()
@@ -214,13 +193,10 @@ describe('Given a ConfigValidator', () => {
     )
     const notHeadSHA = 'test'
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        to: notHeadSHA,
-        from: notHeadSHA,
-        generateDelta: false,
-      },
+      ...config,
+      to: notHeadSHA,
+      from: notHeadSHA,
+      generateDelta: false,
     })
 
     // Act & Assert
@@ -232,12 +208,9 @@ describe('Given a ConfigValidator', () => {
     const notHeadSHA = 'test'
 
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        from: notHeadSHA,
-        generateDelta: false,
-      },
+      ...config,
+      from: notHeadSHA,
+      generateDelta: false,
     })
 
     // Act & Assert
@@ -247,11 +220,8 @@ describe('Given a ConfigValidator', () => {
   it('do not throw errors when repo contains submodule git file', async () => {
     // Arrange
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        repo: 'submodule/',
-      },
+      ...config,
+      repo: 'submodule/',
     })
 
     // Act & Assert
@@ -261,11 +231,8 @@ describe('Given a ConfigValidator', () => {
   it('do not throw errors when repo submodule git folder', async () => {
     // Arrange
     const sut = new ConfigValidator({
-      ...work,
-      config: {
-        ...work.config,
-        repo: 'submodule/',
-      },
+      ...config,
+      repo: 'submodule/',
     })
 
     // Act & Assert
@@ -287,15 +254,15 @@ describe('Given a ConfigValidator', () => {
         'config.apiVersion (%s) equals the parameter',
         async version => {
           // Arrange
-          work.config.apiVersion = version
-          const sut = new ConfigValidator(work)
+          config.apiVersion = version
+          const sut = new ConfigValidator(config)
 
           // Act
-          await sut['_handleDefault']()
+          const warnings = await sut['_handleDefault']()
 
           // Assert
-          expect(work.config.apiVersion).toEqual(version)
-          expect(work.warnings.length).toEqual(0)
+          expect(config.apiVersion).toEqual(version)
+          expect(warnings.length).toEqual(0)
         }
       )
     })
@@ -304,15 +271,15 @@ describe('Given a ConfigValidator', () => {
         `config.apiVersion (%s) equals the parameter `,
         async version => {
           // Arrange
-          work.config.apiVersion = version
-          const sut = new ConfigValidator(work)
+          config.apiVersion = version
+          const sut = new ConfigValidator(config)
 
           // Act
-          await sut['_handleDefault']()
+          const warnings = await sut['_handleDefault']()
 
           // Assert
-          expect(work.config.apiVersion).toEqual(version)
-          expect(work.warnings.length).toEqual(0)
+          expect(config.apiVersion).toEqual(version)
+          expect(warnings.length).toEqual(0)
         }
       )
     })
@@ -334,15 +301,15 @@ describe('Given a ConfigValidator', () => {
             async version => {
               // Arrange
               mockSfProject(String(version))
-              work.config.apiVersion = undefined
-              const sut = new ConfigValidator(work)
+              config.apiVersion = undefined
+              const sut = new ConfigValidator(config)
 
               // Act
-              await sut['_handleDefault']()
+              const warnings = await sut['_handleDefault']()
 
               // Assert
-              expect(work.config.apiVersion).toEqual(+version)
-              expect(work.warnings.length).toEqual(0)
+              expect(config.apiVersion).toEqual(+version)
+              expect(warnings.length).toEqual(0)
             }
           )
         })
@@ -352,15 +319,15 @@ describe('Given a ConfigValidator', () => {
             async version => {
               // Arrange
               mockSfProject(version)
-              work.config.apiVersion = undefined
-              const sut = new ConfigValidator(work)
+              config.apiVersion = undefined
+              const sut = new ConfigValidator(config)
 
               // Act
-              await sut['_handleDefault']()
+              const warnings = await sut['_handleDefault']()
 
               // Assert
-              expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-              expect(work.warnings.length).toEqual(1)
+              expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+              expect(warnings.length).toEqual(1)
             }
           )
         })
@@ -369,15 +336,15 @@ describe('Given a ConfigValidator', () => {
           it('config.apiVersion equals the sourceApiVersion', async () => {
             // Arrange
             mockSfProject('40')
-            work.config.apiVersion = undefined
-            const sut = new ConfigValidator(work)
+            config.apiVersion = undefined
+            const sut = new ConfigValidator(config)
 
             // Act
-            await sut['_handleDefault']()
+            const warnings = await sut['_handleDefault']()
 
             // Assert
-            expect(work.config.apiVersion).toEqual(40)
-            expect(work.warnings.length).toEqual(0)
+            expect(config.apiVersion).toEqual(40)
+            expect(warnings.length).toEqual(0)
           })
         })
 
@@ -385,30 +352,30 @@ describe('Given a ConfigValidator', () => {
           it('config.apiVersion is overridden to latest with warning', async () => {
             // Arrange
             mockSfProject('1000000000')
-            work.config.apiVersion = undefined
-            const sut = new ConfigValidator(work)
+            config.apiVersion = undefined
+            const sut = new ConfigValidator(config)
 
             // Act
-            await sut['_handleDefault']()
+            const warnings = await sut['_handleDefault']()
 
             // Assert
-            expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-            expect(work.warnings.length).toEqual(1)
+            expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+            expect(warnings.length).toEqual(1)
           })
         })
 
         it('when "sourceApiVersion" attribute is not set, defaults to latest with warning', async () => {
           // Arrange
           mockSfProject()
-          work.config.apiVersion = undefined
-          const sut = new ConfigValidator(work)
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
 
           // Act
-          await sut['_handleDefault']()
+          const warnings = await sut['_handleDefault']()
 
           // Assert
-          expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-          expect(work.warnings.length).toEqual(1)
+          expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+          expect(warnings.length).toEqual(1)
         })
       })
     })
@@ -418,15 +385,15 @@ describe('Given a ConfigValidator', () => {
         mockSfProjectResolve.mockRejectedValue(
           new Error('No sfdx-project.json found')
         )
-        work.config.apiVersion = undefined
-        const sut = new ConfigValidator(work)
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_handleDefault']()
+        const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings.length).toEqual(1)
+        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(warnings.length).toEqual(1)
       })
     })
 
@@ -442,15 +409,15 @@ describe('Given a ConfigValidator', () => {
       describe('when apiVersion is provided', () => {
         it('When the lookup fails, Then the provided apiVersion is kept without warning', async () => {
           // Arrange
-          work.config.apiVersion = 46
-          const sut = new ConfigValidator(work)
+          config.apiVersion = 46
+          const sut = new ConfigValidator(config)
 
           // Act
-          await sut['_handleDefault']()
+          const warnings = await sut['_handleDefault']()
 
           // Assert
-          expect(work.config.apiVersion).toEqual(46)
-          expect(work.warnings).toHaveLength(0)
+          expect(config.apiVersion).toEqual(46)
+          expect(warnings).toHaveLength(0)
         })
       })
 
@@ -460,8 +427,8 @@ describe('Given a ConfigValidator', () => {
           mockSfProjectResolve.mockRejectedValue(
             new Error('No sfdx-project.json found')
           )
-          work.config.apiVersion = undefined
-          const sut = new ConfigValidator(work)
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
 
           // Act & Assert
           await expect(sut['_handleDefault']()).rejects.toThrow(
@@ -478,8 +445,8 @@ describe('Given a ConfigValidator', () => {
       describe('when apiVersion is NaN', () => {
         it('When the lookup fails and apiVersion is NaN, Then it throws an actionable ConfigError', async () => {
           // Arrange
-          work.config.apiVersion = NaN
-          const sut = new ConfigValidator(work)
+          config.apiVersion = NaN
+          const sut = new ConfigValidator(config)
 
           // Act & Assert
           await expect(sut['_handleDefault']()).rejects.toThrow(
@@ -497,51 +464,74 @@ describe('Given a ConfigValidator', () => {
     describe('when apiVersion equals the latest supported version', () => {
       it('When apiVersion equals latestVersion, Then no warning and no override', async () => {
         // Arrange
-        work.config.apiVersion = latestAPIVersionSupported
-        const sut = new ConfigValidator(work)
+        config.apiVersion = latestAPIVersionSupported
+        const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_handleDefault']()
+        const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings).toHaveLength(0)
+        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(warnings).toHaveLength(0)
       })
     })
 
     describe('when apiVersion is explicitly NaN', () => {
       it('When apiVersion is NaN, Then it defaults to latest with defaulted warning', async () => {
         // Arrange
-        work.config.apiVersion = NaN
-        const sut = new ConfigValidator(work)
+        config.apiVersion = NaN
+        const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_handleDefault']()
+        const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings).toHaveLength(1)
-        expect(work.warnings[0].message).toContain(
-          'warning.ApiVersionDefaulted'
-        )
+        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0].message).toContain('warning.ApiVersionDefaulted')
+      })
+
+      it('When apiVersion is NaN, Then validateConfig returns that same warning to its caller', async () => {
+        // Arrange — validateConfig is the only surface main() sees, so the
+        // warnings it returns are what reaches the user. Assert the channel,
+        // not just the value the private helper computed.
+        config.apiVersion = NaN
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut.validateConfig()
+
+        // Assert
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0]!.message).toContain('warning.ApiVersionDefaulted')
+      })
+
+      it('When apiVersion is supported, Then validateConfig returns no warnings', async () => {
+        // Arrange
+        config.apiVersion = 52
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut.validateConfig()
+
+        // Assert
+        expect(warnings).toEqual([])
       })
     })
 
     describe('when apiVersion exceeds latest supported version', () => {
       it('When apiVersion exceeds latest, Then warning message contains override details', async () => {
         // Arrange
-        work.config.apiVersion = 100
-        const sut = new ConfigValidator(work)
+        config.apiVersion = 100
+        const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_handleDefault']()
+        const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(work.config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(work.warnings).toHaveLength(1)
-        expect(work.warnings[0].message).toContain(
-          'warning.ApiVersionOverridden'
-        )
+        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0].message).toContain('warning.ApiVersionOverridden')
       })
     })
 
@@ -551,17 +541,15 @@ describe('Given a ConfigValidator', () => {
         mockSfProjectResolve.mockRejectedValue(
           new Error('No sfdx-project.json found')
         )
-        work.config.apiVersion = undefined
-        const sut = new ConfigValidator(work)
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_handleDefault']()
+        const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(work.warnings).toHaveLength(1)
-        expect(work.warnings[0].message).toContain(
-          'warning.ApiVersionDefaulted'
-        )
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0].message).toContain('warning.ApiVersionDefaulted')
       })
     })
 
@@ -571,8 +559,8 @@ describe('Given a ConfigValidator', () => {
         mockSfProjectResolve.mockRejectedValue(
           new Error('No sfdx-project.json found')
         )
-        work.config.apiVersion = undefined
-        const sut = new ConfigValidator(work)
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
 
         // Act
         await sut['_getApiVersion']()
@@ -590,15 +578,15 @@ describe('Given a ConfigValidator', () => {
             getContents: () => ({ sourceApiVersion: '100' }),
           }),
         })
-        work.config.apiVersion = 46
-        const sut = new ConfigValidator(work)
+        config.apiVersion = 46
+        const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_handleDefault']()
+        const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(work.config.apiVersion).toEqual(46)
-        expect(work.warnings).toHaveLength(0)
+        expect(config.apiVersion).toEqual(46)
+        expect(warnings).toHaveLength(0)
       })
     })
   })
@@ -608,11 +596,8 @@ describe('Given a ConfigValidator', () => {
       // Arrange
       mockedPathExists.mockResolvedValue(false as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          repo: 'not/git/folder',
-        },
+        ...config,
+        repo: 'not/git/folder',
       })
 
       // Act & Assert
@@ -627,12 +612,9 @@ describe('Given a ConfigValidator', () => {
       // Arrange
       mockParseRev.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'invalid-sha',
-          from: 'HEAD',
-        },
+        ...config,
+        to: 'invalid-sha',
+        from: 'HEAD',
       })
 
       // Act & Assert
@@ -650,8 +632,9 @@ describe('Given a ConfigValidator', () => {
       // Real: getMessage(..., ['to', 'bad-to']) → 'error.ParameterIsNotGitSHA:to,bad-to'
       mockParseRev.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
-        ...work,
-        config: { ...work.config, to: 'bad-to', from: 'HEAD' },
+        ...config,
+        to: 'bad-to',
+        from: 'HEAD',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -667,11 +650,11 @@ describe('Given a ConfigValidator', () => {
       vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
         '58'
       )
-      work.config.apiVersion = 100
-      const sut = new ConfigValidator(work)
-      await sut['_handleDefault']()
+      config.apiVersion = 100
+      const sut = new ConfigValidator(config)
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.warnings[0].message).toContain('100')
+      expect(warnings[0].message).toContain('100')
     })
 
     it('Given apiVersion defaults to latest, When _handleDefault, Then warning message contains latestVersion (kills L165 [] mutant)', async () => {
@@ -681,11 +664,11 @@ describe('Given a ConfigValidator', () => {
         '58'
       )
       mockSfProjectResolve.mockRejectedValue(new Error('no project'))
-      work.config.apiVersion = undefined
-      const sut = new ConfigValidator(work)
-      await sut['_handleDefault']()
+      config.apiVersion = undefined
+      const sut = new ConfigValidator(config)
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.warnings[0].message).toContain('58')
+      expect(warnings[0].message).toContain('58')
     })
   })
 
@@ -694,8 +677,9 @@ describe('Given a ConfigValidator', () => {
       // Mutant '' instead of 'from' or 'to' would lose the parameter names in messages
       mockParseRev.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
-        ...work,
-        config: { ...work.config, to: 'bad-to', from: 'bad-from' },
+        ...config,
+        to: 'bad-to',
+        from: 'bad-from',
       })
 
       // Act & Assert
@@ -712,8 +696,9 @@ describe('Given a ConfigValidator', () => {
         .mockResolvedValueOnce('valid-to')
         .mockRejectedValueOnce(new Error('bad sha'))
       const sut = new ConfigValidator({
-        ...work,
-        config: { ...work.config, to: 'HEAD', from: 'bad-from' },
+        ...config,
+        to: 'HEAD',
+        from: 'bad-from',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -731,8 +716,8 @@ describe('Given a ConfigValidator', () => {
       mockedPathExists.mockResolvedValue(false as never)
       mockParseRev.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
-        ...work,
-        config: { ...work.config, repo: 'missing/repo' },
+        ...config,
+        repo: 'missing/repo',
       })
 
       // Act & Assert
@@ -747,8 +732,8 @@ describe('Given a ConfigValidator', () => {
       // Mutant "" for errors.join(', ') would make ConfigError("")
       mockedPathExists.mockResolvedValue(false as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: { ...work.config, repo: 'not-git' },
+        ...config,
+        repo: 'not-git',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -769,43 +754,43 @@ describe('Given a ConfigValidator', () => {
     it('Given apiVersion is defined, valid, and less than latest, When _apiVersionDefault, Then no warning and no override (L146 &&)', async () => {
       // Mutant "||" instead of "&&": undefined || !isNaN(undefined)=true → still false since undefined > 58 is false
       // Key: test that apiVersion < latest stays unchanged (no false positive override)
-      work.config.apiVersion = 55
-      const sut = new ConfigValidator(work)
-      await sut['_handleDefault']()
+      config.apiVersion = 55
+      const sut = new ConfigValidator(config)
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.config.apiVersion).toBe(55)
-      expect(work.warnings).toHaveLength(0)
+      expect(config.apiVersion).toBe(55)
+      expect(warnings).toHaveLength(0)
     })
 
     it('Given apiVersion is defined and equal to latest, When _apiVersionDefault, Then no override (L146 boundary)', async () => {
       // Confirms the > operator (not >= in mutant "anchorIndex > 2")
-      work.config.apiVersion = 58
-      const sut = new ConfigValidator(work)
-      await sut['_handleDefault']()
+      config.apiVersion = 58
+      const sut = new ConfigValidator(config)
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.config.apiVersion).toBe(58)
-      expect(work.warnings).toHaveLength(0)
+      expect(config.apiVersion).toBe(58)
+      expect(warnings).toHaveLength(0)
     })
 
     it('Given apiVersion is NaN, When _apiVersionDefault, Then defaults to latest (L161 ConditionalExpression)', async () => {
       // Mutant ConditionalExpression false: the defaulting block never runs → apiVersion stays NaN
-      work.config.apiVersion = NaN
-      const sut = new ConfigValidator(work)
-      await sut['_handleDefault']()
+      config.apiVersion = NaN
+      const sut = new ConfigValidator(config)
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.config.apiVersion).toBe(58)
-      expect(work.warnings).toHaveLength(1)
+      expect(config.apiVersion).toBe(58)
+      expect(warnings).toHaveLength(1)
     })
 
     it('Given apiVersion is undefined after project lookup, When _apiVersionDefault, Then defaults to latest (L161)', async () => {
       // Mutant false: if block skipped → apiVersion stays undefined
-      work.config.apiVersion = undefined
+      config.apiVersion = undefined
       mockSfProjectResolve.mockRejectedValue(new Error('no project'))
-      const sut = new ConfigValidator(work)
-      await sut['_handleDefault']()
+      const sut = new ConfigValidator(config)
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.config.apiVersion).toBe(58)
-      expect(work.warnings).toHaveLength(1)
+      expect(config.apiVersion).toBe(58)
+      expect(warnings).toHaveLength(1)
     })
   })
 
@@ -822,13 +807,10 @@ describe('Given a ConfigValidator', () => {
         isDirectory: () => true,
       } as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'my-dir',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'my-dir',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -847,13 +829,10 @@ describe('Given a ConfigValidator', () => {
       })
       mockedStat.mockRejectedValueOnce(eacces)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'locked-file.json',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'locked-file.json',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -872,13 +851,10 @@ describe('Given a ConfigValidator', () => {
         isFile: () => false,
       } as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'not-a-file',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'not-a-file',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -892,13 +868,10 @@ describe('Given a ConfigValidator', () => {
       // Mutant true: always errors → this test verifies !isFile()=false means no error
       mockedStat.mockResolvedValueOnce({ isFile: () => true } as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'real-file.json',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'real-file.json',
       })
 
       await expect(sut.validateConfig()).resolves.not.toThrow()
@@ -921,13 +894,10 @@ describe('Given a ConfigValidator', () => {
       mockedPathExists.mockResolvedValue(false as never)
       mockParseRev.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          repo: 'missing/repo',
-          to: 'bad-to',
-          from: 'bad-from',
-        },
+        ...config,
+        repo: 'missing/repo',
+        to: 'bad-to',
+        from: 'bad-from',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -956,13 +926,13 @@ describe('Given a ConfigValidator', () => {
             ({ sourceApiVersion: 0 }) as unknown as Record<string, unknown>,
         }),
       })
-      work.config.apiVersion = undefined
-      const sut = new ConfigValidator(work)
+      config.apiVersion = undefined
+      const sut = new ConfigValidator(config)
 
-      await sut['_handleDefault']()
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.config.apiVersion).toBe(58)
-      expect(work.warnings).toHaveLength(1)
+      expect(config.apiVersion).toBe(58)
+      expect(warnings).toHaveLength(1)
     })
 
     it('Given two invalid SHAs, When validateConfig throws, Then both parameter names appear in the joined message (kills L20 SHA_KEYS[0] empty mutant)', async () => {
@@ -977,12 +947,9 @@ describe('Given a ConfigValidator', () => {
           : Promise.reject(new Error('bad sha'))
       )
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          from: 'invalid-from',
-          to: 'invalid-to',
-        },
+        ...config,
+        from: 'invalid-from',
+        to: 'invalid-to',
       })
 
       await expect(sut.validateConfig()).rejects.toThrow(
@@ -1001,17 +968,17 @@ describe('Given a ConfigValidator', () => {
       // apiVersion stays NaN and the defaulted warning is never pushed.
       // Concretely contrast the two outcomes via two separate asserts —
       // value AND warning count — so neither survives in isolation.
-      work.config.apiVersion = NaN
+      config.apiVersion = NaN
       mockSfProjectResolve.mockResolvedValue({
         getSfProjectJson: () => ({ getContents: () => ({}) }),
       })
-      const sut = new ConfigValidator(work)
+      const sut = new ConfigValidator(config)
 
-      await sut['_handleDefault']()
+      const warnings = await sut['_handleDefault']()
 
-      expect(work.config.apiVersion).toBe(58)
-      expect(Number.isNaN(work.config.apiVersion)).toBe(false)
-      expect(work.warnings).toHaveLength(1)
+      expect(config.apiVersion).toBe(58)
+      expect(Number.isNaN(config.apiVersion)).toBe(false)
+      expect(warnings).toHaveLength(1)
     })
   })
 
@@ -1020,13 +987,10 @@ describe('Given a ConfigValidator', () => {
       // Mutant BlockStatement {}: sanitizeConfig does nothing → config is not sanitized
       // Mutant ArrowFunction () => undefined: source.map returns [undefined]
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          source: ['/path/a', '/path/b'],
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        source: ['/path/a', '/path/b'],
       })
       // sanitizePath is mocked to be identity; just verifies it is called for each source
       await expect(sut.validateConfig()).resolves.not.toThrow()
@@ -1044,8 +1008,9 @@ describe('Given a ConfigValidator', () => {
     it('Given changesManifest is undefined, When validating, Then stat is not called and no error is added', async () => {
       // Arrange
       const sut = new ConfigValidator({
-        ...work,
-        config: { ...work.config, to: 'HEAD', from: 'HEAD' },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
       })
 
       // Act
@@ -1060,13 +1025,10 @@ describe('Given a ConfigValidator', () => {
       const notFound = Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
       mockedStat.mockRejectedValueOnce(notFound)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'will-be-created.json',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'will-be-created.json',
       })
 
       // Act & Assert
@@ -1080,13 +1042,10 @@ describe('Given a ConfigValidator', () => {
         isDirectory: () => false,
       } as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'existing.json',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'existing.json',
       })
 
       // Act & Assert
@@ -1100,13 +1059,10 @@ describe('Given a ConfigValidator', () => {
         isDirectory: () => true,
       } as never)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'some-dir',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'some-dir',
       })
 
       // Act & Assert
@@ -1122,13 +1078,10 @@ describe('Given a ConfigValidator', () => {
       const eacces = Object.assign(new Error('EACCES'), { code: 'EACCES' })
       mockedStat.mockRejectedValueOnce(eacces)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'forbidden.json',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'forbidden.json',
       })
 
       // Act & Assert
@@ -1145,13 +1098,10 @@ describe('Given a ConfigValidator', () => {
       // instance (exotic Node/userland throws, polyfill quirks).
       mockedStat.mockRejectedValueOnce('not-an-error' as unknown as Error)
       const sut = new ConfigValidator({
-        ...work,
-        config: {
-          ...work.config,
-          to: 'HEAD',
-          from: 'HEAD',
-          changesManifest: 'weird.json',
-        },
+        ...config,
+        to: 'HEAD',
+        from: 'HEAD',
+        changesManifest: 'weird.json',
       })
 
       // Act & Assert

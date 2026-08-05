@@ -3,15 +3,19 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
-import type { AddKind, HandlerResult } from '../types/handlerResult.js'
+import type { Config } from '../types/config.js'
+import type {
+  AddKind,
+  CopyOperation,
+  HandlerResult,
+  ManifestElement,
+} from '../types/handlerResult.js'
 import {
   ChangeKind,
   CopyOperationKind,
-  emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
-import type { Work } from '../types/work.js'
-import type ChangeSet from '../utils/changeSet.js'
+import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
@@ -24,54 +28,47 @@ const getRootType = (line: string) => basename(line).split(DOT)[0]
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
 
-  constructor(changeType: string, element: MetadataElement, work: Work) {
-    super(changeType, element, work)
+  constructor(changeType: string, element: MetadataElement, config: Config) {
+    super(changeType, element, config)
     const inFileMetadata = element.getInFileAttributes()
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
 
-  public override async collectAddition(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    return await this._collectCompareResult(sink)
+  public override async collectAddition(): Promise<HandlerResult> {
+    return await this._collectCompareResult()
   }
 
-  public override async collectDeletion(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  public override async collectDeletion(): Promise<HandlerResult> {
     if (this._shouldTreatDeletionAsDeletion()) {
-      return await super.collectDeletion(sink)
+      return await super.collectDeletion()
     }
-    return await this.collectAddition(sink)
+    return await this.collectAddition()
   }
 
-  public override async collectModification(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
-    return await this.collectAddition(sink)
+  public override async collectModification(): Promise<HandlerResult> {
+    return await this.collectAddition()
   }
 
-  protected async _collectCompareResult(
-    sink?: ChangeSet
-  ): Promise<HandlerResult> {
+  protected async _collectCompareResult(): Promise<HandlerResult> {
     try {
-      const result = this._emptyResultFor(sink)
+      const elements: ManifestElement[] = []
+      const copies: CopyOperation[] = []
       const outcome = await this.metadataDiff.run(this.element.basePath)
 
       this._collectManifestFromComparison(
-        result.changes,
+        elements,
         ManifestTarget.DestructiveChanges,
         ChangeKind.Delete,
         outcome.manifests.deleted
       )
       this._collectManifestFromComparison(
-        result.changes,
+        elements,
         ManifestTarget.Package,
         ChangeKind.Add,
         outcome.manifests.added
       )
       this._collectManifestFromComparison(
-        result.changes,
+        elements,
         ManifestTarget.Package,
         ChangeKind.Modify,
         outcome.manifests.modified
@@ -87,8 +84,8 @@ export default class InFileHandler extends StandardHandler {
       // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#infile-elements
       if (this._collectsContainer() && outcome.hasPackageContent) {
         const containerResult =
-          await StandardHandler.prototype.collectAddition.call(this, sink)
-        result.changes.merge(containerResult.changes)
+          await StandardHandler.prototype.collectAddition.call(this)
+        pushAll(elements, containerResult.elements)
       }
 
       // run() returns a writer iff generateDelta is on and the diff has a
@@ -96,14 +93,14 @@ export default class InFileHandler extends StandardHandler {
       // one flag driving both decisions. Subclasses like CustomLabelHandler
       // may still veto via _shouldCollectCopies.
       if (outcome.writer && this._shouldCollectCopies()) {
-        result.copies.push({
+        copies.push({
           kind: CopyOperationKind.StreamedContent,
           path: this.element.basePath,
           writer: outcome.writer,
         })
       }
 
-      return result
+      return { elements, copies, warnings: [] }
     } catch (error) {
       const messageService = new MessageService()
       const message = messageService.getMessage('warning.MalformedXML', [
@@ -113,21 +110,19 @@ export default class InFileHandler extends StandardHandler {
       ])
       // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the wrapped warning message via wrapError, not on the lazy log line
       Logger.warn(lazy`${message}`)
-      const failed = emptyResult()
-      failed.warnings.push(wrapError(message, error))
-      return failed
+      return { elements: [], copies: [], warnings: [wrapError(message, error)] }
     }
   }
 
   protected _collectManifestFromComparison(
-    changes: ChangeSet,
+    elements: ManifestElement[],
     target: ManifestTarget,
     changeKind: AddKind,
     entries: { type: string; member: string }[]
   ): void {
     for (const { type, member } of entries) {
       if (isPackable(type)) {
-        changes.addElement({
+        elements.push({
           target,
           type,
           member: `${this._getQualifiedName()}${member}`,
