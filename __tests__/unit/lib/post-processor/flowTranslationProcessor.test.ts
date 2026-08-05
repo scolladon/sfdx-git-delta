@@ -30,7 +30,10 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
-import { grepContentMatching, readPathFromGit } from '../../../../src/utils/fsHelper'
+import {
+  grepContentMatching,
+  readPathFromGit,
+} from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
@@ -38,6 +41,7 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 import { addChange, elementsOf } from '../../../__utils__/handlerResultView'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 import { getConfig } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
@@ -626,6 +630,21 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedReadPathFromGit).not.toHaveBeenCalled()
             expect(hasTranslationManifest(result)).toBe(false)
             expect(result.copies).toHaveLength(0)
+          })
+
+          it('When config.source is a non-root "force-app/" scope, Then the pathspec carries no double slash', async () => {
+            // Arrange
+            config.source = sourceDirs('force-app/')
+
+            // Act
+            await sut.transformAndCollect(changes)
+
+            // Assert
+            expect(mockedGrepContent).toHaveBeenCalledWith(
+              'flowDefinitions',
+              ['force-app/*.translation-meta.xml'],
+              config
+            )
           })
         })
 

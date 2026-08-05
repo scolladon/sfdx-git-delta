@@ -673,7 +673,7 @@ describe('external library inclusion', () => {
       // the scope as unmatched would be misleading.
       mockGetUnmatchedSourceScopes.mockReturnValueOnce(['force-app'])
       mockCollectAll.mockResolvedValueOnce(
-        handlerResult({
+        makeHandlerResult({
           manifests: [
             {
               target: ManifestTarget.Package,

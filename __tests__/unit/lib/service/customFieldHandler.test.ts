@@ -135,7 +135,7 @@ describe('CustomFieldHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomFieldHandler(changeType, element, work)
+      const sut = new CustomFieldHandler(changeType, element, config)
 
       // Act
       await sut.collect()

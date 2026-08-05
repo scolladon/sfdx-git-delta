@@ -33,8 +33,14 @@ describe('ChangeSet', () => {
   describe('Given a ChangeSet with an added element', () => {
     it('When isEmpty is read, Then it returns false', () => {
       // Arrange
-      const sut = new ChangeSet()
-      sut.add(ChangeKind.Add, 'ApexClass', 'New')
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'New',
+          changeKind: ChangeKind.Add,
+        },
+      ])
 
       // Act & Assert
       expect(sut.isEmpty()).toBe(false)
@@ -44,8 +50,10 @@ describe('ChangeSet', () => {
   describe('Given a ChangeSet with only a recorded rename', () => {
     it('When isEmpty is read, Then it returns false', () => {
       // Arrange
-      const sut = new ChangeSet()
-      sut.recordRename('ApexClass', 'Old', 'New')
+      const sut = ChangeSet.from(
+        [],
+        [{ type: 'ApexClass', from: 'Old', to: 'New' }]
+      )
 
       // Act & Assert
       expect(sut.isEmpty()).toBe(false)

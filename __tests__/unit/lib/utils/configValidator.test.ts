@@ -1004,11 +1004,9 @@ describe('Given a ConfigValidator', () => {
       // source is no longer sanitized here — canonicalisation now happens at
       // the entry point via parseSourceDirs, before ConfigValidator ever runs.
       await expect(sut.validateConfig()).resolves.not.toThrow()
-      expect(mockedSanitizePath).toHaveBeenCalledWith(work.config.repo)
-      expect(mockedSanitizePath).toHaveBeenCalledWith(work.config.output)
-      expect(mockedSanitizePath).toHaveBeenCalledWith(
-        work.config.changesManifest
-      )
+      expect(mockedSanitizePath).toHaveBeenCalledWith(config.repo)
+      expect(mockedSanitizePath).toHaveBeenCalledWith(config.output)
+      expect(mockedSanitizePath).toHaveBeenCalledWith(config.changesManifest)
     })
   })
 
@@ -1035,7 +1033,7 @@ describe('Given a ConfigValidator', () => {
       'Given a $reason rejection for "$value", When validating, Then it rejects with $key and never reads the repository',
       async ({ reason, value, key }) => {
         // Arrange
-        const sut = new ConfigValidator(work, [{ value, reason }])
+        const sut = new ConfigValidator(config, [{ value, reason }])
 
         // Act & Assert
         await expect(sut.validateConfig()).rejects.toThrow(
@@ -1051,7 +1049,7 @@ describe('Given a ConfigValidator', () => {
     it('Given a rejection value containing a newline, When validating, Then the message carries the escaped form and never the raw newline', async () => {
       // Arrange
       const controlValue = 'force-app\nPASSED'
-      const sut = new ConfigValidator(work, [
+      const sut = new ConfigValidator(config, [
         { value: controlValue, reason: 'empty' },
       ])
 
@@ -1069,7 +1067,7 @@ describe('Given a ConfigValidator', () => {
 
     it('Given two rejections at once, When validating, Then the joined message carries both keys', async () => {
       // Arrange
-      const sut = new ConfigValidator(work, [
+      const sut = new ConfigValidator(config, [
         { value: 'force-app/**', reason: 'wildcard' },
         { value: '../sibling', reason: 'escapes' },
       ])
@@ -1086,14 +1084,14 @@ describe('Given a ConfigValidator', () => {
     })
 
     it('Given the flag default, When validating, Then the whole repository stays in scope', async () => {
-      // Arrange — getWork() now carries sourceDirs('./') = ['.']
-      const sut = new ConfigValidator(work, [])
+      // Arrange — getConfig() now carries sourceDirs('./') = ['.']
+      const sut = new ConfigValidator(config, [])
 
       // Act
       await expect(sut.validateConfig()).resolves.not.toThrow()
 
       // Assert
-      expect(work.config.source).toEqual(['.'])
+      expect(config.source).toEqual(['.'])
     })
   })
 
