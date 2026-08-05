@@ -1989,6 +1989,57 @@ describe('GitAdapter', () => {
       expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
     })
 
+    it('When two non-root scopes are configured and one of them matches, Then it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app', 'other') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict))
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+    })
+
+    it('When two non-root scopes are configured and neither matches, Then it returns both scopes', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app', 'other') })
+      )
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'unrelated/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(sut.streamDiffLines(verdict))
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([
+        'force-app',
+        'other',
+      ])
+    })
+
     it('Given two independent verdicts against the same cached instance, When only one is drained, Then the other verdict is untouched', async () => {
       // Arrange — two GitAdapter.getInstance() callers with the same repo
       // and 'to' share one cached instance; each must own its own verdict.

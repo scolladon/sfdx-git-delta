@@ -143,7 +143,7 @@ describe('CustomFieldHandler', () => {
       // Assert
       expect(mockedContentIncludes).toHaveBeenCalledWith(
         MASTER_DETAIL_TAG,
-        element.basePath,
+        'force-app/main/default/objects/Custom[1]__c/fields/awesome.field-meta.xml',
         expect.anything()
       )
     })

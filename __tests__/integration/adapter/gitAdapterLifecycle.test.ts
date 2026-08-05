@@ -83,10 +83,9 @@ describe('Given the built sfdx-git-delta CLI', () => {
       expect(existsSync(join(outputDir, 'package'))).toBe(true)
     })
 
-    it('Then a --source-dir with a trailing slash produces a manifest carrying members (R1)', async () => {
-      // Arrange — the exact #1371 shape: a folder-looking source-dir value
-      // that must canonicalise to a literal directory pathspec, not a
-      // no-op glob. False on v7.1.0 (empty manifest), true on v7.0.1.
+    it('Then a --source-dir with a trailing slash produces a manifest carrying members', async () => {
+      // Arrange — a folder-looking source-dir value that must canonicalise
+      // to a literal directory pathspec, not a no-op glob.
       const outputDir = await trackedTempDir('sgd-lifecycle-output-')
 
       // Act
@@ -125,7 +124,7 @@ describe('Given the built sfdx-git-delta CLI', () => {
       expect(packageXml).toContain('FixtureClass')
     })
 
-    it('Then a --source-dir containing a wildcard is rejected with a non-zero exit (R3)', async () => {
+    it('Then a --source-dir containing a wildcard is rejected with a non-zero exit', async () => {
       // Arrange
       const outputDir = await trackedTempDir('sgd-lifecycle-output-')
 

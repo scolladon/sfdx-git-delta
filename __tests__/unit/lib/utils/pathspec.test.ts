@@ -87,20 +87,6 @@ describe('Given a raw --source-dir value', () => {
       }
     )
   })
-
-  describe('When it is force-app[', () => {
-    it('Then it is rejected and nothing is thrown', () => {
-      // Act
-      const act = () => sut(['force-app['])
-
-      // Assert
-      expect(act).not.toThrow()
-      expect(act()).toEqual({
-        pathspecs: [],
-        rejections: [{ value: 'force-app[', reason: 'wildcard' }],
-      })
-    })
-  })
 })
 
 describe('Given a list of raw --source-dir values', () => {

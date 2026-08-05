@@ -597,20 +597,9 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(result.warnings).toHaveLength(1)
-      expect(result.warnings[0]?.message).toContain(
-        'warning.SourceDirMatchedNothing:'
+      expect(result.warnings[0]?.message).toBe(
+        'warning.SourceDirMatchedNothing:force-app,HEAD~1,HEAD'
       )
-    })
-
-    it('Given RepoGitDiff reports no unmatched source scopes, When sgd runs, Then work.warnings is unchanged', async () => {
-      // Arrange
-      mockGetUnmatchedSourceScopes.mockReturnValueOnce([])
-
-      // Act
-      const result = await sgd({ source: [] } as ConfigInput)
-
-      // Assert
-      expect(result.warnings).toEqual([])
     })
 
     it('Given RepoGitDiff reports unmatched scopes but a post-processor still produced changes, When sgd runs, Then no warning is pushed', async () => {

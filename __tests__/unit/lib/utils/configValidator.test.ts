@@ -1092,7 +1092,7 @@ describe('Given a ConfigValidator', () => {
       // Act
       await expect(sut.validateConfig()).resolves.not.toThrow()
 
-      // Assert — _sanitizeConfig no longer touches source
+      // Assert
       expect(work.config.source).toEqual(['.'])
     })
   })
