@@ -24,7 +24,7 @@ describe('Given a value bound for an error or warning message', () => {
       const result = sut(`${ESC}[2K${ESC}[32mPASSED${ESC}[0m`)
 
       // Assert
-      expect(result).toBe('\\x1b[2K\\x1b[32mPASSED\\x1b[0m')
+      expect(result).toBe('\\u{1b}[2K\\u{1b}[32mPASSED\\u{1b}[0m')
       expect(result).not.toContain(ESC)
     })
   })
@@ -35,7 +35,7 @@ describe('Given a value bound for an error or warning message', () => {
       const result = sut('force-app\nPASSED')
 
       // Assert
-      expect(result).toBe('force-app\\x0aPASSED')
+      expect(result).toBe('force-app\\u{a}PASSED')
     })
   })
 
@@ -73,7 +73,7 @@ describe('Given a value bound for an error or warning message', () => {
       const result = sut('nope/\u202Egnp.exe')
 
       // Assert
-      expect(result).toBe('nope/\\x202egnp.exe')
+      expect(result).toBe('nope/\\u{202e}gnp.exe')
       expect(result).not.toContain('\u202E')
     })
   })
@@ -85,7 +85,7 @@ describe('Given a value bound for an error or warning message', () => {
       const result = sut('force-app\u2028PASSED')
 
       // Assert
-      expect(result).toBe('force-app\\x2028PASSED')
+      expect(result).toBe('force-app\\u{2028}PASSED')
       expect(result).not.toContain('\u2028')
     })
   })
@@ -96,7 +96,7 @@ describe('Given a value bound for an error or warning message', () => {
       const result = sut('force-app\u2029PASSED')
 
       // Assert
-      expect(result).toBe('force-app\\x2029PASSED')
+      expect(result).toBe('force-app\\u{2029}PASSED')
       expect(result).not.toContain('\u2029')
     })
   })
@@ -121,7 +121,7 @@ describe('Given a value bound for an error or warning message', () => {
   describe('When the truncation boundary would land inside an escape sequence under naive post-escape slicing', () => {
     it('Then the escape sequence is emitted whole, never a dangling fragment', () => {
       // Arrange — escaping ESC before truncating would expand it to the
-      // 4-character '\x1b' sequence straddling the 200-char cut point;
+      // 5-character '\u{1b}' sequence straddling the 200-char cut point;
       // truncating the raw value first (then escaping) avoids that.
       const value = `${'a'.repeat(199)}${ESC}PASSEDTAIL`
 
@@ -129,16 +129,16 @@ describe('Given a value bound for an error or warning message', () => {
       const result = sut(value)
 
       // Assert
-      expect(result).toBe(`${'a'.repeat(199)}\\x1b…`)
+      expect(result).toBe(`${'a'.repeat(199)}\\u{1b}…`)
     })
   })
 
   describe('When it contains a literal backslash followed by an escape-shaped sequence', () => {
     it('Then it sanitizes to a different string than an equivalent real control character, because the backslash itself is escaped', () => {
       // Arrange — without escaping the literal backslash first, a path
-      // containing the four characters \, x, 0, a is indistinguishable
-      // from a real newline after sanitization.
-      const literalInput = 'force-app\\x0aPASSED'
+      // containing the characters \, u, {, a, } is indistinguishable from
+      // a real newline after sanitization.
+      const literalInput = 'force-app\\u{a}PASSED'
       const newlineInput = 'force-app\nPASSED'
 
       // Act
@@ -147,8 +147,30 @@ describe('Given a value bound for an error or warning message', () => {
 
       // Assert
       expect(literalResult).not.toBe(newlineResult)
-      expect(literalResult).toBe('force-app\\\\x0aPASSED')
-      expect(newlineResult).toBe('force-app\\x0aPASSED')
+      expect(literalResult).toBe('force-app\\\\u{a}PASSED')
+      expect(newlineResult).toBe('force-app\\u{a}PASSED')
+    })
+  })
+
+  describe('When two distinct inputs would collide under a fixed-width hex escape', () => {
+    it('Then the delimited escape keeps them distinguishable', () => {
+      // Arrange — a 2-digit escape (U+0006) immediately followed by the
+      // literal digits '00' used to be indistinguishable from a single
+      // 4-digit escape (U+0600, ARABIC NUMBER SIGN): both sanitized to
+      // '\x0600' under the old \xHH / \xHHHH scheme. The delimited
+      // `\u{...}` form closes each escape with its own brace, so the two
+      // inputs now sanitize to different strings.
+      const twoDigitPlusLiteral = `${String.fromCharCode(0x06)}00`
+      const fourDigitEscape = '؀'
+
+      // Act
+      const shortResult = sut(twoDigitPlusLiteral)
+      const longResult = sut(fourDigitEscape)
+
+      // Assert
+      expect(shortResult).toBe('\\u{6}00')
+      expect(longResult).toBe('\\u{600}')
+      expect(shortResult).not.toBe(longResult)
     })
   })
 })

@@ -1062,7 +1062,7 @@ describe('Given a ConfigValidator', () => {
 
       // Assert
       expect(error.message).toContain(
-        'error.SourceDirIsEmpty:force-app\\x0aPASSED'
+        'error.SourceDirIsEmpty:force-app\\u{a}PASSED'
       )
       expect(error.message).not.toContain(controlValue)
     })

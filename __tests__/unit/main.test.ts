@@ -640,7 +640,7 @@ describe('external library inclusion', () => {
       // otherwise forge an extra log line.
       expect(result.warnings).toHaveLength(1)
       expect(result.warnings[0]?.message).toBe(
-        'warning.SourceDirMatchedNothing:force-app\\x0aPASSED,HEAD~1,HEAD'
+        'warning.SourceDirMatchedNothing:force-app\\u{a}PASSED,HEAD~1,HEAD'
       )
       expect(result.warnings[0]?.message).not.toContain(scopeWithNewline)
     })

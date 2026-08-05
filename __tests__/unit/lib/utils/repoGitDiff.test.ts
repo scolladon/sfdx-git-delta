@@ -689,6 +689,18 @@ describe('Given a RepoGitDiff', () => {
       const verdictOnSecondDrain =
         mockStreamDiffLinesCall.mock.calls.at(-1)?.[0]
       expect(verdictOnSecondDrain).toEqual({ changesSeen: 0, linesYielded: 0 })
+
+      // Assert — object identity, not just value equality. A fresh
+      // `{ changesSeen: 0, linesYielded: 0 }` literal at either call site
+      // (the streamDiffLines call above, or getUnmatchedSourceScopes below)
+      // would satisfy the toEqual assertion too, while severing the seam
+      // that lets a drained verdict ever reach the warning check.
+      // toHaveBeenCalledWith is value-equality and would not catch that —
+      // toBe is required.
+      sut.getUnmatchedSourceScopes()
+      const verdictPassedToGetUnmatchedSourceScopes =
+        mockGetUnmatchedSourceScopes.mock.calls.at(-1)?.[0]
+      expect(verdictPassedToGetUnmatchedSourceScopes).toBe(verdictOnSecondDrain)
     })
   })
 })
