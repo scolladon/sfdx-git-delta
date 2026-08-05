@@ -17,6 +17,8 @@ perf-raw.json
 perf-result.txt
 perf-runtime.json
 perf-memory.json
+preview-comment.md
+preview.json
 sfdx-git-delta-*.tgz
 stderr*.txt
 stdout*.txt

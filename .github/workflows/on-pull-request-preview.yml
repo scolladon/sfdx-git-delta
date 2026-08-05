@@ -1,0 +1,81 @@
+---
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - "**.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      channel: ${{ steps.publish.outputs.urls }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+
+      - name: Setup node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Publish preview
+        id: publish
+        run: npm run preview:publish
+
+      - name: Report install command
+        run: npm run preview:report
+
+      - name: Comment install command
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs')
+            const body = fs.readFileSync('preview-comment.md', 'utf8')
+            const marker = body.split('\n')[0]
+            const { owner, repo } = context.repo
+            const issue_number = context.issue.number
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number }
+            )
+            const existing = comments.find(c => (c.body ?? '').startsWith(marker))
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              })
+            }
+
+  e2e-tests:
+    needs: [preview]
+    uses: ./.github/workflows/run-e2e-tests.yml
+    with:
+      channel: ${{ needs.preview.outputs.channel }}

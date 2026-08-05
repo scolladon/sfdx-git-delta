@@ -74,6 +74,7 @@
     "lint-staged": "17.3.0",
     "ls-engines": "0.10.1",
     "oclif": "4.23.29",
+    "pkg-pr-new": "0.0.86",
     "shx": "0.4.0",
     "ts-node": "10.9.2",
     "typescript": "7.0.2",
@@ -111,6 +112,8 @@
     "prepack": "wireit",
     "prepare": "husky",
     "prepublishOnly": "shx cp package-lock.json npm-shrinkwrap.json",
+    "preview:publish": "pkg-pr-new publish --json preview.json --comment=off",
+    "preview:report": "node tooling/reportPreview.mjs",
     "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
     "test:build": "wireit",
     "test:functional": "wireit",
@@ -144,7 +147,7 @@
       "clean": "if-file-deleted"
     },
     "clean": {
-      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-raw.json perf-runtime.json perf-memory.json perf-preview.html",
+      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-raw.json perf-runtime.json perf-memory.json perf-preview.html preview.json preview-comment.md",
       "files": [
         ".stryker-tmp/*",
         "lib",
@@ -155,6 +158,8 @@
         "perf-runtime.json",
         "perf-memory.json",
         "perf-preview.html",
+        "preview.json",
+        "preview-comment.md",
         "reports/*",
         "sfdx-git-delta-v*.tgz",
         "stderr*.txt",
