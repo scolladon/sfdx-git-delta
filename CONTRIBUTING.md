@@ -389,7 +389,9 @@ The plugin uses [sf CLI parameters convention](https://github.com/salesforcecli/
 
 ## Testing the plugin from a pull request
 
-Every push to an open pull request publishes an immutable preview build to [pkg.pr.new](https://pkg.pr.new). Previews are addressed by commit, not by pull request: each push produces a new URL, so re-read the install command after every push instead of re-running the one from a previous commit. There is no cleanup step on close — previews are immutable and expire upstream on their own.
+Every push that changes a non-Markdown file publishes an immutable preview build to [pkg.pr.new](https://pkg.pr.new). Previews are addressed by commit, not by pull request: each such push produces a new URL, so re-read the install command instead of re-running the one from a previous commit. There is no cleanup step on close — previews are immutable and expire upstream on their own. Markdown-only pushes and Dependabot pull requests publish no preview, so the latest command may point at an earlier commit.
+
+A preview URL sits under this repository's path but is built from the pull request's own code. Until a maintainer has reviewed that pull request, treat an installed preview as untrusted third-party code.
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
