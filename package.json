@@ -19,7 +19,6 @@
   "files": [
     "/lib",
     "/messages",
-    "/npm-shrinkwrap.json",
     "/oclif.lock",
     "/oclif.manifest.json"
   ],
@@ -111,7 +110,6 @@
     "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
     "prepack": "wireit",
     "prepare": "husky",
-    "prepublishOnly": "shx cp package-lock.json npm-shrinkwrap.json",
     "preview:publish": "pkg-pr-new publish --json preview.json --comment=off",
     "preview:report": "node tooling/reportPreview.mjs",
     "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
