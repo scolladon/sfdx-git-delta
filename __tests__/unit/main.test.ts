@@ -477,7 +477,7 @@ describe('external library inclusion', () => {
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app/'],
-      } as ConfigInputInput
+      } as ConfigInput
 
       // Act
       await sgd(sut)
