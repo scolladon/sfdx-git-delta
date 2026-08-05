@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import sgd from '../../src/main'
-import type { Config } from '../../src/types/config'
+import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
 import {
   ChangeKind,
@@ -161,7 +161,7 @@ describe('external library inclusion', () => {
 
     it('it should throw', async () => {
       // Act & Assert
-      await expect(sgd({} as Config)).rejects.toThrow('test')
+      await expect(sgd({ source: [] } as ConfigInput)).rejects.toThrow('test')
     })
   })
 
@@ -172,7 +172,7 @@ describe('external library inclusion', () => {
     })
     it('it should not process lines', async () => {
       // Act
-      await sgd({ generateDelta: false } as Config)
+      await sgd({ generateDelta: false, source: [] } as ConfigInput)
 
       // Assert — when generateDelta is off, main.ts streams getLines()
       // straight into process(), so process() receives the async
@@ -188,7 +188,7 @@ describe('external library inclusion', () => {
     })
     it('it should process those lines', async () => {
       // Act
-      await sgd({ generateDelta: false } as Config)
+      await sgd({ generateDelta: false, source: [] } as ConfigInput)
 
       // Assert
       expect(mockProcess).toHaveBeenCalledTimes(1)
@@ -198,7 +198,7 @@ describe('external library inclusion', () => {
   describe('orchestration flow', () => {
     it('Given valid config, When sgd runs, Then returns work with an initialised ChangeSet and empty warnings', async () => {
       // Act
-      const result = await sgd({} as Config)
+      const result = await sgd({ source: [] } as ConfigInput)
 
       // Assert
       expect(result.changes).toBeDefined()
@@ -219,7 +219,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      await sgd({} as Config)
+      await sgd({ source: [] } as ConfigInput)
 
       // Assert
       expect(mockExecute).toHaveBeenCalledWith(
@@ -243,7 +243,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({} as Config)
+      const result = await sgd({ source: [] } as ConfigInput)
 
       // Assert
       expect(result.changes.forPackageManifest().has('ApexClass')).toBe(true)
@@ -283,7 +283,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({} as Config)
+      const result = await sgd({ source: [] } as ConfigInput)
 
       // Assert
       const rename = result.changes
@@ -311,7 +311,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({} as Config)
+      const result = await sgd({ source: [] } as ConfigInput)
 
       // Assert
       expect(result.warnings).toHaveLength(2)
@@ -344,7 +344,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({} as Config)
+      const result = await sgd({} as ConfigInput)
 
       // Assert — the view handed to the collectors carries the handler
       // element and not the collector's own, while the final manifest carries
@@ -378,7 +378,7 @@ describe('external library inclusion', () => {
       mockExecuteRemaining.mockResolvedValueOnce([processorWarning])
 
       // Act
-      const result = await sgd({} as Config)
+      const result = await sgd({} as ConfigInput)
 
       // Assert
       expect(result.warnings).toEqual([
@@ -393,7 +393,7 @@ describe('external library inclusion', () => {
   describe('tree index scoping', () => {
     it('Given generateDelta is false, When sgd runs, Then preBuildTreeIndex is not called', async () => {
       // Act
-      await sgd({ generateDelta: false } as Config)
+      await sgd({ generateDelta: false, source: [] } as ConfigInput)
 
       // Assert
       expect(mockPreBuildTreeIndex).not.toHaveBeenCalled()
@@ -417,7 +417,7 @@ describe('external library inclusion', () => {
         generateDelta: false,
         source: ['force-app'],
         include: 'include.txt',
-      } as Config
+      } as ConfigInput
 
       // Act
       await sgd(sut)
@@ -428,7 +428,7 @@ describe('external library inclusion', () => {
 
     it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to dispose the tsgit repository', async () => {
       // Act
-      await sgd({} as Config)
+      await sgd({ source: [] } as ConfigInput)
 
       // Assert — the mutation that empties the finally block would skip this.
       expect(mockCloseAll).toHaveBeenCalledOnce()
@@ -442,7 +442,7 @@ describe('external library inclusion', () => {
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
-      } as Config
+      } as ConfigInput
 
       // Act
       await sgd(sut)
@@ -455,6 +455,23 @@ describe('external library inclusion', () => {
       expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
     })
 
+    it('Given a --source-dir with a trailing slash, When sgd runs, Then preBuildTreeIndex receives the canonical path', async () => {
+      // Arrange
+      const sut = {
+        generateDelta: true,
+        include: 'include.txt',
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app/'],
+      } as ConfigInputInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
+    })
+
     it('Given generateDelta is true with includeDestructive set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
       // Arrange
       const sut = {
@@ -463,7 +480,7 @@ describe('external library inclusion', () => {
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['src'],
-      } as Config
+      } as ConfigInput
 
       // Act
       await sgd(sut)
@@ -483,7 +500,7 @@ describe('external library inclusion', () => {
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
-      } as Config
+      } as ConfigInput
 
       // Act
       await sgd(sut)
@@ -506,7 +523,7 @@ describe('external library inclusion', () => {
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
-      } as Config
+      } as ConfigInput
 
       // Act
       await sgd(sut)
@@ -536,7 +553,7 @@ describe('external library inclusion', () => {
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
-      } as Config
+      } as ConfigInput
 
       // Act
       await sgd(sut)

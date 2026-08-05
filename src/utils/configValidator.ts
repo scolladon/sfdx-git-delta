@@ -14,15 +14,33 @@ import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import { MessageService } from './MessageService.js'
+import type {
+  SourceDirRejection,
+  SourceDirRejectionReason,
+} from './pathspec.js'
 
 type ShaKey = 'from' | 'to'
 const SHA_KEYS: readonly ShaKey[] = ['from', 'to']
+
+const SOURCE_DIR_REJECTION_MESSAGE_KEYS: Record<
+  SourceDirRejectionReason,
+  string
+> = {
+  empty: 'error.SourceDirIsEmpty',
+  magic: 'error.SourceDirUsesPathspecMagic',
+  wildcard: 'error.SourceDirContainsWildcard',
+  absolute: 'error.SourceDirIsAbsolute',
+  escapes: 'error.SourceDirEscapesRepository',
+}
 
 export default class ConfigValidator {
   protected readonly gitAdapter: GitAdapter
   protected readonly message: MessageService
 
-  constructor(protected readonly config: Config) {
+  constructor(
+    protected readonly config: Config,
+    private readonly sourceRejections: readonly SourceDirRejection[] = []
+  ) {
     this.gitAdapter = GitAdapter.getInstance(config)
     this.message = new MessageService()
   }
@@ -53,9 +71,27 @@ export default class ConfigValidator {
     return errors
   }
 
+  protected _validateSource(): string[] {
+    return this.sourceRejections.map(rejection =>
+      this.message.getMessage(
+        SOURCE_DIR_REJECTION_MESSAGE_KEYS[rejection.reason],
+        [rejection.value]
+      )
+    )
+  }
+
   @log
   public async validateConfig(): Promise<readonly Error[]> {
     this._sanitizeConfig()
+
+    // Short-circuits before any git object is read: _validateGitSha below
+    // calls parseRev, which opens the repository. A bad --source-dir is
+    // the actionable error and the one that today produces a silent empty
+    // manifest, so it is reported alone even if the SHAs are also invalid.
+    const sourceErrors = this._validateSource()
+    if (sourceErrors.length > 0) {
+      throw new ConfigError(sourceErrors.join(', '))
+    }
 
     const [defaultWarnings, repoExists, gitErrors, changesManifestErrors] =
       await Promise.all([
@@ -211,7 +247,6 @@ export default class ConfigValidator {
 
   protected _sanitizeConfig() {
     this.config.repo = sanitizePath(this.config.repo)!
-    this.config.source = this.config.source.map(source => sanitizePath(source)!)
     this.config.output = sanitizePath(this.config.output)!
     this.config.ignore = sanitizePath(this.config.ignore)
     this.config.ignoreDestructive = sanitizePath(this.config.ignoreDestructive)

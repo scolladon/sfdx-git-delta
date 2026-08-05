@@ -5,23 +5,30 @@ import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
-import type { Config } from './types/config.js'
+import type { Config, ConfigInput } from './types/config.js'
 import type { Work } from './types/work.js'
 import ChangeSet from './utils/changeSet.js'
 import { assembleChanges } from './utils/changesAssembly.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
+import { parseSourceDirs } from './utils/pathspec.js'
 import RenameResolver from './utils/renameResolver.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
 import { computeTreeIndexScope } from './utils/treeIndexScope.js'
 
-export default async (config: Config): Promise<Work> => {
+export default async (configInput: ConfigInput): Promise<Work> => {
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the returned Work, not lazy log lines
   Logger.trace('main: entry')
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
-  Logger.debug(lazy`main: arguments ${config}`)
+  Logger.debug(lazy`main: arguments ${configInput}`)
+
+  const { pathspecs, rejections } = parseSourceDirs(configInput.source ?? [])
+  const config: Config = { ...configInput, source: pathspecs }
   try {
-    const configWarnings = await new ConfigValidator(config).validateConfig()
+    const configWarnings = await new ConfigValidator(
+      config,
+      rejections
+    ).validateConfig()
 
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
@@ -48,7 +55,7 @@ export default async (config: Config): Promise<Work> => {
 
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
-      let scopePaths = config.source
+      let scopePaths: string[] = config.source
       if (needsScopeFromDiff) {
         scopePaths = [
           ...computeTreeIndexScope(lines as Iterable<string>, metadata),

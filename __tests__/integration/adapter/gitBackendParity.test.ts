@@ -313,6 +313,61 @@ describe('Given a self-contained git fixture repository', () => {
     })
   })
 
+  describe('When diffing two commits scoped by a source dir', () => {
+    // The oracle is fed the raw pathspec exactly as a user would type it;
+    // sgd is fed the canonicalised form via sourceDirs(). Their agreement
+    // is the parity claim — never write makeConfig({ source: raw }) here.
+    const rows: string[][] = [
+      ['src'],
+      ['src/'],
+      ['src//'],
+      ['./src'],
+      ['./src/'],
+      ['src/lib'],
+      ['src/./lib'],
+      ['src/../src'],
+      ['src-legacy'],
+      ['.'],
+      ['./'],
+      ['src/index.txt'],
+      ['does-not-exist'],
+      ['src', 'docs'],
+    ]
+
+    it.each(rows.map(raw => [raw] as const))(
+      'Then streamDiffLines scoped by %j matches the git oracle for the same raw pathspec(s)',
+      async raw => {
+        // Arrange
+        const config = makeConfig({
+          from: refs.diffFrom,
+          to: refs.diffTo,
+          source: sourceDirs(...raw),
+        })
+        const sut = GitAdapter.getInstance(config)
+
+        // Act
+        const actual = await drainLines(sut.streamDiffLines())
+
+        // Assert
+        const expected = runGitLines(
+          [
+            'diff',
+            '--no-ext-diff',
+            '--name-status',
+            '--no-renames',
+            '--diff-filter=AMD',
+            refs.diffFrom,
+            refs.diffTo,
+            '--',
+            ...raw,
+          ],
+          { cwd: fixtureDir }
+        )
+        expect(actual).toEqual(expected)
+      }
+    )
+  })
+
   describe('When reading blobs', () => {
     it('Then getBufferContent returns identical bytes to git cat-file blob', async () => {
       // Arrange

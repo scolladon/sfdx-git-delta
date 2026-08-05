@@ -983,19 +983,89 @@ describe('Given a ConfigValidator', () => {
   })
 
   describe('_sanitizeConfig completeness (L173, L175)', () => {
-    it('Given source array with multiple entries, When validateConfig, Then all sources are sanitized', async () => {
+    it('Given a config with sanitizable fields, When validateConfig, Then each field is sanitized', async () => {
       // Mutant BlockStatement {}: sanitizeConfig does nothing → config is not sanitized
-      // Mutant ArrowFunction () => undefined: source.map returns [undefined]
+      // Mutant ArrowFunction () => undefined: a mapped field returns [undefined]
       const sut = new ConfigValidator({
         ...config,
         to: 'HEAD',
         from: 'HEAD',
-        source: ['/path/a', '/path/b'],
       })
-      // sanitizePath is mocked to be identity; just verifies it is called for each source
+      // sanitizePath is mocked to be identity; just verifies it is called for each field.
+      // source is no longer sanitized here — canonicalisation now happens at
+      // the entry point via parseSourceDirs, before ConfigValidator ever runs.
       await expect(sut.validateConfig()).resolves.not.toThrow()
-      expect(mockedSanitizePath).toHaveBeenCalledWith('/path/a')
-      expect(mockedSanitizePath).toHaveBeenCalledWith('/path/b')
+      expect(mockedSanitizePath).toHaveBeenCalledWith(work.config.repo)
+      expect(mockedSanitizePath).toHaveBeenCalledWith(work.config.output)
+      expect(mockedSanitizePath).toHaveBeenCalledWith(
+        work.config.changesManifest
+      )
+    })
+  })
+
+  describe('Given a rejected --source-dir value', () => {
+    it.each([
+      { reason: 'empty', value: '', key: 'error.SourceDirIsEmpty' },
+      {
+        reason: 'magic',
+        value: ':(exclude)force-app',
+        key: 'error.SourceDirUsesPathspecMagic',
+      },
+      {
+        reason: 'wildcard',
+        value: 'force-app/**',
+        key: 'error.SourceDirContainsWildcard',
+      },
+      { reason: 'absolute', value: '/etc', key: 'error.SourceDirIsAbsolute' },
+      {
+        reason: 'escapes',
+        value: '../sibling',
+        key: 'error.SourceDirEscapesRepository',
+      },
+    ])(
+      'Given a $reason rejection for "$value", When validating, Then it rejects with $key and never reads the repository',
+      async ({ reason, value, key }) => {
+        // Arrange
+        const sut = new ConfigValidator(work, [{ value, reason }])
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'ConfigError',
+            message: expect.stringContaining(`${key}:${value}`),
+          })
+        )
+        expect(mockParseRev).not.toHaveBeenCalled()
+      }
+    )
+
+    it('Given two rejections at once, When validating, Then the joined message carries both keys', async () => {
+      // Arrange
+      const sut = new ConfigValidator(work, [
+        { value: 'force-app/**', reason: 'wildcard' },
+        { value: '../sibling', reason: 'escapes' },
+      ])
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringMatching(
+            /error\.SourceDirContainsWildcard.*error\.SourceDirEscapesRepository/
+          ),
+        })
+      )
+      expect(mockParseRev).not.toHaveBeenCalled()
+    })
+
+    it('Given the flag default, When validating, Then the whole repository stays in scope', async () => {
+      // Arrange — getWork() now carries sourceDirs('./') = ['.']
+      const sut = new ConfigValidator(work, [])
+
+      // Act
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+
+      // Assert — _sanitizeConfig no longer touches source
+      expect(work.config.source).toEqual(['.'])
     })
   })
 
