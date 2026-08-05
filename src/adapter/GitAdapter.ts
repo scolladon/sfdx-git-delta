@@ -49,6 +49,7 @@ import { treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import type { Pathspec } from '../utils/pathspec.js'
 import {
   EscalateToStreamingSignal,
   type GitBlobReader,
@@ -105,6 +106,10 @@ export default class GitAdapter implements GitBlobReader {
   // of `git cat-file --batch` oid:path resolution.
   protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
   private repoHandle: Promise<Repository> | null = null
+  // Counted per streamDiffLines() drain, reset at entry, to tell
+  // "the source scopes matched nothing" apart from "there was no diff".
+  private changesSeen = 0
+  private linesYielded = 0
 
   private constructor(protected readonly config: Config) {
     this.treeIndex = new Map<string, TreeIndex>()
@@ -434,11 +439,31 @@ export default class GitAdapter implements GitBlobReader {
   // subprocess numstat path does.
   @log
   public async *streamDiffLines(): AsyncGenerator<string> {
+    this.changesSeen = 0
+    this.linesYielded = 0
     const { changes } = await this.requestDiff()
-    const scopes = this.config.source.filter(scope => !ROOT_PATHS.has(scope))
+    const scopes = this.nonRootScopes()
     for (const change of changes) {
-      yield* toDiffLines(change, scopes)
+      this.changesSeen++
+      for (const line of toDiffLines(change, scopes)) {
+        this.linesYielded++
+        yield line
+      }
     }
+  }
+
+  private nonRootScopes(): Pathspec[] {
+    return this.config.source.filter(scope => !ROOT_PATHS.has(scope))
+  }
+
+  // Every non-root scope matched nothing in the drained diff. A path can
+  // match several scopes, so this is all-or-nothing rather than per-scope
+  // — per-scope attribution needs bookkeeping that buys nothing.
+  public getUnmatchedSourceScopes(): readonly string[] {
+    const scopes = this.nonRootScopes()
+    return scopes.length > 0 && this.changesSeen > 0 && this.linesYielded === 0
+      ? scopes
+      : []
   }
 
   private async requestDiff(): Promise<{ changes: readonly DiffChange[] }> {

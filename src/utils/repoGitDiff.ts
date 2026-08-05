@@ -71,6 +71,10 @@ export default class RepoGitDiff {
     return this.renamePairs
   }
 
+  public getUnmatchedSourceScopes(): readonly string[] {
+    return this.gitAdapter.getUnmatchedSourceScopes()
+  }
+
   // git emits `R<score>\tfrom\tto` when -M detects a rename. Each rename is
   // expanded into the equivalent D/A pair so every downstream handler keeps
   // operating on a (status, path) tuple; the rename pair is captured for

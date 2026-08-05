@@ -1778,4 +1778,134 @@ describe('GitAdapter', () => {
       }
     )
   })
+
+  describe('Given getUnmatchedSourceScopes', () => {
+    it('Given a freshly constructed GitAdapter, When getUnmatchedSourceScopes is read before streamDiffLines is called, Then it returns an empty array (field initialiser)', () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+
+      // Act & Assert
+      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+    })
+
+    it('When changes are present but none is in scope, Then it returns the non-root scopes', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'other/Unrelated.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await streamDiff(sut)
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes()).toEqual(['force-app'])
+    })
+
+    it('When at least one change is in scope, Then it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await streamDiff(sut)
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+    })
+
+    it('When there are no changes at all, Then it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      fakeRepo.diff.mockResolvedValue({ changes: [] })
+
+      // Act
+      await streamDiff(sut)
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+    })
+
+    it('When the only configured scope is root, Then it returns an empty array even though no change is in scope', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('.') })
+      )
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'other/Unrelated.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await streamDiff(sut)
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+    })
+
+    it('Given a prior drained run warned, When a second run on the same instance has an in-scope change, Then the counters reset and it returns an empty array', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      fakeRepo.diff.mockResolvedValueOnce({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'other/Unrelated.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+      await streamDiff(sut)
+      expect(sut.getUnmatchedSourceScopes()).toEqual(['force-app'])
+
+      // Act
+      fakeRepo.diff.mockResolvedValueOnce({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/New.cls',
+            newId: 'oid',
+            newMode: '100644',
+          },
+        ],
+      })
+      await streamDiff(sut)
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+    })
+  })
 })

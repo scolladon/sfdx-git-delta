@@ -19,10 +19,12 @@ const mockGetDiffLines = vi.fn<() => string[]>()
 const streamDiffLines = async function* () {
   for (const line of mockGetDiffLines()) yield line
 }
+const mockGetUnmatchedSourceScopes = vi.fn<() => readonly string[]>()
 vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
     getInstance: vi.fn(() => ({
       streamDiffLines,
+      getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
     })),
   },
 }))
@@ -605,6 +607,20 @@ describe('Given a RepoGitDiff', () => {
 
       // Assert
       expect(result).toHaveLength(3)
+    })
+  })
+
+  describe('unmatched source scopes', () => {
+    it('Given GitAdapter reports unmatched source scopes, When getUnmatchedSourceScopes is called, Then it delegates to GitAdapter', () => {
+      // Arrange
+      mockGetUnmatchedSourceScopes.mockReturnValue(['force-app'])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = sut.getUnmatchedSourceScopes()
+
+      // Assert
+      expect(result).toEqual(['force-app'])
     })
   })
 })

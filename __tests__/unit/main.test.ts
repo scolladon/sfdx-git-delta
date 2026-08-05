@@ -19,11 +19,13 @@ const {
   mockValidateConfig,
   mockGetLines,
   mockGetRenamePairs,
+  mockGetUnmatchedSourceScopes,
   mockProcess,
   mockCollectAll,
   mockExecuteRemaining,
   mockExecute,
   mockCloseAll,
+  mockGetMessage,
 } = vi.hoisted(() => ({
   mockPreBuildTreeIndex: vi.fn(),
   mockComputeTreeIndexScope: vi.fn(),
@@ -31,14 +33,24 @@ const {
   mockGetLines: vi.fn(),
   mockGetRenamePairs:
     vi.fn<() => Array<{ fromPath: string; toPath: string }>>(),
+  mockGetUnmatchedSourceScopes: vi.fn<() => readonly string[]>(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockCollectAll: vi.fn<(changes: ChangeSet) => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
   mockExecute: vi.fn(),
   mockCloseAll: vi.fn(),
+  mockGetMessage: vi.fn(
+    (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
+  ),
 }))
 
 vi.mock('../../src/utils/LoggingService')
+
+vi.mock('../../src/utils/MessageService', () => ({
+  MessageService: vi.fn().mockImplementation(function () {
+    return { getMessage: mockGetMessage }
+  }),
+}))
 
 vi.mock('../../src/adapter/GitAdapter', () => ({
   default: {
@@ -78,6 +90,7 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
         ...actualModule,
         getLines: mockGetLines,
         getRenamePairs: mockGetRenamePairs,
+        getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
       }
     }),
   }
@@ -147,6 +160,7 @@ beforeEach(() => {
   mockExecuteRemaining.mockResolvedValue([])
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
+  mockGetUnmatchedSourceScopes.mockReturnValue([])
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
 
@@ -565,6 +579,38 @@ describe('external library inclusion', () => {
       const passedLines = mockProcess.mock.calls[0]?.[0]
       expect(Array.isArray(passedLines)).toBe(true)
       expect(passedLines).toHaveLength(2)
+    })
+  })
+
+  describe('source scope warning', () => {
+    it('Given RepoGitDiff reports every source scope matched nothing, When sgd runs, Then a warning naming the scopes is pushed to work.warnings', async () => {
+      // Arrange
+      mockGetUnmatchedSourceScopes.mockReturnValueOnce(['force-app'])
+      const sut = {
+        source: ['force-app'],
+        from: 'HEAD~1',
+        to: 'HEAD',
+      } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toContain(
+        'warning.SourceDirMatchedNothing:'
+      )
+    })
+
+    it('Given RepoGitDiff reports no unmatched source scopes, When sgd runs, Then work.warnings is unchanged', async () => {
+      // Arrange
+      mockGetUnmatchedSourceScopes.mockReturnValueOnce([])
+
+      // Act
+      const result = await sgd({ source: [] } as ConfigInput)
+
+      // Assert
+      expect(result.warnings).toEqual([])
     })
   })
 })

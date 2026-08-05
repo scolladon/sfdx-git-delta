@@ -142,6 +142,10 @@ Attempt to delete the flow '%s' via destructiveChanges.xml may not work as expec
 
 Deleting the DigitalExperienceBundle '%s' via destructiveChanges.xml requires the related Experience site to be deactivated first for the deployment to succeed
 
+# warning.SourceDirMatchedNothing
+
+No changes found under '%s' between '%s' and '%s'
+
 # info.CommandIsRunning
 
 Generating incremental package

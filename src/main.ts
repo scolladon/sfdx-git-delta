@@ -11,6 +11,7 @@ import ChangeSet from './utils/changeSet.js'
 import { assembleChanges } from './utils/changesAssembly.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
+import { MessageService } from './utils/MessageService.js'
 import { parseSourceDirs } from './utils/pathspec.js'
 import RenameResolver from './utils/renameResolver.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
@@ -94,10 +95,31 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     await new IOExecutor(config).execute(copies)
     const processorWarnings = await postProcessors.executeRemaining(changes)
 
+    // The diff is fully drained by this point (the same assumption
+    // getRenamePairs() above already relies on), so the per-scope
+    // counters are final.
+    const unmatchedScopes = repoGitDiffHelper.getUnmatchedSourceScopes()
+    const sourceScopeWarnings =
+      unmatchedScopes.length > 0
+        ? [
+            new Error(
+              new MessageService().getMessage(
+                'warning.SourceDirMatchedNothing',
+                [unmatchedScopes.join(', '), config.from, config.to]
+              )
+            ),
+          ]
+        : []
+
     const work: Work = {
       config,
       changes,
-      warnings: [...configWarnings, ...assemblyWarnings, ...processorWarnings],
+      warnings: [
+        ...configWarnings,
+        ...assemblyWarnings,
+        ...processorWarnings,
+        ...sourceScopeWarnings,
+      ],
     }
     // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
     Logger.debug(lazy`main: return ${work}`)
