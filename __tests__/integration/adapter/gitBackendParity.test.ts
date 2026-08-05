@@ -13,6 +13,8 @@ import {
   buildFixtureRepo,
   type FixtureRefs,
   GREP_MARKER,
+  PREFIX_COLLISION_PATH,
+  REGISTRY_RECOGNISED_PATH,
   RENAME_FROM_PATH,
   RENAME_TO_PATH,
   WHITESPACE_ONLY_PATH,
@@ -510,5 +512,19 @@ describe('Given a self-contained git fixture repository', () => {
         runGitText(['rev-list', '--max-parents=0', 'HEAD'], { cwd: shallowDir })
       )
     })
+  })
+})
+
+describe('Given the fixture repository contract', () => {
+  it('When listing the tree at HEAD, Then it carries a prefix-collision sibling and a registry-recognised file', () => {
+    // Arrange
+    const sut = runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], {
+      cwd: fixtureDir,
+    })
+
+    // Act & Assert
+    expect(sut).toEqual(
+      expect.arrayContaining([PREFIX_COLLISION_PATH, REGISTRY_RECOGNISED_PATH])
+    )
   })
 })
