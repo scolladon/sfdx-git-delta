@@ -71,6 +71,15 @@ const ROOT_PATHS = new Set(['', '.', './'])
 // belong in the path -> blob id index (ls-tree -r parity).
 const BLOB_MODES = new Set(['100644', '100755', '120000'])
 
+// Owned by the caller (RepoGitDiff in production, one instance per sgd()
+// invocation) rather than by the cached GitAdapter singleton: two
+// concurrent sgd() calls that resolve to the same cache key (repo + to)
+// share a GitAdapter instance, so counters stored on `this` would let one
+// drain reset or overwrite another's in-flight verdict. Threading the
+// verdict through as a plain object sidesteps that entirely — each caller
+// starts its own at zero and nothing here ever mutates shared state.
+export type DiffScopeVerdict = { changesSeen: number; linesYielded: number }
+
 const GITLINK_MODE = '160000'
 
 // Maps sgd's whitespace-ignoring diff request onto tsgit's data-mode
@@ -114,10 +123,6 @@ export default class GitAdapter implements GitBlobReader {
   // of `git cat-file --batch` oid:path resolution.
   protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
   private repoHandle: Promise<Repository> | null = null
-  // Counted per streamDiffLines() drain, reset at entry, to tell
-  // "the source scopes matched nothing" apart from "there was no diff".
-  private changesSeen = 0
-  private linesYielded = 0
 
   private constructor(protected readonly config: Config) {
     this.treeIndex = new Map<string, TreeIndex>()
@@ -472,18 +477,25 @@ export default class GitAdapter implements GitBlobReader {
   // whitespace options drop whitespace-only modifications the way the
   // subprocess numstat path does.
   @log
-  public async *streamDiffLines(): AsyncGenerator<string> {
-    this.changesSeen = 0
-    this.linesYielded = 0
+  public async *streamDiffLines(
+    verdict: DiffScopeVerdict = { changesSeen: 0, linesYielded: 0 }
+  ): AsyncGenerator<string> {
     const { changes } = await this.requestDiff()
-    const scopes = this.nonRootScopes()
+    // git unions pathspecs (`-- . src` matches everything), so a root scope
+    // must not be filtered out here even when non-root scopes are also
+    // configured — the full, unfiltered source list is what `inScope`
+    // (via toDiffLines) expects to reproduce that union.
     for (const change of changes) {
-      this.changesSeen++
-      for (const line of toDiffLines(change, scopes)) {
-        this.linesYielded++
+      verdict.changesSeen++
+      for (const line of toDiffLines(change, this.config.source)) {
+        verdict.linesYielded++
         yield line
       }
     }
+  }
+
+  private hasRootScope(): boolean {
+    return this.config.source.some(scope => ROOT_PATHS.has(scope))
   }
 
   private nonRootScopes(): Pathspec[] {
@@ -492,10 +504,18 @@ export default class GitAdapter implements GitBlobReader {
 
   // Every non-root scope matched nothing in the drained diff. A path can
   // match several scopes, so this is all-or-nothing rather than per-scope
-  // — per-scope attribution needs bookkeeping that buys nothing.
-  public getUnmatchedSourceScopes(): readonly string[] {
+  // — per-scope attribution needs bookkeeping that buys nothing. A root
+  // scope alongside non-root ones still means "everything is in scope"
+  // (union), so naming the non-root scopes as unmatched would be
+  // misleading — suppress the verdict entirely when one is present.
+  public getUnmatchedSourceScopes(
+    verdict: DiffScopeVerdict
+  ): readonly string[] {
+    if (this.hasRootScope()) return []
     const scopes = this.nonRootScopes()
-    return scopes.length > 0 && this.changesSeen > 0 && this.linesYielded === 0
+    return scopes.length > 0 &&
+      verdict.changesSeen > 0 &&
+      verdict.linesYielded === 0
       ? scopes
       : []
   }

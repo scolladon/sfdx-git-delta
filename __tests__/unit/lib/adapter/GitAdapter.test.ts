@@ -1645,7 +1645,7 @@ describe('GitAdapter', () => {
       expect(callArgs).not.toHaveProperty('ignoreBlankLines')
     })
 
-    it('When source scopes include ROOT_PATHS entries, Then they are stripped before filtering changes', async () => {
+    it('When source scopes include a ROOT_PATHS entry alongside a non-root scope, Then the root entry unions and keeps changes outside the non-root scope', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('.', 'force-app') })
@@ -1664,9 +1664,10 @@ describe('GitAdapter', () => {
       // Act
       const result = await streamDiff(sut)
 
-      // Assert — 'other/Unrelated.cls' is out of the 'force-app' scope; if
-      // '.' were not stripped it would keep everything regardless of scope.
-      expect(result).toEqual([])
+      // Assert — git unions pathspecs (`-- . src` matches everything), so
+      // 'other/Unrelated.cls' stays in scope even though it is outside
+      // 'force-app': the root entry must not be stripped away.
+      expect(result).toEqual(['A\tother/Unrelated.cls'])
     })
 
     it('When repo.diff rejects with a raw tsgit error, Then streamDiffLines rejects with the mapped error', async () => {
@@ -1858,14 +1859,22 @@ describe('GitAdapter', () => {
   })
 
   describe('Given getUnmatchedSourceScopes', () => {
-    it('Given a freshly constructed GitAdapter, When getUnmatchedSourceScopes is read before streamDiffLines is called, Then it returns an empty array (field initialiser)', () => {
+    // The verdict is owned by the caller (mirroring RepoGitDiff in
+    // production), not by the cached GitAdapter singleton — see the
+    // concurrency test at the end of this block for why that matters.
+    const freshVerdict = (): { changesSeen: number; linesYielded: number } => ({
+      changesSeen: 0,
+      linesYielded: 0,
+    })
+
+    it('Given a freshly created verdict, When getUnmatchedSourceScopes is called before any drain, Then it returns an empty array', () => {
       // Arrange
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
 
       // Act & Assert
-      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+      expect(sut.getUnmatchedSourceScopes(freshVerdict())).toEqual([])
     })
 
     it('When changes are present but none is in scope, Then it returns the non-root scopes', async () => {
@@ -1873,6 +1882,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
+      const verdict = freshVerdict()
       fakeRepo.diff.mockResolvedValue({
         changes: [
           {
@@ -1885,10 +1895,10 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await streamDiff(sut)
+      await collect(sut.streamDiffLines(verdict))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes()).toEqual(['force-app'])
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual(['force-app'])
     })
 
     it('When at least one change is in scope, Then it returns an empty array', async () => {
@@ -1896,6 +1906,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
+      const verdict = freshVerdict()
       fakeRepo.diff.mockResolvedValue({
         changes: [
           {
@@ -1908,10 +1919,10 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await streamDiff(sut)
+      await collect(sut.streamDiffLines(verdict))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
     })
 
     it('When there are no changes at all, Then it returns an empty array', async () => {
@@ -1919,13 +1930,14 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
+      const verdict = freshVerdict()
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await streamDiff(sut)
+      await collect(sut.streamDiffLines(verdict))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
     })
 
     it('When the only configured scope is root, Then it returns an empty array even though no change is in scope', async () => {
@@ -1933,6 +1945,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('.') })
       )
+      const verdict = freshVerdict()
       fakeRepo.diff.mockResolvedValue({
         changes: [
           {
@@ -1945,18 +1958,20 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await streamDiff(sut)
+      await collect(sut.streamDiffLines(verdict))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
     })
 
-    it('Given a prior drained run warned, When a second run on the same instance has an in-scope change, Then the counters reset and it returns an empty array', async () => {
-      // Arrange
+    it('When configured scopes mix a root entry with an unmatched non-root entry, Then the root entry suppresses the warning', async () => {
+      // Arrange — a root scope means "everything is in scope" (union), so
+      // naming 'force-app' as unmatched would be misleading.
       const sut = GitAdapter.getInstance(
-        makeConfig({ source: sourceDirs('force-app') })
+        makeConfig({ source: sourceDirs('.', 'force-app') })
       )
-      fakeRepo.diff.mockResolvedValueOnce({
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
         changes: [
           {
             type: 'add',
@@ -1966,24 +1981,39 @@ describe('GitAdapter', () => {
           },
         ],
       })
-      await streamDiff(sut)
-      expect(sut.getUnmatchedSourceScopes()).toEqual(['force-app'])
 
       // Act
-      fakeRepo.diff.mockResolvedValueOnce({
+      await collect(sut.streamDiffLines(verdict))
+
+      // Assert
+      expect(sut.getUnmatchedSourceScopes(verdict)).toEqual([])
+    })
+
+    it('Given two independent verdicts against the same cached instance, When only one is drained, Then the other verdict is untouched', async () => {
+      // Arrange — two GitAdapter.getInstance() callers with the same repo
+      // and 'to' share one cached instance; each must own its own verdict.
+      const sut = GitAdapter.getInstance(
+        makeConfig({ source: sourceDirs('force-app') })
+      )
+      const drainedVerdict = freshVerdict()
+      const untouchedVerdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
         changes: [
           {
             type: 'add',
-            newPath: 'force-app/New.cls',
+            newPath: 'other/Unrelated.cls',
             newId: 'oid',
             newMode: '100644',
           },
         ],
       })
-      await streamDiff(sut)
+
+      // Act
+      await collect(sut.streamDiffLines(drainedVerdict))
 
       // Assert
-      expect(sut.getUnmatchedSourceScopes()).toEqual([])
+      expect(drainedVerdict).toEqual({ changesSeen: 1, linesYielded: 0 })
+      expect(untouchedVerdict).toEqual({ changesSeen: 0, linesYielded: 0 })
     })
   })
 })

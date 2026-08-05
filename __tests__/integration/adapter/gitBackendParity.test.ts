@@ -325,13 +325,14 @@ describe('Given a self-contained git fixture repository', () => {
       ['./src/'],
       ['src/lib'],
       ['src/./lib'],
-      ['src/../src'],
       ['src-legacy'],
       ['.'],
       ['./'],
       ['src/index.txt'],
       ['does-not-exist'],
       ['src', 'docs'],
+      ['.', 'src'],
+      ['./', 'src'],
     ]
 
     it.each(rows.map(raw => [raw] as const))(

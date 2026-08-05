@@ -12,6 +12,7 @@ import { assembleChanges } from './utils/changesAssembly.js'
 import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import { MessageService } from './utils/MessageService.js'
+import { sanitizeForMessage } from './utils/messageSanitizer.js'
 import { parseSourceDirs } from './utils/pathspec.js'
 import RenameResolver from './utils/renameResolver.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
@@ -25,6 +26,10 @@ export default async (configInput: ConfigInput): Promise<Work> => {
 
   const { pathspecs, rejections } = parseSourceDirs(configInput.source ?? [])
   const config: Config = { ...configInput, source: pathspecs }
+  // Captured before validateConfig() resolves them to full SHAs below, so
+  // the unmatched-scope warning can report what the user typed.
+  const requestedFrom = config.from
+  const requestedTo = config.to
   try {
     const configWarnings = await new ConfigValidator(
       config,
@@ -97,15 +102,22 @@ export default async (configInput: ConfigInput): Promise<Work> => {
 
     // The diff is fully drained by this point (the same assumption
     // getRenamePairs() above already relies on), so the per-scope
-    // counters are final.
+    // counters are final. Only warn when the run produced no visible
+    // changes at all — a non-empty manifest (e.g. members sourced by
+    // --include-file independent of the diff) means the scope did its
+    // job, so naming it as unmatched would be misleading.
     const unmatchedScopes = repoGitDiffHelper.getUnmatchedSourceScopes()
     const sourceScopeWarnings =
-      unmatchedScopes.length > 0
+      unmatchedScopes.length > 0 && changes.isEmpty()
         ? [
             new Error(
               new MessageService().getMessage(
                 'warning.SourceDirMatchedNothing',
-                [unmatchedScopes.join(', '), config.from, config.to]
+                [
+                  sanitizeForMessage(unmatchedScopes.join(', ')),
+                  requestedFrom,
+                  requestedTo,
+                ]
               )
             ),
           ]

@@ -14,6 +14,7 @@ import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import { MessageService } from './MessageService.js'
+import { sanitizeForMessage } from './messageSanitizer.js'
 import type {
   SourceDirRejection,
   SourceDirRejectionReason,
@@ -75,7 +76,7 @@ export default class ConfigValidator {
     return this.sourceRejections.map(rejection =>
       this.message.getMessage(
         SOURCE_DIR_REJECTION_MESSAGE_KEYS[rejection.reason],
-        [rejection.value]
+        [sanitizeForMessage(rejection.value)]
       )
     )
   }

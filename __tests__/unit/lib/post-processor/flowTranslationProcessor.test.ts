@@ -30,7 +30,7 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
-import { grepContent, readPathFromGit } from '../../../../src/utils/fsHelper'
+import { grepContentMatching, readPathFromGit } from '../../../../src/utils/fsHelper'
 import {
   isSubDir,
   pathExists,
@@ -60,7 +60,7 @@ vi.mock('../../../../src/utils/fsUtils', async orig => {
   }
 })
 
-const mockedGrepContent = vi.mocked(grepContent)
+const mockedGrepContent = vi.mocked(grepContentMatching)
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 const mockedIsSubDir = vi.mocked(isSubDir)
 const mockedPathExists = vi.mocked(pathExists)

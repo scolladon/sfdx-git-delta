@@ -612,5 +612,43 @@ describe('external library inclusion', () => {
       // Assert
       expect(result.warnings).toEqual([])
     })
+
+    it('Given RepoGitDiff reports unmatched scopes but a post-processor still produced changes, When sgd runs, Then no warning is pushed', async () => {
+      // Arrange — mirrors --include-file sourcing members via getFilesPath
+      // independent of the diff: the run is not silently empty, so naming
+      // the scope as unmatched would be misleading.
+      mockGetUnmatchedSourceScopes.mockReturnValueOnce(['force-app'])
+      mockCollectAll.mockResolvedValueOnce(
+        handlerResult({
+          manifests: [
+            {
+              target: ManifestTarget.Package,
+              type: 'ApexClass',
+              member: 'TestClass',
+              changeKind: ChangeKind.Add,
+            },
+          ],
+        })
+      )
+      const sut = {
+        source: ['force-app'],
+        from: 'HEAD~1',
+        to: 'HEAD',
+      } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given source is nullish, When sgd runs, Then it is treated as an empty source list', async () => {
+      // Arrange
+      const sut = { source: undefined } as unknown as ConfigInput
+
+      // Act & Assert
+      await expect(sgd(sut)).resolves.not.toThrow()
+    })
   })
 })

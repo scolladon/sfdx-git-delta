@@ -1,5 +1,5 @@
 'use strict'
-import GitAdapter from '../adapter/GitAdapter.js'
+import GitAdapter, { type DiffScopeVerdict } from '../adapter/GitAdapter.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION, RENAMED } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -12,6 +12,13 @@ export type RenamePathPair = Readonly<{ fromPath: string; toPath: string }>
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
   private renamePairs: RenamePathPair[] = []
+  // One RepoGitDiff per sgd() invocation, so a field initialiser already
+  // starts every drain at zero — unlike the GitAdapter singleton it wraps,
+  // there is no reset-on-reuse hazard to guard against here.
+  private readonly diffScopeVerdict: DiffScopeVerdict = {
+    changesSeen: 0,
+    linesYielded: 0,
+  }
 
   constructor(
     protected readonly config: Config,
@@ -36,7 +43,9 @@ export default class RepoGitDiff {
     const additionNames = new Set<string>()
     const deferredDeletions: string[] = []
 
-    for await (const rawLine of this.gitAdapter.streamDiffLines()) {
+    for await (const rawLine of this.gitAdapter.streamDiffLines(
+      this.diffScopeVerdict
+    )) {
       for (const expanded of this._expandRename(rawLine)) {
         // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
         if (!expanded) continue
@@ -72,7 +81,7 @@ export default class RepoGitDiff {
   }
 
   public getUnmatchedSourceScopes(): readonly string[] {
-    return this.gitAdapter.getUnmatchedSourceScopes()
+    return this.gitAdapter.getUnmatchedSourceScopes(this.diffScopeVerdict)
   }
 
   // git emits `R<score>\tfrom\tto` when -M detects a rename. Each rename is

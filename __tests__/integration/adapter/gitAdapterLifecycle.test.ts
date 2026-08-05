@@ -158,5 +158,39 @@ describe('Given the built sfdx-git-delta CLI', () => {
       expect(combined).toContain('src/**')
       expect(combined).toContain('wildcard')
     })
+
+    it('Then the unmatched-scope warning reports the rev the user typed, not its resolved SHA', async () => {
+      // Arrange — '--to HEAD' is symbolic; refs.head is what it resolves
+      // to. 'does-not-exist' matches nothing changed since refs.diffTo.
+      const outputDir = await trackedTempDir('sgd-lifecycle-output-')
+
+      // Act
+      const sut = spawnSync(
+        process.execPath,
+        [
+          CLI_ENTRY,
+          'sgd',
+          'source',
+          'delta',
+          '--from',
+          refs.diffTo,
+          '--to',
+          'HEAD',
+          '--repo-dir',
+          fixtureDir,
+          '--output-dir',
+          outputDir,
+          '--source-dir',
+          'does-not-exist',
+        ],
+        { cwd: fixtureDir, encoding: 'utf8' }
+      )
+
+      // Assert
+      const combined = sut.stdout + sut.stderr
+      expect(combined).toContain('does-not-exist')
+      expect(combined).toContain('HEAD')
+      expect(combined).not.toContain(refs.head)
+    })
   })
 })

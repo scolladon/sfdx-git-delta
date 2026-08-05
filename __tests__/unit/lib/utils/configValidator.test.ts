@@ -4,7 +4,11 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
-import { pathExists, sanitizePath } from '../../../../src/utils/fsUtils'
+import {
+  pathExists,
+  sanitizePath,
+  treatPathSep,
+} from '../../../../src/utils/fsUtils'
 import { Logger } from '../../../../src/utils/LoggingService'
 import { getConfig } from '../../../__utils__/testWork'
 
@@ -83,8 +87,13 @@ vi.mock('../../../../src/utils/MessageService', () => {
 vi.mock('../../../../src/utils/fsUtils')
 const mockedPathExists = vi.mocked(pathExists)
 const mockedSanitizePath = vi.mocked(sanitizePath)
+const mockedTreatPathSep = vi.mocked(treatPathSep)
 
 mockedSanitizePath.mockImplementation(data => data)
+// getWork()'s fixture source goes through sourceDirs() -> parseSourceDirs(),
+// which now calls treatPathSep directly (not just via sanitizePath) to
+// reject '..' segments before normalize() resolves them away.
+mockedTreatPathSep.mockImplementation(data => data)
 
 describe('Given a ConfigValidator', () => {
   let config: Config
@@ -1038,6 +1047,25 @@ describe('Given a ConfigValidator', () => {
         expect(mockParseRev).not.toHaveBeenCalled()
       }
     )
+
+    it('Given a rejection value containing a newline, When validating, Then the message carries the escaped form and never the raw newline', async () => {
+      // Arrange
+      const controlValue = 'force-app\nPASSED'
+      const sut = new ConfigValidator(work, [
+        { value: controlValue, reason: 'empty' },
+      ])
+
+      // Act
+      const error: Error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown as Error)
+
+      // Assert
+      expect(error.message).toContain(
+        'error.SourceDirIsEmpty:force-app\\x0aPASSED'
+      )
+      expect(error.message).not.toContain(controlValue)
+    })
 
     it('Given two rejections at once, When validating, Then the joined message carries both keys', async () => {
       // Arrange

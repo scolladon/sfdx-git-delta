@@ -9,7 +9,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { grepContent, pathExists } from '../../../../src/utils/fsHelper'
+import { grepContentUnder, pathExists } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig } from '../../../__utils__/testWork'
@@ -17,7 +17,7 @@ import { getConfig } from '../../../__utils__/testWork'
 vi.mock('../../../../src/utils/fsHelper')
 
 const mockedPathExist = vi.mocked(pathExists)
-const mockedGrepContent = vi.mocked(grepContent)
+const mockedGrepContent = vi.mocked(grepContentUnder)
 
 mockedPathExist.mockResolvedValue(true)
 mockedGrepContent.mockResolvedValue([])
