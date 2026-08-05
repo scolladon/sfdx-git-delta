@@ -43,13 +43,22 @@ export const readDirs = async (
   return await gitAdapter.getFilesPath(paths)
 }
 
-export const grepContent = async (
+export const grepContentUnder = async (
   pattern: string,
   path: string | string[],
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.gitGrep(pattern, path)
+  return await gitAdapter.grepUnderPaths(pattern, path)
+}
+
+export const grepContentMatching = async (
+  pattern: string,
+  pathspecs: string | string[],
+  config: Config
+): Promise<string[]> => {
+  const gitAdapter = GitAdapter.getInstance(config)
+  return await gitAdapter.grepMatchingPathspecs(pattern, pathspecs)
 }
 
 export const contentIncludes = async (
@@ -57,7 +66,7 @@ export const contentIncludes = async (
   path: string,
   config: Config
 ): Promise<boolean> => {
-  const results = await grepContent(pattern, path, config)
+  const results = await grepContentUnder(pattern, path, config)
   return results.length > 0
 }
 

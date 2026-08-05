@@ -13,7 +13,8 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
     getFilesPath: vi.fn().mockResolvedValue([]),
     listDirAtRevision: vi.fn().mockResolvedValue([]),
     preBuildTreeIndex: vi.fn().mockResolvedValue(undefined),
-    gitGrep: vi.fn().mockResolvedValue([]),
+    grepUnderPaths: vi.fn().mockResolvedValue([]),
+    grepMatchingPathspecs: vi.fn().mockResolvedValue([]),
   }
   return {
     default: {

@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomFieldHandler from '../../../../src/service/customFieldHandler'
@@ -122,6 +123,29 @@ describe('CustomFieldHandler', () => {
         )
       ).toBe(true)
       expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given field addition under an object folder literally named "Custom[1]__c", When collect, Then contentIncludes is called with the bracketed basePath', async () => {
+      // Arrange
+      mockedContentIncludes.mockResolvedValueOnce(true)
+      const bracketedLine =
+        'A       force-app/main/default/objects/Custom[1]__c/fields/awesome.field-meta.xml'
+      const { changeType, element } = createElement(
+        bracketedLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new CustomFieldHandler(changeType, element, work)
+
+      // Act
+      await sut.collect()
+
+      // Assert
+      expect(mockedContentIncludes).toHaveBeenCalledWith(
+        MASTER_DETAIL_TAG,
+        element.basePath,
+        expect.anything()
+      )
     })
   })
 })

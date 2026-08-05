@@ -6,7 +6,8 @@ import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
   contentIncludes,
-  grepContent,
+  grepContentMatching,
+  grepContentUnder,
   pathExists,
   readDirs,
   readPathFromGit,
@@ -36,7 +37,8 @@ const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 const mockGetStringContent = vi.fn()
 const mockGetFilesPath = vi.fn()
 const mockPathExists = vi.fn()
-const mockGitGrep = vi.fn()
+const mockGrepUnderPaths = vi.fn()
+const mockGrepMatchingPathspecs = vi.fn()
 vi.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
@@ -44,7 +46,8 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
         getStringContent: mockGetStringContent,
         getFilesPath: mockGetFilesPath,
         pathExists: mockPathExists,
-        gitGrep: mockGitGrep,
+        grepUnderPaths: mockGrepUnderPaths,
+        grepMatchingPathspecs: mockGrepMatchingPathspecs,
       }),
     },
   }
@@ -218,38 +221,43 @@ describe('pathExists', () => {
   })
 })
 
-describe('grepContent', () => {
-  it('Given matching pattern, When grepContent, Then returns matching paths', async () => {
+describe('grepContentUnder', () => {
+  it('Given matching pattern, When grepContentUnder, Then returns matching paths and routes through grepUnderPaths only', async () => {
     // Arrange
     const matchingFiles = ['fields/Account.field', 'fields/Contact.field']
-    mockGitGrep.mockImplementation(() => Promise.resolve(matchingFiles))
+    mockGrepUnderPaths.mockImplementation(() => Promise.resolve(matchingFiles))
 
     // Act
-    const result = await grepContent('MasterDetail', 'fields', work.config)
+    const result = await grepContentUnder('MasterDetail', 'fields', work.config)
 
     // Assert
     expect(result).toEqual(matchingFiles)
-    expect(mockGitGrep).toHaveBeenCalledWith('MasterDetail', 'fields')
+    expect(mockGrepUnderPaths).toHaveBeenCalledWith('MasterDetail', 'fields')
+    expect(mockGrepMatchingPathspecs).not.toHaveBeenCalled()
   })
 
-  it('Given no matches, When grepContent, Then returns empty array', async () => {
+  it('Given no matches, When grepContentUnder, Then returns empty array', async () => {
     // Arrange
-    mockGitGrep.mockImplementation(() => Promise.resolve([]))
+    mockGrepUnderPaths.mockImplementation(() => Promise.resolve([]))
 
     // Act
-    const result = await grepContent('nonexistent', 'fields', work.config)
+    const result = await grepContentUnder('nonexistent', 'fields', work.config)
 
     // Assert
     expect(result).toEqual([])
   })
+})
 
-  it('Given multiple paths, When grepContent, Then passes array to gitGrep', async () => {
+describe('grepContentMatching', () => {
+  it('Given multiple pathspecs, When grepContentMatching, Then passes the array to grepMatchingPathspecs only', async () => {
     // Arrange
     const matchingFiles = ['dir1/file1.xml', 'dir2/file2.xml']
-    mockGitGrep.mockImplementation(() => Promise.resolve(matchingFiles))
+    mockGrepMatchingPathspecs.mockImplementation(() =>
+      Promise.resolve(matchingFiles)
+    )
 
     // Act
-    const result = await grepContent(
+    const result = await grepContentMatching(
       'flowDefinitions',
       ['dir1/*.xml', 'dir2/*.xml'],
       work.config
@@ -257,17 +265,33 @@ describe('grepContent', () => {
 
     // Assert
     expect(result).toEqual(matchingFiles)
-    expect(mockGitGrep).toHaveBeenCalledWith('flowDefinitions', [
+    expect(mockGrepMatchingPathspecs).toHaveBeenCalledWith('flowDefinitions', [
       'dir1/*.xml',
       'dir2/*.xml',
     ])
+    expect(mockGrepUnderPaths).not.toHaveBeenCalled()
+  })
+
+  it('Given no matches, When grepContentMatching, Then returns empty array', async () => {
+    // Arrange
+    mockGrepMatchingPathspecs.mockImplementation(() => Promise.resolve([]))
+
+    // Act
+    const result = await grepContentMatching(
+      'nonexistent',
+      'fields/*.xml',
+      work.config
+    )
+
+    // Assert
+    expect(result).toEqual([])
   })
 })
 
 describe('contentIncludes', () => {
-  it('Given matching pattern, When contentIncludes, Then returns true', async () => {
+  it('Given matching pattern, When contentIncludes, Then returns true and routes through grepUnderPaths only', async () => {
     // Arrange
-    mockGitGrep.mockImplementation(() =>
+    mockGrepUnderPaths.mockImplementation(() =>
       Promise.resolve(['fields/Account.field'])
     )
 
@@ -276,11 +300,12 @@ describe('contentIncludes', () => {
 
     // Assert
     expect(result).toBe(true)
+    expect(mockGrepMatchingPathspecs).not.toHaveBeenCalled()
   })
 
   it('Given no matches, When contentIncludes, Then returns false', async () => {
     // Arrange
-    mockGitGrep.mockImplementation(() => Promise.resolve([]))
+    mockGrepUnderPaths.mockImplementation(() => Promise.resolve([]))
 
     // Act
     const result = await contentIncludes('nonexistent', 'fields', work.config)

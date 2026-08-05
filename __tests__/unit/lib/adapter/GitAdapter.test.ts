@@ -12,6 +12,7 @@ import {
   EscalateToStreamingSignal,
   SIZE_THRESHOLD,
 } from '../../../../src/adapter/gitBlobReader'
+import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
 import {
   getLFSObjectContentPath,
@@ -1062,7 +1063,7 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('Given gitGrep', () => {
+  describe('Given grepUnderPaths', () => {
     const setUpTree = () => {
       fakeRepo.revParse.mockResolvedValue('commit-oid')
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
@@ -1090,7 +1091,7 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual(['force-app/a.cls'])
@@ -1107,13 +1108,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
     })
 
-    it('When the pathspec is a literal, Then out-of-scope files are never read', async () => {
+    it('When the path is a literal, Then out-of-scope files are never read', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
       setUpTree()
@@ -1128,7 +1129,7 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
@@ -1141,14 +1142,14 @@ describe('GitAdapter', () => {
       fakeRepo.revParse.mockRejectedValue(new Error('grep boom'))
 
       // Act
-      const result = await sut.gitGrep('needle', 'force-app', 'HEAD')
+      const result = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
     })
   })
 
-  describe('Given gitGrep pathspec matching (buildPathspecMatcher)', () => {
+  describe('Given grepMatchingPathspecs (buildPathspecMatcher)', () => {
     const paths = [
       'force-app/foo.cls',
       'force-app/sub/bar.cls',
@@ -1184,7 +1185,7 @@ describe('GitAdapter', () => {
         const sut = GitAdapter.getInstance(makeConfig())
 
         // Act
-        const result = await sut.gitGrep('match-me', pathspec)
+        const result = await sut.grepMatchingPathspecs('match-me', pathspec)
 
         // Assert
         expect(result.sort()).toEqual([...expected].sort())
@@ -1196,7 +1197,10 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.gitGrep('match-me', ['other', 'force-app/*.cls'])
+      const result = await sut.grepMatchingPathspecs('match-me', [
+        'other',
+        'force-app/*.cls',
+      ])
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1219,7 +1223,10 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', './././force-app')
+      const result = await sut.grepMatchingPathspecs(
+        'needle',
+        './././force-app'
+      )
 
       // Assert
       expect(result).toEqual(['force-app/foo.cls'])
@@ -1240,7 +1247,7 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', '///force-app')
+      const result = await sut.grepMatchingPathspecs('needle', '///force-app')
 
       // Assert
       expect(result).toEqual(['force-app/foo.cls'])
@@ -1264,12 +1271,83 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.gitGrep('needle', 'x./y')
+      const result = await sut.grepMatchingPathspecs('needle', 'x./y')
 
       // Assert — the embedded './' is left untouched (only a LEADING './'
       // is normalized), so the literal pathspec stays 'x./y'
       expect(result).toEqual(['x./y/foo.cls'])
     })
+  })
+
+  describe('Given grepUnderPaths matching a concrete path containing "["', () => {
+    it('When the path is an object folder literally named "Custom[1]__c", Then the file is matched (previously silently degraded to an empty array)', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      const bracketedPath =
+        'force-app/main/default/objects/Custom[1]__c/fields/X.field-meta.xml'
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([[bracketedPath, { mode: '100644', id: 'blob-bracket' }]])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'blob-bracket',
+        content: new Uint8Array(Buffer.from(MASTER_DETAIL_TAG)),
+      })
+
+      // Act
+      const result = await sut.grepUnderPaths(
+        MASTER_DETAIL_TAG,
+        'force-app/main/default/objects/Custom[1]__c/fields',
+        'HEAD'
+      )
+
+      // Assert
+      expect(result).toEqual([bracketedPath])
+    })
+  })
+
+  describe('Given grepUnderPaths behaviour identity for glob-free concrete paths', () => {
+    const paths = [
+      'force-app/foo.cls',
+      'force-app/sub/bar.cls',
+      'other/baz.cls',
+      'force-app-legacy/legacy.cls',
+    ]
+
+    beforeEach(() => {
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten(
+          paths.map(path => [path, { mode: '100644', id: `blob-${path}` }])
+        )
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'any',
+        content: new Uint8Array(Buffer.from('match-me')),
+      })
+    })
+
+    it.each([
+      ['other', ['other/baz.cls']],
+      ['force-app', ['force-app/foo.cls', 'force-app/sub/bar.cls']],
+      ['force-app/foo.cls', ['force-app/foo.cls']],
+    ])(
+      'When the concrete path is %s, Then the matched files are %s (same set as pathspec matching for the equivalent glob-free value, and never the prefix-colliding sibling)',
+      async (path, expected) => {
+        // Arrange
+        const sut = GitAdapter.getInstance(makeConfig())
+
+        // Act
+        const result = await sut.grepUnderPaths('match-me', path)
+
+        // Assert
+        expect(result.sort()).toEqual([...expected].sort())
+      }
+    )
   })
 
   describe('Given getFilesPath', () => {

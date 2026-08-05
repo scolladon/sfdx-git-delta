@@ -11,12 +11,20 @@
  *                                            detectRenames, ignoreWhitespace })
  *   git archive --format=tar            -> tree walk + streamBlob
  *   git grep -l                         -> tree walk + readBlob + RegExp
+ *                                          (grepBlobs, shared by
+ *                                          grepUnderPaths and
+ *                                          grepMatchingPathspecs)
  *   git config core.*                   -> no-op (nothing to configure)
  *
- * Fidelity note: gitGrep matches with JS RegExp semantics, not POSIX basic
- * regex. Callers are expected to pass metacharacter-free literals so the two
- * semantics agree; the known pattern set is pinned by
+ * Fidelity note: grepBlobs matches content with JS RegExp semantics, not
+ * POSIX basic regex. Callers are expected to pass metacharacter-free
+ * literals so the two semantics agree; the known pattern set is pinned by
  * gitGrepPatternInventory.test.ts (new callers must extend that inventory).
+ * A second fidelity axis follows from the path-matching split: path
+ * matching is literal-prefix on grepUnderPaths' concrete-path surface and
+ * wildmatch on grepMatchingPathspecs' pattern surface — only sgd-constructed
+ * values, already validated to carry no wildcard metacharacters, reach the
+ * latter.
  */
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
@@ -403,21 +411,47 @@ export default class GitAdapter implements GitBlobReader {
     return index.listChildren(dir)
   }
 
+  // Concrete-path surface: `path` comes straight off the repository (a git
+  // diff path run through treatPathSep, or MetadataElement.basePath) and is
+  // matched by literal directory prefix — never as a wildmatch pathspec, so
+  // a metacharacter incidentally present in a real path (e.g. an object
+  // folder named `Custom[1]__c`) can never be misread as a glob.
   @log
-  public async gitGrep(
+  public async grepUnderPaths(
     pattern: string,
     path: string | string[],
     revision: string = this.config.to
+  ): Promise<string[]> {
+    return this.grepBlobs(pattern, path, revision, buildLiteralMatcher)
+  }
+
+  // Pattern surface: `path` is an sgd-constructed pathspec (e.g.
+  // `<source>/*.translation-meta.xml`) and is matched with git pathspec
+  // wildmatch semantics (literal + glob).
+  @log
+  public async grepMatchingPathspecs(
+    pattern: string,
+    path: string | string[],
+    revision: string = this.config.to
+  ): Promise<string[]> {
+    return this.grepBlobs(pattern, path, revision, buildPathspecMatcher)
+  }
+
+  private async grepBlobs(
+    pattern: string,
+    path: string | string[],
+    revision: string,
+    buildMatcher: (specs: string[]) => (candidate: string) => boolean
   ): Promise<string[]> {
     try {
       const repo = await this.getRepo()
       const paths = Array.isArray(path) ? path : [path]
       const blobIds = await this.indexRevision(revision)
       const matcher = new RegExp(pattern)
-      const matchesPathspec = buildPathspecMatcher(paths)
+      const matchesPath = buildMatcher(paths)
       const matches: string[] = []
       for (const [filePath, blobId] of blobIds) {
-        if (!matchesPathspec(filePath)) continue
+        if (!matchesPath(filePath)) continue
         const blob = await repo.primitives.readBlob(blobId)
         if (matcher.test(Buffer.from(blob.content).toString(UTF8_ENCODING))) {
           matches.push(filePath)
@@ -426,7 +460,7 @@ export default class GitAdapter implements GitBlobReader {
       return matches
     } catch (error) {
       Logger.debug(
-        lazy`gitGrep: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
+        lazy`grepBlobs: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
       )
       return []
     }
@@ -615,6 +649,16 @@ function* toDiffLines(change: DiffChange, scopes: string[]): Generator<string> {
 
 const GLOB_CHARS = /[*?[]/
 const REGEXP_SPECIALS = /[.+^${}()|\\\]]/g
+
+// Concrete repository paths are matched by directory prefix only — no
+// wildmatch, no leading-prefix normalisation. A path off the repository can
+// never carry a leading './' or '/' (treatPathSep and basePath already rule
+// those out), and treating `[` as a glob-class opener would misread real
+// path segments like an object folder named `Custom[1]__c`.
+const buildLiteralMatcher =
+  (specs: string[]) =>
+  (path: string): boolean =>
+    inScope(path, specs)
 
 // Git pathspec semantics: a literal pathspec matches by directory prefix; a
 // pathspec containing wildcards uses wildmatch where `*` also crosses `/`

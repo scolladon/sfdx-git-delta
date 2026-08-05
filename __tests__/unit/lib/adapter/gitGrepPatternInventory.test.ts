@@ -5,17 +5,19 @@ import {
   MASTER_DETAIL_TAG,
 } from '../../../../src/constant/metadataConstants'
 
-// gitGrep compiles every pattern via `new RegExp(pattern)` (JS regex, not
-// POSIX basic regex — see the fidelity note atop GitAdapter.ts). Every
-// literal sgd passes to gitGrep must therefore be free of regex
-// metacharacters, so JS-RegExp semantics stay equivalent to a plain
-// substring search. This inventory curates the exact literal set sgd
-// passes and locks that contract down.
+// grepBlobs (the shared private walk behind grepUnderPaths and
+// grepMatchingPathspecs) compiles every pattern via `new RegExp(pattern)`
+// (JS regex, not POSIX basic regex — see the fidelity note atop
+// GitAdapter.ts). Every literal sgd passes to either surface must therefore
+// be free of regex metacharacters, so JS-RegExp semantics stay equivalent
+// to a plain substring search. This inventory curates the exact literal set
+// sgd passes and locks that contract down.
 const REGEX_METACHARACTERS = /[.*+?^${}()|[\]\\]/
 
 // Both patterns are imported from the same constants the production callers
-// use, so the inventory cannot drift from the source. Any NEW gitGrep caller
-// must add its pattern constant here.
+// use, so the inventory cannot drift from the source. Any NEW
+// grepUnderPaths/grepMatchingPathspecs caller must add its pattern constant
+// here.
 
 const CURATED_GIT_GREP_PATTERNS: Array<{ pattern: string; samples: string[] }> =
   [
@@ -32,7 +34,7 @@ const CURATED_GIT_GREP_PATTERNS: Array<{ pattern: string; samples: string[] }> =
     },
   ]
 
-describe('gitGrep pattern inventory', () => {
+describe('grep content pattern inventory', () => {
   it.each(CURATED_GIT_GREP_PATTERNS)(
     'Given the curated pattern $pattern, When checked for regex metacharacters, Then it is metacharacter-free',
     ({ pattern }) => {

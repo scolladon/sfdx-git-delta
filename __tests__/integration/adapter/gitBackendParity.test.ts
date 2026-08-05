@@ -435,13 +435,13 @@ describe('Given a self-contained git fixture repository', () => {
   })
 
   describe('When grepping at a revision', () => {
-    it('Then gitGrep matches git grep -l for the same literal pattern', async () => {
+    it('Then grepUnderPaths matches git grep -l for the same literal pattern', async () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = (await sut.gitGrep(GREP_MARKER, '.', 'HEAD')).sort()
+      const actual = (await sut.grepUnderPaths(GREP_MARKER, '.', 'HEAD')).sort()
 
       // Assert
       const prefix = 'HEAD:'
