@@ -12,32 +12,28 @@ updates:
         patterns:
           - "*"
 
-  # Repository-specific: a metadata registry bump is a feature here, and
-  # dependabot-auto-merge.yml diffs the registry, retitles and self-merges it.
-  # Entry-level rather than merely excluded from the group below, so the general
-  # entry never opens a second, indistinguishable pull request for it.
+  # A single npm entry: Dependabot requires a unique combination of
+  # package-ecosystem, directory and target-branch, so this repository's
+  # dedicated @salesforce/source-deploy-retrieve feed cannot be a second entry.
+  # It is a group instead, which still yields its own pull request - what
+  # dependabot-auto-merge.yml needs, since it diffs the metadata registry,
+  # retitles to feat(metadata) and self-merges. That retitle is also why losing
+  # the entry-level commit-message prefix costs nothing.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "daily"
     versioning-strategy: increase
     commit-message:
-      prefix: "feat(metadata)"
-    allow:
-      - dependency-name: "@salesforce/source-deploy-retrieve"
-
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    versioning-strategy: increase
-    commit-message:
       prefix: "build"
     allow:
       - dependency-type: "all"
-    ignore:
-      - dependency-name: "@salesforce/source-deploy-retrieve"
     groups:
+      salesforce-source-deploy-retrieve:
+        patterns:
+          - "@salesforce/source-deploy-retrieve"
       npm:
         patterns:
           - "*"
+        exclude-patterns:
+          - "@salesforce/source-deploy-retrieve"
