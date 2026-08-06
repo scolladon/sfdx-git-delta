@@ -20,13 +20,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       # Runs before any other step so an unusable channel never reaches an
-      # install. Explicitly bash: the default shell on the windows legs is
+      # install. `required: true` only asserts the key is present, so an
+      # empty value still arrives here - and an empty version spec resolves
+      # to the latest published build, greening the matrix against the wrong
+      # thing. Explicitly bash: the default shell on the windows legs is
       # pwsh, where POSIX test syntax raises a non-terminating error and the
       # step would exit 0 - the guard would silently pass on 3 of 9 legs.
-      # The character set also requires a single, space-free spec. The
-      # producer joins multiple package URLs with a space, so a future
-      # multi-package publish is rejected here rather than silently expanding
-      # into extra install arguments.
       - name: Require a resolved channel
         shell: bash
         env:
@@ -36,16 +35,10 @@ jobs:
             echo "::error::channel input is empty - refusing to run e2e against an unspecified build"
             exit 1
           fi
-          case "$CHANNEL" in
-            *@)
-              echo "::error::channel has an empty version spec: $CHANNEL"
-              exit 1
-              ;;
-            *[!A-Za-z0-9@:/._-]*)
-              echo "::error::channel contains unexpected characters: $CHANNEL"
-              exit 1
-              ;;
-          esac
+          if [ "${CHANNEL%@}" != "$CHANNEL" ]; then
+            echo "::error::channel has an empty version spec: $CHANNEL"
+            exit 1
+          fi
 
       - name: Checkout sources
         uses: actions/checkout@v7

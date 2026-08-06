@@ -40,6 +40,11 @@ This will install all the tools needed to contribute
 npm install
 ```
 
+Runtime `dependencies` are pinned to exact versions — no `^` or `~`. `.npmrc` sets
+`save-exact=true`, so `npm install <package>` records an exact version by default, and
+`npm run dependencies:upgrade` preserves that style. If you edit `package.json` by hand,
+keep runtime dependencies exact.
+
 ### 3) Build application
 
 ```bash
@@ -395,11 +400,7 @@ A preview URL sits under this repository's path but is built from the pull reque
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
-1. Find the install command. It is published on two surfaces:
-   - the `preview` job's step summary, always written and readable even for pull requests from
-     a fork — a fork's token is read-only, so this is the surface fork contributors must use;
-   - a comment from `github-actions[bot]`, posted only for pull requests from a branch of this
-     repository.
+1. Find the install command in the `github-actions[bot]` comment on the pull request.
 2. Run the command — it looks like:
 
    ```sh
@@ -407,6 +408,10 @@ To test SGD as a Salesforce CLI plugin from a pending pull request:
    ```
 
 3. Test the plugin!
+
+The comment is posted only for pull requests from a branch of this repository. A fork's
+token is read-only, so no comment is posted there — the preview is still published and the
+e2e matrix still runs against it, and the URL can be read from the `preview` job's log.
 
 ## How to modify npm tags
 

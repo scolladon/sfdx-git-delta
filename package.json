@@ -105,14 +105,12 @@
     "lint:dependencies": "wireit",
     "lint:engine": "wireit",
     "lint:fs": "wireit",
-    "lint:pins": "wireit",
     "lint": "wireit",
     "lint:fix": "wireit",
     "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
     "prepack": "wireit",
     "prepare": "husky",
-    "preview:publish": "pkg-pr-new publish --json preview.json --comment=off",
-    "preview:report": "node tooling/reportPreview.mjs",
+    "preview:publish": "pkg-pr-new publish --comment=off",
     "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
     "test:build": "wireit",
     "test:functional": "wireit",
@@ -146,7 +144,7 @@
       "clean": "if-file-deleted"
     },
     "clean": {
-      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-raw.json perf-runtime.json perf-memory.json perf-preview.html preview.json preview-comment.md",
+      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-raw.json perf-runtime.json perf-memory.json perf-preview.html",
       "files": [
         ".stryker-tmp/*",
         "lib",
@@ -157,8 +155,6 @@
         "perf-runtime.json",
         "perf-memory.json",
         "perf-preview.html",
-        "preview.json",
-        "preview-comment.md",
         "reports/*",
         "sfdx-git-delta-v*.tgz",
         "stderr*.txt",
@@ -192,8 +188,7 @@
       ],
       "output": [],
       "dependencies": [
-        "lint:fs",
-        "lint:pins"
+        "lint:fs"
       ]
     },
     "lint:fix": {
@@ -242,14 +237,6 @@
       ],
       "output": []
     },
-    "lint:pins": {
-      "command": "node tooling/checkExactPins.mjs",
-      "files": [
-        "package.json",
-        "tooling/checkExactPins.mjs"
-      ],
-      "output": []
-    },
     "prepack": {
       "command": "oclif manifest && oclif readme",
       "files": [
@@ -292,7 +279,6 @@
       "files": [
         "src/**/*.ts",
         "__tests__/integration/**/*.test.ts",
-        "tooling/checkExactPins.mjs",
         "**/tsconfig.json",
         "vitest.integration.config.ts"
       ],

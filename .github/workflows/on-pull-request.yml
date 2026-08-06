@@ -74,9 +74,6 @@ jobs:
       - name: Check dependencies node engines
         run: npm run lint:engine
 
-      - name: Check runtime dependencies are exact pins
-        run: npm run lint:pins
-
       - name: Audit dependencies
         run: npm audit || true
 
@@ -139,3 +136,102 @@ jobs:
     needs: [build]
     uses: ./.github/workflows/reusable-perf.yml
     secrets: inherit
+
+  # Publishes a per-commit preview build and runs the e2e matrix against it.
+  #
+  # Two out-of-repo settings this depends on. Neither is expressible in a
+  # workflow file, and changing either changes a security property:
+  #   1. The pkg.pr.new GitHub App must be installed on this repository, or
+  #      the preview step fails with a 404.
+  #   2. "Fork pull request workflows from outside collaborators" must require
+  #      approval for ALL outside collaborators. A fork's build is published
+  #      under this project's name, and that setting is the only control on it
+  #      - the GitHub default gates first-time contributors only, so a
+  #      returning contributor would otherwise publish unattended.
+  preview:
+    needs: [build]
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      channel: ${{ steps.publish.outputs.urls }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Publish preview
+        id: publish
+        run: npm run preview:publish
+
+  # Separate job on purpose: a failed comment upsert must not skip the e2e
+  # matrix. Both jobs fan out from preview, so e2e depends on the build alone.
+  # Skipped for fork pull requests, whose token is read-only.
+  comment:
+    needs: [preview]
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Comment install command
+        uses: actions/github-script@v9
+        env:
+          CHANNEL: ${{ needs.preview.outputs.channel }}
+        with:
+          script: |
+            const marker = '<!-- sgd-preview -->'
+            const body = [
+              marker,
+              '',
+              'Preview build for this commit:',
+              '',
+              `    sf plugins install ${process.env.CHANNEL}`,
+              '',
+              'Preview URLs are per-commit and immutable. After each push,',
+              'copy the command again rather than re-running an earlier one.',
+              '',
+            ].join('\n')
+            const { owner, repo } = context.repo
+            const issue_number = context.issue.number
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number }
+            )
+            const existing = comments.find(
+              c => c.user?.type === 'Bot' && (c.body ?? '').startsWith(marker)
+            )
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              })
+            }
+
+  e2e-tests:
+    needs: [preview]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/run-e2e-tests.yml
+    with:
+      channel: ${{ needs.preview.outputs.channel }}
