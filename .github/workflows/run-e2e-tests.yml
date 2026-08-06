@@ -4,8 +4,12 @@ on:
   workflow_call:
     inputs:
       channel:
+        description: npm spec or tarball url to install the plugin from
         type: string
-        default: latest-rc
+        required: true
+
+permissions:
+  contents: read
 
 jobs:
   e2e-test:
@@ -13,18 +17,30 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [22, 24, 26]
-        cli: ['@salesforce/cli']
+        # Floating: previous LTS, active LTS, current. These shift when a new
+        # LTS is cut (Oct), so engines.node must move with them or CI stops
+        # testing a version the manifest still promises.
+        node: ['lts/-1', 'lts/*', 'latest']
     runs-on: ${{ matrix.os }}
+    # Two different shells run here. `shell:` governs the run: block, where the
+    # windows default (pwsh) makes `>> "$GITHUB_ENV"` silently ineffective;
+    # npm_config_script_shell governs the bodies npm spawns for `npm run`, whose
+    # windows default is cmd.exe, not pwsh.
+    defaults:
+      run:
+        shell: bash
+    env:
+      npm_config_script_shell: bash
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           ref: 'e2e/head'
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
 
@@ -34,18 +50,20 @@ jobs:
           echo "SF_DISABLE_TELEMETRY=true" >> "$GITHUB_ENV"
 
       - name: Install cli
-        run: npm install -g ${{ matrix.cli }}
+        run: npm install -g @salesforce/cli
 
       - name: Install new plugin version
-        run: echo y | sf plugins install ${{ inputs.channel }}
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: echo y | sf plugins install "$CHANNEL"
 
-      - name: Test new plugin version
+      - name: Test new plugin version installation
         run: sf sgd source delta --help
 
-      - name: E2E Tests
+      - name: E2E Test
         run: |
           npm install
           npm run test:e2e
 
-      - name: Display diff
+      - name: Display current state
         run: git --no-pager diff

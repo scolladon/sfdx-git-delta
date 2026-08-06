@@ -9,9 +9,9 @@ on:
       - "**.md"
       - "img/**"
 
+# Least-privilege default; jobs that need more escalate explicitly.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   build:
@@ -36,6 +36,11 @@ jobs:
   perf:
     needs: [prepare-release]
     if: ${{ needs.prepare-release.outputs.release_created != 'true' }}
+    # reusable-perf.yml pushes benchmark data to gh-pages, so it needs
+    # contents: write; a reusable workflow cannot exceed the caller's grant.
+    permissions:
+      contents: write
+      pull-requests: write
     uses: ./.github/workflows/reusable-perf.yml
     secrets: inherit
     with:

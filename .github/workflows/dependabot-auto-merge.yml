@@ -27,9 +27,9 @@ jobs:
 
       - name: Setup Node
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version-file: '.nvmrc'
+          node-version: 'lts/*'
 
       - name: Install dependencies
         if: steps.metadata.outputs.package-ecosystem == 'npm_and_yarn' && contains(steps.metadata.outputs.dependency-names, '@salesforce/source-deploy-retrieve')

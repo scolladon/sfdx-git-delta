@@ -14,12 +14,12 @@
     "sf-plugin"
   ],
   "engines": {
-    "node": ">=22.22.1"
+    "node": ">=22.22.1",
+    "npm": ">=12"
   },
   "files": [
     "/lib",
     "/messages",
-    "/npm-shrinkwrap.json",
     "/oclif.lock",
     "/oclif.manifest.json"
   ],
@@ -49,10 +49,10 @@
   },
   "dependencies": {
     "@oclif/core": "4.13.3",
-    "@salesforce/core": "^9.1.0",
+    "@salesforce/core": "9.1.0",
     "@salesforce/sf-plugins-core": "13.0.0",
     "@salesforce/source-deploy-retrieve": "13.0.1",
-    "@scolladon/tsgit": "^3.2.1",
+    "@scolladon/tsgit": "3.2.1",
     "ignore": "7.0.6",
     "txml": "6.0.0",
     "zod": "4.4.3"
@@ -63,17 +63,18 @@
     "@commitlint/config-conventional": "21.2.0",
     "@ls-lint/ls-lint": "2.3.1",
     "@oclif/plugin-help": "6.2.56",
-    "@salesforce/cli-plugins-testkit": "5.3.64",
+    "@salesforce/cli-plugins-testkit": "5.3.65",
     "@salesforce/dev-config": "4.3.3",
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/vitest-runner": "9.6.1",
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "9.1.7",
-    "knip": "6.31.0",
+    "knip": "6.32.0",
     "lint-staged": "17.3.0",
     "ls-engines": "0.10.1",
-    "oclif": "4.23.29",
+    "oclif": "4.23.30",
+    "pkg-pr-new": "0.0.87",
     "shx": "0.4.0",
     "ts-node": "10.9.2",
     "typescript": "7.0.2",
@@ -99,9 +100,6 @@
     "clean:package-manager": "wireit",
     "dependencies:reinstall": "npm install",
     "dependencies:upgrade": "npx npm-check-updates -u ; npm install ; npm audit fix",
-    "devops:cleanup:dev-tag": "./tooling/devops-cleanup.sh",
-    "devops:cleanup:dev-tag:all": "./tooling/devops-cleanup-all.sh",
-    "devops:move-tag": "./tooling/devops-movetag.sh",
     "lint:dependencies": "wireit",
     "lint:engine": "wireit",
     "lint:fs": "wireit",
@@ -110,7 +108,7 @@
     "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
     "prepack": "wireit",
     "prepare": "husky",
-    "prepublishOnly": "shx cp package-lock.json npm-shrinkwrap.json",
+    "preview:publish": "pkg-pr-new publish --comment=off",
     "sync:registry": "TS_NODE_COMPILER_OPTIONS='{\"rootDir\":\".\"}' node --loader ts-node/esm tooling/syncInternalRegistryWithSdr.ts",
     "test:build": "wireit",
     "test:functional": "wireit",

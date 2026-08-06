@@ -12,8 +12,6 @@ We encourage the developer community to contribute to this repository. This guid
 - [Update Salesforce API version](#update-salesforce-api-version)
 - [CLI parameters convention](#cli-parameters-convention)
 - [Testing the plugin from a pull request](#testing-the-plugin-from-a-pull-request)
-- [How to modify npm tags](#how-to-modify-npm-tags)
-- [How to cleanup dev tags](#how-to-cleanup-dev-tags)
 
 ## Architecture
 
@@ -39,6 +37,32 @@ This will install all the tools needed to contribute
 ```bash
 npm install
 ```
+
+### Dependency policy
+
+This repository is kept aligned with its three sibling plugins (`sfdx-git-delta`,
+`apex-mutation-testing`, `sf-git-merge-driver`, `dataset-loader`), so the rules below are
+identical in all four.
+
+- **Every dependency is pinned exactly** — runtime and dev alike. No `^`, no `~`, no ranges.
+  A range in a runtime dependency becomes non-determinism for consumers, and a range in a dev
+  dependency becomes drift between the four repositories.
+- **`.npmrc` sets `save-exact=true`**, so `npm install <package>` records an exact version by
+  default. This is the only mechanism enforcing the rule — keep the file. `save-exact` cannot
+  be expressed in `package.json`: npm reads it from `.npmrc` or the `npm_config_save_exact`
+  environment variable, and `publishConfig` applies at publish time only.
+- **Pins track current latest.** Dependabot moves them; its `versioning-strategy: increase`
+  raises a pinned requirement in place rather than widening it, so grouped updates stay exact.
+- **npm 12 is required** (`engines.npm: ">=12"`), and **no shrinkwrap is shipped**. npm 12
+  excludes `npm-shrinkwrap.json` from `npm pack` even when it is listed in `files`, silently
+  and with exit 0, so the mechanism is inert rather than merely unused.
+- **There is deliberately no lint for this.** `npm outdated` runs as a blocking check in CI
+  and catches a pin that has fallen behind latest, but it cannot see a range that still
+  resolves to latest. Adding a hand-edited range is caught in review, not by tooling.
+
+What the pinning does and does not buy: it caps only the direct dependencies a consumer
+resolves. The transitive majority still floats, and capping those would mean declaring the
+whole chain directly.
 
 ### 3) Build application
 
@@ -389,36 +413,22 @@ The plugin uses [sf CLI parameters convention](https://github.com/salesforcecli/
 
 ## Testing the plugin from a pull request
 
-Dev builds are no longer published to the npm registry. Each open PR gets a dedicated GitHub prerelease (`dev-pr-<number>`) with a signed tarball attached, and the `dev-release` CI job posts a comment on the PR with the exact install command.
+Every push that changes a non-Markdown file publishes an immutable preview build to [pkg.pr.new](https://pkg.pr.new). Previews are addressed by commit, not by pull request: each such push produces a new URL, so re-read the install command instead of re-running the one from a previous commit. There is no cleanup step on close — previews are immutable and expire upstream on their own. Markdown-only pushes and Dependabot pull requests publish no preview, so the latest command may point at an earlier commit.
+
+A preview URL sits under this repository's path but is built from the pull request's own code. Until a maintainer has reviewed that pull request, treat an installed preview as untrusted third-party code.
 
 To test SGD as a Salesforce CLI plugin from a pending pull request:
 
-1. Scroll the PR comments for the one titled `Published under dev-pr-<N> draft release.` (posted by `github-actions[bot]`).
-2. Copy the command from that comment — it looks like:
+1. Find the install command in the `github-actions[bot]` comment on the pull request.
+2. Run the command — it looks like:
 
    ```sh
-   sf plugins install https://github.com/scolladon/sfdx-git-delta/releases/download/dev-pr-<N>/sfdx-git-delta-dev-pr-<N>.tgz
+   sf plugins install https://pkg.pr.new/sfdx-git-delta@abc1234
    ```
 
-   `sf plugins install` accepts either an npm spec or a tarball URL; here we pass the URL to the prerelease asset directly.
-3. Run the command. The tarball is re-uploaded on every push to the PR, so `install` again after a new commit to pick up the latest build.
-4. Test the plugin!
+3. Test the plugin!
 
-When the PR is closed, the `cleanup` job deletes the prerelease and its tarball — any installs done against that URL need to be refreshed against a new PR.
+The comment is posted only for pull requests from a branch of this repository. A fork's
+token is read-only, so no comment is posted there — the preview is still published and the
+e2e matrix still runs against it, and the URL can be read from the `preview` job's log.
 
-## How to modify npm tags
-
-Execute the npm script `npm run devops:move-tag -- <version> <tag>`
-Ex: `npm run devops:move-tag -- 1.0.0 stable`
-
-Use it to move tags to a version, for example to move `stable` and `latest` tags to a new version.
-Or to downgrade `latest-rc` tag to a previous version.
-
-## How to cleanup dev tags
-
-Execute the npm script `npm run devops:cleanup:dev-tag -- <dev-tag> <otp>` to clean up a single dev tag.
-Ex: `npm run devops:cleanup:dev-tag -- dev-101 123456`
-
-To clean up **all** dev tags at once: `npm run devops:cleanup:dev-tag:all -- <otp>`
-
-Both will deprecate all versions related to the dev tag(s) and remove the dist-tag(s) from the npm registry.

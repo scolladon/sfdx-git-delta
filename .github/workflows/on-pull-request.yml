@@ -8,12 +8,14 @@ on:
     paths-ignore:
       - "**.md"
       - "img/**"
+      # Dependency-only pull requests build via on-dependency-update.yml instead.
+      # Deliberate sgd-specific gap: they therefore get no preview and no e2e.
       - "package.json"
       - "package-lock.json"
 
+# Least-privilege default; jobs that need more escalate explicitly.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 # Manage concurrency to stop running jobs and start new ones in case of new commit pushed
 concurrency:
@@ -28,12 +30,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version-file: '.nvmrc'
+          node-version: 'lts/*'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
@@ -46,27 +49,34 @@ jobs:
 
   pull-request-lint:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
       - name: Lint PR
         uses: amannn/action-semantic-pull-request@v6
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
   npm-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version-file: '.nvmrc'
+          node-version: 'lts/*'
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
+      # Every dependency is pinned exactly, so anything behind latest surfaces
+      # here. This is the drift control referenced by .npmrc and CONTRIBUTING.
       - name: Check outdated dependencies
-        run: npm outdated --omit=dev
+        run: npm outdated
 
       - name: Check unused dependencies
         run: npm run lint:dependencies
@@ -75,7 +85,7 @@ jobs:
         run: npm run lint:engine
 
       - name: Audit dependencies
-        run: npm audit || true
+        run: npm audit --audit-level=high
 
   megalinter:
     runs-on: ubuntu-latest
@@ -83,6 +93,8 @@ jobs:
       # Git Checkout
       - name: Checkout Code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # MegaLinter
       - name: MegaLinter
@@ -103,29 +115,38 @@ jobs:
           path: |
             megalinter-reports
             mega-linter.log
-
-  incremental-mutation-testing:
+  # Opt-in via the 'mutation-testing' label and non-blocking: the run is
+  # expensive and its signal is advisory. Scope comes from the diff against
+  # the base branch, which is why the checkout needs full history.
+  mutation-testing:
     runs-on: ubuntu-latest
+    continue-on-error: true
+    if: contains(github.event.pull_request.labels.*.name, 'mutation-testing')
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version-file: '.nvmrc'
+          node-version: 'lts/*'
+
+      - uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Setup dependencies, cache and install
         uses: ./.github/actions/install
 
-      - name: Incremental Mutation testing
+      - name: Run incremental mutation testing
         run: npm run test:mutation:incremental
 
-      - uses: actions/upload-artifact@v7
+      - name: Upload mutation report
+        uses: actions/upload-artifact@v7
+        if: always()
         with:
-          name: mutation-testing-reports
+          name: mutation-report
           path: reports/mutation
 
   build:
@@ -134,5 +155,76 @@ jobs:
 
   perf:
     needs: [build]
+    permissions:
+      contents: write
+      pull-requests: write
     uses: ./.github/workflows/reusable-perf.yml
     secrets: inherit
+
+  # Publishes a per-commit preview build and runs the e2e matrix against it.
+  #
+  # Gated on build so a red pull request never burns a publish or nine e2e legs.
+  # No token is passed: the pkg-pr-new CLI identifies the workflow run to its
+  # GitHub App, which is what lets fork pull requests publish. Two settings live
+  # outside this file and each changes a security property:
+  #   1. the pkg.pr.new GitHub App must be installed, or this job 404s;
+  #   2. fork pull request approval gates who may publish under this package
+  #      name - the GitHub default covers first-time contributors only.
+  preview:
+    needs: [build]
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      channel: ${{ steps.preview.outputs.urls }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 'lts/*'
+
+      - name: Setup dependencies, cache and install
+        uses: ./.github/actions/install
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Publish preview
+        id: preview
+        run: npm run preview:publish
+
+  # Separate job on purpose: it is the only one holding a write scope, and it
+  # checks out nothing and runs no repository code. A failed comment must also
+  # not skip the e2e matrix, which fans out from preview independently.
+  # Skipped for fork pull requests, whose token is read-only regardless.
+  comment:
+    needs: [preview]
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment install command
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            Preview build for this pull request:
+            ```sh
+            sf plugins install ${{ needs.preview.outputs.channel }}
+            ```
+          comment-tag: dev-publish
+          mode: recreate
+
+  e2e-tests:
+    needs: [preview]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/run-e2e-tests.yml
+    with:
+      channel: ${{ needs.preview.outputs.channel }}
