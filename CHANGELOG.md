@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.2.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.1.0...v7.2.0) (2026-08-06)
+
+
+### Features
+
+* **source-dir:** validate pathspecs, restore literal scoping and warn on unmatched scopes ([#1373](https://github.com/scolladon/sfdx-git-delta/issues/1373)) ([9db1e1a](https://github.com/scolladon/sfdx-git-delta/commit/9db1e1a22770469544ff1f7aebc459cff81fca03)), closes [#1371](https://github.com/scolladon/sfdx-git-delta/issues/1371)
+
 ## [7.1.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.0.1...v7.1.0) (2026-08-01)
 
 
