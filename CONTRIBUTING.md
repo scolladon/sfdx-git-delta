@@ -12,8 +12,6 @@ We encourage the developer community to contribute to this repository. This guid
 - [Update Salesforce API version](#update-salesforce-api-version)
 - [CLI parameters convention](#cli-parameters-convention)
 - [Testing the plugin from a pull request](#testing-the-plugin-from-a-pull-request)
-- [How to modify npm tags](#how-to-modify-npm-tags)
-- [How to cleanup dev tags](#how-to-cleanup-dev-tags)
 
 ## Architecture
 
@@ -413,19 +411,3 @@ The comment is posted only for pull requests from a branch of this repository. A
 token is read-only, so no comment is posted there — the preview is still published and the
 e2e matrix still runs against it, and the URL can be read from the `preview` job's log.
 
-## How to modify npm tags
-
-Execute the npm script `npm run devops:move-tag -- <version> <tag>`
-Ex: `npm run devops:move-tag -- 1.0.0 stable`
-
-Use it to move tags to a version, for example to move `stable` and `latest` tags to a new version.
-Or to downgrade `latest-rc` tag to a previous version.
-
-## How to cleanup dev tags
-
-Execute the npm script `npm run devops:cleanup:dev-tag -- <dev-tag> <otp>` to clean up a single dev tag.
-Ex: `npm run devops:cleanup:dev-tag -- dev-101 123456`
-
-To clean up **all** dev tags at once: `npm run devops:cleanup:dev-tag:all -- <otp>`
-
-Both will deprecate all versions related to the dev tag(s) and remove the dist-tag(s) from the npm registry.
