@@ -6,12 +6,16 @@ updates:
     schedule:
       interval: "monthly"
     commit-message:
-      prefix: "build(github-actions)"
+      prefix: "build"
     groups:
       github-actions:
         patterns:
           - "*"
 
+  # Repository-specific: a metadata registry bump is a feature here, and
+  # dependabot-auto-merge.yml diffs the registry, retitles and self-merges it.
+  # Entry-level rather than merely excluded from the group below, so the general
+  # entry never opens a second, indistinguishable pull request for it.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -28,32 +32,12 @@ updates:
       interval: "weekly"
     versioning-strategy: increase
     commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "manual-review-only"
+      prefix: "build"
     allow:
-      - dependency-name: "@nodable/*"
-
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    versioning-strategy: increase
-    commit-message:
-      prefix: "build(deps)"
-    # Entry-level, not merely excluded from the group: the two entries above
-    # own these packages. Excluding them from a group would still leave this
-    # entry watching them, opening a second ungrouped pull request that
-    # dependabot-auto-merge.yml cannot tell apart from the dedicated one.
+      - dependency-type: "all"
     ignore:
       - dependency-name: "@salesforce/source-deploy-retrieve"
-      - dependency-name: "@nodable/*"
     groups:
-      production-dependencies:
-        dependency-type: "production"
-        patterns:
-          - "*"
-      development-dependencies:
-        dependency-type: "development"
+      npm:
         patterns:
           - "*"

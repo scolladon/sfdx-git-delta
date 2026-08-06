@@ -5,9 +5,9 @@ on:
   release:
     types: [published]
 
+# Least-privilege default; the publish job escalates explicitly.
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -15,7 +15,6 @@ concurrency:
 
 jobs:
   publish:
-    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.publish.outputs.channel }}
@@ -24,9 +23,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version-file: '.nvmrc'
+          node-version: 'lts/*'
           registry-url: "https://registry.npmjs.org"
       - run: npm install -g npm@latest
       - uses: ./.github/actions/install

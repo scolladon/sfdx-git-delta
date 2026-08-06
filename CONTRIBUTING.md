@@ -38,10 +38,31 @@ This will install all the tools needed to contribute
 npm install
 ```
 
-Runtime `dependencies` are pinned to exact versions — no `^` or `~`. `.npmrc` sets
-`save-exact=true`, so `npm install <package>` records an exact version by default, and
-`npm run dependencies:upgrade` preserves that style. If you edit `package.json` by hand,
-keep runtime dependencies exact.
+### Dependency policy
+
+This repository is kept aligned with its three sibling plugins (`sfdx-git-delta`,
+`apex-mutation-testing`, `sf-git-merge-driver`, `dataset-loader`), so the rules below are
+identical in all four.
+
+- **Every dependency is pinned exactly** — runtime and dev alike. No `^`, no `~`, no ranges.
+  A range in a runtime dependency becomes non-determinism for consumers, and a range in a dev
+  dependency becomes drift between the four repositories.
+- **`.npmrc` sets `save-exact=true`**, so `npm install <package>` records an exact version by
+  default. This is the only mechanism enforcing the rule — keep the file. `save-exact` cannot
+  be expressed in `package.json`: npm reads it from `.npmrc` or the `npm_config_save_exact`
+  environment variable, and `publishConfig` applies at publish time only.
+- **Pins track current latest.** Dependabot moves them; its `versioning-strategy: increase`
+  raises a pinned requirement in place rather than widening it, so grouped updates stay exact.
+- **npm 12 is required** (`engines.npm: ">=12"`), and **no shrinkwrap is shipped**. npm 12
+  excludes `npm-shrinkwrap.json` from `npm pack` even when it is listed in `files`, silently
+  and with exit 0, so the mechanism is inert rather than merely unused.
+- **There is deliberately no lint for this.** `npm outdated` runs as a blocking check in CI
+  and catches a pin that has fallen behind latest, but it cannot see a range that still
+  resolves to latest. Adding a hand-edited range is caught in review, not by tooling.
+
+What the pinning does and does not buy: it caps only the direct dependencies a consumer
+resolves. The transitive majority still floats, and capping those would mean declaring the
+whole chain directly.
 
 ### 3) Build application
 

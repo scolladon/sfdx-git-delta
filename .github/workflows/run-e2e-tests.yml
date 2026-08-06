@@ -4,45 +4,38 @@ on:
   workflow_call:
     inputs:
       channel:
+        description: npm spec or tarball url to install the plugin from
         type: string
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   e2e-test:
-    permissions:
-      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        node: [22, 24, 26]
-        cli: ['@salesforce/cli']
+        # Floating: previous LTS, active LTS, current. These shift when a new
+        # LTS is cut (Oct), so engines.node must move with them or CI stops
+        # testing a version the manifest still promises.
+        node: ['lts/-1', 'lts/*', 'latest']
     runs-on: ${{ matrix.os }}
-    steps:
-      # Runs before any other step so an unusable channel never reaches an
-      # install. `required: true` only asserts the key is present, so an
-      # empty value still arrives here - and an empty version spec resolves
-      # to the latest published build, greening the matrix against the wrong
-      # thing. Explicitly bash: the default shell on the windows legs is
-      # pwsh, where POSIX test syntax raises a non-terminating error and the
-      # step would exit 0 - the guard would silently pass on 3 of 9 legs.
-      - name: Require a resolved channel
+    # Two different shells run here. `shell:` governs the run: block, where the
+    # windows default (pwsh) makes `>> "$GITHUB_ENV"` silently ineffective;
+    # npm_config_script_shell governs the bodies npm spawns for `npm run`, whose
+    # windows default is cmd.exe, not pwsh.
+    defaults:
+      run:
         shell: bash
-        env:
-          CHANNEL: ${{ inputs.channel }}
-        run: |
-          if [ -z "$CHANNEL" ]; then
-            echo "::error::channel input is empty - refusing to run e2e against an unspecified build"
-            exit 1
-          fi
-          if [ "${CHANNEL%@}" != "$CHANNEL" ]; then
-            echo "::error::channel has an empty version spec: $CHANNEL"
-            exit 1
-          fi
-
+    env:
+      npm_config_script_shell: bash
+    steps:
       - name: Checkout sources
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           ref: 'e2e/head'
           fetch-depth: 0
 
@@ -57,18 +50,20 @@ jobs:
           echo "SF_DISABLE_TELEMETRY=true" >> "$GITHUB_ENV"
 
       - name: Install cli
-        run: npm install -g ${{ matrix.cli }}
+        run: npm install -g @salesforce/cli
 
       - name: Install new plugin version
-        run: echo y | sf plugins install ${{ inputs.channel }}
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: echo y | sf plugins install "$CHANNEL"
 
-      - name: Test new plugin version
+      - name: Test new plugin version installation
         run: sf sgd source delta --help
 
-      - name: E2E Tests
+      - name: E2E Test
         run: |
           npm install
           npm run test:e2e
 
-      - name: Display diff
+      - name: Display current state
         run: git --no-pager diff

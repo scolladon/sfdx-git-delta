@@ -14,7 +14,8 @@
     "sf-plugin"
   ],
   "engines": {
-    "node": ">=22.22.1"
+    "node": ">=22.22.1",
+    "npm": ">=12"
   },
   "files": [
     "/lib",
@@ -62,18 +63,18 @@
     "@commitlint/config-conventional": "21.2.0",
     "@ls-lint/ls-lint": "2.3.1",
     "@oclif/plugin-help": "6.2.56",
-    "@salesforce/cli-plugins-testkit": "5.3.64",
+    "@salesforce/cli-plugins-testkit": "5.3.65",
     "@salesforce/dev-config": "4.3.3",
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/vitest-runner": "9.6.1",
     "@types/node": "26.1.2",
     "@vitest/coverage-v8": "4.1.10",
     "husky": "9.1.7",
-    "knip": "6.31.0",
+    "knip": "6.32.0",
     "lint-staged": "17.3.0",
     "ls-engines": "0.10.1",
-    "oclif": "4.23.29",
-    "pkg-pr-new": "0.0.86",
+    "oclif": "4.23.30",
+    "pkg-pr-new": "0.0.87",
     "shx": "0.4.0",
     "ts-node": "10.9.2",
     "typescript": "7.0.2",
