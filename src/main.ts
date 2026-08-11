@@ -25,10 +25,17 @@ export default async (configInput: ConfigInput): Promise<Work> => {
   Logger.debug(lazy`main: arguments ${configInput}`)
 
   const { pathspecs, rejections } = parseSourceDirs(configInput.source ?? [])
-  const config: Config = { ...configInput, source: pathspecs }
+  // `from` is left empty when the caller uses `mergeBase` instead;
+  // ConfigValidator resolves it (or rejects the request) before anything
+  // else reads it.
+  const config: Config = {
+    ...configInput,
+    from: configInput.from ?? '',
+    source: pathspecs,
+  }
   // Captured before validateConfig() resolves them to full SHAs below, so
   // the unmatched-scope warning can report what the user typed.
-  const requestedFrom = config.from
+  const requestedFrom = configInput.from ?? configInput.mergeBase ?? ''
   const requestedTo = config.to
   try {
     const configWarnings = await new ConfigValidator(

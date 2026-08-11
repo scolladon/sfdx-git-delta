@@ -24,6 +24,10 @@ commit sha to where the diff is done
 
 commit sha from where the diff is done
 
+# flags.merge-base.summary
+
+resolve --from as the merge base of --to and this ref (e.g. --to develop --merge-base main), in-process — no local git binary needed. Mutually exclusive with --from
+
 # flags.repo.summary
 
 git repository location
@@ -85,6 +89,18 @@ path to a JSON file grouping changed components by kind (add, modify, delete, re
 # error.ParameterIsNotGitSHA
 
 --%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
+
+# error.FromAndMergeBaseMutuallyExclusive
+
+--from and --merge-base are mutually exclusive; pass one or the other
+
+# error.FromOrMergeBaseRequired
+
+either --from or --merge-base is required
+
+# error.MergeBaseNotFound
+
+no merge base found between --to '%s' and --merge-base '%s' (If in CI/CD context, check the fetch depth is properly set)
 
 # error.PathIsNotGit
 

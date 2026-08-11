@@ -81,6 +81,44 @@ export default class ConfigValidator {
     )
   }
 
+  // "Neither from nor mergeBase" isn't checked here: it degrades to
+  // _validateGitSha's existing empty-ref rejection below, same as it always
+  // has for an explicit `from: ''`. The CLI's --from/--merge-base flags
+  // enforce "at least one" up front (see delta.ts) with a clearer message.
+  protected _validateFromSelection(): string[] {
+    if (this.config.from && this.config.mergeBase) {
+      return [
+        this.message.getMessage('error.FromAndMergeBaseMutuallyExclusive'),
+      ]
+    }
+    return []
+  }
+
+  // Resolves --merge-base into config.from via the same GitAdapter instance
+  // the rest of the pipeline uses (keyed on repo+to, not from), so the
+  // resolved value is visible everywhere config.from is read afterward.
+  protected async _resolveMergeBase(): Promise<string[]> {
+    if (!this.config.mergeBase) return []
+    try {
+      this.config.from = await this.gitAdapter.getMergeBase(
+        this.config.to,
+        this.config.mergeBase
+      )
+      return []
+    } catch (error) {
+      Logger.debug(
+        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch log content is observability only
+        lazy`_resolveMergeBase: merge base of to='${this.config.to}' and merge-base='${this.config.mergeBase}' failed: ${() => getErrorMessage(error)}`
+      )
+      return [
+        this.message.getMessage('error.MergeBaseNotFound', [
+          this.config.to,
+          this.config.mergeBase,
+        ]),
+      ]
+    }
+  }
+
   @log
   public async validateConfig(): Promise<readonly Error[]> {
     this._sanitizeConfig()
@@ -92,6 +130,19 @@ export default class ConfigValidator {
     const sourceErrors = this._validateSource()
     if (sourceErrors.length > 0) {
       throw new ConfigError(sourceErrors.join(', '))
+    }
+
+    // Must run before _validateGitSha: it either rejects an unusable
+    // from/mergeBase combination outright, or resolves mergeBase into a
+    // concrete config.from that _validateGitSha then verifies like any
+    // other ref.
+    const fromSelectionErrors = this._validateFromSelection()
+    if (fromSelectionErrors.length > 0) {
+      throw new ConfigError(fromSelectionErrors.join(', '))
+    }
+    const mergeBaseErrors = await this._resolveMergeBase()
+    if (mergeBaseErrors.length > 0) {
+      throw new ConfigError(mergeBaseErrors.join(', '))
     }
 
     const [defaultWarnings, repoExists, gitErrors, changesManifestErrors] =

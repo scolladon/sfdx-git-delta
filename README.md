@@ -149,8 +149,9 @@ Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
-    <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-M <value>] [-c <value>] [-W] [-a <value>]
+  $ sf sgd source delta [--json] [--flags-dir <value>] [-f <value> | -b <value>] [-t <value>] [-d] [-o <value>] [-r
+    <value>] [-s <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-M <value>] [-c <value>] [-W] [-a
+    <value>]
 
 FLAGS
   -D, --ignore-destructive-file=<value>       file listing paths to explicitly ignore for any destructive actions
@@ -159,10 +160,13 @@ FLAGS
   -W, --ignore-whitespace                     ignore git diff whitespace (space, tab, eol) changes
   -a, --api-version=<value>                   salesforce metadata API version, default to sfdx-project.json
                                               "sourceApiVersion" attribute or latest version
+  -b, --merge-base=<value>                    resolve --from as the merge base of --to and this ref (e.g. --to develop
+                                              --merge-base main), in-process — no local git binary needed. Mutually
+                                              exclusive with --from
   -c, --changes-manifest=<value>              path to a JSON file grouping changed components by kind (add, modify,
                                               delete, rename); setting this flag also enables git rename detection
   -d, --generate-delta                        generate delta files in [--output-dir] folder
-  -f, --from=<value>                          (required) commit sha from where the diff is done
+  -f, --from=<value>                          commit sha from where the diff is done
   -i, --ignore-file=<value>                   file listing paths to explicitly ignore for any diff actions
   -n, --include-file=<value>                  file listing paths to explicitly include for any diff actions
   -o, --output-dir=<value>                    [default: ./output] source package specific output
@@ -278,11 +282,13 @@ sf sgd source delta --to develop --from main --output-dir .
 ```
 
 - **Comparing branches (from a common ancestor)**
-  To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
+  To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation), use `--merge-base` instead of `--from`. It's resolved in-process via tsgit, so no local `git` binary is needed:
 
 ```sh
-sf sgd source delta --to develop --from $(git merge-base develop main) --output-dir .
+sf sgd source delta --to develop --merge-base main --output-dir .
 ```
+
+  This is equivalent to the older `--from $(git merge-base develop main)` shell-substitution pattern, without depending on a `git` binary being installed. `--merge-base` is mutually exclusive with `--from`.
 
 ## Walkthrough
 

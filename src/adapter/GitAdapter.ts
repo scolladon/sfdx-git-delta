@@ -162,6 +162,26 @@ export default class GitAdapter implements GitBlobReader {
     }
   }
 
+  // Equivalent to `git merge-base <to> <other>`, resolved in-process via
+  // tsgit's mergeBase primitive — no local git binary needed.
+  @log
+  public async getMergeBase(to: string, other: string): Promise<string> {
+    try {
+      const repo = await this.getRepo()
+      const [toId, otherId] = await Promise.all([
+        repo.revParse(to),
+        repo.revParse(other),
+      ])
+      const [base] = await repo.primitives.mergeBase([toId, otherId])
+      if (!base) {
+        throw new Error(`no merge base found between '${to}' and '${other}'`)
+      }
+      return base
+    } catch (error) {
+      throw mapTsgitError(error, `${to}...${other}`)
+    }
+  }
+
   @log
   public async preBuildTreeIndex(
     revision: string,

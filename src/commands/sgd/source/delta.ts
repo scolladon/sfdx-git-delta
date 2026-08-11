@@ -13,6 +13,7 @@ import {
 import sgd from '../../../main.js'
 import type { ConfigInput } from '../../../types/config.js'
 import type { SgdResult } from '../../../types/sgdResult.js'
+import { ConfigError } from '../../../utils/errorUtils.js'
 import { log } from '../../../utils/LoggingDecorator.js'
 import { Logger } from '../../../utils/LoggingService.js'
 import { MessageService } from '../../../utils/MessageService.js'
@@ -29,7 +30,12 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     from: Flags.string({
       char: 'f',
       summary: messages.getMessage('flags.from.summary'),
-      required: true,
+      exclusive: ['merge-base'],
+    }),
+    'merge-base': Flags.string({
+      char: 'b',
+      summary: messages.getMessage('flags.merge-base.summary'),
+      exclusive: ['from'],
     }),
     to: Flags.string({
       char: 't',
@@ -150,6 +156,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       additionalMetadataRegistryPath: flags['additional-metadata-registry'],
       changesManifest,
       from: flags['from'],
+      mergeBase: flags['merge-base'],
       generateDelta: flags['generate-delta'],
       ignore: flags['ignore-file'],
       ignoreDestructive: flags['ignore-destructive-file'],
@@ -172,6 +179,11 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
     }
     let finalMessage = messages.getMessage('info.CommandSuccess')
     try {
+      if (!config.from && !config.mergeBase) {
+        throw new ConfigError(
+          messages.getMessage('error.FromOrMergeBaseRequired')
+        )
+      }
       const jobResult = await sgd(config)
       for (const warning of jobResult.warnings) {
         Logger.warn('run: warning', warning)

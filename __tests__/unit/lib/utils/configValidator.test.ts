@@ -15,6 +15,7 @@ import { getConfig } from '../../../__utils__/testWork'
 const {
   mockGetMessage,
   mockParseRev,
+  mockGetMergeBase,
   mockConfigureRepository,
   mockSfProjectResolve,
 } = vi.hoisted(() => ({
@@ -22,6 +23,7 @@ const {
     (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
   ),
   mockParseRev: vi.fn(),
+  mockGetMergeBase: vi.fn(),
   mockConfigureRepository: vi.fn(),
   mockSfProjectResolve: vi.fn(),
 }))
@@ -46,6 +48,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
     default: {
       getInstance: () => ({
         parseRev: mockParseRev,
+        getMergeBase: mockGetMergeBase,
         configureRepository: mockConfigureRepository,
       }),
     },
@@ -224,6 +227,71 @@ describe('Given a ConfigValidator', () => {
 
     // Act & Assert
     await expect(sut.validateConfig()).resolves.not.toThrow()
+  })
+
+  describe('given --merge-base', () => {
+    it('resolves config.from via gitAdapter.getMergeBase when mergeBase is set', async () => {
+      // Arrange
+      mockGetMergeBase.mockResolvedValue('base-sha')
+      const sut = new ConfigValidator({
+        ...config,
+        from: '',
+        mergeBase: 'main',
+        generateDelta: false,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+      expect(mockGetMergeBase).toHaveBeenCalledWith(config.to, 'main')
+      // _validateGitSha re-verifies the resolved from via parseRev, same as
+      // any other ref — this is what proves the merge base flowed into it.
+      expect(mockParseRev).toHaveBeenCalledWith('base-sha')
+    })
+
+    it('throws when both from and mergeBase are set', async () => {
+      // Arrange
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD',
+        mergeBase: 'main',
+        generateDelta: false,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        /FromAndMergeBaseMutuallyExclusive/
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('throws when gitAdapter.getMergeBase rejects (no common ancestor)', async () => {
+      // Arrange
+      mockGetMergeBase.mockRejectedValue(new Error('no merge base found'))
+      const sut = new ConfigValidator({
+        ...config,
+        from: '',
+        mergeBase: 'unrelated',
+        generateDelta: false,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        /MergeBaseNotFound/
+      )
+    })
+
+    it('does not call gitAdapter.getMergeBase when mergeBase is unset', async () => {
+      // Arrange
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD',
+        generateDelta: false,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
   })
 
   it('do not throw errors when repo contains submodule git file', async () => {

@@ -59,6 +59,7 @@ type FakeRepo = {
     flattenTree: ReturnType<typeof vi.fn>
     walkCommits: ReturnType<typeof vi.fn>
     streamBlob: ReturnType<typeof vi.fn>
+    mergeBase: ReturnType<typeof vi.fn>
   }
 }
 
@@ -72,6 +73,7 @@ const makeFakeRepo = (): FakeRepo => ({
     flattenTree: vi.fn(),
     walkCommits: vi.fn(),
     streamBlob: vi.fn(),
+    mergeBase: vi.fn(),
   },
 })
 
@@ -276,6 +278,64 @@ describe('GitAdapter', () => {
       // Assert
       expect((error as Error).message).toBe('bad-ref: not a valid git revision')
       expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
+    })
+  })
+
+  describe('Given getMergeBase', () => {
+    it('When called with two refs, Then it resolves both via revParse and returns the first merge base', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockImplementation((ref: string) =>
+        Promise.resolve(ref === 'develop' ? 'develop-oid' : 'main-oid')
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      const result = await sut.getMergeBase('develop', 'main')
+
+      // Assert
+      expect(result).toBe('base-oid')
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'develop-oid',
+        'main-oid',
+      ])
+    })
+
+    it('When repo.primitives.mergeBase returns no common ancestor, Then it rejects with a mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('oid')
+      fakeRepo.primitives.mergeBase.mockResolvedValue([])
+
+      // Act
+      const error = await sut
+        .getMergeBase('develop', 'main')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain(
+        "no merge base found between 'develop' and 'main'"
+      )
+    })
+
+    it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: bad-ref'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getMergeBase('develop', 'bad-ref')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'develop...bad-ref: not a valid git revision'
+      )
     })
   })
 

@@ -14,12 +14,23 @@ describe('sgd source delta NUTS', () => {
     expect(sut).toContain('incremental')
   })
 
-  it('Given missing required --from flag, When running command, Then exits with error', () => {
+  it('Given neither --from nor --merge-base, When running command, Then exits with error', () => {
     // Act
-    const sut = run('sgd source delta --json', 2)
+    const sut = run('sgd source delta --json', 1)
 
     // Assert
     expect(sut).toContain('from')
+  })
+
+  it('Given both --from and --merge-base, When running command, Then exits with error', () => {
+    // Act
+    const sut = run(
+      'sgd source delta --from HEAD~1 --merge-base HEAD~2 --json',
+      2
+    )
+
+    // Assert
+    expect(sut).toContain('exclusive')
   })
 
   it('Given invalid --from sha, When running command, Then exits with error', () => {
@@ -31,6 +42,14 @@ describe('sgd source delta NUTS', () => {
 
     // Assert
     expect(sut).toContain('error')
+  })
+
+  it('Given --merge-base instead of --from, When running command, Then resolves the merge base and succeeds', () => {
+    // Act
+    const sut = run('sgd source delta --merge-base HEAD~2 --json', 0)
+
+    // Assert
+    expect(sut).toContain('output-dir')
   })
 
   it('Given non-existing --repo-dir, When running command, Then exits with error', () => {
