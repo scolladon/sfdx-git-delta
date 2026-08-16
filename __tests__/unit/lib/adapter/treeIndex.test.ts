@@ -203,5 +203,29 @@ describe('TreeIndex', () => {
       // Assert
       expect(result).toEqual([])
     })
+
+    it('Given a path that is both a file and the root of nested descendants, When getFilesPath is called with that exact path, Then only the file itself is returned, not its descendants', () => {
+      // Arrange — for a plain leaf file, has()===true (correct) and
+      // has()===false (the has() BlockStatement/ConditionalExpression
+      // mutants) both resolve to the same single-entry result, because
+      // getFilesUnder on a childless file node also collects just that
+      // one path — that's why has() and the getFilesPathFor exact-match
+      // guard (`if (this.has(path)) return [path]`) survive against every
+      // fixture above. The two behaviours only diverge when the matched
+      // node is simultaneously a file AND has children: an unusual but
+      // legal trie shape once a path is both copied whole and has
+      // sub-paths indexed under it.
+      const sut = new TreeIndex()
+      sut.add('force-app/classes/Foo.cls')
+      sut.add('force-app/classes/Foo.cls/nested/extra.txt')
+
+      // Act
+      const result = sut.getFilesPath('force-app/classes/Foo.cls')
+
+      // Assert — real: has() short-circuits to the exact match only.
+      // Mutant: has() always false, falls through to getFilesUnder, which
+      // also walks the phantom nested child.
+      expect(result).toEqual(['force-app/classes/Foo.cls'])
+    })
   })
 })

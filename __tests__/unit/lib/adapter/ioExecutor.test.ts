@@ -13,6 +13,7 @@ import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
+import { Logger } from '../../../../src/utils/LoggingService'
 import { getWork } from '../../../__utils__/testWork'
 
 const { mockCreateWriteStream, mockMkdir, mockRename, mockUnlink } = vi.hoisted(
@@ -452,6 +453,13 @@ describe('IOExecutor', () => {
       // Assert
       expect(mockGetBufferContent).not.toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
+      // The `at(...)?.getFilesPath` optional chaining must degrade to `[]`
+      // without ever throwing: dropping the `?.` would make `.getFilesPath`
+      // dereference `undefined`, which the surrounding try/catch swallows
+      // and logs — same outputFile/getBufferContent assertions above, but
+      // Logger.debug is the only observable signal that the catch (and not
+      // a clean empty-array fallthrough) actually fired.
+      expect(Logger.debug).not.toHaveBeenCalled()
     })
   })
 

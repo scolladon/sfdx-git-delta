@@ -1018,6 +1018,67 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
+  describe('scanAndCreateElement getFilesPath fallback (L67 ArrayDeclaration mutation contrast)', () => {
+    it('Given a revision with no built tree index, When scanning a typeDir path directly, Then the per-file suffix-filter loop performs zero iterations (kills the getFilesPath ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
+      // Arrange — call scanAndCreateElement directly (protected, cast like
+      // isNameInPath above) to isolate the fallback loop's iteration count
+      // from the extra endsWith call MetadataElement.fromPath's constructor
+      // makes on the full createElement path. The mutant's placeholder
+      // string never contains a dot, so componentNames ends up empty
+      // either way — the suffix filter itself can't tell the two apart.
+      // Only the number of times the filter *runs* proves allFiles is
+      // genuinely empty, not a phantom one-element array.
+      const path =
+        'force-app/main/default/staticresources/MyResource/images/logo.png'
+      mockAt.mockReturnValueOnce(undefined as never)
+      const scan = (
+        sut as unknown as {
+          scanAndCreateElement: (
+            path: string,
+            metadataDef: Metadata,
+            revision: string
+          ) => Promise<MetadataElement>
+        }
+      ).scanAndCreateElement.bind(sut)
+      const endsWithSpy = vi.spyOn(String.prototype, 'endsWith')
+
+      // Act
+      await scan(path, staticResourceType, 'UNBUILT')
+
+      // Assert — the sole remaining call is MetadataElement's own
+      // isMetaFile check inside the fallback fromScan() constructor; a
+      // non-empty allFiles fallback would add one call per phantom entry.
+      expect(endsWithSpy).toHaveBeenCalledTimes(1)
+      endsWithSpy.mockRestore()
+    })
+  })
+
+  describe('scanAndCreateElement listChildren fallback (L106 ArrayDeclaration mutation contrast)', () => {
+    it('Given a revision with no built tree index, When walking up from a single directory level, Then findComponentName never consults metadataRepo.get (kills the listChildren ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
+      // Arrange — a one-level path keeps the directory walk to exactly one
+      // listChildren fallback, so the get() spy count maps 1:1 to the
+      // fallback array's length. "Stryker was here" also fails
+      // findComponentName's suffix filter, but for the wrong reason (it
+      // has no dot) — only the metadataRepo.get() call count proves the
+      // fallback array is genuinely empty, not a phantom one-element list.
+      const path = 'unknownDir/file.txt'
+      mockAt.mockReturnValueOnce(undefined as never)
+      const getSpy = vi.spyOn(globalMetadata, 'get')
+
+      // Act
+      const element = await sut.createElement(
+        path,
+        staticResourceType,
+        'UNBUILT'
+      )
+
+      // Assert
+      expect(getSpy).not.toHaveBeenCalled()
+      expect(element.componentName).toBe('file')
+      getSpy.mockRestore()
+    })
+  })
+
   describe('findComponentName (L147, L150)', () => {
     it('Given sibling with matching suffix and name in path, When findComponentName, Then returns name', async () => {
       // path through real scan

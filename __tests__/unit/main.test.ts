@@ -1,6 +1,7 @@
 'use strict'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import IOExecutor from '../../src/adapter/ioExecutor'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
@@ -485,6 +486,61 @@ describe('external library inclusion', () => {
       // Act & Assert
       await expect(sgd(sut)).resolves.toBeDefined()
       expect(mockBuildTreeIndex).toHaveBeenCalledTimes(2)
+    })
+
+    it('Given buildTreeIndex resolves an index for "to" but undefined for "from", When sgd runs, Then the TreeIndexes holder includes "to" under its key and excludes "from" entirely', async () => {
+      // Arrange — pins the `if (toIndex) entries.set(...)` guard on both
+      // sides: a successful build must be reachable at its own revision
+      // key (kills the false/CallExpression-removal mutants), and a
+      // failed build must not leak a phantom entry into the holder.
+      const toIndex = { marker: 'to-index' } as never
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(toIndex) // config.to
+        .mockResolvedValueOnce(undefined) // config.from
+      const sut = {
+        generateDelta: true,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+        include: 'include.txt',
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert — inspect the TreeIndexes holder threaded to IOExecutor.
+      const treeIndexesArg = vi.mocked(IOExecutor).mock.calls[0]?.[1] as
+        | { at: (revision: string) => unknown }
+        | undefined
+      expect(treeIndexesArg?.at('HEAD')).toBe(toIndex)
+      expect(treeIndexesArg?.at('HEAD~1')).toBeUndefined()
+    })
+
+    it('Given buildTreeIndex resolves undefined for "to" but an index for "from", When sgd runs, Then the TreeIndexes holder excludes "to" entirely and includes "from" under its key', async () => {
+      // Arrange — mirrors the previous test for the `if (fromIndex)`
+      // guard, so both sides of the truthiness check are proven
+      // independently rather than only ever exercising them together.
+      const fromIndex = { marker: 'from-index' } as never
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined) // config.to
+        .mockResolvedValueOnce(fromIndex) // config.from
+      const sut = {
+        generateDelta: true,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+        include: 'include.txt',
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const treeIndexesArg = vi.mocked(IOExecutor).mock.calls[0]?.[1] as
+        | { at: (revision: string) => unknown }
+        | undefined
+      expect(treeIndexesArg?.at('HEAD')).toBeUndefined()
+      expect(treeIndexesArg?.at('HEAD~1')).toBe(fromIndex)
     })
 
     it('Given a --source-dir with a trailing slash, When sgd runs, Then buildTreeIndex receives the canonical path', async () => {
