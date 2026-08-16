@@ -494,7 +494,7 @@ describe('external library inclusion', () => {
       // Arrange — pins the `if (toIndex) entries.set(...)` guard on both
       // sides: a successful build must be reachable at its own revision
       // key (kills the false/CallExpression-removal mutants), and a
-      // failed build must not leak a phantom entry into the holder.
+      // failed build must not leak a phantom entry into the reader.
       const toIndex = new TreeIndex()
       toIndex.add('force-app/main/default/classes/Foo.cls')
       mockBuildTreeIndex

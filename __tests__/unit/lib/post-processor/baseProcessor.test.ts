@@ -13,9 +13,6 @@ import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 class TestProcessor extends BaseProcessor {
-  constructor(ctx: RunContext) {
-    super(ctx)
-  }
   public override async process(
     _changes: ChangeSet
   ): Promise<ProcessorOutcome> {

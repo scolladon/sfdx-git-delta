@@ -1,7 +1,10 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { TreeReader } from '../../../../src/adapter/treeReader'
+import {
+  createTreeReader,
+  type TreeReader,
+} from '../../../../src/adapter/treeReader'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
@@ -127,11 +130,7 @@ describe('IncludeProcessor', () => {
     it('Then gathers no include lines (degrades to empty, not a throw)', async () => {
       // Arrange
       config.include = '.sgdinclude'
-      const unbuiltTreeReader = {
-        pathExists: () => false,
-        filesUnder: () => [],
-        children: () => [],
-      } as unknown as TreeReader
+      const unbuiltTreeReader = createTreeReader(new Map())
       const sut = new IncludeProcessor(
         getContext({ config, metadata, trees: unbuiltTreeReader })
       )

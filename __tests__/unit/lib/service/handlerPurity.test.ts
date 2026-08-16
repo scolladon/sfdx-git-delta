@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createTreeReader } from '../../../../src/adapter/treeReader'
 import { ADDITION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -191,9 +192,30 @@ describe('handler purity', () => {
     globalMetadata = await getDefinition({})
   })
 
+  // Object.freeze is shallow, so freezing the context alone would leave
+  // config.source (an array) and the reader writable — and the fixture's
+  // default reader is a module singleton shared with every other suite in
+  // this worker, where a stray write would silently corrupt them instead of
+  // throwing. Freeze the whole reachable input surface, and hand over a
+  // reader of this test's own so nothing shared is frozen as a side effect.
+  // ctx.metadata is deliberately left unfrozen: it is a vi.fn-backed mock
+  // that records calls by mutating its own state, so freezing it would make
+  // an ordinary read throw. No handler reads it — only TypeHandlerFactory
+  // and MetadataBoundaryResolver do, and neither is under test here.
+  const freezeInputs = (): RunContext => {
+    const frozenConfig = getConfig()
+    Object.freeze(frozenConfig.source)
+    return Object.freeze(
+      getContext({
+        config: Object.freeze(frozenConfig),
+        trees: Object.freeze(createTreeReader(new Map())),
+      })
+    )
+  }
+
   describe('frozen inputs', () => {
     it.each(families.map(f => [f.name, f.build] as const))(
-      'Given a frozen Config and a frozen element, When %s.collect runs, Then it resolves with no warnings instead of writing to a frozen input',
+      'Given a frozen RunContext, its frozen Config and source paths, and a frozen element, When %s.collect runs, Then it resolves with no warnings instead of writing to a frozen input',
       async (_name, build) => {
         // Arrange — ESM modules are strict mode, so any write a handler
         // makes to a frozen input throws TypeError. `collect()` never
@@ -201,9 +223,7 @@ describe('handler purity', () => {
         // the meaningful assertion is an empty warnings axis: a caught
         // write-to-frozen-input would surface there instead of silently
         // vanishing behind a bare "resolves" check.
-        const frozenCtx = Object.freeze(
-          getContext({ config: Object.freeze({ ...getConfig() }) })
-        )
+        const frozenCtx = freezeInputs()
         const sut = build(frozenCtx, globalMetadata)
 
         // Act

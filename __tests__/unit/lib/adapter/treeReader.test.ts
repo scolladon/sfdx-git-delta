@@ -14,6 +14,49 @@ const buildIndex = (): TreeIndex => {
 }
 
 describe('createTreeReader', () => {
+  describe('Given a reader built over two indexed revisions', () => {
+    // The whole point of a revision-keyed reader: the run holds `to` and
+    // `from` at once, and each must answer with its OWN tree. Present-vs-
+    // absent cases below prove keying happens at all; only this one proves
+    // the reader does not collapse both revisions onto a single index.
+    const buildTwo = () => {
+      const head = new TreeIndex()
+      head.add('force-app/classes/Added.cls')
+      const previous = new TreeIndex()
+      previous.add('force-app/classes/Removed.cls')
+      return createTreeReader(
+        new Map([
+          ['HEAD', head],
+          ['HEAD~1', previous],
+        ])
+      )
+    }
+
+    it('When each revision is read, Then each answers with its own listing', () => {
+      // Arrange
+      const sut = buildTwo()
+
+      // Act
+      const head = sut.filesUnder('HEAD', '')
+      const previous = sut.filesUnder('HEAD~1', '')
+
+      // Assert
+      expect(head).toEqual(['force-app/classes/Added.cls'])
+      expect(previous).toEqual(['force-app/classes/Removed.cls'])
+    })
+
+    it('When a path present in one revision is probed in the other, Then it is absent there', () => {
+      // Arrange
+      const sut = buildTwo()
+
+      // Act
+      const result = sut.pathExists('HEAD~1', 'force-app/classes/Added.cls')
+
+      // Assert
+      expect(result).toBe(false)
+    })
+  })
+
   describe('Given a reader built over one indexed revision', () => {
     describe('When pathExists is called for the indexed revision with a path present in the index', () => {
       it('Then it returns true', () => {

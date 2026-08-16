@@ -2,7 +2,10 @@
 import { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { TreeReader } from '../../../../src/adapter/treeReader'
+import {
+  createTreeReader,
+  type TreeReader,
+} from '../../../../src/adapter/treeReader'
 import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
@@ -192,11 +195,7 @@ describe('readDirs', () => {
   describe('when the underlying reader degrades to empty for an unindexed revision', () => {
     it('returns an empty array, unchanged', async () => {
       // Arrange
-      const unbuiltTreeReader = {
-        pathExists: () => false,
-        filesUnder: () => [],
-        children: () => [],
-      } as unknown as TreeReader
+      const unbuiltTreeReader = createTreeReader(new Map())
 
       // Act
       const dirContent = await readDirs(
@@ -260,11 +259,7 @@ describe('pathExists', () => {
   describe('when the underlying reader degrades to false for an unindexed revision', () => {
     it('returns false, unchanged', async () => {
       // Arrange
-      const unbuiltTreeReader = {
-        pathExists: () => false,
-        filesUnder: () => [],
-        children: () => [],
-      } as unknown as TreeReader
+      const unbuiltTreeReader = createTreeReader(new Map())
 
       // Act
       const result = await pathExists(

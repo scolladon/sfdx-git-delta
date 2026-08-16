@@ -29,9 +29,6 @@ vi.mock('../../../../src/utils/LoggingService')
 const processSpy = vi.fn()
 
 class TestProcessor extends BaseProcessor {
-  constructor(ctx: RunContext) {
-    super(ctx)
-  }
   override async process(_changes: ChangeSet): Promise<ProcessorOutcome> {
     await processSpy()
     return emptyOutcome()
@@ -40,9 +37,6 @@ class TestProcessor extends BaseProcessor {
 
 class TestCollector extends BaseProcessor {
   public mockResult: HandlerResult = emptyResult()
-  constructor(ctx: RunContext) {
-    super(ctx)
-  }
   override get isCollector(): boolean {
     return true
   }

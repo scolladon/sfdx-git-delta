@@ -5,7 +5,10 @@ import type { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EscalateToStreamingSignal } from '../../../../src/adapter/gitBlobReader'
 import IOExecutor from '../../../../src/adapter/ioExecutor'
-import type { TreeReader } from '../../../../src/adapter/treeReader'
+import {
+  createTreeReader,
+  type TreeReader,
+} from '../../../../src/adapter/treeReader'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
 import { outputFile } from '../../../../src/utils/fsUtils'
@@ -466,11 +469,7 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const unbuiltTreeReader = {
-        pathExists: () => false,
-        filesUnder: () => [],
-        children: () => [],
-      } as unknown as TreeReader
+      const unbuiltTreeReader = createTreeReader(new Map())
       const executor = new IOExecutor(
         getContext({ config: work.config, trees: unbuiltTreeReader })
       )

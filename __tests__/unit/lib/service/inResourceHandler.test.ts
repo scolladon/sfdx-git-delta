@@ -10,6 +10,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import type { RunContext } from '../../../../src/types/runContext'
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
@@ -49,9 +50,15 @@ const xmlName = 'StaticResource'
 const line = `A       ${entityPath}`
 const type = 'resource'
 let config: Config
+// One context per test, built once and reused for both construction and
+// assertion. Asserting against this reference proves the sut forwarded the
+// context it was given; rebuilding it in the assertion would not, since a
+// fresh metadata mock is never deep-equal to the original.
+let ctx: RunContext
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
+  ctx = getContext({ config })
 })
 
 describe('InResourceHandler', () => {
@@ -73,11 +80,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -102,11 +105,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -134,11 +133,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -164,11 +159,7 @@ describe('InResourceHandler', () => {
           lwcType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -210,11 +201,7 @@ describe('InResourceHandler', () => {
             lwcType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
           const result = await sut.collect()
@@ -265,11 +252,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
           const result = await sut.collect()
@@ -315,11 +298,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
           const result = await sut.collect()
@@ -356,11 +335,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
           await sut.collect()
@@ -368,7 +343,7 @@ describe('InResourceHandler', () => {
           // Assert
           expect(readDirs).toHaveBeenCalledWith(
             `${base}${staticResourceType.directoryName}`,
-            expect.objectContaining({ config })
+            ctx
           )
         })
 
@@ -386,11 +361,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
           const result = await sut.collect()
@@ -435,11 +406,7 @@ describe('InResourceHandler', () => {
             experienceBundleType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
           const result = await sut.collect()
@@ -477,11 +444,7 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
+          const sut = new InResourceHandler(changeType, element, ctx)
           mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
@@ -529,11 +492,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -550,7 +509,7 @@ describe('InResourceHandler', () => {
         )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          expect.objectContaining({ config })
+          ctx
         )
       })
     })
@@ -565,11 +524,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -587,7 +542,7 @@ describe('InResourceHandler', () => {
         expect(result.copies).toEqual([])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('staticresources'),
-          expect.objectContaining({ config })
+          ctx
         )
       })
     })
@@ -608,11 +563,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -648,11 +599,7 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(
-          changeType,
-          element,
-          getContext({ config })
-        )
+        const sut = new InResourceHandler(changeType, element, ctx)
 
         // Act
         const result = await sut.collect()
@@ -660,7 +607,7 @@ describe('InResourceHandler', () => {
         // Assert
         expect(pathExists).toHaveBeenCalledWith(
           `${base}${staticResourceType.directoryName}/${entity}`,
-          expect.objectContaining({ config })
+          ctx
         )
         expect(
           elementsOf(result).some(m => m.target === 'destructiveChanges')
