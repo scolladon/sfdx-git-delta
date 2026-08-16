@@ -247,7 +247,7 @@ describe('InBundleHandler', () => {
       expect(mockedReadDirs).toHaveBeenCalledWith(
         `${root}/site/Site_A/sfdc_cms__view`,
         expect.anything(),
-        expect.anything()
+        EMPTY_TREE_INDEXES
       )
       expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(
         false

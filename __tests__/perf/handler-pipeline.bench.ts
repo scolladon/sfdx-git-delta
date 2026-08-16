@@ -11,8 +11,6 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
     pathExists: vi.fn().mockResolvedValue(true),
     getStringContent: vi.fn().mockResolvedValue('<xml>mock</xml>'),
     getBufferContent: vi.fn().mockResolvedValue(Buffer.from('<xml>mock</xml>')),
-    getFilesPath: vi.fn().mockResolvedValue([]),
-    listDirAtRevision: vi.fn().mockResolvedValue([]),
     buildTreeIndex: vi.fn().mockResolvedValue(undefined),
     grepUnderPaths: vi.fn().mockResolvedValue([]),
     grepMatchingPathspecs: vi.fn().mockResolvedValue([]),

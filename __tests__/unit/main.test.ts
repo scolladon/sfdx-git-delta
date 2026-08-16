@@ -405,7 +405,7 @@ describe('external library inclusion', () => {
   })
 
   describe('tree index scoping', () => {
-    it('Given generateDelta is false, When sgd runs, Then preBuildTreeIndex is not called', async () => {
+    it('Given generateDelta is false, When sgd runs, Then buildTreeIndex is not called', async () => {
       // Act
       await sgd({ generateDelta: false, source: [] } as ConfigInput)
 
@@ -423,10 +423,10 @@ describe('external library inclusion', () => {
       expect(passedLines).toBe(mockGetLines.mock.results[0]?.value)
     })
 
-    it('Given generateDelta is false BUT source is populated, When sgd runs, Then preBuildTreeIndex is still not called (the generateDelta gate short-circuits before the scope computation)', async () => {
+    it('Given generateDelta is false BUT source is populated, When sgd runs, Then buildTreeIndex is still not called (the generateDelta gate short-circuits before the scope computation)', async () => {
       // Arrange — distinguishes the generateDelta guard from the
       // scopePaths.length > 0 guard. Without the outer `if`, scopePaths
-      // would take config.source and trigger preBuildTreeIndex.
+      // would take config.source and trigger buildTreeIndex.
       const sut = {
         generateDelta: false,
         source: ['force-app'],
@@ -448,7 +448,7 @@ describe('external library inclusion', () => {
       expect(mockCloseAll).toHaveBeenCalledOnce()
     })
 
-    it('Given generateDelta is true with include set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
+    it('Given generateDelta is true with include set, When sgd runs, Then buildTreeIndex is called with config.source', async () => {
       // Arrange
       const sut = {
         generateDelta: true,
@@ -487,7 +487,7 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledTimes(2)
     })
 
-    it('Given a --source-dir with a trailing slash, When sgd runs, Then preBuildTreeIndex receives the canonical path', async () => {
+    it('Given a --source-dir with a trailing slash, When sgd runs, Then buildTreeIndex receives the canonical path', async () => {
       // Arrange
       const sut = {
         generateDelta: true,
@@ -504,7 +504,7 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
     })
 
-    it('Given generateDelta is true with includeDestructive set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
+    it('Given generateDelta is true with includeDestructive set, When sgd runs, Then buildTreeIndex is called with config.source', async () => {
       // Arrange
       const sut = {
         generateDelta: true,
@@ -522,7 +522,7 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['src'])
     })
 
-    it('Given generateDelta is true with computed scope paths, When sgd runs, Then preBuildTreeIndex is called with scope paths', async () => {
+    it('Given generateDelta is true with computed scope paths, When sgd runs, Then buildTreeIndex is called with scope paths', async () => {
       // Arrange
       mockComputeTreeIndexScope.mockReturnValueOnce(
         new Set(['force-app/main/default/classes'])
@@ -547,7 +547,7 @@ describe('external library inclusion', () => {
       ])
     })
 
-    it('Given generateDelta is true with empty scope paths, When sgd runs, Then preBuildTreeIndex is not called', async () => {
+    it('Given generateDelta is true with empty scope paths, When sgd runs, Then buildTreeIndex is not called', async () => {
       // Arrange
       mockComputeTreeIndexScope.mockReturnValueOnce(new Set())
       const sut = {

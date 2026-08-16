@@ -183,21 +183,6 @@ describe('readDirs', () => {
     })
   })
 
-  describe('when path does not exist', () => {
-    beforeEach(() => {
-      // Arrange
-      mockGetFilesPath.mockImplementation(() => {
-        throw new Error('test')
-      })
-    })
-    it('should throw', async () => {
-      // Act & Assert
-      await expect(readDirs('path', work.config, treeIndexes)).rejects.toThrow(
-        'test'
-      )
-    })
-  })
-
   describe('when the revision has no built index', () => {
     it('returns an empty array without calling getFilesPath', async () => {
       // Arrange

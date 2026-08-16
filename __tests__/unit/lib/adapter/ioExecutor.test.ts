@@ -486,14 +486,18 @@ describe('IOExecutor', () => {
 
   describe('Given a GitDirCopy operation that fails', () => {
     it('When executed, Then logs the error and continues', async () => {
-      // Arrange
+      // Arrange — the failure is triggered from getBufferContent (real git
+      // blob I/O, genuinely throwing/rejecting), not from getFilesPath: the
+      // latter is a pure synchronous TreeIndex trie walk that cannot throw,
+      // so pinning the catch-and-log behavior through it would test an
+      // unreachable path. getBufferContent is a real throw source the same
+      // try/catch also guards.
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
       const executor = new IOExecutor(work.config, treeIndexes)
-      mockGetFilesPath.mockImplementation(() => {
-        throw new Error('dir error')
-      })
+      mockGetFilesPath.mockReturnValue(['permissionsets/MyPS/file1.xml'])
+      mockGetBufferContent.mockRejectedValue(new Error('dir error'))
 
       // Act & Assert (should not throw)
       await executor.execute([

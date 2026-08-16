@@ -34,11 +34,15 @@ export class TreeIndex {
     }
   }
 
-  public has(path: string): boolean {
+  // Not part of the public surface: the ROOT_PATHS-aware pathExists/
+  // getFilesPath wrappers below are every caller's actual entry point.
+  // Keeping these raw lookups protected stops a future caller from
+  // bypassing the ROOT_PATHS branch those wrappers exist for.
+  protected has(path: string): boolean {
     return this.navigate(path)?.isFile === true
   }
 
-  public hasPath(path: string): boolean {
+  protected hasPath(path: string): boolean {
     return this.navigate(path) !== undefined
   }
 
@@ -47,7 +51,7 @@ export class TreeIndex {
     return node ? Array.from(node.children.keys()) : []
   }
 
-  public getFilesUnder(dir: string): string[] {
+  protected getFilesUnder(dir: string): string[] {
     const node = this.navigate(dir)
     if (!node) return []
     const result: string[] = []
@@ -55,12 +59,17 @@ export class TreeIndex {
     return result
   }
 
-  public allPaths(): string[] {
+  protected allPaths(): string[] {
     const result: string[] = []
     this.collectFiles(this.root, '', result)
     return result
   }
 
+  // Stays public (unlike has/hasPath/getFilesUnder/allPaths above): no
+  // ROOT_PATHS-aware wrapper exposes the exact indexed-file count —
+  // pathExists/getFilesPath only answer boolean/list questions — so this
+  // is the sole way to pin the add() idempotency guarantee (the same path
+  // added twice must not double-count).
   public get size(): number {
     return this.fileCount
   }

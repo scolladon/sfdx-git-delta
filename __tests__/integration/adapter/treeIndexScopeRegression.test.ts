@@ -1,15 +1,7 @@
 'use strict'
 import { rm } from 'node:fs/promises'
 
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import { createTreeIndexes } from '../../../src/adapter/gitTreeLister'
@@ -19,7 +11,6 @@ import { getDefinition } from '../../../src/metadata/metadataManager'
 import type { Config } from '../../../src/types/config'
 import type { Metadata } from '../../../src/types/metadata'
 import { MetadataBoundaryResolver } from '../../../src/utils/metadataBoundaryResolver'
-import { MetadataElement } from '../../../src/utils/metadataElement'
 import { computeTreeIndexScope } from '../../../src/utils/treeIndexScope'
 import {
   buildMetadataFixtureRepo,
@@ -30,18 +21,16 @@ import {
 import { createTempDir } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
-// Regression coverage for the bug this commit fixed: main.ts (src/main.ts)
-// pre-builds the tree index under the DIFF-COMPUTED scope
-// (computeTreeIndexScope) whenever --generate-delta runs without
-// --include/--include-destructive. Before this commit, every reader
-// rebuilt its own TreeScope via treeScopeAt(config, revision), which
-// hardcoded scopePaths: config.source — with the default `--source-dir
-// './'`, config.source resolved to the whole-repo (root) scope while the
-// pre-built index was keyed under the narrower diff-computed scope, so the
-// lookup missed. Caller ownership (this commit) removes the possibility of
-// that mismatch entirely: main.ts builds one TreeIndex per revision and
-// hands it directly to every reader — there is no separate scope for a
-// reader to recompute.
+// Standing invariant: main.ts (src/main.ts) builds exactly one TreeIndex per
+// revision, scoped to the DIFF-COMPUTED scope (computeTreeIndexScope)
+// whenever --generate-delta runs without --include/--include-destructive,
+// and hands that single index directly to every reader (handlers,
+// RenameResolver, IOExecutor, post-processors). No reader recomputes its
+// own scope or rebuilds its own index, so a reader can never see a scope
+// different from the one this index was built under. A nested resource
+// (e.g. a StaticResource file two levels below its type directory) must
+// resolve to its bundle root against that shared index, not fall back to
+// its last path segment.
 //
 // NEW_RESOURCE_FILE is nested two levels below its type directory
 // (staticresources/NewResource/images/photo.png), so resolving its member
@@ -111,7 +100,6 @@ describe('Given main.ts pre-builds the tree index under the diff-computed scope 
       )
 
       const resolver = new MetadataBoundaryResolver(metadata, treeIndexes)
-      const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
 
       // Act
       const element = await resolver.createElement(
@@ -125,7 +113,6 @@ describe('Given main.ts pre-builds the tree index under the diff-computed scope 
       expect(element.componentPath).toBe(
         'force-app/main/default/staticresources/NewResource'
       )
-      fromScanSpy.mockRestore()
     })
   })
 })

@@ -118,8 +118,8 @@ export default class ConfigValidator {
     }
 
     // Runs after the SHA validation above so a typo in either ref surfaces
-    // as the precise ParameterIsNotGitSHA message, and both refs are
-    // already resolved to full SHAs (no wasted parseRev inside getMergeBase).
+    // as the precise ParameterIsNotGitSHA message instead of the vaguer
+    // MergeBaseNotFound.
     await this._resolveMergeBase(requestedFrom, requestedTo)
 
     return defaultWarnings

@@ -62,9 +62,10 @@ beforeAll(async () => {
 })
 
 afterEach(async () => {
-  // GitAdapter instances are cached per (repo, to): closing after every
-  // test forces the next getInstance() to rebuild from the config that
-  // test actually passed in.
+  // Closing after every test drops the cached repo handle and the
+  // per-revision blob-id memo, forcing the next getInstance() to rebuild
+  // from the config that test actually passed in instead of reusing a
+  // sibling test's state.
   await GitAdapter.closeAll()
 })
 

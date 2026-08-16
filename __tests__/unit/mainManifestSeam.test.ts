@@ -20,7 +20,7 @@ import PackageBuilder from '../../src/utils/packageHelper'
 // postProcessorManager wholesale, which this test needs real.
 
 const {
-  mockPreBuildTreeIndex,
+  mockBuildTreeIndex,
   mockComputeTreeIndexScope,
   mockValidateConfig,
   mockGetLines,
@@ -32,7 +32,7 @@ const {
   mockCreateWriteStream,
   mockMkdir,
 } = vi.hoisted(() => ({
-  mockPreBuildTreeIndex: vi.fn(),
+  mockBuildTreeIndex: vi.fn(),
   mockComputeTreeIndexScope: vi.fn(),
   mockValidateConfig: vi.fn(),
   mockGetLines: vi.fn(),
@@ -51,7 +51,7 @@ vi.mock('../../src/utils/LoggingService')
 vi.mock('../../src/adapter/GitAdapter', () => ({
   default: {
     getInstance: vi.fn(() => ({
-      preBuildTreeIndex: mockPreBuildTreeIndex,
+      buildTreeIndex: mockBuildTreeIndex,
     })),
     closeAll: mockCloseAll,
   },
