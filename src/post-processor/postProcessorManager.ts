@@ -1,4 +1,8 @@
 'use strict'
+import {
+  EMPTY_TREE_INDEXES,
+  type TreeIndexes,
+} from '../adapter/gitTreeLister.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
@@ -13,9 +17,15 @@ import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
 
+// IncludeProcessor is the only registered processor that reads the tree
+// index; the others declare a 2-arg constructor, which TS accepts here
+// under normal function-parameter-count covariance (extra call-site
+// arguments are simply unused) — so only IncludeProcessor needs to widen
+// its own constructor.
 type ProcessorConstructor = new (
   config: Config,
-  metadata: MetadataRepository
+  metadata: MetadataRepository,
+  treeIndexes: TreeIndexes
 ) => BaseProcessor
 
 const registeredProcessors: ProcessorConstructor[] = [
@@ -88,13 +98,14 @@ export default class PostProcessorManager {
 
 export const getPostProcessors = (
   config: Config,
-  metadata: MetadataRepository
+  metadata: MetadataRepository,
+  treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
 ) => {
   const postProcessor = new PostProcessorManager()
 
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips registering processors; the resulting PostProcessorManager has empty processor/collector lists and executeRemaining()/collectAll() return early — tests assert the registered processor count, but not via this empty-state path
   for (const processor of registeredProcessors) {
-    const instance = new processor(config, metadata)
+    const instance = new processor(config, metadata, treeIndexes)
     postProcessor.use(instance)
   }
 

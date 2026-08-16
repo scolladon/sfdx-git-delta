@@ -1,43 +1,29 @@
 'use strict'
 
-import type { Config } from '../types/config.js'
+import type { TreeIndex } from './treeIndex.js'
 
 /**
- * Narrow adapter-boundary port consumed by callers that only need to
- * enumerate file paths under a tree at a revision (IOExecutor's directory
- * copies, IncludeProcessor, fsHelper's readDirs). Kept separate from
- * GitBlobReader — which is about blob content — rather than widening that
- * port to cover a concern it has nothing to do with.
+ * Run-owned collection of tree indexes, one per revision. Built once by
+ * main.ts (one `TreeIndex` per revision, under the run's actual scope) and
+ * threaded down to every reader — a builder/reader scope mismatch is no
+ * longer possible because there is nothing left to recompute: readers pull
+ * the exact index the run built for a given revision, or get `undefined`.
+ *
+ * A revision nobody built an index for resolves to `undefined`; callers
+ * degrade to an empty read (matching the index-build failure's own
+ * degrade-and-log semantics) rather than indexing lazily or throwing.
  */
-
-/**
- * Identifies one tree-index bucket: the revision being read, paired with
- * the scope it was pre-built under. GitAdapter is bound to the repository
- * rather than to one run, so two callers reading the same revision under
- * different scopes must resolve to different buckets — a bare revision
- * string is no longer enough to key a lookup.
- */
-export type TreeScope = Readonly<{
-  revision: string
-  scopePaths: readonly string[]
+export type TreeIndexes = Readonly<{
+  at(revision: string): TreeIndex | undefined
 }>
 
-// Builds the TreeScope most readers need: the revision being read, paired
-// with the run's configured source scope. Bundled here rather than left as
-// a positional (path, revision, scopePaths) triple on every reader, so the
-// revision and its scope can never be passed out of sync with each other.
-export const treeScopeAt = (config: Config, revision: string): TreeScope => ({
-  revision,
-  scopePaths: config.source,
-})
+// Safe default for callers/tests that never touch tree-index-backed
+// lookups: every read resolves to the same empty degradation a revision
+// that was never built would produce.
+export const EMPTY_TREE_INDEXES: TreeIndexes = { at: () => undefined }
 
-export interface GitTreeLister {
-  /**
-   * Lists every path indexed under `paths` at `scope.revision`, backed by
-   * the tree index built via GitAdapter#preBuildTreeIndex for that same
-   * (revision, scope) pair. A (revision, scope) pair that was never
-   * pre-built resolves to an empty array rather than indexing lazily or
-   * throwing.
-   */
-  getFilesPath(paths: string | string[], scope: TreeScope): Promise<string[]>
-}
+export const createTreeIndexes = (
+  entries: ReadonlyMap<string, TreeIndex>
+): TreeIndexes => ({
+  at: revision => entries.get(revision),
+})

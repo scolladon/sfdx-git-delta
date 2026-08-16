@@ -1,6 +1,7 @@
 'use strict'
 import { basename } from 'node:path/posix'
 
+import type { TreeIndexes } from '../adapter/gitTreeLister.js'
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
@@ -28,8 +29,13 @@ const getRootType = (line: string) => basename(line).split(DOT)[0]
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
 
-  constructor(changeType: string, element: MetadataElement, config: Config) {
-    super(changeType, element, config)
+  constructor(
+    changeType: string,
+    element: MetadataElement,
+    config: Config,
+    treeIndexes?: TreeIndexes
+  ) {
+    super(changeType, element, config, treeIndexes)
     const inFileMetadata = element.getInFileAttributes()
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }

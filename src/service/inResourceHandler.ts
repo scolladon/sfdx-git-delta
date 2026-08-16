@@ -26,7 +26,11 @@ export default class ResourceHandler extends StandardHandler {
   public override async collectDeletion(): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
     const componentPath = this.metadataName!
-    const exists = await pathExists(componentPath, this.config)
+    const exists = await pathExists(
+      componentPath,
+      this.config,
+      this.treeIndexes
+    )
     if (exists) {
       return await this.collectModification()
     }
@@ -43,7 +47,11 @@ export default class ResourceHandler extends StandardHandler {
       0,
       this.metadataName!.lastIndexOf(PATH_SEP)
     )
-    const allStaticResources = await readDirs(staticResourcePath, this.config)
+    const allStaticResources = await readDirs(
+      staticResourcePath,
+      this.config,
+      this.treeIndexes
+    )
 
     const cacheKey = this.metadataName!
     let startsWithMetadataName = resourceRegexCache.get(cacheKey)

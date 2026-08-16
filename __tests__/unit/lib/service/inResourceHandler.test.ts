@@ -336,7 +336,8 @@ describe('InResourceHandler', () => {
           // Assert
           expect(readDirs).toHaveBeenCalledWith(
             `${base}${staticResourceType.directoryName}`,
-            config
+            config,
+            expect.anything()
           )
         })
 
@@ -502,7 +503,8 @@ describe('InResourceHandler', () => {
         )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          config
+          config,
+          expect.anything()
         )
       })
     })
@@ -535,7 +537,8 @@ describe('InResourceHandler', () => {
         expect(result.copies).toEqual([])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('staticresources'),
-          config
+          config,
+          expect.anything()
         )
       })
     })
@@ -600,7 +603,8 @@ describe('InResourceHandler', () => {
         // Assert
         expect(pathExists).toHaveBeenCalledWith(
           `${base}${staticResourceType.directoryName}/${entity}`,
-          config
+          config,
+          expect.anything()
         )
         expect(
           elementsOf(result).some(m => m.target === 'destructiveChanges')

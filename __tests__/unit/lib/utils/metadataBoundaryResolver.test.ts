@@ -1,38 +1,24 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import GitAdapter from '../../../../src/adapter/GitAdapter'
-import type { TreeScope } from '../../../../src/adapter/gitTreeLister'
+import type { TreeIndexes } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
-import type { Config } from '../../../../src/types/config'
 import type { Metadata } from '../../../../src/types/metadata'
 import { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { MetadataElement } from '../../../../src/utils/metadataElement'
-import { sourceDirs } from '../../../__utils__/sourceDirs'
 
-const mockListDirAtRevision =
-  vi.fn<(dir: string, scope: TreeScope) => Promise<string[]>>()
-const mockGetFilesPath =
-  vi.fn<(paths: string | string[], scope?: TreeScope) => Promise<string[]>>()
-const mockGitAdapter = {
-  listDirAtRevision: mockListDirAtRevision,
+// MetadataBoundaryResolver now takes the run-owned TreeIndexes holder
+// instead of (config, gitAdapter) — a revision resolves to a TreeIndex via
+// `at(revision)`, and getFilesPath/listChildren are plain synchronous
+// methods on that index (no scope object to thread through any more).
+const mockGetFilesPath = vi.fn<(paths: string | string[]) => string[]>()
+const mockListChildren = vi.fn<(dir: string) => string[]>()
+const mockAt = vi.fn((_revision: string) => ({
   getFilesPath: mockGetFilesPath,
-} as unknown as GitAdapter
-
-// MetadataBoundaryResolver now builds its own TreeScope from this config
-// (config.source) on every read, so assertions on the mocked reader calls
-// must expect that same scope back.
-const mockConfig: Config = {
-  to: 'HEAD',
-  from: 'HEAD',
-  mergeBase: false,
-  output: '',
-  source: sourceDirs('force-app'),
-  repo: '/repo',
-  ignoreWhitespace: false,
-  generateDelta: true,
-}
+  listChildren: mockListChildren,
+}))
+const treeIndexes = { at: mockAt } as unknown as TreeIndexes
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
@@ -100,16 +86,18 @@ describe('MetadataBoundaryResolver', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // clearAllMocks does not drain queued mockResolvedValueOnce values; reset
-    // the per-test mock queues so leftovers from a previous test cannot leak
-    // into the next one and silently flip behaviour.
+    // clearAllMocks does not drain queued mockReturnValueOnce values, nor a
+    // persistent mockReturnValue override — reset the per-test mock queues
+    // so leftovers from a previous test cannot leak into the next one and
+    // silently flip behaviour.
     mockGetFilesPath.mockReset()
-    mockListDirAtRevision.mockReset()
-    sut = new MetadataBoundaryResolver(
-      mockConfig,
-      globalMetadata,
-      mockGitAdapter
-    )
+    mockListChildren.mockReset()
+    mockAt.mockReset()
+    mockAt.mockImplementation(() => ({
+      getFilesPath: mockGetFilesPath,
+      listChildren: mockListChildren,
+    }))
+    sut = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
   })
 
   describe('createElement', () => {
@@ -121,15 +109,14 @@ describe('MetadataBoundaryResolver', () => {
 
         // Act
         const element = await new MetadataBoundaryResolver(
-          mockConfig,
           globalMetadata,
-          mockGitAdapter
+          treeIndexes
         ).createElement(path, staticResourceType, revision)
 
         // Assert
         expect(element.componentName).toBe('MyResource')
         expect(mockGetFilesPath).not.toHaveBeenCalled()
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        expect(mockListChildren).not.toHaveBeenCalled()
       })
     })
 
@@ -147,7 +134,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentName).toBe('myComponent')
           expect(element.type.xmlName).toBe('LightningComponentBundle')
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
 
         it('Given StaticResource nested file, When creating element, Then should use getFilesPath to find component root', async () => {
@@ -155,7 +142,7 @@ describe('MetadataBoundaryResolver', () => {
           const path =
             'force-app/main/default/staticresources/MyResource/images/logo.png'
           const revision = 'HEAD'
-          mockGetFilesPath.mockResolvedValueOnce([
+          mockGetFilesPath.mockReturnValueOnce([
             'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
             'force-app/main/default/staticresources/MyResource/images/logo.png',
           ])
@@ -170,9 +157,9 @@ describe('MetadataBoundaryResolver', () => {
           // Assert
           expect(element.componentName).toBe('logo')
           expect(element.type.xmlName).toBe('StaticResource')
+          expect(mockAt).toHaveBeenCalledWith(revision)
           expect(mockGetFilesPath).toHaveBeenCalledWith(
-            'force-app/main/default/staticresources',
-            { revision, scopePaths: mockConfig.source }
+            'force-app/main/default/staticresources'
           )
         })
 
@@ -188,7 +175,7 @@ describe('MetadataBoundaryResolver', () => {
           // Assert
           expect(element.componentName).toBe('deeplyNestedComponent')
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
 
         it('Given StaticResource content file at depth 2, When creating element, Then should use fromPath without scan', async () => {
@@ -210,7 +197,7 @@ describe('MetadataBoundaryResolver', () => {
             'force-app/main/default/staticresources/MyResource'
           )
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
 
         it('Given standard depth-2 suffix match, When folder matches component name, Then should use fromPath without scan', async () => {
@@ -232,7 +219,7 @@ describe('MetadataBoundaryResolver', () => {
             'force-app/main/default/permissionsets/Admin'
           )
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
 
         it('Given ExperienceBundle nested file, When creating element, Then should use getFilesPath to find component root', async () => {
@@ -240,7 +227,7 @@ describe('MetadataBoundaryResolver', () => {
           const path =
             'force-app/main/default/experiences/my_bundle/config/file.json'
           const revision = 'HEAD'
-          mockGetFilesPath.mockResolvedValueOnce([
+          mockGetFilesPath.mockReturnValueOnce([
             'force-app/main/default/experiences/my_bundle/my_bundle.site-meta.xml',
             'force-app/main/default/experiences/my_bundle/config/file.json',
           ])
@@ -258,9 +245,9 @@ describe('MetadataBoundaryResolver', () => {
             'force-app/main/default/experiences/my_bundle'
           )
           expect(element.type.xmlName).toBe('ExperienceBundle')
+          expect(mockAt).toHaveBeenCalledWith(revision)
           expect(mockGetFilesPath).toHaveBeenCalledWith(
-            'force-app/main/default/experiences',
-            { revision, scopePaths: mockConfig.source }
+            'force-app/main/default/experiences'
           )
         })
 
@@ -277,7 +264,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentName).toBe('myComponentHelper')
           expect(element.type.xmlName).toBe('AuraDefinitionBundle')
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
       })
 
@@ -299,7 +286,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentName).toBe('Admin')
           expect(element.type.xmlName).toBe('PermissionSet')
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
 
         it('Given PermissionSet decomposed file with nesting, When creating element, Then should find correct component root', async () => {
@@ -307,7 +294,7 @@ describe('MetadataBoundaryResolver', () => {
           const path =
             'force-app/main/default/permissionsets/marketing/Admin/fieldPermissions/Account.fieldPermission-meta.xml'
           const revision = 'HEAD'
-          mockGetFilesPath.mockResolvedValueOnce([
+          mockGetFilesPath.mockReturnValueOnce([
             'force-app/main/default/permissionsets/marketing/Admin/Admin.permissionset-meta.xml',
             'force-app/main/default/permissionsets/marketing/Admin/fieldPermissions/Account.fieldPermission-meta.xml',
           ])
@@ -324,9 +311,9 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentPath).toBe(
             'force-app/main/default/permissionsets/marketing/Admin'
           )
+          expect(mockAt).toHaveBeenCalledWith(revision)
           expect(mockGetFilesPath).toHaveBeenCalledWith(
-            'force-app/main/default/permissionsets',
-            { revision, scopePaths: mockConfig.source }
+            'force-app/main/default/permissionsets'
           )
         })
 
@@ -335,7 +322,7 @@ describe('MetadataBoundaryResolver', () => {
           const path =
             'force-app/main/default/staticresources/nested/MyResource/images/logo.png'
           const revision = 'HEAD'
-          mockGetFilesPath.mockResolvedValueOnce([
+          mockGetFilesPath.mockReturnValueOnce([
             'force-app/main/default/staticresources/nested/MyResource/MyResource.resource-meta.xml',
             'force-app/main/default/staticresources/nested/MyResource/images/logo.png',
           ])
@@ -352,9 +339,9 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentPath).toBe(
             'force-app/main/default/staticresources/nested/MyResource'
           )
+          expect(mockAt).toHaveBeenCalledWith(revision)
           expect(mockGetFilesPath).toHaveBeenCalledWith(
-            'force-app/main/default/staticresources',
-            { revision, scopePaths: mockConfig.source }
+            'force-app/main/default/staticresources'
           )
         })
 
@@ -370,7 +357,7 @@ describe('MetadataBoundaryResolver', () => {
           // Assert
           expect(element.componentName).toBe('myComponent')
           expect(mockGetFilesPath).not.toHaveBeenCalled()
-          expect(mockListDirAtRevision).not.toHaveBeenCalled()
+          expect(mockListChildren).not.toHaveBeenCalled()
         })
 
         it('Given ObjectTranslation with nesting, When creating element, Then should find correct component root', async () => {
@@ -378,7 +365,7 @@ describe('MetadataBoundaryResolver', () => {
           const path =
             'force-app/main/default/objectTranslations/nested/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
           const revision = 'HEAD'
-          mockGetFilesPath.mockResolvedValueOnce([
+          mockGetFilesPath.mockReturnValueOnce([
             'force-app/main/default/objectTranslations/nested/Account-es.objectTranslation-meta.xml',
             'force-app/main/default/objectTranslations/nested/Account-es/BillingFloor__c.fieldTranslation-meta.xml',
           ])
@@ -395,9 +382,9 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentPath).toBe(
             'force-app/main/default/objectTranslations/nested/Account-es'
           )
+          expect(mockAt).toHaveBeenCalledWith(revision)
           expect(mockGetFilesPath).toHaveBeenCalledWith(
-            'force-app/main/default/objectTranslations',
-            { revision, scopePaths: mockConfig.source }
+            'force-app/main/default/objectTranslations'
           )
         })
 
@@ -406,7 +393,7 @@ describe('MetadataBoundaryResolver', () => {
           const path =
             'force-app/main/default/bots/nested/TestBot/v1.botVersion-meta.xml'
           const revision = 'HEAD'
-          mockGetFilesPath.mockResolvedValueOnce([
+          mockGetFilesPath.mockReturnValueOnce([
             'force-app/main/default/bots/nested/TestBot/TestBot.bot-meta.xml',
             'force-app/main/default/bots/nested/TestBot/v1.botVersion-meta.xml',
           ])
@@ -419,9 +406,9 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.componentPath).toBe(
             'force-app/main/default/bots/nested/TestBot'
           )
+          expect(mockAt).toHaveBeenCalledWith(revision)
           expect(mockGetFilesPath).toHaveBeenCalledWith(
-            'force-app/main/default/bots',
-            { revision, scopePaths: mockConfig.source }
+            'force-app/main/default/bots'
           )
         })
       })
@@ -432,9 +419,9 @@ describe('MetadataBoundaryResolver', () => {
         // Arrange
         const path = 'force-app/main/any/path/here/MyAsset/images/logo.png'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValueOnce(['logo.png'])
-        mockListDirAtRevision.mockResolvedValueOnce(['images', 'data'])
-        mockListDirAtRevision.mockResolvedValueOnce([
+        mockListChildren.mockReturnValueOnce(['logo.png'])
+        mockListChildren.mockReturnValueOnce(['images', 'data'])
+        mockListChildren.mockReturnValueOnce([
           'MyAsset',
           'MyAsset.resource-meta.xml',
         ])
@@ -449,7 +436,7 @@ describe('MetadataBoundaryResolver', () => {
         // Assert
         expect(element.componentName).toBe('logo')
         expect(element.pathAfterType[0]).toBe('MyAsset')
-        expect(mockListDirAtRevision).toHaveBeenCalled()
+        expect(mockListChildren).toHaveBeenCalled()
       })
 
       it('Given document in non-standard location, When creating element, Then should resolve component', async () => {
@@ -463,8 +450,8 @@ describe('MetadataBoundaryResolver', () => {
         }
         const path = 'custom/docs/MyDoc/file.txt'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValueOnce(['file.txt'])
-        mockListDirAtRevision.mockResolvedValueOnce([
+        mockListChildren.mockReturnValueOnce(['file.txt'])
+        mockListChildren.mockReturnValueOnce([
           'MyDoc',
           'MyDoc.document-meta.xml',
         ])
@@ -481,9 +468,9 @@ describe('MetadataBoundaryResolver', () => {
         const path1 = 'force-app/main/any/path/MyResource/images/logo.png'
         const path2 = 'force-app/main/any/path/MyResource/images/icon.svg'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValueOnce(['logo.png', 'icon.svg'])
-        mockListDirAtRevision.mockResolvedValueOnce(['images', 'styles'])
-        mockListDirAtRevision.mockResolvedValueOnce([
+        mockListChildren.mockReturnValueOnce(['logo.png', 'icon.svg'])
+        mockListChildren.mockReturnValueOnce(['images', 'styles'])
+        mockListChildren.mockReturnValueOnce([
           'MyResource',
           'MyResource.resource-meta.xml',
         ])
@@ -493,24 +480,21 @@ describe('MetadataBoundaryResolver', () => {
         await sut.createElement(path2, staticResourceType, revision)
 
         // Assert - second call should use cache, so only 3 calls total
-        expect(mockListDirAtRevision).toHaveBeenCalledTimes(3)
+        expect(mockListChildren).toHaveBeenCalledTimes(3)
       })
 
       it('Given sibling name not in path, When creating element, Then should skip it and continue walking', async () => {
         // Arrange
         const path = 'force-app/main/any/path/here/MyAsset/images/logo.png'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockImplementation(dir => {
+        mockListChildren.mockImplementation(dir => {
           if (dir === 'force-app/main/any/path/here') {
-            return Promise.resolve([
-              'OtherAsset',
-              'OtherAsset.resource-meta.xml',
-            ])
+            return ['OtherAsset', 'OtherAsset.resource-meta.xml']
           }
           if (dir === 'force-app/main/any/path') {
-            return Promise.resolve(['here', 'MyAsset.resource-meta.xml'])
+            return ['here', 'MyAsset.resource-meta.xml']
           }
-          return Promise.resolve([])
+          return []
         })
 
         // Act
@@ -528,7 +512,7 @@ describe('MetadataBoundaryResolver', () => {
         // Arrange
         const path = 'force-app/main/default/unknown/deep/nested/file.txt'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValue(['file.txt'])
+        mockListChildren.mockReturnValue(['file.txt'])
 
         // Act
         const element = await sut.createElement(
@@ -547,14 +531,14 @@ describe('MetadataBoundaryResolver', () => {
         const revision1 = 'HEAD'
         const revision2 = 'feature-branch'
 
-        mockListDirAtRevision.mockResolvedValueOnce(['data.json'])
-        mockListDirAtRevision.mockResolvedValueOnce([
+        mockListChildren.mockReturnValueOnce(['data.json'])
+        mockListChildren.mockReturnValueOnce([
           'MyResource',
           'MyResource.resource-meta.xml',
         ])
 
-        mockListDirAtRevision.mockResolvedValueOnce(['data.json'])
-        mockListDirAtRevision.mockResolvedValueOnce([
+        mockListChildren.mockReturnValueOnce(['data.json'])
+        mockListChildren.mockReturnValueOnce([
           'MyResource',
           'MyResource.resource-meta.xml',
         ])
@@ -564,14 +548,11 @@ describe('MetadataBoundaryResolver', () => {
         await sut.createElement(path, staticResourceType, revision2)
 
         // Assert - should be called 4 times (2 for each revision)
-        expect(mockListDirAtRevision).toHaveBeenCalledTimes(4)
-        expect(mockListDirAtRevision).toHaveBeenCalledWith(
-          'force-app/main/any/path/MyResource',
-          { revision: revision1, scopePaths: mockConfig.source }
-        )
-        expect(mockListDirAtRevision).toHaveBeenCalledWith(
-          'force-app/main/any/path/MyResource',
-          { revision: revision2, scopePaths: mockConfig.source }
+        expect(mockListChildren).toHaveBeenCalledTimes(4)
+        expect(mockAt).toHaveBeenCalledWith(revision1)
+        expect(mockAt).toHaveBeenCalledWith(revision2)
+        expect(mockListChildren).toHaveBeenCalledWith(
+          'force-app/main/any/path/MyResource'
         )
       })
     })
@@ -582,7 +563,7 @@ describe('MetadataBoundaryResolver', () => {
         const path =
           'force-app/main/default/staticresources/UpdateStaticResourceFile/resource/resource-file.txt'
         const revision = 'HEAD'
-        mockGetFilesPath.mockResolvedValueOnce([
+        mockGetFilesPath.mockReturnValueOnce([
           'force-app/main/default/staticresources/Ignored.resource-meta.xml',
           'force-app/main/default/staticresources/UpdateStaticResourceFile.resource-meta.xml',
           'force-app/main/default/staticresources/UpdateStaticResourceFile/resource/resource-file.txt',
@@ -604,30 +585,12 @@ describe('MetadataBoundaryResolver', () => {
     })
 
     describe('edge cases', () => {
-      it('Given getFilesPath throws, When creating element with typeDir in path, Then should fallback to last segment', async () => {
-        // Arrange
-        const path =
-          'force-app/main/default/staticresources/MyResource/images/logo.png'
-        const revision = 'HEAD'
-        mockGetFilesPath.mockRejectedValueOnce(new Error('git error'))
-
-        // Act
-        const element = await sut.createElement(
-          path,
-          staticResourceType,
-          revision
-        )
-
-        // Assert - falls back to last segment
-        expect(element.componentName).toBe('logo')
-      })
-
       it('Given no matching meta files, When creating element with typeDir in path, Then should fallback to last segment', async () => {
         // Arrange
         const path =
           'force-app/main/default/staticresources/unknown/nested/file.txt'
         const revision = 'HEAD'
-        mockGetFilesPath.mockResolvedValueOnce([
+        mockGetFilesPath.mockReturnValueOnce([
           'force-app/main/default/staticresources/unknown/nested/file.txt',
         ])
 
@@ -642,11 +605,47 @@ describe('MetadataBoundaryResolver', () => {
         expect(element.componentName).toBe('file')
       })
 
+      it('Given a revision with no built tree index, When creating element with typeDir in path, Then should fallback to last segment', async () => {
+        // Arrange — degrades to empty (mockAt returns undefined for this
+        // revision), not a throw: getFilesPath is a pure trie lookup now,
+        // so there is nothing left to catch.
+        const path =
+          'force-app/main/default/staticresources/MyResource/images/logo.png'
+        mockAt.mockReturnValueOnce(undefined as never)
+
+        // Act
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          'UNBUILT'
+        )
+
+        // Assert - falls back to last segment
+        expect(element.componentName).toBe('logo')
+      })
+
+      it('Given a revision with no built tree index, When creating element without typeDir in path, Then should fallback to last segment', async () => {
+        // Arrange — same degradation, but through the directory walk-up
+        // branch (listChildren) rather than the typeDir/getFilesPath one.
+        const path = 'force-app/main/default/unknown/nested/file.txt'
+        mockAt.mockReturnValue(undefined as never)
+
+        // Act
+        const element = await sut.createElement(
+          path,
+          staticResourceType,
+          'UNBUILT'
+        )
+
+        // Assert - falls back to last segment
+        expect(element.componentName).toBe('file')
+      })
+
       it('Given empty directory listings, When creating element without typeDir, Then should fallback to last segment', async () => {
         // Arrange
         const path = 'force-app/main/default/unknown/nested/file.txt'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValue([])
+        mockListChildren.mockReturnValue([])
 
         // Act
         const element = await sut.createElement(
@@ -663,20 +662,20 @@ describe('MetadataBoundaryResolver', () => {
         // Arrange
         const deepPath = 'a/b/c/d/e/f/g/h/i/j/k/l/file.txt'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValue(['file.txt'])
+        mockListChildren.mockReturnValue(['file.txt'])
 
         // Act
         await sut.createElement(deepPath, staticResourceType, revision)
 
         // Assert - walks all 12 levels (dirname from l/ up to a/, then '.' stops)
-        expect(mockListDirAtRevision).toHaveBeenCalledTimes(12)
+        expect(mockListChildren).toHaveBeenCalledTimes(12)
       })
 
       it('Given path at root directory, When creating element, Then should resolve without scan', async () => {
         // Arrange
         const path = 'file.txt'
         const revision = 'HEAD'
-        mockListDirAtRevision.mockResolvedValue(['file.txt'])
+        mockListChildren.mockReturnValue(['file.txt'])
 
         // Act
         const element = await sut.createElement(
@@ -688,7 +687,7 @@ describe('MetadataBoundaryResolver', () => {
         // Assert - parent dir is '.' which stops, falls back to last segment
         expect(element.componentName).toBe('file')
         expect(mockGetFilesPath).not.toHaveBeenCalled()
-        expect(mockListDirAtRevision).not.toHaveBeenCalled()
+        expect(mockListChildren).not.toHaveBeenCalled()
       })
     })
   })
@@ -707,7 +706,7 @@ describe('MetadataBoundaryResolver', () => {
       expect(element.componentName).toBe('myComponent')
       // No scan performed
       expect(mockGetFilesPath).not.toHaveBeenCalled()
-      expect(mockListDirAtRevision).not.toHaveBeenCalled()
+      expect(mockListChildren).not.toHaveBeenCalled()
     })
 
     it('Given depth-2 path where file suffix matches type suffix (L38 ConditionalExpression false), When creating element, Then checks folder-name match', async () => {
@@ -720,7 +719,7 @@ describe('MetadataBoundaryResolver', () => {
       expect(element.componentName).toBe('Admin')
       // folder matches component name → fromPath used directly (no scan)
       expect(mockGetFilesPath).not.toHaveBeenCalled()
-      expect(mockListDirAtRevision).not.toHaveBeenCalled()
+      expect(mockListChildren).not.toHaveBeenCalled()
     })
 
     it('Given depth-2 path where file suffix does NOT match type suffix, When creating element, Then returns fromPath element (L38 ConditionalExpression true → always scans)', async () => {
@@ -749,27 +748,23 @@ describe('MetadataBoundaryResolver', () => {
       // Mutant "dirIndex > 0" would skip when dirIndex = 0
       const path =
         'force-app/main/default/staticresources/MyResource/nested/deep.txt'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
       ])
       await sut.createElement(path, staticResourceType, 'HEAD')
       expect(mockGetFilesPath).toHaveBeenCalledWith(
-        'force-app/main/default/staticresources',
-        { revision: 'HEAD', scopePaths: mockConfig.source }
+        'force-app/main/default/staticresources'
       )
     })
 
     it('Given typeDir at index 0 in path (dirIndex=0, suffix present, depth>2), When scanning, Then getFilesPath is called (L64 dirIndex > 0 mutant killed)', async () => {
       // path: 'staticresources/MyResource/images/logo.png' → dirIndex=0 → >= 0 passes, > 0 would fail
       const path = 'staticresources/MyResource/images/logo.png'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'staticresources/MyResource/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      expect(mockGetFilesPath).toHaveBeenCalledWith('staticresources', {
-        revision: 'HEAD',
-        scopePaths: mockConfig.source,
-      })
+      expect(mockGetFilesPath).toHaveBeenCalledWith('staticresources')
       expect(element.componentPath).toContain('MyResource')
     })
   })
@@ -780,7 +775,7 @@ describe('MetadataBoundaryResolver', () => {
       // Loop: i = length-2 = 0 >= 0 → checks pathAfterType[0] = 'MyResource' → found!
       // Mutant "i > 0": skips i=0 → misses → fallback to last segment
       const path = 'force-app/main/default/staticresources/MyResource/deep.txt'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'force-app/main/default/staticresources/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
@@ -795,7 +790,7 @@ describe('MetadataBoundaryResolver', () => {
       // Mutant "``": metaSuffix="" → all files match → wrong component extracted
       const path =
         'force-app/main/default/staticresources/MyResource/images/logo.png'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
         'force-app/main/default/staticresources/MyResource/images/logo.png',
         'force-app/main/default/staticresources/Other.txt',
@@ -812,7 +807,7 @@ describe('MetadataBoundaryResolver', () => {
       // Mutant "dirIndex - 1": wrong slice → wrong pathAfterType
       const path =
         'force-app/main/default/staticresources/nested/MyResource/deep.txt'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'force-app/main/default/staticresources/nested/MyResource/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
@@ -823,11 +818,7 @@ describe('MetadataBoundaryResolver', () => {
   describe('isNameInPath (L135)', () => {
     it('Given part exactly equals componentName, When isNameInPath, Then returns true', () => {
       // Mutant EqualityOperator "part !== componentName" → always false for exact match
-      const resolver = new MetadataBoundaryResolver(
-        mockConfig,
-        globalMetadata,
-        mockGitAdapter
-      )
+      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -839,11 +830,7 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part starts with componentName dot, When isNameInPath, Then returns true (L135 MethodExpression endsWith mutant)', async () => {
       // Mutant: part.endsWith(`${componentName}.`) → 'MyComponent.js'.endsWith('MyComponent.') = false → miss
       // Correct: startsWith → true
-      const resolver = new MetadataBoundaryResolver(
-        mockConfig,
-        globalMetadata,
-        mockGitAdapter
-      )
+      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -854,11 +841,7 @@ describe('MetadataBoundaryResolver', () => {
 
     it('Given part ends with dot-componentName (not starts), When isNameInPath, Then returns false', async () => {
       // Verifies startsWith is used, not endsWith (mutation contrast)
-      const resolver = new MetadataBoundaryResolver(
-        mockConfig,
-        globalMetadata,
-        mockGitAdapter
-      )
+      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -870,11 +853,7 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part is empty string componentName, When isNameInPath, Then returns true via startsWith', async () => {
       // L135 StringLiteral `` mutant: componentName.= `` → startsWith('.') for non-empty parts
       // Real behavior: componentName='' → part === '' or part.startsWith('.') → only empty-named matches
-      const resolver = new MetadataBoundaryResolver(
-        mockConfig,
-        globalMetadata,
-        mockGitAdapter
-      )
+      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -933,7 +912,7 @@ describe('MetadataBoundaryResolver', () => {
       // depth-2 the createElement shortcut returns fromPath without scanning.
       const path =
         'force-app/main/default/staticresources/wrongmatch/sub/file.bin'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         // Non-meta file whose extracted name ('wrongmatch') matches the
         // intermediate directory in the path. The suffix guard is the only
         // line of defence against this collision.
@@ -956,7 +935,7 @@ describe('MetadataBoundaryResolver', () => {
       // sees segments BEFORE the typeDir. We exploit that with a pre-dir
       // segment ('foo') that matches a meta-derived componentName.
       const path = 'foo/staticresources/A/B/file.bin'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'staticresources/foo.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
@@ -974,7 +953,7 @@ describe('MetadataBoundaryResolver', () => {
       // and the for-loop `length - 2 = -1` skips entirely → fallback fires
       // even though a perfectly matching component is two folders up.
       const path = 'staticresources/A/B/file.bin'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         'staticresources/A.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
@@ -990,7 +969,7 @@ describe('MetadataBoundaryResolver', () => {
       // surplus iterations include i=length-1 (the file), so a meta file
       // sharing the file's basename is wrongly chosen as the boundary.
       const path = 'staticresources/A/B/foo.bin'
-      mockGetFilesPath.mockResolvedValueOnce([
+      mockGetFilesPath.mockReturnValueOnce([
         // Meta file for the *folder* component the loop should pick…
         'staticresources/A.resource-meta.xml',
         // …and a meta file whose extracted name collides with the FILE name.
@@ -1022,14 +1001,14 @@ describe('MetadataBoundaryResolver', () => {
         xmlName: 'Custom',
       }
       const path = 'parent/staticresources/file.bin'
-      mockListDirAtRevision.mockImplementation(dir => {
+      mockListChildren.mockImplementation(dir => {
         if (dir === 'parent/staticresources') {
-          return Promise.resolve(['file.bin'])
+          return ['file.bin']
         }
         if (dir === 'parent') {
-          return Promise.resolve(['staticresources', 'other'])
+          return ['staticresources', 'other']
         }
-        return Promise.resolve([])
+        return []
       })
       const element = await sut.createElement(path, customType, 'HEAD')
       // Real componentPath = '${typeDirectoryPath}/${componentName}'
@@ -1043,9 +1022,9 @@ describe('MetadataBoundaryResolver', () => {
     it('Given sibling with matching suffix and name in path, When findComponentName, Then returns name', async () => {
       // path through real scan
       const path = 'force-app/main/any/MyResource/images/logo.png'
-      mockListDirAtRevision.mockResolvedValueOnce(['logo.png'])
-      mockListDirAtRevision.mockResolvedValueOnce(['images'])
-      mockListDirAtRevision.mockResolvedValueOnce([
+      mockListChildren.mockReturnValueOnce(['logo.png'])
+      mockListChildren.mockReturnValueOnce(['images'])
+      mockListChildren.mockReturnValueOnce([
         'MyResource',
         'MyResource.resource-meta.xml',
       ])
@@ -1057,9 +1036,9 @@ describe('MetadataBoundaryResolver', () => {
       // Mutant true: isNameInPath always returns true → first sibling taken regardless
       // Real: OtherName is not in path → skipped, MyResource found later
       const path = 'force-app/main/any/MyResource/images/logo.png'
-      mockListDirAtRevision.mockResolvedValueOnce(['logo.png'])
-      mockListDirAtRevision.mockResolvedValueOnce(['images'])
-      mockListDirAtRevision.mockResolvedValueOnce([
+      mockListChildren.mockReturnValueOnce(['logo.png'])
+      mockListChildren.mockReturnValueOnce(['images'])
+      mockListChildren.mockReturnValueOnce([
         'OtherResource',
         'OtherResource.resource-meta.xml',
         'MyResource',

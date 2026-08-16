@@ -1,5 +1,7 @@
 'use strict'
 import { PATH_SEP } from '../constant/fsConstants.js'
+import { pushAll } from '../utils/arrayUtils.js'
+import { ROOT_PATHS } from './pathMatching.js'
 
 type TrieNode = {
   children: Map<string, TrieNode>
@@ -61,6 +63,29 @@ export class TreeIndex {
 
   public get size(): number {
     return this.fileCount
+  }
+
+  // The two ROOT_PATHS-aware lookups every caller used to ask GitAdapter
+  // for (pathExistsImpl, getFilesPathCached) — now answered by the index
+  // itself instead of a scope-keyed cache lookup.
+  public pathExists(path: string): boolean {
+    if (ROOT_PATHS.has(path)) return this.size > 0
+    return this.hasPath(path)
+  }
+
+  public getFilesPath(paths: string | string[]): string[] {
+    const list = Array.isArray(paths) ? paths : [paths]
+    const result: string[] = []
+    for (const path of list) {
+      pushAll(result, this.getFilesPathFor(path))
+    }
+    return result
+  }
+
+  private getFilesPathFor(path: string): string[] {
+    if (ROOT_PATHS.has(path)) return this.allPaths()
+    if (this.has(path)) return [path]
+    return this.getFilesUnder(path)
   }
 
   protected navigate(path: string): TrieNode | undefined {

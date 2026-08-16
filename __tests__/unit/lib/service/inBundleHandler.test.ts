@@ -245,6 +245,7 @@ describe('InBundleHandler', () => {
       // from the page folder, not the whole bundle
       expect(mockedReadDirs).toHaveBeenCalledWith(
         `${root}/site/Site_A/sfdc_cms__view`,
+        expect.anything(),
         expect.anything()
       )
       expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(

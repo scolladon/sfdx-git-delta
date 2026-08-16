@@ -1,4 +1,8 @@
 'use strict'
+import {
+  EMPTY_TREE_INDEXES,
+  type TreeIndexes,
+} from '../adapter/gitTreeLister.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type {
@@ -16,7 +20,8 @@ import TypeHandlerFactory from './typeHandlerFactory.js'
 export default class DiffLineInterpreter {
   constructor(
     protected readonly config: Config,
-    protected readonly metadata: MetadataRepository
+    protected readonly metadata: MetadataRepository,
+    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
   ) {}
 
   @log
@@ -30,7 +35,8 @@ export default class DiffLineInterpreter {
 
     const typeHandlerFactory = new TypeHandlerFactory(
       effectiveConfig,
-      this.metadata
+      this.metadata,
+      this.treeIndexes
     )
     const elements: ManifestElement[] = []
     const copies: CopyOperation[] = []

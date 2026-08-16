@@ -189,12 +189,10 @@ describe('Given a self-contained git fixture repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex({ revision: 'HEAD', scopePaths: [] })
+      const index = await sut.buildTreeIndex('HEAD', [])
 
       // Act
-      const actual = (
-        await sut.getFilesPath('', { revision: 'HEAD', scopePaths: [] })
-      ).sort()
+      const actual = index!.getFilesPath('').sort()
 
       // Assert
       const expected = runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], {
@@ -204,24 +202,16 @@ describe('Given a self-contained git fixture repository', () => {
       expect(actual).toEqual(expected)
     })
 
-    it('Then listDirAtRevision and pathExists match git ls-tree children of a dir', async () => {
+    it('Then listChildren and pathExists match git ls-tree children of a dir', async () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex({ revision: 'HEAD', scopePaths: [] })
+      const index = await sut.buildTreeIndex('HEAD', [])
 
       // Act
-      const actualChildren = (
-        await sut.listDirAtRevision('src', { revision: 'HEAD', scopePaths: [] })
-      ).sort()
-      const actualExists = await sut.pathExists('src', {
-        revision: 'HEAD',
-        scopePaths: [],
-      })
-      const actualMissing = await sut.pathExists('src/does-not-exist', {
-        revision: 'HEAD',
-        scopePaths: [],
-      })
+      const actualChildren = index!.listChildren('src').sort()
+      const actualExists = index!.pathExists('src')
+      const actualMissing = index!.pathExists('src/does-not-exist')
 
       // Assert
       const expectedChildren = runGit(
@@ -403,10 +393,8 @@ describe('Given a self-contained git fixture repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex({ revision: 'HEAD', scopePaths: [] })
-      const paths = (
-        await sut.getFilesPath('', { revision: 'HEAD', scopePaths: [] })
-      ).sort()
+      const index = await sut.buildTreeIndex('HEAD', [])
+      const paths = index!.getFilesPath('').sort()
 
       // Act
       const actual = await Promise.all(
@@ -507,10 +495,8 @@ describe('Given a self-contained git fixture repository', () => {
 
       // Act
       const actualRev = await sut.parseRev('HEAD')
-      await sut.preBuildTreeIndex({ revision: 'HEAD', scopePaths: [] })
-      const actualFiles = (
-        await sut.getFilesPath('', { revision: 'HEAD', scopePaths: [] })
-      ).sort()
+      const index = await sut.buildTreeIndex('HEAD', [])
+      const actualFiles = index!.getFilesPath('').sort()
       const actualDiff = await streamDiff(sut, config)
 
       // Assert
@@ -553,10 +539,8 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      await sut.preBuildTreeIndex({ revision: 'parity-tag', scopePaths: [] })
-      const actualFiles = (
-        await sut.getFilesPath('', { revision: 'parity-tag', scopePaths: [] })
-      ).sort()
+      const index = await sut.buildTreeIndex('parity-tag', [])
+      const actualFiles = index!.getFilesPath('').sort()
       const actualContent = await sut.getBufferContent({
         path: 'README.md',
         oid: 'parity-tag',

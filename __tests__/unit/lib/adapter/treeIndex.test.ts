@@ -35,6 +35,15 @@ describe('TreeIndex', () => {
       expect(result).toBe(true)
     })
 
+    it('Given a directory absent from the index, When listChildren is called, Then returns an empty array', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(sut.listChildren('does-not-exist')).toEqual([])
+    })
+
     it('Given files added, When listChildren is called with empty string, Then returns top-level segments', () => {
       // Arrange — listChildren('') navigates to root and lists its children.
       // Without the guard, navigate('') would return undefined and listChildren
@@ -105,6 +114,140 @@ describe('TreeIndex', () => {
 
       // Act & Assert
       expect(sut.allPaths()).toEqual([])
+    })
+  })
+
+  describe('pathExists', () => {
+    it('Given a root path variant against a non-empty index, When pathExists, Then returns true', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(sut.pathExists('')).toBe(true)
+      expect(sut.pathExists('.')).toBe(true)
+      expect(sut.pathExists('./')).toBe(true)
+    })
+
+    it('Given a root path variant against an empty index, When pathExists, Then returns false', () => {
+      // Arrange
+      const sut = new TreeIndex()
+
+      // Act & Assert
+      expect(sut.pathExists('')).toBe(false)
+    })
+
+    it('Given a directory path, When pathExists, Then returns true (delegates to hasPath, not has)', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(sut.pathExists('classes')).toBe(true)
+    })
+
+    it('Given a path absent from the index, When pathExists, Then returns false', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(sut.pathExists('classes/Missing.cls')).toBe(false)
+    })
+  })
+
+  describe('getFilesPath', () => {
+    const populated = () => {
+      const index = new TreeIndex()
+      index.add('force-app/classes/Foo.cls')
+      index.add('force-app/classes/Bar.cls')
+      index.add('force-app/objects/Baz.object')
+      return index
+    }
+
+    it('Given the root path, When getFilesPath, Then it returns every indexed path', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        [
+          'force-app/classes/Foo.cls',
+          'force-app/classes/Bar.cls',
+          'force-app/objects/Baz.object',
+        ].sort()
+      )
+    })
+
+    it('Given the "." root path variant, When getFilesPath, Then it returns every indexed path', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('.')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        [
+          'force-app/classes/Foo.cls',
+          'force-app/classes/Bar.cls',
+          'force-app/objects/Baz.object',
+        ].sort()
+      )
+    })
+
+    it('Given an exact file path, When getFilesPath, Then it returns only that file', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('force-app/classes/Foo.cls')
+
+      // Assert
+      expect(result).toEqual(['force-app/classes/Foo.cls'])
+    })
+
+    it('Given a directory path, When getFilesPath, Then it returns the files under it', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('force-app/classes')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        ['force-app/classes/Foo.cls', 'force-app/classes/Bar.cls'].sort()
+      )
+    })
+
+    it('Given an array of paths, When getFilesPath, Then it aggregates the results', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath([
+        'force-app/classes/Foo.cls',
+        'force-app/objects/Baz.object',
+      ])
+
+      // Assert
+      expect(result.sort()).toEqual(
+        ['force-app/classes/Foo.cls', 'force-app/objects/Baz.object'].sort()
+      )
+    })
+
+    it('Given a path absent from the index, When getFilesPath, Then it returns an empty array', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('force-app/missing-dir')
+
+      // Assert
+      expect(result).toEqual([])
     })
   })
 })

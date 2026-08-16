@@ -1,6 +1,9 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
-import { treeScopeAt } from '../adapter/gitTreeLister.js'
+import {
+  EMPTY_TREE_INDEXES,
+  type TreeIndexes,
+} from '../adapter/gitTreeLister.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -21,7 +24,11 @@ type GitChange = typeof ADDITION | typeof DELETION
 
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitAdapter: GitAdapter
-  constructor(config: Config, metadata: MetadataRepository) {
+  constructor(
+    config: Config,
+    metadata: MetadataRepository,
+    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
+  ) {
     super(config, metadata)
     this.gitAdapter = GitAdapter.getInstance(this.config)
   }
@@ -57,10 +64,9 @@ export default class IncludeProcessor extends BaseProcessor {
     const includeHelper = await buildIncludeHelper(this.config)
     const includeLines = new Map<GitChange, string[]>()
     const gitChanges: GitChange[] = [ADDITION, DELETION]
-    const lines: string[] = await this.gitAdapter.getFilesPath(
-      this.config.source,
-      treeScopeAt(this.config, this.config.to)
-    )
+    const lines: string[] =
+      this.treeIndexes.at(this.config.to)?.getFilesPath(this.config.source) ??
+      []
     for (const line of lines) {
       gitChanges.forEach((changeType: GitChange) => {
         const changedLine = `${changeType}${TAB}${line}`
@@ -85,7 +91,11 @@ export default class IncludeProcessor extends BaseProcessor {
     }
 
     const firstSHA = await this.gitAdapter.getFirstCommitRef()
-    const lineProcessor = new DiffLineInterpreter(this.config, this.metadata)
+    const lineProcessor = new DiffLineInterpreter(
+      this.config,
+      this.metadata,
+      this.treeIndexes
+    )
     const results: HandlerResult[] = []
 
     if (includeLines.has(ADDITION)) {

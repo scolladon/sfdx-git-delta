@@ -13,6 +13,11 @@ import {
 } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
+import {
+  createTreeIndexes,
+  type TreeIndexes,
+} from '../../../src/adapter/gitTreeLister'
+import type { TreeIndex } from '../../../src/adapter/treeIndex'
 import { MetadataRepository } from '../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../src/post-processor/includeProcessor'
@@ -36,10 +41,11 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 //
 // generateDelta is left off in most cases: it only toggles whether copy
 // operations are additionally collected (an orthogonal concern to which
-// GitAdapter instance resolves a boundary), and turning it on adds copy-path
-// noise that isn't what this suite is pinning down. The tree index is still
-// pre-built by hand here, mirroring the precondition main.ts establishes
-// before it runs the include pass in a --generate-delta invocation.
+// tree index resolves a boundary), and turning it on adds copy-path noise
+// that isn't what this suite is pinning down. The tree index is still
+// built by hand here (buildTreeIndexesForTo), mirroring the precondition
+// main.ts establishes before it runs the include pass in a
+// --generate-delta invocation.
 //
 // The 'generateDelta: true' case below is the exception: it exists
 // specifically to pin the DELETION pass's metadata-boundary resolution (see
@@ -79,6 +85,15 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   ...overrides,
 })
 
+// Builds the run-owned holder the way main.ts does for config.to, mirroring
+// the precondition main.ts establishes before it runs the include pass in a
+// --generate-delta invocation.
+const buildTreeIndexesForTo = async (config: Config): Promise<TreeIndexes> => {
+  const gitAdapter = GitAdapter.getInstance(config)
+  const index = await gitAdapter.buildTreeIndex(config.to, config.source)
+  return createTreeIndexes(new Map<string, TreeIndex>([[config.to, index!]]))
+}
+
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-include-fixture-')
   refs = buildMetadataFixtureRepo(fixtureDir)
@@ -108,12 +123,8 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         NEW_RESOURCE_FILE,
       ])
       const config = makeConfig({ include: includePath })
-      const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex({
-        revision: config.to,
-        scopePaths: config.source,
-      })
-      const sut = new IncludeProcessor(config, metadata)
+      const treeIndexes = await buildTreeIndexesForTo(config)
+      const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
       // Act
       const actual = await sut.transformAndCollect(ChangeSet.from([]))
@@ -142,12 +153,8 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         [EXISTING_RESOURCE_FILE]
       )
       const config = makeConfig({ includeDestructive: includeDestructivePath })
-      const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex({
-        revision: config.to,
-        scopePaths: config.source,
-      })
-      const sut = new IncludeProcessor(config, metadata)
+      const treeIndexes = await buildTreeIndexesForTo(config)
+      const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
       // Act
       const actual = await sut.transformAndCollect(ChangeSet.from([]))
@@ -182,12 +189,8 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         include: includePath,
         includeDestructive: includeDestructivePath,
       })
-      const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex({
-        revision: config.to,
-        scopePaths: config.source,
-      })
-      const sut = new IncludeProcessor(config, metadata)
+      const treeIndexes = await buildTreeIndexesForTo(config)
+      const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
       // Act
       const actual = await sut.transformAndCollect(ChangeSet.from([]))
@@ -224,7 +227,7 @@ describe('Given a fixture repo with a resource added on top of the root commit',
       // the ORIGINAL config.to (typeHandlerFactory picks config.from for a
       // DELETION line, and the DELETION pass's own {from, to} override sets
       // effective `from` to the original config.to) — the exact revision
-      // main.ts (and the preBuildTreeIndex call below) pre-builds.
+      // main.ts (and the buildTreeIndexesForTo call below) builds.
       const includeDestructivePath = await writeIncludePatterns(
         'include-generate-delta-deletion.txt',
         [EXISTING_RESOURCE_FILE]
@@ -233,12 +236,8 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         includeDestructive: includeDestructivePath,
         generateDelta: true,
       })
-      const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex({
-        revision: config.to,
-        scopePaths: config.source,
-      })
-      const sut = new IncludeProcessor(config, metadata)
+      const treeIndexes = await buildTreeIndexesForTo(config)
+      const sut = new IncludeProcessor(config, metadata, treeIndexes)
       const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
 
       // Act

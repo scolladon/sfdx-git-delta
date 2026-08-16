@@ -1,6 +1,7 @@
 'use strict'
 
 import { join } from 'node:path/posix'
+import type { TreeIndexes } from '../adapter/gitTreeLister.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
@@ -11,8 +12,13 @@ import InFolderHandler from './inFolderHandler.js'
 export default class ReportingFolderHandler extends InFolderHandler {
   protected readonly resolvedType: string | undefined
 
-  constructor(changeType: string, element: MetadataElement, config: Config) {
-    super(changeType, element, config)
+  constructor(
+    changeType: string,
+    element: MetadataElement,
+    config: Config,
+    treeIndexes?: TreeIndexes
+  ) {
+    super(changeType, element, config, treeIndexes)
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 

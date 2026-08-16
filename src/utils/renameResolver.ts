@@ -1,5 +1,9 @@
 'use strict'
 
+import {
+  EMPTY_TREE_INDEXES,
+  type TreeIndexes,
+} from '../adapter/gitTreeLister.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -23,8 +27,12 @@ import type { RenamePathPair } from './repoGitDiff.js'
 export default class RenameResolver {
   private readonly factory: TypeHandlerFactory
 
-  constructor(config: Config, metadata: MetadataRepository) {
-    this.factory = new TypeHandlerFactory(config, metadata)
+  constructor(
+    config: Config,
+    metadata: MetadataRepository,
+    treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
+  ) {
+    this.factory = new TypeHandlerFactory(config, metadata, treeIndexes)
   }
 
   @log

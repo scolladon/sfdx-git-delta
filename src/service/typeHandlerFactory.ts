@@ -1,5 +1,8 @@
 'use strict'
-import GitAdapter from '../adapter/GitAdapter.js'
+import {
+  EMPTY_TREE_INDEXES,
+  type TreeIndexes,
+} from '../adapter/gitTreeLister.js'
 import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
@@ -73,10 +76,10 @@ export default class TypeHandlerFactory {
   // Stryker disable BlockStatement -- equivalent: constructor body wires the resolver and pre-builds the inFileParent index; tests instantiate via factory paths that exercise the indexed lookups indirectly, but the mutant `{}` constructor would fail at first getTypeHandler call (resolver undefined), and that failure surfaces only outside the unit test surface for the factory's pure-routing tests
   constructor(
     protected readonly config: Config,
-    protected readonly metadata: MetadataRepository
+    protected readonly metadata: MetadataRepository,
+    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
   ) {
-    const gitAdapter = GitAdapter.getInstance(config)
-    this.resolver = new MetadataBoundaryResolver(config, metadata, gitAdapter)
+    this.resolver = new MetadataBoundaryResolver(metadata, treeIndexes)
     this.inFileParentXmlNames = new Set()
     this.buildInFileParentIndex()
   }
@@ -100,7 +103,7 @@ export default class TypeHandlerFactory {
     // Stryker restore ConditionalExpression,EqualityOperator
     const element = await this.resolver.createElement(path, type, revision)
     const Handler = this.resolveHandler(type)
-    return new Handler(changeType, element, this.config)
+    return new Handler(changeType, element, this.config, this.treeIndexes)
   }
 
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body produces an empty inFileParent index; downstream resolveHandler falls back to Standard for inFile parents, which still routes correctly for the pure-routing test surface

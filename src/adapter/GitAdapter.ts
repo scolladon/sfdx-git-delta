@@ -44,7 +44,6 @@ import { UTF8_ENCODING } from '../constant/fsConstants.js'
 import { HEAD } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
-import { pushAll } from '../utils/arrayUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
 import { sanitizePath, treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
@@ -56,7 +55,6 @@ import {
   type GitBlobReader,
   SIZE_THRESHOLD,
 } from './gitBlobReader.js'
-import type { GitTreeLister, TreeScope } from './gitTreeLister.js'
 import {
   buildLiteralMatcher,
   buildPathspecMatcher,
@@ -114,32 +112,7 @@ const IGNORE_WHITESPACE_OPTIONS = {
 const LFS_MAGIC = Buffer.from('version https://git-lfs.github.com/spec/v1\n')
 const LFS_POINTER_CAP = 1024
 
-// Map-key separator: revision refs and repository paths never contain a
-// NUL byte, so joining scope segments (and the revision-to-scope pair) with
-// one guarantees no real value can forge a collision.
-const SCOPE_KEY_SEPARATOR = '\0'
-
-// Canonicalises a scope path list into a stable key fragment: ROOT_PATHS
-// markers ('', '.', './') are dropped first so they all normalise to the
-// same whole-repo scope (an empty fragment, distinct from any real scope —
-// a real scope's entries are non-empty, so joining one or more can never
-// itself be empty), then the remainder is sorted so two callers naming the
-// same scope in a different order still land in one bucket.
-const scopeKeyFor = (scopePaths: readonly string[]): string =>
-  [...scopePaths]
-    .filter(path => !ROOT_PATHS.has(path))
-    .sort()
-    .join(SCOPE_KEY_SEPARATOR)
-
-// One tree-index bucket per (revision, scope) pair: two callers pre-building
-// or reading the same revision under different scopes must never share a
-// bucket, or whichever scope built it first silently governs what the other
-// sees (see GitAdapter's pool-key comment — the same repo-wide sharing risk,
-// one level down).
-const treeIndexKeyFor = (scope: TreeScope): string =>
-  `${scope.revision}${SCOPE_KEY_SEPARATOR}${scopeKeyFor(scope.scopePaths)}`
-
-export default class GitAdapter implements GitBlobReader, GitTreeLister {
+export default class GitAdapter implements GitBlobReader {
   private static instances: Map<string, GitAdapter> = new Map()
 
   // Normalises the pool key the same way ConfigValidator eventually
@@ -167,19 +140,15 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     GitAdapter.instances.clear()
   }
 
-  // Keyed by `${revision}\0${scopeKey}` (see treeIndexKeyFor), not by
-  // revision alone: the instance is now shared across every run against
-  // this repository, so two runs pre-building the same revision under
-  // different scopes must land in different buckets rather than one
-  // silently overwriting or masking the other.
-  protected readonly treeIndex: Map<string, TreeIndex>
   // Per revision: repo-relative path -> blob ObjectId. The tsgit counterpart
-  // of `git cat-file --batch` oid:path resolution.
+  // of `git cat-file --batch` oid:path resolution. Deterministic per
+  // revision and safe to share across every run against this repository —
+  // unlike the tree index (see buildTreeIndex), nothing here varies by
+  // caller-supplied scope.
   protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
   private repoHandle: Promise<Repository> | null = null
 
   private constructor(private readonly repo: string) {
-    this.treeIndex = new Map<string, TreeIndex>()
     this.blobIdIndex = new Map<string, Map<string, ObjectId>>()
   }
 
@@ -208,26 +177,33 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     }
   }
 
+  // Builds and RETURNS a tree index for (revision, scopePaths) instead of
+  // caching it: the caller (main.ts) owns the result and threads it to
+  // every reader, so a builder/reader scope mismatch becomes structurally
+  // impossible rather than a silently-missed cache key. On failure this
+  // degrades exactly like the old preBuildTreeIndex did — debug-log and
+  // return undefined, leaving the caller with no index for that revision
+  // (readers treat "no index" as an empty read, never a throw).
   @log
-  public async preBuildTreeIndex(scope: TreeScope): Promise<void> {
-    const key = treeIndexKeyFor(scope)
-    if (this.treeIndex.has(key)) {
-      return
-    }
+  public async buildTreeIndex(
+    revision: string,
+    scopePaths: readonly string[]
+  ): Promise<TreeIndex | undefined> {
     try {
-      const blobIds = await this.indexRevision(scope.revision)
+      const blobIds = await this.indexRevision(revision)
       const index = new TreeIndex()
-      const scopes = scope.scopePaths.filter(path => !ROOT_PATHS.has(path))
+      const scopes = scopePaths.filter(path => !ROOT_PATHS.has(path))
       for (const path of blobIds.keys()) {
         if (scopes.length === 0 || inScope(path, scopes)) {
           index.add(path)
         }
       }
-      this.treeIndex.set(key, index)
+      return index
     } catch (error) {
       Logger.debug(
-        lazy`preBuildTreeIndex: tree walk for '${scope.revision}' failed: ${() => getErrorMessage(error)}`
+        lazy`buildTreeIndex: tree walk for '${revision}' failed: ${() => getErrorMessage(error)}`
       )
+      return undefined
     }
   }
 
@@ -301,18 +277,6 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     } catch (error) {
       throw mapTsgitError(error, `${from}...${to}`)
     }
-  }
-
-  protected pathExistsImpl(path: string, scope: TreeScope): boolean {
-    const index = this.treeIndex.get(treeIndexKeyFor(scope))
-    if (!index) return false
-    if (ROOT_PATHS.has(path)) return index.size > 0
-    return index.hasPath(path)
-  }
-
-  @log
-  public async pathExists(path: string, scope: TreeScope): Promise<boolean> {
-    return this.pathExistsImpl(path, scope)
   }
 
   @log
@@ -461,39 +425,6 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     // keeps the released error shapes intact (no double-wrapped messages).
     const content = await this.getBufferContent(forRef)
     return content.toString(UTF8_ENCODING)
-  }
-
-  protected getFilesPathCached(path: string, scope: TreeScope): string[] {
-    const index = this.treeIndex.get(treeIndexKeyFor(scope))
-    if (!index) return []
-    if (ROOT_PATHS.has(path)) return index.allPaths()
-    if (index.has(path)) return [path]
-    return index.getFilesUnder(path)
-  }
-
-  @log
-  public async getFilesPath(
-    paths: string | string[],
-    scope: TreeScope
-  ): Promise<string[]> {
-    if (typeof paths === 'string') {
-      return this.getFilesPathCached(paths, scope)
-    }
-    const result: string[] = []
-    for (const path of paths) {
-      pushAll(result, this.getFilesPathCached(path, scope))
-    }
-    return result
-  }
-
-  @log
-  public async listDirAtRevision(
-    dir: string,
-    scope: TreeScope
-  ): Promise<string[]> {
-    const index = this.treeIndex.get(treeIndexKeyFor(scope))
-    if (!index) return []
-    return index.listChildren(dir)
   }
 
   // Concrete-path surface: `path` comes straight off the repository (a git

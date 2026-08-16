@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { TreeIndexes } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
@@ -41,7 +42,6 @@ vi.mock('../../../../src/service/diffLineInterpreter', () => {
 vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
     getInstance: vi.fn(() => ({
-      getFilesPath: mockGetFilesPath,
       getFirstCommitRef: mockGetFirstCommitRef,
     })),
   },
@@ -54,6 +54,13 @@ const mockKeep = vi.fn()
 mockedBuildIncludeHelper.mockResolvedValue({
   keep: mockKeep,
 } as unknown as IgnoreHelper)
+
+// getFilesPath moved off GitAdapter onto the run-owned TreeIndexes holder —
+// IncludeProcessor now takes it as its own collaborator (3rd ctor arg).
+const mockAt = vi.fn((_revision: string) => ({
+  getFilesPath: mockGetFilesPath,
+}))
+const treeIndexes = { at: mockAt } as unknown as TreeIndexes
 
 describe('IncludeProcessor', () => {
   let config: Config
@@ -88,7 +95,7 @@ describe('IncludeProcessor', () => {
   describe('process', () => {
     it('Given IncludeProcessor, When process is called, Then it is a no-op', async () => {
       // Arrange
-      const sut = new IncludeProcessor(config, metadata)
+      const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
       // Act & Assert
       await expect(sut.process(new ChangeSet())).resolves.toEqual({
@@ -100,7 +107,7 @@ describe('IncludeProcessor', () => {
   describe('when no include is configured', () => {
     it('does not process include', async () => {
       // Arrange
-      const sut = new IncludeProcessor(config, metadata)
+      const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
       // Act
       const result = await sut.transformAndCollect(new ChangeSet())
@@ -111,9 +118,27 @@ describe('IncludeProcessor', () => {
     })
   })
 
+  describe('when include is configured but the revision has no built tree index', () => {
+    it('Then gathers no include lines (degrades to empty, not a throw)', async () => {
+      // Arrange
+      config.include = '.sgdinclude'
+      const unbuiltTreeIndexes = {
+        at: () => undefined,
+      } as unknown as TreeIndexes
+      const sut = new IncludeProcessor(config, metadata, unbuiltTreeIndexes)
+
+      // Act
+      const result = await sut.transformAndCollect(new ChangeSet())
+
+      // Assert
+      expect(result).toEqual(emptyResult())
+      expect(mockProcess).not.toHaveBeenCalled()
+    })
+  })
+
   describe('when include is configured', () => {
     beforeAll(() => {
-      mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
+      mockGetFilesPath.mockImplementation(() => ['test'])
     })
 
     describe('when no file matches the patterns', () => {
@@ -123,7 +148,7 @@ describe('IncludeProcessor', () => {
       it('Then returns an empty result', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         const result = await sut.transformAndCollect(new ChangeSet())
@@ -135,7 +160,7 @@ describe('IncludeProcessor', () => {
       it('Then does not call DiffLineInterpreter.process (kills L70 ConditionalExpression false)', async () => {
         // Arrange — keep returns true for all lines, so includeLines map is empty
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         await sut.transformAndCollect(new ChangeSet())
@@ -152,7 +177,7 @@ describe('IncludeProcessor', () => {
       it('Then aggregates the processed manifest and copy into the result', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         const result = await sut.transformAndCollect(new ChangeSet())
@@ -161,28 +186,26 @@ describe('IncludeProcessor', () => {
         expect(elementsOf(result).length).toBeGreaterThan(0)
         expect(elementsOf(result)).toContainEqual(includedManifest)
         expect(result.copies).toContainEqual(includedCopy)
-        expect(mockGetFilesPath).toHaveBeenCalledWith(config.source, {
-          revision: config.to,
-          scopePaths: config.source,
-        })
+        expect(mockAt).toHaveBeenCalledWith(config.to)
+        expect(mockGetFilesPath).toHaveBeenCalledWith(config.source)
       })
     })
 
     describe('when multiple files match the patterns', () => {
       beforeEach(() => {
-        mockGetFilesPath.mockImplementation(() =>
-          Promise.resolve(['test1', 'test2'])
-        )
+        mockGetFilesPath.mockImplementation(() => ['test1', 'test2'])
         mockKeep.mockReturnValue(false)
       })
       it('Then aggregates at least one manifest entry per matched file', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
         const baseline = elementsOf(
-          await new IncludeProcessor(getConfig(), metadata).transformAndCollect(
-            new ChangeSet()
-          )
+          await new IncludeProcessor(
+            getConfig(),
+            metadata,
+            treeIndexes
+          ).transformAndCollect(new ChangeSet())
         ).length
 
         // Act
@@ -196,7 +219,7 @@ describe('IncludeProcessor', () => {
 
     describe('when only additions match the patterns', () => {
       beforeEach(() => {
-        mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
+        mockGetFilesPath.mockImplementation(() => ['test'])
         // Keep deletion lines, reject addition lines
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('D')) as typeof mockKeep)
@@ -204,7 +227,7 @@ describe('IncludeProcessor', () => {
       it('Then collects include manifest entries (additions only)', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         const result = await sut.transformAndCollect(new ChangeSet())
@@ -216,7 +239,7 @@ describe('IncludeProcessor', () => {
       it('Then calls process with ADDITION lines only, not DELETION (kills L78 ConditionalExpression false)', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         await sut.transformAndCollect(new ChangeSet())
@@ -228,7 +251,7 @@ describe('IncludeProcessor', () => {
 
     describe('when only deletions match the patterns', () => {
       beforeEach(() => {
-        mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
+        mockGetFilesPath.mockImplementation(() => ['test'])
         // Keep addition lines, reject deletion lines
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('A')) as typeof mockKeep)
@@ -236,7 +259,7 @@ describe('IncludeProcessor', () => {
       it('Then collects include manifest entries (deletions only)', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         const result = await sut.transformAndCollect(new ChangeSet())
@@ -248,7 +271,7 @@ describe('IncludeProcessor', () => {
       it('Then calls process with DELETION lines only, not ADDITION (kills L86 ConditionalExpression true)', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         await sut.transformAndCollect(new ChangeSet())
@@ -260,16 +283,14 @@ describe('IncludeProcessor', () => {
 
     describe('when include helper is called with correct changedLine format (kills L55 StringLiteral "")', () => {
       beforeEach(() => {
-        mockGetFilesPath.mockImplementation(() =>
-          Promise.resolve(['myFile.cls'])
-        )
+        mockGetFilesPath.mockImplementation(() => ['myFile.cls'])
         mockKeep.mockReturnValue(false)
       })
 
       it('Then keep is called with TAB-separated changeType+path line', async () => {
         // Arrange
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         await sut.transformAndCollect(new ChangeSet())
@@ -285,9 +306,7 @@ describe('IncludeProcessor', () => {
 
     describe('includeLines set initialization integrity (kills L57:15 true, L58:42 ArrayDeclaration)', () => {
       beforeEach(() => {
-        mockGetFilesPath.mockImplementation(() =>
-          Promise.resolve(['file1.cls', 'file2.cls'])
-        )
+        mockGetFilesPath.mockImplementation(() => ['file1.cls', 'file2.cls'])
         mockKeep.mockReturnValue(false) // all lines are included
       })
 
@@ -296,7 +315,7 @@ describe('IncludeProcessor', () => {
         // so second file overwrites first → only 1 line per changeType.
         // Real: array initialized once, both lines pushed → 2 lines.
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         await sut.transformAndCollect(new ChangeSet())
 
@@ -310,9 +329,9 @@ describe('IncludeProcessor', () => {
       it('When one file matches, Then process is called with exactly [changeType+TAB+file] (kills L58 ArrayDeclaration ["Stryker was here"])', async () => {
         // L58 mutant: includeLines.set(changeType, ["Stryker was here"]) → stray entry
         // → process receives ["Stryker was here", "A\tfile.cls"] instead of ["A\tfile.cls"]
-        mockGetFilesPath.mockImplementation(() => Promise.resolve(['only.cls']))
+        mockGetFilesPath.mockImplementation(() => ['only.cls'])
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         await sut.transformAndCollect(new ChangeSet())
 
@@ -331,8 +350,8 @@ describe('IncludeProcessor', () => {
         // L70:34 {}: the emptyResult() return is a no-op → same effect
         mockKeep.mockReturnValue(true) // keep all = nothing included
         config.include = '.sgdinclude'
-        mockGetFilesPath.mockResolvedValue(['test.cls'])
-        const sut = new IncludeProcessor(config, metadata)
+        mockGetFilesPath.mockReturnValue(['test.cls'])
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         const result = await sut.transformAndCollect(new ChangeSet())
 
@@ -347,10 +366,10 @@ describe('IncludeProcessor', () => {
         // L76 mutant: results = ["Stryker was here"] → mergeResults gets stray string as first result
         // mergeResults("Stryker was here", actual) → manifests = [undefined, ...actual.manifests]
         // The exact manifests array would differ (has an undefined entry).
-        mockGetFilesPath.mockResolvedValue(['file.cls'])
+        mockGetFilesPath.mockReturnValue(['file.cls'])
         mockKeep.mockReturnValue(false)
         config.include = '.sgdinclude'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         const result = await sut.transformAndCollect(new ChangeSet())
 
@@ -366,7 +385,7 @@ describe('IncludeProcessor', () => {
       const firstSHA = 'first-sha-000'
 
       beforeEach(() => {
-        mockGetFilesPath.mockResolvedValue(['test'])
+        mockGetFilesPath.mockReturnValue(['test'])
         mockGetFirstCommitRef.mockResolvedValue(firstSHA)
       })
 
@@ -376,7 +395,7 @@ describe('IncludeProcessor', () => {
         config.to = 'HEAD'
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('D')) as typeof mockKeep)
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         await sut.transformAndCollect(new ChangeSet())
@@ -394,7 +413,7 @@ describe('IncludeProcessor', () => {
         config.to = 'HEAD'
         mockKeep.mockImplementation(((line: string) =>
           line.startsWith('A')) as typeof mockKeep)
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         await sut.transformAndCollect(new ChangeSet())
@@ -410,7 +429,7 @@ describe('IncludeProcessor', () => {
 
   describe('when includeDestructive is configured', () => {
     beforeAll(() => {
-      mockGetFilesPath.mockImplementation(() => Promise.resolve(['test']))
+      mockGetFilesPath.mockImplementation(() => ['test'])
     })
     describe('when no file matches the patterns', () => {
       beforeEach(() => {
@@ -419,7 +438,7 @@ describe('IncludeProcessor', () => {
       it('Then returns an empty result', async () => {
         // Arrange
         config.includeDestructive = '.sgdincludedestructive'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         const result = await sut.transformAndCollect(new ChangeSet())
@@ -436,7 +455,7 @@ describe('IncludeProcessor', () => {
       it('Then collects the destructive include entry', async () => {
         // Arrange
         config.includeDestructive = '.sgdincludedestructive'
-        const sut = new IncludeProcessor(config, metadata)
+        const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
         const result = await sut.transformAndCollect(new ChangeSet())

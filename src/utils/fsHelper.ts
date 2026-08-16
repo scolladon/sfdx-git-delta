@@ -2,7 +2,7 @@
 import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
-import { treeScopeAt } from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/gitTreeLister.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
@@ -31,18 +31,22 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   return utf8Data
 }
 
-export const pathExists = async (path: string, config: Config) => {
-  const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.pathExists(path, treeScopeAt(config, config.to))
-}
+// Both read the run-owned tree index for `config.to` — supplied by the
+// caller (ultimately main.ts) rather than rebuilt here, so there is no
+// scope for this lookup to disagree with whatever scope the index was
+// actually built under. A revision nobody built an index for (or an index
+// build that failed) degrades to false/[] rather than indexing lazily.
+export const pathExists = async (
+  path: string,
+  config: Config,
+  treeIndexes: TreeIndexes
+): Promise<boolean> => treeIndexes.at(config.to)?.pathExists(path) ?? false
 
 export const readDirs = async (
   paths: string | string[],
-  config: Config
-): Promise<string[]> => {
-  const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.getFilesPath(paths, treeScopeAt(config, config.to))
-}
+  config: Config,
+  treeIndexes: TreeIndexes
+): Promise<string[]> => treeIndexes.at(config.to)?.getFilesPath(paths) ?? []
 
 export const grepContentUnder = async (
   pattern: string,
