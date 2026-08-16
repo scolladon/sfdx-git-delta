@@ -9,12 +9,13 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import type { DiffOutcome } from '../../../../src/utils/metadataDiff'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockRun, mockWriter } = vi.hoisted(() => ({
-  mockRun: vi.fn<() => Promise<any>>(),
+  mockRun: vi.fn<() => Promise<DiffOutcome>>(),
   mockWriter: vi.fn(),
 }))
 

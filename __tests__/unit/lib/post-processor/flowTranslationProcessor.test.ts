@@ -40,6 +40,7 @@ import {
   readFile,
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
+import type { RootCapture } from '../../../../src/utils/metadataDiff/xmlEventReader'
 import { addChange, elementsOf } from '../../../__utils__/handlerResultView'
 import { sourceDirs } from '../../../__utils__/sourceDirs'
 import { getConfig, getContext } from '../../../__utils__/testWork'
@@ -213,8 +214,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
 
       // Act — call twice
-      await (sut as any)._initIgnoreHelper()
-      await (sut as any)._initIgnoreHelper()
+      await sut['_initIgnoreHelper']()
+      await sut['_initIgnoreHelper']()
 
       // Assert
       expect(mockedBuildIgnoreHelper).toHaveBeenCalledTimes(1)
@@ -271,17 +272,17 @@ describe('FlowTranslationProcessor', () => {
       const path = `${FR}.translation${METAFILE_SUFFIX}`
 
       // Act
-      ;(sut as any)._addFlowPerTranslation({
+      sut['_addFlowPerTranslation']({
         translationPath: path,
         flowDefinition: { fullName: 'FlowA' },
       })
-      ;(sut as any)._addFlowPerTranslation({
+      sut['_addFlowPerTranslation']({
         translationPath: path,
         flowDefinition: { fullName: 'FlowB' },
       })
 
       // Assert — kills "list = undefined → []" branch flip
-      expect((sut as any).translations.get(path)).toHaveLength(2)
+      expect(sut['translations'].get(path)).toHaveLength(2)
     })
   })
 
@@ -292,8 +293,13 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const seenFullNames = new Set<string | undefined>(['existing'])
       const bucket: Array<{ fullName?: string }> = [{ fullName: 'existing' }]
+      const rootCapture: RootCapture = {
+        xmlHeader: undefined,
+        rootKey: 'Translations',
+        rootAttributes: {},
+      }
       const merge = {
-        rootCapture: {} as any,
+        rootCapture,
         orderedChildren: [['flowDefinitions', bucket]] as Array<
           [string, unknown[]]
         >,
@@ -302,17 +308,15 @@ describe('FlowTranslationProcessor', () => {
       }
 
       // Act
-      ;(sut as any)._mergeActualFlows(merge, [
+      sut['_mergeActualFlows'](merge, [
         { fullName: 'existing' },
         { fullName: 'new-flow' },
       ])
 
       // Assert — kills ConditionalExpression true on seenFullNames.has
       expect(bucket).toHaveLength(2) // original + new-flow only
-      expect(bucket.map((f: any) => f.fullName)).toContain('new-flow')
-      expect(bucket.filter((f: any) => f.fullName === 'existing')).toHaveLength(
-        1
-      )
+      expect(bucket.map(f => f.fullName)).toContain('new-flow')
+      expect(bucket.filter(f => f.fullName === 'existing')).toHaveLength(1)
     })
 
     it('Given seenFullNames.add is called after push (kills L229 ConditionalExpression true)', () => {
@@ -321,8 +325,13 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const seenFullNames = new Set<string | undefined>()
       const bucket: Array<{ fullName?: string }> = []
+      const rootCapture: RootCapture = {
+        xmlHeader: undefined,
+        rootKey: 'Translations',
+        rootAttributes: {},
+      }
       const merge = {
-        rootCapture: {} as any,
+        rootCapture,
         orderedChildren: [['flowDefinitions', bucket]] as Array<
           [string, unknown[]]
         >,
@@ -331,7 +340,7 @@ describe('FlowTranslationProcessor', () => {
       }
 
       // Act — call with two identical flows
-      ;(sut as any)._mergeActualFlows(merge, [
+      sut['_mergeActualFlows'](merge, [
         { fullName: 'dup' },
         { fullName: 'dup' },
       ])
@@ -427,14 +436,14 @@ describe('FlowTranslationProcessor', () => {
       const path = `${FR}.translation${METAFILE_SUFFIX}`
 
       // First call creates the list
-      ;(sut as any)._addFlowPerTranslation({
+      sut['_addFlowPerTranslation']({
         translationPath: path,
         flowDefinition: { fullName: 'FlowA' },
       })
 
       // Assert: exactly 1 element (no stray entry from mutant)
-      expect((sut as any).translations.get(path)).toHaveLength(1)
-      expect((sut as any).translations.get(path)[0]).toMatchObject({
+      expect(sut['translations'].get(path)).toHaveLength(1)
+      expect(sut['translations'].get(path)?.[0]).toMatchObject({
         fullName: 'FlowA',
       })
     })
@@ -451,7 +460,7 @@ describe('FlowTranslationProcessor', () => {
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
       )
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
-      const merge = await (sut as any)._mergeTranslationWithOutput(
+      const merge = await sut['_mergeTranslationWithOutput'](
         `${FR}.translation${METAFILE_SUFFIX}`
       )
 
@@ -469,12 +478,12 @@ describe('FlowTranslationProcessor', () => {
       const sut2 = new FlowTranslationProcessor(
         getContext({ config, metadata })
       )
-      return (sut2 as any)
-        ._mergeTranslationWithOutput(`${FR}.translation${METAFILE_SUFFIX}`)
-        .then((m: any) => {
-          const bucket = m.orderedChildren[m.flowsIndex][1]
-          expect(bucket).toHaveLength(0)
-        })
+      return sut2['_mergeTranslationWithOutput'](
+        `${FR}.translation${METAFILE_SUFFIX}`
+      ).then(m => {
+        const bucket = m.orderedChildren[m.flowsIndex][1]
+        expect(bucket).toHaveLength(0)
+      })
     })
   })
 
@@ -491,7 +500,7 @@ describe('FlowTranslationProcessor', () => {
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>A</fullName></flowDefinitions><flowDefinitions><fullName>B</fullName></flowDefinitions></Translations>`
       )
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
-      const merge = await (sut as any)._mergeTranslationWithOutput(
+      const merge = await sut['_mergeTranslationWithOutput'](
         `${FR}.translation${METAFILE_SUFFIX}`
       )
 
@@ -521,7 +530,7 @@ describe('FlowTranslationProcessor', () => {
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><fullName>SomeField</fullName></customFieldTranslations><flowDefinitions><fullName>MyFlow</fullName></flowDefinitions></Translations>`
       )
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
-      const merge = await (sut as any)._mergeTranslationWithOutput(
+      const merge = await sut['_mergeTranslationWithOutput'](
         `${FR}.translation${METAFILE_SUFFIX}`
       )
 
@@ -545,7 +554,7 @@ describe('FlowTranslationProcessor', () => {
         `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>Existing</fullName></flowDefinitions></Translations>`
       )
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
-      const merge = await (sut as any)._mergeTranslationWithOutput(
+      const merge = await sut['_mergeTranslationWithOutput'](
         `${FR}.translation${METAFILE_SUFFIX}`
       )
 

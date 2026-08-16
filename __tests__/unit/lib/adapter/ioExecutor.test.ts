@@ -79,6 +79,15 @@ const treeReader = {
   children: vi.fn(),
 } as unknown as TreeReader
 
+// streamArchive stub for the cases that assert the archive path is not
+// taken: the generator must exist, but must never produce a chunk.
+const emptyArchiveStream = async function* (): AsyncGenerator<{
+  path: string
+  stream: Readable
+}> {
+  yield* []
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetInstance.mockReturnValue({
@@ -807,7 +816,7 @@ describe('IOExecutor', () => {
       const filePaths = Array.from({ length: 25 }, (_, i) => `bundle/f${i}.xml`)
       mockFilesUnder.mockReturnValue(filePaths)
       mockGetBufferContent.mockResolvedValue(Buffer.from('x'))
-      const streamArchiveSpy = vi.fn(async function* () {})
+      const streamArchiveSpy = vi.fn(emptyArchiveStream)
       mockGetInstance.mockReturnValue({
         getBufferContent: mockGetBufferContent,
         getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
@@ -1125,7 +1134,7 @@ describe('IOExecutor', () => {
           )
         ),
         streamContent: vi.fn(() => Readable.from([Buffer.from('BIGBIG')])),
-        streamArchive: vi.fn(async function* () {}),
+        streamArchive: vi.fn(emptyArchiveStream),
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
@@ -1221,7 +1230,7 @@ describe('IOExecutor', () => {
           )
         ),
         streamContent: vi.fn(() => failingSource),
-        streamArchive: vi.fn(async function* () {}),
+        streamArchive: vi.fn(emptyArchiveStream),
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)

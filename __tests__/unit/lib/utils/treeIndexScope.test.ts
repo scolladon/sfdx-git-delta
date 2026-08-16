@@ -722,7 +722,6 @@ describe('computeTreeIndexScope', () => {
         metaFile: false,
         xmlName: 'CustomObject',
       }
-      const repo = mockMetadata([typeDef])
       const customRepo = createMetadataRepositoryMock({
         has: () => true,
         get: () => typeDef,
