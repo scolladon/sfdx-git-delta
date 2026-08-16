@@ -20,22 +20,20 @@ import { sourceDirs } from '../../../__utils__/sourceDirs'
 // scopes) it was called with, so tests can pin that RepoGitDiff threads
 // its own diffScopeVerdict and config.source into the adapter rather than
 // letting the adapter read either off shared state.
-const mockGetDiffLines = vi.fn<() => string[]>()
-const mockStreamDiffLinesCall =
-  vi.fn<
-    (
-      verdict: { changesSeen: number; linesYielded: number },
-      scopes: readonly string[]
-    ) => void
-  >()
-const streamDiffLines = async function* (
-  verdict: { changesSeen: number; linesYielded: number },
+type Verdict = { changesSeen: number; linesYielded: number }
+type DiffRequest = {
+  spec: unknown
+  verdict: Verdict
   scopes: readonly string[]
-) {
-  mockStreamDiffLinesCall(verdict, scopes)
+}
+
+const mockGetDiffLines = vi.fn<() => string[]>()
+const mockStreamDiffLinesCall = vi.fn<(request: DiffRequest) => void>()
+const streamDiffLines = async function* (request: DiffRequest) {
+  mockStreamDiffLinesCall(request)
   for (const line of mockGetDiffLines()) {
-    verdict.changesSeen++
-    verdict.linesYielded++
+    request.verdict.changesSeen++
+    request.verdict.linesYielded++
     yield line
   }
 }
@@ -662,10 +660,16 @@ describe('Given a RepoGitDiff', () => {
       await collect(sut.getLines())
 
       // Assert
-      expect(mockStreamDiffLinesCall).toHaveBeenCalledWith(
-        { changesSeen: 0, linesYielded: 0 },
-        sourceDirs('force-app')
-      )
+      expect(mockStreamDiffLinesCall).toHaveBeenCalledWith({
+        spec: {
+          from: config.from,
+          to: config.to,
+          detectRenames: Boolean(config.changesManifest),
+          ignoreWhitespace: config.ignoreWhitespace,
+        },
+        verdict: { changesSeen: 0, linesYielded: 0 },
+        scopes: sourceDirs('force-app'),
+      })
     })
 
     it('Given getLines is called twice, When the first drain matches and the second drain has no changes, Then the second call reports its own (reset) verdict instead of carrying the first drain’s counts forward', async () => {
@@ -687,7 +691,7 @@ describe('Given a RepoGitDiff', () => {
       // Assert — the verdict passed into GitAdapter for this second drain
       // must start from zero, not from the first drain's { 1, 1 }.
       const verdictOnSecondDrain =
-        mockStreamDiffLinesCall.mock.calls.at(-1)?.[0]
+        mockStreamDiffLinesCall.mock.calls.at(-1)?.[0].verdict
       expect(verdictOnSecondDrain).toEqual({ changesSeen: 0, linesYielded: 0 })
 
       // Assert — object identity, not just value equality. A fresh

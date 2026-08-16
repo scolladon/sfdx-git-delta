@@ -170,7 +170,7 @@ describe('readDirs', () => {
       expect(dirContent).toEqual(
         expect.arrayContaining(['dir1/file1.js', 'dir2/file2.js'])
       )
-      expect(mockGetFilesPath).toHaveBeenCalledWith(paths)
+      expect(mockGetFilesPath).toHaveBeenCalledWith(paths, work.config.to)
     })
   })
 
@@ -198,6 +198,7 @@ describe('pathExists', () => {
 
     // Assert
     expect(result).toBe(true)
+    expect(mockPathExists).toHaveBeenCalledWith('path', work.config.to)
   })
   it('returns true when path is file', async () => {
     // Arrange
@@ -208,6 +209,7 @@ describe('pathExists', () => {
 
     // Assert
     expect(result).toBe(true)
+    expect(mockPathExists).toHaveBeenCalledWith('path', work.config.to)
   })
   it('returns false when path does not exist', async () => {
     // Arrange
@@ -218,6 +220,10 @@ describe('pathExists', () => {
 
     // Assert
     expect(result).toBe(false)
+    expect(mockPathExists).toHaveBeenCalledWith(
+      'not/existing/path',
+      work.config.to
+    )
   })
 })
 
@@ -232,7 +238,11 @@ describe('grepContentUnder', () => {
 
     // Assert
     expect(result).toEqual(matchingFiles)
-    expect(mockGrepUnderPaths).toHaveBeenCalledWith('MasterDetail', 'fields')
+    expect(mockGrepUnderPaths).toHaveBeenCalledWith(
+      'MasterDetail',
+      'fields',
+      work.config.to
+    )
     expect(mockGrepMatchingPathspecs).not.toHaveBeenCalled()
   })
 
@@ -265,10 +275,11 @@ describe('grepContentMatching', () => {
 
     // Assert
     expect(result).toEqual(matchingFiles)
-    expect(mockGrepMatchingPathspecs).toHaveBeenCalledWith('flowDefinitions', [
-      'dir1/*.xml',
-      'dir2/*.xml',
-    ])
+    expect(mockGrepMatchingPathspecs).toHaveBeenCalledWith(
+      'flowDefinitions',
+      ['dir1/*.xml', 'dir2/*.xml'],
+      work.config.to
+    )
     expect(mockGrepUnderPaths).not.toHaveBeenCalled()
   })
 

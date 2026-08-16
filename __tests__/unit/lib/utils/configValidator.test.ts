@@ -12,19 +12,15 @@ import {
 import { Logger } from '../../../../src/utils/LoggingService'
 import { getConfig } from '../../../__utils__/testWork'
 
-const {
-  mockGetMessage,
-  mockParseRev,
-  mockConfigureRepository,
-  mockSfProjectResolve,
-} = vi.hoisted(() => ({
-  mockGetMessage: vi.fn(
-    (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
-  ),
-  mockParseRev: vi.fn(),
-  mockConfigureRepository: vi.fn(),
-  mockSfProjectResolve: vi.fn(),
-}))
+const { mockGetMessage, mockParseRev, mockSfProjectResolve } = vi.hoisted(
+  () => ({
+    mockGetMessage: vi.fn(
+      (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
+    ),
+    mockParseRev: vi.fn(),
+    mockSfProjectResolve: vi.fn(),
+  })
+)
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -46,7 +42,6 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
     default: {
       getInstance: () => ({
         parseRev: mockParseRev,
-        configureRepository: mockConfigureRepository,
       }),
     },
   }

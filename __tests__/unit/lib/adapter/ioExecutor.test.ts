@@ -339,7 +339,7 @@ describe('IOExecutor', () => {
   })
 
   describe('Given a GitCopy operation with a different revision than config.to', () => {
-    it('When executed, Then calls GitAdapter.getInstance with modified config', async () => {
+    it('When executed, Then the ref carries op.revision and GitAdapter.getInstance is still called with the unmodified config', async () => {
       // Arrange
       const work = getWork()
       work.config.to = 'abc123'
@@ -356,10 +356,14 @@ describe('IOExecutor', () => {
         },
       ])
 
-      // Assert
-      expect(mockGetInstance).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'different-sha' })
-      )
+      // Assert — the revision travels through the FileGitRef passed to the
+      // blob reader, not through a rebuilt GitAdapter instance.
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'classes/MyClass.cls',
+        oid: 'different-sha',
+      })
+      expect(mockGetInstance).toHaveBeenCalledTimes(1)
+      expect(mockGetInstance).toHaveBeenCalledWith(work.config)
     })
   })
 
@@ -411,14 +415,17 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetFilesPath).toHaveBeenCalledWith('permissionsets/MyPS')
+      expect(mockGetFilesPath).toHaveBeenCalledWith(
+        'permissionsets/MyPS',
+        'abc123'
+      )
       expect(mockGetBufferContent).toHaveBeenCalledTimes(2)
       expect(outputFile).toHaveBeenCalledTimes(2)
     })
   })
 
   describe('Given a GitDirCopy operation with a different revision than config.to', () => {
-    it('When executed, Then calls GitAdapter.getInstance with modified config', async () => {
+    it('When executed, Then getFilesPath is called with (op.path, op.revision) and GitAdapter.getInstance is called exactly once with the unmodified config', async () => {
       // Arrange
       const work = getWork()
       work.config.to = 'abc123'
@@ -436,10 +443,15 @@ describe('IOExecutor', () => {
         },
       ])
 
-      // Assert
-      expect(mockGetInstance).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'different-sha' })
+      // Assert — the revision travels through the op, not through a
+      // rebuilt GitAdapter instance: getInstance is called exactly once,
+      // at construction, with the unmodified config.
+      expect(mockGetFilesPath).toHaveBeenCalledWith(
+        'permissionsets/MyPS',
+        'different-sha'
       )
+      expect(mockGetInstance).toHaveBeenCalledTimes(1)
+      expect(mockGetInstance).toHaveBeenCalledWith(work.config)
     })
   })
 
@@ -766,73 +778,6 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given a GitCopy with same revision as config.to (kills L47 ConditionalExpression true)', () => {
-    it('When blobReaderForRevision is called with config.to, Then original config is used (not a spread)', async () => {
-      // Arrange
-      const work = getWork()
-      work.config.to = 'rev-same'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent,
-          getBufferContentOrEscalate:
-            mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('ok')),
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      const sut = new IOExecutor(work.config)
-
-      // Act
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitCopy,
-          path: 'classes/Foo.cls',
-          revision: 'rev-same',
-        },
-      ])
-
-      // Assert — config passed to getInstance must have to='rev-same' (original, not spread)
-      expect(capturedConfigs[0]).toBe(work.config)
-    })
-
-    it('When blobReaderForRevision is called with a different revision, Then a new config with that revision is used', async () => {
-      // Arrange
-      const work = getWork()
-      work.config.to = 'rev-current'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent,
-          getBufferContentOrEscalate:
-            mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('ok')),
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      const sut = new IOExecutor(work.config)
-
-      // Act
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitCopy,
-          path: 'classes/Foo.cls',
-          revision: 'rev-old',
-        },
-      ])
-
-      // Assert — spread config with to='rev-old', not original config object
-      expect(capturedConfigs[0]).not.toBe(work.config)
-      expect(capturedConfigs[0]).toMatchObject({ to: 'rev-old' })
-    })
-  })
-
   describe('Given _executeGitDirCopyViaArchive path guards (kills L174/L178/L182/L191 ConditionalExpression false)', () => {
     const makeArchiveSut = (
       filePaths: string[],
@@ -1010,76 +955,6 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given L90 _getGitAdapter revision equality check', () => {
-    it('When GitDirCopy revision equals config.to, Then GitAdapter.getInstance is called with the original config object (not a spread)', async () => {
-      // L90 mutant: revision !== this.config.to → true (always spreads)
-      // With mutant: getInstance always gets a spread (new object), so toBe(work.config) fails.
-      const work = getWork()
-      work.config.to = 'same-rev'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent.mockResolvedValue(
-            Buffer.from('x')
-          ),
-          getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      mockGetFilesPath.mockResolvedValue(['bundle/file.xml'])
-      const sut = new IOExecutor(work.config)
-
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitDirCopy,
-          path: 'bundle',
-          revision: 'same-rev',
-        },
-      ])
-
-      // The config passed to getInstance must be the original object (same reference)
-      expect(capturedConfigs[0]).toBe(work.config)
-    })
-
-    it('When GitDirCopy revision differs from config.to, Then GitAdapter.getInstance is called with a spread (different object)', async () => {
-      // L90 positive path: revision !== config.to → spread
-      const work = getWork()
-      work.config.to = 'current-rev'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent.mockResolvedValue(
-            Buffer.from('x')
-          ),
-          getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      mockGetFilesPath.mockResolvedValue(['bundle/file.xml'])
-      const sut = new IOExecutor(work.config)
-
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitDirCopy,
-          path: 'bundle',
-          revision: 'old-rev',
-        },
-      ])
-
-      // Spread: different object, but with to='old-rev'
-      expect(capturedConfigs[0]).not.toBe(work.config)
-      expect(capturedConfigs[0]).toMatchObject({ to: 'old-rev' })
-    })
-  })
-
   describe('Given L107 EscalateToStreamingSignal instanceof check', () => {
     it('When getBufferContentOrEscalate rejects with plain Error, Then tmp file is NOT created (no unlink)', async () => {
       // L107 mutant: `if (true)` instead of `if (error instanceof EscalateToStreamingSignal)`
@@ -1126,7 +1001,7 @@ describe('IOExecutor', () => {
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, () => fakeBlobReader)
+      const sut = new IOExecutor(work.config, fakeBlobReader)
 
       // Act
       await sut.execute([
@@ -1218,7 +1093,7 @@ describe('IOExecutor', () => {
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, () => fakeBlobReader)
+      const sut = new IOExecutor(work.config, fakeBlobReader)
 
       // Act
       await sut.execute([

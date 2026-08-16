@@ -115,7 +115,6 @@ export default class ConfigValidator {
       throw new ConfigError(errors.join(', '))
     }
 
-    await this.gitAdapter.configureRepository()
     return defaultWarnings
   }
 

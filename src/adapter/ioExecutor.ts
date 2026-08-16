@@ -23,6 +23,7 @@ import {
   GIT_ARCHIVE_DIR_THRESHOLD,
   type GitBlobReader,
 } from './gitBlobReader.js'
+import type { GitTreeLister } from './gitTreeLister.js'
 
 const TMP_SUFFIX = '.tmp'
 
@@ -32,20 +33,9 @@ export default class IOExecutor {
 
   constructor(
     protected readonly config: Config,
-    protected readonly blobReaderForRevision: (
-      revision: string
-    ) => GitBlobReader = revision =>
-      IOExecutor._defaultBlobReaderForRevision(config, revision)
+    protected readonly blobReader: GitBlobReader &
+      GitTreeLister = GitAdapter.getInstance(config)
   ) {}
-
-  private static _defaultBlobReaderForRevision(
-    config: Config,
-    revision: string
-  ): GitBlobReader {
-    const adapterConfig =
-      revision !== config.to ? { ...config, to: revision } : config
-    return GitAdapter.getInstance(adapterConfig)
-  }
 
   public async execute(copies: readonly CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
@@ -81,14 +71,6 @@ export default class IOExecutor {
     }
   }
 
-  protected _getGitAdapter(revision: string): GitAdapter {
-    const config =
-      revision !== this.config.to
-        ? { ...this.config, to: revision }
-        : this.config
-    return GitAdapter.getInstance(config)
-  }
-
   // Defense-in-depth shared by every copy path: reject any destination that
   // resolves outside `config.output` (zip-slip). Tree paths from the object
   // store should never contain '..', but a crafted store must not be able to
@@ -108,13 +90,12 @@ export default class IOExecutor {
       Logger.debug(lazy`IOExecutor gitFileCopy out-of-output dst ${dst}`)
       return
     }
-    const reader = this.blobReaderForRevision(op.revision)
     try {
-      const content = await reader.getBufferContentOrEscalate(ref)
+      const content = await this.blobReader.getBufferContentOrEscalate(ref)
       await outputFile(dst, content)
     } catch (error) {
       if (error instanceof EscalateToStreamingSignal) {
-        await this._streamCopyWithAtomicRename(reader, ref, dst)
+        await this._streamCopyWithAtomicRename(this.blobReader, ref, dst)
         return
       }
       Logger.debug(
@@ -139,10 +120,9 @@ export default class IOExecutor {
     revision: string
   }): Promise<void> {
     try {
-      const gitAdapter = this._getGitAdapter(op.revision)
-      const filePaths = await gitAdapter.getFilesPath(op.path)
+      const filePaths = await this.blobReader.getFilesPath(op.path, op.revision)
       if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
-        await this._executeGitDirCopyViaArchive(gitAdapter, op, filePaths)
+        await this._executeGitDirCopyViaArchive(this.blobReader, op, filePaths)
         return
       }
       for (const filePath of filePaths) {
@@ -154,7 +134,7 @@ export default class IOExecutor {
           Logger.debug(lazy`IOExecutor gitDirCopy out-of-output dst ${dst}`)
           continue
         }
-        const content = await gitAdapter.getBufferContent({
+        const content = await this.blobReader.getBufferContent({
           path: filePath,
           oid: op.revision,
         })

@@ -9,6 +9,7 @@ import { openRepository, toSimilarityPercent } from '@scolladon/tsgit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import GitAdapter, {
   type DiffScopeVerdict,
+  type DiffSpec,
 } from '../../../../src/adapter/GitAdapter'
 import {
   EscalateToStreamingSignal,
@@ -117,10 +118,22 @@ const freshVerdict = (): DiffScopeVerdict => ({
   linesYielded: 0,
 })
 
+// The DiffSpec is owned by the caller (RepoGitDiff in production); tests
+// that don't care about its exact shape reuse this default and override
+// only the field under test.
+const DEFAULT_DIFF_SPEC: DiffSpec = {
+  from: 'HEAD~1',
+  to: 'HEAD',
+  detectRenames: false,
+  ignoreWhitespace: false,
+}
+
 const streamDiff = (
   sut: GitAdapter,
-  scopes: readonly string[] = sourceDirs('force-app')
-): Promise<string[]> => collect(sut.streamDiffLines(freshVerdict(), scopes))
+  scopes: readonly string[] = sourceDirs('force-app'),
+  spec: DiffSpec = DEFAULT_DIFF_SPEC
+): Promise<string[]> =>
+  collect(sut.streamDiffLines({ spec, verdict: freshVerdict(), scopes }))
 
 let fakeRepo: FakeRepo
 
@@ -138,7 +151,7 @@ afterEach(async () => {
 
 describe('GitAdapter', () => {
   describe('Given getInstance', () => {
-    it('When called twice with the same repo and to, Then it returns the same instance', () => {
+    it('When called twice with the same repo, Then it returns the same instance', () => {
       // Arrange
       const config = makeConfig()
 
@@ -150,16 +163,40 @@ describe('GitAdapter', () => {
       expect(first).toBe(second)
     })
 
-    it('When called with a different to, Then it returns a different instance', () => {
+    it('When called again after `to` was rewritten on the same config object, Then it still returns the same instance (regression: GitAdapter is bound to the repo, not the run)', () => {
       // Arrange
       const config = makeConfig()
+      const first = GitAdapter.getInstance(config)
+
+      // Act — mutating `to` used to move the pool key, minting a second
+      // instance for the same repository.
+      config.to = 'HEAD~1'
+      const second = GitAdapter.getInstance(config)
+
+      // Assert
+      expect(first).toBe(second)
+    })
+
+    it('When called with a different repo, Then it returns a different instance', () => {
+      // Arrange
+      const first = GitAdapter.getInstance(makeConfig({ repo: '/repo-a' }))
 
       // Act
-      const first = GitAdapter.getInstance(config)
-      const second = GitAdapter.getInstance(makeConfig({ to: 'HEAD~1' }))
+      const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-b' }))
 
       // Assert
       expect(first).not.toBe(second)
+    })
+
+    it('When two configs reference the same repo through an unnormalised and a normalised path, Then it returns the same instance', () => {
+      // Arrange
+      const first = GitAdapter.getInstance(makeConfig({ repo: './repo' }))
+
+      // Act
+      const second = GitAdapter.getInstance(makeConfig({ repo: 'repo' }))
+
+      // Assert
+      expect(first).toBe(second)
     })
   })
 
@@ -218,7 +255,7 @@ describe('GitAdapter', () => {
       fakeRepo.revParse.mockResolvedValue('abc')
       secondRepo.revParse.mockResolvedValue('def')
       const first = GitAdapter.getInstance(makeConfig())
-      const second = GitAdapter.getInstance(makeConfig({ to: 'HEAD~1' }))
+      const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-2' }))
       await first.parseRev('HEAD')
       await second.parseRev('HEAD~1')
 
@@ -229,19 +266,6 @@ describe('GitAdapter', () => {
       expect(fakeRepo.dispose).toHaveBeenCalledOnce()
       expect(secondRepo.dispose).toHaveBeenCalledOnce()
       expect(GitAdapter.getInstance(makeConfig())).not.toBe(first)
-    })
-  })
-
-  describe('Given configureRepository', () => {
-    it('When called, Then it resolves without opening the repository', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-
-      // Act
-      await sut.configureRepository()
-
-      // Assert
-      expect(mockOpenRepository).not.toHaveBeenCalled()
     })
   })
 
@@ -372,7 +396,7 @@ describe('GitAdapter', () => {
       await sut.preBuildTreeIndex('HEAD', ['.', 'force-app'])
 
       // Assert
-      expect(await sut.getFilesPath('')).toEqual(['force-app/foo.cls'])
+      expect(await sut.getFilesPath('', 'HEAD')).toEqual(['force-app/foo.cls'])
     })
 
     it('When indexing the revision fails, Then the failure is swallowed and the revision stays unindexed', async () => {
@@ -405,7 +429,7 @@ describe('GitAdapter', () => {
       await sut.preBuildTreeIndex('HEAD', [])
 
       // Assert
-      expect(await sut.getFilesPath('')).toEqual(['force-app/foo.cls'])
+      expect(await sut.getFilesPath('', 'HEAD')).toEqual(['force-app/foo.cls'])
     })
   })
 
@@ -585,7 +609,7 @@ describe('GitAdapter', () => {
       await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
-      const files = await sut.getFilesPath('')
+      const files = await sut.getFilesPath('', 'HEAD')
 
       // Assert
       expect(files.sort()).toEqual(
@@ -604,7 +628,7 @@ describe('GitAdapter', () => {
       await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
-      const files = await sut.getFilesPath('')
+      const files = await sut.getFilesPath('', 'HEAD')
 
       // Assert
       expect(files).toEqual(['force-app/foo.cls'])
@@ -1197,7 +1221,11 @@ describe('GitAdapter', () => {
         const sut = GitAdapter.getInstance(makeConfig())
 
         // Act
-        const result = await sut.grepMatchingPathspecs('match-me', pathspec)
+        const result = await sut.grepMatchingPathspecs(
+          'match-me',
+          pathspec,
+          'HEAD'
+        )
 
         // Assert
         expect(result.sort()).toEqual([...expected].sort())
@@ -1209,10 +1237,11 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.grepMatchingPathspecs('match-me', [
-        'other',
-        'force-app/*.cls',
-      ])
+      const result = await sut.grepMatchingPathspecs(
+        'match-me',
+        ['other', 'force-app/*.cls'],
+        'HEAD'
+      )
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1237,7 +1266,8 @@ describe('GitAdapter', () => {
       // Act
       const result = await sut.grepMatchingPathspecs(
         'needle',
-        './././force-app'
+        './././force-app',
+        'HEAD'
       )
 
       // Assert
@@ -1259,7 +1289,11 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.grepMatchingPathspecs('needle', '///force-app')
+      const result = await sut.grepMatchingPathspecs(
+        'needle',
+        '///force-app',
+        'HEAD'
+      )
 
       // Assert
       expect(result).toEqual(['force-app/foo.cls'])
@@ -1283,7 +1317,7 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.grepMatchingPathspecs('needle', 'x./y')
+      const result = await sut.grepMatchingPathspecs('needle', 'x./y', 'HEAD')
 
       // Assert — the embedded './' is left untouched (only a LEADING './'
       // is normalized), so the literal pathspec stays 'x./y'
@@ -1354,7 +1388,7 @@ describe('GitAdapter', () => {
         const sut = GitAdapter.getInstance(makeConfig())
 
         // Act
-        const result = await sut.grepUnderPaths('match-me', path)
+        const result = await sut.grepUnderPaths('match-me', path, 'HEAD')
 
         // Assert
         expect(result.sort()).toEqual([...expected].sort())
@@ -1393,7 +1427,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('')
+      const result = await sut.getFilesPath('', 'HEAD')
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1411,7 +1445,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('.')
+      const result = await sut.getFilesPath('.', 'HEAD')
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1429,7 +1463,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('force-app/classes/Foo.cls')
+      const result = await sut.getFilesPath('force-app/classes/Foo.cls', 'HEAD')
 
       // Assert
       expect(result).toEqual(['force-app/classes/Foo.cls'])
@@ -1441,7 +1475,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('force-app/classes')
+      const result = await sut.getFilesPath('force-app/classes', 'HEAD')
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1455,10 +1489,10 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath([
-        'force-app/classes/Foo.cls',
-        'force-app/objects/Baz.object',
-      ])
+      const result = await sut.getFilesPath(
+        ['force-app/classes/Foo.cls', 'force-app/objects/Baz.object'],
+        'HEAD'
+      )
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1472,7 +1506,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('force-app/missing-dir')
+      const result = await sut.getFilesPath('force-app/missing-dir', 'HEAD')
 
       // Assert
       expect(result).toEqual([])
@@ -1501,8 +1535,8 @@ describe('GitAdapter', () => {
       )
       await sut.preBuildTreeIndex('HEAD', [])
 
-      // Act — no explicit revision: exercises the config.to default parameter
-      const result = await sut.pathExists('')
+      // Act
+      const result = await sut.pathExists('', 'HEAD')
 
       // Assert
       expect(result).toBe(true)
@@ -1517,7 +1551,7 @@ describe('GitAdapter', () => {
       await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
-      const result = await sut.pathExists('')
+      const result = await sut.pathExists('', 'HEAD')
 
       // Assert
       expect(result).toBe(false)
@@ -1610,13 +1644,14 @@ describe('GitAdapter', () => {
 
     it('When changesManifest is configured, Then rename detection is requested as true', async () => {
       // Arrange
-      const sut = GitAdapter.getInstance(
-        makeConfig({ changesManifest: 'manifest.json' })
-      )
+      const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await streamDiff(sut)
+      await streamDiff(sut, sourceDirs('force-app'), {
+        ...DEFAULT_DIFF_SPEC,
+        detectRenames: true,
+      })
 
       // Assert
       expect(fakeRepo.diff).toHaveBeenCalledWith(
@@ -1626,11 +1661,14 @@ describe('GitAdapter', () => {
 
     it('When ignoreWhitespace is enabled, Then the whitespace options are passed to repo.diff', async () => {
       // Arrange
-      const sut = GitAdapter.getInstance(makeConfig({ ignoreWhitespace: true }))
+      const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await streamDiff(sut)
+      await streamDiff(sut, sourceDirs('force-app'), {
+        ...DEFAULT_DIFF_SPEC,
+        ignoreWhitespace: true,
+      })
 
       // Assert
       expect(fakeRepo.diff).toHaveBeenCalledWith(
@@ -1643,9 +1681,7 @@ describe('GitAdapter', () => {
 
     it('When ignoreWhitespace is disabled, Then no whitespace options are passed to repo.diff', async () => {
       // Arrange
-      const sut = GitAdapter.getInstance(
-        makeConfig({ ignoreWhitespace: false })
-      )
+      const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
@@ -1901,7 +1937,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -1927,7 +1969,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -1944,7 +1992,13 @@ describe('GitAdapter', () => {
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -1970,7 +2024,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('.')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('.'),
+        })
+      )
 
       // Assert
       expect(sut.getUnmatchedSourceScopes(verdict, sourceDirs('.'))).toEqual([])
@@ -2000,7 +2060,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('.', 'force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('.', 'force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -2027,7 +2093,11 @@ describe('GitAdapter', () => {
 
       // Act
       await collect(
-        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app', 'other'),
+        })
       )
 
       // Assert
@@ -2055,7 +2125,11 @@ describe('GitAdapter', () => {
 
       // Act
       await collect(
-        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app', 'other'),
+        })
       )
 
       // Assert
@@ -2066,7 +2140,7 @@ describe('GitAdapter', () => {
 
     it('Given two independent verdicts against the same cached instance, When only one is drained, Then the other verdict is untouched', async () => {
       // Arrange — two GitAdapter.getInstance() callers with the same repo
-      // and 'to' share one cached instance; each must own its own verdict.
+      // share one cached instance; each must own its own verdict.
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
@@ -2085,7 +2159,11 @@ describe('GitAdapter', () => {
 
       // Act
       await collect(
-        sut.streamDiffLines(drainedVerdict, sourceDirs('force-app'))
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict: drainedVerdict,
+          scopes: sourceDirs('force-app'),
+        })
       )
 
       // Assert
@@ -2093,13 +2171,12 @@ describe('GitAdapter', () => {
       expect(untouchedVerdict).toEqual({ changesSeen: 0, linesYielded: 0 })
     })
 
-    it('Given two callers configure different source scopes but share a cached instance (same repo + to), When each drains its own verdict against its own scopes, Then getUnmatchedSourceScopes evaluates each caller against the scopes it passed in rather than the config that first created the instance', async () => {
+    it('Given two callers configure different source scopes but share a cached instance (same repo), When each drains its own verdict against its own scopes, Then getUnmatchedSourceScopes evaluates each caller against the scopes it passed in rather than the config that first created the instance', async () => {
       // Arrange — caller A creates the cached instance with source
-      // ['force-app']; caller B resolves to the SAME cache key (repo + to
-      // only — neither source nor from is part of the key) but configures
-      // a different scope. Before the fix, GitAdapter read this.config.source
-      // internally, so caller B's evaluation would silently use caller A's
-      // scope instead of its own.
+      // ['force-app']; caller B resolves to the SAME cache key (repo only —
+      // GitAdapter carries no other config) but configures a different
+      // scope. GitAdapter never reads scope off shared state, so caller B's
+      // evaluation must use its own scope instead of caller A's.
       const sutA = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
@@ -2122,8 +2199,20 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sutA.streamDiffLines(verdictA, sourceDirs('force-app')))
-      await collect(sutB.streamDiffLines(verdictB, sourceDirs('other')))
+      await collect(
+        sutA.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict: verdictA,
+          scopes: sourceDirs('force-app'),
+        })
+      )
+      await collect(
+        sutB.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict: verdictB,
+          scopes: sourceDirs('other'),
+        })
+      )
 
       // Assert — caller A's scope matched the only change; caller B's
       // scope ('other') never matches 'force-app/A.cls', so it must be

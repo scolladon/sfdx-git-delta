@@ -57,7 +57,8 @@ export default class IncludeProcessor extends BaseProcessor {
     const includeLines = new Map<GitChange, string[]>()
     const gitChanges: GitChange[] = [ADDITION, DELETION]
     const lines: string[] = await this.gitAdapter.getFilesPath(
-      this.config.source
+      this.config.source,
+      this.config.to
     )
     for (const line of lines) {
       gitChanges.forEach((changeType: GitChange) => {

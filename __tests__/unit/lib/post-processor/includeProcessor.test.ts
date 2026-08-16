@@ -161,6 +161,7 @@ describe('IncludeProcessor', () => {
         expect(elementsOf(result).length).toBeGreaterThan(0)
         expect(elementsOf(result)).toContainEqual(includedManifest)
         expect(result.copies).toContainEqual(includedCopy)
+        expect(mockGetFilesPath).toHaveBeenCalledWith(config.source, config.to)
       })
     })
 

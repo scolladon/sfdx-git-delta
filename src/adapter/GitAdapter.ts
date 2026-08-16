@@ -45,7 +45,7 @@ import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
-import { treatPathSep } from '../utils/fsUtils.js'
+import { sanitizePath, treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -55,6 +55,7 @@ import {
   type GitBlobReader,
   SIZE_THRESHOLD,
 } from './gitBlobReader.js'
+import type { GitTreeLister } from './gitTreeLister.js'
 import {
   buildLiteralMatcher,
   buildPathspecMatcher,
@@ -72,16 +73,31 @@ import { mapTsgitError } from './tsgitErrorMap.js'
 const BLOB_MODES = new Set(['100644', '100755', '120000'])
 
 // Owned by the caller (RepoGitDiff in production, one instance per sgd()
-// invocation) rather than by the cached GitAdapter singleton: two
-// concurrent sgd() calls that resolve to the same cache key (repo + to)
-// share a GitAdapter instance, so counters — or the scope list used to
-// evaluate them — stored on `this` would let one caller's config bleed
-// into another's result (the cache key carries neither `source` nor
-// `from`). Threading both the verdict and the scope list through as plain
-// arguments sidesteps that entirely — each caller supplies its own on
-// every call and nothing here ever reads or mutates shared state for
-// either.
+// invocation) rather than by the cached GitAdapter singleton: the pool key
+// is the repository alone, so any two concurrent sgd() calls against the
+// same repo — regardless of their `to`, `from` or `source` — share one
+// GitAdapter instance. Counters, or the scope list used to evaluate them,
+// stored on `this` would let one caller's run bleed into another's result.
+// Threading both the verdict and the scope list through as plain arguments
+// sidesteps that entirely — each caller supplies its own on every call and
+// nothing here ever reads or mutates shared state for either.
 export type DiffScopeVerdict = { changesSeen: number; linesYielded: number }
+
+// The diff request's git-facing parameters, owned by the caller (RepoGitDiff
+// in production) rather than by GitAdapter — the adapter is bound to the
+// repository, not to any one run's from/to/rename/whitespace choices.
+export type DiffSpec = Readonly<{
+  from: string
+  to: string
+  detectRenames: boolean
+  ignoreWhitespace: boolean
+}>
+
+export type DiffRequest = Readonly<{
+  spec: DiffSpec
+  verdict: DiffScopeVerdict
+  scopes: readonly Pathspec[]
+}>
 
 // Maps sgd's whitespace-ignoring diff request onto tsgit's data-mode
 // whitespace knobs: whitespace-only modifications drop out of the TreeDiff.
@@ -97,17 +113,23 @@ const IGNORE_WHITESPACE_OPTIONS = {
 const LFS_MAGIC = Buffer.from('version https://git-lfs.github.com/spec/v1\n')
 const LFS_POINTER_CAP = 1024
 
-export default class GitAdapter implements GitBlobReader {
+export default class GitAdapter implements GitBlobReader, GitTreeLister {
   private static instances: Map<string, GitAdapter> = new Map()
 
+  // Normalises the pool key the same way ConfigValidator eventually
+  // normalises config.repo (fsUtils#sanitizePath), so two configs that
+  // differ only by an unnormalised repo path (e.g. `./repo` vs `repo`)
+  // still resolve to one instance. ConfigValidator pools an adapter on the
+  // raw config.repo before _sanitizeConfig runs, so without this a single
+  // `--repo-dir ./repo` invocation would still allocate two instances.
   private static keyFor(config: Config): string {
-    return `${config.repo}\0${config.to}`
+    return sanitizePath(config.repo)!
   }
 
   public static getInstance(config: Config): GitAdapter {
     const key = GitAdapter.keyFor(config)
     if (!GitAdapter.instances.has(key)) {
-      GitAdapter.instances.set(key, new GitAdapter(config))
+      GitAdapter.instances.set(key, new GitAdapter(key))
     }
     return GitAdapter.instances.get(key)!
   }
@@ -125,14 +147,14 @@ export default class GitAdapter implements GitBlobReader {
   protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
   private repoHandle: Promise<Repository> | null = null
 
-  private constructor(protected readonly config: Config) {
+  private constructor(private readonly repo: string) {
     this.treeIndex = new Map<string, TreeIndex>()
     this.blobIdIndex = new Map<string, Map<string, ObjectId>>()
   }
 
   protected getRepo(): Promise<Repository> {
     if (!this.repoHandle) {
-      this.repoHandle = openRepository({ cwd: this.config.repo })
+      this.repoHandle = openRepository({ cwd: this.repo })
     }
     return this.repoHandle
   }
@@ -143,13 +165,6 @@ export default class GitAdapter implements GitBlobReader {
       await repo.dispose()
       this.repoHandle = null
     }
-  }
-
-  @log
-  public async configureRepository(): Promise<void> {
-    // core.longpaths / core.quotepath exist to fix `git` CLI output and
-    // Windows path handling in subprocesses. tsgit reads the object store
-    // directly: nothing to configure.
   }
 
   @log
@@ -229,10 +244,7 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   @log
-  public async pathExists(
-    path: string,
-    revision: string = this.config.to
-  ): Promise<boolean> {
+  public async pathExists(path: string, revision: string): Promise<boolean> {
     return this.pathExistsImpl(path, revision)
   }
 
@@ -277,7 +289,7 @@ export default class GitAdapter implements GitBlobReader {
       let content = await this.readBlobBuffer(forRef)
       if (isLFS(content)) {
         const lfsPath = getLFSObjectContentPath(content)
-        content = await readFile(join(this.config.repo, lfsPath))
+        content = await readFile(join(this.repo, lfsPath))
       }
       return content
     } catch (error) {
@@ -307,7 +319,7 @@ export default class GitAdapter implements GitBlobReader {
       // The pointer itself is tiny, so the accumulated-length guard above
       // never fires for LFS-backed files — size the resolved object instead
       // and escalate oversized ones onto the streaming path.
-      const lfsFile = join(this.config.repo, getLFSObjectContentPath(content))
+      const lfsFile = join(this.repo, getLFSObjectContentPath(content))
       const { size } = await stat(lfsFile)
       if (size > SIZE_THRESHOLD) {
         throw new EscalateToStreamingSignal(size, forRef)
@@ -355,7 +367,7 @@ export default class GitAdapter implements GitBlobReader {
   ): Promise<void> {
     const pointer = await accumulatePointer(chunks, head)
     const lfsPath = getLFSObjectContentPath(pointer)
-    createReadStream(join(this.config.repo, lfsPath))
+    createReadStream(join(this.repo, lfsPath))
       .on('error', (error: Error) => out.destroy(error))
       .pipe(out)
   }
@@ -395,7 +407,7 @@ export default class GitAdapter implements GitBlobReader {
   @log
   public async getFilesPath(
     paths: string | string[],
-    revision: string = this.config.to
+    revision: string
   ): Promise<string[]> {
     if (typeof paths === 'string') {
       return this.getFilesPathCached(paths, revision)
@@ -426,7 +438,7 @@ export default class GitAdapter implements GitBlobReader {
   public async grepUnderPaths(
     pattern: string,
     path: string | string[],
-    revision: string = this.config.to
+    revision: string
   ): Promise<string[]> {
     return this.grepBlobs(pattern, path, revision, buildLiteralMatcher)
   }
@@ -438,7 +450,7 @@ export default class GitAdapter implements GitBlobReader {
   public async grepMatchingPathspecs(
     pattern: string,
     path: string | string[],
-    revision: string = this.config.to
+    revision: string
   ): Promise<string[]> {
     return this.grepBlobs(pattern, path, revision, buildPathspecMatcher)
   }
@@ -478,11 +490,9 @@ export default class GitAdapter implements GitBlobReader {
   // whitespace options drop whitespace-only modifications the way the
   // subprocess numstat path does.
   @log
-  public async *streamDiffLines(
-    verdict: DiffScopeVerdict,
-    scopes: readonly Pathspec[]
-  ): AsyncGenerator<string> {
-    const { changes } = await this.requestDiff()
+  public async *streamDiffLines(request: DiffRequest): AsyncGenerator<string> {
+    const { spec, verdict, scopes } = request
+    const { changes } = await this.requestDiff(spec)
     // git unions pathspecs (`-- . src` matches everything), so a root scope
     // must not be filtered out here even when non-root scopes are also
     // configured — the full, unfiltered source list is what `inScope`
@@ -515,18 +525,20 @@ export default class GitAdapter implements GitBlobReader {
       : []
   }
 
-  private async requestDiff(): Promise<{ changes: readonly DiffChange[] }> {
+  private async requestDiff(
+    spec: DiffSpec
+  ): Promise<{ changes: readonly DiffChange[] }> {
     try {
       const repo = await this.getRepo()
       return await repo.diff({
-        from: this.config.from,
-        to: this.config.to,
+        from: spec.from,
+        to: spec.to,
         recursive: true,
-        detectRenames: Boolean(this.config.changesManifest),
-        ...(this.config.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
+        detectRenames: spec.detectRenames,
+        ...(spec.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
       })
     } catch (error) {
-      throw mapTsgitError(error, `${this.config.from}..${this.config.to}`)
+      throw mapTsgitError(error, `${spec.from}..${spec.to}`)
     }
   }
 }
