@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import {
   ADDITION,
   DELETION,
@@ -15,7 +14,7 @@ import { ManifestTarget } from '../../../../src/types/handlerResult'
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -53,7 +52,7 @@ describe('lwcHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new LwcHandler(changeType, el, config, EMPTY_TREE_INDEXES)
+        const sut = new LwcHandler(changeType, el, getContext({ config }))
 
         // Act
         const result = await sut.collect()
@@ -75,7 +74,7 @@ describe('lwcHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new LwcHandler(ct, el, config, EMPTY_TREE_INDEXES)
+        const sut = new LwcHandler(ct, el, getContext({ config }))
 
         // Act
         const result = await sut.collect()
@@ -100,7 +99,7 @@ describe('lwcHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new LwcHandler(changeType, el, config, EMPTY_TREE_INDEXES)
+      const sut = new LwcHandler(changeType, el, getContext({ config }))
 
       // Act
       const result = await sut.collect()

@@ -1,6 +1,5 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -13,7 +12,7 @@ import {
 import { grepContentUnder, pathExists } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -78,8 +77,7 @@ describe('CustomObjectHandler', () => {
       const sut = new CustomObjectHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -112,8 +110,7 @@ describe('CustomObjectHandler', () => {
       const sut = new CustomObjectHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -137,8 +134,7 @@ describe('CustomObjectHandler', () => {
       const sut = new CustomObjectHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -174,8 +170,7 @@ describe('CustomObjectHandler', () => {
       const sut = new CustomObjectHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -214,8 +209,7 @@ describe('CustomObjectHandler', () => {
       const sut = new CustomObjectHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act

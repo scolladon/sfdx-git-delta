@@ -35,7 +35,7 @@ const config = {
   // tooling change). Documented here for traceability:
   //   - src/adapter/GitAdapter.ts L146 (preBuildTreeIndex catch)
   //   - src/adapter/GitAdapter.ts L309 (streamArchive finally)
-  //   - src/adapter/ioExecutor.ts  L148 (gitDirCopy catch)
+  //   - src/adapter/ioExecutor.ts  L150 (gitDirCopy catch)
   //   - src/utils/configValidator.ts L136 (_getApiVersion catch)
   reporters: ['html', 'progress', 'json'],
   htmlReporter: {

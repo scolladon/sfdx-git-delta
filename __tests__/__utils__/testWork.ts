@@ -1,8 +1,11 @@
 'use strict'
+import { EMPTY_TREE_INDEXES } from '../../src/adapter/treeIndexes'
 import type { Config } from '../../src/types/config'
+import type { RunContext } from '../../src/types/runContext'
 import type { Work } from '../../src/types/work'
 import ChangeSet from '../../src/utils/changeSet'
 import { sourceDirs } from './sourceDirs'
+import { createMetadataRepositoryMock } from './testMetadataRepository'
 
 export const getConfig = (): Config => ({
   source: sourceDirs('./'),
@@ -24,4 +27,13 @@ export const getWork = (): Work => ({
   changes: new ChangeSet(),
   config: getConfig(),
   warnings: [],
+})
+
+export const getContext = (
+  overrides: Partial<RunContext> = {}
+): RunContext => ({
+  config: getConfig(),
+  metadata: createMetadataRepositoryMock(),
+  trees: EMPTY_TREE_INDEXES,
+  ...overrides,
 })

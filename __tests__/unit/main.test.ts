@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import IOExecutor from '../../src/adapter/ioExecutor'
+import { TreeIndex } from '../../src/adapter/treeIndex'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
@@ -11,6 +12,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../src/types/handlerResult'
+import type { RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
 
@@ -493,7 +495,8 @@ describe('external library inclusion', () => {
       // sides: a successful build must be reachable at its own revision
       // key (kills the false/CallExpression-removal mutants), and a
       // failed build must not leak a phantom entry into the holder.
-      const toIndex = { marker: 'to-index' } as never
+      const toIndex = new TreeIndex()
+      toIndex.add('force-app/main/default/classes/Foo.cls')
       mockBuildTreeIndex
         .mockResolvedValueOnce(toIndex) // config.to
         .mockResolvedValueOnce(undefined) // config.from
@@ -508,19 +511,22 @@ describe('external library inclusion', () => {
       // Act
       await sgd(sut)
 
-      // Assert — inspect the TreeIndexes holder threaded to IOExecutor.
-      const treeIndexesArg = vi.mocked(IOExecutor).mock.calls[0]?.[1] as
-        | { at: (revision: string) => unknown }
+      // Assert — inspect the RunContext threaded to IOExecutor.
+      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
+        | RunContext
         | undefined
-      expect(treeIndexesArg?.at('HEAD')).toBe(toIndex)
-      expect(treeIndexesArg?.at('HEAD~1')).toBeUndefined()
+      expect(ctxArg?.trees.at('HEAD')!.getFilesPath('')).toEqual([
+        'force-app/main/default/classes/Foo.cls',
+      ])
+      expect(ctxArg?.trees.at('HEAD~1')).toBeUndefined()
     })
 
     it('Given buildTreeIndex resolves undefined for "to" but an index for "from", When sgd runs, Then the TreeIndexes holder excludes "to" entirely and includes "from" under its key', async () => {
       // Arrange — mirrors the previous test for the `if (fromIndex)`
       // guard, so both sides of the truthiness check are proven
       // independently rather than only ever exercising them together.
-      const fromIndex = { marker: 'from-index' } as never
+      const fromIndex = new TreeIndex()
+      fromIndex.add('force-app/main/default/classes/Bar.cls')
       mockBuildTreeIndex
         .mockResolvedValueOnce(undefined) // config.to
         .mockResolvedValueOnce(fromIndex) // config.from
@@ -536,11 +542,13 @@ describe('external library inclusion', () => {
       await sgd(sut)
 
       // Assert
-      const treeIndexesArg = vi.mocked(IOExecutor).mock.calls[0]?.[1] as
-        | { at: (revision: string) => unknown }
+      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
+        | RunContext
         | undefined
-      expect(treeIndexesArg?.at('HEAD')).toBeUndefined()
-      expect(treeIndexesArg?.at('HEAD~1')).toBe(fromIndex)
+      expect(ctxArg?.trees.at('HEAD')).toBeUndefined()
+      expect(ctxArg?.trees.at('HEAD~1')!.getFilesPath('')).toEqual([
+        'force-app/main/default/classes/Bar.cls',
+      ])
     })
 
     it('Given a --source-dir with a trailing slash, When sgd runs, Then buildTreeIndex receives the canonical path', async () => {

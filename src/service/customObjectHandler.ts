@@ -30,7 +30,7 @@ export default class CustomObjectHandler extends StandardHandler {
       parse(this.element.basePath).dir,
       FIELD_DIRECTORY_NAME
     )
-    const exists = await pathExists(fieldsFolder, this.config, this.treeIndexes)
+    const exists = await pathExists(fieldsFolder, this.ctx)
     // Stryker disable next-line ConditionalExpression -- equivalent: existence guard; flipping to false runs grepContentUnder on a non-existent path which returns [] (gitGrep catch swallows and returns empty), so the for-loop iterates 0 times — observably the same as the early return
     if (!exists) return
 

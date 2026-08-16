@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
@@ -13,7 +12,7 @@ import {
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -89,8 +88,7 @@ describe('InNestedFolderHandler', () => {
         const sut = new ReportingFolderHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -128,8 +126,7 @@ describe('InNestedFolderHandler', () => {
           const sut = new ReportingFolderHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
           mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
@@ -169,8 +166,7 @@ describe('InNestedFolderHandler', () => {
           const sut = new ReportingFolderHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
           mockedReadDirs.mockImplementationOnce(() =>
             Promise.resolve([entity, 'not/matching'])
@@ -209,8 +205,7 @@ describe('InNestedFolderHandler', () => {
       const sut = new ReportingFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -235,8 +230,7 @@ describe('InNestedFolderHandler', () => {
       const sut = new ReportingFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -260,8 +254,7 @@ describe('InNestedFolderHandler', () => {
       const sut = new ReportingFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -291,8 +284,7 @@ describe('InNestedFolderHandler', () => {
       const sut = new ReportingFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act

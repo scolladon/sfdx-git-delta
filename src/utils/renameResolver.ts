@@ -1,11 +1,9 @@
 'use strict'
 
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
-import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import TypeHandlerFactory from '../service/typeHandlerFactory.js'
-import type { Config } from '../types/config.js'
+import type { RunContext } from '../types/runContext.js'
 import type { RenameTriple } from './changeSet.js'
 import { getErrorMessage } from './errorUtils.js'
 import { log } from './LoggingDecorator.js'
@@ -24,12 +22,8 @@ import type { RenamePathPair } from './repoGitDiff.js'
 export default class RenameResolver {
   private readonly factory: TypeHandlerFactory
 
-  constructor(
-    config: Config,
-    metadata: MetadataRepository,
-    treeIndexes: TreeIndexes
-  ) {
-    this.factory = new TypeHandlerFactory(config, metadata, treeIndexes)
+  constructor(ctx: RunContext) {
+    this.factory = new TypeHandlerFactory(ctx)
   }
 
   @log

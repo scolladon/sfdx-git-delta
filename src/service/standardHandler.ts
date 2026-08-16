@@ -1,7 +1,6 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
 
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
@@ -16,6 +15,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -40,9 +40,12 @@ export default class StandardHandler {
   constructor(
     protected readonly changeType: string,
     protected readonly element: MetadataElement,
-    protected readonly config: Config,
-    protected readonly treeIndexes: TreeIndexes
+    protected readonly ctx: RunContext
   ) {}
+
+  protected get config(): Config {
+    return this.ctx.config
+  }
 
   @log
   public async collect(): Promise<HandlerResult> {

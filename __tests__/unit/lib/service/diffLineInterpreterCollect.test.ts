@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
@@ -13,7 +12,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
   mockCollect: vi.fn<() => Promise<HandlerResult>>(),
@@ -69,9 +68,7 @@ describe('DiffLineInterpreter.process', () => {
         })
       })
       const sut = new DiffLineInterpreter(
-        config,
-        globalMetadata,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata: globalMetadata })
       )
 
       // Act
@@ -89,9 +86,7 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called, Then returns empty result', async () => {
       // Arrange
       const sut = new DiffLineInterpreter(
-        config,
-        globalMetadata,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata: globalMetadata })
       )
 
       // Act
@@ -110,9 +105,7 @@ describe('DiffLineInterpreter.process', () => {
       // Arrange
       mockCollect.mockResolvedValue(emptyResult())
       const sut = new DiffLineInterpreter(
-        config,
-        globalMetadata,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata: globalMetadata })
       )
 
       // Act
@@ -135,9 +128,7 @@ describe('DiffLineInterpreter.process', () => {
         warnings: [new Error('test warning')],
       })
       const sut = new DiffLineInterpreter(
-        config,
-        globalMetadata,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata: globalMetadata })
       )
 
       // Act

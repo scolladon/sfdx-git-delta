@@ -1,22 +1,23 @@
 'use strict'
 import { dirname, parse } from 'node:path/posix'
 
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Metadata } from '../types/metadata.js'
+import type { RunContext } from '../types/runContext.js'
 import { log } from './LoggingDecorator.js'
 import { MetadataElement } from './metadataElement.js'
 
 export class MetadataBoundaryResolver {
   protected readonly dirCache: Map<string, string[]>
 
-  constructor(
-    protected readonly metadataRepo: MetadataRepository,
-    protected readonly treeIndexes: TreeIndexes
-  ) {
+  constructor(protected readonly ctx: RunContext) {
     this.dirCache = new Map()
+  }
+
+  protected get metadata(): MetadataRepository {
+    return this.ctx.metadata
   }
 
   @log
@@ -25,11 +26,7 @@ export class MetadataBoundaryResolver {
     metadataDef: Metadata,
     revision: string
   ): Promise<MetadataElement> {
-    const element = MetadataElement.fromPath(
-      path,
-      metadataDef,
-      this.metadataRepo
-    )
+    const element = MetadataElement.fromPath(path, metadataDef, this.metadata)
     if (element && element.pathAfterType.length <= 1) return element
     if (element && !metadataDef.suffix) return element
 
@@ -43,7 +40,7 @@ export class MetadataBoundaryResolver {
         return MetadataElement.fromScan(
           path,
           metadataDef,
-          this.metadataRepo,
+          this.metadata,
           componentName
         )
       }
@@ -63,8 +60,7 @@ export class MetadataBoundaryResolver {
 
     if (dirIndex >= 0 && metadataDef.suffix) {
       const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
-      const allFiles =
-        this.treeIndexes.at(revision)?.getFilesPath(typeDir) ?? []
+      const allFiles = this.ctx.trees.at(revision)?.getFilesPath(typeDir) ?? []
       const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
 
       const componentNames = new Set<string>()
@@ -82,7 +78,7 @@ export class MetadataBoundaryResolver {
           return MetadataElement.fromScan(
             path,
             metadataDef,
-            this.metadataRepo,
+            this.metadata,
             pathAfterType[i]
           )
         }
@@ -91,7 +87,7 @@ export class MetadataBoundaryResolver {
       return MetadataElement.fromScan(
         path,
         metadataDef,
-        this.metadataRepo,
+        this.metadata,
         parse(path).name
       )
     }
@@ -103,7 +99,7 @@ export class MetadataBoundaryResolver {
 
       let siblings = this.dirCache.get(cacheKey)
       if (siblings === undefined) {
-        siblings = this.treeIndexes.at(revision)?.listChildren(currentDir) ?? []
+        siblings = this.ctx.trees.at(revision)?.listChildren(currentDir) ?? []
         this.dirCache.set(cacheKey, siblings)
       }
 
@@ -112,7 +108,7 @@ export class MetadataBoundaryResolver {
         return MetadataElement.fromScan(
           path,
           metadataDef,
-          this.metadataRepo,
+          this.metadata,
           componentName
         )
       }
@@ -123,7 +119,7 @@ export class MetadataBoundaryResolver {
     return MetadataElement.fromScan(
       path,
       metadataDef,
-      this.metadataRepo,
+      this.metadata,
       parse(path).name
     )
   }
@@ -139,7 +135,7 @@ export class MetadataBoundaryResolver {
     parts: string[]
   ): string | null {
     for (const sibling of siblings) {
-      const siblingMetadata = this.metadataRepo.get(sibling)
+      const siblingMetadata = this.metadata.get(sibling)
       if (
         siblingMetadata?.suffix &&
         sibling.includes(`.${siblingMetadata.suffix}`)

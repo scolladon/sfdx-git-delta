@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -10,7 +9,7 @@ import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -41,12 +40,7 @@ describe('flowHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new FlowHandler(
-        changeType,
-        element,
-        config,
-        EMPTY_TREE_INDEXES
-      )
+      const sut = new FlowHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()

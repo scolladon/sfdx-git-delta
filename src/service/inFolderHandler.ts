@@ -37,11 +37,7 @@ export default class InFolderHandler extends StandardHandler {
   ): Promise<void> {
     if (!this._shouldCollectCopies()) return
     const parsedLine = parse(this.element.basePath)
-    const dirContent = await readDirs(
-      parsedLine.dir,
-      this.config,
-      this.treeIndexes
-    )
+    const dirContent = await readDirs(parsedLine.dir, this.ctx)
 
     for (const file of dirContent) {
       if (file.includes(parsedLine.name)) {

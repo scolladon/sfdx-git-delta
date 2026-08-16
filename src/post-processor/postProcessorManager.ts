@@ -1,9 +1,7 @@
 'use strict'
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
@@ -14,16 +12,7 @@ import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
 
-// IncludeProcessor is the only registered processor that reads the tree
-// index; the others declare a 2-arg constructor, which TS accepts here
-// under normal function-parameter-count covariance (extra call-site
-// arguments are simply unused) — so only IncludeProcessor needs to widen
-// its own constructor.
-type ProcessorConstructor = new (
-  config: Config,
-  metadata: MetadataRepository,
-  treeIndexes: TreeIndexes
-) => BaseProcessor
+type ProcessorConstructor = new (ctx: RunContext) => BaseProcessor
 
 const registeredProcessors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
@@ -93,16 +82,12 @@ export default class PostProcessorManager {
   }
 }
 
-export const getPostProcessors = (
-  config: Config,
-  metadata: MetadataRepository,
-  treeIndexes: TreeIndexes
-) => {
+export const getPostProcessors = (ctx: RunContext) => {
   const postProcessor = new PostProcessorManager()
 
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips registering processors; the resulting PostProcessorManager has empty processor/collector lists and executeRemaining()/collectAll() return early — tests assert the registered processor count, but not via this empty-state path
   for (const processor of registeredProcessors) {
-    const instance = new processor(config, metadata, treeIndexes)
+    const instance = new processor(ctx)
     postProcessor.use(instance)
   }
 

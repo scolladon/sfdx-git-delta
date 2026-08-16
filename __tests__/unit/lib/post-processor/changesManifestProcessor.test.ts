@@ -8,7 +8,7 @@ import { ChangeKind } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { outputFile } from '../../../../src/utils/fsUtils'
 import { addChange, addRename } from '../../../__utils__/handlerResultView'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
@@ -30,7 +30,7 @@ describe('ChangesManifestProcessor', () => {
     it('When process runs, Then writes no file', async () => {
       // Arrange
       config.changesManifest = undefined
-      const sut = new ChangesManifestProcessor(config, metadata)
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -58,7 +58,7 @@ describe('ChangesManifestProcessor', () => {
         'ApexTrigger',
         'OldTrigger'
       )
-      const sut = new ChangesManifestProcessor(config, metadata)
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -80,7 +80,7 @@ describe('ChangesManifestProcessor', () => {
     it('When process runs, Then writes to that absolute path verbatim', async () => {
       // Arrange
       config.changesManifest = '/tmp/sgd-review.json'
-      const sut = new ChangesManifestProcessor(config, metadata)
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -100,7 +100,7 @@ describe('ChangesManifestProcessor', () => {
       changes = addChange(changes, ChangeKind.Delete, 'ApexClass', 'ZetaOld')
       changes = addRename(changes, 'ApexClass', 'ZetaOld', 'ZetaNew')
       changes = addRename(changes, 'ApexClass', 'AlphaOld', 'AlphaNew')
-      const sut = new ChangesManifestProcessor(config, metadata)
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -127,7 +127,7 @@ describe('ChangesManifestProcessor', () => {
       changes = addChange(changes, ChangeKind.Add, 'CustomObject', 'Alpha__c')
       changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Zeta')
       changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Alpha')
-      const sut = new ChangesManifestProcessor(config, metadata)
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -150,7 +150,7 @@ describe('ChangesManifestProcessor', () => {
       config.changesManifest = 'changes.json'
       changes = addRename(changes, 'ZetaType', 'z.old', 'z.new')
       changes = addRename(changes, 'AlphaType', 'a.old', 'a.new')
-      const sut = new ChangesManifestProcessor(config, metadata)
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)

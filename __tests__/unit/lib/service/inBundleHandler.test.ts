@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
@@ -10,7 +9,7 @@ import { ManifestTarget } from '../../../../src/types/handlerResult'
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -58,7 +57,7 @@ describe('InBundleHandler', () => {
       objectType,
       globalMetadata
     )
-    return new InBundleHandler(changeType, element, config, EMPTY_TREE_INDEXES)
+    return new InBundleHandler(changeType, element, getContext({ config }))
   }
 
   describe('_getElementName', () => {
@@ -246,8 +245,7 @@ describe('InBundleHandler', () => {
       // from the page folder, not the whole bundle
       expect(mockedReadDirs).toHaveBeenCalledWith(
         `${root}/site/Site_A/sfdc_cms__view`,
-        expect.anything(),
-        EMPTY_TREE_INDEXES
+        expect.objectContaining({ config })
       )
       expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(
         false

@@ -3,7 +3,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../../src/utils/LoggingService')
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import {
   ADDITION,
   DELETION,
@@ -21,7 +20,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const testSuitesType = {
   directoryName: 'testSuites',
@@ -70,8 +69,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -109,8 +107,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -133,8 +130,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -164,8 +160,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -188,8 +183,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -212,8 +206,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -237,8 +230,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
       vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(
         new Error('test error')
@@ -266,8 +258,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -292,8 +283,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -317,8 +307,7 @@ describe(`StandardHandler`, () => {
       const sut = new StandardHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act

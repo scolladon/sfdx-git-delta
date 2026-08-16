@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../src/adapter/treeIndexes'
 import {
   ADDITION,
   DELETION,
@@ -15,6 +14,7 @@ import { ManifestTarget } from '../../src/types/handlerResult'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 import { elementsOf } from '../__utils__/handlerResultView'
 import { sourceDirs } from '../__utils__/sourceDirs'
+import { getContext } from '../__utils__/testWork'
 
 vi.mock('../../src/utils/fsHelper')
 
@@ -593,9 +593,7 @@ beforeEach(() => {
     includeDestructive: '',
   }
   handlerFactory = new TypeHandlerFactory(
-    config,
-    globalMetadata,
-    EMPTY_TREE_INDEXES
+    getContext({ config, metadata: globalMetadata })
   )
 
   mockedReadPathFromGit.mockResolvedValue('')

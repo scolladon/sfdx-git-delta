@@ -33,6 +33,7 @@ import {
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
+import { getContext } from '../../__utils__/testWork'
 
 // Characterizes IncludeProcessor.transformAndCollect end-to-end, against a
 // real fixture repo and a real GitAdapter (no adapter mocks). This locks in
@@ -124,7 +125,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
       ])
       const config = makeConfig({ include: includePath })
       const treeIndexes = await buildTreeIndexesForTo(config)
-      const sut = new IncludeProcessor(config, metadata, treeIndexes)
+      const sut = new IncludeProcessor(
+        getContext({ config, metadata, trees: treeIndexes })
+      )
 
       // Act
       const actual = await sut.transformAndCollect(ChangeSet.from([]))
@@ -154,7 +157,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
       )
       const config = makeConfig({ includeDestructive: includeDestructivePath })
       const treeIndexes = await buildTreeIndexesForTo(config)
-      const sut = new IncludeProcessor(config, metadata, treeIndexes)
+      const sut = new IncludeProcessor(
+        getContext({ config, metadata, trees: treeIndexes })
+      )
 
       // Act
       const actual = await sut.transformAndCollect(ChangeSet.from([]))
@@ -190,7 +195,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         includeDestructive: includeDestructivePath,
       })
       const treeIndexes = await buildTreeIndexesForTo(config)
-      const sut = new IncludeProcessor(config, metadata, treeIndexes)
+      const sut = new IncludeProcessor(
+        getContext({ config, metadata, trees: treeIndexes })
+      )
 
       // Act
       const actual = await sut.transformAndCollect(ChangeSet.from([]))
@@ -237,7 +244,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         generateDelta: true,
       })
       const treeIndexes = await buildTreeIndexesForTo(config)
-      const sut = new IncludeProcessor(config, metadata, treeIndexes)
+      const sut = new IncludeProcessor(
+        getContext({ config, metadata, trees: treeIndexes })
+      )
       const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
 
       // Act

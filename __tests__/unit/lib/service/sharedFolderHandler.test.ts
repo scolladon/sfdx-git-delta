@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -14,7 +13,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const objectType = {
   directoryName: 'discovery',
@@ -60,8 +59,7 @@ describe('SharedFolderHandler', () => {
     const sut = new SharedFolderHandler(
       changeType,
       element,
-      config,
-      EMPTY_TREE_INDEXES
+      getContext({ config })
     )
 
     // Act
@@ -89,8 +87,7 @@ describe('SharedFolderHandler', () => {
     const sut = new SharedFolderHandler(
       changeType,
       element,
-      config,
-      EMPTY_TREE_INDEXES
+      getContext({ config })
     )
 
     // Act
@@ -119,8 +116,7 @@ describe('SharedFolderHandler', () => {
     const sut = new SharedFolderHandler(
       changeType,
       element,
-      config,
-      EMPTY_TREE_INDEXES
+      getContext({ config })
     )
 
     // Act
@@ -143,8 +139,7 @@ describe('SharedFolderHandler', () => {
       const sut = new SharedFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -165,8 +160,7 @@ describe('SharedFolderHandler', () => {
       const sut = new SharedFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -190,8 +184,7 @@ describe('SharedFolderHandler', () => {
       const sut = new SharedFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -224,8 +217,7 @@ describe('SharedFolderHandler', () => {
       const sut = new SharedFolderHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act

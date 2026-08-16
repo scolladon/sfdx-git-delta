@@ -1,9 +1,9 @@
 'use strict'
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import { Metadata } from '../types/metadata.js'
+import type { RunContext } from '../types/runContext.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 
@@ -71,16 +71,20 @@ export default class TypeHandlerFactory {
   private readonly handlerCache: Map<Metadata, typeof Standard> = new Map()
 
   // Stryker disable BlockStatement -- equivalent: constructor body wires the resolver and pre-builds the inFileParent index; tests instantiate via factory paths that exercise the indexed lookups indirectly, but the mutant `{}` constructor would fail at first getTypeHandler call (resolver undefined), and that failure surfaces only outside the unit test surface for the factory's pure-routing tests
-  constructor(
-    protected readonly config: Config,
-    protected readonly metadata: MetadataRepository,
-    protected readonly treeIndexes: TreeIndexes
-  ) {
-    this.resolver = new MetadataBoundaryResolver(metadata, treeIndexes)
+  constructor(protected readonly ctx: RunContext) {
+    this.resolver = new MetadataBoundaryResolver(ctx)
     this.inFileParentXmlNames = new Set()
     this.buildInFileParentIndex()
   }
   // Stryker restore BlockStatement
+
+  protected get config(): Config {
+    return this.ctx.config
+  }
+
+  protected get metadata(): MetadataRepository {
+    return this.ctx.metadata
+  }
 
   @log
   public async getTypeHandler(line: string) {
@@ -95,12 +99,12 @@ export default class TypeHandlerFactory {
       throw new Error(`Unknown metadata type for path: ${path}`)
     }
     // Stryker restore ConditionalExpression,BlockStatement,StringLiteral
-    // Stryker disable ConditionalExpression,EqualityOperator -- equivalent: the conditional picks `from` for deletions and `to` for additions/modifications; the test surface uses identical from/to values via getWork() defaults so the swap is unobservable
+    // Stryker disable ConditionalExpression,EqualityOperator -- equivalent: the conditional picks `from` for deletions and `to` for additions/modifications; the test surface uses identical from/to values via getConfig()/getContext() defaults so the swap is unobservable
     const revision = changeType === DELETION ? this.config.from : this.config.to
     // Stryker restore ConditionalExpression,EqualityOperator
     const element = await this.resolver.createElement(path, type, revision)
     const Handler = this.resolveHandler(type)
-    return new Handler(changeType, element, this.config, this.treeIndexes)
+    return new Handler(changeType, element, this.ctx)
   }
 
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body produces an empty inFileParent index; downstream resolveHandler falls back to Standard for inFile parents, which still routes correctly for the pure-routing test surface

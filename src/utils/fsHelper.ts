@@ -2,9 +2,9 @@
 import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
+import type { RunContext } from '../types/runContext.js'
 
 import { getErrorMessage } from './errorUtils.js'
 import { outputFile } from './fsUtils.js'
@@ -38,15 +38,13 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
 // build that failed) degrades to false/[] rather than indexing lazily.
 export const pathExists = async (
   path: string,
-  config: Config,
-  treeIndexes: TreeIndexes
-): Promise<boolean> => treeIndexes.at(config.to)?.pathExists(path) ?? false
+  ctx: RunContext
+): Promise<boolean> => ctx.trees.at(ctx.config.to)?.pathExists(path) ?? false
 
 export const readDirs = async (
   paths: string | string[],
-  config: Config,
-  treeIndexes: TreeIndexes
-): Promise<string[]> => treeIndexes.at(config.to)?.getFilesPath(paths) ?? []
+  ctx: RunContext
+): Promise<string[]> => ctx.trees.at(ctx.config.to)?.getFilesPath(paths) ?? []
 
 export const grepContentUnder = async (
   pattern: string,

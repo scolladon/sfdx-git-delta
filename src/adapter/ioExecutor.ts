@@ -11,6 +11,7 @@ import type {
   StreamedContentOperation,
 } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
@@ -23,7 +24,6 @@ import {
   GIT_ARCHIVE_DIR_THRESHOLD,
   type GitBlobReader,
 } from './gitBlobReader.js'
-import type { TreeIndexes } from './treeIndexes.js'
 
 const TMP_SUFFIX = '.tmp'
 
@@ -32,12 +32,15 @@ export default class IOExecutor {
   protected ignoreHelper!: IgnoreHelper
 
   constructor(
-    protected readonly config: Config,
-    protected readonly treeIndexes: TreeIndexes,
+    protected readonly ctx: RunContext,
     protected readonly blobReader: GitBlobReader = GitAdapter.getInstance(
-      config
+      ctx.config
     )
   ) {}
+
+  protected get config(): Config {
+    return this.ctx.config
+  }
 
   public async execute(copies: readonly CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
@@ -123,7 +126,7 @@ export default class IOExecutor {
   }): Promise<void> {
     try {
       const filePaths =
-        this.treeIndexes.at(op.revision)?.getFilesPath(op.path) ?? []
+        this.ctx.trees.at(op.revision)?.getFilesPath(op.path) ?? []
       if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
         await this._executeGitDirCopyViaArchive(this.blobReader, op, filePaths)
         return

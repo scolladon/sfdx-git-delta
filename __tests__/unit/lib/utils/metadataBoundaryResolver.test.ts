@@ -7,6 +7,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Metadata } from '../../../../src/types/metadata'
 import { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { MetadataElement } from '../../../../src/utils/metadataElement'
+import { getContext } from '../../../__utils__/testWork'
 
 // MetadataBoundaryResolver now takes the run-owned TreeIndexes holder
 // instead of (config, gitAdapter) — a revision resolves to a TreeIndex via
@@ -97,7 +98,9 @@ describe('MetadataBoundaryResolver', () => {
       getFilesPath: mockGetFilesPath,
       listChildren: mockListChildren,
     }))
-    sut = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
+    sut = new MetadataBoundaryResolver(
+      getContext({ metadata: globalMetadata, trees: treeIndexes })
+    )
   })
 
   describe('createElement', () => {
@@ -109,8 +112,7 @@ describe('MetadataBoundaryResolver', () => {
 
         // Act
         const element = await new MetadataBoundaryResolver(
-          globalMetadata,
-          treeIndexes
+          getContext({ metadata: globalMetadata, trees: treeIndexes })
         ).createElement(path, staticResourceType, revision)
 
         // Assert
@@ -818,7 +820,9 @@ describe('MetadataBoundaryResolver', () => {
   describe('isNameInPath (L135)', () => {
     it('Given part exactly equals componentName, When isNameInPath, Then returns true', () => {
       // Mutant EqualityOperator "part !== componentName" → always false for exact match
-      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
+      const resolver = new MetadataBoundaryResolver(
+        getContext({ metadata: globalMetadata, trees: treeIndexes })
+      )
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -830,7 +834,9 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part starts with componentName dot, When isNameInPath, Then returns true (L135 MethodExpression endsWith mutant)', async () => {
       // Mutant: part.endsWith(`${componentName}.`) → 'MyComponent.js'.endsWith('MyComponent.') = false → miss
       // Correct: startsWith → true
-      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
+      const resolver = new MetadataBoundaryResolver(
+        getContext({ metadata: globalMetadata, trees: treeIndexes })
+      )
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -841,7 +847,9 @@ describe('MetadataBoundaryResolver', () => {
 
     it('Given part ends with dot-componentName (not starts), When isNameInPath, Then returns false', async () => {
       // Verifies startsWith is used, not endsWith (mutation contrast)
-      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
+      const resolver = new MetadataBoundaryResolver(
+        getContext({ metadata: globalMetadata, trees: treeIndexes })
+      )
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
@@ -853,7 +861,9 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part is empty string componentName, When isNameInPath, Then returns true via startsWith', async () => {
       // L135 StringLiteral `` mutant: componentName.= `` → startsWith('.') for non-empty parts
       // Real behavior: componentName='' → part === '' or part.startsWith('.') → only empty-named matches
-      const resolver = new MetadataBoundaryResolver(globalMetadata, treeIndexes)
+      const resolver = new MetadataBoundaryResolver(
+        getContext({ metadata: globalMetadata, trees: treeIndexes })
+      )
       const result = (
         resolver as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean

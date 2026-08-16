@@ -14,7 +14,7 @@ import {
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { Logger } from '../../../../src/utils/LoggingService'
-import { getWork } from '../../../__utils__/testWork'
+import { getContext, getWork } from '../../../__utils__/testWork'
 
 const { mockCreateWriteStream, mockMkdir, mockRename, mockUnlink } = vi.hoisted(
   () => ({
@@ -117,7 +117,9 @@ describe('IOExecutor', () => {
       work.config.generateDelta = false
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
@@ -142,7 +144,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(
         Buffer.from('class content')
       )
@@ -174,7 +178,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await executor.execute([
@@ -197,7 +203,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await executor.execute([
@@ -220,7 +228,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = '.'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -246,7 +256,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetFilesPath.mockReturnValue(['../escape.cls', 'objects/Kept.cls'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('kept'))
 
@@ -274,7 +286,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
@@ -302,7 +316,9 @@ describe('IOExecutor', () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockBuildIgnoreHelper.mockResolvedValue({
         globalIgnore: {
           ignores: () => true,
@@ -330,7 +346,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockRejectedValue(new Error('git error'))
 
       // Act & Assert (should not throw)
@@ -353,7 +371,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -382,7 +402,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -407,7 +429,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetFilesPath.mockReturnValue([
         'permissionsets/MyPS/file1.xml',
         'permissionsets/MyPS/file2.xml',
@@ -437,9 +461,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, {
-        at: () => undefined,
-      } as unknown as TreeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: { at: () => undefined } })
+      )
 
       // Act
       await executor.execute([
@@ -469,7 +493,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetFilesPath.mockReturnValue(['permissionsets/MyPS/file1.xml'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
 
@@ -503,7 +529,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetFilesPath.mockReturnValue(['permissionsets/MyPS/file1.xml'])
       mockGetBufferContent.mockRejectedValue(new Error('dir error'))
 
@@ -527,7 +555,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetFilesPath.mockReturnValue([
         'permissionsets/MyPS/kept.xml',
         'permissionsets/MyPS/ignored.xml',
@@ -562,7 +592,9 @@ describe('IOExecutor', () => {
     it('When executed, Then does nothing', async () => {
       // Arrange
       const work = getWork()
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await executor.execute([])
@@ -579,7 +611,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config, treeIndexes)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       mockGetFilesPath.mockReturnValue(['permissionsets/MyPS/file1.xml'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
 
@@ -609,7 +643,9 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       const writer = vi.fn(async (out: Writable) => {
         out.write('<Root></Root>')
       })
@@ -644,7 +680,9 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       const writer = vi.fn(async () => {
         throw new Error('producer failed')
       })
@@ -675,7 +713,9 @@ describe('IOExecutor', () => {
           ignores: () => true,
         } as unknown as Ignore,
       } as unknown as IgnoreHelper)
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       const writer = vi.fn()
 
       // Act
@@ -696,7 +736,9 @@ describe('IOExecutor', () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       const writer = vi.fn()
 
       // Act
@@ -719,7 +761,9 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
       const firstWriter = vi.fn(async (out: Writable) => {
         out.write('<first/>')
       })
@@ -761,7 +805,9 @@ describe('IOExecutor', () => {
         streamContent: mockStreamContent,
         streamArchive: streamArchiveSpy,
       })
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await sut.execute([
@@ -796,7 +842,9 @@ describe('IOExecutor', () => {
         streamArchive: streamArchiveSpy,
       })
       mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await sut.execute([
@@ -821,7 +869,9 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       mockGetFilesPath.mockReturnValue(['classes/Foo.cls'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('class Foo {}'))
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await sut.execute([
@@ -863,7 +913,9 @@ describe('IOExecutor', () => {
       })
       mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
       return {
-        sut: new IOExecutor(work.config, treeIndexes),
+        sut: new IOExecutor(
+          getContext({ config: work.config, trees: treeIndexes })
+        ),
         streamArchiveSpy,
         work,
       }
@@ -1029,7 +1081,9 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       mockGetBufferContentOrEscalate.mockRejectedValue(new Error('plain error'))
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       await sut.execute([
         {
@@ -1066,7 +1120,10 @@ describe('IOExecutor', () => {
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, treeIndexes, fakeBlobReader)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes }),
+        fakeBlobReader
+      )
 
       // Act
       await sut.execute([
@@ -1115,7 +1172,9 @@ describe('IOExecutor', () => {
         streamArchive: streamArchiveSpy,
       })
       mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
-      const sut = new IOExecutor(work.config, treeIndexes)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Act
       await sut.execute([
@@ -1157,7 +1216,10 @@ describe('IOExecutor', () => {
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, treeIndexes, fakeBlobReader)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeIndexes }),
+        fakeBlobReader
+      )
 
       // Act
       await sut.execute([

@@ -20,7 +20,7 @@ import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { getWork } from '../../../__utils__/testWork'
+import { getContext, getWork } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
@@ -156,7 +156,10 @@ describe('readDirs', () => {
     })
     it('should return the file', async () => {
       // Act
-      const dirContent = await readDirs(dir, work.config, treeIndexes)
+      const dirContent = await readDirs(
+        dir,
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Assert
       expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
@@ -172,7 +175,10 @@ describe('readDirs', () => {
       ])
 
       // Act
-      const dirContent = await readDirs(paths, work.config, treeIndexes)
+      const dirContent = await readDirs(
+        paths,
+        getContext({ config: work.config, trees: treeIndexes })
+      )
 
       // Assert
       expect(dirContent).toEqual(
@@ -191,7 +197,10 @@ describe('readDirs', () => {
       } as unknown as TreeIndexes
 
       // Act
-      const dirContent = await readDirs('dir', work.config, unbuiltTreeIndexes)
+      const dirContent = await readDirs(
+        'dir',
+        getContext({ config: work.config, trees: unbuiltTreeIndexes })
+      )
 
       // Assert
       expect(dirContent).toEqual([])
@@ -206,7 +215,10 @@ describe('pathExists', () => {
     mockPathExists.mockImplementation(() => true)
 
     // Act
-    const result = await pathExists('path', work.config, treeIndexes)
+    const result = await pathExists(
+      'path',
+      getContext({ config: work.config, trees: treeIndexes })
+    )
 
     // Assert
     expect(result).toBe(true)
@@ -218,7 +230,10 @@ describe('pathExists', () => {
     mockPathExists.mockImplementation(() => true)
 
     // Act
-    const result = await pathExists('path', work.config, treeIndexes)
+    const result = await pathExists(
+      'path',
+      getContext({ config: work.config, trees: treeIndexes })
+    )
 
     // Assert
     expect(result).toBe(true)
@@ -232,8 +247,7 @@ describe('pathExists', () => {
     // Act
     const result = await pathExists(
       'not/existing/path',
-      work.config,
-      treeIndexes
+      getContext({ config: work.config, trees: treeIndexes })
     )
 
     // Assert
@@ -250,7 +264,10 @@ describe('pathExists', () => {
       } as unknown as TreeIndexes
 
       // Act
-      const result = await pathExists('path', work.config, unbuiltTreeIndexes)
+      const result = await pathExists(
+        'path',
+        getContext({ config: work.config, trees: unbuiltTreeIndexes })
+      )
 
       // Assert
       expect(result).toBe(false)

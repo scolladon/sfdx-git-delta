@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
@@ -13,7 +12,7 @@ import {
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -44,8 +43,7 @@ describe('ContainedDecomposedHandler', () => {
       const sut = new ContainedDecomposedHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -78,8 +76,7 @@ describe('ContainedDecomposedHandler', () => {
           const sut = new ContainedDecomposedHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -109,8 +106,7 @@ describe('ContainedDecomposedHandler', () => {
           const sut = new ContainedDecomposedHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -140,8 +136,7 @@ describe('ContainedDecomposedHandler', () => {
           const sut = new ContainedDecomposedHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -189,8 +184,7 @@ describe('ContainedDecomposedHandler', () => {
         const sut = new ContainedDecomposedHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -226,8 +220,7 @@ describe('ContainedDecomposedHandler', () => {
         const sut = new ContainedDecomposedHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -263,8 +256,7 @@ describe('ContainedDecomposedHandler', () => {
         const sut = new ContainedDecomposedHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -295,8 +287,7 @@ describe('ContainedDecomposedHandler', () => {
         const sut = new ContainedDecomposedHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -336,8 +327,7 @@ describe('ContainedDecomposedHandler', () => {
       const sut = new ContainedDecomposedHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -371,8 +361,7 @@ describe('ContainedDecomposedHandler', () => {
       const sut = new ContainedDecomposedHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -396,8 +385,7 @@ describe('ContainedDecomposedHandler', () => {
       const sut = new ContainedDecomposedHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -435,8 +423,7 @@ describe('ContainedDecomposedHandler', () => {
       const sut = new ContainedDecomposedHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -471,8 +458,7 @@ describe('ContainedDecomposedHandler', () => {
       const sut = new ContainedDecomposedHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act

@@ -8,6 +8,7 @@ import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config, ConfigInput } from './types/config.js'
+import type { RunContext } from './types/runContext.js'
 import type { Work } from './types/work.js'
 import ChangeSet from './utils/changeSet.js'
 import { assembleChanges } from './utils/changesAssembly.js'
@@ -68,7 +69,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // built under — the lesson from the shared, scope-keyed cache this
     // replaces (see design history) is that a cache keyed by a value each
     // reader recomputes is an implicit contract that will drift.
-    let treeIndexes = EMPTY_TREE_INDEXES
+    let trees = EMPTY_TREE_INDEXES
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
       let scopePaths: string[] = config.source
@@ -85,11 +86,13 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         const entries = new Map<string, TreeIndex>()
         if (toIndex) entries.set(config.to, toIndex)
         if (fromIndex) entries.set(config.from, fromIndex)
-        treeIndexes = createTreeIndexes(entries)
+        trees = createTreeIndexes(entries)
       }
     }
-    const lineProcessor = new DiffLineInterpreter(config, metadata, treeIndexes)
-    const postProcessors = getPostProcessors(config, metadata, treeIndexes)
+    const ctx: RunContext = { config, metadata, trees }
+
+    const lineProcessor = new DiffLineInterpreter(ctx)
+    const postProcessors = getPostProcessors(ctx)
 
     // First pass: build the read model from handler output alone so collectors
     // (FlowTranslationProcessor) introspect the handler-pass package view before
@@ -102,18 +105,16 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // RepoGitDiff captured from `-M` output — into (type, from, to) triples.
     // Pairs for ignored paths or bundle helper files (same member on both
     // sides) resolve to no triple.
-    const renameTriples = await new RenameResolver(
-      config,
-      metadata,
-      treeIndexes
-    ).resolve(repoGitDiffHelper.getRenamePairs())
+    const renameTriples = await new RenameResolver(ctx).resolve(
+      repoGitDiffHelper.getRenamePairs()
+    )
     const {
       changes,
       copies,
       warnings: assemblyWarnings,
     } = assembleChanges(handlerResult, postResult, renameTriples)
 
-    await new IOExecutor(config, treeIndexes).execute(copies)
+    await new IOExecutor(ctx).execute(copies)
     const processorWarnings = await postProcessors.executeRemaining(changes)
 
     // The diff is fully drained by this point (the same assumption

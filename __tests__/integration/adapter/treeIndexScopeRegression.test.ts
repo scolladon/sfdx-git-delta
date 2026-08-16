@@ -20,6 +20,7 @@ import {
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
+import { getContext } from '../../__utils__/testWork'
 
 // Standing invariant: main.ts (src/main.ts) builds exactly one TreeIndex per
 // revision, scoped to the DIFF-COMPUTED scope (computeTreeIndexScope)
@@ -99,7 +100,9 @@ describe('Given main.ts pre-builds the tree index under the diff-computed scope 
         new Map<string, TreeIndex>([[config.to, index!]])
       )
 
-      const resolver = new MetadataBoundaryResolver(metadata, treeIndexes)
+      const resolver = new MetadataBoundaryResolver(
+        getContext({ metadata, trees: treeIndexes })
+      )
 
       // Act
       const element = await resolver.createElement(

@@ -3,13 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../../src/utils/LoggingService')
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Config } from '../../../../src/types/config'
 import { Logger } from '../../../../src/utils/LoggingService'
 import RenameResolver from '../../../../src/utils/renameResolver'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const mockGetTypeHandler = vi.fn()
 vi.mock('../../../../src/service/typeHandlerFactory', () => ({
@@ -38,7 +37,7 @@ describe('RenameResolver', () => {
         .mockResolvedValueOnce({
           getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
         })
-      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
+      const sut = new RenameResolver(getContext({ config, metadata }))
 
       // Act
       const triples = await sut.resolve([
@@ -75,7 +74,7 @@ describe('RenameResolver', () => {
             member: 'myBundle',
           }),
         })
-      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
+      const sut = new RenameResolver(getContext({ config, metadata }))
 
       // Act
       const triples = await sut.resolve([
@@ -108,7 +107,7 @@ describe('RenameResolver', () => {
         .mockResolvedValueOnce({
           getElementDescriptor: () => ({ type: 'ApexTrigger', member: 'Bar' }),
         })
-      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
+      const sut = new RenameResolver(getContext({ config, metadata }))
 
       // Act
       const triples = await sut.resolve([
@@ -127,7 +126,7 @@ describe('RenameResolver', () => {
       mockGetTypeHandler.mockRejectedValueOnce(
         new Error('Unknown metadata type for path: ignored/path')
       )
-      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
+      const sut = new RenameResolver(getContext({ config, metadata }))
 
       // Act & Assert — resolve settles without throwing
       await expect(

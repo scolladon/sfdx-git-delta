@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -14,7 +13,7 @@ import {
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -50,7 +49,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -68,7 +67,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -101,7 +100,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -129,7 +128,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -162,7 +161,7 @@ describe('InFolderHandler', () => {
         upperSuffixType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -184,7 +183,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -202,7 +201,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -221,7 +220,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -243,7 +242,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -266,7 +265,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -289,7 +288,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config, EMPTY_TREE_INDEXES)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()

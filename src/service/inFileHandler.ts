@@ -1,10 +1,8 @@
 'use strict'
 import { basename } from 'node:path/posix'
 
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
-import type { Config } from '../types/config.js'
 import type {
   AddKind,
   CopyOperation,
@@ -16,6 +14,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -29,13 +28,8 @@ const getRootType = (line: string) => basename(line).split(DOT)[0]
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
 
-  constructor(
-    changeType: string,
-    element: MetadataElement,
-    config: Config,
-    treeIndexes: TreeIndexes
-  ) {
-    super(changeType, element, config, treeIndexes)
+  constructor(changeType: string, element: MetadataElement, ctx: RunContext) {
+    super(changeType, element, ctx)
     const inFileMetadata = element.getInFileAttributes()
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }

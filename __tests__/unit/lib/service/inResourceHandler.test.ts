@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -14,7 +13,7 @@ import {
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -77,8 +76,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -107,8 +105,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -140,8 +137,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -171,8 +167,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -218,8 +213,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -274,8 +268,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -325,8 +318,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -367,8 +359,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -377,8 +368,7 @@ describe('InResourceHandler', () => {
           // Assert
           expect(readDirs).toHaveBeenCalledWith(
             `${base}${staticResourceType.directoryName}`,
-            config,
-            EMPTY_TREE_INDEXES
+            expect.objectContaining({ config })
           )
         })
 
@@ -399,8 +389,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -449,8 +438,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
 
           // Act
@@ -492,8 +480,7 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(
             changeType,
             element,
-            config,
-            EMPTY_TREE_INDEXES
+            getContext({ config })
           )
           mockedReadDirs.mockResolvedValueOnce([])
 
@@ -545,8 +532,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -564,8 +550,7 @@ describe('InResourceHandler', () => {
         )
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('resource'),
-          config,
-          EMPTY_TREE_INDEXES
+          expect.objectContaining({ config })
         )
       })
     })
@@ -583,8 +568,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -603,8 +587,7 @@ describe('InResourceHandler', () => {
         expect(result.copies).toEqual([])
         expect(pathExists).toHaveBeenCalledWith(
           expect.stringContaining('staticresources'),
-          config,
-          EMPTY_TREE_INDEXES
+          expect.objectContaining({ config })
         )
       })
     })
@@ -628,8 +611,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -669,8 +651,7 @@ describe('InResourceHandler', () => {
         const sut = new InResourceHandler(
           changeType,
           element,
-          config,
-          EMPTY_TREE_INDEXES
+          getContext({ config })
         )
 
         // Act
@@ -679,8 +660,7 @@ describe('InResourceHandler', () => {
         // Assert
         expect(pathExists).toHaveBeenCalledWith(
           `${base}${staticResourceType.directoryName}/${entity}`,
-          config,
-          EMPTY_TREE_INDEXES
+          expect.objectContaining({ config })
         )
         expect(
           elementsOf(result).some(m => m.target === 'destructiveChanges')

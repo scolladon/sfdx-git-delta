@@ -1,9 +1,9 @@
 import { bench, describe, vi } from 'vitest'
-import { EMPTY_TREE_INDEXES } from '../../src/adapter/treeIndexes.js'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { getContext } from '../__utils__/testWork.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
@@ -50,9 +50,7 @@ for (const size of sizes) {
     bench(`pipeline-handler-dispatch-${size}`, async () => {
       const config = createConfig()
       const interpreter = new DiffLineInterpreter(
-        config,
-        metadata,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata })
       )
       await interpreter.process(lines)
     })

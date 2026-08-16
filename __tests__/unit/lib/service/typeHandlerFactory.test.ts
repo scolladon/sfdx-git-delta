@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -19,7 +18,7 @@ import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { Config } from '../../../../src/types/config'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
@@ -28,9 +27,7 @@ describe('the type handler factory', () => {
     const config: Config = getConfig()
     config.apiVersion = 46
     typeHandlerFactory = new TypeHandlerFactory(
-      config,
-      globalMetadata,
-      EMPTY_TREE_INDEXES
+      getContext({ config, metadata: globalMetadata })
     )
   })
   describe.each([
@@ -244,9 +241,7 @@ describe('the type handler factory', () => {
       const config: Config = getConfig()
       config.apiVersion = 46
       const freshFactory = new TypeHandlerFactory(
-        config,
-        globalMetadata,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata: globalMetadata })
       )
 
       const sut = await freshFactory.getTypeHandler(
@@ -338,9 +333,7 @@ describe('the type handler factory', () => {
         }),
       }
       const factory = new TypeHandlerFactory(
-        config,
-        stubMetadata as never,
-        EMPTY_TREE_INDEXES
+        getContext({ config, metadata: stubMetadata as never })
       )
       // Inject the mock resolver
       ;(factory as unknown as { resolver: typeof mockResolver }).resolver =

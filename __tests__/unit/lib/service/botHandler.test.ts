@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BotHandler from '../../../../src/service/botHandler'
@@ -13,7 +12,7 @@ import {
 import { Metadata } from '../../../../src/types/metadata'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -55,12 +54,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(
-        changeType,
-        element,
-        config,
-        EMPTY_TREE_INDEXES
-      )
+      const sut = new BotHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -97,12 +91,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(
-        changeType,
-        element,
-        config,
-        EMPTY_TREE_INDEXES
-      )
+      const sut = new BotHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -134,12 +123,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(
-        changeType,
-        element,
-        config,
-        EMPTY_TREE_INDEXES
-      )
+      const sut = new BotHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -168,12 +152,7 @@ describe('BotHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new BotHandler(
-        changeType,
-        element,
-        config,
-        EMPTY_TREE_INDEXES
-      )
+      const sut = new BotHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()

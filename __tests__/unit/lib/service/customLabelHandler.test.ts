@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomLabelHandler from '../../../../src/service/customLabelHandler'
@@ -12,7 +11,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockRun, mockWriter } = vi.hoisted(() => ({
   mockRun: vi.fn(),
@@ -64,8 +63,7 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -93,8 +91,7 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -122,8 +119,7 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -154,8 +150,7 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
 
       // Act
@@ -189,8 +184,7 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
       mockRun.mockImplementation(() =>
         Promise.resolve({
@@ -235,8 +229,7 @@ describe('Decomposed CustomLabel spec', () => {
       const sut = new CustomLabelHandler(
         changeType,
         element,
-        config,
-        EMPTY_TREE_INDEXES
+        getContext({ config })
       )
       mockRun.mockImplementation(() =>
         Promise.resolve({
