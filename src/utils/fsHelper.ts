@@ -2,7 +2,7 @@
 import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
-import type { TreeIndexes } from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 

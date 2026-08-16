@@ -1,7 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { TreeIndexes } from '../../../../src/adapter/gitTreeLister'
+import type { TreeIndexes } from '../../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Metadata } from '../../../../src/types/metadata'

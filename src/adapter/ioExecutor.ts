@@ -23,7 +23,7 @@ import {
   GIT_ARCHIVE_DIR_THRESHOLD,
   type GitBlobReader,
 } from './gitBlobReader.js'
-import type { TreeIndexes } from './gitTreeLister.js'
+import type { TreeIndexes } from './treeIndexes.js'
 
 const TMP_SUFFIX = '.tmp'
 

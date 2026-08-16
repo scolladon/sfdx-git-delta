@@ -1,7 +1,7 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
 
-import type { TreeIndexes } from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'

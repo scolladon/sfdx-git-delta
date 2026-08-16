@@ -1,13 +1,12 @@
 'use strict'
 import { describe, expect, it } from 'vitest'
-
+import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import {
   createTreeIndexes,
   EMPTY_TREE_INDEXES,
-} from '../../../../src/adapter/gitTreeLister'
-import { TreeIndex } from '../../../../src/adapter/treeIndex'
+} from '../../../../src/adapter/treeIndexes'
 
-describe('gitTreeLister', () => {
+describe('treeIndexes', () => {
   describe('EMPTY_TREE_INDEXES', () => {
     it('Given any revision, When at is called, Then it returns undefined', () => {
       // Arrange

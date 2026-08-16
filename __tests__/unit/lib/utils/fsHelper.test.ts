@@ -2,7 +2,7 @@
 import { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { TreeIndexes } from '../../../../src/adapter/gitTreeLister'
+import type { TreeIndexes } from '../../../../src/adapter/treeIndexes'
 import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {

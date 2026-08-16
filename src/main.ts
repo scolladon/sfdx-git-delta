@@ -1,11 +1,8 @@
 'use strict'
 import GitAdapter from './adapter/GitAdapter.js'
-import {
-  createTreeIndexes,
-  EMPTY_TREE_INDEXES,
-} from './adapter/gitTreeLister.js'
 import IOExecutor from './adapter/ioExecutor.js'
 import type { TreeIndex } from './adapter/treeIndex.js'
+import { createTreeIndexes, EMPTY_TREE_INDEXES } from './adapter/treeIndexes.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'

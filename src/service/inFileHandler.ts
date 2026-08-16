@@ -1,7 +1,7 @@
 'use strict'
 import { basename } from 'node:path/posix'
 
-import type { TreeIndexes } from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'

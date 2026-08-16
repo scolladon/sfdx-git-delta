@@ -4,11 +4,11 @@ import { rm } from 'node:fs/promises'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
+import type { TreeIndex } from '../../../src/adapter/treeIndex'
 import {
   createTreeIndexes,
   type TreeIndexes,
-} from '../../../src/adapter/gitTreeLister'
-import type { TreeIndex } from '../../../src/adapter/treeIndex'
+} from '../../../src/adapter/treeIndexes'
 import type { Config } from '../../../src/types/config'
 import {
   buildFixtureRepo,

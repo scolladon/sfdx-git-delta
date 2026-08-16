@@ -1,7 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import {
   ADDITION,
   DELETION,

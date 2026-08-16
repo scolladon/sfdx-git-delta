@@ -13,11 +13,11 @@ import {
 } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
+import type { TreeIndex } from '../../../src/adapter/treeIndex'
 import {
   createTreeIndexes,
   type TreeIndexes,
-} from '../../../src/adapter/gitTreeLister'
-import type { TreeIndex } from '../../../src/adapter/treeIndex'
+} from '../../../src/adapter/treeIndexes'
 import { MetadataRepository } from '../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../src/post-processor/includeProcessor'

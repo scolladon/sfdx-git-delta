@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../../src/utils/LoggingService')
 
-import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/treeIndexes'
 import {
   ADDITION,
   DELETION,

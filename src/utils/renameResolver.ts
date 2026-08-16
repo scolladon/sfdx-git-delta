@@ -1,6 +1,6 @@
 'use strict'
 
-import type { TreeIndexes } from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/treeIndexes.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'

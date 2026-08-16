@@ -1,5 +1,5 @@
 import { bench, describe, vi } from 'vitest'
-import { EMPTY_TREE_INDEXES } from '../../src/adapter/gitTreeLister.js'
+import { EMPTY_TREE_INDEXES } from '../../src/adapter/treeIndexes.js'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
