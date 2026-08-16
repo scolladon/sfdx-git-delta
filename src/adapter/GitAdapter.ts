@@ -33,6 +33,7 @@ import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
 
 import {
+  type Commit,
   type DiffChange,
   type ObjectId,
   openRepository,
@@ -202,6 +203,23 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     }
   }
 
+  // revParse returns the tag OBJECT oid for annotated tags (no auto-peel),
+  // so follow the tag chain down to the tagged commit — matching
+  // `git ls-tree -r <tag>` / `git merge-base` peeling semantics. `label`
+  // identifies the original ref/oid for the error message (it can differ
+  // from `oid` itself, e.g. a revision string vs. its resolved object id).
+  protected async peelToCommit(oid: ObjectId, label: string): Promise<Commit> {
+    const repo = await this.getRepo()
+    let target = await repo.primitives.readObject(oid)
+    while (target.type === 'tag') {
+      target = await repo.primitives.readObject(target.data.object)
+    }
+    if (target.type !== 'commit') {
+      throw new Error(`'${label}' does not resolve to a commit`)
+    }
+    return target
+  }
+
   // Flattens the full tree at `revision` once and caches path -> blob oid.
   // Shared by the tree index, blob reads, archive streaming and grep.
   // flattenTree is the bulk traversal path (one call, no per-entry yields);
@@ -215,17 +233,8 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     }
     const repo = await this.getRepo()
     const revisionId = await repo.revParse(revision)
-    // revParse returns the tag OBJECT oid for annotated tags (no auto-peel),
-    // so follow the tag chain down to the tagged commit before reading its
-    // tree — matching `git ls-tree -r <tag>` semantics.
-    let target = await repo.primitives.readObject(revisionId)
-    while (target.type === 'tag') {
-      target = await repo.primitives.readObject(target.data.object)
-    }
-    if (target.type !== 'commit') {
-      throw new Error(`'${revision}' does not resolve to a commit`)
-    }
-    const { entries } = await repo.primitives.flattenTree(target.data.tree)
+    const commit = await this.peelToCommit(revisionId, revision)
+    const { entries } = await repo.primitives.flattenTree(commit.data.tree)
     const blobIds = new Map<string, ObjectId>()
     for (const [path, entry] of entries) {
       if (BLOB_MODES.has(entry.mode)) {
@@ -234,6 +243,36 @@ export default class GitAdapter implements GitBlobReader, GitTreeLister {
     }
     this.blobIdIndex.set(revision, blobIds)
     return blobIds
+  }
+
+  // Equivalent to `git merge-base <from> <to>`, resolved in-process via
+  // tsgit — no local git binary needed. Both arguments must already be
+  // resolved oids (the `as ObjectId` casts assert that precondition at the
+  // trust boundary: ObjectId is a compile-time brand with no runtime
+  // constructor, and callers only ever reach this method with SHAs already
+  // round-tripped through parseRev). tsgit's `[]` result (no common
+  // ancestor / unrelated histories) is a legitimate git answer, not an
+  // exception — surfacing it as a user-facing error is the caller's job
+  // (ConfigValidator), not this adapter's.
+  @log
+  public async getMergeBase(
+    from: string,
+    to: string
+  ): Promise<string | undefined> {
+    try {
+      const repo = await this.getRepo()
+      const [fromCommit, toCommit] = await Promise.all([
+        this.peelToCommit(from as ObjectId, from),
+        this.peelToCommit(to as ObjectId, to),
+      ])
+      const [base] = await repo.primitives.mergeBase([
+        fromCommit.id,
+        toCommit.id,
+      ])
+      return base
+    } catch (error) {
+      throw mapTsgitError(error, `${from}...${to}`)
+    }
   }
 
   protected pathExistsImpl(path: string, revision: string): boolean {

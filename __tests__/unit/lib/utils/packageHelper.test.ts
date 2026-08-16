@@ -24,6 +24,7 @@ const config: Config = {
   apiVersion: 46,
   to: '',
   from: '',
+  mergeBase: false,
   output: '',
   source: sourceDirs('.'),
   ignore: '',

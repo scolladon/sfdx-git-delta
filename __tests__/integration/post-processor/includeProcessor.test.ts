@@ -56,6 +56,7 @@ const writeIncludePatterns = async (
 const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: refs.head,
   from: refs.head,
+  mergeBase: false,
   output: '',
   source: sourceDirs('.'),
   repo: fixtureDir,

@@ -32,6 +32,7 @@ const createConfig = (): Config => ({
   generateDelta: true,
   to: 'HEAD',
   from: 'HEAD~1',
+  mergeBase: false,
   ignore: '',
   ignoreDestructive: '',
   apiVersion: -1,

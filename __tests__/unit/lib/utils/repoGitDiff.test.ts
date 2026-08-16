@@ -79,6 +79,7 @@ describe('Given a RepoGitDiff', () => {
     config = {
       to: '',
       from: '',
+      mergeBase: false,
       output: '',
       source: sourceDirs('.'),
       ignore: '',

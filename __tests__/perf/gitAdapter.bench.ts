@@ -30,6 +30,7 @@ const BLOB_REFS: FileGitRef[] = [
 const baseConfig: Config = {
   to: TO,
   from: FROM,
+  mergeBase: false,
   output: '',
   source: sourceDirs('.'),
   repo: REPO_ROOT,

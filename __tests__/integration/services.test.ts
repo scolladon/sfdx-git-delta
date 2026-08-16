@@ -583,6 +583,7 @@ beforeEach(() => {
     generateDelta: true,
     to: '',
     from: '',
+    mergeBase: false,
     ignore: '',
     ignoreDestructive: '',
     apiVersion: 0,

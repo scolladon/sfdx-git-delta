@@ -12,15 +12,15 @@ import {
 import { Logger } from '../../../../src/utils/LoggingService'
 import { getConfig } from '../../../__utils__/testWork'
 
-const { mockGetMessage, mockParseRev, mockSfProjectResolve } = vi.hoisted(
-  () => ({
+const { mockGetMessage, mockParseRev, mockGetMergeBase, mockSfProjectResolve } =
+  vi.hoisted(() => ({
     mockGetMessage: vi.fn(
       (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
     ),
     mockParseRev: vi.fn(),
+    mockGetMergeBase: vi.fn(),
     mockSfProjectResolve: vi.fn(),
-  })
-)
+  }))
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -42,6 +42,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
     default: {
       getInstance: () => ({
         parseRev: mockParseRev,
+        getMergeBase: mockGetMergeBase,
       }),
     },
   }
@@ -1201,6 +1202,129 @@ describe('Given a ConfigValidator', () => {
           message: expect.stringContaining('error.ChangesManifestStatFailed'),
         })
       )
+    })
+  })
+
+  describe('Given mergeBase', () => {
+    beforeEach(() => {
+      mockedPathExists.mockResolvedValue(true as never)
+    })
+
+    it('Given mergeBase is true, When validating, Then config.from becomes the resolved merge base and getMergeBase receives the post-parseRev SHAs', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue('base-sha')
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: true,
+      })
+
+      // Act
+      const validated = await sut.validateConfig()
+
+      // Assert
+      expect(validated).toBeDefined()
+      expect(mockGetMergeBase).toHaveBeenCalledWith(
+        'main-resolved',
+        'develop-resolved'
+      )
+    })
+
+    it('Given mergeBase is false, When validating, Then getMergeBase is never called', async () => {
+      // Arrange
+      mockParseRev.mockImplementation(() => Promise.resolve('resolved'))
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: false,
+      })
+
+      // Act
+      await sut.validateConfig()
+
+      // Assert
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('Given no common ancestor is found, When validating, Then it throws a ConfigError carrying error.MergeBaseNotFound with the user-typed refs', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue(undefined)
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: true,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          name: 'ConfigError',
+          message: expect.stringContaining(
+            'error.MergeBaseNotFound:main,develop'
+          ),
+        })
+      )
+    })
+
+    it('Given "from" is already an ancestor of "to", When validating, Then the resolved base equals the post-parseRev "from" (idempotency fixpoint)', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue('main-resolved')
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: true,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).resolves.not.toThrow()
+    })
+
+    it('Given an invalid "--from" and mergeBase is true, When validating, Then it throws ParameterIsNotGitSHA and never calls getMergeBase (ordering)', async () => {
+      // Arrange
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'bad-from',
+        to: 'develop',
+        mergeBase: true,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ParameterIsNotGitSHA'),
+        })
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('Given a rejected "--source-dir" and mergeBase is true, When validating, Then it throws the source-dir error alone and never calls getMergeBase (the _validateSource short-circuit fires first)', async () => {
+      // Arrange
+      const sut = new ConfigValidator({ ...config, mergeBase: true }, [
+        { value: '', reason: 'empty' },
+      ])
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          name: 'ConfigError',
+          message: expect.stringContaining('error.SourceDirIsEmpty'),
+        })
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
     })
   })
 })

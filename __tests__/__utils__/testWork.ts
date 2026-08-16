@@ -10,6 +10,7 @@ export const getConfig = (): Config => ({
   generateDelta: true,
   to: '',
   from: '',
+  mergeBase: false,
   ignore: '',
   ignoreDestructive: '',
   apiVersion: -1,

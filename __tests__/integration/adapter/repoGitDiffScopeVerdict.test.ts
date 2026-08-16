@@ -37,6 +37,7 @@ const trackedTempDir = async (prefix: string): Promise<string> => {
 const makeConfig = (source: Config['source']): Config => ({
   to: refs.diffTo,
   from: refs.diffFrom,
+  mergeBase: false,
   output: '',
   source,
   repo: fixtureDir,

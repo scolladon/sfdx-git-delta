@@ -60,6 +60,7 @@ type FakeRepo = {
     flattenTree: ReturnType<typeof vi.fn>
     walkCommits: ReturnType<typeof vi.fn>
     streamBlob: ReturnType<typeof vi.fn>
+    mergeBase: ReturnType<typeof vi.fn>
   }
 }
 
@@ -73,12 +74,14 @@ const makeFakeRepo = (): FakeRepo => ({
     flattenTree: vi.fn(),
     walkCommits: vi.fn(),
     streamBlob: vi.fn(),
+    mergeBase: vi.fn(),
   },
 })
 
 const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD~1',
+  mergeBase: false,
   output: '/out',
   source: sourceDirs('force-app'),
   repo: '/repo',
@@ -359,6 +362,164 @@ describe('GitAdapter', () => {
       // Assert
       expect((error as Error).message).toBe('HEAD: not a valid git revision')
       expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
+    })
+  })
+
+  describe('Given getMergeBase', () => {
+    // Distinct from the shared asCommit() helper: getMergeBase reads
+    // fromCommit.id / toCommit.id off the peeled object, so the fake must
+    // carry an `id` matching the oid it was read from (real tsgit
+    // readObject results always do).
+    const asCommitAt = (oid: string) => ({
+      type: 'commit',
+      id: oid,
+      data: { tree: `tree-of-${oid}`, parents: [] },
+    })
+
+    it('When both refs resolve to commits, Then it calls primitives.mergeBase with both commit ids and returns the first result', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      const result = await sut.getMergeBase('from-oid', 'to-oid')
+
+      // Assert
+      expect(result).toBe('base-oid')
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'from-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When primitives.mergeBase resolves an empty array, Then it resolves to undefined without throwing', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue([])
+
+      // Act
+      const result = await sut.getMergeBase('from-oid', 'to-oid')
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('When primitives.mergeBase rejects with a raw tsgit error, Then it rejects with the mapped error using the "from...to" context', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockRejectedValue(
+        Object.assign(new Error('object not found'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getMergeBase('from-oid', 'to-oid')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'from-oid...to-oid: not a valid git revision'
+      )
+    })
+
+    it('When "from" is an annotated tag oid, Then it peels to the tagged commit before calling primitives.mergeBase', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('tag-oid', 'to-oid')
+
+      // Assert
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'commit-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When a ref is a two-deep tag chain, Then it peels through both tags to the terminal commit', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'nested-tag-oid' },
+          })
+        }
+        if (oid === 'nested-tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('tag-oid', 'to-oid')
+
+      // Assert
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'commit-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When both oids already resolve to commits, Then the peel loop does not iterate and the oids pass through unchanged', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('commit-a', 'commit-b')
+
+      // Assert
+      expect(fakeRepo.primitives.readObject).toHaveBeenCalledTimes(2)
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'commit-a',
+        'commit-b',
+      ])
+    })
+
+    it('When an oid peels to a non-commit object, Then it rejects mentioning the label, wrapped by mapTsgitError', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tree-oid') {
+          return Promise.resolve({ type: 'tree', data: {} })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+
+      // Act & Assert
+      await expect(sut.getMergeBase('tree-oid', 'to-oid')).rejects.toThrow(
+        "'tree-oid' does not resolve to a commit"
+      )
     })
   })
 

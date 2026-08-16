@@ -110,6 +110,22 @@ describe('sgd source delta NUTS', () => {
     expect(sut).toContain('No file found')
   })
 
+  it('Given --from HEAD~2 --merge-base, When running command, Then it succeeds', () => {
+    // Act
+    const sut = run('sgd source delta --from HEAD~2 --merge-base --json', 0)
+
+    // Assert
+    expect(sut).toContain('output-dir')
+  })
+
+  it('Given the -b short form of --merge-base, When running command, Then it succeeds', () => {
+    // Act
+    const sut = run('sgd source delta --from HEAD~2 -b --json', 0)
+
+    // Assert
+    expect(sut).toContain('output-dir')
+  })
+
   it('Given --changes-manifest flag, When running command, Then oclif accepts the flag', () => {
     // Act — uses the same invalid-sha pattern as the --from test above so
     // exit code is deterministic across environments (shallow clones on CI
