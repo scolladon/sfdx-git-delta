@@ -1,4 +1,5 @@
 import { bench, describe, vi } from 'vitest'
+import { EMPTY_TREE_INDEXES } from '../../src/adapter/gitTreeLister.js'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
@@ -50,7 +51,11 @@ for (const size of sizes) {
   describe(`pipeline-handler-${size}`, () => {
     bench(`pipeline-handler-dispatch-${size}`, async () => {
       const config = createConfig()
-      const interpreter = new DiffLineInterpreter(config, metadata)
+      const interpreter = new DiffLineInterpreter(
+        config,
+        metadata,
+        EMPTY_TREE_INDEXES
+      )
       await interpreter.process(lines)
     })
   })

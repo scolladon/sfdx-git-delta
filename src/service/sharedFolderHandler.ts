@@ -16,7 +16,7 @@ export default class SharedFolderHandler extends StandardHandler {
     changeType: string,
     element: MetadataElement,
     config: Config,
-    treeIndexes?: TreeIndexes
+    treeIndexes: TreeIndexes
   ) {
     super(changeType, element, config, treeIndexes)
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)

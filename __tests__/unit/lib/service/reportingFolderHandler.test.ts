@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
@@ -85,7 +86,12 @@ describe('InNestedFolderHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new ReportingFolderHandler(changeType, element, config)
+        const sut = new ReportingFolderHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collectAddition()
@@ -119,7 +125,12 @@ describe('InNestedFolderHandler', () => {
             objectType,
             globalMetadata
           )
-          const sut = new ReportingFolderHandler(changeType, element, config)
+          const sut = new ReportingFolderHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
           // Act
@@ -155,7 +166,12 @@ describe('InNestedFolderHandler', () => {
             objectType,
             globalMetadata
           )
-          const sut = new ReportingFolderHandler(changeType, element, config)
+          const sut = new ReportingFolderHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockedReadDirs.mockImplementationOnce(() =>
             Promise.resolve([entity, 'not/matching'])
           )
@@ -190,7 +206,12 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -211,7 +232,12 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -231,7 +257,12 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -257,7 +288,12 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectDeletion()

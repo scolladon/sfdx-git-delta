@@ -23,7 +23,7 @@ import {
   GIT_ARCHIVE_DIR_THRESHOLD,
   type GitBlobReader,
 } from './gitBlobReader.js'
-import { EMPTY_TREE_INDEXES, type TreeIndexes } from './gitTreeLister.js'
+import type { TreeIndexes } from './gitTreeLister.js'
 
 const TMP_SUFFIX = '.tmp'
 
@@ -33,7 +33,7 @@ export default class IOExecutor {
 
   constructor(
     protected readonly config: Config,
-    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES,
+    protected readonly treeIndexes: TreeIndexes,
     protected readonly blobReader: GitBlobReader = GitAdapter.getInstance(
       config
     )

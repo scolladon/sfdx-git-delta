@@ -1,10 +1,7 @@
 'use strict'
 import { join, parse } from 'node:path/posix'
 
-import {
-  EMPTY_TREE_INDEXES,
-  type TreeIndexes,
-} from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/gitTreeLister.js'
 import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
@@ -44,7 +41,7 @@ export default class StandardHandler {
     protected readonly changeType: string,
     protected readonly element: MetadataElement,
     protected readonly config: Config,
-    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
+    protected readonly treeIndexes: TreeIndexes
   ) {}
 
   @log

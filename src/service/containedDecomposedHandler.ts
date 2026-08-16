@@ -22,7 +22,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
     changeType: string,
     element: MetadataElement,
     config: Config,
-    treeIndexes?: TreeIndexes
+    treeIndexes: TreeIndexes
   ) {
     super(changeType, element, config, treeIndexes)
     this._setholderFolder()

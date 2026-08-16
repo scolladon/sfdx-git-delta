@@ -1,9 +1,6 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
-import {
-  EMPTY_TREE_INDEXES,
-  type TreeIndexes,
-} from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/gitTreeLister.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -27,7 +24,7 @@ export default class IncludeProcessor extends BaseProcessor {
   constructor(
     config: Config,
     metadata: MetadataRepository,
-    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
+    protected readonly treeIndexes: TreeIndexes
   ) {
     super(config, metadata)
     this.gitAdapter = GitAdapter.getInstance(this.config)

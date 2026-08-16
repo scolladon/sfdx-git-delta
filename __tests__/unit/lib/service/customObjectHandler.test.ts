@@ -1,5 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -74,7 +75,12 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, config)
+      const sut = new CustomObjectHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -103,7 +109,12 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, config)
+      const sut = new CustomObjectHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -123,7 +134,12 @@ describe('CustomObjectHandler', () => {
         territoryModelType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, config)
+      const sut = new CustomObjectHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -155,7 +171,12 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, config)
+      const sut = new CustomObjectHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -190,7 +211,12 @@ describe('CustomObjectHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectHandler(changeType, element, config)
+      const sut = new CustomObjectHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       await sut.collect()

@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../../src/utils/LoggingService')
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import {
   ADDITION,
   DELETION,
@@ -66,7 +67,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -100,7 +106,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -119,7 +130,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -145,7 +161,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -164,7 +185,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -183,7 +209,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -203,7 +234,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
       vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(
         new Error('test error')
       )
@@ -227,7 +263,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -248,7 +289,12 @@ describe(`StandardHandler`, () => {
         testSuitesType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -268,7 +314,12 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = sut.toString()

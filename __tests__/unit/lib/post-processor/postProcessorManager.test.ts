@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import BaseProcessor, {
@@ -70,7 +71,7 @@ describe('postProcessorManager', () => {
   describe('getPostProcessors', () => {
     it('Given config and metadata, When called, Then returns manager that can execute', async () => {
       // Arrange
-      const sut = getPostProcessors(config, metadata)
+      const sut = getPostProcessors(config, metadata, EMPTY_TREE_INDEXES)
 
       // Act & Assert
       await expect(sut.collectAll(new ChangeSet())).resolves.toBeDefined()
@@ -81,7 +82,7 @@ describe('postProcessorManager', () => {
       // With registeredProcessors=[] mutant, no collectors exist and executeRemaining/collectAll
       // would be no-ops. We verify that executeRemaining() is a no-op for non-Include
       // processors — i.e., processSpy is NOT called by getPostProcessors alone.
-      const sut = getPostProcessors(config, metadata)
+      const sut = getPostProcessors(config, metadata, EMPTY_TREE_INDEXES)
 
       // Act — executeRemaining() runs all non-collector processors
       // If registeredProcessors=[] the manager has no processors at all.
@@ -107,7 +108,7 @@ describe('postProcessorManager', () => {
       // Mutant registeredProcessors=[]: manager gets no processors from getPostProcessors.
       // We add a TestProcessor via use() after getPostProcessors and verify executeRemaining
       // runs it — this confirms use() works AND that getPostProcessors returns a live manager.
-      const sut = getPostProcessors(config, metadata)
+      const sut = getPostProcessors(config, metadata, EMPTY_TREE_INDEXES)
       sut.use(new TestProcessor(config, metadata) as BaseProcessor)
 
       await sut.executeRemaining(new ChangeSet())
@@ -118,7 +119,7 @@ describe('postProcessorManager', () => {
 
     it('Given getPostProcessors, When use is called on returned manager, Then processor is executed (kills L90 BlockStatement {})', async () => {
       // Arrange
-      const sut = getPostProcessors(config, metadata)
+      const sut = getPostProcessors(config, metadata, EMPTY_TREE_INDEXES)
       sut.use(new TestProcessor(config, metadata) as BaseProcessor)
 
       // Act
@@ -190,7 +191,13 @@ describe('postProcessorManager', () => {
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
       sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
-      sut.use(new IncludeProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(
+        new IncludeProcessor(
+          localConfig,
+          metadata,
+          EMPTY_TREE_INDEXES
+        ) as BaseProcessor
+      )
       sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
 
       // Act
@@ -308,7 +315,11 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      const includeProcessor = new IncludeProcessor(localConfig, metadata)
+      const includeProcessor = new IncludeProcessor(
+        localConfig,
+        metadata,
+        EMPTY_TREE_INDEXES
+      )
       vi.spyOn(includeProcessor, 'transformAndCollect').mockRejectedValueOnce(
         new Error('collectAll error')
       )

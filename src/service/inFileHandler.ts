@@ -33,7 +33,7 @@ export default class InFileHandler extends StandardHandler {
     changeType: string,
     element: MetadataElement,
     config: Config,
-    treeIndexes?: TreeIndexes
+    treeIndexes: TreeIndexes
   ) {
     super(changeType, element, config, treeIndexes)
     const inFileMetadata = element.getInFileAttributes()

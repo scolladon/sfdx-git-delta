@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
@@ -40,7 +41,12 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, config)
+      const sut = new ContainedDecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -72,7 +78,8 @@ describe('ContainedDecomposedHandler', () => {
           const sut = new ContainedDecomposedHandler(
             changeType,
             element,
-            config
+            config,
+            EMPTY_TREE_INDEXES
           )
 
           // Act
@@ -102,7 +109,8 @@ describe('ContainedDecomposedHandler', () => {
           const sut = new ContainedDecomposedHandler(
             changeType,
             element,
-            config
+            config,
+            EMPTY_TREE_INDEXES
           )
 
           // Act
@@ -132,7 +140,8 @@ describe('ContainedDecomposedHandler', () => {
           const sut = new ContainedDecomposedHandler(
             changeType,
             element,
-            config
+            config,
+            EMPTY_TREE_INDEXES
           )
 
           // Act
@@ -177,7 +186,12 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, config)
+        const sut = new ContainedDecomposedHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -209,7 +223,12 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, config)
+        const sut = new ContainedDecomposedHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -241,7 +260,12 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, config)
+        const sut = new ContainedDecomposedHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -268,7 +292,12 @@ describe('ContainedDecomposedHandler', () => {
           globalMetadata.get('permissionsets')!,
           globalMetadata
         )
-        const sut = new ContainedDecomposedHandler(changeType, element, config)
+        const sut = new ContainedDecomposedHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -304,7 +333,12 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, config)
+      const sut = new ContainedDecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -334,7 +368,12 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, config)
+      const sut = new ContainedDecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -354,7 +393,12 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, config)
+      const sut = new ContainedDecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -388,7 +432,12 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, config)
+      const sut = new ContainedDecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -419,7 +468,12 @@ describe('ContainedDecomposedHandler', () => {
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      const sut = new ContainedDecomposedHandler(changeType, element, config)
+      const sut = new ContainedDecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()

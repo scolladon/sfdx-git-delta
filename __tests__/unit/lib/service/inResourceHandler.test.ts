@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -73,7 +74,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -98,7 +104,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -126,7 +137,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -152,7 +168,12 @@ describe('InResourceHandler', () => {
           lwcType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -194,7 +215,12 @@ describe('InResourceHandler', () => {
             lwcType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           // Act
           const result = await sut.collect()
@@ -245,7 +271,12 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           // Act
           const result = await sut.collect()
@@ -291,7 +322,12 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           // Act
           const result = await sut.collect()
@@ -328,7 +364,12 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           // Act
           await sut.collect()
@@ -355,7 +396,12 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           // Act
           const result = await sut.collect()
@@ -400,7 +446,12 @@ describe('InResourceHandler', () => {
             experienceBundleType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           // Act
           const result = await sut.collect()
@@ -438,7 +489,12 @@ describe('InResourceHandler', () => {
             staticResourceType,
             globalMetadata
           )
-          const sut = new InResourceHandler(changeType, element, config)
+          const sut = new InResourceHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
@@ -486,7 +542,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -519,7 +580,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -559,7 +625,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()
@@ -595,7 +666,12 @@ describe('InResourceHandler', () => {
           staticResourceType,
           globalMetadata
         )
-        const sut = new InResourceHandler(changeType, element, config)
+        const sut = new InResourceHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result = await sut.collect()

@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
@@ -67,7 +68,11 @@ describe('DiffLineInterpreter.process', () => {
           warnings: [],
         })
       })
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.process(['line1', 'line2'])
@@ -83,7 +88,11 @@ describe('DiffLineInterpreter.process', () => {
   describe('Given empty lines', () => {
     it('When process is called, Then returns empty result', async () => {
       // Arrange
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.process([])
@@ -100,7 +109,11 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called with revisions, Then uses override revisions', async () => {
       // Arrange
       mockCollect.mockResolvedValue(emptyResult())
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.process(['line1'], {
@@ -121,7 +134,11 @@ describe('DiffLineInterpreter.process', () => {
         ...emptyResult(),
         warnings: [new Error('test warning')],
       })
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.process(['line1'])

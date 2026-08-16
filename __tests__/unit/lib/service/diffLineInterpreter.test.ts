@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
@@ -48,7 +49,7 @@ describe('DiffLineInterpreter', () => {
   })
 
   beforeEach(() => {
-    sut = new DiffLineInterpreter(config, globalMetadata)
+    sut = new DiffLineInterpreter(config, globalMetadata, EMPTY_TREE_INDEXES)
   })
 
   describe('when called with lines', () => {

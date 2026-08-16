@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { METAFILE_SUFFIX } from '../../../../src/constant/metadataConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -56,7 +57,12 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, config)
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
 
     // Act
     const result = await sut.collectAddition()
@@ -80,7 +86,12 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, config)
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
 
     // Act
     const result = await sut.collect()
@@ -105,7 +116,12 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, config)
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
 
     // Act
     const result = await sut.collect()
@@ -124,7 +140,12 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -141,7 +162,12 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -161,7 +187,12 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -190,7 +221,12 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()

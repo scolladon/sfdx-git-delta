@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFileHandler from '../../../../src/service/inFileHandler'
@@ -84,7 +85,7 @@ describe('inFileHandler', () => {
         workflowType,
         globalMetadata
       )
-      sut = new InFileHandler(changeType, element, config)
+      sut = new InFileHandler(changeType, element, config, EMPTY_TREE_INDEXES)
       mockRun.mockImplementation(() =>
         Promise.resolve({
           manifests: {
@@ -135,7 +136,12 @@ describe('inFileHandler', () => {
             globalValueSetTranslationsType,
             globalMetadata
           )
-          sut = new InFileHandler(changeType, element, config)
+          sut = new InFileHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockRun.mockImplementation(() =>
             Promise.resolve({
               manifests: {
@@ -187,7 +193,12 @@ describe('inFileHandler', () => {
             globalValueSetTranslationsType,
             globalMetadata
           )
-          sut = new InFileHandler(changeType, element, config)
+          sut = new InFileHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockRun.mockImplementation(() =>
             Promise.resolve({
               manifests: {
@@ -244,7 +255,7 @@ describe('inFileHandler', () => {
           workflowType,
           globalMetadata
         )
-        sut = new InFileHandler(changeType, element, config)
+        sut = new InFileHandler(changeType, element, config, EMPTY_TREE_INDEXES)
         mockRun.mockImplementation(() =>
           Promise.resolve({
             manifests: {
@@ -302,7 +313,7 @@ describe('inFileHandler', () => {
           workflowType,
           globalMetadata
         )
-        sut = new InFileHandler(changeType, element, config)
+        sut = new InFileHandler(changeType, element, config, EMPTY_TREE_INDEXES)
         mockRun.mockImplementation(() =>
           Promise.resolve({
             manifests: {
@@ -352,7 +363,12 @@ describe('inFileHandler', () => {
             workflowType,
             globalMetadata
           )
-          sut = new InFileHandler(changeType, element, config)
+          sut = new InFileHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
 
           mockRun.mockImplementation(() =>
             Promise.resolve({
@@ -383,7 +399,12 @@ describe('inFileHandler', () => {
             workflowType,
             globalMetadata
           )
-          sut = new InFileHandler(changeType, element, config)
+          sut = new InFileHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockRun.mockImplementation(() =>
             Promise.resolve({
               manifests: {
@@ -431,7 +452,12 @@ describe('inFileHandler', () => {
             globalValueSetTranslationsType,
             globalMetadata
           )
-          sut = new InFileHandler(changeType, element, config)
+          sut = new InFileHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockRun.mockImplementation(() =>
             Promise.resolve({
               manifests: {
@@ -483,7 +509,12 @@ describe('inFileHandler', () => {
             globalValueSetTranslationsType,
             globalMetadata
           )
-          sut = new InFileHandler(changeType, element, config)
+          sut = new InFileHandler(
+            changeType,
+            element,
+            config,
+            EMPTY_TREE_INDEXES
+          )
           mockRun.mockImplementation(() =>
             Promise.resolve({
               manifests: {
@@ -538,7 +569,7 @@ describe('inFileHandler', () => {
         workflowType,
         globalMetadata
       )
-      sut = new InFileHandler(changeType, element, config)
+      sut = new InFileHandler(changeType, element, config, EMPTY_TREE_INDEXES)
       mockRun.mockImplementation(() =>
         Promise.resolve({
           manifests: {
@@ -588,7 +619,7 @@ describe('inFileHandler', () => {
           globalValueSetTranslationsType,
           globalMetadata
         )
-        sut = new InFileHandler(changeType, element, config)
+        sut = new InFileHandler(changeType, element, config, EMPTY_TREE_INDEXES)
       })
       it('should only store file name and not the metadata in file', async () => {
         // Act
@@ -638,7 +669,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.resolve({
         manifests: {
@@ -683,7 +719,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.resolve({
         manifests: {
@@ -714,7 +755,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.reject(
         new Error("Cannot read properties of undefined (reading 'addChild')")
@@ -748,7 +794,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.resolve({
         manifests: {
@@ -780,7 +831,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.resolve({
         manifests: {
@@ -822,7 +878,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.resolve({
         manifests: {
@@ -851,7 +912,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockImplementation(() =>
       Promise.resolve({
         manifests: {
@@ -885,7 +951,12 @@ describe('inFileHandler collect', () => {
       workflowType,
       globalMetadata
     )
-    const sut = new InFileHandler(changeType, element, config)
+    const sut = new InFileHandler(
+      changeType,
+      element,
+      config,
+      EMPTY_TREE_INDEXES
+    )
     mockRun.mockResolvedValue({
       manifests: {
         added: [{ type: 'WorkflowAlert', member: 'NewAlert' }],

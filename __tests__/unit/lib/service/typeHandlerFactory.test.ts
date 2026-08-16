@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { DELETION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -26,7 +27,11 @@ describe('the type handler factory', () => {
     const globalMetadata: MetadataRepository = await getDefinition({})
     const config: Config = getConfig()
     config.apiVersion = 46
-    typeHandlerFactory = new TypeHandlerFactory(config, globalMetadata)
+    typeHandlerFactory = new TypeHandlerFactory(
+      config,
+      globalMetadata,
+      EMPTY_TREE_INDEXES
+    )
   })
   describe.each([
     [CustomField, ['fields']],
@@ -238,7 +243,11 @@ describe('the type handler factory', () => {
       const globalMetadata: MetadataRepository = await getDefinition({})
       const config: Config = getConfig()
       config.apiVersion = 46
-      const freshFactory = new TypeHandlerFactory(config, globalMetadata)
+      const freshFactory = new TypeHandlerFactory(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       const sut = await freshFactory.getTypeHandler(
         `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
@@ -328,7 +337,11 @@ describe('the type handler factory', () => {
           componentPath: 'force-app/orphans/file',
         }),
       }
-      const factory = new TypeHandlerFactory(config, stubMetadata as never)
+      const factory = new TypeHandlerFactory(
+        config,
+        stubMetadata as never,
+        EMPTY_TREE_INDEXES
+      )
       // Inject the mock resolver
       ;(factory as unknown as { resolver: typeof mockResolver }).resolver =
         mockResolver

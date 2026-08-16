@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DecomposedHandler from '../../../../src/service/decomposedHandler'
@@ -50,7 +51,12 @@ describe('DecomposedHandler', () => {
           recordTypeWithParent,
           globalMetadata
         )
-        const sut = new DecomposedHandler(changeType, element, config)
+        const sut = new DecomposedHandler(
+          changeType,
+          element,
+          config,
+          EMPTY_TREE_INDEXES
+        )
 
         // Act
         const result =
@@ -76,7 +82,12 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -101,7 +112,12 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -133,7 +149,12 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -160,7 +181,12 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -203,7 +229,12 @@ describe('DecomposedHandler', () => {
         recordTypeWithoutParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()

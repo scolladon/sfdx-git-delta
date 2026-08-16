@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ObjectTranslation from '../../../../src/service/objectTranslationHandler'
@@ -66,7 +67,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -99,7 +105,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -117,7 +128,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -139,7 +155,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -164,7 +185,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -198,7 +224,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -236,7 +267,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -254,7 +290,12 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()

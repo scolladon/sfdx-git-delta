@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
@@ -43,7 +44,11 @@ describe('DiffLineInterpreter fold', () => {
         'A\tforce-app/main/default/classes/Bar.cls',
         'A\tforce-app/main/default/reports/folder/entity.unknownext-meta.xml',
       ]
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const folded = await sut.process(lines)
@@ -51,7 +56,11 @@ describe('DiffLineInterpreter fold', () => {
       // Assert — fold each line's own handler independently and compare the
       // whole multiset, not membership of a single type under a single
       // target (services.test.ts already covers that narrower shape).
-      const perLineFactory = new TypeHandlerFactory(config, globalMetadata)
+      const perLineFactory = new TypeHandlerFactory(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
       const expectedResults: HandlerResult[] = []
       for (const line of lines) {
         const handler = await perLineFactory.getTypeHandler(line)
@@ -85,7 +94,11 @@ describe('DiffLineInterpreter fold', () => {
         copies: [],
         warnings: [failure],
       })
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        config,
+        globalMetadata,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.process(lines)
@@ -133,7 +146,11 @@ describe('DiffLineInterpreter fold', () => {
       // exercised without re-running the handler pipeline per rename order.
       const elementsByLinePermutation = await Promise.all(
         linePermutations.map(async lines => {
-          const sut = new DiffLineInterpreter(config, globalMetadata)
+          const sut = new DiffLineInterpreter(
+            config,
+            globalMetadata,
+            EMPTY_TREE_INDEXES
+          )
           const result = await sut.process(lines)
           return result.elements
         })

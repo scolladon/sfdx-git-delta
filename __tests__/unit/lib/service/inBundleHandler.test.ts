@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
@@ -57,7 +58,7 @@ describe('InBundleHandler', () => {
       objectType,
       globalMetadata
     )
-    return new InBundleHandler(changeType, element, config)
+    return new InBundleHandler(changeType, element, config, EMPTY_TREE_INDEXES)
   }
 
   describe('_getElementName', () => {

@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import {
   ADDITION,
   DELETION,
@@ -52,7 +53,7 @@ describe('lwcHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new LwcHandler(changeType, el, config)
+        const sut = new LwcHandler(changeType, el, config, EMPTY_TREE_INDEXES)
 
         // Act
         const result = await sut.collect()
@@ -74,7 +75,7 @@ describe('lwcHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new LwcHandler(ct, el, config)
+        const sut = new LwcHandler(ct, el, config, EMPTY_TREE_INDEXES)
 
         // Act
         const result = await sut.collect()
@@ -99,7 +100,7 @@ describe('lwcHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new LwcHandler(changeType, el, config)
+      const sut = new LwcHandler(changeType, el, config, EMPTY_TREE_INDEXES)
 
       // Act
       const result = await sut.collect()

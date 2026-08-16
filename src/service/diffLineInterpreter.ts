@@ -1,8 +1,5 @@
 'use strict'
-import {
-  EMPTY_TREE_INDEXES,
-  type TreeIndexes,
-} from '../adapter/gitTreeLister.js'
+import type { TreeIndexes } from '../adapter/gitTreeLister.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import type {
@@ -21,7 +18,7 @@ export default class DiffLineInterpreter {
   constructor(
     protected readonly config: Config,
     protected readonly metadata: MetadataRepository,
-    protected readonly treeIndexes: TreeIndexes = EMPTY_TREE_INDEXES
+    protected readonly treeIndexes: TreeIndexes
   ) {}
 
   @log

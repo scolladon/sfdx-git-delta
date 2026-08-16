@@ -1,5 +1,6 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
@@ -45,7 +46,12 @@ describe('CustomObjectChildHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectChildHandler(changeType, element, config)
+      const sut = new CustomObjectChildHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -73,7 +79,12 @@ describe('CustomObjectChildHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectChildHandler(changeType, element, config)
+      const sut = new CustomObjectChildHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()

@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../src/adapter/gitTreeLister'
 import {
   ADDITION,
   DELETION,
@@ -591,7 +592,11 @@ beforeEach(() => {
     include: '',
     includeDestructive: '',
   }
-  handlerFactory = new TypeHandlerFactory(config, globalMetadata)
+  handlerFactory = new TypeHandlerFactory(
+    config,
+    globalMetadata,
+    EMPTY_TREE_INDEXES
+  )
 
   mockedReadPathFromGit.mockResolvedValue('')
   mockedReadDirs.mockResolvedValue(existingFiles)

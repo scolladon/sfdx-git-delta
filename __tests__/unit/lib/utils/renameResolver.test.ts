@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../../../src/utils/LoggingService')
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Config } from '../../../../src/types/config'
@@ -37,7 +38,7 @@ describe('RenameResolver', () => {
         .mockResolvedValueOnce({
           getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
         })
-      const sut = new RenameResolver(config, metadata)
+      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
 
       // Act
       const triples = await sut.resolve([
@@ -74,7 +75,7 @@ describe('RenameResolver', () => {
             member: 'myBundle',
           }),
         })
-      const sut = new RenameResolver(config, metadata)
+      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
 
       // Act
       const triples = await sut.resolve([
@@ -107,7 +108,7 @@ describe('RenameResolver', () => {
         .mockResolvedValueOnce({
           getElementDescriptor: () => ({ type: 'ApexTrigger', member: 'Bar' }),
         })
-      const sut = new RenameResolver(config, metadata)
+      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
 
       // Act
       const triples = await sut.resolve([
@@ -126,7 +127,7 @@ describe('RenameResolver', () => {
       mockGetTypeHandler.mockRejectedValueOnce(
         new Error('Unknown metadata type for path: ignored/path')
       )
-      const sut = new RenameResolver(config, metadata)
+      const sut = new RenameResolver(config, metadata, EMPTY_TREE_INDEXES)
 
       // Act & Assert — resolve settles without throwing
       await expect(

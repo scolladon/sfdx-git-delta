@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { EMPTY_TREE_INDEXES } from '../../../../src/adapter/gitTreeLister'
 import { ADDITION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -95,7 +96,12 @@ const families: Family[] = [
         classType,
         globalMetadata
       )
-      return new StandardHandler(changeType, Object.freeze(element), config)
+      return new StandardHandler(
+        changeType,
+        Object.freeze(element),
+        config,
+        EMPTY_TREE_INDEXES
+      )
     },
   },
   {
@@ -106,7 +112,12 @@ const families: Family[] = [
         workflowType,
         globalMetadata
       )
-      return new InFileHandler(changeType, Object.freeze(element), config)
+      return new InFileHandler(
+        changeType,
+        Object.freeze(element),
+        config,
+        EMPTY_TREE_INDEXES
+      )
     },
   },
   {
@@ -117,7 +128,12 @@ const families: Family[] = [
         staticResourceType,
         globalMetadata
       )
-      return new InResourceHandler(changeType, Object.freeze(element), config)
+      return new InResourceHandler(
+        changeType,
+        Object.freeze(element),
+        config,
+        EMPTY_TREE_INDEXES
+      )
     },
   },
   {
@@ -128,7 +144,12 @@ const families: Family[] = [
         documentType,
         globalMetadata
       )
-      return new InFolderHandler(changeType, Object.freeze(element), config)
+      return new InFolderHandler(
+        changeType,
+        Object.freeze(element),
+        config,
+        EMPTY_TREE_INDEXES
+      )
     },
   },
   {
@@ -139,7 +160,12 @@ const families: Family[] = [
         discoveryType,
         globalMetadata
       )
-      return new SharedFolderHandler(changeType, Object.freeze(element), config)
+      return new SharedFolderHandler(
+        changeType,
+        Object.freeze(element),
+        config,
+        EMPTY_TREE_INDEXES
+      )
     },
   },
   {
@@ -150,7 +176,12 @@ const families: Family[] = [
         recordTypeWithParent,
         globalMetadata
       )
-      return new DecomposedHandler(changeType, Object.freeze(element), config)
+      return new DecomposedHandler(
+        changeType,
+        Object.freeze(element),
+        config,
+        EMPTY_TREE_INDEXES
+      )
     },
   },
   {
@@ -164,7 +195,8 @@ const families: Family[] = [
       return new ContainedDecomposedHandler(
         changeType,
         Object.freeze(element),
-        config
+        config,
+        EMPTY_TREE_INDEXES
       )
     },
   },
@@ -223,7 +255,12 @@ describe('handler purity', () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const first = await sut.collect()
@@ -251,8 +288,18 @@ describe('handler purity', () => {
         classType,
         globalMetadata
       )
-      const handlerA = new StandardHandler(changeTypeA, elementA, config)
-      const handlerB = new StandardHandler(changeTypeB, elementB, config)
+      const handlerA = new StandardHandler(
+        changeTypeA,
+        elementA,
+        config,
+        EMPTY_TREE_INDEXES
+      )
+      const handlerB = new StandardHandler(
+        changeTypeB,
+        elementB,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const resultA = await handlerA.collect()
@@ -285,7 +332,12 @@ describe('handler purity', () => {
         workflowType,
         globalMetadata
       )
-      const sut = new InFileHandler(changeType, element, config)
+      const sut = new InFileHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
 
       // Act
       const result = await sut.collect()
@@ -304,7 +356,12 @@ describe('handler purity', () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        config,
+        EMPTY_TREE_INDEXES
+      )
       vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(new Error('boom'))
 
       // Act
