@@ -75,10 +75,16 @@ describe('gitAdapter-history-streamDiffLines', () => {
   bench('streamDiffLines-HEAD~20..HEAD', async () => {
     const start = performance.now()
     const verdict = { changesSeen: 0, linesYielded: 0 }
-    for await (const _line of adapter.streamDiffLines(
+    for await (const _line of adapter.streamDiffLines({
+      spec: {
+        from: baseConfig.from,
+        to: baseConfig.to,
+        detectRenames: Boolean(baseConfig.changesManifest),
+        ignoreWhitespace: baseConfig.ignoreWhitespace,
+      },
       verdict,
-      baseConfig.source
-    )) {
+      scopes: baseConfig.source,
+    })) {
       // Draining the generator is the measured cost; the lines themselves
       // are not asserted on here (that is gitBackendParity's job).
     }

@@ -16,6 +16,19 @@ for (const file of raw.files || []) {
   }
 }
 
+// A bench whose body throws still lands in the report, but with no samples —
+// formatting it would fail on `undefined.toFixed` and hide which bench broke.
+const unsampled = benchmarks.filter(
+  b => b.hz === undefined || b.mean === undefined || b.rme === undefined
+)
+if (unsampled.length > 0) {
+  throw new Error(
+    `Benchmarks produced no samples (their body threw): ${unsampled
+      .map(b => b.name)
+      .join(', ')}`
+  )
+}
+
 const runtimeEntries = benchmarks.map(b => ({
   name: b.name,
   unit: 'ops/sec',
