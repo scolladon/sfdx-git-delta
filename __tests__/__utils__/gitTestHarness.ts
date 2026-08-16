@@ -24,6 +24,19 @@ const IDENTITY_ENV = {
   GIT_COMMITTER_EMAIL: 'sgd-test@example.com',
 }
 
+// Git hooks (pre-push, pre-commit, …) export GIT_DIR and friends into the
+// environment of everything they run, and a child `git` honours those over
+// `cwd`. Inheriting them would silently retarget every fixture command at the
+// developer's real repository — `init` flips core.bare on it, `update-ref HEAD`
+// moves their branch — so the whole GIT_* namespace is dropped here and only
+// the identity this harness controls is put back.
+const withoutGitEnvironment = (
+  environment: NodeJS.ProcessEnv
+): NodeJS.ProcessEnv =>
+  Object.fromEntries(
+    Object.entries(environment).filter(([key]) => !key.startsWith('GIT_'))
+  )
+
 const MAX_BUFFER = 64 * 1024 * 1024
 
 export type GitInvocation = {
@@ -38,7 +51,7 @@ export const runGit = (
   execFileSync('git', [...IDENTITY_ARGS, ...args], {
     cwd: invocation.cwd,
     input: invocation.input,
-    env: { ...process.env, ...IDENTITY_ENV },
+    env: { ...withoutGitEnvironment(process.env), ...IDENTITY_ENV },
     maxBuffer: MAX_BUFFER,
   })
 
