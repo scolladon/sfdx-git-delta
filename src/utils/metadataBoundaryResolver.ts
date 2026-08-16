@@ -1,6 +1,7 @@
 'use strict'
 import { dirname, parse } from 'node:path/posix'
 
+import type { TreeReader } from '../adapter/treeReader.js'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -18,6 +19,10 @@ export class MetadataBoundaryResolver {
 
   protected get metadata(): MetadataRepository {
     return this.ctx.metadata
+  }
+
+  protected get trees(): TreeReader {
+    return this.ctx.trees
   }
 
   @log
@@ -60,7 +65,7 @@ export class MetadataBoundaryResolver {
 
     if (dirIndex >= 0 && metadataDef.suffix) {
       const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
-      const allFiles = this.ctx.trees.filesUnder(revision, typeDir)
+      const allFiles = this.trees.filesUnder(revision, typeDir)
       const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
 
       const componentNames = new Set<string>()
@@ -99,7 +104,7 @@ export class MetadataBoundaryResolver {
 
       let siblings = this.dirCache.get(cacheKey)
       if (siblings === undefined) {
-        siblings = this.ctx.trees.children(revision, currentDir)
+        siblings = this.trees.children(revision, currentDir)
         this.dirCache.set(cacheKey, siblings)
       }
 

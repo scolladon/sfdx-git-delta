@@ -14,17 +14,27 @@ export type TreeReader = Readonly<{
   children(revision: string, dir: string): string[]
 }>
 
+// The read-only face of TreeIndex. `indexAt` below resolves through this
+// rather than the full class so that `add` is not merely unused but
+// unnameable: NO_INDEX is one process-wide instance shared by every
+// concurrent run, and a lazy-indexing edit inside this module would
+// otherwise compile clean while poisoning every other run's empty reads.
+type ReadableIndex = Pick<
+  TreeIndex,
+  'pathExists' | 'getFilesPath' | 'listChildren'
+>
+
 // Null Object. An index with no entries answers every question with exactly
 // the empty/false result each reader used to spell out for itself as
 // `at(rev)?.x() ?? default` — including for ROOT_PATHS, where pathExists
 // short-circuits to `size > 0` instead of walking to the (always present)
 // root node.
-const NO_INDEX = new TreeIndex()
+const NO_INDEX: ReadableIndex = new TreeIndex()
 
 export const createTreeReader = (
   entries: ReadonlyMap<string, TreeIndex>
 ): TreeReader => {
-  const indexAt = (revision: string): TreeIndex =>
+  const indexAt = (revision: string): ReadableIndex =>
     entries.get(revision) ?? NO_INDEX
   return {
     pathExists: (revision, path) => indexAt(revision).pathExists(path),

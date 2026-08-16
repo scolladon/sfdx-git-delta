@@ -22,8 +22,9 @@ import { getConfig, getContext } from '../../../__utils__/testWork'
 
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
+  let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    const globalMetadata: MetadataRepository = await getDefinition({})
+    globalMetadata = await getDefinition({})
     const config: Config = getConfig()
     config.apiVersion = 46
     typeHandlerFactory = new TypeHandlerFactory(
@@ -188,23 +189,56 @@ describe('the type handler factory', () => {
 
   // --- Mutation-killing tests ---
 
-  describe('Given DELETION change type (L86)', () => {
-    it('When change type is D, Then uses from revision (not to)', async () => {
-      // Mutant: changeType !== DELETION → swaps from/to for deletion
-      // We cannot inspect the revision directly, but we can verify that a D-line
-      // resolves the same handler class regardless of the direction.
-      const sut = await typeHandlerFactory.getTypeHandler(
-        `${DELETION}       force-app/main/default/flows/MyFlow.flow-meta.xml`
+  describe('Given a config whose from and to revisions differ', () => {
+    // The revision the factory picks is only observable through the reader:
+    // it is handed to MetadataBoundaryResolver, which names it on every
+    // tree read. A path deep enough to reach scanAndCreateElement is
+    // therefore required — shallow paths early-return before any read.
+    const DEEP_RESOURCE_PATH =
+      'force-app/main/default/staticresources/MyResource/sub/dir/file.js'
+
+    const buildSut = () => {
+      const config: Config = getConfig()
+      config.apiVersion = 46
+      config.from = 'from-sha'
+      config.to = 'to-sha'
+      const filesUnder = vi.fn().mockReturnValue([])
+      const trees = {
+        pathExists: vi.fn().mockReturnValue(false),
+        filesUnder,
+        children: vi.fn().mockReturnValue([]),
+      }
+      const sut = new TypeHandlerFactory(
+        getContext({ config, metadata: globalMetadata, trees })
       )
-      expect(sut).toBeInstanceOf(FlowHandler)
+      return { sut, filesUnder }
+    }
+
+    it('When the change type is D, Then it resolves the element against the from revision', async () => {
+      // Arrange
+      const { sut, filesUnder } = buildSut()
+
+      // Act
+      await sut.getTypeHandler(`${DELETION}\t${DEEP_RESOURCE_PATH}`)
+
+      // Assert
+      expect(filesUnder).toHaveBeenCalledWith('from-sha', expect.any(String))
+      expect(filesUnder).not.toHaveBeenCalledWith('to-sha', expect.any(String))
     })
 
-    it('When change type is A (not DELETION), Then uses to revision', async () => {
-      // Mutant: changeType === DELETION flipped → addition uses from revision
-      const sut = await typeHandlerFactory.getTypeHandler(
-        `A       force-app/main/default/flows/MyFlow.flow-meta.xml`
+    it('When the change type is A, Then it resolves the element against the to revision', async () => {
+      // Arrange
+      const { sut, filesUnder } = buildSut()
+
+      // Act
+      await sut.getTypeHandler(`A\t${DEEP_RESOURCE_PATH}`)
+
+      // Assert
+      expect(filesUnder).toHaveBeenCalledWith('to-sha', expect.any(String))
+      expect(filesUnder).not.toHaveBeenCalledWith(
+        'from-sha',
+        expect.any(String)
       )
-      expect(sut).toBeInstanceOf(FlowHandler)
     })
   })
 

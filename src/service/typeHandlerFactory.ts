@@ -99,9 +99,7 @@ export default class TypeHandlerFactory {
       throw new Error(`Unknown metadata type for path: ${path}`)
     }
     // Stryker restore ConditionalExpression,BlockStatement,StringLiteral
-    // Stryker disable ConditionalExpression,EqualityOperator -- equivalent: the conditional picks `from` for deletions and `to` for additions/modifications; the test surface uses identical from/to values via getConfig()/getContext() defaults so the swap is unobservable
     const revision = changeType === DELETION ? this.config.from : this.config.to
-    // Stryker restore ConditionalExpression,EqualityOperator
     const element = await this.resolver.createElement(path, type, revision)
     const Handler = this.resolveHandler(type)
     return new Handler(changeType, element, this.ctx)
