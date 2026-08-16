@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { TreeIndex } from '../../../src/adapter/treeIndex'
-import { createTreeIndexes } from '../../../src/adapter/treeIndexes'
+import { createTreeReader } from '../../../src/adapter/treeReader'
 import { MetadataRepository } from '../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../src/metadata/metadataManager'
 import type { Config } from '../../../src/types/config'
@@ -96,12 +96,12 @@ describe('Given main.ts pre-builds the tree index under the diff-computed scope 
       const scopePaths = [...computeTreeIndexScope(lines, metadata)]
       const gitAdapter = GitAdapter.getInstance(config)
       const index = await gitAdapter.buildTreeIndex(config.to, scopePaths)
-      const treeIndexes = createTreeIndexes(
+      const treeReader = createTreeReader(
         new Map<string, TreeIndex>([[config.to, index!]])
       )
 
       const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata, trees: treeIndexes })
+        getContext({ metadata, trees: treeReader })
       )
 
       // Act

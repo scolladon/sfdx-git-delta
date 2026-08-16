@@ -60,7 +60,7 @@ export class MetadataBoundaryResolver {
 
     if (dirIndex >= 0 && metadataDef.suffix) {
       const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
-      const allFiles = this.ctx.trees.at(revision)?.getFilesPath(typeDir) ?? []
+      const allFiles = this.ctx.trees.filesUnder(revision, typeDir)
       const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
 
       const componentNames = new Set<string>()
@@ -99,7 +99,7 @@ export class MetadataBoundaryResolver {
 
       let siblings = this.dirCache.get(cacheKey)
       if (siblings === undefined) {
-        siblings = this.ctx.trees.at(revision)?.listChildren(currentDir) ?? []
+        siblings = this.ctx.trees.children(revision, currentDir)
         this.dirCache.set(cacheKey, siblings)
       }
 

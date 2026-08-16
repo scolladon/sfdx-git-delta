@@ -31,7 +31,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   return utf8Data
 }
 
-// Both read the run-owned tree index for `config.to` — supplied by the
+// Both read the run-owned tree reader for `config.to` — supplied by the
 // caller (ultimately main.ts) rather than rebuilt here, so there is no
 // scope for this lookup to disagree with whatever scope the index was
 // actually built under. A revision nobody built an index for (or an index
@@ -39,12 +39,12 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
 export const pathExists = async (
   path: string,
   ctx: RunContext
-): Promise<boolean> => ctx.trees.at(ctx.config.to)?.pathExists(path) ?? false
+): Promise<boolean> => ctx.trees.pathExists(ctx.config.to, path)
 
 export const readDirs = async (
   paths: string | string[],
   ctx: RunContext
-): Promise<string[]> => ctx.trees.at(ctx.config.to)?.getFilesPath(paths) ?? []
+): Promise<string[]> => ctx.trees.filesUnder(ctx.config.to, paths)
 
 export const grepContentUnder = async (
   pattern: string,

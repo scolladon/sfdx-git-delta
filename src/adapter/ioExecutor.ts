@@ -125,8 +125,7 @@ export default class IOExecutor {
     revision: string
   }): Promise<void> {
     try {
-      const filePaths =
-        this.ctx.trees.at(op.revision)?.getFilesPath(op.path) ?? []
+      const filePaths = this.ctx.trees.filesUnder(op.revision, op.path)
       if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
         await this._executeGitDirCopyViaArchive(this.blobReader, op, filePaths)
         return

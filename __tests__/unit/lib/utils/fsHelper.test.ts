@@ -2,7 +2,7 @@
 import { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { TreeIndexes } from '../../../../src/adapter/treeIndexes'
+import type { TreeReader } from '../../../../src/adapter/treeReader'
 import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
@@ -51,16 +51,17 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
 })
 
 // pathExists/readDirs no longer go through GitAdapter — they read the
-// run-owned TreeIndexes holder directly. mockAt stands in for the holder's
-// per-revision lookup, so tests can assert both which revision was asked
-// for and what the resolved TreeIndex was asked to do.
-const mockGetFilesPath = vi.fn()
+// run-owned TreeReader directly. Each method takes the revision as its own
+// first argument now, so assertions pin the revision at the call site
+// instead of through a separate holder lookup.
+const mockFilesUnder = vi.fn()
 const mockPathExists = vi.fn()
-const mockAt = vi.fn(() => ({
-  getFilesPath: mockGetFilesPath,
+const mockChildren = vi.fn()
+const treeReader = {
   pathExists: mockPathExists,
-}))
-const treeIndexes = { at: mockAt } as unknown as TreeIndexes
+  filesUnder: mockFilesUnder,
+  children: mockChildren,
+} as unknown as TreeReader
 
 let work: Work
 beforeEach(() => {
@@ -152,24 +153,24 @@ describe('readDirs', () => {
     const file = 'test.js'
     beforeEach(() => {
       // Arrange
-      mockGetFilesPath.mockImplementation(() => [`${dir}${file}`])
+      mockFilesUnder.mockImplementation(() => [`${dir}${file}`])
     })
     it('should return the file', async () => {
       // Act
       const dirContent = await readDirs(
         dir,
-        getContext({ config: work.config, trees: treeIndexes })
+        getContext({ config: work.config, trees: treeReader })
       )
 
       // Assert
       expect(dirContent).toEqual(expect.arrayContaining([`${dir}${file}`]))
-      expect(mockGetFilesPath).toHaveBeenCalled()
+      expect(mockFilesUnder).toHaveBeenCalled()
     })
 
     it('should work with an array of paths', async () => {
       // Arrange
       const paths = ['dir1/', 'dir2/']
-      mockGetFilesPath.mockImplementation(() => [
+      mockFilesUnder.mockImplementation(() => [
         'dir1/file1.js',
         'dir2/file2.js',
       ])
@@ -177,34 +178,34 @@ describe('readDirs', () => {
       // Act
       const dirContent = await readDirs(
         paths,
-        getContext({ config: work.config, trees: treeIndexes })
+        getContext({ config: work.config, trees: treeReader })
       )
 
       // Assert
       expect(dirContent).toEqual(
         expect.arrayContaining(['dir1/file1.js', 'dir2/file2.js'])
       )
-      expect(mockAt).toHaveBeenCalledWith(work.config.to)
-      expect(mockGetFilesPath).toHaveBeenCalledWith(paths)
+      expect(mockFilesUnder).toHaveBeenCalledWith(work.config.to, paths)
     })
   })
 
-  describe('when the revision has no built index', () => {
-    it('returns an empty array without calling getFilesPath', async () => {
+  describe('when the underlying reader degrades to empty for an unindexed revision', () => {
+    it('returns an empty array, unchanged', async () => {
       // Arrange
-      const unbuiltTreeIndexes = {
-        at: () => undefined,
-      } as unknown as TreeIndexes
+      const unbuiltTreeReader = {
+        pathExists: () => false,
+        filesUnder: () => [],
+        children: () => [],
+      } as unknown as TreeReader
 
       // Act
       const dirContent = await readDirs(
         'dir',
-        getContext({ config: work.config, trees: unbuiltTreeIndexes })
+        getContext({ config: work.config, trees: unbuiltTreeReader })
       )
 
       // Assert
       expect(dirContent).toEqual([])
-      expect(mockGetFilesPath).not.toHaveBeenCalled()
     })
   })
 })
@@ -217,13 +218,12 @@ describe('pathExists', () => {
     // Act
     const result = await pathExists(
       'path',
-      getContext({ config: work.config, trees: treeIndexes })
+      getContext({ config: work.config, trees: treeReader })
     )
 
     // Assert
     expect(result).toBe(true)
-    expect(mockAt).toHaveBeenCalledWith(work.config.to)
-    expect(mockPathExists).toHaveBeenCalledWith('path')
+    expect(mockPathExists).toHaveBeenCalledWith(work.config.to, 'path')
   })
   it('returns true when path is file', async () => {
     // Arrange
@@ -232,13 +232,12 @@ describe('pathExists', () => {
     // Act
     const result = await pathExists(
       'path',
-      getContext({ config: work.config, trees: treeIndexes })
+      getContext({ config: work.config, trees: treeReader })
     )
 
     // Assert
     expect(result).toBe(true)
-    expect(mockAt).toHaveBeenCalledWith(work.config.to)
-    expect(mockPathExists).toHaveBeenCalledWith('path')
+    expect(mockPathExists).toHaveBeenCalledWith(work.config.to, 'path')
   })
   it('returns false when path does not exist', async () => {
     // Arrange
@@ -247,31 +246,34 @@ describe('pathExists', () => {
     // Act
     const result = await pathExists(
       'not/existing/path',
-      getContext({ config: work.config, trees: treeIndexes })
+      getContext({ config: work.config, trees: treeReader })
     )
 
     // Assert
     expect(result).toBe(false)
-    expect(mockAt).toHaveBeenCalledWith(work.config.to)
-    expect(mockPathExists).toHaveBeenCalledWith('not/existing/path')
+    expect(mockPathExists).toHaveBeenCalledWith(
+      work.config.to,
+      'not/existing/path'
+    )
   })
 
-  describe('when the revision has no built index', () => {
-    it('returns false without calling pathExists', async () => {
+  describe('when the underlying reader degrades to false for an unindexed revision', () => {
+    it('returns false, unchanged', async () => {
       // Arrange
-      const unbuiltTreeIndexes = {
-        at: () => undefined,
-      } as unknown as TreeIndexes
+      const unbuiltTreeReader = {
+        pathExists: () => false,
+        filesUnder: () => [],
+        children: () => [],
+      } as unknown as TreeReader
 
       // Act
       const result = await pathExists(
         'path',
-        getContext({ config: work.config, trees: unbuiltTreeIndexes })
+        getContext({ config: work.config, trees: unbuiltTreeReader })
       )
 
       // Assert
       expect(result).toBe(false)
-      expect(mockPathExists).not.toHaveBeenCalled()
     })
   })
 })

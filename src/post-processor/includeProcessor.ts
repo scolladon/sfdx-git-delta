@@ -55,8 +55,10 @@ export default class IncludeProcessor extends BaseProcessor {
     const includeHelper = await buildIncludeHelper(this.config)
     const includeLines = new Map<GitChange, string[]>()
     const gitChanges: GitChange[] = [ADDITION, DELETION]
-    const lines: string[] =
-      this.ctx.trees.at(this.config.to)?.getFilesPath(this.config.source) ?? []
+    const lines: string[] = this.ctx.trees.filesUnder(
+      this.config.to,
+      this.config.source
+    )
     for (const line of lines) {
       gitChanges.forEach((changeType: GitChange) => {
         const changedLine = `${changeType}${TAB}${line}`

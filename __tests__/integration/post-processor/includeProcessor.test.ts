@@ -15,9 +15,9 @@ import {
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { TreeIndex } from '../../../src/adapter/treeIndex'
 import {
-  createTreeIndexes,
-  type TreeIndexes,
-} from '../../../src/adapter/treeIndexes'
+  createTreeReader,
+  type TreeReader,
+} from '../../../src/adapter/treeReader'
 import { MetadataRepository } from '../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../src/post-processor/includeProcessor'
@@ -44,7 +44,7 @@ import { getContext } from '../../__utils__/testWork'
 // operations are additionally collected (an orthogonal concern to which
 // tree index resolves a boundary), and turning it on adds copy-path noise
 // that isn't what this suite is pinning down. The tree index is still
-// built by hand here (buildTreeIndexesForTo), mirroring the precondition
+// built by hand here (buildTreeReaderForTo), mirroring the precondition
 // main.ts establishes before it runs the include pass in a
 // --generate-delta invocation.
 //
@@ -86,13 +86,13 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   ...overrides,
 })
 
-// Builds the run-owned holder the way main.ts does for config.to, mirroring
+// Builds the run-owned reader the way main.ts does for config.to, mirroring
 // the precondition main.ts establishes before it runs the include pass in a
 // --generate-delta invocation.
-const buildTreeIndexesForTo = async (config: Config): Promise<TreeIndexes> => {
+const buildTreeReaderForTo = async (config: Config): Promise<TreeReader> => {
   const gitAdapter = GitAdapter.getInstance(config)
   const index = await gitAdapter.buildTreeIndex(config.to, config.source)
-  return createTreeIndexes(new Map<string, TreeIndex>([[config.to, index!]]))
+  return createTreeReader(new Map<string, TreeIndex>([[config.to, index!]]))
 }
 
 beforeAll(async () => {
@@ -124,9 +124,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         NEW_RESOURCE_FILE,
       ])
       const config = makeConfig({ include: includePath })
-      const treeIndexes = await buildTreeIndexesForTo(config)
+      const treeReader = await buildTreeReaderForTo(config)
       const sut = new IncludeProcessor(
-        getContext({ config, metadata, trees: treeIndexes })
+        getContext({ config, metadata, trees: treeReader })
       )
 
       // Act
@@ -156,9 +156,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         [EXISTING_RESOURCE_FILE]
       )
       const config = makeConfig({ includeDestructive: includeDestructivePath })
-      const treeIndexes = await buildTreeIndexesForTo(config)
+      const treeReader = await buildTreeReaderForTo(config)
       const sut = new IncludeProcessor(
-        getContext({ config, metadata, trees: treeIndexes })
+        getContext({ config, metadata, trees: treeReader })
       )
 
       // Act
@@ -194,9 +194,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         include: includePath,
         includeDestructive: includeDestructivePath,
       })
-      const treeIndexes = await buildTreeIndexesForTo(config)
+      const treeReader = await buildTreeReaderForTo(config)
       const sut = new IncludeProcessor(
-        getContext({ config, metadata, trees: treeIndexes })
+        getContext({ config, metadata, trees: treeReader })
       )
 
       // Act
@@ -234,7 +234,7 @@ describe('Given a fixture repo with a resource added on top of the root commit',
       // the ORIGINAL config.to (typeHandlerFactory picks config.from for a
       // DELETION line, and the DELETION pass's own {from, to} override sets
       // effective `from` to the original config.to) — the exact revision
-      // main.ts (and the buildTreeIndexesForTo call below) builds.
+      // main.ts (and the buildTreeReaderForTo call below) builds.
       const includeDestructivePath = await writeIncludePatterns(
         'include-generate-delta-deletion.txt',
         [EXISTING_RESOURCE_FILE]
@@ -243,9 +243,9 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         includeDestructive: includeDestructivePath,
         generateDelta: true,
       })
-      const treeIndexes = await buildTreeIndexesForTo(config)
+      const treeReader = await buildTreeReaderForTo(config)
       const sut = new IncludeProcessor(
-        getContext({ config, metadata, trees: treeIndexes })
+        getContext({ config, metadata, trees: treeReader })
       )
       const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
 

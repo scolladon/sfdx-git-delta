@@ -1,13 +1,13 @@
 'use strict'
 
-import type { TreeIndexes } from '../adapter/treeIndexes.js'
+import type { TreeReader } from '../adapter/treeReader.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from './config.js'
 
 export type RunContext = Readonly<{
   config: Config
   metadata: MetadataRepository
-  trees: TreeIndexes
+  trees: TreeReader
 }>
 
 /**

@@ -6,9 +6,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { TreeIndex } from '../../../src/adapter/treeIndex'
 import {
-  createTreeIndexes,
-  type TreeIndexes,
-} from '../../../src/adapter/treeIndexes'
+  createTreeReader,
+  type TreeReader,
+} from '../../../src/adapter/treeReader'
 import type { Config } from '../../../src/types/config'
 import {
   buildFixtureRepo,
@@ -17,17 +17,17 @@ import {
 import { createTempDir } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
-// Characterizes a semantic contract every reader relies on: a TreeIndexes
-// holder built for only one revision resolves any OTHER revision to
-// `undefined`, and every reader degrades that to an empty/false read
-// (`treeIndexes.at(revision)?.getFilesPath(path) ?? []`) rather than
-// resolving lazily or throwing. That "unindexed reads as empty" contract is
-// what makes the include path's DELETION pass currently resolve some
-// metadata boundaries against an empty listing (see includeProcessor tests).
+// Characterizes a semantic contract every reader relies on: a TreeReader
+// built for only one revision answers any OTHER revision with the same
+// empty/false result the Null Object (an empty TreeIndex) always produces —
+// rather than resolving lazily or throwing. That "unindexed reads as empty"
+// contract is what makes the include path's DELETION pass currently resolve
+// some metadata boundaries against an empty listing (see includeProcessor
+// tests).
 //
 // Caller ownership (see treeIndexScopeRegression.test.ts) means this can no
-// longer happen from a scope-key mismatch — the holder here is built with
-// GitAdapter.buildTreeIndex + createTreeIndexes, the same primitives
+// longer happen from a scope-key mismatch — the reader here is built with
+// GitAdapter.buildTreeIndex + createTreeReader, the same primitives
 // main.ts uses, exercised directly instead of through the full pipeline.
 
 let fixtureDir: string
@@ -52,13 +52,13 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   ...overrides,
 })
 
-const buildIndexesForOnly = async (
+const buildReaderForOnly = async (
   gitAdapter: GitAdapter,
   revision: string,
   scopePaths: readonly string[]
-): Promise<TreeIndexes> => {
+): Promise<TreeReader> => {
   const index = await gitAdapter.buildTreeIndex(revision, scopePaths)
-  return createTreeIndexes(new Map<string, TreeIndex>([[revision, index!]]))
+  return createTreeReader(new Map<string, TreeIndex>([[revision, index!]]))
 }
 
 beforeAll(async () => {
@@ -76,20 +76,20 @@ afterAll(async () => {
   )
 })
 
-describe('Given a TreeIndexes holder built for only one revision', () => {
+describe('Given a TreeReader built for only one revision', () => {
   describe('When reading at the revision that was never built', () => {
-    it('Then getFilesPath returns an empty array', async () => {
+    it('Then filesUnder returns an empty array', async () => {
       // Arrange
       const config = makeConfig()
       const gitAdapter = GitAdapter.getInstance(config)
-      const treeIndexes = await buildIndexesForOnly(
+      const sut = await buildReaderForOnly(
         gitAdapter,
         refs.diffTo,
         config.source
       )
 
       // Act
-      const actual = treeIndexes.at(refs.diffFrom)?.getFilesPath('') ?? []
+      const actual = sut.filesUnder(refs.diffFrom, '')
 
       // Assert
       expect(actual).toEqual([])
@@ -99,32 +99,31 @@ describe('Given a TreeIndexes holder built for only one revision', () => {
       // Arrange
       const config = makeConfig()
       const gitAdapter = GitAdapter.getInstance(config)
-      const treeIndexes = await buildIndexesForOnly(
+      const sut = await buildReaderForOnly(
         gitAdapter,
         refs.diffTo,
         config.source
       )
 
       // Act
-      const actual =
-        treeIndexes.at(refs.diffFrom)?.pathExists('README.md') ?? false
+      const actual = sut.pathExists(refs.diffFrom, 'README.md')
 
       // Assert
       expect(actual).toBe(false)
     })
 
-    it('Then listChildren returns an empty array', async () => {
+    it('Then children returns an empty array', async () => {
       // Arrange
       const config = makeConfig()
       const gitAdapter = GitAdapter.getInstance(config)
-      const treeIndexes = await buildIndexesForOnly(
+      const sut = await buildReaderForOnly(
         gitAdapter,
         refs.diffTo,
         config.source
       )
 
       // Act
-      const actual = treeIndexes.at(refs.diffFrom)?.listChildren('src') ?? []
+      const actual = sut.children(refs.diffFrom, 'src')
 
       // Assert
       expect(actual).toEqual([])
@@ -132,22 +131,20 @@ describe('Given a TreeIndexes holder built for only one revision', () => {
   })
 
   describe('When reading at the revision that was built', () => {
-    it('Then getFilesPath, pathExists and listChildren return real data', async () => {
+    it('Then filesUnder, pathExists and children return real data', async () => {
       // Arrange
       const config = makeConfig()
       const gitAdapter = GitAdapter.getInstance(config)
-      const treeIndexes = await buildIndexesForOnly(
+      const sut = await buildReaderForOnly(
         gitAdapter,
         refs.diffTo,
         config.source
       )
 
       // Act
-      const actualFiles = treeIndexes.at(refs.diffTo)?.getFilesPath('') ?? []
-      const actualExists =
-        treeIndexes.at(refs.diffTo)?.pathExists('README.md') ?? false
-      const actualChildren =
-        treeIndexes.at(refs.diffTo)?.listChildren('src') ?? []
+      const actualFiles = sut.filesUnder(refs.diffTo, '')
+      const actualExists = sut.pathExists(refs.diffTo, 'README.md')
+      const actualChildren = sut.children(refs.diffTo, 'src')
 
       // Assert
       expect(actualFiles.length).toBeGreaterThan(0)

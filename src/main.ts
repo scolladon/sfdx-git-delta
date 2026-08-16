@@ -2,7 +2,7 @@
 import GitAdapter from './adapter/GitAdapter.js'
 import IOExecutor from './adapter/ioExecutor.js'
 import type { TreeIndex } from './adapter/treeIndex.js'
-import { createTreeIndexes, EMPTY_TREE_INDEXES } from './adapter/treeIndexes.js'
+import { createTreeReader, EMPTY_TREE_READER } from './adapter/treeReader.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
@@ -69,7 +69,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // built under — the lesson from the shared, scope-keyed cache this
     // replaces (see design history) is that a cache keyed by a value each
     // reader recomputes is an implicit contract that will drift.
-    let trees = EMPTY_TREE_INDEXES
+    let trees = EMPTY_TREE_READER
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
       let scopePaths: string[] = config.source
@@ -86,7 +86,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         const entries = new Map<string, TreeIndex>()
         if (toIndex) entries.set(config.to, toIndex)
         if (fromIndex) entries.set(config.from, fromIndex)
-        trees = createTreeIndexes(entries)
+        trees = createTreeReader(entries)
       }
     }
     const ctx: RunContext = { config, metadata, trees }

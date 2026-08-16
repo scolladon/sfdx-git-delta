@@ -473,7 +473,7 @@ describe('external library inclusion', () => {
     it('Given buildTreeIndex resolves a real index for both revisions, When sgd runs, Then the run completes without error (both entries.set branches taken)', async () => {
       // Arrange — covers the `if (toIndex)` / `if (fromIndex)` true
       // branches: a successful build for both revisions populates the
-      // TreeIndexes holder threaded to every downstream reader.
+      // TreeReader threaded to every downstream reader.
       mockBuildTreeIndex
         .mockResolvedValueOnce({} as never)
         .mockResolvedValueOnce({} as never)
@@ -490,7 +490,7 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledTimes(2)
     })
 
-    it('Given buildTreeIndex resolves an index for "to" but undefined for "from", When sgd runs, Then the TreeIndexes holder includes "to" under its key and excludes "from" entirely', async () => {
+    it('Given buildTreeIndex resolves an index for "to" but undefined for "from", When sgd runs, Then the TreeReader answers "to" with real data and "from" with the empty degrade', async () => {
       // Arrange — pins the `if (toIndex) entries.set(...)` guard on both
       // sides: a successful build must be reachable at its own revision
       // key (kills the false/CallExpression-removal mutants), and a
@@ -515,13 +515,13 @@ describe('external library inclusion', () => {
       const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
         | RunContext
         | undefined
-      expect(ctxArg?.trees.at('HEAD')!.getFilesPath('')).toEqual([
+      expect(ctxArg?.trees.filesUnder('HEAD', '')).toEqual([
         'force-app/main/default/classes/Foo.cls',
       ])
-      expect(ctxArg?.trees.at('HEAD~1')).toBeUndefined()
+      expect(ctxArg?.trees.filesUnder('HEAD~1', '')).toEqual([])
     })
 
-    it('Given buildTreeIndex resolves undefined for "to" but an index for "from", When sgd runs, Then the TreeIndexes holder excludes "to" entirely and includes "from" under its key', async () => {
+    it('Given buildTreeIndex resolves undefined for "to" but an index for "from", When sgd runs, Then the TreeReader answers "to" with the empty degrade and "from" with real data', async () => {
       // Arrange — mirrors the previous test for the `if (fromIndex)`
       // guard, so both sides of the truthiness check are proven
       // independently rather than only ever exercising them together.
@@ -545,8 +545,8 @@ describe('external library inclusion', () => {
       const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
         | RunContext
         | undefined
-      expect(ctxArg?.trees.at('HEAD')).toBeUndefined()
-      expect(ctxArg?.trees.at('HEAD~1')!.getFilesPath('')).toEqual([
+      expect(ctxArg?.trees.filesUnder('HEAD', '')).toEqual([])
+      expect(ctxArg?.trees.filesUnder('HEAD~1', '')).toEqual([
         'force-app/main/default/classes/Bar.cls',
       ])
     })
