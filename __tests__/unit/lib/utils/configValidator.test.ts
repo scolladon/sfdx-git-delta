@@ -629,6 +629,28 @@ describe('Given a ConfigValidator', () => {
         })
       )
     })
+
+    it('Given "to" contains a control character and git sha validation fails, When validating, Then the error message carries the escaped form and never the raw character', async () => {
+      // Arrange — proves sanitizeForMessage is still applied at this error
+      // site: dropping the call would leak the raw control character (and
+      // any ANSI/bidi payload it carries) straight into the message.
+      const shaWithControl = 'bad\nsha'
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...config,
+        to: shaWithControl,
+        from: 'HEAD',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain('bad\\u{a}sha')
+      expect((error as Error).message).not.toContain(shaWithControl)
+    })
   })
 
   describe('getMessage token arrays contain correct values (L46, L72, L109, L152, L165)', () => {
@@ -1275,6 +1297,34 @@ describe('Given a ConfigValidator', () => {
           ),
         })
       )
+    })
+
+    it('Given no common ancestor is found and both refs contain a control character, When validating, Then the error message carries the escaped form of both refs and never the raw characters', async () => {
+      // Arrange — proves sanitizeForMessage is applied to both
+      // requestedFrom and requestedTo at this error site.
+      const fromWithControl = 'main\nPASSED'
+      const toWithControl = 'develop\rPASSED'
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue(undefined)
+      const sut = new ConfigValidator({
+        ...config,
+        from: fromWithControl,
+        to: toWithControl,
+        mergeBase: true,
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain('main\\u{a}PASSED')
+      expect((error as Error).message).toContain('develop\\u{d}PASSED')
+      expect((error as Error).message).not.toContain(fromWithControl)
+      expect((error as Error).message).not.toContain(toWithControl)
     })
 
     it('Given "from" is already an ancestor of "to", When validating, Then the resolved base equals the post-parseRev "from" (idempotency fixpoint)', async () => {

@@ -579,6 +579,54 @@ describe('GitAdapter', () => {
         'commit-oid',
       ])
     })
+
+    it('When revParse resolves each ref to a different oid, Then it calls primitives.mergeBase with the resolved oids, not the raw refs', async () => {
+      // Arrange — overrides the describe-level identity pass-through:
+      // proves getMergeBase actually plumbs revParse's result through
+      // peelToCommit rather than treating the raw ref strings as
+      // already-resolved oids. Reverting to the old `as ObjectId` casts
+      // would call peelToCommit/mergeBase with 'from'/'to' verbatim and
+      // this assertion would fail.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-oid`)
+      )
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('from', 'to')
+
+      // Assert
+      expect(fakeRepo.revParse).toHaveBeenCalledWith('from')
+      expect(fakeRepo.revParse).toHaveBeenCalledWith('to')
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'from-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error using the "from...to" context', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: bad-ref'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getMergeBase('bad-ref', 'to-oid')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'bad-ref...to-oid: not a valid git revision'
+      )
+    })
   })
 
   describe('Given buildTreeIndex', () => {
