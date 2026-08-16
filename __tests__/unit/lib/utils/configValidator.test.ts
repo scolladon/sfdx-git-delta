@@ -1216,18 +1216,20 @@ describe('Given a ConfigValidator', () => {
         Promise.resolve(`${ref}-resolved`)
       )
       mockGetMergeBase.mockResolvedValue('base-sha')
-      const sut = new ConfigValidator({
+      const cfg = {
         ...config,
         from: 'main',
         to: 'develop',
         mergeBase: true,
-      })
+      }
+      const sut = new ConfigValidator(cfg)
 
       // Act
       const validated = await sut.validateConfig()
 
       // Assert
       expect(validated).toBeDefined()
+      expect(cfg.from).toBe('base-sha')
       expect(mockGetMergeBase).toHaveBeenCalledWith(
         'main-resolved',
         'develop-resolved'
@@ -1281,15 +1283,19 @@ describe('Given a ConfigValidator', () => {
         Promise.resolve(`${ref}-resolved`)
       )
       mockGetMergeBase.mockResolvedValue('main-resolved')
-      const sut = new ConfigValidator({
+      const cfg = {
         ...config,
         from: 'main',
         to: 'develop',
         mergeBase: true,
-      })
+      }
+      const sut = new ConfigValidator(cfg)
 
-      // Act & Assert
-      await expect(sut.validateConfig()).resolves.not.toThrow()
+      // Act
+      await sut.validateConfig()
+
+      // Assert
+      expect(cfg.from).toBe('main-resolved')
     })
 
     it('Given an invalid "--from" and mergeBase is true, When validating, Then it throws ParameterIsNotGitSHA and never calls getMergeBase (ordering)', async () => {

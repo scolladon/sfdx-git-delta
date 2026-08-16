@@ -516,10 +516,41 @@ describe('GitAdapter', () => {
         return Promise.resolve(asCommitAt(oid))
       })
 
-      // Act & Assert
-      await expect(sut.getMergeBase('tree-oid', 'to-oid')).rejects.toThrow(
-        "'tree-oid' does not resolve to a commit"
+      // Act
+      const error = await sut
+        .getMergeBase('tree-oid', 'to-oid')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert — the full mapped message, not a substring: a mapTsgitError
+      // bypass (peelToCommit's raw Error escaping unwrapped) would still
+      // contain the label and pass a substring-only assertion.
+      expect((error as Error).message).toBe(
+        "git operation failed: 'tree-oid' does not resolve to a commit"
       )
+    })
+
+    it('When "to" is an annotated tag oid, Then it peels to the tagged commit before calling primitives.mergeBase', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('from-oid', 'tag-oid')
+
+      // Assert
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'from-oid',
+        'commit-oid',
+      ])
     })
   })
 

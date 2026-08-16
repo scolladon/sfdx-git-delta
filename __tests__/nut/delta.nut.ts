@@ -110,16 +110,22 @@ describe('sgd source delta NUTS', () => {
     expect(sut).toContain('No file found')
   })
 
-  it('Given --from HEAD~2 --merge-base, When running command, Then it succeeds', () => {
-    // Act
+  it('Given --merge-base flag, When running command, Then oclif accepts the flag', () => {
+    // Act — merge-base(HEAD~2, HEAD) === HEAD~2 on any first-parent-reachable
+    // ancestor, so this is a flag-acceptance smoke test only: it does not
+    // prove the resolved base is used, since a no-op rewrite of `from`
+    // would pass it identically. See the "merge-base resolution" integration
+    // test for the assertion that actually exercises divergent resolution.
     const sut = run('sgd source delta --from HEAD~2 --merge-base --json', 0)
 
     // Assert
     expect(sut).toContain('output-dir')
   })
 
-  it('Given the -b short form of --merge-base, When running command, Then it succeeds', () => {
-    // Act
+  it('Given the -b short form of --merge-base, When running command, Then oclif accepts the flag', () => {
+    // Act — same flag-acceptance caveat as above: HEAD~2 is already an
+    // ancestor of HEAD, so this cannot distinguish the resolved base from
+    // the raw --from value.
     const sut = run('sgd source delta --from HEAD~2 -b --json', 0)
 
     // Assert

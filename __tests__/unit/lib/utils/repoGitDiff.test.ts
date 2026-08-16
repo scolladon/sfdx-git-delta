@@ -652,8 +652,13 @@ describe('Given a RepoGitDiff', () => {
     })
 
     it('Given a configured source, When getLines drains, Then GitAdapter.streamDiffLines is called with the instance verdict and config.source', async () => {
-      // Arrange
+      // Arrange — distinct, non-default values on every DiffSpec field so a
+      // hardcoded or from/to-swapped diffSpec() cannot satisfy this assertion.
       config.source = sourceDirs('force-app')
+      config.from = 'sha-from'
+      config.to = 'sha-to'
+      config.changesManifest = 'm.json'
+      config.ignoreWhitespace = true
       mockGetDiffLines.mockReturnValue([])
       const sut = new RepoGitDiff(config, globalMetadata)
 
@@ -663,14 +668,32 @@ describe('Given a RepoGitDiff', () => {
       // Assert
       expect(mockStreamDiffLinesCall).toHaveBeenCalledWith({
         spec: {
-          from: config.from,
-          to: config.to,
-          detectRenames: Boolean(config.changesManifest),
-          ignoreWhitespace: config.ignoreWhitespace,
+          from: 'sha-from',
+          to: 'sha-to',
+          detectRenames: true,
+          ignoreWhitespace: true,
         },
         verdict: { changesSeen: 0, linesYielded: 0 },
         scopes: sourceDirs('force-app'),
       })
+    })
+
+    it('Given no changes manifest is configured, When getLines drains, Then the DiffSpec disables rename detection', async () => {
+      // Arrange
+      config.source = sourceDirs('force-app')
+      config.changesManifest = ''
+      mockGetDiffLines.mockReturnValue([])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+
+      // Assert
+      expect(mockStreamDiffLinesCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spec: expect.objectContaining({ detectRenames: false }),
+        })
+      )
     })
 
     it('Given getLines is called twice, When the first drain matches and the second drain has no changes, Then the second call reports its own (reset) verdict instead of carrying the first drain’s counts forward', async () => {

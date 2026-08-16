@@ -175,8 +175,11 @@ describe('IncludeProcessor', () => {
         mockKeep.mockReturnValue(false)
       })
       it('Then aggregates the processed manifest and copy into the result', async () => {
-        // Arrange
+        // Arrange — from/to must differ, or asserting mockAt was called
+        // with config.to cannot tell that apart from config.from.
         config.include = '.sgdinclude'
+        config.from = 'from-sha'
+        config.to = 'to-sha'
         const sut = new IncludeProcessor(config, metadata, treeIndexes)
 
         // Act
@@ -186,7 +189,7 @@ describe('IncludeProcessor', () => {
         expect(elementsOf(result).length).toBeGreaterThan(0)
         expect(elementsOf(result)).toContainEqual(includedManifest)
         expect(result.copies).toContainEqual(includedCopy)
-        expect(mockAt).toHaveBeenCalledWith(config.to)
+        expect(mockAt).toHaveBeenCalledWith('to-sha')
         expect(mockGetFilesPath).toHaveBeenCalledWith(config.source)
       })
     })
