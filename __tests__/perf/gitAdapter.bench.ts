@@ -16,7 +16,7 @@ const FROM = 'HEAD~20'
 const TO = 'HEAD'
 
 const PARSE_REV_CEILING_MS = 200
-const PRE_BUILD_TREE_INDEX_CEILING_MS = 1_000
+const BUILD_TREE_INDEX_CEILING_MS = 1_000
 const STREAM_DIFF_LINES_CEILING_MS = 500
 const BLOB_READ_CEILING_MS = 200
 
@@ -106,21 +106,21 @@ describe('gitAdapter-history-blobReads', () => {
   })
 })
 
-// preBuildTreeIndex memoizes per revision on the adapter instance, so a
-// shared instance would measure a cache hit (a Map lookup) on every sample
-// after the first. Closing and re-acquiring the singleton each iteration
-// forces a genuine cold tree walk every time — the same cost a fresh CLI
-// invocation pays exactly once.
-describe('gitAdapter-history-preBuildTreeIndex', () => {
-  bench('preBuildTreeIndex-HEAD-cold', async () => {
+// buildTreeIndex's underlying blob-id walk (indexRevision) memoizes per
+// revision on the adapter instance, so a shared instance would measure a
+// cache hit (a Map lookup) on every sample after the first. Closing and
+// re-acquiring the singleton each iteration forces a genuine cold tree walk
+// every time — the same cost a fresh CLI invocation pays exactly once.
+describe('gitAdapter-history-buildTreeIndex', () => {
+  bench('buildTreeIndex-HEAD-cold', async () => {
     await GitAdapter.closeAll()
     const adapter = GitAdapter.getInstance(baseConfig)
     const start = performance.now()
-    await adapter.preBuildTreeIndex(TO, ['.'])
+    await adapter.buildTreeIndex(TO, ['.'])
     assertWithinCeiling(
-      'preBuildTreeIndex',
+      'buildTreeIndex',
       performance.now() - start,
-      PRE_BUILD_TREE_INDEX_CEILING_MS
+      BUILD_TREE_INDEX_CEILING_MS
     )
   })
 })

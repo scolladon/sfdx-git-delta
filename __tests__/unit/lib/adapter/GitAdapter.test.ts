@@ -376,6 +376,15 @@ describe('GitAdapter', () => {
       data: { tree: `tree-of-${oid}`, parents: [] },
     })
 
+    beforeEach(() => {
+      // getMergeBase now resolves both revisions via repo.revParse before
+      // peeling (indexRevision's cast-free idiom) — identity pass-through
+      // keeps every existing test's oid-shaped literals meaningful.
+      fakeRepo.revParse.mockImplementation((ref: string) =>
+        Promise.resolve(ref)
+      )
+    })
+
     it('When both refs resolve to commits, Then it calls primitives.mergeBase with both commit ids and returns the first result', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
@@ -393,6 +402,24 @@ describe('GitAdapter', () => {
         'from-oid',
         'to-oid',
       ])
+    })
+
+    it('When primitives.mergeBase resolves several candidate bases (criss-cross history), Then it returns only the first, matching git merge-base without --all', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue([
+        'first-base-oid',
+        'second-base-oid',
+      ])
+
+      // Act
+      const result = await sut.getMergeBase('from-oid', 'to-oid')
+
+      // Assert
+      expect(result).toBe('first-base-oid')
     })
 
     it('When primitives.mergeBase resolves an empty array, Then it resolves to undefined without throwing', async () => {

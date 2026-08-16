@@ -62,7 +62,7 @@ export default class ConfigValidator {
           errors.push(
             this.message.getMessage('error.ParameterIsNotGitSHA', [
               shaParameter,
-              shaValue,
+              sanitizeForMessage(shaValue),
             ])
           )
         }
@@ -127,9 +127,9 @@ export default class ConfigValidator {
 
   // --merge-base resolves --from to the merge base of --from and --to (git
   // three-dot semantics) in place. requestedFrom/requestedTo are the
-  // user-typed refs, captured before _sanitizeConfig/_validateGitSha
-  // overwrite this.config.from/to with resolved SHAs — the error the user
-  // sees must name what they typed, not a 40-character hash.
+  // user-typed refs, captured before _validateGitSha overwrites
+  // this.config.from/to with resolved SHAs — the error the user sees must
+  // name what they typed, not a 40-character hash.
   protected async _resolveMergeBase(
     requestedFrom: string,
     requestedTo: string
@@ -143,8 +143,8 @@ export default class ConfigValidator {
     if (!base) {
       throw new ConfigError(
         this.message.getMessage('error.MergeBaseNotFound', [
-          requestedFrom,
-          requestedTo,
+          sanitizeForMessage(requestedFrom),
+          sanitizeForMessage(requestedTo),
         ])
       )
     }

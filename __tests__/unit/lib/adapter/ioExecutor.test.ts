@@ -680,6 +680,27 @@ describe('IOExecutor', () => {
       expect(mockCreateWriteStream).not.toHaveBeenCalled()
     })
 
+    it('When the path escapes the output directory, Then the writer is never invoked (zip-slip guard, same as the other copy paths)', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(work.config, treeIndexes)
+      const writer = vi.fn()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: '../escape.labels',
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
+    })
+
     it('When two StreamedContent ops target the same path, Then only the first writer fires (per-path dedup via processedPaths)', async () => {
       // Arrange
       const work = getWork()

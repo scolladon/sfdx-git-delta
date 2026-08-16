@@ -138,8 +138,8 @@ export default async (configInput: ConfigInput): Promise<Work> => {
                   // joined aggregate, or one long scope name silently
                   // elides every scope listed after it.
                   unmatchedScopes.map(sanitizeForMessage).join(', '),
-                  requestedFrom,
-                  requestedTo,
+                  sanitizeForMessage(requestedFrom),
+                  sanitizeForMessage(requestedTo),
                 ]
               )
             ),

@@ -196,6 +196,10 @@ export default class IOExecutor {
     op: StreamedContentOperation
   ): Promise<void> {
     const dst = join(this.config.output, op.path)
+    if (!this._isWithinOutput(dst)) {
+      Logger.debug(lazy`IOExecutor streamedContent out-of-output dst ${dst}`)
+      return
+    }
     await this._writeAtomicallyViaTmp(dst, op.writer)
   }
 

@@ -14,7 +14,7 @@
  *                                          (grepBlobs, shared by
  *                                          grepUnderPaths and
  *                                          grepMatchingPathspecs)
- *   git config core.*                   -> no-op (nothing to configure)
+ *   git merge-base <from> <to>          -> repo.primitives.mergeBase
  *
  * Fidelity note: grepBlobs matches content with JS RegExp semantics, not
  * POSIX basic regex. Callers are expected to pass metacharacter-free
@@ -250,14 +250,13 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   // Equivalent to `git merge-base <from> <to>`, resolved in-process via
-  // tsgit — no local git binary needed. Both arguments must already be
-  // resolved oids (the `as ObjectId` casts assert that precondition at the
-  // trust boundary: ObjectId is a compile-time brand with no runtime
-  // constructor, and callers only ever reach this method with SHAs already
-  // round-tripped through parseRev). tsgit's `[]` result (no common
-  // ancestor / unrelated histories) is a legitimate git answer, not an
-  // exception — surfacing it as a user-facing error is the caller's job
-  // (ConfigValidator), not this adapter's.
+  // tsgit — no local git binary needed. `from`/`to` are resolved through
+  // revParse the same way indexRevision does, so this method is total over
+  // any revision string (ref, short SHA, `HEAD~2`, …) rather than encoding
+  // an "already an ObjectId" precondition in a comment. tsgit's `[]` result
+  // (no common ancestor / unrelated histories) is a legitimate git answer,
+  // not an exception — surfacing it as a user-facing error is the caller's
+  // job (ConfigValidator), not this adapter's.
   @log
   public async getMergeBase(
     from: string,
@@ -265,10 +264,19 @@ export default class GitAdapter implements GitBlobReader {
   ): Promise<string | undefined> {
     try {
       const repo = await this.getRepo()
-      const [fromCommit, toCommit] = await Promise.all([
-        this.peelToCommit(from as ObjectId, from),
-        this.peelToCommit(to as ObjectId, to),
+      const [fromId, toId] = await Promise.all([
+        repo.revParse(from),
+        repo.revParse(to),
       ])
+      const [fromCommit, toCommit] = await Promise.all([
+        this.peelToCommit(fromId, from),
+        this.peelToCommit(toId, to),
+      ])
+      // Criss-cross histories can legitimately have several common
+      // ancestors; tsgit's mergeBase primitive returns all of them. Taking
+      // only the first matches `git merge-base`'s own default (without
+      // --all, which returns just one candidate), so this is a deliberate
+      // choice, not an oversight.
       const [base] = await repo.primitives.mergeBase([
         fromCommit.id,
         toCommit.id,
