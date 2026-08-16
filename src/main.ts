@@ -69,8 +69,8 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       }
       if (scopePaths.length > 0) {
         await Promise.all([
-          gitAdapter.preBuildTreeIndex(config.to, scopePaths),
-          gitAdapter.preBuildTreeIndex(config.from, scopePaths),
+          gitAdapter.preBuildTreeIndex({ revision: config.to, scopePaths }),
+          gitAdapter.preBuildTreeIndex({ revision: config.from, scopePaths }),
         ])
       }
     }

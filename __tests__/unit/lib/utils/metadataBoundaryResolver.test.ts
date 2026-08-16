@@ -2,20 +2,37 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import GitAdapter from '../../../../src/adapter/GitAdapter'
+import type { TreeScope } from '../../../../src/adapter/gitTreeLister'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
+import type { Config } from '../../../../src/types/config'
 import type { Metadata } from '../../../../src/types/metadata'
 import { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import { MetadataElement } from '../../../../src/utils/metadataElement'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 const mockListDirAtRevision =
-  vi.fn<(dir: string, revision: string) => Promise<string[]>>()
+  vi.fn<(dir: string, scope: TreeScope) => Promise<string[]>>()
 const mockGetFilesPath =
-  vi.fn<(paths: string | string[], revision?: string) => Promise<string[]>>()
+  vi.fn<(paths: string | string[], scope?: TreeScope) => Promise<string[]>>()
 const mockGitAdapter = {
   listDirAtRevision: mockListDirAtRevision,
   getFilesPath: mockGetFilesPath,
 } as unknown as GitAdapter
+
+// MetadataBoundaryResolver now builds its own TreeScope from this config
+// (config.source) on every read, so assertions on the mocked reader calls
+// must expect that same scope back.
+const mockConfig: Config = {
+  to: 'HEAD',
+  from: 'HEAD',
+  mergeBase: false,
+  output: '',
+  source: sourceDirs('force-app'),
+  repo: '/repo',
+  ignoreWhitespace: false,
+  generateDelta: true,
+}
 
 let globalMetadata: MetadataRepository
 beforeAll(async () => {
@@ -88,7 +105,11 @@ describe('MetadataBoundaryResolver', () => {
     // into the next one and silently flip behaviour.
     mockGetFilesPath.mockReset()
     mockListDirAtRevision.mockReset()
-    sut = new MetadataBoundaryResolver(globalMetadata, mockGitAdapter)
+    sut = new MetadataBoundaryResolver(
+      mockConfig,
+      globalMetadata,
+      mockGitAdapter
+    )
   })
 
   describe('createElement', () => {
@@ -100,6 +121,7 @@ describe('MetadataBoundaryResolver', () => {
 
         // Act
         const element = await new MetadataBoundaryResolver(
+          mockConfig,
           globalMetadata,
           mockGitAdapter
         ).createElement(path, staticResourceType, revision)
@@ -150,7 +172,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.type.xmlName).toBe('StaticResource')
           expect(mockGetFilesPath).toHaveBeenCalledWith(
             'force-app/main/default/staticresources',
-            revision
+            { revision, scopePaths: mockConfig.source }
           )
         })
 
@@ -238,7 +260,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(element.type.xmlName).toBe('ExperienceBundle')
           expect(mockGetFilesPath).toHaveBeenCalledWith(
             'force-app/main/default/experiences',
-            revision
+            { revision, scopePaths: mockConfig.source }
           )
         })
 
@@ -304,7 +326,7 @@ describe('MetadataBoundaryResolver', () => {
           )
           expect(mockGetFilesPath).toHaveBeenCalledWith(
             'force-app/main/default/permissionsets',
-            revision
+            { revision, scopePaths: mockConfig.source }
           )
         })
 
@@ -332,7 +354,7 @@ describe('MetadataBoundaryResolver', () => {
           )
           expect(mockGetFilesPath).toHaveBeenCalledWith(
             'force-app/main/default/staticresources',
-            revision
+            { revision, scopePaths: mockConfig.source }
           )
         })
 
@@ -375,7 +397,7 @@ describe('MetadataBoundaryResolver', () => {
           )
           expect(mockGetFilesPath).toHaveBeenCalledWith(
             'force-app/main/default/objectTranslations',
-            revision
+            { revision, scopePaths: mockConfig.source }
           )
         })
 
@@ -399,7 +421,7 @@ describe('MetadataBoundaryResolver', () => {
           )
           expect(mockGetFilesPath).toHaveBeenCalledWith(
             'force-app/main/default/bots',
-            revision
+            { revision, scopePaths: mockConfig.source }
           )
         })
       })
@@ -545,11 +567,11 @@ describe('MetadataBoundaryResolver', () => {
         expect(mockListDirAtRevision).toHaveBeenCalledTimes(4)
         expect(mockListDirAtRevision).toHaveBeenCalledWith(
           'force-app/main/any/path/MyResource',
-          revision1
+          { revision: revision1, scopePaths: mockConfig.source }
         )
         expect(mockListDirAtRevision).toHaveBeenCalledWith(
           'force-app/main/any/path/MyResource',
-          revision2
+          { revision: revision2, scopePaths: mockConfig.source }
         )
       })
     })
@@ -733,7 +755,7 @@ describe('MetadataBoundaryResolver', () => {
       await sut.createElement(path, staticResourceType, 'HEAD')
       expect(mockGetFilesPath).toHaveBeenCalledWith(
         'force-app/main/default/staticresources',
-        'HEAD'
+        { revision: 'HEAD', scopePaths: mockConfig.source }
       )
     })
 
@@ -744,7 +766,10 @@ describe('MetadataBoundaryResolver', () => {
         'staticresources/MyResource/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      expect(mockGetFilesPath).toHaveBeenCalledWith('staticresources', 'HEAD')
+      expect(mockGetFilesPath).toHaveBeenCalledWith('staticresources', {
+        revision: 'HEAD',
+        scopePaths: mockConfig.source,
+      })
       expect(element.componentPath).toContain('MyResource')
     })
   })
@@ -799,6 +824,7 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part exactly equals componentName, When isNameInPath, Then returns true', () => {
       // Mutant EqualityOperator "part !== componentName" → always false for exact match
       const resolver = new MetadataBoundaryResolver(
+        mockConfig,
         globalMetadata,
         mockGitAdapter
       )
@@ -814,6 +840,7 @@ describe('MetadataBoundaryResolver', () => {
       // Mutant: part.endsWith(`${componentName}.`) → 'MyComponent.js'.endsWith('MyComponent.') = false → miss
       // Correct: startsWith → true
       const resolver = new MetadataBoundaryResolver(
+        mockConfig,
         globalMetadata,
         mockGitAdapter
       )
@@ -828,6 +855,7 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part ends with dot-componentName (not starts), When isNameInPath, Then returns false', async () => {
       // Verifies startsWith is used, not endsWith (mutation contrast)
       const resolver = new MetadataBoundaryResolver(
+        mockConfig,
         globalMetadata,
         mockGitAdapter
       )
@@ -843,6 +871,7 @@ describe('MetadataBoundaryResolver', () => {
       // L135 StringLiteral `` mutant: componentName.= `` → startsWith('.') for non-empty parts
       // Real behavior: componentName='' → part === '' or part.startsWith('.') → only empty-named matches
       const resolver = new MetadataBoundaryResolver(
+        mockConfig,
         globalMetadata,
         mockGitAdapter
       )

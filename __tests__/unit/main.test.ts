@@ -462,10 +462,14 @@ describe('external library inclusion', () => {
       await sgd(sut)
 
       // Assert
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', [
-        'force-app',
-      ])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD',
+        scopePaths: ['force-app'],
+      })
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD~1',
+        scopePaths: ['force-app'],
+      })
       expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
     })
 
@@ -483,7 +487,10 @@ describe('external library inclusion', () => {
       await sgd(sut)
 
       // Assert
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD',
+        scopePaths: ['force-app'],
+      })
     })
 
     it('Given generateDelta is true with includeDestructive set, When sgd runs, Then preBuildTreeIndex is called with config.source', async () => {
@@ -500,8 +507,14 @@ describe('external library inclusion', () => {
       await sgd(sut)
 
       // Assert
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['src'])
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['src'])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD',
+        scopePaths: ['src'],
+      })
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD~1',
+        scopePaths: ['src'],
+      })
     })
 
     it('Given generateDelta is true with computed scope paths, When sgd runs, Then preBuildTreeIndex is called with scope paths', async () => {
@@ -521,12 +534,14 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(mockComputeTreeIndexScope).toHaveBeenCalled()
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD', [
-        'force-app/main/default/classes',
-      ])
-      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', [
-        'force-app/main/default/classes',
-      ])
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD',
+        scopePaths: ['force-app/main/default/classes'],
+      })
+      expect(mockPreBuildTreeIndex).toHaveBeenCalledWith({
+        revision: 'HEAD~1',
+        scopePaths: ['force-app/main/default/classes'],
+      })
     })
 
     it('Given generateDelta is true with empty scope paths, When sgd runs, Then preBuildTreeIndex is not called', async () => {

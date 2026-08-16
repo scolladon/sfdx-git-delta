@@ -2,9 +2,11 @@
 import { dirname, parse } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
+import { treeScopeAt } from '../adapter/gitTreeLister.js'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
+import type { Config } from '../types/config.js'
 import type { Metadata } from '../types/metadata.js'
 import { log } from './LoggingDecorator.js'
 import { MetadataElement } from './metadataElement.js'
@@ -13,6 +15,7 @@ export class MetadataBoundaryResolver {
   protected readonly dirCache: Map<string, string[]>
 
   constructor(
+    protected readonly config: Config,
     protected readonly metadataRepo: MetadataRepository,
     protected readonly gitAdapter: GitAdapter
   ) {
@@ -65,7 +68,10 @@ export class MetadataBoundaryResolver {
       const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
       let allFiles: string[]
       try {
-        allFiles = await this.gitAdapter.getFilesPath(typeDir, revision)
+        allFiles = await this.gitAdapter.getFilesPath(
+          typeDir,
+          treeScopeAt(this.config, revision)
+        )
       } catch {
         // Stryker disable next-line ArrayDeclaration -- equivalent: catch fallback to empty list; an injected non-empty default would feed the componentNames Set with bogus entries that the next-loop's componentNames.has check rejects (the test fixtures provide concrete pathAfterType values that don't match the injected sentinel)
         allFiles = []
@@ -108,7 +114,10 @@ export class MetadataBoundaryResolver {
 
       let siblings = this.dirCache.get(cacheKey)
       if (siblings === undefined) {
-        siblings = await this.gitAdapter.listDirAtRevision(currentDir, revision)
+        siblings = await this.gitAdapter.listDirAtRevision(
+          currentDir,
+          treeScopeAt(this.config, revision)
+        )
         this.dirCache.set(cacheKey, siblings)
       }
 

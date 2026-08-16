@@ -15,6 +15,7 @@ import {
   EscalateToStreamingSignal,
   SIZE_THRESHOLD,
 } from '../../../../src/adapter/gitBlobReader'
+import type { TreeScope } from '../../../../src/adapter/gitTreeLister'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
 import {
@@ -94,6 +95,14 @@ const asCommit = (tree: string) => ({
   type: 'commit',
   data: { tree, parents: [] },
 })
+
+// Bundles a revision with the scope it was (or should be) pre-built under —
+// the same TreeScope shape every reader now threads through GitAdapter, so
+// tests can name a scope once instead of repeating the pairing at each call.
+const scope = (
+  revision: string,
+  scopePaths: readonly string[] = []
+): TreeScope => ({ revision, scopePaths })
 
 const flatten = (entries: Array<[string, { mode: string; id: string }]>) => ({
   entries: new Map(entries),
@@ -534,8 +543,8 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      await sut.preBuildTreeIndex('HEAD', [])
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Assert
       expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
@@ -554,10 +563,13 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      await sut.preBuildTreeIndex('HEAD', ['.', 'force-app'])
+      await sut.preBuildTreeIndex(scope('HEAD', ['.', 'force-app']))
 
-      // Assert
-      expect(await sut.getFilesPath('', 'HEAD')).toEqual(['force-app/foo.cls'])
+      // Assert — '.' is stripped from the scope key too (ROOT_PATHS), so
+      // reading back must name the same real scope, not the whole-repo one.
+      expect(await sut.getFilesPath('', scope('HEAD', ['force-app']))).toEqual([
+        'force-app/foo.cls',
+      ])
     })
 
     it('When indexing the revision fails, Then the failure is swallowed and the revision stays unindexed', async () => {
@@ -566,14 +578,17 @@ describe('GitAdapter', () => {
       fakeRepo.revParse.mockRejectedValue(new Error('boom'))
 
       // Act
-      await sut.preBuildTreeIndex('BAD', [])
+      await sut.preBuildTreeIndex(scope('BAD'))
 
       // Assert
-      expect(await sut.getFilesPath('', 'BAD')).toEqual([])
+      expect(await sut.getFilesPath('', scope('BAD'))).toEqual([])
     })
 
-    it('When called a second time for an already-indexed revision with different scopePaths, Then the first index is preserved (no rebuild)', async () => {
-      // Arrange
+    it('When called a second time for an already-indexed revision under a different scope, Then a second index is built rather than reusing the first', async () => {
+      // Arrange — regression for the repo-wide GitAdapter pool: a bare
+      // revision key used to let a second, differently-scoped pre-build
+      // silently no-op against the first caller's index. Keying by
+      // (revision, scope) means each scope gets its own bucket instead.
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockResolvedValue('commit-oid')
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
@@ -584,13 +599,92 @@ describe('GitAdapter', () => {
         ])
       )
 
-      // Act — the first call scopes the index to 'force-app'; the second
-      // call (broader scope) must be a no-op since the revision is cached
-      await sut.preBuildTreeIndex('HEAD', ['force-app'])
-      await sut.preBuildTreeIndex('HEAD', [])
+      // Act
+      await sut.preBuildTreeIndex(scope('HEAD', ['force-app']))
+      await sut.preBuildTreeIndex(scope('HEAD'))
+
+      // Assert — the narrow scope's own bucket still only holds its files,
+      // and the later whole-repo pre-build got its own bucket with both.
+      expect(await sut.getFilesPath('', scope('HEAD', ['force-app']))).toEqual([
+        'force-app/foo.cls',
+      ])
+      expect((await sut.getFilesPath('', scope('HEAD'))).sort()).toEqual(
+        ['force-app/foo.cls', 'other/bar.cls'].sort()
+      )
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
+    })
+
+    it("When two callers pre-build the same revision under different scopes, Then reading back through the narrower scope never sees the broader one's entries", async () => {
+      // Arrange — regression coverage for concurrent runs sharing the
+      // repo-wide instance: same revision, different --source-dir scopes.
+      // Building the broad scope first must not leak its out-of-scope
+      // entries into the narrow scope's reads.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([
+          ['force-app/foo.cls', { mode: '100644', id: 'blob-1' }],
+          ['other/bar.cls', { mode: '100644', id: 'blob-2' }],
+        ])
+      )
+
+      // Act — broad (whole-repo) scope pre-built first
+      await sut.preBuildTreeIndex(scope('HEAD'))
+      await sut.preBuildTreeIndex(scope('HEAD', ['force-app']))
 
       // Assert
-      expect(await sut.getFilesPath('', 'HEAD')).toEqual(['force-app/foo.cls'])
+      expect(await sut.getFilesPath('', scope('HEAD', ['force-app']))).toEqual([
+        'force-app/foo.cls',
+      ])
+    })
+
+    it('When the same scope is named with a different ROOT_PATHS spelling, Then it resolves to the same whole-repo bucket', async () => {
+      // Arrange — './', '.' and '' must canonicalise identically so a
+      // caller normalising root differently from main.ts still hits the
+      // bucket main.ts built.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+
+      // Act
+      await sut.preBuildTreeIndex(scope('HEAD', ['./']))
+
+      // Assert
+      expect(await sut.getFilesPath('', scope('HEAD', ['']))).toEqual([
+        'force-app/foo.cls',
+      ])
+      expect(await sut.getFilesPath('', scope('HEAD', ['.']))).toEqual([
+        'force-app/foo.cls',
+      ])
+    })
+
+    it('When the same non-root scope is named in a different order, Then it resolves to the same bucket', async () => {
+      // Arrange — two callers naming one scope's paths in a different
+      // order must still land in the same bucket the sort-before-join key
+      // derivation guarantees.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([
+          ['force-app/foo.cls', { mode: '100644', id: 'blob-1' }],
+          ['other/bar.cls', { mode: '100644', id: 'blob-2' }],
+        ])
+      )
+
+      // Act
+      await sut.preBuildTreeIndex(scope('HEAD', ['other', 'force-app']))
+
+      // Assert
+      expect(
+        (
+          await sut.getFilesPath('', scope('HEAD', ['force-app', 'other']))
+        ).sort()
+      ).toEqual(['force-app/foo.cls', 'other/bar.cls'].sort())
     })
   })
 
@@ -709,10 +803,10 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      await sut.preBuildTreeIndex('v1.0.0', [])
+      await sut.preBuildTreeIndex(scope('v1.0.0'))
 
       // Act
-      const files = await sut.getFilesPath('', 'v1.0.0')
+      const files = await sut.getFilesPath('', scope('v1.0.0'))
 
       // Assert
       expect(files).toEqual(['force-app/foo.cls'])
@@ -767,10 +861,10 @@ describe('GitAdapter', () => {
           ['submodule', { mode: '160000', id: 'gitlink-1' }],
         ])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act
-      const files = await sut.getFilesPath('', 'HEAD')
+      const files = await sut.getFilesPath('', scope('HEAD'))
 
       // Assert
       expect(files.sort()).toEqual(
@@ -786,10 +880,10 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app\\foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act
-      const files = await sut.getFilesPath('', 'HEAD')
+      const files = await sut.getFilesPath('', scope('HEAD'))
 
       // Assert
       expect(files).toEqual(['force-app/foo.cls'])
@@ -1568,7 +1662,7 @@ describe('GitAdapter', () => {
           ['force-app/objects/Baz.object', { mode: '100644', id: 'blob-3' }],
         ])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
     }
 
     it('When the revision was never indexed, Then it returns an empty array', async () => {
@@ -1576,7 +1670,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.getFilesPath('force-app', 'HEAD')
+      const result = await sut.getFilesPath('force-app', scope('HEAD'))
 
       // Assert
       expect(result).toEqual([])
@@ -1588,7 +1682,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('', 'HEAD')
+      const result = await sut.getFilesPath('', scope('HEAD'))
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1606,7 +1700,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('.', 'HEAD')
+      const result = await sut.getFilesPath('.', scope('HEAD'))
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1624,7 +1718,10 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('force-app/classes/Foo.cls', 'HEAD')
+      const result = await sut.getFilesPath(
+        'force-app/classes/Foo.cls',
+        scope('HEAD')
+      )
 
       // Assert
       expect(result).toEqual(['force-app/classes/Foo.cls'])
@@ -1636,7 +1733,7 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('force-app/classes', 'HEAD')
+      const result = await sut.getFilesPath('force-app/classes', scope('HEAD'))
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1652,7 +1749,7 @@ describe('GitAdapter', () => {
       // Act
       const result = await sut.getFilesPath(
         ['force-app/classes/Foo.cls', 'force-app/objects/Baz.object'],
-        'HEAD'
+        scope('HEAD')
       )
 
       // Assert
@@ -1667,7 +1764,10 @@ describe('GitAdapter', () => {
       await setUpIndex(sut)
 
       // Act
-      const result = await sut.getFilesPath('force-app/missing-dir', 'HEAD')
+      const result = await sut.getFilesPath(
+        'force-app/missing-dir',
+        scope('HEAD')
+      )
 
       // Assert
       expect(result).toEqual([])
@@ -1680,7 +1780,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.pathExists('force-app', 'HEAD')
+      const result = await sut.pathExists('force-app', scope('HEAD'))
 
       // Assert
       expect(result).toBe(false)
@@ -1694,10 +1794,10 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act
-      const result = await sut.pathExists('', 'HEAD')
+      const result = await sut.pathExists('', scope('HEAD'))
 
       // Assert
       expect(result).toBe(true)
@@ -1709,10 +1809,10 @@ describe('GitAdapter', () => {
       fakeRepo.revParse.mockResolvedValue('commit-oid')
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(flatten([]))
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act
-      const result = await sut.pathExists('', 'HEAD')
+      const result = await sut.pathExists('', scope('HEAD'))
 
       // Assert
       expect(result).toBe(false)
@@ -1726,11 +1826,13 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act & Assert
-      expect(await sut.pathExists('force-app', 'HEAD')).toBe(true)
-      expect(await sut.pathExists('force-app/missing.cls', 'HEAD')).toBe(false)
+      expect(await sut.pathExists('force-app', scope('HEAD'))).toBe(true)
+      expect(await sut.pathExists('force-app/missing.cls', scope('HEAD'))).toBe(
+        false
+      )
     })
   })
 
@@ -1740,7 +1842,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.listDirAtRevision('force-app', 'HEAD')
+      const result = await sut.listDirAtRevision('force-app', scope('HEAD'))
 
       // Assert
       expect(result).toEqual([])
@@ -1757,10 +1859,10 @@ describe('GitAdapter', () => {
           ['force-app/objects/Baz.object', { mode: '100644', id: 'blob-2' }],
         ])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act
-      const result = await sut.listDirAtRevision('force-app', 'HEAD')
+      const result = await sut.listDirAtRevision('force-app', scope('HEAD'))
 
       // Assert
       expect(result.sort()).toEqual(['classes', 'objects'].sort())
@@ -1776,10 +1878,13 @@ describe('GitAdapter', () => {
           ['force-app/classes/Foo.cls', { mode: '100644', id: 'blob-1' }],
         ])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
+      await sut.preBuildTreeIndex(scope('HEAD'))
 
       // Act
-      const result = await sut.listDirAtRevision('does-not-exist', 'HEAD')
+      const result = await sut.listDirAtRevision(
+        'does-not-exist',
+        scope('HEAD')
+      )
 
       // Assert
       expect(result).toEqual([])

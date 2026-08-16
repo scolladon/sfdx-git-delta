@@ -2,6 +2,7 @@
 import { join } from 'node:path/posix'
 
 import GitAdapter from '../adapter/GitAdapter.js'
+import { treeScopeAt } from '../adapter/gitTreeLister.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 
@@ -32,7 +33,7 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
 
 export const pathExists = async (path: string, config: Config) => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.pathExists(path, config.to)
+  return await gitAdapter.pathExists(path, treeScopeAt(config, config.to))
 }
 
 export const readDirs = async (
@@ -40,7 +41,7 @@ export const readDirs = async (
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.getFilesPath(paths, config.to)
+  return await gitAdapter.getFilesPath(paths, treeScopeAt(config, config.to))
 }
 
 export const grepContentUnder = async (

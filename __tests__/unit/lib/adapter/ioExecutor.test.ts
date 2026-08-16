@@ -415,10 +415,10 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetFilesPath).toHaveBeenCalledWith(
-        'permissionsets/MyPS',
-        'abc123'
-      )
+      expect(mockGetFilesPath).toHaveBeenCalledWith('permissionsets/MyPS', {
+        revision: 'abc123',
+        scopePaths: work.config.source,
+      })
       expect(mockGetBufferContent).toHaveBeenCalledTimes(2)
       expect(outputFile).toHaveBeenCalledTimes(2)
     })
@@ -446,10 +446,10 @@ describe('IOExecutor', () => {
       // Assert — the revision travels through the op, not through a
       // rebuilt GitAdapter instance: getInstance is called exactly once,
       // at construction, with the unmodified config.
-      expect(mockGetFilesPath).toHaveBeenCalledWith(
-        'permissionsets/MyPS',
-        'different-sha'
-      )
+      expect(mockGetFilesPath).toHaveBeenCalledWith('permissionsets/MyPS', {
+        revision: 'different-sha',
+        scopePaths: work.config.source,
+      })
       expect(mockGetInstance).toHaveBeenCalledTimes(1)
       expect(mockGetInstance).toHaveBeenCalledWith(work.config)
     })

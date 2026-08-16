@@ -170,7 +170,10 @@ describe('readDirs', () => {
       expect(dirContent).toEqual(
         expect.arrayContaining(['dir1/file1.js', 'dir2/file2.js'])
       )
-      expect(mockGetFilesPath).toHaveBeenCalledWith(paths, work.config.to)
+      expect(mockGetFilesPath).toHaveBeenCalledWith(paths, {
+        revision: work.config.to,
+        scopePaths: work.config.source,
+      })
     })
   })
 
@@ -198,7 +201,10 @@ describe('pathExists', () => {
 
     // Assert
     expect(result).toBe(true)
-    expect(mockPathExists).toHaveBeenCalledWith('path', work.config.to)
+    expect(mockPathExists).toHaveBeenCalledWith('path', {
+      revision: work.config.to,
+      scopePaths: work.config.source,
+    })
   })
   it('returns true when path is file', async () => {
     // Arrange
@@ -209,7 +215,10 @@ describe('pathExists', () => {
 
     // Assert
     expect(result).toBe(true)
-    expect(mockPathExists).toHaveBeenCalledWith('path', work.config.to)
+    expect(mockPathExists).toHaveBeenCalledWith('path', {
+      revision: work.config.to,
+      scopePaths: work.config.source,
+    })
   })
   it('returns false when path does not exist', async () => {
     // Arrange
@@ -220,10 +229,10 @@ describe('pathExists', () => {
 
     // Assert
     expect(result).toBe(false)
-    expect(mockPathExists).toHaveBeenCalledWith(
-      'not/existing/path',
-      work.config.to
-    )
+    expect(mockPathExists).toHaveBeenCalledWith('not/existing/path', {
+      revision: work.config.to,
+      scopePaths: work.config.source,
+    })
   })
 })
 

@@ -23,7 +23,7 @@ import {
   GIT_ARCHIVE_DIR_THRESHOLD,
   type GitBlobReader,
 } from './gitBlobReader.js'
-import type { GitTreeLister } from './gitTreeLister.js'
+import { type GitTreeLister, treeScopeAt } from './gitTreeLister.js'
 
 const TMP_SUFFIX = '.tmp'
 
@@ -120,7 +120,10 @@ export default class IOExecutor {
     revision: string
   }): Promise<void> {
     try {
-      const filePaths = await this.blobReader.getFilesPath(op.path, op.revision)
+      const filePaths = await this.blobReader.getFilesPath(
+        op.path,
+        treeScopeAt(this.config, op.revision)
+      )
       if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
         await this._executeGitDirCopyViaArchive(this.blobReader, op, filePaths)
         return

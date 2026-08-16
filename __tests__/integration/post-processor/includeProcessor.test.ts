@@ -2,7 +2,15 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import { MetadataRepository } from '../../../src/metadata/MetadataRepository'
@@ -11,6 +19,7 @@ import IncludeProcessor from '../../../src/post-processor/includeProcessor'
 import type { Config } from '../../../src/types/config'
 import ChangeSet from '../../../src/utils/changeSet'
 import { IgnoreHelper } from '../../../src/utils/ignoreHelper'
+import { MetadataElement } from '../../../src/utils/metadataElement'
 import {
   buildMetadataFixtureRepo,
   EXISTING_RESOURCE_FILE,
@@ -25,12 +34,17 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 // today's output as the reference the pool-key rebind (GitAdapter keyed by
 // repo instead of by repo+to) must reproduce byte-for-byte.
 //
-// generateDelta is left off: it only toggles whether copy operations are
-// additionally collected (an orthogonal concern to which GitAdapter instance
-// resolves a boundary), and turning it on adds copy-path noise that isn't
-// what this suite is pinning down. The tree index is still pre-built by hand
-// here, mirroring the precondition main.ts establishes before it runs the
-// include pass in a --generate-delta invocation.
+// generateDelta is left off in most cases: it only toggles whether copy
+// operations are additionally collected (an orthogonal concern to which
+// GitAdapter instance resolves a boundary), and turning it on adds copy-path
+// noise that isn't what this suite is pinning down. The tree index is still
+// pre-built by hand here, mirroring the precondition main.ts establishes
+// before it runs the include pass in a --generate-delta invocation.
+//
+// The 'generateDelta: true' case below is the exception: it exists
+// specifically to pin the DELETION pass's metadata-boundary resolution (see
+// MetadataBoundaryResolver.scanAndCreateElement), which none of the
+// generateDelta-off cases reach deep enough to exercise.
 
 let fixtureDir: string
 let refs: MetadataFixtureRefs
@@ -55,7 +69,7 @@ const writeIncludePatterns = async (
 
 const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: refs.head,
-  from: refs.head,
+  from: refs.root,
   mergeBase: false,
   output: '',
   source: sourceDirs('.'),
@@ -95,7 +109,10 @@ describe('Given a fixture repo with a resource added on top of the root commit',
       ])
       const config = makeConfig({ include: includePath })
       const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex(config.to, config.source)
+      await gitAdapter.preBuildTreeIndex({
+        revision: config.to,
+        scopePaths: config.source,
+      })
       const sut = new IncludeProcessor(config, metadata)
 
       // Act
@@ -126,7 +143,10 @@ describe('Given a fixture repo with a resource added on top of the root commit',
       )
       const config = makeConfig({ includeDestructive: includeDestructivePath })
       const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex(config.to, config.source)
+      await gitAdapter.preBuildTreeIndex({
+        revision: config.to,
+        scopePaths: config.source,
+      })
       const sut = new IncludeProcessor(config, metadata)
 
       // Act
@@ -163,7 +183,10 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         includeDestructive: includeDestructivePath,
       })
       const gitAdapter = GitAdapter.getInstance(config)
-      await gitAdapter.preBuildTreeIndex(config.to, config.source)
+      await gitAdapter.preBuildTreeIndex({
+        revision: config.to,
+        scopePaths: config.source,
+      })
       const sut = new IncludeProcessor(config, metadata)
 
       // Act
@@ -188,6 +211,60 @@ describe('Given a fixture repo with a resource added on top of the root commit',
         copies: [],
         warnings: [],
       })
+    })
+  })
+
+  describe('When --include-destructive forces a nested resource file onto the DELETION pass under generateDelta: true', () => {
+    it('Then the metadata boundary resolves against the populated config.to tree index, not the unindexed first commit', async () => {
+      // Arrange — EXISTING_RESOURCE_FILE is nested two levels below its type
+      // directory (bundle/subfolder/file), so createElement cannot resolve it
+      // via a plain fromPath lookup and must fall into
+      // MetadataBoundaryResolver.scanAndCreateElement. The DELETION pass
+      // (includeProcessor.ts) runs that resolution with `revision` pinned to
+      // the ORIGINAL config.to (typeHandlerFactory picks config.from for a
+      // DELETION line, and the DELETION pass's own {from, to} override sets
+      // effective `from` to the original config.to) — the exact revision
+      // main.ts (and the preBuildTreeIndex call below) pre-builds.
+      const includeDestructivePath = await writeIncludePatterns(
+        'include-generate-delta-deletion.txt',
+        [EXISTING_RESOURCE_FILE]
+      )
+      const config = makeConfig({
+        includeDestructive: includeDestructivePath,
+        generateDelta: true,
+      })
+      const gitAdapter = GitAdapter.getInstance(config)
+      await gitAdapter.preBuildTreeIndex({
+        revision: config.to,
+        scopePaths: config.source,
+      })
+      const sut = new IncludeProcessor(config, metadata)
+      const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
+
+      // Act
+      const actual = await sut.transformAndCollect(ChangeSet.from([]))
+
+      // Assert — the scan found ExistingResource's meta sibling in the
+      // pre-built index and anchored the boundary at the bundle folder, not
+      // at the file itself (the fallback a miss would have produced).
+      const resolvedElement = fromScanSpy.mock.results.at(-1)
+        ?.value as MetadataElement
+      expect(resolvedElement.componentPath).toBe(
+        'force-app/main/default/staticresources/ExistingResource'
+      )
+      expect(actual).toEqual({
+        elements: [
+          {
+            target: 'destructiveChanges',
+            type: 'StaticResource',
+            member: 'ExistingResource',
+            changeKind: 'delete',
+          },
+        ],
+        copies: [],
+        warnings: [],
+      })
+      fromScanSpy.mockRestore()
     })
   })
 })

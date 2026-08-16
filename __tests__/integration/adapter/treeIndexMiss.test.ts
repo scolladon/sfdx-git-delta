@@ -63,10 +63,16 @@ describe('Given a GitAdapter with the tree index built for only one revision', (
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(refs.diffTo, config.source)
+      await sut.preBuildTreeIndex({
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
 
       // Act
-      const actual = await sut.getFilesPath('', refs.diffFrom)
+      const actual = await sut.getFilesPath('', {
+        revision: refs.diffFrom,
+        scopePaths: config.source,
+      })
 
       // Assert
       expect(actual).toEqual([])
@@ -76,10 +82,16 @@ describe('Given a GitAdapter with the tree index built for only one revision', (
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(refs.diffTo, config.source)
+      await sut.preBuildTreeIndex({
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
 
       // Act
-      const actual = await sut.pathExists('README.md', refs.diffFrom)
+      const actual = await sut.pathExists('README.md', {
+        revision: refs.diffFrom,
+        scopePaths: config.source,
+      })
 
       // Assert
       expect(actual).toBe(false)
@@ -89,10 +101,16 @@ describe('Given a GitAdapter with the tree index built for only one revision', (
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(refs.diffTo, config.source)
+      await sut.preBuildTreeIndex({
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
 
       // Act
-      const actual = await sut.listDirAtRevision('src', refs.diffFrom)
+      const actual = await sut.listDirAtRevision('src', {
+        revision: refs.diffFrom,
+        scopePaths: config.source,
+      })
 
       // Assert
       expect(actual).toEqual([])
@@ -104,12 +122,24 @@ describe('Given a GitAdapter with the tree index built for only one revision', (
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex(refs.diffTo, config.source)
+      await sut.preBuildTreeIndex({
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
 
       // Act
-      const actualFiles = await sut.getFilesPath('', refs.diffTo)
-      const actualExists = await sut.pathExists('README.md', refs.diffTo)
-      const actualChildren = await sut.listDirAtRevision('src', refs.diffTo)
+      const actualFiles = await sut.getFilesPath('', {
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
+      const actualExists = await sut.pathExists('README.md', {
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
+      const actualChildren = await sut.listDirAtRevision('src', {
+        revision: refs.diffTo,
+        scopePaths: config.source,
+      })
 
       // Assert
       expect(actualFiles.length).toBeGreaterThan(0)

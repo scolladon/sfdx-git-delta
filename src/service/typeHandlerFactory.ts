@@ -76,7 +76,7 @@ export default class TypeHandlerFactory {
     protected readonly metadata: MetadataRepository
   ) {
     const gitAdapter = GitAdapter.getInstance(config)
-    this.resolver = new MetadataBoundaryResolver(metadata, gitAdapter)
+    this.resolver = new MetadataBoundaryResolver(config, metadata, gitAdapter)
     this.inFileParentXmlNames = new Set()
     this.buildInFileParentIndex()
   }

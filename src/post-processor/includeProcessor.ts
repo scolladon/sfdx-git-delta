@@ -1,5 +1,6 @@
 'use strict'
 import GitAdapter from '../adapter/GitAdapter.js'
+import { treeScopeAt } from '../adapter/gitTreeLister.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -58,7 +59,7 @@ export default class IncludeProcessor extends BaseProcessor {
     const gitChanges: GitChange[] = [ADDITION, DELETION]
     const lines: string[] = await this.gitAdapter.getFilesPath(
       this.config.source,
-      this.config.to
+      treeScopeAt(this.config, this.config.to)
     )
     for (const line of lines) {
       gitChanges.forEach((changeType: GitChange) => {
