@@ -65,12 +65,14 @@ export default class StandardHandler {
       }
     } catch (error) {
       const message = `${this.element.basePath}: ${getErrorMessage(error)}`
+      // Stryker disable CallExpression -- equivalent: removing either log call entirely is unobservable, because this file's tests mock LoggingService and assert on the wrapped warning in result.warnings via wrapError; asserting the emission itself would couple them to logging plumbing, which this project deliberately avoids
       // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning message in result.warnings via wrapError, not on the lazy log line
       Logger.warn(lazy`${message}`)
       Logger.debug(
         // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: same as above, debug log is observability only
         lazy`${this.constructor.name}.collect: ${this.changeType} ${this.element.type.xmlName} '${this.element.basePath}' failed: ${() => getErrorMessage(error)}`
       )
+      // Stryker restore CallExpression
       return { elements: [], copies: [], warnings: [wrapError(message, error)] }
     }
   }

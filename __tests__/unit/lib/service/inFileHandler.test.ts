@@ -6,6 +6,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InFileHandler from '../../../../src/service/inFileHandler'
 import type { Config } from '../../../../src/types/config'
 import {
+  ChangeKind,
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
@@ -917,5 +918,42 @@ describe('inFileHandler collect', () => {
     expect(
       result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
     ).toBe(false)
+  })
+
+  it('Given metadataDiff reports modified child elements, When collect runs, Then modified entries are added to the package manifest', async () => {
+    // Regression lock: _collectCompareResult collects added, modified AND
+    // deleted comparison buckets separately. Every other fixture in this
+    // file leaves `modified` empty, so a removed modified-bucket collection
+    // call would go unnoticed without this test.
+    const { changeType, element } = createElement(
+      'A       force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, getContext({ config }))
+    mockRun.mockResolvedValue({
+      manifests: {
+        added: [],
+        modified: [{ type: 'WorkflowAlert', member: 'ChangedAlert' }],
+        deleted: [],
+      },
+      hasPackageContent: true,
+      writer: mockWriter,
+    })
+
+    // Act
+    const result = await sut.collect()
+
+    // Assert
+    expect(elementsOf(result)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'WorkflowAlert',
+          member: 'Account.ChangedAlert',
+          changeKind: ChangeKind.Modify,
+        }),
+      ])
+    )
   })
 })

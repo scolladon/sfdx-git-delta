@@ -524,6 +524,7 @@ export default class GitAdapter implements GitBlobReader {
   ): readonly string[] {
     if (hasRootScope(scopes)) return []
     const unmatchable = nonRootScopes(scopes)
+    // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: `.length` is never negative so `>= 0` is a tautology, and forcing this operand true only changes the ternary when unmatchable.length === 0 — in which case `unmatchable` is itself [], deep-equal to the `: []` branch it would take instead
     return unmatchable.length > 0 &&
       verdict.changesSeen > 0 &&
       verdict.linesYielded === 0
@@ -560,6 +561,7 @@ async function* normalizeChunks(
 }
 
 const isLfsPointer = (head: Buffer): boolean =>
+  // Stryker disable next-line ConditionalExpression -- equivalent: the length guard is redundant. Buffer#subarray clamps rather than throwing when the end index exceeds the buffer, and Buffer#equals is false for operands of differing length, so the comparison alone already returns false for any head shorter than the magic
   head.length >= LFS_MAGIC.length &&
   head.subarray(0, LFS_MAGIC.length).equals(LFS_MAGIC)
 
@@ -568,9 +570,11 @@ const peekHead = async (
 ): Promise<{ head: Buffer; exhausted: boolean }> => {
   const parts: Uint8Array[] = []
   let length = 0
+  // Stryker disable next-line EqualityOperator -- equivalent: `<=` only shifts where the peek stops versus what the caller's remaining-chunk iteration picks up; the same total bytes reach forwardChunks/accumulatePointer either way, so the streamed output is byte-identical
   while (length < LFS_MAGIC.length) {
     const result = await chunks.next()
     if (result.done) {
+      // Stryker disable next-line BooleanLiteral -- equivalent: `exhausted` only gates whether forwardChunks re-enters a `for await` over the generator, and per the async-generator protocol a generator that has returned done keeps returning done — so re-entering when already exhausted is a guaranteed zero-iteration no-op
       return { head: Buffer.concat(parts, length), exhausted: true }
     }
     parts.push(result.value)
@@ -594,9 +598,11 @@ const forwardChunks = async (
   head: Buffer,
   exhausted: boolean
 ): Promise<void> => {
+  // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: writing a zero-length Buffer to a PassThrough is a no-op (no 'data' event, readableLength/writableLength unchanged, write() returns true), so calling writeChunk unconditionally when head is empty is indistinguishable from skipping it
   if (head.length > 0) {
     await writeChunk(out, head)
   }
+  // Stryker disable next-line ConditionalExpression -- equivalent: same reasoning as the `exhausted: true` return in peekHead — entering this loop on an already-exhausted generator iterates zero times
   if (!exhausted) {
     for await (const chunk of chunks) {
       await writeChunk(out, chunk)

@@ -84,8 +84,10 @@ export default async (configInput: ConfigInput): Promise<Work> => {
           gitAdapter.buildTreeIndex(config.from, scopePaths),
         ])
         const entries = new Map<string, TreeIndex>()
+        // Stryker disable ConditionalExpression -- equivalent: forcing either guard to always run stores `undefined` at that revision key instead of skipping it, but the only reader is createTreeReader's `entries.get(revision) ?? NO_INDEX`, and Map.get answers `undefined` for an absent key and an explicitly-undefined value alike. `entries` is local to this block and exposes no has/size/enumeration, so no observer can tell the two apart
         if (toIndex) entries.set(config.to, toIndex)
         if (fromIndex) entries.set(config.from, fromIndex)
+        // Stryker restore ConditionalExpression
         trees = createTreeReader(entries)
       }
     }

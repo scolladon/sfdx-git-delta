@@ -19,6 +19,7 @@ export default class RepoGitDiff {
   // getLines() can be called more than once on the same instance (see the
   // renamePairs reset below), so the verdict is reset explicitly at the
   // start of every call rather than relying on the initialiser alone.
+  // Stryker disable next-line ObjectLiteral -- equivalent: emptying this initialiser is unobservable. getLines() reassigns both fields to 0 as its first synchronous statement before any await, and the only other consumer, GitAdapter.getUnmatchedSourceScopes, branches solely on `changesSeen > 0` — false for both 0 and undefined
   private readonly diffScopeVerdict: DiffScopeVerdict = {
     changesSeen: 0,
     linesYielded: 0,

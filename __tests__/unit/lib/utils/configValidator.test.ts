@@ -575,6 +575,26 @@ describe('Given a ConfigValidator', () => {
       })
     })
 
+    describe('_resolveLatestSupportedVersion diagnostic logging (L267)', () => {
+      it('When the latest version lookup fails but a usable apiVersion is already set, Then the fallback is logged for diagnostics', async () => {
+        // Arrange
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+          new Error('offline')
+        )
+        config.apiVersion = 46
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const latest = await sut['_resolveLatestSupportedVersion']()
+
+        // Assert — content is not asserted (see the StringLiteral disable
+        // on this call site); presence of the call is what a
+        // CallExpression removal mutant would drop.
+        expect(latest).toBeUndefined()
+        expect(Logger.debug).toHaveBeenCalledOnce()
+      })
+    })
+
     describe('when apiVersion is set and project file exists', () => {
       it('When apiVersion is defined, Then project file sourceApiVersion is ignored', async () => {
         // Arrange
@@ -628,6 +648,10 @@ describe('Given a ConfigValidator', () => {
           message: expect.stringContaining('error.ParameterIsNotGitSHA'),
         })
       )
+      // Content is not asserted (see the StringLiteral,ArrowFunction
+      // disable on this call site); presence of the call is what a
+      // CallExpression removal mutant (L58) would drop.
+      expect(Logger.debug).toHaveBeenCalled()
     })
 
     it('Given "to" contains a control character and git sha validation fails, When validating, Then the error message carries the escaped form and never the raw character', async () => {
@@ -1083,18 +1107,20 @@ describe('Given a ConfigValidator', () => {
       expect(error.message).not.toContain(controlValue)
     })
 
-    it('Given two rejections at once, When validating, Then the joined message carries both keys', async () => {
+    it('Given two rejections at once, When validating, Then the joined message carries both keys separated by ", "', async () => {
       // Arrange
       const sut = new ConfigValidator(config, [
         { value: 'force-app/**', reason: 'wildcard' },
         { value: '../sibling', reason: 'escapes' },
       ])
 
-      // Act & Assert
+      // Act & Assert — a plain `.*` regex would also match the L96
+      // join('') mutant (it allows a zero-width gap), so the literal
+      // separator is asserted directly via stringContaining instead.
       await expect(sut.validateConfig()).rejects.toThrow(
         expect.objectContaining({
-          message: expect.stringMatching(
-            /error\.SourceDirContainsWildcard.*error\.SourceDirEscapesRepository/
+          message: expect.stringContaining(
+            'error.SourceDirContainsWildcard:force-app/**, error.SourceDirEscapesRepository:../sibling'
           ),
         })
       )

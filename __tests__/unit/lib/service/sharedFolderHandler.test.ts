@@ -127,6 +127,29 @@ describe('SharedFolderHandler', () => {
     expect(result.copies).toHaveLength(0)
   })
 
+  it('Given unknown extension without resolved type, When getElementDescriptor is called directly, Then it throws (kills L23 NoCoverage defensive guard)', async () => {
+    // Arrange — TypeHandlerFactory only ever routes to SharedFolderHandler
+    // via a resolvable extension, so getElementDescriptor's guard is
+    // unreachable through the normal call chain; still a genuine safety
+    // net that must fail loudly rather than returning a bogus descriptor.
+    const unknownLine = `A       ${basePath}${objectType}/Test.unknownext`
+    const { changeType, element } = createElement(
+      unknownLine,
+      objectType,
+      globalMetadata
+    )
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      getContext({ config })
+    )
+
+    // Act & Assert
+    expect(() => sut.getElementDescriptor()).toThrow(
+      `SharedFolderHandler: resolvedType is missing for ${element.fullPath}`
+    )
+  })
+
   describe('when extension has no matching type', () => {
     it('should not add to package on addition', async () => {
       // Arrange

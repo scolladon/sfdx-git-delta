@@ -1008,7 +1008,7 @@ describe('MetadataBoundaryResolver', () => {
         xmlName: 'Custom',
       }
       const path = 'parent/staticresources/file.bin'
-      mockChildren.mockImplementation(dir => {
+      mockChildren.mockImplementation((_revision, dir) => {
         if (dir === 'parent/staticresources') {
           return ['file.bin']
         }

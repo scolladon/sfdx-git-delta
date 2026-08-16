@@ -654,6 +654,42 @@ describe('IOExecutor', () => {
     })
   })
 
+  describe('Given a GitDirCopy per-file copy that marks each child path as processed (kills L147 CallExpression)', () => {
+    it('When a later operation targets the same child path, Then it is skipped as already processed', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue(['objects/Kept.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('kept'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('dup'))
+
+      // Act — two sequential execute() calls avoid any eachLimit race: the
+      // second call only sees processedPaths state settled by the first.
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'objects',
+          revision: 'abc123',
+        },
+      ])
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'objects/Kept.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(outputFile).toHaveBeenCalledTimes(1)
+      expect(mockGetBufferContentOrEscalate).not.toHaveBeenCalled()
+    })
+  })
+
   describe('Given a StreamedContent operation', () => {
     it('When executed, Then writes via sibling tmp and renames on success', async () => {
       // Arrange
@@ -918,9 +954,17 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       // >25 to trigger archive path
       mockFilesUnder.mockReturnValue(filePaths)
+      // Every branch that `continue`s past an entry without piping it must
+      // still drain the stream via .resume() (the streamArchive contract:
+      // "Callers must consume every yielded stream ... to avoid leaving the
+      // underlying blob stream unread"). Spy per-entry so each skip test can
+      // assert its own entry was drained.
+      const resumeSpies = new Map<string, ReturnType<typeof vi.fn>>()
       const streamArchiveSpy = vi.fn(async function* () {
         for (const entry of entries) {
-          yield { path: entry.path, stream: Readable.from([Buffer.from('x')]) }
+          const stream = Readable.from([Buffer.from('x')])
+          resumeSpies.set(entry.path, vi.spyOn(stream, 'resume'))
+          yield { path: entry.path, stream }
         }
       })
       mockGetInstance.mockReturnValue({
@@ -935,6 +979,7 @@ describe('IOExecutor', () => {
           getContext({ config: work.config, trees: treeReader })
         ),
         streamArchiveSpy,
+        resumeSpies,
         work,
       }
     }
@@ -942,10 +987,10 @@ describe('IOExecutor', () => {
     const makeFilePaths = (n: number, prefix = 'bundle') =>
       Array.from({ length: n }, (_, i) => `${prefix}/f${i}.xml`)
 
-    it('When archive yields entry not in wanted set, Then it is skipped (L174 kills false guard)', async () => {
+    it('When archive yields entry not in wanted set, Then it is skipped and its stream is drained (L174 kills false guard, kills L173 resume() call)', async () => {
       // Arrange — 26 known files but archive yields an extra unknown entry
       const knownPaths = makeFilePaths(26)
-      const { sut } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: 'bundle/unknown-extra.xml' }, // not in wanted
         { path: knownPaths[0]! },
       ])
@@ -965,13 +1010,14 @@ describe('IOExecutor', () => {
         expect.stringContaining(knownPaths[0]!),
         expect.any(String)
       )
+      expect(resumeSpies.get('bundle/unknown-extra.xml')).toHaveBeenCalled()
     })
 
-    it('When archive yields already-processed entry, Then it is skipped (L178 kills false guard)', async () => {
+    it('When archive yields already-processed entry, Then it is skipped and its stream is drained (L178 kills false guard, kills L177 resume() call)', async () => {
       // Arrange — 26 files; first entry processed, then same path appears again
       const knownPaths = makeFilePaths(26)
       const firstPath = knownPaths[0]!
-      const { sut } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: firstPath },
         { path: firstPath }, // duplicate
       ])
@@ -985,11 +1031,14 @@ describe('IOExecutor', () => {
         },
       ])
 
-      // Assert — rename called only once despite duplicate entry
+      // Assert — rename called only once despite duplicate entry; the
+      // duplicate (second, skipped) occurrence's stream is the one left in
+      // resumeSpies since the map key is overwritten per entry.
       expect(mockRename).toHaveBeenCalledTimes(1)
+      expect(resumeSpies.get(firstPath)).toHaveBeenCalled()
     })
 
-    it('When archive yields ignored entry, Then it is skipped (L182 kills false guard)', async () => {
+    it('When archive yields ignored entry, Then it is skipped and its stream is drained (L182 kills false guard, kills L181 resume() call)', async () => {
       // Arrange
       const knownPaths = makeFilePaths(26)
       mockBuildIgnoreHelper.mockResolvedValue({
@@ -997,7 +1046,7 @@ describe('IOExecutor', () => {
           ignores: (p: string) => p.includes('f0.xml'),
         } as unknown as Ignore,
       } as unknown as IgnoreHelper)
-      const { sut } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: knownPaths[0]! }, // ignored
         { path: knownPaths[1]! }, // not ignored
       ])
@@ -1017,13 +1066,14 @@ describe('IOExecutor', () => {
         expect.stringContaining('f1.xml'),
         expect.any(String)
       )
+      expect(resumeSpies.get(knownPaths[0]!)).toHaveBeenCalled()
     })
 
-    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped (L191 kills false guard)', async () => {
+    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped and its stream is drained (L191 kills false guard, kills L186 resume() call)', async () => {
       // Arrange — output without trailing slash is 'output'
       // A path like '../escape/evil.xml' would resolve to outside output/
       const knownPaths = [...makeFilePaths(25), '../escape/evil.xml']
-      const { sut, work } = makeArchiveSut(knownPaths, [
+      const { sut, work, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: '../escape/evil.xml' },
         { path: knownPaths[0]! },
       ])
@@ -1045,6 +1095,7 @@ describe('IOExecutor', () => {
         expect.stringContaining('evil.xml'),
         expect.any(String)
       )
+      expect(resumeSpies.get('../escape/evil.xml')).toHaveBeenCalled()
     })
 
     it('When archive entry is valid, Then _writeAtomicallyViaTmp is called and rename occurs (L196 kills BlockStatement {})', async () => {

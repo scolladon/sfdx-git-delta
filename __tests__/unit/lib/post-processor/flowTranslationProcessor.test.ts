@@ -566,6 +566,60 @@ describe('FlowTranslationProcessor', () => {
     })
   })
 
+  describe('_buildFlowDefinitionsMap statefulness (kills L117 CallExpression removal of translations.clear())', () => {
+    it('Given the processor is reused across two transformAndCollect calls, When the second call runs, Then stale flow entries from the first call do not leak into the second', async () => {
+      // Arrange — PostProcessorManager normally constructs one collector per
+      // run, but nothing prevents transformAndCollect from being invoked
+      // more than once on the same instance. Without clearing `translations`
+      // up front, _addFlowPerTranslation's "list already exists" branch
+      // would append the second run's flow onto the first run's leftover
+      // array instead of starting fresh.
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
+      mockIgnores.mockReturnValue(false)
+      mockedIsSubDir.mockReturnValue(false)
+      mockedPathExists.mockResolvedValue(false as never)
+      mockedGrepContent.mockResolvedValue([
+        `${FR}.translation${METAFILE_SUFFIX}`,
+      ])
+      const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
+
+      const firstChanges = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        'first-flow'
+      )
+      mockedReadPathFromGit.mockResolvedValue(
+        translationXml([{ fullName: 'first-flow' }])
+      )
+      await sut.transformAndCollect(firstChanges)
+
+      const secondChanges = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        'second-flow'
+      )
+      mockedReadPathFromGit.mockResolvedValue(
+        translationXml([{ fullName: 'second-flow' }])
+      )
+
+      // Act
+      const result = await sut.transformAndCollect(secondChanges)
+
+      // Assert
+      expect(result.copies).toHaveLength(1)
+      const copy = result.copies[0]
+      if (copy.kind === CopyOperationKind.StreamedContent) {
+        const output = await drainWriter(copy.writer)
+        expect(output).toContain('second-flow')
+        expect(output).not.toContain('first-flow')
+      }
+    })
+  })
+
   describe('isCollector', () => {
     it('Given flowTranslationProcessor, When isCollector, Then returns true', () => {
       // Arrange

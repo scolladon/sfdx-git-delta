@@ -14,6 +14,7 @@ import {
 } from '../../src/types/handlerResult'
 import type { RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
+import { Logger } from '../../src/utils/LoggingService'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
 
 const {
@@ -785,6 +786,58 @@ describe('external library inclusion', () => {
 
       // Act & Assert
       await expect(sgd(sut)).resolves.not.toThrow()
+    })
+
+    it('Given source is nullish and generateDelta is true, When sgd runs, Then buildTreeIndex is not called (parseSourceDirs received an empty array, not a non-empty fallback)', async () => {
+      // Arrange — main L30's `configInput.source ?? []` fallback feeds
+      // parseSourceDirs. A non-empty fallback array would canonicalise to a
+      // non-empty config.source, which would make scopePaths.length > 0
+      // below and trigger buildTreeIndex — the only way this branch is
+      // observable from outside.
+      const sut = {
+        generateDelta: true,
+        include: 'include.txt',
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: undefined,
+      } as unknown as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('diagnostic logging (main L26, L28, L158, L160)', () => {
+    // Content is intentionally not asserted here (see the StringLiteral
+    // Stryker disables on these same call sites — log content is
+    // observability only). What is asserted is that the call sites
+    // themselves fire: a CallExpression mutant removing any one of the
+    // four Logger.trace/debug statements drops the relevant count.
+    it('Given sgd completes successfully, When it runs, Then it emits exactly one entry trace and one exit trace', async () => {
+      // Act
+      await sgd({ source: [] } as ConfigInput)
+
+      // Assert — main.ts is the only reachable call site that hands
+      // Logger.trace a plain string; every other trace call in this run
+      // (the @log decorator wrapping the unmocked RenameResolver.resolve)
+      // hands it a lazy closure instead, so filtering by argument shape —
+      // not content — isolates main.ts's own two trace sites.
+      const ownTraceCalls = vi
+        .mocked(Logger.trace)
+        .mock.calls.filter(([message]) => typeof message === 'string')
+      expect(ownTraceCalls).toHaveLength(2)
+    })
+
+    it('Given sgd completes successfully, When it runs, Then it emits exactly one debug log for the received arguments and one for the returned work', async () => {
+      // Act
+      await sgd({ source: [] } as ConfigInput)
+
+      // Assert — main.ts is the only reachable Logger.debug call site in
+      // this run (ConfigValidator/GitAdapter/IOExecutor are mocked out).
+      expect(Logger.debug).toHaveBeenCalledTimes(2)
     })
   })
 })

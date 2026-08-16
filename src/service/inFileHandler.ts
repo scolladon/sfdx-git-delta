@@ -108,7 +108,7 @@ export default class InFileHandler extends StandardHandler {
         this.config.from,
         this.config.to,
       ])
-      // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the wrapped warning message via wrapError, not on the lazy log line
+      // Stryker disable next-line StringLiteral,CallExpression -- equivalent: log content AND the call itself are observability only; tests assert on the wrapped warning message via wrapError, not on the emission
       Logger.warn(lazy`${message}`)
       return { elements: [], copies: [], warnings: [wrapError(message, error)] }
     }

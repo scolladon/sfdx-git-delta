@@ -390,4 +390,32 @@ describe('the type handler factory', () => {
       expect(sut).toBeInstanceOf(InResource)
     })
   })
+
+  describe('Given a metadata repository that cannot resolve a path (L99 defensive guard)', () => {
+    it('When getTypeHandler is called, Then it throws with the unresolved path', async () => {
+      // RepoGitDiff pre-filters diff lines via metadata.has() in production,
+      // so this guard is unreachable through the normal call chain — but it
+      // is a genuine safety net, not dead code, and must fail loudly rather
+      // than silently propagating `undefined` into element resolution.
+      const stubMetadata = {
+        has: (_path: string) => true,
+        get: (_path: string) => undefined,
+        getByXmlName: (_xmlName: string) => undefined,
+        getFullyQualifiedName: (path: string) => path,
+        values: () => [],
+      }
+      const config = getConfig()
+      config.apiVersion = 46
+      const factory = new TypeHandlerFactory(
+        getContext({ config, metadata: stubMetadata as never })
+      )
+
+      // Act & Assert
+      await expect(
+        factory.getTypeHandler('Z       force-app/unknown/path.txt')
+      ).rejects.toThrow(
+        'Unknown metadata type for path: force-app/unknown/path.txt'
+      )
+    })
+  })
 })

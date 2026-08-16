@@ -21,6 +21,7 @@ import {
   getLFSObjectContentPath,
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
+import { Logger } from '../../../../src/utils/LoggingService'
 import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 vi.mock('@scolladon/tsgit', () => ({
@@ -111,6 +112,17 @@ const collect = async <T>(source: AsyncIterable<T>): Promise<T[]> => {
   const out: T[] = []
   for await (const item of source) out.push(item)
   return out
+}
+
+// GitAdapter passes Logger.debug a `lazy` closure (see LoggingService.ts),
+// not a plain string — the mocked Logger.debug already invokes it once for
+// coverage (see src/utils/__mocks__/LoggingService.ts) but discards the
+// result. Calling the captured closure ourselves resolves the same content
+// so tests can assert on the actual log message rather than just the fact
+// that Logger.debug was called.
+const resolveLazyCall = (logFn: { mock: { calls: unknown[][] } }): string => {
+  const [message] = logFn.mock.calls[0] as [() => string]
+  return message()
 }
 
 // The verdict is owned by the caller (mirroring RepoGitDiff in production),
@@ -706,6 +718,20 @@ describe('GitAdapter', () => {
       expect(index).toBeUndefined()
     })
 
+    it('When indexing the revision fails, Then it logs the tree-walk failure with the revision and the underlying error message', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(new Error('boom'))
+
+      // Act
+      await sut.buildTreeIndex('BAD', [])
+
+      // Assert
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        "buildTreeIndex: tree walk for 'BAD' failed: boom"
+      )
+    })
+
     it('When two calls use different scopes for the same revision, Then each returns an independent index scoped to its own call', async () => {
       // Arrange — regression coverage for concurrent runs against the
       // repo-wide GitAdapter pool: same revision, different --source-dir
@@ -1219,6 +1245,42 @@ describe('GitAdapter', () => {
       expect(result).toEqual(Buffer.concat([firstChunk, secondChunk]))
     })
 
+    it('When a chunk write reports backpressure, Then the next chunk is withheld from the stream until it drains', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      const firstChunk = Buffer.alloc(100_000, 0x61)
+      const secondChunk = Buffer.from('tail')
+      fakeRepo.primitives.streamBlob.mockResolvedValue([
+        firstChunk,
+        secondChunk,
+      ])
+
+      // Act — the first (oversized) write reports backpressure; give the
+      // pipeline a tick to reach it before anything drains the stream.
+      const stream = sut.streamContent({
+        path: 'force-app/foo.cls',
+        oid: 'HEAD',
+      })
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert — the second chunk's write() call must stay withheld until
+      // the stream drains, not fire on top of the still-buffered first one
+      // (writableLength — not readableLength — reflects a pending write()
+      // that has not yet been transformed through to the readable side).
+      expect((stream as PassThrough).writableLength).toBe(firstChunk.length)
+
+      // Act — draining the stream lets the withheld chunk through
+      const result = await drain(stream)
+
+      // Assert
+      expect(result).toEqual(Buffer.concat([firstChunk, secondChunk]))
+    })
+
     it('When the blob starts with the LFS pointer magic, Then it pipes content from the resolved LFS object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
@@ -1271,6 +1333,42 @@ describe('GitAdapter', () => {
       ).rejects.toThrow('LFS pointer exceeds expected size')
     })
 
+    it('When the peeked head alone already exceeds LFS_POINTER_CAP, Then the stream is destroyed with a pointer-too-large error before pulling further chunks', async () => {
+      // Arrange — a single oversized chunk containing the magic prefix
+      // means peekHead's own head already breaches the cap, so the guard
+      // must fire before accumulatePointer's for-await loop ever runs (the
+      // sibling test above only exercises the cap check inside that loop).
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const oversizedHead = Buffer.concat([
+        LFS_MAGIC,
+        Buffer.alloc(LFS_POINTER_CAP, 0x61),
+      ])
+      fakeRepo.primitives.streamBlob.mockResolvedValue([oversizedHead])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act — the rejection expectation is attached in the same tick as the
+      // drain (no gap where the promise could reject unobserved); ending
+      // the (only conditionally reached) mocked LFS file stream afterwards
+      // just guards against a hang if the cap guard fails to fire.
+      const assertion = expect(
+        drain(sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' }))
+      ).rejects.toThrow('LFS pointer exceeds expected size')
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.end(Buffer.from('unused'))
+
+      // Assert
+      await assertion
+    })
+
     it('When the LFS pointer body is exactly LFS_POINTER_CAP bytes, Then it resolves without throwing', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
@@ -1297,6 +1395,41 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual(Buffer.from('lfs-content'))
+    })
+
+    it('When the LFS pointer spans multiple chunks, Then every chunk pulled after the peeked head is included in the accumulated pointer', async () => {
+      // Arrange — the magic prefix arrives as its own chunk so peekHead's
+      // head is exactly LFS_MAGIC, leaving the body to be pulled by
+      // accumulatePointer's own for-await loop (unlike the single-chunk
+      // 'pipes content' test above, where the whole pointer already sits in
+      // the peeked head and that loop never runs).
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const body = Buffer.from('oid sha256:abc\nsize 3\n')
+      fakeRepo.primitives.streamBlob.mockResolvedValue([LFS_MAGIC, body])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act
+      const resultPromise = drain(
+        sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' })
+      )
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.end(Buffer.from('lfs-content'))
+      await resultPromise
+
+      // Assert — a dropped chunk would leave the pointer short of `body`'s
+      // bytes (zero-padded by Buffer.concat's explicit length instead).
+      expect(getLFSObjectContentPathMocked).toHaveBeenCalledWith(
+        Buffer.concat([LFS_MAGIC, body])
+      )
     })
 
     it('When the resolved LFS object file errors while reading, Then the stream is destroyed with that error', async () => {
@@ -1480,6 +1613,20 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual([])
+    })
+
+    it('When the underlying read fails, Then it logs the grep failure with the pattern, path, revision and the underlying error message', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(new Error('grep boom'))
+
+      // Act
+      await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+
+      // Assert
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        "grepBlobs: grep for 'needle' in 'force-app' at 'HEAD' failed: grep boom"
+      )
     })
   })
 
@@ -1980,6 +2127,42 @@ describe('GitAdapter', () => {
         expect(result).toEqual(expected)
       }
     )
+  })
+
+  describe('Given streamDiffLines verdict bookkeeping', () => {
+    it('When two in-scope changes each yield one line, Then verdict.linesYielded counts up to 2 (not down)', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/A.cls',
+            newId: 'oid-a',
+            newMode: '100644',
+          },
+          {
+            type: 'add',
+            newPath: 'force-app/B.cls',
+            newId: 'oid-b',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
+
+      // Assert
+      expect(verdict.linesYielded).toBe(2)
+    })
   })
 
   describe('Given getUnmatchedSourceScopes', () => {

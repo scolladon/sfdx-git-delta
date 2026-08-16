@@ -125,6 +125,7 @@ export default class TypeHandlerFactory {
     // Stryker disable next-line ConditionalExpression -- equivalent: cache short-circuit; flipping to `false` means we always recompute, which is functionally identical because _computeHandler is deterministic in `type`
     if (cached !== undefined) return cached
     const resolved = this._computeHandler(type)
+    // Stryker disable next-line CallExpression -- equivalent: cache population; dropping the set() only means resolveHandler recomputes through the deterministic _computeHandler(type) on every call, which is the same situation the cache-check flip above is already documented as equivalent for
     this.handlerCache.set(type, resolved)
     return resolved
   }

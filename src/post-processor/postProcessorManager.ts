@@ -52,7 +52,7 @@ export default class PostProcessorManager {
         results.push(await collector.transformAndCollect(changes))
       } catch (error) {
         const message = `${collector.constructor.name}: ${getErrorMessage(error)}`
-        // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning and the failed result push, not on the lazy log line
+        // Stryker disable next-line StringLiteral,CallExpression -- equivalent: lazy log content AND the call itself are observability only; this file mocks LoggingService, and tests assert on the wrapped warning and the failed result push, not on the emission
         Logger.warn(lazy`${message}`)
         results.push({
           elements: [],
@@ -75,7 +75,7 @@ export default class PostProcessorManager {
       return outcome.warnings
     } catch (error) {
       const message = `${postProcessor.constructor.name}: ${getErrorMessage(error)}`
-      // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning returned to the caller, not on the lazy log line
+      // Stryker disable next-line StringLiteral,CallExpression -- equivalent: lazy log content AND the call itself are observability only; this file mocks LoggingService, and tests assert on the wrapped warning returned to the caller, not on the emission
       Logger.warn(lazy`${message}`)
       return [wrapError(message, error)]
     }

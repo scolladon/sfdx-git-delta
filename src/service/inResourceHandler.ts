@@ -52,6 +52,7 @@ export default class ResourceHandler extends StandardHandler {
       startsWithMetadataName = new RegExp(
         `${escapeRegex(cacheKey)}[${PATH_SEP}${DOT}]`
       )
+      // Stryker disable next-line CallExpression -- equivalent: cache population; dropping the set() only means the regex is rebuilt on every call from the deterministic construction directly above, so the resulting RegExp behaviour is identical — the same reasoning the cache-check flip above is already documented under
       resourceRegexCache.set(cacheKey, startsWithMetadataName)
     }
     const resourceFiles = allStaticResources.filter((file: string) =>
