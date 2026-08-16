@@ -7,7 +7,6 @@ import BaseProcessor, {
   emptyOutcome,
   type ProcessorOutcome,
 } from '../../../../src/post-processor/baseProcessor'
-import type { RunContext } from '../../../../src/types/runContext'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getConfig, getContext } from '../../../__utils__/testWork'

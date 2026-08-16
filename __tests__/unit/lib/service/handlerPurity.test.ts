@@ -17,6 +17,7 @@ import type { RunContext } from '../../../../src/types/runContext'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
+import { createMetadataRepositoryMock } from '../../../__utils__/testMetadataRepository'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
@@ -193,21 +194,19 @@ describe('handler purity', () => {
   })
 
   // Object.freeze is shallow, so freezing the context alone would leave
-  // config.source (an array) and the reader writable — and the fixture's
-  // default reader is a module singleton shared with every other suite in
-  // this worker, where a stray write would silently corrupt them instead of
-  // throwing. Freeze the whole reachable input surface, and hand over a
-  // reader of this test's own so nothing shared is frozen as a side effect.
-  // ctx.metadata is deliberately left unfrozen: it is a vi.fn-backed mock
-  // that records calls by mutating its own state, so freezing it would make
-  // an ordinary read throw. No handler reads it — only TypeHandlerFactory
-  // and MetadataBoundaryResolver do, and neither is under test here.
+  // config.source (an array), the metadata repository and the reader
+  // writable — and the fixture's default reader is a module singleton
+  // shared with every other suite in this worker, where a stray write would
+  // silently corrupt them instead of throwing. Freeze every field the
+  // handler can reach, and hand over a reader of this test's own so nothing
+  // shared is frozen as a side effect.
   const freezeInputs = (): RunContext => {
     const frozenConfig = getConfig()
     Object.freeze(frozenConfig.source)
     return Object.freeze(
       getContext({
         config: Object.freeze(frozenConfig),
+        metadata: Object.freeze(createMetadataRepositoryMock()),
         trees: Object.freeze(createTreeReader(new Map())),
       })
     )

@@ -18,7 +18,6 @@ import {
   type HandlerResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import type { RunContext } from '../../../../src/types/runContext'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getConfig, getContext } from '../../../__utils__/testWork'
