@@ -111,22 +111,22 @@ describe('sgd source delta NUTS', () => {
   })
 
   it('Given --merge-base flag, When running command, Then oclif accepts the flag', () => {
-    // Act — merge-base(HEAD~2, HEAD) === HEAD~2 on any first-parent-reachable
-    // ancestor, so this is a flag-acceptance smoke test only: it does not
-    // prove the resolved base is used, since a no-op rewrite of `from`
-    // would pass it identically. See the "merge-base resolution" integration
-    // test for the assertion that actually exercises divergent resolution.
-    const sut = run('sgd source delta --from HEAD~2 --merge-base --json', 0)
+    // Act — `HEAD` is the only ref that resolves at every clone depth, so it
+    // is what keeps this exit code deterministic on a shallow CI checkout;
+    // any ancestor ref (HEAD~1, HEAD~2) fails ref resolution there. That
+    // makes this a flag-acceptance smoke test only: merge-base(HEAD, HEAD)
+    // is HEAD, so it cannot prove the resolved base is used — a no-op
+    // rewrite of `from` would pass identically. See the "merge-base
+    // resolution" integration test for the divergent-resolution assertion.
+    const sut = run('sgd source delta --from HEAD --merge-base --json', 0)
 
     // Assert
     expect(sut).toContain('output-dir')
   })
 
   it('Given the -b short form of --merge-base, When running command, Then oclif accepts the flag', () => {
-    // Act — same flag-acceptance caveat as above: HEAD~2 is already an
-    // ancestor of HEAD, so this cannot distinguish the resolved base from
-    // the raw --from value.
-    const sut = run('sgd source delta --from HEAD~2 -b --json', 0)
+    // Act — same clone-depth and flag-acceptance caveats as above.
+    const sut = run('sgd source delta --from HEAD -b --json', 0)
 
     // Assert
     expect(sut).toContain('output-dir')
