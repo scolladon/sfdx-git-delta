@@ -12,7 +12,7 @@ import {
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -85,7 +85,11 @@ describe('InNestedFolderHandler', () => {
           objectType,
           globalMetadata
         )
-        const sut = new ReportingFolderHandler(changeType, element, config)
+        const sut = new ReportingFolderHandler(
+          changeType,
+          element,
+          getContext({ config })
+        )
 
         // Act
         const result = await sut.collectAddition()
@@ -119,7 +123,11 @@ describe('InNestedFolderHandler', () => {
             objectType,
             globalMetadata
           )
-          const sut = new ReportingFolderHandler(changeType, element, config)
+          const sut = new ReportingFolderHandler(
+            changeType,
+            element,
+            getContext({ config })
+          )
           mockedReadDirs.mockImplementation(() => Promise.resolve([]))
 
           // Act
@@ -155,7 +163,11 @@ describe('InNestedFolderHandler', () => {
             objectType,
             globalMetadata
           )
-          const sut = new ReportingFolderHandler(changeType, element, config)
+          const sut = new ReportingFolderHandler(
+            changeType,
+            element,
+            getContext({ config })
+          )
           mockedReadDirs.mockImplementationOnce(() =>
             Promise.resolve([entity, 'not/matching'])
           )
@@ -190,7 +202,11 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -211,13 +227,40 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
 
       // Assert
       expect(elementsOf(result)).toEqual([])
+    })
+
+    it('should throw when getElementDescriptor is called directly (kills L42 NoCoverage defensive guard)', async () => {
+      // Arrange — TypeHandlerFactory only ever routes to ReportingFolderHandler
+      // via a resolvable extension, so getElementDescriptor's guard is
+      // unreachable through the normal call chain; still a genuine safety
+      // net that must fail loudly rather than returning a bogus descriptor.
+      const nestedPath = `force-app/main/default/${objectType.directoryName}/subfolder/test.unknownext-meta.xml`
+      const { changeType, element } = createElement(
+        `A       ${nestedPath}`,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
+
+      // Act & Assert
+      expect(() => sut.getElementDescriptor()).toThrow(
+        `ReportingFolderHandler: resolvedType is missing for ${element.fullPath}`
+      )
     })
   })
 
@@ -231,7 +274,11 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -257,7 +304,11 @@ describe('InNestedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ReportingFolderHandler(changeType, element, config)
+      const sut = new ReportingFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectDeletion()

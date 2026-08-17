@@ -20,22 +20,20 @@ import { sourceDirs } from '../../../__utils__/sourceDirs'
 // scopes) it was called with, so tests can pin that RepoGitDiff threads
 // its own diffScopeVerdict and config.source into the adapter rather than
 // letting the adapter read either off shared state.
-const mockGetDiffLines = vi.fn<() => string[]>()
-const mockStreamDiffLinesCall =
-  vi.fn<
-    (
-      verdict: { changesSeen: number; linesYielded: number },
-      scopes: readonly string[]
-    ) => void
-  >()
-const streamDiffLines = async function* (
-  verdict: { changesSeen: number; linesYielded: number },
+type Verdict = { changesSeen: number; linesYielded: number }
+type DiffRequest = {
+  spec: unknown
+  verdict: Verdict
   scopes: readonly string[]
-) {
-  mockStreamDiffLinesCall(verdict, scopes)
+}
+
+const mockGetDiffLines = vi.fn<() => string[]>()
+const mockStreamDiffLinesCall = vi.fn<(request: DiffRequest) => void>()
+const streamDiffLines = async function* (request: DiffRequest) {
+  mockStreamDiffLinesCall(request)
   for (const line of mockGetDiffLines()) {
-    verdict.changesSeen++
-    verdict.linesYielded++
+    request.verdict.changesSeen++
+    request.verdict.linesYielded++
     yield line
   }
 }
@@ -81,6 +79,7 @@ describe('Given a RepoGitDiff', () => {
     config = {
       to: '',
       from: '',
+      mergeBase: false,
       output: '',
       source: sourceDirs('.'),
       ignore: '',
@@ -653,8 +652,36 @@ describe('Given a RepoGitDiff', () => {
     })
 
     it('Given a configured source, When getLines drains, Then GitAdapter.streamDiffLines is called with the instance verdict and config.source', async () => {
+      // Arrange — distinct, non-default values on every DiffSpec field so a
+      // hardcoded or from/to-swapped diffSpec() cannot satisfy this assertion.
+      config.source = sourceDirs('force-app')
+      config.from = 'sha-from'
+      config.to = 'sha-to'
+      config.changesManifest = 'm.json'
+      config.ignoreWhitespace = true
+      mockGetDiffLines.mockReturnValue([])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+
+      // Assert
+      expect(mockStreamDiffLinesCall).toHaveBeenCalledWith({
+        spec: {
+          from: 'sha-from',
+          to: 'sha-to',
+          detectRenames: true,
+          ignoreWhitespace: true,
+        },
+        verdict: { changesSeen: 0, linesYielded: 0 },
+        scopes: sourceDirs('force-app'),
+      })
+    })
+
+    it('Given no changes manifest is configured, When getLines drains, Then the DiffSpec disables rename detection', async () => {
       // Arrange
       config.source = sourceDirs('force-app')
+      config.changesManifest = ''
       mockGetDiffLines.mockReturnValue([])
       const sut = new RepoGitDiff(config, globalMetadata)
 
@@ -663,8 +690,9 @@ describe('Given a RepoGitDiff', () => {
 
       // Assert
       expect(mockStreamDiffLinesCall).toHaveBeenCalledWith(
-        { changesSeen: 0, linesYielded: 0 },
-        sourceDirs('force-app')
+        expect.objectContaining({
+          spec: expect.objectContaining({ detectRenames: false }),
+        })
       )
     })
 
@@ -687,7 +715,7 @@ describe('Given a RepoGitDiff', () => {
       // Assert — the verdict passed into GitAdapter for this second drain
       // must start from zero, not from the first drain's { 1, 1 }.
       const verdictOnSecondDrain =
-        mockStreamDiffLinesCall.mock.calls.at(-1)?.[0]
+        mockStreamDiffLinesCall.mock.calls.at(-1)?.[0].verdict
       expect(verdictOnSecondDrain).toEqual({ changesSeen: 0, linesYielded: 0 })
 
       // Assert — object identity, not just value equality. A fresh

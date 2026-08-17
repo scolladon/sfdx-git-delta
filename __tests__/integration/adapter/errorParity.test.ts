@@ -44,6 +44,7 @@ const initRepoWithCommit = (repoDir: string): void => {
 const makeConfig = (overrides: Partial<Config>): Config => ({
   to: 'HEAD',
   from: 'HEAD',
+  mergeBase: false,
   output: '',
   source: sourceDirs('.'),
   repo: '',

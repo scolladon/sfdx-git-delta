@@ -99,7 +99,7 @@
     },
     "includes": [
       "**",
-      "!**/lib/**/*",
+      "!lib/**/*",
       "!**/node_modules",
       "!**/.next",
       "!**/output",

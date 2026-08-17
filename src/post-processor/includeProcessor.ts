@@ -2,11 +2,10 @@
 import GitAdapter from '../adapter/GitAdapter.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION } from '../constant/gitConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
-import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { buildIncludeHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -20,8 +19,8 @@ type GitChange = typeof ADDITION | typeof DELETION
 
 export default class IncludeProcessor extends BaseProcessor {
   protected readonly gitAdapter: GitAdapter
-  constructor(config: Config, metadata: MetadataRepository) {
-    super(config, metadata)
+  constructor(ctx: RunContext) {
+    super(ctx)
     this.gitAdapter = GitAdapter.getInstance(this.config)
   }
 
@@ -56,7 +55,8 @@ export default class IncludeProcessor extends BaseProcessor {
     const includeHelper = await buildIncludeHelper(this.config)
     const includeLines = new Map<GitChange, string[]>()
     const gitChanges: GitChange[] = [ADDITION, DELETION]
-    const lines: string[] = await this.gitAdapter.getFilesPath(
+    const lines: string[] = this.ctx.trees.filesUnder(
+      this.config.to,
       this.config.source
     )
     for (const line of lines) {
@@ -83,7 +83,7 @@ export default class IncludeProcessor extends BaseProcessor {
     }
 
     const firstSHA = await this.gitAdapter.getFirstCommitRef()
-    const lineProcessor = new DiffLineInterpreter(this.config, this.metadata)
+    const lineProcessor = new DiffLineInterpreter(this.ctx)
     const results: HandlerResult[] = []
 
     if (includeLines.has(ADDITION)) {

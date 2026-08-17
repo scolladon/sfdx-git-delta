@@ -26,7 +26,7 @@ export default class ResourceHandler extends StandardHandler {
   public override async collectDeletion(): Promise<HandlerResult> {
     this.metadataName = this._getMetadataName()
     const componentPath = this.metadataName!
-    const exists = await pathExists(componentPath, this.config)
+    const exists = await pathExists(componentPath, this.ctx)
     if (exists) {
       return await this.collectModification()
     }
@@ -43,7 +43,7 @@ export default class ResourceHandler extends StandardHandler {
       0,
       this.metadataName!.lastIndexOf(PATH_SEP)
     )
-    const allStaticResources = await readDirs(staticResourcePath, this.config)
+    const allStaticResources = await readDirs(staticResourcePath, this.ctx)
 
     const cacheKey = this.metadataName!
     let startsWithMetadataName = resourceRegexCache.get(cacheKey)
@@ -52,6 +52,7 @@ export default class ResourceHandler extends StandardHandler {
       startsWithMetadataName = new RegExp(
         `${escapeRegex(cacheKey)}[${PATH_SEP}${DOT}]`
       )
+      // Stryker disable next-line CallExpression -- equivalent: cache population; dropping the set() only means the regex is rebuilt on every call from the deterministic construction directly above, so the resulting RegExp behaviour is identical — the same reasoning the cache-check flip above is already documented under
       resourceRegexCache.set(cacheKey, startsWithMetadataName)
     }
     const resourceFiles = allStaticResources.filter((file: string) =>

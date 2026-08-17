@@ -12,7 +12,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockCollect } = vi.hoisted(() => ({
   mockCollect: vi.fn<() => Promise<HandlerResult>>(),
@@ -67,7 +67,9 @@ describe('DiffLineInterpreter.process', () => {
           warnings: [],
         })
       })
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       // Act
       const result = await sut.process(['line1', 'line2'])
@@ -83,7 +85,9 @@ describe('DiffLineInterpreter.process', () => {
   describe('Given empty lines', () => {
     it('When process is called, Then returns empty result', async () => {
       // Arrange
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       // Act
       const result = await sut.process([])
@@ -100,7 +104,9 @@ describe('DiffLineInterpreter.process', () => {
     it('When process is called with revisions, Then uses override revisions', async () => {
       // Arrange
       mockCollect.mockResolvedValue(emptyResult())
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       // Act
       const result = await sut.process(['line1'], {
@@ -121,7 +127,9 @@ describe('DiffLineInterpreter.process', () => {
         ...emptyResult(),
         warnings: [new Error('test warning')],
       })
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       // Act
       const result = await sut.process(['line1'])

@@ -110,6 +110,28 @@ describe('sgd source delta NUTS', () => {
     expect(sut).toContain('No file found')
   })
 
+  it('Given --merge-base flag, When running command, Then oclif accepts the flag', () => {
+    // Act — `HEAD` is the only ref that resolves at every clone depth, so it
+    // is what keeps this exit code deterministic on a shallow CI checkout;
+    // any ancestor ref (HEAD~1, HEAD~2) fails ref resolution there. That
+    // makes this a flag-acceptance smoke test only: merge-base(HEAD, HEAD)
+    // is HEAD, so it cannot prove the resolved base is used — a no-op
+    // rewrite of `from` would pass identically. See the "merge-base
+    // resolution" integration test for the divergent-resolution assertion.
+    const sut = run('sgd source delta --from HEAD --merge-base --json', 0)
+
+    // Assert
+    expect(sut).toContain('output-dir')
+  })
+
+  it('Given the -b short form of --merge-base, When running command, Then oclif accepts the flag', () => {
+    // Act — same clone-depth and flag-acceptance caveats as above.
+    const sut = run('sgd source delta --from HEAD -b --json', 0)
+
+    // Assert
+    expect(sut).toContain('output-dir')
+  })
+
   it('Given --changes-manifest flag, When running command, Then oclif accepts the flag', () => {
     // Act — uses the same invalid-sha pattern as the --from test above so
     // exit code is deterministic across environments (shallow clones on CI

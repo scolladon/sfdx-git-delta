@@ -33,6 +33,7 @@ const mockedReadFile = vi.mocked(readFile)
 const getConfig = (): Config => ({
   to: '',
   from: '',
+  mergeBase: false,
   output: '',
   source: sourceDirs('.'),
   ignore: '',

@@ -3,7 +3,6 @@ import { basename } from 'node:path/posix'
 
 import { DOT } from '../constant/fsConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
-import type { Config } from '../types/config.js'
 import type {
   AddKind,
   CopyOperation,
@@ -15,6 +14,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
@@ -28,8 +28,8 @@ const getRootType = (line: string) => basename(line).split(DOT)[0]
 export default class InFileHandler extends StandardHandler {
   protected readonly metadataDiff: MetadataDiff
 
-  constructor(changeType: string, element: MetadataElement, config: Config) {
-    super(changeType, element, config)
+  constructor(changeType: string, element: MetadataElement, ctx: RunContext) {
+    super(changeType, element, ctx)
     const inFileMetadata = element.getInFileAttributes()
     this.metadataDiff = new MetadataDiff(this.config, inFileMetadata)
   }
@@ -108,7 +108,7 @@ export default class InFileHandler extends StandardHandler {
         this.config.from,
         this.config.to,
       ])
-      // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the wrapped warning message via wrapError, not on the lazy log line
+      // Stryker disable next-line StringLiteral,CallExpression -- equivalent: log content AND the call itself are observability only; tests assert on the wrapped warning message via wrapError, not on the emission
       Logger.warn(lazy`${message}`)
       return { elements: [], copies: [], warnings: [wrapError(message, error)] }
     }

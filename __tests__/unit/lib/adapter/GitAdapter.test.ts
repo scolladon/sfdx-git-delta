@@ -9,6 +9,7 @@ import { openRepository, toSimilarityPercent } from '@scolladon/tsgit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import GitAdapter, {
   type DiffScopeVerdict,
+  type DiffSpec,
 } from '../../../../src/adapter/GitAdapter'
 import {
   EscalateToStreamingSignal,
@@ -20,6 +21,7 @@ import {
   getLFSObjectContentPath,
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
+import { Logger } from '../../../../src/utils/LoggingService'
 import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 vi.mock('@scolladon/tsgit', () => ({
@@ -59,6 +61,7 @@ type FakeRepo = {
     flattenTree: ReturnType<typeof vi.fn>
     walkCommits: ReturnType<typeof vi.fn>
     streamBlob: ReturnType<typeof vi.fn>
+    mergeBase: ReturnType<typeof vi.fn>
   }
 }
 
@@ -72,12 +75,14 @@ const makeFakeRepo = (): FakeRepo => ({
     flattenTree: vi.fn(),
     walkCommits: vi.fn(),
     streamBlob: vi.fn(),
+    mergeBase: vi.fn(),
   },
 })
 
 const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD~1',
+  mergeBase: false,
   output: '/out',
   source: sourceDirs('force-app'),
   repo: '/repo',
@@ -109,6 +114,17 @@ const collect = async <T>(source: AsyncIterable<T>): Promise<T[]> => {
   return out
 }
 
+// GitAdapter passes Logger.debug a `lazy` closure (see LoggingService.ts),
+// not a plain string — the mocked Logger.debug already invokes it once for
+// coverage (see src/utils/__mocks__/LoggingService.ts) but discards the
+// result. Calling the captured closure ourselves resolves the same content
+// so tests can assert on the actual log message rather than just the fact
+// that Logger.debug was called.
+const resolveLazyCall = (logFn: { mock: { calls: unknown[][] } }): string => {
+  const [message] = logFn.mock.calls[0] as [() => string]
+  return message()
+}
+
 // The verdict is owned by the caller (mirroring RepoGitDiff in production),
 // not by the cached GitAdapter singleton — see the concurrency test at the
 // end of the 'Given getUnmatchedSourceScopes' block for why that matters.
@@ -117,10 +133,22 @@ const freshVerdict = (): DiffScopeVerdict => ({
   linesYielded: 0,
 })
 
+// The DiffSpec is owned by the caller (RepoGitDiff in production); tests
+// that don't care about its exact shape reuse this default and override
+// only the field under test.
+const DEFAULT_DIFF_SPEC: DiffSpec = {
+  from: 'HEAD~1',
+  to: 'HEAD',
+  detectRenames: false,
+  ignoreWhitespace: false,
+}
+
 const streamDiff = (
   sut: GitAdapter,
-  scopes: readonly string[] = sourceDirs('force-app')
-): Promise<string[]> => collect(sut.streamDiffLines(freshVerdict(), scopes))
+  scopes: readonly string[] = sourceDirs('force-app'),
+  spec: DiffSpec = DEFAULT_DIFF_SPEC
+): Promise<string[]> =>
+  collect(sut.streamDiffLines({ spec, verdict: freshVerdict(), scopes }))
 
 let fakeRepo: FakeRepo
 
@@ -138,7 +166,7 @@ afterEach(async () => {
 
 describe('GitAdapter', () => {
   describe('Given getInstance', () => {
-    it('When called twice with the same repo and to, Then it returns the same instance', () => {
+    it('When called twice with the same repo, Then it returns the same instance', () => {
       // Arrange
       const config = makeConfig()
 
@@ -150,16 +178,40 @@ describe('GitAdapter', () => {
       expect(first).toBe(second)
     })
 
-    it('When called with a different to, Then it returns a different instance', () => {
+    it('When called again after `to` was rewritten on the same config object, Then it still returns the same instance (regression: GitAdapter is bound to the repo, not the run)', () => {
       // Arrange
       const config = makeConfig()
+      const first = GitAdapter.getInstance(config)
+
+      // Act — mutating `to` used to move the pool key, minting a second
+      // instance for the same repository.
+      config.to = 'HEAD~1'
+      const second = GitAdapter.getInstance(config)
+
+      // Assert
+      expect(first).toBe(second)
+    })
+
+    it('When called with a different repo, Then it returns a different instance', () => {
+      // Arrange
+      const first = GitAdapter.getInstance(makeConfig({ repo: '/repo-a' }))
 
       // Act
-      const first = GitAdapter.getInstance(config)
-      const second = GitAdapter.getInstance(makeConfig({ to: 'HEAD~1' }))
+      const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-b' }))
 
       // Assert
       expect(first).not.toBe(second)
+    })
+
+    it('When two configs reference the same repo through an unnormalised and a normalised path, Then it returns the same instance', () => {
+      // Arrange
+      const first = GitAdapter.getInstance(makeConfig({ repo: './repo' }))
+
+      // Act
+      const second = GitAdapter.getInstance(makeConfig({ repo: 'repo' }))
+
+      // Assert
+      expect(first).toBe(second)
     })
   })
 
@@ -218,7 +270,7 @@ describe('GitAdapter', () => {
       fakeRepo.revParse.mockResolvedValue('abc')
       secondRepo.revParse.mockResolvedValue('def')
       const first = GitAdapter.getInstance(makeConfig())
-      const second = GitAdapter.getInstance(makeConfig({ to: 'HEAD~1' }))
+      const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-2' }))
       await first.parseRev('HEAD')
       await second.parseRev('HEAD~1')
 
@@ -229,19 +281,6 @@ describe('GitAdapter', () => {
       expect(fakeRepo.dispose).toHaveBeenCalledOnce()
       expect(secondRepo.dispose).toHaveBeenCalledOnce()
       expect(GitAdapter.getInstance(makeConfig())).not.toBe(first)
-    })
-  })
-
-  describe('Given configureRepository', () => {
-    it('When called, Then it resolves without opening the repository', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-
-      // Act
-      await sut.configureRepository()
-
-      // Assert
-      expect(mockOpenRepository).not.toHaveBeenCalled()
     })
   })
 
@@ -338,9 +377,277 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('Given preBuildTreeIndex', () => {
-    it('When called for a revision already indexed, Then it does not rebuild the index', async () => {
+  describe('Given getMergeBase', () => {
+    // Distinct from the shared asCommit() helper: getMergeBase reads
+    // fromCommit.id / toCommit.id off the peeled object, so the fake must
+    // carry an `id` matching the oid it was read from (real tsgit
+    // readObject results always do).
+    const asCommitAt = (oid: string) => ({
+      type: 'commit',
+      id: oid,
+      data: { tree: `tree-of-${oid}`, parents: [] },
+    })
+
+    beforeEach(() => {
+      // getMergeBase now resolves both revisions via repo.revParse before
+      // peeling (indexRevision's cast-free idiom) — identity pass-through
+      // keeps every existing test's oid-shaped literals meaningful.
+      fakeRepo.revParse.mockImplementation((ref: string) =>
+        Promise.resolve(ref)
+      )
+    })
+
+    it('When both refs resolve to commits, Then it calls primitives.mergeBase with both commit ids and returns the first result', async () => {
       // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      const result = await sut.getMergeBase('from-oid', 'to-oid')
+
+      // Assert
+      expect(result).toBe('base-oid')
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'from-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When primitives.mergeBase resolves several candidate bases (criss-cross history), Then it returns only the first, matching git merge-base without --all', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue([
+        'first-base-oid',
+        'second-base-oid',
+      ])
+
+      // Act
+      const result = await sut.getMergeBase('from-oid', 'to-oid')
+
+      // Assert
+      expect(result).toBe('first-base-oid')
+    })
+
+    it('When primitives.mergeBase resolves an empty array, Then it resolves to undefined without throwing', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue([])
+
+      // Act
+      const result = await sut.getMergeBase('from-oid', 'to-oid')
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('When primitives.mergeBase rejects with a raw tsgit error, Then it rejects with the mapped error using the "from...to" context', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockRejectedValue(
+        Object.assign(new Error('object not found'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getMergeBase('from-oid', 'to-oid')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'from-oid...to-oid: not a valid git revision'
+      )
+    })
+
+    it('When "from" is an annotated tag oid, Then it peels to the tagged commit before calling primitives.mergeBase', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('tag-oid', 'to-oid')
+
+      // Assert
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'commit-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When a ref is a two-deep tag chain, Then it peels through both tags to the terminal commit', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'nested-tag-oid' },
+          })
+        }
+        if (oid === 'nested-tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('tag-oid', 'to-oid')
+
+      // Assert
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'commit-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When both oids already resolve to commits, Then the peel loop does not iterate and the oids pass through unchanged', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('commit-a', 'commit-b')
+
+      // Assert
+      expect(fakeRepo.primitives.readObject).toHaveBeenCalledTimes(2)
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'commit-a',
+        'commit-b',
+      ])
+    })
+
+    it('When an oid peels to a non-commit object, Then it rejects mentioning the label, wrapped by mapTsgitError', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tree-oid') {
+          return Promise.resolve({ type: 'tree', data: {} })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+
+      // Act
+      const error = await sut
+        .getMergeBase('tree-oid', 'to-oid')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert — the full mapped message, not a substring: a mapTsgitError
+      // bypass (peelToCommit's raw Error escaping unwrapped) would still
+      // contain the label and pass a substring-only assertion.
+      expect((error as Error).message).toBe(
+        "git operation failed: 'tree-oid' does not resolve to a commit"
+      )
+    })
+
+    it('When "to" is an annotated tag oid, Then it peels to the tagged commit before calling primitives.mergeBase', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('from-oid', 'tag-oid')
+
+      // Assert
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'from-oid',
+        'commit-oid',
+      ])
+    })
+
+    it('When revParse resolves each ref to a different oid, Then it calls primitives.mergeBase with the resolved oids, not the raw refs', async () => {
+      // Arrange — overrides the describe-level identity pass-through:
+      // proves getMergeBase actually plumbs revParse's result through
+      // peelToCommit rather than treating the raw ref strings as
+      // already-resolved oids. Reverting to the old `as ObjectId` casts
+      // would call peelToCommit/mergeBase with 'from'/'to' verbatim and
+      // this assertion would fail.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-oid`)
+      )
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
+        Promise.resolve(asCommitAt(oid))
+      )
+      fakeRepo.primitives.mergeBase.mockResolvedValue(['base-oid'])
+
+      // Act
+      await sut.getMergeBase('from', 'to')
+
+      // Assert
+      expect(fakeRepo.revParse).toHaveBeenCalledWith('from')
+      expect(fakeRepo.revParse).toHaveBeenCalledWith('to')
+      expect(fakeRepo.primitives.mergeBase).toHaveBeenCalledWith([
+        'from-oid',
+        'to-oid',
+      ])
+    })
+
+    it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error using the "from...to" context', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(
+        Object.assign(new Error('object not found: bad-ref'), {
+          code: 'OBJECT_NOT_FOUND',
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getMergeBase('bad-ref', 'to-oid')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'bad-ref...to-oid: not a valid git revision'
+      )
+    })
+  })
+
+  describe('Given buildTreeIndex', () => {
+    it('When called twice for the same revision, Then it returns a distinct TreeIndex each time (no caching — the caller owns that)', async () => {
+      // Arrange — GitAdapter no longer caches a tree index: buildTreeIndex
+      // returns a fresh TreeIndex to its caller on every call (the
+      // per-revision blob walk underneath is still memoized via
+      // indexRevision/blobIdIndex — see 'Given getBufferContent' — but the
+      // TreeIndex built from it is not memoized; that is the caller's job).
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockResolvedValue('commit-oid')
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
@@ -349,11 +656,12 @@ describe('GitAdapter', () => {
       )
 
       // Act
-      await sut.preBuildTreeIndex('HEAD', [])
-      await sut.preBuildTreeIndex('HEAD', [])
+      const first = await sut.buildTreeIndex('HEAD', [])
+      const second = await sut.buildTreeIndex('HEAD', [])
 
       // Assert
-      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
+      expect(first).not.toBe(second)
+      expect(second!.getFilesPath('')).toEqual(['force-app/foo.cls'])
     })
 
     it('When scopePaths are provided, Then only in-scope paths are indexed (ROOT_PATHS stripped)', async () => {
@@ -368,27 +676,17 @@ describe('GitAdapter', () => {
         ])
       )
 
-      // Act
-      await sut.preBuildTreeIndex('HEAD', ['.', 'force-app'])
+      // Act — '.' is a ROOT_PATHS marker and must be dropped from the
+      // scope filter rather than matching everything.
+      const index = await sut.buildTreeIndex('HEAD', ['.', 'force-app'])
 
       // Assert
-      expect(await sut.getFilesPath('')).toEqual(['force-app/foo.cls'])
+      expect(index!.getFilesPath('')).toEqual(['force-app/foo.cls'])
     })
 
-    it('When indexing the revision fails, Then the failure is swallowed and the revision stays unindexed', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockRejectedValue(new Error('boom'))
-
-      // Act
-      await sut.preBuildTreeIndex('BAD', [])
-
-      // Assert
-      expect(await sut.getFilesPath('', 'BAD')).toEqual([])
-    })
-
-    it('When called a second time for an already-indexed revision with different scopePaths, Then the first index is preserved (no rebuild)', async () => {
-      // Arrange
+    it('When scopePaths are only ROOT_PATHS markers, Then the index is unfiltered (whole-repo)', async () => {
+      // Arrange — './', '.' and '' must all canonicalise to "no scope
+      // filter" rather than matching nothing.
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockResolvedValue('commit-oid')
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
@@ -399,13 +697,65 @@ describe('GitAdapter', () => {
         ])
       )
 
-      // Act — the first call scopes the index to 'force-app'; the second
-      // call (broader scope) must be a no-op since the revision is cached
-      await sut.preBuildTreeIndex('HEAD', ['force-app'])
-      await sut.preBuildTreeIndex('HEAD', [])
+      // Act
+      const index = await sut.buildTreeIndex('HEAD', ['./'])
 
       // Assert
-      expect(await sut.getFilesPath('')).toEqual(['force-app/foo.cls'])
+      expect(index!.getFilesPath('').sort()).toEqual(
+        ['force-app/foo.cls', 'other/bar.cls'].sort()
+      )
+    })
+
+    it('When indexing the revision fails, Then buildTreeIndex resolves to undefined', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(new Error('boom'))
+
+      // Act
+      const index = await sut.buildTreeIndex('BAD', [])
+
+      // Assert
+      expect(index).toBeUndefined()
+    })
+
+    it('When indexing the revision fails, Then it logs the tree-walk failure with the revision and the underlying error message', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(new Error('boom'))
+
+      // Act
+      await sut.buildTreeIndex('BAD', [])
+
+      // Assert
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        "buildTreeIndex: tree walk for 'BAD' failed: boom"
+      )
+    })
+
+    it('When two calls use different scopes for the same revision, Then each returns an independent index scoped to its own call', async () => {
+      // Arrange — regression coverage for concurrent runs against the
+      // repo-wide GitAdapter pool: same revision, different --source-dir
+      // scopes. There is no shared bucket to leak between them any more —
+      // each call gets a plain, caller-owned TreeIndex object.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([
+          ['force-app/foo.cls', { mode: '100644', id: 'blob-1' }],
+          ['other/bar.cls', { mode: '100644', id: 'blob-2' }],
+        ])
+      )
+
+      // Act
+      const narrow = await sut.buildTreeIndex('HEAD', ['force-app'])
+      const broad = await sut.buildTreeIndex('HEAD', [])
+
+      // Assert
+      expect(narrow!.getFilesPath('')).toEqual(['force-app/foo.cls'])
+      expect(broad!.getFilesPath('').sort()).toEqual(
+        ['force-app/foo.cls', 'other/bar.cls'].sort()
+      )
     })
   })
 
@@ -524,13 +874,11 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      await sut.preBuildTreeIndex('v1.0.0', [])
-
       // Act
-      const files = await sut.getFilesPath('', 'v1.0.0')
+      const index = await sut.buildTreeIndex('v1.0.0', [])
 
       // Assert
-      expect(files).toEqual(['force-app/foo.cls'])
+      expect(index!.getFilesPath('')).toEqual(['force-app/foo.cls'])
       expect(fakeRepo.primitives.readObject).toHaveBeenCalledWith('commit-oid')
       expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledWith('tree-oid')
     })
@@ -582,10 +930,10 @@ describe('GitAdapter', () => {
           ['submodule', { mode: '160000', id: 'gitlink-1' }],
         ])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
-      const files = await sut.getFilesPath('')
+      const index = await sut.buildTreeIndex('HEAD', [])
+      const files = index!.getFilesPath('')
 
       // Assert
       expect(files.sort()).toEqual(
@@ -601,10 +949,10 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app\\foo.cls', { mode: '100644', id: 'blob-1' }]])
       )
-      await sut.preBuildTreeIndex('HEAD', [])
 
       // Act
-      const files = await sut.getFilesPath('')
+      const index = await sut.buildTreeIndex('HEAD', [])
+      const files = index!.getFilesPath('')
 
       // Assert
       expect(files).toEqual(['force-app/foo.cls'])
@@ -897,6 +1245,42 @@ describe('GitAdapter', () => {
       expect(result).toEqual(Buffer.concat([firstChunk, secondChunk]))
     })
 
+    it('When a chunk write reports backpressure, Then the next chunk is withheld from the stream until it drains', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      const firstChunk = Buffer.alloc(100_000, 0x61)
+      const secondChunk = Buffer.from('tail')
+      fakeRepo.primitives.streamBlob.mockResolvedValue([
+        firstChunk,
+        secondChunk,
+      ])
+
+      // Act — the first (oversized) write reports backpressure; give the
+      // pipeline a tick to reach it before anything drains the stream.
+      const stream = sut.streamContent({
+        path: 'force-app/foo.cls',
+        oid: 'HEAD',
+      })
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert — the second chunk's write() call must stay withheld until
+      // the stream drains, not fire on top of the still-buffered first one
+      // (writableLength — not readableLength — reflects a pending write()
+      // that has not yet been transformed through to the readable side).
+      expect((stream as PassThrough).writableLength).toBe(firstChunk.length)
+
+      // Act — draining the stream lets the withheld chunk through
+      const result = await drain(stream)
+
+      // Assert
+      expect(result).toEqual(Buffer.concat([firstChunk, secondChunk]))
+    })
+
     it('When the blob starts with the LFS pointer magic, Then it pipes content from the resolved LFS object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
@@ -949,6 +1333,42 @@ describe('GitAdapter', () => {
       ).rejects.toThrow('LFS pointer exceeds expected size')
     })
 
+    it('When the peeked head alone already exceeds LFS_POINTER_CAP, Then the stream is destroyed with a pointer-too-large error before pulling further chunks', async () => {
+      // Arrange — a single oversized chunk containing the magic prefix
+      // means peekHead's own head already breaches the cap, so the guard
+      // must fire before accumulatePointer's for-await loop ever runs (the
+      // sibling test above only exercises the cap check inside that loop).
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const oversizedHead = Buffer.concat([
+        LFS_MAGIC,
+        Buffer.alloc(LFS_POINTER_CAP, 0x61),
+      ])
+      fakeRepo.primitives.streamBlob.mockResolvedValue([oversizedHead])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act — the rejection expectation is attached in the same tick as the
+      // drain (no gap where the promise could reject unobserved); ending
+      // the (only conditionally reached) mocked LFS file stream afterwards
+      // just guards against a hang if the cap guard fails to fire.
+      const assertion = expect(
+        drain(sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' }))
+      ).rejects.toThrow('LFS pointer exceeds expected size')
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.end(Buffer.from('unused'))
+
+      // Assert
+      await assertion
+    })
+
     it('When the LFS pointer body is exactly LFS_POINTER_CAP bytes, Then it resolves without throwing', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
@@ -975,6 +1395,41 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toEqual(Buffer.from('lfs-content'))
+    })
+
+    it('When the LFS pointer spans multiple chunks, Then every chunk pulled after the peeked head is included in the accumulated pointer', async () => {
+      // Arrange — the magic prefix arrives as its own chunk so peekHead's
+      // head is exactly LFS_MAGIC, leaving the body to be pulled by
+      // accumulatePointer's own for-await loop (unlike the single-chunk
+      // 'pipes content' test above, where the whole pointer already sits in
+      // the peeked head and that loop never runs).
+      const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
+      )
+      const body = Buffer.from('oid sha256:abc\nsize 3\n')
+      fakeRepo.primitives.streamBlob.mockResolvedValue([LFS_MAGIC, body])
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/abc'
+      )
+      const lfsStream = new PassThrough()
+      createReadStreamMocked.mockReturnValue(lfsStream as never)
+
+      // Act
+      const resultPromise = drain(
+        sut.streamContent({ path: 'force-app/asset.bin', oid: 'HEAD' })
+      )
+      await new Promise(resolve => setImmediate(resolve))
+      lfsStream.end(Buffer.from('lfs-content'))
+      await resultPromise
+
+      // Assert — a dropped chunk would leave the pointer short of `body`'s
+      // bytes (zero-padded by Buffer.concat's explicit length instead).
+      expect(getLFSObjectContentPathMocked).toHaveBeenCalledWith(
+        Buffer.concat([LFS_MAGIC, body])
+      )
     })
 
     it('When the resolved LFS object file errors while reading, Then the stream is destroyed with that error', async () => {
@@ -1159,6 +1614,20 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual([])
     })
+
+    it('When the underlying read fails, Then it logs the grep failure with the pattern, path, revision and the underlying error message', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockRejectedValue(new Error('grep boom'))
+
+      // Act
+      await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+
+      // Assert
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        "grepBlobs: grep for 'needle' in 'force-app' at 'HEAD' failed: grep boom"
+      )
+    })
   })
 
   describe('Given grepMatchingPathspecs (buildPathspecMatcher)', () => {
@@ -1197,7 +1666,11 @@ describe('GitAdapter', () => {
         const sut = GitAdapter.getInstance(makeConfig())
 
         // Act
-        const result = await sut.grepMatchingPathspecs('match-me', pathspec)
+        const result = await sut.grepMatchingPathspecs(
+          'match-me',
+          pathspec,
+          'HEAD'
+        )
 
         // Assert
         expect(result.sort()).toEqual([...expected].sort())
@@ -1209,10 +1682,11 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
 
       // Act
-      const result = await sut.grepMatchingPathspecs('match-me', [
-        'other',
-        'force-app/*.cls',
-      ])
+      const result = await sut.grepMatchingPathspecs(
+        'match-me',
+        ['other', 'force-app/*.cls'],
+        'HEAD'
+      )
 
       // Assert
       expect(result.sort()).toEqual(
@@ -1237,7 +1711,8 @@ describe('GitAdapter', () => {
       // Act
       const result = await sut.grepMatchingPathspecs(
         'needle',
-        './././force-app'
+        './././force-app',
+        'HEAD'
       )
 
       // Assert
@@ -1259,7 +1734,11 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.grepMatchingPathspecs('needle', '///force-app')
+      const result = await sut.grepMatchingPathspecs(
+        'needle',
+        '///force-app',
+        'HEAD'
+      )
 
       // Assert
       expect(result).toEqual(['force-app/foo.cls'])
@@ -1283,7 +1762,7 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      const result = await sut.grepMatchingPathspecs('needle', 'x./y')
+      const result = await sut.grepMatchingPathspecs('needle', 'x./y', 'HEAD')
 
       // Assert — the embedded './' is left untouched (only a LEADING './'
       // is normalized), so the literal pathspec stays 'x./y'
@@ -1354,7 +1833,7 @@ describe('GitAdapter', () => {
         const sut = GitAdapter.getInstance(makeConfig())
 
         // Act
-        const result = await sut.grepUnderPaths('match-me', path)
+        const result = await sut.grepUnderPaths('match-me', path, 'HEAD')
 
         // Assert
         expect(result.sort()).toEqual([...expected].sort())
@@ -1362,234 +1841,12 @@ describe('GitAdapter', () => {
     )
   })
 
-  describe('Given getFilesPath', () => {
-    const setUpIndex = async (sut: GitAdapter) => {
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(
-        flatten([
-          ['force-app/classes/Foo.cls', { mode: '100644', id: 'blob-1' }],
-          ['force-app/classes/Bar.cls', { mode: '100644', id: 'blob-2' }],
-          ['force-app/objects/Baz.object', { mode: '100644', id: 'blob-3' }],
-        ])
-      )
-      await sut.preBuildTreeIndex('HEAD', [])
-    }
-
-    it('When the revision was never indexed, Then it returns an empty array', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-
-      // Act
-      const result = await sut.getFilesPath('force-app', 'HEAD')
-
-      // Assert
-      expect(result).toEqual([])
-    })
-
-    it('When called with the root path, Then it returns every indexed path', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      await setUpIndex(sut)
-
-      // Act
-      const result = await sut.getFilesPath('')
-
-      // Assert
-      expect(result.sort()).toEqual(
-        [
-          'force-app/classes/Foo.cls',
-          'force-app/classes/Bar.cls',
-          'force-app/objects/Baz.object',
-        ].sort()
-      )
-    })
-
-    it('When called with the "." root path variant, Then it returns every indexed path', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      await setUpIndex(sut)
-
-      // Act
-      const result = await sut.getFilesPath('.')
-
-      // Assert
-      expect(result.sort()).toEqual(
-        [
-          'force-app/classes/Foo.cls',
-          'force-app/classes/Bar.cls',
-          'force-app/objects/Baz.object',
-        ].sort()
-      )
-    })
-
-    it('When called with an exact file path, Then it returns only that file', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      await setUpIndex(sut)
-
-      // Act
-      const result = await sut.getFilesPath('force-app/classes/Foo.cls')
-
-      // Assert
-      expect(result).toEqual(['force-app/classes/Foo.cls'])
-    })
-
-    it('When called with a directory path, Then it returns the files under it', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      await setUpIndex(sut)
-
-      // Act
-      const result = await sut.getFilesPath('force-app/classes')
-
-      // Assert
-      expect(result.sort()).toEqual(
-        ['force-app/classes/Foo.cls', 'force-app/classes/Bar.cls'].sort()
-      )
-    })
-
-    it('When called with an array of paths, Then it aggregates the results', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      await setUpIndex(sut)
-
-      // Act
-      const result = await sut.getFilesPath([
-        'force-app/classes/Foo.cls',
-        'force-app/objects/Baz.object',
-      ])
-
-      // Assert
-      expect(result.sort()).toEqual(
-        ['force-app/classes/Foo.cls', 'force-app/objects/Baz.object'].sort()
-      )
-    })
-
-    it('When called with a path absent from the indexed tree, Then it returns an empty array', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      await setUpIndex(sut)
-
-      // Act
-      const result = await sut.getFilesPath('force-app/missing-dir')
-
-      // Assert
-      expect(result).toEqual([])
-    })
-  })
-
-  describe('Given pathExists', () => {
-    it('When the revision was never indexed, Then it returns false', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-
-      // Act
-      const result = await sut.pathExists('force-app', 'HEAD')
-
-      // Assert
-      expect(result).toBe(false)
-    })
-
-    it('When called with the root path against a non-empty index, Then it returns true', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(
-        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
-      )
-      await sut.preBuildTreeIndex('HEAD', [])
-
-      // Act — no explicit revision: exercises the config.to default parameter
-      const result = await sut.pathExists('')
-
-      // Assert
-      expect(result).toBe(true)
-    })
-
-    it('When called with the root path against an empty index, Then it returns false', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(flatten([]))
-      await sut.preBuildTreeIndex('HEAD', [])
-
-      // Act
-      const result = await sut.pathExists('')
-
-      // Assert
-      expect(result).toBe(false)
-    })
-
-    it('When called with a specific path, Then it delegates to the tree index hasPath check', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(
-        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
-      )
-      await sut.preBuildTreeIndex('HEAD', [])
-
-      // Act & Assert
-      expect(await sut.pathExists('force-app', 'HEAD')).toBe(true)
-      expect(await sut.pathExists('force-app/missing.cls', 'HEAD')).toBe(false)
-    })
-  })
-
-  describe('Given listDirAtRevision', () => {
-    it('When the revision was never indexed, Then it returns an empty array', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-
-      // Act
-      const result = await sut.listDirAtRevision('force-app', 'HEAD')
-
-      // Assert
-      expect(result).toEqual([])
-    })
-
-    it('When the revision is indexed, Then it lists the direct children of the directory', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(
-        flatten([
-          ['force-app/classes/Foo.cls', { mode: '100644', id: 'blob-1' }],
-          ['force-app/objects/Baz.object', { mode: '100644', id: 'blob-2' }],
-        ])
-      )
-      await sut.preBuildTreeIndex('HEAD', [])
-
-      // Act
-      const result = await sut.listDirAtRevision('force-app', 'HEAD')
-
-      // Assert
-      expect(result.sort()).toEqual(['classes', 'objects'].sort())
-    })
-
-    it('When the directory is absent from an indexed revision, Then it returns an empty array', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(
-        flatten([
-          ['force-app/classes/Foo.cls', { mode: '100644', id: 'blob-1' }],
-        ])
-      )
-      await sut.preBuildTreeIndex('HEAD', [])
-
-      // Act
-      const result = await sut.listDirAtRevision('does-not-exist', 'HEAD')
-
-      // Assert
-      expect(result).toEqual([])
-    })
-  })
+  // getFilesPath/pathExists/listDirAtRevision-shaped lookups now live on
+  // TreeIndex itself (getFilesPath, pathExists, listChildren) — see
+  // treeIndex.test.ts. GitAdapter's own contract here ends at
+  // buildTreeIndex (see 'Given buildTreeIndex' above): it returns a
+  // TreeIndex, or undefined on failure, and no longer answers path
+  // questions on the caller's behalf.
 
   describe('Given streamDiffLines repo.diff invocation', () => {
     it('When changesManifest is not configured, Then rename detection is requested as false', async () => {
@@ -1610,13 +1867,14 @@ describe('GitAdapter', () => {
 
     it('When changesManifest is configured, Then rename detection is requested as true', async () => {
       // Arrange
-      const sut = GitAdapter.getInstance(
-        makeConfig({ changesManifest: 'manifest.json' })
-      )
+      const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await streamDiff(sut)
+      await streamDiff(sut, sourceDirs('force-app'), {
+        ...DEFAULT_DIFF_SPEC,
+        detectRenames: true,
+      })
 
       // Assert
       expect(fakeRepo.diff).toHaveBeenCalledWith(
@@ -1626,11 +1884,14 @@ describe('GitAdapter', () => {
 
     it('When ignoreWhitespace is enabled, Then the whitespace options are passed to repo.diff', async () => {
       // Arrange
-      const sut = GitAdapter.getInstance(makeConfig({ ignoreWhitespace: true }))
+      const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await streamDiff(sut)
+      await streamDiff(sut, sourceDirs('force-app'), {
+        ...DEFAULT_DIFF_SPEC,
+        ignoreWhitespace: true,
+      })
 
       // Assert
       expect(fakeRepo.diff).toHaveBeenCalledWith(
@@ -1643,9 +1904,7 @@ describe('GitAdapter', () => {
 
     it('When ignoreWhitespace is disabled, Then no whitespace options are passed to repo.diff', async () => {
       // Arrange
-      const sut = GitAdapter.getInstance(
-        makeConfig({ ignoreWhitespace: false })
-      )
+      const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
@@ -1870,6 +2129,42 @@ describe('GitAdapter', () => {
     )
   })
 
+  describe('Given streamDiffLines verdict bookkeeping', () => {
+    it('When two in-scope changes each yield one line, Then verdict.linesYielded counts up to 2 (not down)', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      const verdict = freshVerdict()
+      fakeRepo.diff.mockResolvedValue({
+        changes: [
+          {
+            type: 'add',
+            newPath: 'force-app/A.cls',
+            newId: 'oid-a',
+            newMode: '100644',
+          },
+          {
+            type: 'add',
+            newPath: 'force-app/B.cls',
+            newId: 'oid-b',
+            newMode: '100644',
+          },
+        ],
+      })
+
+      // Act
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
+
+      // Assert
+      expect(verdict.linesYielded).toBe(2)
+    })
+  })
+
   describe('Given getUnmatchedSourceScopes', () => {
     it('Given a freshly created verdict, When getUnmatchedSourceScopes is called before any drain, Then it returns an empty array', () => {
       // Arrange
@@ -1901,7 +2196,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -1927,7 +2228,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -1944,7 +2251,13 @@ describe('GitAdapter', () => {
       fakeRepo.diff.mockResolvedValue({ changes: [] })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -1970,7 +2283,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('.')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('.'),
+        })
+      )
 
       // Assert
       expect(sut.getUnmatchedSourceScopes(verdict, sourceDirs('.'))).toEqual([])
@@ -2000,7 +2319,13 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sut.streamDiffLines(verdict, sourceDirs('.', 'force-app')))
+      await collect(
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('.', 'force-app'),
+        })
+      )
 
       // Assert
       expect(
@@ -2027,7 +2352,11 @@ describe('GitAdapter', () => {
 
       // Act
       await collect(
-        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app', 'other'),
+        })
       )
 
       // Assert
@@ -2055,7 +2384,11 @@ describe('GitAdapter', () => {
 
       // Act
       await collect(
-        sut.streamDiffLines(verdict, sourceDirs('force-app', 'other'))
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict,
+          scopes: sourceDirs('force-app', 'other'),
+        })
       )
 
       // Assert
@@ -2066,7 +2399,7 @@ describe('GitAdapter', () => {
 
     it('Given two independent verdicts against the same cached instance, When only one is drained, Then the other verdict is untouched', async () => {
       // Arrange — two GitAdapter.getInstance() callers with the same repo
-      // and 'to' share one cached instance; each must own its own verdict.
+      // share one cached instance; each must own its own verdict.
       const sut = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
@@ -2085,7 +2418,11 @@ describe('GitAdapter', () => {
 
       // Act
       await collect(
-        sut.streamDiffLines(drainedVerdict, sourceDirs('force-app'))
+        sut.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict: drainedVerdict,
+          scopes: sourceDirs('force-app'),
+        })
       )
 
       // Assert
@@ -2093,13 +2430,12 @@ describe('GitAdapter', () => {
       expect(untouchedVerdict).toEqual({ changesSeen: 0, linesYielded: 0 })
     })
 
-    it('Given two callers configure different source scopes but share a cached instance (same repo + to), When each drains its own verdict against its own scopes, Then getUnmatchedSourceScopes evaluates each caller against the scopes it passed in rather than the config that first created the instance', async () => {
+    it('Given two callers configure different source scopes but share a cached instance (same repo), When each drains its own verdict against its own scopes, Then getUnmatchedSourceScopes evaluates each caller against the scopes it passed in rather than the config that first created the instance', async () => {
       // Arrange — caller A creates the cached instance with source
-      // ['force-app']; caller B resolves to the SAME cache key (repo + to
-      // only — neither source nor from is part of the key) but configures
-      // a different scope. Before the fix, GitAdapter read this.config.source
-      // internally, so caller B's evaluation would silently use caller A's
-      // scope instead of its own.
+      // ['force-app']; caller B resolves to the SAME cache key (repo only —
+      // GitAdapter carries no other config) but configures a different
+      // scope. GitAdapter never reads scope off shared state, so caller B's
+      // evaluation must use its own scope instead of caller A's.
       const sutA = GitAdapter.getInstance(
         makeConfig({ source: sourceDirs('force-app') })
       )
@@ -2122,8 +2458,20 @@ describe('GitAdapter', () => {
       })
 
       // Act
-      await collect(sutA.streamDiffLines(verdictA, sourceDirs('force-app')))
-      await collect(sutB.streamDiffLines(verdictB, sourceDirs('other')))
+      await collect(
+        sutA.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict: verdictA,
+          scopes: sourceDirs('force-app'),
+        })
+      )
+      await collect(
+        sutB.streamDiffLines({
+          spec: DEFAULT_DIFF_SPEC,
+          verdict: verdictB,
+          scopes: sourceDirs('other'),
+        })
+      )
 
       // Assert — caller A's scope matched the only change; caller B's
       // scope ('other') never matches 'force-app/A.cls', so it must be

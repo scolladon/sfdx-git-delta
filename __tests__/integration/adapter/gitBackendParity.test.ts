@@ -43,6 +43,7 @@ const tempDirs: string[] = []
 const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   to: 'HEAD',
   from: 'HEAD',
+  mergeBase: false,
   output: '',
   source: sourceDirs('.'),
   repo: fixtureDir,
@@ -61,15 +62,23 @@ const drainLines = async (
   return lines.sort()
 }
 
-// streamDiffLines takes no default verdict or scope list — both are owned
-// by the caller (RepoGitDiff in production). Tests mirror that: each drain
-// gets its own fresh verdict and the scopes matching the config the sut
-// was built with.
-const streamDiff = (
-  sut: GitAdapter,
-  scopes: readonly string[]
-): Promise<string[]> =>
-  drainLines(sut.streamDiffLines({ changesSeen: 0, linesYielded: 0 }, scopes))
+// streamDiffLines takes a single DiffRequest — spec, verdict and scopes are
+// all owned by the caller (RepoGitDiff in production). Tests mirror that:
+// each drain gets its own fresh verdict and a spec/scopes built from the
+// config the sut was constructed with.
+const streamDiff = (sut: GitAdapter, config: Config): Promise<string[]> =>
+  drainLines(
+    sut.streamDiffLines({
+      spec: {
+        from: config.from,
+        to: config.to,
+        detectRenames: Boolean(config.changesManifest),
+        ignoreWhitespace: config.ignoreWhitespace,
+      },
+      verdict: { changesSeen: 0, linesYielded: 0 },
+      scopes: config.source,
+    })
+  )
 
 const readAll = async (stream: Readable): Promise<Buffer> => {
   const chunks: Buffer[] = []
@@ -131,9 +140,9 @@ beforeAll(async () => {
 })
 
 afterEach(async () => {
-  // Instances are cached per (repo, to): closing after every test forces
-  // the next getInstance() to rebuild from the config that test actually
-  // passed in, instead of silently reusing a sibling test's cached config.
+  // Instances are cached per repo: closing after every test forces the
+  // next getInstance() to rebuild from the repo that test actually passed
+  // in, instead of silently reusing a sibling test's cached instance.
   await GitAdapter.closeAll()
 })
 
@@ -180,10 +189,10 @@ describe('Given a self-contained git fixture repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex('HEAD', [])
+      const index = await sut.buildTreeIndex('HEAD', [])
 
       // Act
-      const actual = (await sut.getFilesPath('')).sort()
+      const actual = index!.getFilesPath('').sort()
 
       // Assert
       const expected = runGitLines(['ls-tree', '--name-only', '-r', 'HEAD'], {
@@ -193,16 +202,16 @@ describe('Given a self-contained git fixture repository', () => {
       expect(actual).toEqual(expected)
     })
 
-    it('Then listDirAtRevision and pathExists match git ls-tree children of a dir', async () => {
+    it('Then listChildren and pathExists match git ls-tree children of a dir', async () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex('HEAD', [])
+      const index = await sut.buildTreeIndex('HEAD', [])
 
       // Act
-      const actualChildren = (await sut.listDirAtRevision('src', 'HEAD')).sort()
-      const actualExists = await sut.pathExists('src')
-      const actualMissing = await sut.pathExists('src/does-not-exist')
+      const actualChildren = index!.listChildren('src').sort()
+      const actualExists = index!.pathExists('src')
+      const actualMissing = index!.pathExists('src/does-not-exist')
 
       // Assert
       const expectedChildren = runGit(
@@ -229,7 +238,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await streamDiff(sut, config.source)
+      const actual = await streamDiff(sut, config)
 
       // Assert
       const expected = runGitLines(
@@ -261,7 +270,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await streamDiff(sut, config.source)
+      const actual = await streamDiff(sut, config)
 
       // Assert: the whitespace-only edit to src/index.txt must drop out —
       // proof the option changes behaviour rather than the two commands
@@ -296,7 +305,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await streamDiff(sut, config.source)
+      const actual = await streamDiff(sut, config)
 
       // Assert
       const expected = runGitLines(
@@ -357,7 +366,7 @@ describe('Given a self-contained git fixture repository', () => {
         const sut = GitAdapter.getInstance(config)
 
         // Act
-        const actual = await streamDiff(sut, config.source)
+        const actual = await streamDiff(sut, config)
 
         // Assert
         const expected = runGitLines(
@@ -384,8 +393,8 @@ describe('Given a self-contained git fixture repository', () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
-      await sut.preBuildTreeIndex('HEAD', [])
-      const paths = (await sut.getFilesPath('')).sort()
+      const index = await sut.buildTreeIndex('HEAD', [])
+      const paths = index!.getFilesPath('').sort()
 
       // Act
       const actual = await Promise.all(
@@ -486,9 +495,9 @@ describe('Given a self-contained git fixture repository', () => {
 
       // Act
       const actualRev = await sut.parseRev('HEAD')
-      await sut.preBuildTreeIndex('HEAD', [])
-      const actualFiles = (await sut.getFilesPath('', 'HEAD')).sort()
-      const actualDiff = await streamDiff(sut, config.source)
+      const index = await sut.buildTreeIndex('HEAD', [])
+      const actualFiles = index!.getFilesPath('').sort()
+      const actualDiff = await streamDiff(sut, config)
 
       // Assert
       expect(actualRev).toBe(
@@ -530,8 +539,8 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      await sut.preBuildTreeIndex('parity-tag', [])
-      const actualFiles = (await sut.getFilesPath('')).sort()
+      const index = await sut.buildTreeIndex('parity-tag', [])
+      const actualFiles = index!.getFilesPath('').sort()
       const actualContent = await sut.getBufferContent({
         path: 'README.md',
         oid: 'parity-tag',

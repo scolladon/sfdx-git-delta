@@ -10,7 +10,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -45,7 +45,11 @@ describe('CustomObjectChildHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectChildHandler(changeType, element, config)
+      const sut = new CustomObjectChildHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -73,7 +77,11 @@ describe('CustomObjectChildHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new CustomObjectChildHandler(changeType, element, config)
+      const sut = new CustomObjectChildHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()

@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createTreeReader } from '../../../../src/adapter/treeReader'
 import { ADDITION } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
@@ -12,10 +13,12 @@ import InResourceHandler from '../../../../src/service/inResourceHandler'
 import SharedFolderHandler from '../../../../src/service/sharedFolderHandler'
 import StandardHandler from '../../../../src/service/standardHandler'
 import type { Config } from '../../../../src/types/config'
+import type { RunContext } from '../../../../src/types/runContext'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { createMetadataRepositoryMock } from '../../../__utils__/testMetadataRepository'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -83,79 +86,82 @@ const recordTypeWithParent = {
 
 type Family = {
   name: string
-  build: (config: Config, globalMetadata: MetadataRepository) => StandardHandler
+  build: (
+    ctx: RunContext,
+    globalMetadata: MetadataRepository
+  ) => StandardHandler
 }
 
 const families: Family[] = [
   {
     name: 'StandardHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         `${ADDITION}       ${entityPath('MyClass')}`,
         classType,
         globalMetadata
       )
-      return new StandardHandler(changeType, Object.freeze(element), config)
+      return new StandardHandler(changeType, Object.freeze(element), ctx)
     },
   },
   {
     name: 'InFileHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         'A       force-app/main/default/workflows/Account.workflow-meta.xml',
         workflowType,
         globalMetadata
       )
-      return new InFileHandler(changeType, Object.freeze(element), config)
+      return new InFileHandler(changeType, Object.freeze(element), ctx)
     },
   },
   {
     name: 'InResourceHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         'A       force-app/main/default/staticresources/myResource.resource',
         staticResourceType,
         globalMetadata
       )
-      return new InResourceHandler(changeType, Object.freeze(element), config)
+      return new InResourceHandler(changeType, Object.freeze(element), ctx)
     },
   },
   {
     name: 'InFolderHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         'A       force-app/main/default/documents/folder/test.document-meta.xml',
         documentType,
         globalMetadata
       )
-      return new InFolderHandler(changeType, Object.freeze(element), config)
+      return new InFolderHandler(changeType, Object.freeze(element), ctx)
     },
   },
   {
     name: 'SharedFolderHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         'A       force-app/main/default/discovery/DiscoveryAIModelTest.model',
         discoveryType,
         globalMetadata
       )
-      return new SharedFolderHandler(changeType, Object.freeze(element), config)
+      return new SharedFolderHandler(changeType, Object.freeze(element), ctx)
     },
   },
   {
     name: 'DecomposedHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         'A       force-app/main/default/objects/Account/recordTypes/Test.recordType-meta.xml',
         recordTypeWithParent,
         globalMetadata
       )
-      return new DecomposedHandler(changeType, Object.freeze(element), config)
+      return new DecomposedHandler(changeType, Object.freeze(element), ctx)
     },
   },
   {
     name: 'ContainedDecomposedHandler',
-    build: (config, globalMetadata) => {
+    build: (ctx, globalMetadata) => {
       const { changeType, element } = createElement(
         'A       force-app/main/permissionsets/Subject.permissionset-meta.xml',
         globalMetadata.get('permissionsets')!,
@@ -164,7 +170,7 @@ const families: Family[] = [
       return new ContainedDecomposedHandler(
         changeType,
         Object.freeze(element),
-        config
+        ctx
       )
     },
   },
@@ -187,9 +193,28 @@ describe('handler purity', () => {
     globalMetadata = await getDefinition({})
   })
 
+  // Object.freeze is shallow, so freezing the context alone would leave
+  // config.source (an array), the metadata repository and the reader
+  // writable — and the fixture's default reader is a module singleton
+  // shared with every other suite in this worker, where a stray write would
+  // silently corrupt them instead of throwing. Freeze every field the
+  // handler can reach, and hand over a reader of this test's own so nothing
+  // shared is frozen as a side effect.
+  const freezeInputs = (): RunContext => {
+    const frozenConfig = getConfig()
+    Object.freeze(frozenConfig.source)
+    return Object.freeze(
+      getContext({
+        config: Object.freeze(frozenConfig),
+        metadata: Object.freeze(createMetadataRepositoryMock()),
+        trees: Object.freeze(createTreeReader(new Map())),
+      })
+    )
+  }
+
   describe('frozen inputs', () => {
     it.each(families.map(f => [f.name, f.build] as const))(
-      'Given a frozen Config and a frozen element, When %s.collect runs, Then it resolves with no warnings instead of writing to a frozen input',
+      'Given a frozen RunContext, its frozen Config and source paths, and a frozen element, When %s.collect runs, Then it resolves with no warnings instead of writing to a frozen input',
       async (_name, build) => {
         // Arrange — ESM modules are strict mode, so any write a handler
         // makes to a frozen input throws TypeError. `collect()` never
@@ -197,8 +222,8 @@ describe('handler purity', () => {
         // the meaningful assertion is an empty warnings axis: a caught
         // write-to-frozen-input would surface there instead of silently
         // vanishing behind a bare "resolves" check.
-        const frozenConfig = Object.freeze({ ...getConfig() })
-        const sut = build(frozenConfig, globalMetadata)
+        const frozenCtx = freezeInputs()
+        const sut = build(frozenCtx, globalMetadata)
 
         // Act
         const result = await sut.collect()
@@ -223,7 +248,11 @@ describe('handler purity', () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const first = await sut.collect()
@@ -251,8 +280,16 @@ describe('handler purity', () => {
         classType,
         globalMetadata
       )
-      const handlerA = new StandardHandler(changeTypeA, elementA, config)
-      const handlerB = new StandardHandler(changeTypeB, elementB, config)
+      const handlerA = new StandardHandler(
+        changeTypeA,
+        elementA,
+        getContext({ config })
+      )
+      const handlerB = new StandardHandler(
+        changeTypeB,
+        elementB,
+        getContext({ config })
+      )
 
       // Act
       const resultA = await handlerA.collect()
@@ -285,7 +322,7 @@ describe('handler purity', () => {
         workflowType,
         globalMetadata
       )
-      const sut = new InFileHandler(changeType, element, config)
+      const sut = new InFileHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -304,7 +341,11 @@ describe('handler purity', () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
       vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(new Error('boom'))
 
       // Act

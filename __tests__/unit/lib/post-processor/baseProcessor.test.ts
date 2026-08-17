@@ -7,15 +7,11 @@ import BaseProcessor, {
   emptyOutcome,
   type ProcessorOutcome,
 } from '../../../../src/post-processor/baseProcessor'
-import type { Config } from '../../../../src/types/config'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { elementsOf } from '../../../__utils__/handlerResultView'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 class TestProcessor extends BaseProcessor {
-  constructor(config: Config, metadata: MetadataRepository) {
-    super(config, metadata)
-  }
   public override async process(
     _changes: ChangeSet
   ): Promise<ProcessorOutcome> {
@@ -33,7 +29,7 @@ describe('BaseProcessor', () => {
     it('Given default base processor, When isCollector, Then returns false', () => {
       // Arrange
       const config = getConfig()
-      const sut = new TestProcessor(config, metadata)
+      const sut = new TestProcessor(getContext({ config, metadata }))
 
       // Act
       const result = sut.isCollector
@@ -47,7 +43,7 @@ describe('BaseProcessor', () => {
     it('Given default base processor, When transformAndCollect, Then returns empty result', async () => {
       // Arrange
       const config = getConfig()
-      const sut = new TestProcessor(config, metadata)
+      const sut = new TestProcessor(getContext({ config, metadata }))
 
       // Act
       const result = await sut.transformAndCollect(new ChangeSet())

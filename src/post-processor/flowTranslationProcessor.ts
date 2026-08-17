@@ -10,8 +10,6 @@ import {
   TRANSLATION_EXTENSION,
   TRANSLATION_TYPE,
 } from '../constant/metadataConstants.js'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { Config } from '../types/config.js'
 import type {
   CopyOperation,
   HandlerResult,
@@ -86,15 +84,10 @@ const emptyTranslationMerge = (): TranslationMerge => ({
 })
 
 export default class FlowTranslationProcessor extends BaseProcessor {
-  protected readonly translations: Map<string, FlowDefinition[]>
+  protected readonly translations: Map<string, FlowDefinition[]> = new Map()
   protected ignoreHelper: IgnoreHelper | undefined
   protected isOutputEqualsToRepo: boolean | undefined
   protected packagedFlows: Set<string> = new Set()
-
-  constructor(config: Config, metadata: MetadataRepository) {
-    super(config, metadata)
-    this.translations = new Map()
-  }
 
   override get isCollector(): boolean {
     return true

@@ -18,15 +18,18 @@ import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
 import TypeHandlerFactory from '../../../../src/service/typeHandlerFactory'
 import type { Config } from '../../../../src/types/config'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 describe('the type handler factory', () => {
   let typeHandlerFactory: TypeHandlerFactory
+  let globalMetadata: MetadataRepository
   beforeAll(async () => {
-    const globalMetadata: MetadataRepository = await getDefinition({})
+    globalMetadata = await getDefinition({})
     const config: Config = getConfig()
     config.apiVersion = 46
-    typeHandlerFactory = new TypeHandlerFactory(config, globalMetadata)
+    typeHandlerFactory = new TypeHandlerFactory(
+      getContext({ config, metadata: globalMetadata })
+    )
   })
   describe.each([
     [CustomField, ['fields']],
@@ -186,23 +189,56 @@ describe('the type handler factory', () => {
 
   // --- Mutation-killing tests ---
 
-  describe('Given DELETION change type (L86)', () => {
-    it('When change type is D, Then uses from revision (not to)', async () => {
-      // Mutant: changeType !== DELETION → swaps from/to for deletion
-      // We cannot inspect the revision directly, but we can verify that a D-line
-      // resolves the same handler class regardless of the direction.
-      const sut = await typeHandlerFactory.getTypeHandler(
-        `${DELETION}       force-app/main/default/flows/MyFlow.flow-meta.xml`
+  describe('Given a config whose from and to revisions differ', () => {
+    // The revision the factory picks is only observable through the reader:
+    // it is handed to MetadataBoundaryResolver, which names it on every
+    // tree read. A path deep enough to reach scanAndCreateElement is
+    // therefore required — shallow paths early-return before any read.
+    const DEEP_RESOURCE_PATH =
+      'force-app/main/default/staticresources/MyResource/sub/dir/file.js'
+
+    const buildSut = () => {
+      const config: Config = getConfig()
+      config.apiVersion = 46
+      config.from = 'from-sha'
+      config.to = 'to-sha'
+      const filesUnder = vi.fn().mockReturnValue([])
+      const trees = {
+        pathExists: vi.fn().mockReturnValue(false),
+        filesUnder,
+        children: vi.fn().mockReturnValue([]),
+      }
+      const sut = new TypeHandlerFactory(
+        getContext({ config, metadata: globalMetadata, trees })
       )
-      expect(sut).toBeInstanceOf(FlowHandler)
+      return { sut, filesUnder }
+    }
+
+    it('When the change type is D, Then it resolves the element against the from revision', async () => {
+      // Arrange
+      const { sut, filesUnder } = buildSut()
+
+      // Act
+      await sut.getTypeHandler(`${DELETION}\t${DEEP_RESOURCE_PATH}`)
+
+      // Assert
+      expect(filesUnder).toHaveBeenCalledWith('from-sha', expect.any(String))
+      expect(filesUnder).not.toHaveBeenCalledWith('to-sha', expect.any(String))
     })
 
-    it('When change type is A (not DELETION), Then uses to revision', async () => {
-      // Mutant: changeType === DELETION flipped → addition uses from revision
-      const sut = await typeHandlerFactory.getTypeHandler(
-        `A       force-app/main/default/flows/MyFlow.flow-meta.xml`
+    it('When the change type is A, Then it resolves the element against the to revision', async () => {
+      // Arrange
+      const { sut, filesUnder } = buildSut()
+
+      // Act
+      await sut.getTypeHandler(`A\t${DEEP_RESOURCE_PATH}`)
+
+      // Assert
+      expect(filesUnder).toHaveBeenCalledWith('to-sha', expect.any(String))
+      expect(filesUnder).not.toHaveBeenCalledWith(
+        'from-sha',
+        expect.any(String)
       )
-      expect(sut).toBeInstanceOf(FlowHandler)
     })
   })
 
@@ -238,7 +274,9 @@ describe('the type handler factory', () => {
       const globalMetadata: MetadataRepository = await getDefinition({})
       const config: Config = getConfig()
       config.apiVersion = 46
-      const freshFactory = new TypeHandlerFactory(config, globalMetadata)
+      const freshFactory = new TypeHandlerFactory(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       const sut = await freshFactory.getTypeHandler(
         `Z       force-app/main/default/workflows/Account.workflow-meta.xml`
@@ -328,7 +366,9 @@ describe('the type handler factory', () => {
           componentPath: 'force-app/orphans/file',
         }),
       }
-      const factory = new TypeHandlerFactory(config, stubMetadata as never)
+      const factory = new TypeHandlerFactory(
+        getContext({ config, metadata: stubMetadata as never })
+      )
       // Inject the mock resolver
       ;(factory as unknown as { resolver: typeof mockResolver }).resolver =
         mockResolver
@@ -348,6 +388,34 @@ describe('the type handler factory', () => {
         `Z       force-app/main/default/staticresources/MyResource/file.txt`
       )
       expect(sut).toBeInstanceOf(InResource)
+    })
+  })
+
+  describe('Given a metadata repository that cannot resolve a path (L99 defensive guard)', () => {
+    it('When getTypeHandler is called, Then it throws with the unresolved path', async () => {
+      // RepoGitDiff pre-filters diff lines via metadata.has() in production,
+      // so this guard is unreachable through the normal call chain — but it
+      // is a genuine safety net, not dead code, and must fail loudly rather
+      // than silently propagating `undefined` into element resolution.
+      const stubMetadata = {
+        has: (_path: string) => true,
+        get: (_path: string) => undefined,
+        getByXmlName: (_xmlName: string) => undefined,
+        getFullyQualifiedName: (path: string) => path,
+        values: () => [],
+      }
+      const config = getConfig()
+      config.apiVersion = 46
+      const factory = new TypeHandlerFactory(
+        getContext({ config, metadata: stubMetadata as never })
+      )
+
+      // Act & Assert
+      await expect(
+        factory.getTypeHandler('Z       force-app/unknown/path.txt')
+      ).rejects.toThrow(
+        'Unknown metadata type for path: force-app/unknown/path.txt'
+      )
     })
   })
 })

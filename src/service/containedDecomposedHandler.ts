@@ -2,9 +2,9 @@
 import { join, ParsedPath, parse } from 'node:path/posix'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { Config } from '../types/config.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { readDirs } from '../utils/fsHelper.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import StandardHandler from './standardHandler.js'
@@ -17,8 +17,8 @@ const PS_DIR_OFFSET_FLAT = 2
 export default class ContainedDecomposedHandler extends StandardHandler {
   protected holderFolder: ParsedPath | undefined
 
-  constructor(changeType: string, element: MetadataElement, config: Config) {
-    super(changeType, element, config)
+  constructor(changeType: string, element: MetadataElement, ctx: RunContext) {
+    super(changeType, element, ctx)
     this._setholderFolder()
   }
 
@@ -79,7 +79,7 @@ export default class ContainedDecomposedHandler extends StandardHandler {
   }
 
   protected async _hasRelatedContent(): Promise<boolean> {
-    const files = await readDirs(this._getHolderPath(), this.config)
+    const files = await readDirs(this._getHolderPath(), this.ctx)
     return files.length > 0
   }
 

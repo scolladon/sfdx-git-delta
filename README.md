@@ -26,6 +26,9 @@
 > [!WARNING]
 > **Potentially breaking changes in v6**: Check out the [v6 migration guide](docs/migrating-to-v6.0.0.md) to see how you could be impacted by some changes in the new major `v6` version of the plugin, and how to migrate to this version.
 
+> [!WARNING]
+> **Breaking change for programmatic consumers**: `Config.mergeBase` is now a required field. Add `mergeBase: false` to your config to preserve today's behavior. See the [merge-base migration guide](docs/migrating-config-merge-base.md) for details.
+
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
@@ -149,7 +152,7 @@ Generate incremental package manifest and source content
 
 ```
 USAGE
-  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-d] [-o <value>] [-r <value>] [-s
+  $ sf sgd source delta -f <value> [--json] [--flags-dir <value>] [-t <value>] [-b] [-d] [-o <value>] [-r <value>] [-s
     <value>...] [-i <value>] [-D <value>] [-n <value>] [-N <value>] [-M <value>] [-c <value>] [-W] [-a <value>]
 
 FLAGS
@@ -159,6 +162,8 @@ FLAGS
   -W, --ignore-whitespace                     ignore git diff whitespace (space, tab, eol) changes
   -a, --api-version=<value>                   salesforce metadata API version, default to sfdx-project.json
                                               "sourceApiVersion" attribute or latest version
+  -b, --merge-base                            diff from the merge base of --from and --to instead of --from itself (git
+                                              three-dot semantics)
   -c, --changes-manifest=<value>              path to a JSON file grouping changed components by kind (add, modify,
                                               delete, rename); setting this flag also enables git rename detection
   -d, --generate-delta                        generate delta files in [--output-dir] folder
@@ -184,6 +189,8 @@ EXAMPLES
   $ sf sgd source delta --from "origin/development" --output-dir incremental
   - Build incremental manifest and source from the development branch
   $ sf sgd source delta --from "origin/development" --generate-delta --output-dir incremental
+  - Build incremental manifest from where the current branch diverged from main
+  $ sf sgd source delta --from "main" --merge-base --output-dir incremental
 
 FLAG DESCRIPTIONS
   -a, --api-version=<value>
@@ -201,6 +208,10 @@ FLAG DESCRIPTIONS
     * If the folder exists, its contents will be processed.
     * If the folder doesn't exist, it usually won't show any output—unless the folder was recently deleted and is part
     of a diff, in which case changes may still be picked up.
+
+    Each value must be a literal repository-relative path: wildcards (`*`, `?`, `[`), git pathspec magic (`:(...)`),
+    absolute paths, `..` and the empty string are all rejected. Matching is rooted at the repository root, so
+    `--source-dir force-app` does not match `nested/force-app/...`.
 ```
 
 _See code: [src/commands/sgd/source/delta.ts](https://github.com/scolladon/sfdx-git-delta/blob/main/src/commands/sgd/source/delta.ts)_
@@ -226,6 +237,9 @@ In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetc
 You need to fetch all the needed commits as the plugin needs access to the branch being compared.
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
 If you use `-n` (`--include-file`) with metadata contained inside files you will need to have the full repo locally for the command to fully work.
+With `--merge-base [-b]`, a shallow clone is an even sharper trap: `--from` and `--to` can each resolve to a valid commit while their histories still don't connect within the fetched depth, so SGD reports "no merge base found" even though the refs themselves are fine. Fetch enough history for the two branches to actually share an ancestor, not just enough for each ref to resolve.
+
+GitHub Actions' `pull_request` trigger checks out a synthetic merge commit whose parent already **is** the base branch tip, so `merge-base(HEAD, main)` resolves to `main`'s tip and `--merge-base` silently becomes a no-op (`--from main --merge-base` behaves like `--from main`). If you need true divergence semantics in that context, target the PR head commit directly — `--to <head sha>` (from the `pull_request` event payload) — or check out `ref: <head sha>` instead of the default merge ref.
 
 In CI/CD pipelines, branches are not checked out locally when the repository is cloned, so you must specify the remote prefix.
 If you do not specify the remote in CI context, the git pointer check will raise an error (as the branch is not created locally).
@@ -278,11 +292,13 @@ sf sgd source delta --to develop --from main --output-dir .
 ```
 
 - **Comparing branches (from a common ancestor)**
-  To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation):
+  To compare the `develop` branch since its common ancestor with the `main` branch (i.e. ignoring the changes performed in the `main` branch after `develop` creation), use `--merge-base [-b]`:
 
 ```sh
-sf sgd source delta --to develop --from $(git merge-base develop main) --output-dir .
+sf sgd source delta --to develop --from main --merge-base --output-dir .
 ```
+
+This is equivalent to `git diff main...develop` (three-dot, common-ancestor semantics). Unlike the `$(git merge-base ...)` shell form, `--merge-base` resolves inside `--repo-dir` and needs no shell — the shell form always resolves in the current directory regardless of `--repo-dir`.
 
 ## Walkthrough
 
@@ -605,6 +621,7 @@ import sgd from 'sfdx-git-delta'
 const work = await sgd({
   to: '', // commit sha to where the diff is done. [default : "HEAD"]
   from: '', // (required) commit sha from where the diff is done. [default : git rev-list --max-parents=0 HEAD]
+  mergeBase: false, // (required) resolve `from` to the merge base of `from`/`to` first. [default : false]
   output: '', // source package specific output. [default : "./output"]
   apiVersion: '', // salesforce API version. [default : latest]
   repo: '', // git repository location. [default : "."]

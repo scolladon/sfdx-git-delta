@@ -62,7 +62,7 @@ export default class ConfigValidator {
           errors.push(
             this.message.getMessage('error.ParameterIsNotGitSHA', [
               shaParameter,
-              shaValue,
+              sanitizeForMessage(shaValue),
             ])
           )
         }
@@ -83,6 +83,8 @@ export default class ConfigValidator {
 
   @log
   public async validateConfig(): Promise<readonly Error[]> {
+    const requestedFrom = this.config.from
+    const requestedTo = this.config.to
     this._sanitizeConfig()
 
     // Short-circuits before any git object is read: _validateGitSha below
@@ -115,8 +117,38 @@ export default class ConfigValidator {
       throw new ConfigError(errors.join(', '))
     }
 
-    await this.gitAdapter.configureRepository()
+    // Runs after the SHA validation above so a typo in either ref surfaces
+    // as the precise ParameterIsNotGitSHA message instead of the vaguer
+    // MergeBaseNotFound.
+    await this._resolveMergeBase(requestedFrom, requestedTo)
+
     return defaultWarnings
+  }
+
+  // --merge-base resolves --from to the merge base of --from and --to (git
+  // three-dot semantics) in place. requestedFrom/requestedTo are the
+  // user-typed refs, captured before _validateGitSha overwrites
+  // this.config.from/to with resolved SHAs — the error the user sees must
+  // name what they typed, not a 40-character hash.
+  protected async _resolveMergeBase(
+    requestedFrom: string,
+    requestedTo: string
+  ): Promise<void> {
+    if (!this.config.mergeBase) return
+
+    const base = await this.gitAdapter.getMergeBase(
+      this.config.from,
+      this.config.to
+    )
+    if (!base) {
+      throw new ConfigError(
+        this.message.getMessage('error.MergeBaseNotFound', [
+          sanitizeForMessage(requestedFrom),
+          sanitizeForMessage(requestedTo),
+        ])
+      )
+    }
+    this.config.from = base
   }
 
   // oclif cannot natively validate --changes-manifest (it uses a string flag

@@ -6,10 +6,11 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
 import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
+import type { RunContext } from '../../../../src/types/runContext'
 import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -40,9 +41,15 @@ const pageFolderListing = [
 ]
 
 let config: Config
+// One context per test, built once and reused for both construction and
+// assertion. Asserting against this reference proves the sut forwarded the
+// context it was given; rebuilding it in the assertion would not, since a
+// fresh metadata mock is never deep-equal to the original.
+let ctx: RunContext
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
+  ctx = getContext({ config })
 })
 
 describe('InBundleHandler', () => {
@@ -57,7 +64,7 @@ describe('InBundleHandler', () => {
       objectType,
       globalMetadata
     )
-    return new InBundleHandler(changeType, element, config)
+    return new InBundleHandler(changeType, element, ctx)
   }
 
   describe('_getElementName', () => {
@@ -245,7 +252,7 @@ describe('InBundleHandler', () => {
       // from the page folder, not the whole bundle
       expect(mockedReadDirs).toHaveBeenCalledWith(
         `${root}/site/Site_A/sfdc_cms__view`,
-        expect.anything()
+        ctx
       )
       expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(
         false

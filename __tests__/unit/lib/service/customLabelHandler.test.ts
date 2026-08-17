@@ -11,7 +11,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockRun, mockWriter } = vi.hoisted(() => ({
   mockRun: vi.fn(),
@@ -60,7 +60,11 @@ describe('Decomposed CustomLabel spec', () => {
         labelType,
         globalMetadata
       )
-      const sut = new CustomLabelHandler(changeType, element, config)
+      const sut = new CustomLabelHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -84,7 +88,11 @@ describe('Decomposed CustomLabel spec', () => {
         labelType,
         globalMetadata
       )
-      const sut = new CustomLabelHandler(changeType, element, config)
+      const sut = new CustomLabelHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectModification()
@@ -108,7 +116,11 @@ describe('Decomposed CustomLabel spec', () => {
         labelType,
         globalMetadata
       )
-      const sut = new CustomLabelHandler(changeType, element, config)
+      const sut = new CustomLabelHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -135,7 +147,11 @@ describe('Decomposed CustomLabel spec', () => {
         labelType,
         globalMetadata
       )
-      const sut = new CustomLabelHandler(changeType, element, config)
+      const sut = new CustomLabelHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -165,7 +181,11 @@ describe('Decomposed CustomLabel spec', () => {
         labelType,
         globalMetadata
       )
-      const sut = new CustomLabelHandler(changeType, element, config)
+      const sut = new CustomLabelHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
       mockRun.mockImplementation(() =>
         Promise.resolve({
           manifests: {
@@ -206,7 +226,11 @@ describe('Decomposed CustomLabel spec', () => {
         labelType,
         globalMetadata
       )
-      const sut = new CustomLabelHandler(changeType, element, config)
+      const sut = new CustomLabelHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
       mockRun.mockImplementation(() =>
         Promise.resolve({
           manifests: {

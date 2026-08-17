@@ -16,6 +16,10 @@ Use two git commit reference to generate the package corresponding to what has c
 
 <%= config.bin %> <%= command.id %> --from "origin/development" --generate-delta --output-dir incremental
 
+- Build incremental manifest from where the current branch diverged from main
+
+<%= config.bin %> <%= command.id %> --from "main" --merge-base --output-dir incremental
+
 # flags.to.summary
 
 commit sha to where the diff is done
@@ -23,6 +27,10 @@ commit sha to where the diff is done
 # flags.from.summary
 
 commit sha from where the diff is done
+
+# flags.merge-base.summary
+
+diff from the merge base of --from and --to instead of --from itself (git three-dot semantics)
 
 # flags.repo.summary
 
@@ -85,6 +93,10 @@ path to a JSON file grouping changed components by kind (add, modify, delete, re
 # error.ParameterIsNotGitSHA
 
 --%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
+
+# error.MergeBaseNotFound
+
+no merge base found between --from '%s' and --to '%s' (If in CI/CD context, check the fetch depth is properly set)
 
 # error.PathIsNotGit
 

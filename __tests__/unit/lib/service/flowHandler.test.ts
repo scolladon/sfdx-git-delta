@@ -9,7 +9,7 @@ import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -40,7 +40,7 @@ describe('flowHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new FlowHandler(changeType, element, config)
+      const sut = new FlowHandler(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()

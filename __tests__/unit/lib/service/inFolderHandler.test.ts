@@ -13,7 +13,7 @@ import {
 import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -49,7 +49,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -67,7 +67,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -100,7 +100,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -128,7 +128,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -161,7 +161,7 @@ describe('InFolderHandler', () => {
         upperSuffixType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -183,7 +183,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -201,7 +201,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -220,7 +220,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -242,7 +242,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -265,7 +265,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()
@@ -288,7 +288,7 @@ describe('InFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new InFolder(changeType, element, config)
+      const sut = new InFolder(changeType, element, getContext({ config }))
 
       // Act
       const result = await sut.collect()

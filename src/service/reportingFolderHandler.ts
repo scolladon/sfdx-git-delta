@@ -2,17 +2,17 @@
 
 import { join } from 'node:path/posix'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
-import type { Config } from '../types/config.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
 import { emptyResult } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
 import InFolderHandler from './inFolderHandler.js'
 
 export default class ReportingFolderHandler extends InFolderHandler {
   protected readonly resolvedType: string | undefined
 
-  constructor(changeType: string, element: MetadataElement, config: Config) {
-    super(changeType, element, config)
+  constructor(changeType: string, element: MetadataElement, ctx: RunContext) {
+    super(changeType, element, ctx)
     this.resolvedType = element.getSharedFolderMetadata().get(element.extension)
   }
 

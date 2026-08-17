@@ -3,6 +3,7 @@ import type { Pathspec } from '../utils/pathspec.js'
 export type Config = {
   to: string
   from: string
+  mergeBase: boolean
   output: string
   source: Pathspec[]
   ignore?: string | undefined

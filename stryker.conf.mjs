@@ -32,11 +32,13 @@ const config = {
   // valid JS syntax. Killing these would require either spying on Logger
   // (couples tests to log message format — explicitly avoided by
   // existing project pattern) or relaxing biome's brace style (broader
-  // tooling change). Documented here for traceability:
-  //   - src/adapter/GitAdapter.ts L146 (preBuildTreeIndex catch)
-  //   - src/adapter/GitAdapter.ts L309 (streamArchive finally)
-  //   - src/adapter/ioExecutor.ts  L148 (gitDirCopy catch)
-  //   - src/utils/configValidator.ts L136 (_getApiVersion catch)
+  // tooling change). Documented here for traceability, by symbol rather
+  // than by line — line numbers in this block had already rotted twice
+  // before anyone noticed, because nothing verifies them:
+  //   - src/adapter/GitAdapter.ts      buildTreeIndex   catch
+  //   - src/adapter/GitAdapter.ts      streamArchive    finally
+  //   - src/adapter/ioExecutor.ts      _executeGitDirCopy catch
+  //   - src/utils/configValidator.ts   _getApiVersion   catch
   reporters: ['html', 'progress', 'json'],
   htmlReporter: {
     fileName: 'reports/mutation/index.html',

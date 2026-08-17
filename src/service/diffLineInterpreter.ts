@@ -1,11 +1,11 @@
 'use strict'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { Config } from '../types/config.js'
 import type {
   CopyOperation,
   HandlerResult,
   ManifestElement,
 } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
+import { withRevisions } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { BoundedQueue } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
@@ -14,24 +14,16 @@ import StandardHandler from './standardHandler.js'
 import TypeHandlerFactory from './typeHandlerFactory.js'
 
 export default class DiffLineInterpreter {
-  constructor(
-    protected readonly config: Config,
-    protected readonly metadata: MetadataRepository
-  ) {}
+  constructor(protected readonly ctx: RunContext) {}
 
   @log
   public async process(
     lines: Iterable<string> | AsyncIterable<string>,
     revisions?: { from: string; to: string }
   ): Promise<HandlerResult> {
-    const effectiveConfig = revisions
-      ? { ...this.config, ...revisions }
-      : this.config
+    const effectiveCtx = withRevisions(this.ctx, revisions)
 
-    const typeHandlerFactory = new TypeHandlerFactory(
-      effectiveConfig,
-      this.metadata
-    )
+    const typeHandlerFactory = new TypeHandlerFactory(effectiveCtx)
     const elements: ManifestElement[] = []
     const copies: CopyOperation[] = []
     const warnings: Error[] = []

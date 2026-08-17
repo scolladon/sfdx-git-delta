@@ -1,5 +1,8 @@
 'use strict'
-import GitAdapter, { type DiffScopeVerdict } from '../adapter/GitAdapter.js'
+import GitAdapter, {
+  type DiffScopeVerdict,
+  type DiffSpec,
+} from '../adapter/GitAdapter.js'
 import { TAB } from '../constant/cliConstants.js'
 import { ADDITION, DELETION, RENAMED } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
@@ -16,6 +19,7 @@ export default class RepoGitDiff {
   // getLines() can be called more than once on the same instance (see the
   // renamePairs reset below), so the verdict is reset explicitly at the
   // start of every call rather than relying on the initialiser alone.
+  // Stryker disable next-line ObjectLiteral -- equivalent: emptying this initialiser is unobservable. getLines() reassigns both fields to 0 as its first synchronous statement before any await, and the only other consumer, GitAdapter.getUnmatchedSourceScopes, branches solely on `changesSeen > 0` — false for both 0 and undefined
   private readonly diffScopeVerdict: DiffScopeVerdict = {
     changesSeen: 0,
     linesYielded: 0,
@@ -46,10 +50,11 @@ export default class RepoGitDiff {
     const additionNames = new Set<string>()
     const deferredDeletions: string[] = []
 
-    for await (const rawLine of this.gitAdapter.streamDiffLines(
-      this.diffScopeVerdict,
-      this.config.source
-    )) {
+    for await (const rawLine of this.gitAdapter.streamDiffLines({
+      spec: this.diffSpec(),
+      verdict: this.diffScopeVerdict,
+      scopes: this.config.source,
+    })) {
       for (const expanded of this._expandRename(rawLine)) {
         // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
         if (!expanded) continue
@@ -115,5 +120,17 @@ export default class RepoGitDiff {
 
   protected _extractComparisonName(line: string) {
     return this.metadata.getFullyQualifiedName(line).toLocaleLowerCase()
+  }
+
+  // Built fresh on every getLines() call (not cached at construction) so a
+  // later rewrite of config.from (ConfigValidator resolves SHAs after
+  // RepoGitDiff may already exist) is still visible when the diff runs.
+  private diffSpec(): DiffSpec {
+    return {
+      from: this.config.from,
+      to: this.config.to,
+      detectRenames: Boolean(this.config.changesManifest),
+      ignoreWhitespace: this.config.ignoreWhitespace,
+    }
   }
 }

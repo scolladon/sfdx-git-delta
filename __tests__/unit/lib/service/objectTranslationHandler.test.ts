@@ -9,12 +9,13 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import type { DiffOutcome } from '../../../../src/utils/metadataDiff'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockRun, mockWriter } = vi.hoisted(() => ({
-  mockRun: vi.fn<() => Promise<any>>(),
+  mockRun: vi.fn<() => Promise<DiffOutcome>>(),
   mockWriter: vi.fn(),
 }))
 
@@ -66,7 +67,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -99,7 +104,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -117,7 +126,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -139,7 +152,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -164,7 +181,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -198,7 +219,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -236,7 +261,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -254,7 +283,11 @@ describe('ObjectTranslation', () => {
         objectType,
         globalMetadata
       )
-      const sut = new ObjectTranslation(changeType, element, config)
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()

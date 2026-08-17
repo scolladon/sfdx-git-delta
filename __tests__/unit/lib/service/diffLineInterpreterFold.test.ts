@@ -12,7 +12,7 @@ import type {
   ManifestElement,
 } from '../../../../src/types/handlerResult'
 import ChangeSet, { type RenameTriple } from '../../../../src/utils/changeSet'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const sortKey = (e: ManifestElement) =>
   `${e.target}\0${e.type}\0${e.member}\0${e.changeKind}`
@@ -43,7 +43,9 @@ describe('DiffLineInterpreter fold', () => {
         'A\tforce-app/main/default/classes/Bar.cls',
         'A\tforce-app/main/default/reports/folder/entity.unknownext-meta.xml',
       ]
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       // Act
       const folded = await sut.process(lines)
@@ -51,7 +53,9 @@ describe('DiffLineInterpreter fold', () => {
       // Assert — fold each line's own handler independently and compare the
       // whole multiset, not membership of a single type under a single
       // target (services.test.ts already covers that narrower shape).
-      const perLineFactory = new TypeHandlerFactory(config, globalMetadata)
+      const perLineFactory = new TypeHandlerFactory(
+        getContext({ config, metadata: globalMetadata })
+      )
       const expectedResults: HandlerResult[] = []
       for (const line of lines) {
         const handler = await perLineFactory.getTypeHandler(line)
@@ -85,7 +89,9 @@ describe('DiffLineInterpreter fold', () => {
         copies: [],
         warnings: [failure],
       })
-      const sut = new DiffLineInterpreter(config, globalMetadata)
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata: globalMetadata })
+      )
 
       // Act
       const result = await sut.process(lines)
@@ -133,7 +139,9 @@ describe('DiffLineInterpreter fold', () => {
       // exercised without re-running the handler pipeline per rename order.
       const elementsByLinePermutation = await Promise.all(
         linePermutations.map(async lines => {
-          const sut = new DiffLineInterpreter(config, globalMetadata)
+          const sut = new DiffLineInterpreter(
+            getContext({ config, metadata: globalMetadata })
+          )
           const result = await sut.process(lines)
           return result.elements
         })

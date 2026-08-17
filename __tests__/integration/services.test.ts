@@ -14,6 +14,7 @@ import { ManifestTarget } from '../../src/types/handlerResult'
 import { pathExists, readDirs, readPathFromGit } from '../../src/utils/fsHelper'
 import { elementsOf } from '../__utils__/handlerResultView'
 import { sourceDirs } from '../__utils__/sourceDirs'
+import { getContext } from '../__utils__/testWork'
 
 vi.mock('../../src/utils/fsHelper')
 
@@ -583,6 +584,7 @@ beforeEach(() => {
     generateDelta: true,
     to: '',
     from: '',
+    mergeBase: false,
     ignore: '',
     ignoreDestructive: '',
     apiVersion: 0,
@@ -590,7 +592,9 @@ beforeEach(() => {
     include: '',
     includeDestructive: '',
   }
-  handlerFactory = new TypeHandlerFactory(config, globalMetadata)
+  handlerFactory = new TypeHandlerFactory(
+    getContext({ config, metadata: globalMetadata })
+  )
 
   mockedReadPathFromGit.mockResolvedValue('')
   mockedReadDirs.mockResolvedValue(existingFiles)

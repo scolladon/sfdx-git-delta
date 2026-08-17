@@ -5,7 +5,7 @@ import { TreeIndex } from '../../../../src/adapter/treeIndex'
 
 describe('TreeIndex', () => {
   describe('Given the same path added twice', () => {
-    it('When add is called twice, Then size stays at 1 (idempotent)', () => {
+    it('When add is called twice, Then size stays at 1 (idempotent) and the path still resolves', () => {
       // Arrange
       const sut = new TreeIndex()
       const path = 'force-app/main/default/classes/MyClass.cls'
@@ -16,29 +16,25 @@ describe('TreeIndex', () => {
 
       // Assert
       expect(sut.size).toBe(1)
-      expect(sut.has(path)).toBe(true)
+      expect(sut.pathExists(path)).toBe(true)
     })
   })
 
-  describe('navigate with empty path (if (!path) return this.root)', () => {
-    it('Given no files added, When hasPath is called with empty string, Then returns true (root exists)', () => {
-      // Arrange — empty path navigates to root. If the guard is removed,
-      // the empty string would be split into [''], traverse one hop for '',
-      // and return undefined (no child with key '') → hasPath would be false.
-      // The guard `if (!path) return this.root` is what makes this true.
+  describe('navigate with empty/missing path segments', () => {
+    it('Given a directory absent from the index, When listChildren is called, Then returns an empty array', () => {
+      // Arrange
       const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
 
-      // Act
-      const result = sut.hasPath('')
-
-      // Assert
-      expect(result).toBe(true)
+      // Act & Assert
+      expect(sut.listChildren('does-not-exist')).toEqual([])
     })
 
     it('Given files added, When listChildren is called with empty string, Then returns top-level segments', () => {
       // Arrange — listChildren('') navigates to root and lists its children.
-      // Without the guard, navigate('') would return undefined and listChildren
-      // would return [] even though files exist.
+      // Without the `if (!path) return this.root` guard, navigate('') would
+      // return undefined and listChildren would return [] even though files
+      // exist.
       const sut = new TreeIndex()
       sut.add('classes/MyClass.cls')
       sut.add('objects/Account/Account.object-meta.xml')
@@ -51,60 +47,185 @@ describe('TreeIndex', () => {
       expect(children).toContain('objects')
     })
 
-    it('Given files added, When getFilesUnder is called with empty string, Then returns all files', () => {
-      // Arrange
+    it('Given a path whose middle segment is missing, When pathExists is called, Then returns false without throwing', () => {
+      // Arrange — kills navigate's `if (!node) return undefined`
+      // ConditionalExpression mutant: with the guard removed, the next
+      // iteration dereferences `undefined.children` and throws TypeError.
+      // The 3-segment path is what exercises the mid-traversal
+      // short-circuit; a 2-segment path leaves the loop on the missing
+      // segment naturally.
       const sut = new TreeIndex()
       sut.add('classes/MyClass.cls')
-      sut.add('classes/Other.cls')
 
-      // Act
-      const files = sut.getFilesUnder('')
-
-      // Assert — navigate('') returns root, so all files are collected
-      expect(files).toContain('classes/MyClass.cls')
-      expect(files).toContain('classes/Other.cls')
+      // Act & Assert
+      expect(() => sut.pathExists('classes/Missing/Inner.cls')).not.toThrow()
+      expect(sut.pathExists('classes/Missing/Inner.cls')).toBe(false)
     })
   })
 
-  describe('basic TreeIndex operations', () => {
-    it('Given a non-existent path, When has is called, Then returns false', () => {
+  describe('pathExists', () => {
+    it('Given a root path variant against a non-empty index, When pathExists, Then returns true', () => {
       // Arrange
       const sut = new TreeIndex()
       sut.add('classes/MyClass.cls')
 
       // Act & Assert
-      expect(sut.has('classes/Missing.cls')).toBe(false)
+      expect(sut.pathExists('')).toBe(true)
+      expect(sut.pathExists('.')).toBe(true)
+      expect(sut.pathExists('./')).toBe(true)
     })
 
-    it('Given a path whose middle segment is missing, When has is called, Then returns false without throwing', () => {
-      // Arrange — kills navigate L72 ConditionalExpression mutant: with the
-      // `if (!node) return undefined` guard removed, the next iteration
-      // dereferences `undefined.children` and throws TypeError. The
-      // 3-segment path is what exercises the mid-traversal short-circuit;
-      // a 2-segment path leaves the loop on the missing segment naturally.
-      const sut = new TreeIndex()
-      sut.add('classes/MyClass.cls')
-
-      // Act & Assert
-      expect(() => sut.has('classes/Missing/Inner.cls')).not.toThrow()
-      expect(sut.has('classes/Missing/Inner.cls')).toBe(false)
-    })
-
-    it('Given a directory path, When has is called, Then returns false (has checks isFile)', () => {
-      // Arrange
-      const sut = new TreeIndex()
-      sut.add('classes/MyClass.cls')
-
-      // Act & Assert — 'classes' is a trie node but not a file
-      expect(sut.has('classes')).toBe(false)
-    })
-
-    it('Given no files, When allPaths is called, Then returns empty array', () => {
+    it('Given a root path variant against an empty index, When pathExists, Then returns false', () => {
       // Arrange
       const sut = new TreeIndex()
 
       // Act & Assert
-      expect(sut.allPaths()).toEqual([])
+      expect(sut.pathExists('')).toBe(false)
+    })
+
+    it('Given a directory path, When pathExists, Then returns true (delegates to hasPath, not has)', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(sut.pathExists('classes')).toBe(true)
+    })
+
+    it('Given a path absent from the index, When pathExists, Then returns false', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act & Assert
+      expect(sut.pathExists('classes/Missing.cls')).toBe(false)
+    })
+  })
+
+  describe('getFilesPath', () => {
+    const populated = () => {
+      const index = new TreeIndex()
+      index.add('force-app/classes/Foo.cls')
+      index.add('force-app/classes/Bar.cls')
+      index.add('force-app/objects/Baz.object')
+      return index
+    }
+
+    it('Given no files, When getFilesPath is called with the root path, Then it returns an empty array', () => {
+      // Arrange
+      const sut = new TreeIndex()
+
+      // Act & Assert
+      expect(sut.getFilesPath('')).toEqual([])
+    })
+
+    it('Given the root path, When getFilesPath, Then it returns every indexed path', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        [
+          'force-app/classes/Foo.cls',
+          'force-app/classes/Bar.cls',
+          'force-app/objects/Baz.object',
+        ].sort()
+      )
+    })
+
+    it('Given the "." root path variant, When getFilesPath, Then it returns every indexed path', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('.')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        [
+          'force-app/classes/Foo.cls',
+          'force-app/classes/Bar.cls',
+          'force-app/objects/Baz.object',
+        ].sort()
+      )
+    })
+
+    it('Given an exact file path, When getFilesPath, Then it returns only that file', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('force-app/classes/Foo.cls')
+
+      // Assert
+      expect(result).toEqual(['force-app/classes/Foo.cls'])
+    })
+
+    it('Given a directory path, When getFilesPath, Then it returns the files under it', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('force-app/classes')
+
+      // Assert
+      expect(result.sort()).toEqual(
+        ['force-app/classes/Foo.cls', 'force-app/classes/Bar.cls'].sort()
+      )
+    })
+
+    it('Given an array of paths, When getFilesPath, Then it aggregates the results', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath([
+        'force-app/classes/Foo.cls',
+        'force-app/objects/Baz.object',
+      ])
+
+      // Assert
+      expect(result.sort()).toEqual(
+        ['force-app/classes/Foo.cls', 'force-app/objects/Baz.object'].sort()
+      )
+    })
+
+    it('Given a path absent from the index, When getFilesPath, Then it returns an empty array', () => {
+      // Arrange
+      const sut = populated()
+
+      // Act
+      const result = sut.getFilesPath('force-app/missing-dir')
+
+      // Assert
+      expect(result).toEqual([])
+    })
+
+    it('Given a path that is both a file and the root of nested descendants, When getFilesPath is called with that exact path, Then only the file itself is returned, not its descendants', () => {
+      // Arrange — for a plain leaf file, has()===true (correct) and
+      // has()===false (the has() BlockStatement/ConditionalExpression
+      // mutants) both resolve to the same single-entry result, because
+      // getFilesUnder on a childless file node also collects just that
+      // one path — that's why has() and the getFilesPathFor exact-match
+      // guard (`if (this.has(path)) return [path]`) survive against every
+      // fixture above. The two behaviours only diverge when the matched
+      // node is simultaneously a file AND has children: an unusual but
+      // legal trie shape once a path is both copied whole and has
+      // sub-paths indexed under it.
+      const sut = new TreeIndex()
+      sut.add('force-app/classes/Foo.cls')
+      sut.add('force-app/classes/Foo.cls/nested/extra.txt')
+
+      // Act
+      const result = sut.getFilesPath('force-app/classes/Foo.cls')
+
+      // Assert — real: has() short-circuits to the exact match only.
+      // Mutant: has() always false, falls through to getFilesUnder, which
+      // also walks the phantom nested child.
+      expect(result).toEqual(['force-app/classes/Foo.cls'])
     })
   })
 })

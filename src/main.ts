@@ -1,11 +1,14 @@
 'use strict'
 import GitAdapter from './adapter/GitAdapter.js'
 import IOExecutor from './adapter/ioExecutor.js'
+import type { TreeIndex } from './adapter/treeIndex.js'
+import { createTreeReader, EMPTY_TREE_READER } from './adapter/treeReader.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config, ConfigInput } from './types/config.js'
+import type { RunContext } from './types/runContext.js'
 import type { Work } from './types/work.js'
 import ChangeSet from './utils/changeSet.js'
 import { assembleChanges } from './utils/changesAssembly.js'
@@ -59,6 +62,14 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       lines = repoGitDiffHelper.getLines()
     }
 
+    // Built here and threaded to every reader (DiffLineInterpreter,
+    // RenameResolver, IOExecutor, the post-processors) rather than cached
+    // on GitAdapter: one TreeIndex per revision, for this run only, so a
+    // reader can never see a different scope than the one this block just
+    // built under — the lesson from the shared, scope-keyed cache this
+    // replaces (see design history) is that a cache keyed by a value each
+    // reader recomputes is an implicit contract that will drift.
+    let trees = EMPTY_TREE_READER
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
       let scopePaths: string[] = config.source
@@ -68,14 +79,22 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ]
       }
       if (scopePaths.length > 0) {
-        await Promise.all([
-          gitAdapter.preBuildTreeIndex(config.to, scopePaths),
-          gitAdapter.preBuildTreeIndex(config.from, scopePaths),
+        const [toIndex, fromIndex] = await Promise.all([
+          gitAdapter.buildTreeIndex(config.to, scopePaths),
+          gitAdapter.buildTreeIndex(config.from, scopePaths),
         ])
+        const entries = new Map<string, TreeIndex>()
+        // Stryker disable ConditionalExpression -- equivalent: forcing either guard to always run stores `undefined` at that revision key instead of skipping it, but the only reader is createTreeReader's `entries.get(revision) ?? NO_INDEX`, and Map.get answers `undefined` for an absent key and an explicitly-undefined value alike. `entries` is local to this block and exposes no has/size/enumeration, so no observer can tell the two apart
+        if (toIndex) entries.set(config.to, toIndex)
+        if (fromIndex) entries.set(config.from, fromIndex)
+        // Stryker restore ConditionalExpression
+        trees = createTreeReader(entries)
       }
     }
-    const lineProcessor = new DiffLineInterpreter(config, metadata)
-    const postProcessors = getPostProcessors(config, metadata)
+    const ctx: RunContext = { config, metadata, trees }
+
+    const lineProcessor = new DiffLineInterpreter(ctx)
+    const postProcessors = getPostProcessors(ctx)
 
     // First pass: build the read model from handler output alone so collectors
     // (FlowTranslationProcessor) introspect the handler-pass package view before
@@ -88,7 +107,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // RepoGitDiff captured from `-M` output — into (type, from, to) triples.
     // Pairs for ignored paths or bundle helper files (same member on both
     // sides) resolve to no triple.
-    const renameTriples = await new RenameResolver(config, metadata).resolve(
+    const renameTriples = await new RenameResolver(ctx).resolve(
       repoGitDiffHelper.getRenamePairs()
     )
     const {
@@ -97,7 +116,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       warnings: assemblyWarnings,
     } = assembleChanges(handlerResult, postResult, renameTriples)
 
-    await new IOExecutor(config).execute(copies)
+    await new IOExecutor(ctx).execute(copies)
     const processorWarnings = await postProcessors.executeRemaining(changes)
 
     // The diff is fully drained by this point (the same assumption
@@ -119,8 +138,8 @@ export default async (configInput: ConfigInput): Promise<Work> => {
                   // joined aggregate, or one long scope name silently
                   // elides every scope listed after it.
                   unmatchedScopes.map(sanitizeForMessage).join(', '),
-                  requestedFrom,
-                  requestedTo,
+                  sanitizeForMessage(requestedFrom),
+                  sanitizeForMessage(requestedTo),
                 ]
               )
             ),

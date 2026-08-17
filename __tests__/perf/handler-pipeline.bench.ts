@@ -3,6 +3,7 @@ import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { getContext } from '../__utils__/testWork.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
@@ -10,9 +11,7 @@ vi.mock('../../src/adapter/GitAdapter.js', () => {
     pathExists: vi.fn().mockResolvedValue(true),
     getStringContent: vi.fn().mockResolvedValue('<xml>mock</xml>'),
     getBufferContent: vi.fn().mockResolvedValue(Buffer.from('<xml>mock</xml>')),
-    getFilesPath: vi.fn().mockResolvedValue([]),
-    listDirAtRevision: vi.fn().mockResolvedValue([]),
-    preBuildTreeIndex: vi.fn().mockResolvedValue(undefined),
+    buildTreeIndex: vi.fn().mockResolvedValue(undefined),
     grepUnderPaths: vi.fn().mockResolvedValue([]),
     grepMatchingPathspecs: vi.fn().mockResolvedValue([]),
   }
@@ -32,6 +31,7 @@ const createConfig = (): Config => ({
   generateDelta: true,
   to: 'HEAD',
   from: 'HEAD~1',
+  mergeBase: false,
   ignore: '',
   ignoreDestructive: '',
   apiVersion: -1,
@@ -49,7 +49,9 @@ for (const size of sizes) {
   describe(`pipeline-handler-${size}`, () => {
     bench(`pipeline-handler-dispatch-${size}`, async () => {
       const config = createConfig()
-      const interpreter = new DiffLineInterpreter(config, metadata)
+      const interpreter = new DiffLineInterpreter(
+        getContext({ config, metadata })
+      )
       await interpreter.process(lines)
     })
   })

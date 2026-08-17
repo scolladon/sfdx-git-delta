@@ -13,7 +13,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const objectType = {
   directoryName: 'discovery',
@@ -56,7 +56,11 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, config)
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      getContext({ config })
+    )
 
     // Act
     const result = await sut.collectAddition()
@@ -80,7 +84,11 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, config)
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      getContext({ config })
+    )
 
     // Act
     const result = await sut.collect()
@@ -105,7 +113,11 @@ describe('SharedFolderHandler', () => {
       objectType,
       globalMetadata
     )
-    const sut = new SharedFolderHandler(changeType, element, config)
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      getContext({ config })
+    )
 
     // Act
     const result = await sut.collect()
@@ -113,6 +125,29 @@ describe('SharedFolderHandler', () => {
     // Assert
     expect(elementsOf(result)).toHaveLength(0)
     expect(result.copies).toHaveLength(0)
+  })
+
+  it('Given unknown extension without resolved type, When getElementDescriptor is called directly, Then it throws (kills L23 NoCoverage defensive guard)', async () => {
+    // Arrange — TypeHandlerFactory only ever routes to SharedFolderHandler
+    // via a resolvable extension, so getElementDescriptor's guard is
+    // unreachable through the normal call chain; still a genuine safety
+    // net that must fail loudly rather than returning a bogus descriptor.
+    const unknownLine = `A       ${basePath}${objectType}/Test.unknownext`
+    const { changeType, element } = createElement(
+      unknownLine,
+      objectType,
+      globalMetadata
+    )
+    const sut = new SharedFolderHandler(
+      changeType,
+      element,
+      getContext({ config })
+    )
+
+    // Act & Assert
+    expect(() => sut.getElementDescriptor()).toThrow(
+      `SharedFolderHandler: resolvedType is missing for ${element.fullPath}`
+    )
   })
 
   describe('when extension has no matching type', () => {
@@ -124,7 +159,11 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -141,7 +180,11 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -161,7 +204,11 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -190,7 +237,11 @@ describe('SharedFolderHandler', () => {
         objectType,
         globalMetadata
       )
-      const sut = new SharedFolderHandler(changeType, element, config)
+      const sut = new SharedFolderHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()

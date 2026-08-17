@@ -1,8 +1,7 @@
 'use strict'
-import { MetadataRepository } from '../metadata/MetadataRepository.js'
-import type { Config } from '../types/config.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
@@ -13,10 +12,7 @@ import FlowTranslationProcessor from './flowTranslationProcessor.js'
 import IncludeProcessor from './includeProcessor.js'
 import PackageGenerator from './packageGenerator.js'
 
-type ProcessorConstructor = new (
-  config: Config,
-  metadata: MetadataRepository
-) => BaseProcessor
+type ProcessorConstructor = new (ctx: RunContext) => BaseProcessor
 
 const registeredProcessors: ProcessorConstructor[] = [
   FlowTranslationProcessor,
@@ -56,7 +52,7 @@ export default class PostProcessorManager {
         results.push(await collector.transformAndCollect(changes))
       } catch (error) {
         const message = `${collector.constructor.name}: ${getErrorMessage(error)}`
-        // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning and the failed result push, not on the lazy log line
+        // Stryker disable next-line StringLiteral,CallExpression -- equivalent: lazy log content AND the call itself are observability only; this file mocks LoggingService, and tests assert on the wrapped warning and the failed result push, not on the emission
         Logger.warn(lazy`${message}`)
         results.push({
           elements: [],
@@ -79,22 +75,19 @@ export default class PostProcessorManager {
       return outcome.warnings
     } catch (error) {
       const message = `${postProcessor.constructor.name}: ${getErrorMessage(error)}`
-      // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only; tests assert on the wrapped warning returned to the caller, not on the lazy log line
+      // Stryker disable next-line StringLiteral,CallExpression -- equivalent: lazy log content AND the call itself are observability only; this file mocks LoggingService, and tests assert on the wrapped warning returned to the caller, not on the emission
       Logger.warn(lazy`${message}`)
       return [wrapError(message, error)]
     }
   }
 }
 
-export const getPostProcessors = (
-  config: Config,
-  metadata: MetadataRepository
-) => {
+export const getPostProcessors = (ctx: RunContext) => {
   const postProcessor = new PostProcessorManager()
 
   // Stryker disable next-line BlockStatement -- equivalent: emptying the body skips registering processors; the resulting PostProcessorManager has empty processor/collector lists and executeRemaining()/collectAll() return early — tests assert the registered processor count, but not via this empty-state path
   for (const processor of registeredProcessors) {
-    const instance = new processor(config, metadata)
+    const instance = new processor(ctx)
     postProcessor.use(instance)
   }
 

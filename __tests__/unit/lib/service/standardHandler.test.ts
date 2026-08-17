@@ -20,7 +20,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const testSuitesType = {
   directoryName: 'testSuites',
@@ -66,7 +66,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -100,7 +104,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -119,7 +127,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -145,7 +157,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -164,7 +180,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -183,7 +203,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -203,7 +227,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
       vi.spyOn(sut, 'collectAddition').mockRejectedValueOnce(
         new Error('test error')
       )
@@ -227,7 +255,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -248,7 +280,11 @@ describe(`StandardHandler`, () => {
         testSuitesType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -268,7 +304,11 @@ describe(`StandardHandler`, () => {
         classType,
         globalMetadata
       )
-      const sut = new StandardHandler(changeType, element, config)
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = sut.toString()

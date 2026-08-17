@@ -245,3 +245,68 @@ export const buildFixtureRepo = (dir: string): FixtureRefs => {
 
   return { root, diffFrom, diffTo, renameTo, head }
 }
+
+export type MetadataFixtureRefs = {
+  // The very first commit — no parents. What getFirstCommitRef() resolves to.
+  root: string
+  // HEAD — carries both the root commit's resource and a second one added
+  // on top of it.
+  head: string
+}
+
+export const EXISTING_RESOURCE_META =
+  'force-app/main/default/staticresources/ExistingResource/ExistingResource.resource-meta.xml'
+export const EXISTING_RESOURCE_FILE =
+  'force-app/main/default/staticresources/ExistingResource/images/logo.png'
+export const NEW_RESOURCE_META =
+  'force-app/main/default/staticresources/NewResource/NewResource.resource-meta.xml'
+export const NEW_RESOURCE_FILE =
+  'force-app/main/default/staticresources/NewResource/images/photo.png'
+
+/**
+ * A minimal SFDX-shaped history: a root commit carrying one nested
+ * StaticResource bundle, and a second commit adding a sibling bundle on top
+ * of it. Nested (bundle/subfolder/file) so metadata boundary resolution for
+ * files under it walks through the git-backed scan path rather than
+ * resolving in a single fromPath lookup — the shape the include path
+ * (ADDITION from the root commit, DELETION back to it) exercises.
+ */
+export const buildMetadataFixtureRepo = (dir: string): MetadataFixtureRefs => {
+  runGit(['init', '--quiet'], { cwd: dir })
+
+  const root = makeCommit(dir, null, 'add existing static resource', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: EXISTING_RESOURCE_META,
+      content:
+        '<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: EXISTING_RESOURCE_FILE,
+      content: 'logo content\n',
+    },
+  ])
+
+  const head = makeCommit(dir, root, 'add new static resource', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: NEW_RESOURCE_META,
+      content:
+        '<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: NEW_RESOURCE_FILE,
+      content: 'photo content\n',
+    },
+  ])
+
+  runGit(['update-ref', 'HEAD', head], { cwd: dir })
+
+  return { root, head }
+}

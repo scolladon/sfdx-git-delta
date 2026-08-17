@@ -20,7 +20,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { elementsOf } from '../../../__utils__/handlerResultView'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/adapter/GitAdapter')
 vi.mock('../../../../src/utils/LoggingService')
@@ -28,9 +28,6 @@ vi.mock('../../../../src/utils/LoggingService')
 const processSpy = vi.fn()
 
 class TestProcessor extends BaseProcessor {
-  constructor(config: Config, metadata: MetadataRepository) {
-    super(config, metadata)
-  }
   override async process(_changes: ChangeSet): Promise<ProcessorOutcome> {
     await processSpy()
     return emptyOutcome()
@@ -39,9 +36,6 @@ class TestProcessor extends BaseProcessor {
 
 class TestCollector extends BaseProcessor {
   public mockResult: HandlerResult = emptyResult()
-  constructor(config: Config, metadata: MetadataRepository) {
-    super(config, metadata)
-  }
   override get isCollector(): boolean {
     return true
   }
@@ -70,7 +64,7 @@ describe('postProcessorManager', () => {
   describe('getPostProcessors', () => {
     it('Given config and metadata, When called, Then returns manager that can execute', async () => {
       // Arrange
-      const sut = getPostProcessors(config, metadata)
+      const sut = getPostProcessors(getContext({ config, metadata }))
 
       // Act & Assert
       await expect(sut.collectAll(new ChangeSet())).resolves.toBeDefined()
@@ -81,7 +75,7 @@ describe('postProcessorManager', () => {
       // With registeredProcessors=[] mutant, no collectors exist and executeRemaining/collectAll
       // would be no-ops. We verify that executeRemaining() is a no-op for non-Include
       // processors — i.e., processSpy is NOT called by getPostProcessors alone.
-      const sut = getPostProcessors(config, metadata)
+      const sut = getPostProcessors(getContext({ config, metadata }))
 
       // Act — executeRemaining() runs all non-collector processors
       // If registeredProcessors=[] the manager has no processors at all.
@@ -107,8 +101,10 @@ describe('postProcessorManager', () => {
       // Mutant registeredProcessors=[]: manager gets no processors from getPostProcessors.
       // We add a TestProcessor via use() after getPostProcessors and verify executeRemaining
       // runs it — this confirms use() works AND that getPostProcessors returns a live manager.
-      const sut = getPostProcessors(config, metadata)
-      sut.use(new TestProcessor(config, metadata) as BaseProcessor)
+      const sut = getPostProcessors(getContext({ config, metadata }))
+      sut.use(
+        new TestProcessor(getContext({ config, metadata })) as BaseProcessor
+      )
 
       await sut.executeRemaining(new ChangeSet())
 
@@ -118,8 +114,10 @@ describe('postProcessorManager', () => {
 
     it('Given getPostProcessors, When use is called on returned manager, Then processor is executed (kills L90 BlockStatement {})', async () => {
       // Arrange
-      const sut = getPostProcessors(config, metadata)
-      sut.use(new TestProcessor(config, metadata) as BaseProcessor)
+      const sut = getPostProcessors(getContext({ config, metadata }))
+      sut.use(
+        new TestProcessor(getContext({ config, metadata })) as BaseProcessor
+      )
 
       // Act
       await sut.executeRemaining(new ChangeSet())
@@ -132,7 +130,9 @@ describe('postProcessorManager', () => {
     it('Given a new processor, When use is called, Then executeRemaining invokes it', async () => {
       // Arrange
       const sut = new PostProcessorManager()
-      sut.use(new TestProcessor(config, metadata) as BaseProcessor)
+      sut.use(
+        new TestProcessor(getContext({ config, metadata })) as BaseProcessor
+      )
 
       // Act
       await sut.executeRemaining(new ChangeSet())
@@ -151,7 +151,11 @@ describe('postProcessorManager', () => {
           const localConfig = getConfig()
           const sut = new PostProcessorManager()
           for (let i = 0; i < expectedCount; i++) {
-            sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+            sut.use(
+              new TestProcessor(
+                getContext({ config: localConfig, metadata })
+              ) as BaseProcessor
+            )
           }
 
           // Act
@@ -169,7 +173,11 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(
+        new TestProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
       processSpy.mockImplementationOnce(() =>
         Promise.reject(new Error('Some error'))
       )
@@ -189,9 +197,21 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
-      sut.use(new IncludeProcessor(localConfig, metadata) as BaseProcessor)
-      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(
+        new TestProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
+      sut.use(
+        new IncludeProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
+      sut.use(
+        new TestProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
 
       // Act
       await sut.executeRemaining(new ChangeSet())
@@ -204,7 +224,11 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(
+        new TestProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
       processSpy.mockImplementationOnce(() =>
         Promise.reject(new Error('executeRemaining error'))
       )
@@ -223,7 +247,11 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(
+        new TestProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
 
       // Act
       const result = await sut.collectAll(new ChangeSet())
@@ -238,7 +266,11 @@ describe('postProcessorManager', () => {
       // Arrange — manager with only a non-collector processor
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      sut.use(new TestProcessor(localConfig, metadata) as BaseProcessor)
+      sut.use(
+        new TestProcessor(
+          getContext({ config: localConfig, metadata })
+        ) as BaseProcessor
+      )
 
       // Act
       const result = await sut.collectAll(new ChangeSet())
@@ -254,7 +286,9 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      const collector = new TestCollector(localConfig, metadata)
+      const collector = new TestCollector(
+        getContext({ config: localConfig, metadata })
+      )
       collector.mockResult = {
         elements: [
           {
@@ -281,7 +315,9 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      const collector = new TestCollector(localConfig, metadata)
+      const collector = new TestCollector(
+        getContext({ config: localConfig, metadata })
+      )
       collector.mockResult = {
         elements: [
           {
@@ -308,7 +344,9 @@ describe('postProcessorManager', () => {
       // Arrange
       const localConfig = getConfig()
       const sut = new PostProcessorManager()
-      const includeProcessor = new IncludeProcessor(localConfig, metadata)
+      const includeProcessor = new IncludeProcessor(
+        getContext({ config: localConfig, metadata })
+      )
       vi.spyOn(includeProcessor, 'transformAndCollect').mockRejectedValueOnce(
         new Error('collectAll error')
       )

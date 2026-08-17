@@ -4,6 +4,7 @@ import { join } from 'node:path/posix'
 import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
+import type { RunContext } from '../types/runContext.js'
 
 import { getErrorMessage } from './errorUtils.js'
 import { outputFile } from './fsUtils.js'
@@ -30,18 +31,20 @@ export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   return utf8Data
 }
 
-export const pathExists = async (path: string, config: Config) => {
-  const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.pathExists(path)
-}
+// Both read the run-owned tree reader for `config.to` — supplied by the
+// caller (ultimately main.ts) rather than rebuilt here, so there is no
+// scope for this lookup to disagree with whatever scope the index was
+// actually built under. A revision nobody built an index for (or an index
+// build that failed) degrades to false/[] rather than indexing lazily.
+export const pathExists = async (
+  path: string,
+  ctx: RunContext
+): Promise<boolean> => ctx.trees.pathExists(ctx.config.to, path)
 
 export const readDirs = async (
   paths: string | string[],
-  config: Config
-): Promise<string[]> => {
-  const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.getFilesPath(paths)
-}
+  ctx: RunContext
+): Promise<string[]> => ctx.trees.filesUnder(ctx.config.to, paths)
 
 export const grepContentUnder = async (
   pattern: string,
@@ -49,7 +52,7 @@ export const grepContentUnder = async (
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.grepUnderPaths(pattern, path)
+  return await gitAdapter.grepUnderPaths(pattern, path, config.to)
 }
 
 export const grepContentMatching = async (
@@ -58,7 +61,7 @@ export const grepContentMatching = async (
   config: Config
 ): Promise<string[]> => {
   const gitAdapter = GitAdapter.getInstance(config)
-  return await gitAdapter.grepMatchingPathspecs(pattern, pathspecs)
+  return await gitAdapter.grepMatchingPathspecs(pattern, pathspecs, config.to)
 }
 
 export const contentIncludes = async (

@@ -10,7 +10,7 @@ import type { Config } from '../../../../src/types/config'
 import { ChangeKind } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { addChange } from '../../../__utils__/handlerResultView'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const {
   mockBuildPackageStream,
@@ -69,7 +69,7 @@ describe('PackageGenerator', () => {
     it('writes destructiveChanges.xml, package.xml, and the empty destructive package.xml', async () => {
       // Arrange
       changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Foo')
-      const sut = new PackageGenerator(config, metadata)
+      const sut = new PackageGenerator(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -86,7 +86,7 @@ describe('PackageGenerator', () => {
 
     it('When process runs, Then mkdir is called with recursive: true for each write (kills L54 ObjectLiteral {} and BooleanLiteral false)', async () => {
       // Arrange
-      const sut = new PackageGenerator(config, metadata)
+      const sut = new PackageGenerator(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -102,7 +102,7 @@ describe('PackageGenerator', () => {
       // Arrange
       changes = addChange(changes, ChangeKind.Add, 'ApexClass', 'Foo')
       changes = addChange(changes, ChangeKind.Delete, 'ApexClass', 'Bar')
-      const sut = new PackageGenerator(config, metadata)
+      const sut = new PackageGenerator(getContext({ config, metadata }))
 
       // Act
       await sut.process(changes)
@@ -143,7 +143,7 @@ describe('PackageGenerator', () => {
         for (const [type, member] of del) {
           changes = addChange(changes, ChangeKind.Delete, type, member)
         }
-        const sut = new PackageGenerator(config, metadata)
+        const sut = new PackageGenerator(getContext({ config, metadata }))
 
         // Act
         await sut.process(changes)

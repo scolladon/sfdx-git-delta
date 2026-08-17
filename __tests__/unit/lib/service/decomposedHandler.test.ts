@@ -11,7 +11,7 @@ import {
 } from '../../../../src/types/handlerResult'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
-import { getConfig } from '../../../__utils__/testWork'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
@@ -50,7 +50,11 @@ describe('DecomposedHandler', () => {
           recordTypeWithParent,
           globalMetadata
         )
-        const sut = new DecomposedHandler(changeType, element, config)
+        const sut = new DecomposedHandler(
+          changeType,
+          element,
+          getContext({ config })
+        )
 
         // Act
         const result =
@@ -76,7 +80,11 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectDeletion()
@@ -101,7 +109,11 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -133,7 +145,11 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collect()
@@ -160,7 +176,11 @@ describe('DecomposedHandler', () => {
         recordTypeWithParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()
@@ -203,7 +223,11 @@ describe('DecomposedHandler', () => {
         recordTypeWithoutParent,
         globalMetadata
       )
-      const sut = new DecomposedHandler(changeType, element, config)
+      const sut = new DecomposedHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
 
       // Act
       const result = await sut.collectAddition()

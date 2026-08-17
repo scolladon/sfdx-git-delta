@@ -11,6 +11,7 @@ import type {
   StreamedContentOperation,
 } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
+import type { RunContext } from '../types/runContext.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
@@ -31,20 +32,14 @@ export default class IOExecutor {
   protected ignoreHelper!: IgnoreHelper
 
   constructor(
-    protected readonly config: Config,
-    protected readonly blobReaderForRevision: (
-      revision: string
-    ) => GitBlobReader = revision =>
-      IOExecutor._defaultBlobReaderForRevision(config, revision)
+    protected readonly ctx: RunContext,
+    protected readonly blobReader: GitBlobReader = GitAdapter.getInstance(
+      ctx.config
+    )
   ) {}
 
-  private static _defaultBlobReaderForRevision(
-    config: Config,
-    revision: string
-  ): GitBlobReader {
-    const adapterConfig =
-      revision !== config.to ? { ...config, to: revision } : config
-    return GitAdapter.getInstance(adapterConfig)
+  protected get config(): Config {
+    return this.ctx.config
   }
 
   public async execute(copies: readonly CopyOperation[]): Promise<void> {
@@ -81,14 +76,6 @@ export default class IOExecutor {
     }
   }
 
-  protected _getGitAdapter(revision: string): GitAdapter {
-    const config =
-      revision !== this.config.to
-        ? { ...this.config, to: revision }
-        : this.config
-    return GitAdapter.getInstance(config)
-  }
-
   // Defense-in-depth shared by every copy path: reject any destination that
   // resolves outside `config.output` (zip-slip). Tree paths from the object
   // store should never contain '..', but a crafted store must not be able to
@@ -105,18 +92,19 @@ export default class IOExecutor {
     const ref: FileGitRef = { path: op.path, oid: op.revision }
     const dst = join(this.config.output, op.path)
     if (!this._isWithinOutput(dst)) {
+      // Stryker disable next-line StringLiteral,CallExpression -- equivalent: the log content and the call itself are observability only; the guard's real effect (no getBufferContentOrEscalate, no outputFile) is asserted by the escape-path tests
       Logger.debug(lazy`IOExecutor gitFileCopy out-of-output dst ${dst}`)
       return
     }
-    const reader = this.blobReaderForRevision(op.revision)
     try {
-      const content = await reader.getBufferContentOrEscalate(ref)
+      const content = await this.blobReader.getBufferContentOrEscalate(ref)
       await outputFile(dst, content)
     } catch (error) {
       if (error instanceof EscalateToStreamingSignal) {
-        await this._streamCopyWithAtomicRename(reader, ref, dst)
+        await this._streamCopyWithAtomicRename(this.blobReader, ref, dst)
         return
       }
+      // Stryker disable next-line CallExpression -- equivalent: removing the call entirely is observability only; the swallowed error's real effect (no outputFile) is already asserted
       Logger.debug(
         // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests assert on the swallowed error producing no output side-effect
         lazy`IOExecutor gitFileCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
@@ -139,10 +127,9 @@ export default class IOExecutor {
     revision: string
   }): Promise<void> {
     try {
-      const gitAdapter = this._getGitAdapter(op.revision)
-      const filePaths = await gitAdapter.getFilesPath(op.path)
+      const filePaths = this.ctx.trees.filesUnder(op.revision, op.path)
       if (filePaths.length > GIT_ARCHIVE_DIR_THRESHOLD) {
-        await this._executeGitDirCopyViaArchive(gitAdapter, op, filePaths)
+        await this._executeGitDirCopyViaArchive(this.blobReader, op, filePaths)
         return
       }
       for (const filePath of filePaths) {
@@ -151,10 +138,11 @@ export default class IOExecutor {
         }
         const dst = join(this.config.output, filePath)
         if (!this._isWithinOutput(dst)) {
+          // Stryker disable next-line StringLiteral,CallExpression -- equivalent: the log content and the call itself are observability only; the skip's real effect (no getBufferContent, no outputFile for that child) is asserted by the escaping-child test
           Logger.debug(lazy`IOExecutor gitDirCopy out-of-output dst ${dst}`)
           continue
         }
-        const content = await gitAdapter.getBufferContent({
+        const content = await this.blobReader.getBufferContent({
           path: filePath,
           oid: op.revision,
         })
@@ -162,7 +150,7 @@ export default class IOExecutor {
         this.processedPaths.add(filePath)
       }
     } catch (error) {
-      // Stryker disable next-line BlockStatement -- equivalent: catch body is observability-only; emptying it skips the lazy log call but tests assert on the swallowed error not producing copies
+      // Stryker disable next-line BlockStatement,CallExpression -- equivalent: catch body is observability-only; emptying it, or dropping the call, skips only the lazy log — tests assert on the swallowed error not producing copies
       Logger.debug(
         // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only
         lazy`IOExecutor gitDirCopy failed for ${op.path}: ${() => getErrorMessage(error)}`
@@ -213,6 +201,11 @@ export default class IOExecutor {
     op: StreamedContentOperation
   ): Promise<void> {
     const dst = join(this.config.output, op.path)
+    if (!this._isWithinOutput(dst)) {
+      // Stryker disable next-line StringLiteral,CallExpression -- equivalent: the log content and the call itself are observability only; the guard's real effect (writer never invoked) is asserted by the escape-path StreamedContent test
+      Logger.debug(lazy`IOExecutor streamedContent out-of-output dst ${dst}`)
+      return
+    }
     await this._writeAtomicallyViaTmp(dst, op.writer)
   }
 
@@ -238,6 +231,7 @@ export default class IOExecutor {
       ws.destroy()
       /* v8 ignore next -- defensive cleanup: best-effort tmp removal swallows ENOENT and permission errors */
       await fsPromises.unlink(tmp).catch(() => undefined)
+      // Stryker disable next-line CallExpression -- equivalent: removing the call entirely is observability only; the failed write's real effects (unlink called, rename not called, stream destroyed) are already asserted
       Logger.debug(
         // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests assert on the failed-write side-effect (no output file)
         lazy`IOExecutor atomicWrite failed for ${dst}: ${() => getErrorMessage(error)}`

@@ -12,7 +12,8 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { getConfig } from '../../../__utils__/testWork'
+import type { RunContext } from '../../../../src/types/runContext'
+import { getConfig, getContext } from '../../../__utils__/testWork'
 
 // `collect()` returns the elements it contributed — no shared sink. We hoist
 // a mock that resolves a HandlerResult directly, mirroring the production
@@ -42,13 +43,15 @@ beforeEach(() => {
 
 describe('DiffLineInterpreter', () => {
   let sut: DiffLineInterpreter
+  let ctx: RunContext
   let globalMetadata: MetadataRepository
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
   })
 
   beforeEach(() => {
-    sut = new DiffLineInterpreter(config, globalMetadata)
+    ctx = getContext({ config, metadata: globalMetadata })
+    sut = new DiffLineInterpreter(ctx)
   })
 
   describe('when called with lines', () => {
@@ -188,12 +191,12 @@ describe('DiffLineInterpreter', () => {
       // Act
       await sut.process(['line'], revisions)
 
-      // Assert — TypeHandlerFactory constructor first arg is effectiveConfig
-      const effectiveConfig = MockedTypeHandlerFactory.mock.calls.at(
+      // Assert — TypeHandlerFactory constructor first arg is effectiveCtx
+      const effectiveCtx = MockedTypeHandlerFactory.mock.calls.at(
         -1
-      )![0] as Config
-      expect(effectiveConfig.from).toBe('rev-from')
-      expect(effectiveConfig.to).toBe('rev-to')
+      )![0] as RunContext
+      expect(effectiveCtx.config.from).toBe('rev-from')
+      expect(effectiveCtx.config.to).toBe('rev-to')
     })
 
     it('When revisions provided, Then TypeHandlerFactory receives config with all original config fields preserved', async () => {
@@ -208,26 +211,26 @@ describe('DiffLineInterpreter', () => {
       await sut.process(['line'], revisions)
 
       // Assert — effectiveConfig must retain all original config properties
-      const effectiveConfig = MockedTypeHandlerFactory.mock.calls.at(
+      const effectiveCtx = MockedTypeHandlerFactory.mock.calls.at(
         -1
-      )![0] as Config
-      expect(effectiveConfig.generateDelta).toBe(true)
-      expect(effectiveConfig.output).toBe('custom-output')
-      expect(effectiveConfig.source).toBe(config.source)
+      )![0] as RunContext
+      expect(effectiveCtx.config.generateDelta).toBe(true)
+      expect(effectiveCtx.config.output).toBe('custom-output')
+      expect(effectiveCtx.config.source).toBe(config.source)
     })
 
-    it('When no revisions provided, Then TypeHandlerFactory receives the original config reference', async () => {
-      // Arrange — when revisions is undefined, effectiveConfig should equal config (same reference)
+    it('When no revisions provided, Then TypeHandlerFactory receives the original context reference', async () => {
+      // Arrange — when revisions is undefined, effectiveCtx should equal ctx (same reference)
       mockCollect.mockResolvedValue(emptyResult())
 
       // Act
       await sut.process(['line'])
 
       // Assert
-      const effectiveConfig = MockedTypeHandlerFactory.mock.calls.at(
+      const effectiveCtx = MockedTypeHandlerFactory.mock.calls.at(
         -1
-      )![0] as Config
-      expect(effectiveConfig).toBe(config)
+      )![0] as RunContext
+      expect(effectiveCtx).toBe(ctx)
     })
   })
 })

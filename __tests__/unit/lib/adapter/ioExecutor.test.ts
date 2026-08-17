@@ -5,6 +5,10 @@ import type { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EscalateToStreamingSignal } from '../../../../src/adapter/gitBlobReader'
 import IOExecutor from '../../../../src/adapter/ioExecutor'
+import {
+  createTreeReader,
+  type TreeReader,
+} from '../../../../src/adapter/treeReader'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
 import { outputFile } from '../../../../src/utils/fsUtils'
@@ -12,7 +16,8 @@ import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
-import { getWork } from '../../../__utils__/testWork'
+import { Logger } from '../../../../src/utils/LoggingService'
+import { getContext, getWork } from '../../../__utils__/testWork'
 
 const { mockCreateWriteStream, mockMkdir, mockRename, mockUnlink } = vi.hoisted(
   () => ({
@@ -48,7 +53,6 @@ vi.mock('../../../../src/utils/LoggingService')
 
 const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 
-const mockGetFilesPath = vi.fn<(path: string) => Promise<string[]>>()
 const mockGetBufferContent =
   vi.fn<(forRef: { path: string; oid: string }) => Promise<Buffer>>()
 const mockGetBufferContentOrEscalate =
@@ -63,10 +67,30 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
   }
 })
 
+// filesUnder moved off GitAdapter onto the run-owned TreeReader: IOExecutor
+// reads it straight off the RunContext it is constructed with, separate
+// from the blob reader. The revision is now the reader method's own first
+// argument, so tests assert both which revision was asked for and what the
+// index was asked to enumerate in the same call.
+const mockFilesUnder = vi.fn<(revision: string, path: string) => string[]>()
+const treeReader = {
+  pathExists: vi.fn(),
+  filesUnder: mockFilesUnder,
+  children: vi.fn(),
+} as unknown as TreeReader
+
+// streamArchive stub for the cases that assert the archive path is not
+// taken: the generator must exist, but must never produce a chunk.
+const emptyArchiveStream = async function* (): AsyncGenerator<{
+  path: string
+  stream: Readable
+}> {
+  yield* []
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetInstance.mockReturnValue({
-    getFilesPath: mockGetFilesPath,
     getBufferContent: mockGetBufferContent,
     getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
     streamContent: mockStreamContent,
@@ -108,7 +132,9 @@ describe('IOExecutor', () => {
       work.config.generateDelta = false
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
@@ -122,7 +148,7 @@ describe('IOExecutor', () => {
       await executor.execute(copies)
 
       // Assert
-      expect(mockGetFilesPath).not.toHaveBeenCalled()
+      expect(mockFilesUnder).not.toHaveBeenCalled()
       expect(outputFile).toHaveBeenCalled()
     })
   })
@@ -133,7 +159,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(
         Buffer.from('class content')
       )
@@ -165,7 +193,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await executor.execute([
@@ -188,7 +218,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await executor.execute([
@@ -211,7 +243,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = '.'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -237,8 +271,10 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-      mockGetFilesPath.mockResolvedValue(['../escape.cls', 'objects/Kept.cls'])
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue(['../escape.cls', 'objects/Kept.cls'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('kept'))
 
       // Act
@@ -265,7 +301,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
       const copies: CopyOperation[] = [
         {
@@ -293,7 +331,9 @@ describe('IOExecutor', () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockBuildIgnoreHelper.mockResolvedValue({
         globalIgnore: {
           ignores: () => true,
@@ -310,7 +350,7 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetFilesPath).not.toHaveBeenCalled()
+      expect(mockFilesUnder).not.toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
@@ -321,7 +361,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockRejectedValue(new Error('git error'))
 
       // Act & Assert (should not throw)
@@ -339,12 +381,14 @@ describe('IOExecutor', () => {
   })
 
   describe('Given a GitCopy operation with a different revision than config.to', () => {
-    it('When executed, Then calls GitAdapter.getInstance with modified config', async () => {
+    it('When executed, Then the ref carries op.revision and GitAdapter.getInstance is still called with the unmodified config', async () => {
       // Arrange
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -356,10 +400,14 @@ describe('IOExecutor', () => {
         },
       ])
 
-      // Assert
-      expect(mockGetInstance).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'different-sha' })
-      )
+      // Assert — the revision travels through the FileGitRef passed to the
+      // blob reader, not through a rebuilt GitAdapter instance.
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'classes/MyClass.cls',
+        oid: 'different-sha',
+      })
+      expect(mockGetInstance).toHaveBeenCalledTimes(1)
+      expect(mockGetInstance).toHaveBeenCalledWith(work.config)
     })
   })
 
@@ -369,7 +417,9 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -394,8 +444,10 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-      mockGetFilesPath.mockResolvedValue([
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue([
         'permissionsets/MyPS/file1.xml',
         'permissionsets/MyPS/file2.xml',
       ])
@@ -411,20 +463,56 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(mockGetFilesPath).toHaveBeenCalledWith('permissionsets/MyPS')
+      expect(mockFilesUnder).toHaveBeenCalledWith(
+        'abc123',
+        'permissionsets/MyPS'
+      )
       expect(mockGetBufferContent).toHaveBeenCalledTimes(2)
       expect(outputFile).toHaveBeenCalledTimes(2)
     })
   })
 
-  describe('Given a GitDirCopy operation with a different revision than config.to', () => {
-    it('When executed, Then calls GitAdapter.getInstance with modified config', async () => {
+  describe('Given a GitDirCopy operation whose revision has no built tree index', () => {
+    it('When executed, Then no files are copied (degrades to empty, not a throw)', async () => {
       // Arrange
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-      mockGetFilesPath.mockResolvedValue(['permissionsets/MyPS/file1.xml'])
+      const unbuiltTreeReader = createTreeReader(new Map())
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: unbuiltTreeReader })
+      )
+
+      // Act
+      await executor.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'permissionsets/MyPS',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContent).not.toHaveBeenCalled()
+      expect(outputFile).not.toHaveBeenCalled()
+      // The reader's own degrade (an unindexed revision answers `[]`) must
+      // reach IOExecutor as a clean empty array, not throw: Logger.debug is
+      // the only observable signal the surrounding try/catch would emit if
+      // something actually threw instead of degrading cleanly.
+      expect(Logger.debug).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given a GitDirCopy operation with a different revision than config.to', () => {
+    it('When executed, Then getFilesPath is called with (op.path, op.revision) and GitAdapter.getInstance is called exactly once with the unmodified config', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue(['permissionsets/MyPS/file1.xml'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -436,21 +524,34 @@ describe('IOExecutor', () => {
         },
       ])
 
-      // Assert
-      expect(mockGetInstance).toHaveBeenCalledWith(
-        expect.objectContaining({ to: 'different-sha' })
+      // Assert — the revision travels through the op, not through a
+      // rebuilt GitAdapter instance: getInstance is called exactly once,
+      // at construction, with the unmodified config.
+      expect(mockFilesUnder).toHaveBeenCalledWith(
+        'different-sha',
+        'permissionsets/MyPS'
       )
+      expect(mockGetInstance).toHaveBeenCalledTimes(1)
+      expect(mockGetInstance).toHaveBeenCalledWith(work.config)
     })
   })
 
   describe('Given a GitDirCopy operation that fails', () => {
     it('When executed, Then logs the error and continues', async () => {
-      // Arrange
+      // Arrange — the failure is triggered from getBufferContent (real git
+      // blob I/O, genuinely throwing/rejecting), not from getFilesPath: the
+      // latter is a pure synchronous TreeIndex trie walk that cannot throw,
+      // so pinning the catch-and-log behavior through it would test an
+      // unreachable path. getBufferContent is a real throw source the same
+      // try/catch also guards.
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-      mockGetFilesPath.mockRejectedValue(new Error('dir error'))
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue(['permissionsets/MyPS/file1.xml'])
+      mockGetBufferContent.mockRejectedValue(new Error('dir error'))
 
       // Act & Assert (should not throw)
       await executor.execute([
@@ -461,7 +562,7 @@ describe('IOExecutor', () => {
         },
       ])
 
-      expect(mockGetFilesPath).toHaveBeenCalled()
+      expect(mockFilesUnder).toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
@@ -472,8 +573,10 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-      mockGetFilesPath.mockResolvedValue([
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue([
         'permissionsets/MyPS/kept.xml',
         'permissionsets/MyPS/ignored.xml',
       ])
@@ -507,13 +610,15 @@ describe('IOExecutor', () => {
     it('When executed, Then does nothing', async () => {
       // Arrange
       const work = getWork()
-      const executor = new IOExecutor(work.config)
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await executor.execute([])
 
       // Assert
-      expect(mockGetFilesPath).not.toHaveBeenCalled()
+      expect(mockFilesUnder).not.toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
     })
   })
@@ -524,8 +629,10 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      const executor = new IOExecutor(work.config)
-      mockGetFilesPath.mockResolvedValue(['permissionsets/MyPS/file1.xml'])
+      const executor = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue(['permissionsets/MyPS/file1.xml'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('content'))
 
       // Act
@@ -543,7 +650,43 @@ describe('IOExecutor', () => {
       ])
 
       // Assert - second GitDirCopy is skipped because path is already processed
-      expect(mockGetFilesPath).toHaveBeenCalledTimes(1)
+      expect(mockFilesUnder).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('Given a GitDirCopy per-file copy that marks each child path as processed (kills L147 CallExpression)', () => {
+    it('When a later operation targets the same child path, Then it is skipped as already processed', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue(['objects/Kept.cls'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('kept'))
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('dup'))
+
+      // Act — two sequential execute() calls avoid any eachLimit race: the
+      // second call only sees processedPaths state settled by the first.
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'objects',
+          revision: 'abc123',
+        },
+      ])
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'objects/Kept.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(outputFile).toHaveBeenCalledTimes(1)
+      expect(mockGetBufferContentOrEscalate).not.toHaveBeenCalled()
     })
   })
 
@@ -554,7 +697,9 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       const writer = vi.fn(async (out: Writable) => {
         out.write('<Root></Root>')
       })
@@ -589,7 +734,9 @@ describe('IOExecutor', () => {
       work.config.output = 'output'
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       const writer = vi.fn(async () => {
         throw new Error('producer failed')
       })
@@ -620,7 +767,9 @@ describe('IOExecutor', () => {
           ignores: () => true,
         } as unknown as Ignore,
       } as unknown as IgnoreHelper)
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       const writer = vi.fn()
 
       // Act
@@ -637,13 +786,38 @@ describe('IOExecutor', () => {
       expect(mockCreateWriteStream).not.toHaveBeenCalled()
     })
 
+    it('When the path escapes the output directory, Then the writer is never invoked (zip-slip guard, same as the other copy paths)', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: '../escape.labels',
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
+    })
+
     it('When two StreamedContent ops target the same path, Then only the first writer fires (per-path dedup via processedPaths)', async () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
       const firstWriter = vi.fn(async (out: Writable) => {
         out.write('<first/>')
       })
@@ -676,17 +850,18 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const filePaths = Array.from({ length: 25 }, (_, i) => `bundle/f${i}.xml`)
-      mockGetFilesPath.mockResolvedValue(filePaths)
+      mockFilesUnder.mockReturnValue(filePaths)
       mockGetBufferContent.mockResolvedValue(Buffer.from('x'))
-      const streamArchiveSpy = vi.fn(async function* () {})
+      const streamArchiveSpy = vi.fn(emptyArchiveStream)
       mockGetInstance.mockReturnValue({
-        getFilesPath: mockGetFilesPath,
         getBufferContent: mockGetBufferContent,
         getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
         streamContent: mockStreamContent,
         streamArchive: streamArchiveSpy,
       })
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await sut.execute([
@@ -708,21 +883,22 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const filePaths = Array.from({ length: 26 }, (_, i) => `bundle/f${i}.xml`)
-      mockGetFilesPath.mockResolvedValue(filePaths)
+      mockFilesUnder.mockReturnValue(filePaths)
       const streamArchiveSpy = vi.fn(async function* () {
         for (const path of filePaths) {
           yield { path, stream: Readable.from([Buffer.from('x')]) }
         }
       })
       mockGetInstance.mockReturnValue({
-        getFilesPath: mockGetFilesPath,
         getBufferContent: mockGetBufferContent,
         getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
         streamContent: mockStreamContent,
         streamArchive: streamArchiveSpy,
       })
       mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await sut.execute([
@@ -745,9 +921,11 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.to = 'abc123'
       work.config.output = 'output'
-      mockGetFilesPath.mockResolvedValue(['classes/Foo.cls'])
+      mockFilesUnder.mockReturnValue(['classes/Foo.cls'])
       mockGetBufferContent.mockResolvedValue(Buffer.from('class Foo {}'))
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await sut.execute([
@@ -766,73 +944,6 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given a GitCopy with same revision as config.to (kills L47 ConditionalExpression true)', () => {
-    it('When blobReaderForRevision is called with config.to, Then original config is used (not a spread)', async () => {
-      // Arrange
-      const work = getWork()
-      work.config.to = 'rev-same'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent,
-          getBufferContentOrEscalate:
-            mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('ok')),
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      const sut = new IOExecutor(work.config)
-
-      // Act
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitCopy,
-          path: 'classes/Foo.cls',
-          revision: 'rev-same',
-        },
-      ])
-
-      // Assert — config passed to getInstance must have to='rev-same' (original, not spread)
-      expect(capturedConfigs[0]).toBe(work.config)
-    })
-
-    it('When blobReaderForRevision is called with a different revision, Then a new config with that revision is used', async () => {
-      // Arrange
-      const work = getWork()
-      work.config.to = 'rev-current'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent,
-          getBufferContentOrEscalate:
-            mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('ok')),
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      const sut = new IOExecutor(work.config)
-
-      // Act
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitCopy,
-          path: 'classes/Foo.cls',
-          revision: 'rev-old',
-        },
-      ])
-
-      // Assert — spread config with to='rev-old', not original config object
-      expect(capturedConfigs[0]).not.toBe(work.config)
-      expect(capturedConfigs[0]).toMatchObject({ to: 'rev-old' })
-    })
-  })
-
   describe('Given _executeGitDirCopyViaArchive path guards (kills L174/L178/L182/L191 ConditionalExpression false)', () => {
     const makeArchiveSut = (
       filePaths: string[],
@@ -842,30 +953,44 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       // >25 to trigger archive path
-      mockGetFilesPath.mockResolvedValue(filePaths)
+      mockFilesUnder.mockReturnValue(filePaths)
+      // Every branch that `continue`s past an entry without piping it must
+      // still drain the stream via .resume() (the streamArchive contract:
+      // "Callers must consume every yielded stream ... to avoid leaving the
+      // underlying blob stream unread"). Spy per-entry so each skip test can
+      // assert its own entry was drained.
+      const resumeSpies = new Map<string, ReturnType<typeof vi.fn>>()
       const streamArchiveSpy = vi.fn(async function* () {
         for (const entry of entries) {
-          yield { path: entry.path, stream: Readable.from([Buffer.from('x')]) }
+          const stream = Readable.from([Buffer.from('x')])
+          resumeSpies.set(entry.path, vi.spyOn(stream, 'resume'))
+          yield { path: entry.path, stream }
         }
       })
       mockGetInstance.mockReturnValue({
-        getFilesPath: mockGetFilesPath,
         getBufferContent: mockGetBufferContent,
         getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
         streamContent: mockStreamContent,
         streamArchive: streamArchiveSpy,
       })
       mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
-      return { sut: new IOExecutor(work.config), streamArchiveSpy, work }
+      return {
+        sut: new IOExecutor(
+          getContext({ config: work.config, trees: treeReader })
+        ),
+        streamArchiveSpy,
+        resumeSpies,
+        work,
+      }
     }
 
     const makeFilePaths = (n: number, prefix = 'bundle') =>
       Array.from({ length: n }, (_, i) => `${prefix}/f${i}.xml`)
 
-    it('When archive yields entry not in wanted set, Then it is skipped (L174 kills false guard)', async () => {
+    it('When archive yields entry not in wanted set, Then it is skipped and its stream is drained (L174 kills false guard, kills L173 resume() call)', async () => {
       // Arrange — 26 known files but archive yields an extra unknown entry
       const knownPaths = makeFilePaths(26)
-      const { sut } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: 'bundle/unknown-extra.xml' }, // not in wanted
         { path: knownPaths[0]! },
       ])
@@ -885,13 +1010,14 @@ describe('IOExecutor', () => {
         expect.stringContaining(knownPaths[0]!),
         expect.any(String)
       )
+      expect(resumeSpies.get('bundle/unknown-extra.xml')).toHaveBeenCalled()
     })
 
-    it('When archive yields already-processed entry, Then it is skipped (L178 kills false guard)', async () => {
+    it('When archive yields already-processed entry, Then it is skipped and its stream is drained (L178 kills false guard, kills L177 resume() call)', async () => {
       // Arrange — 26 files; first entry processed, then same path appears again
       const knownPaths = makeFilePaths(26)
       const firstPath = knownPaths[0]!
-      const { sut } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: firstPath },
         { path: firstPath }, // duplicate
       ])
@@ -905,11 +1031,14 @@ describe('IOExecutor', () => {
         },
       ])
 
-      // Assert — rename called only once despite duplicate entry
+      // Assert — rename called only once despite duplicate entry; the
+      // duplicate (second, skipped) occurrence's stream is the one left in
+      // resumeSpies since the map key is overwritten per entry.
       expect(mockRename).toHaveBeenCalledTimes(1)
+      expect(resumeSpies.get(firstPath)).toHaveBeenCalled()
     })
 
-    it('When archive yields ignored entry, Then it is skipped (L182 kills false guard)', async () => {
+    it('When archive yields ignored entry, Then it is skipped and its stream is drained (L182 kills false guard, kills L181 resume() call)', async () => {
       // Arrange
       const knownPaths = makeFilePaths(26)
       mockBuildIgnoreHelper.mockResolvedValue({
@@ -917,7 +1046,7 @@ describe('IOExecutor', () => {
           ignores: (p: string) => p.includes('f0.xml'),
         } as unknown as Ignore,
       } as unknown as IgnoreHelper)
-      const { sut } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: knownPaths[0]! }, // ignored
         { path: knownPaths[1]! }, // not ignored
       ])
@@ -937,13 +1066,14 @@ describe('IOExecutor', () => {
         expect.stringContaining('f1.xml'),
         expect.any(String)
       )
+      expect(resumeSpies.get(knownPaths[0]!)).toHaveBeenCalled()
     })
 
-    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped (L191 kills false guard)', async () => {
+    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped and its stream is drained (L191 kills false guard, kills L186 resume() call)', async () => {
       // Arrange — output without trailing slash is 'output'
       // A path like '../escape/evil.xml' would resolve to outside output/
       const knownPaths = [...makeFilePaths(25), '../escape/evil.xml']
-      const { sut, work } = makeArchiveSut(knownPaths, [
+      const { sut, work, resumeSpies } = makeArchiveSut(knownPaths, [
         { path: '../escape/evil.xml' },
         { path: knownPaths[0]! },
       ])
@@ -965,6 +1095,7 @@ describe('IOExecutor', () => {
         expect.stringContaining('evil.xml'),
         expect.any(String)
       )
+      expect(resumeSpies.get('../escape/evil.xml')).toHaveBeenCalled()
     })
 
     it('When archive entry is valid, Then _writeAtomicallyViaTmp is called and rename occurs (L196 kills BlockStatement {})', async () => {
@@ -1010,76 +1141,6 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given L90 _getGitAdapter revision equality check', () => {
-    it('When GitDirCopy revision equals config.to, Then GitAdapter.getInstance is called with the original config object (not a spread)', async () => {
-      // L90 mutant: revision !== this.config.to → true (always spreads)
-      // With mutant: getInstance always gets a spread (new object), so toBe(work.config) fails.
-      const work = getWork()
-      work.config.to = 'same-rev'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent.mockResolvedValue(
-            Buffer.from('x')
-          ),
-          getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      mockGetFilesPath.mockResolvedValue(['bundle/file.xml'])
-      const sut = new IOExecutor(work.config)
-
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitDirCopy,
-          path: 'bundle',
-          revision: 'same-rev',
-        },
-      ])
-
-      // The config passed to getInstance must be the original object (same reference)
-      expect(capturedConfigs[0]).toBe(work.config)
-    })
-
-    it('When GitDirCopy revision differs from config.to, Then GitAdapter.getInstance is called with a spread (different object)', async () => {
-      // L90 positive path: revision !== config.to → spread
-      const work = getWork()
-      work.config.to = 'current-rev'
-      work.config.output = 'output'
-      const capturedConfigs: unknown[] = []
-      mockGetInstance.mockImplementation((cfg: unknown) => {
-        capturedConfigs.push(cfg)
-        return {
-          getFilesPath: mockGetFilesPath,
-          getBufferContent: mockGetBufferContent.mockResolvedValue(
-            Buffer.from('x')
-          ),
-          getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
-          streamContent: mockStreamContent,
-          streamArchive: vi.fn(async function* () {}),
-        }
-      })
-      mockGetFilesPath.mockResolvedValue(['bundle/file.xml'])
-      const sut = new IOExecutor(work.config)
-
-      await sut.execute([
-        {
-          kind: CopyOperationKind.GitDirCopy,
-          path: 'bundle',
-          revision: 'old-rev',
-        },
-      ])
-
-      // Spread: different object, but with to='old-rev'
-      expect(capturedConfigs[0]).not.toBe(work.config)
-      expect(capturedConfigs[0]).toMatchObject({ to: 'old-rev' })
-    })
-  })
-
   describe('Given L107 EscalateToStreamingSignal instanceof check', () => {
     it('When getBufferContentOrEscalate rejects with plain Error, Then tmp file is NOT created (no unlink)', async () => {
       // L107 mutant: `if (true)` instead of `if (error instanceof EscalateToStreamingSignal)`
@@ -1089,7 +1150,9 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       mockGetBufferContentOrEscalate.mockRejectedValue(new Error('plain error'))
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       await sut.execute([
         {
@@ -1122,11 +1185,14 @@ describe('IOExecutor', () => {
           )
         ),
         streamContent: vi.fn(() => Readable.from([Buffer.from('BIGBIG')])),
-        streamArchive: vi.fn(async function* () {}),
+        streamArchive: vi.fn(emptyArchiveStream),
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, () => fakeBlobReader)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader }),
+        fakeBlobReader
+      )
 
       // Act
       await sut.execute([
@@ -1157,7 +1223,7 @@ describe('IOExecutor', () => {
       work.config.to = 'abc123'
       work.config.output = 'output'
       const filePaths = Array.from({ length: 30 }, (_, i) => `bundle/f${i}.xml`)
-      mockGetFilesPath.mockResolvedValue(filePaths)
+      mockFilesUnder.mockReturnValue(filePaths)
       mockBuildIgnoreHelper.mockResolvedValue({
         globalIgnore: {
           ignores: () => false,
@@ -1169,14 +1235,15 @@ describe('IOExecutor', () => {
         }
       })
       mockGetInstance.mockReturnValue({
-        getFilesPath: mockGetFilesPath,
         getBufferContent: mockGetBufferContent,
         getBufferContentOrEscalate: mockGetBufferContentOrEscalate,
         streamContent: mockStreamContent,
         streamArchive: streamArchiveSpy,
       })
       mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
-      const sut = new IOExecutor(work.config)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
 
       // Act
       await sut.execute([
@@ -1214,11 +1281,14 @@ describe('IOExecutor', () => {
           )
         ),
         streamContent: vi.fn(() => failingSource),
-        streamArchive: vi.fn(async function* () {}),
+        streamArchive: vi.fn(emptyArchiveStream),
       }
       const stream = createFakeWriteStream()
       mockCreateWriteStream.mockReturnValueOnce(stream)
-      const sut = new IOExecutor(work.config, () => fakeBlobReader)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader }),
+        fakeBlobReader
+      )
 
       // Act
       await sut.execute([

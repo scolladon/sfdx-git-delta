@@ -36,6 +36,10 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       summary: messages.getMessage('flags.to.summary'),
       default: TO_DEFAULT_VALUE,
     }),
+    'merge-base': Flags.boolean({
+      char: 'b',
+      summary: messages.getMessage('flags.merge-base.summary'),
+    }),
     'generate-delta': Flags.boolean({
       char: 'd',
       summary: messages.getMessage('flags.generate-delta.summary'),
@@ -156,6 +160,7 @@ export default class SourceDeltaGenerate extends SfCommand<SgdResult> {
       ignoreWhitespace: flags['ignore-whitespace'],
       include: flags['include-file'],
       includeDestructive: flags['include-destructive-file'],
+      mergeBase: flags['merge-base'],
       output: flags['output-dir'],
       repo: flags['repo-dir'],
       source: flags['source-dir'],

@@ -12,19 +12,15 @@ import {
 import { Logger } from '../../../../src/utils/LoggingService'
 import { getConfig } from '../../../__utils__/testWork'
 
-const {
-  mockGetMessage,
-  mockParseRev,
-  mockConfigureRepository,
-  mockSfProjectResolve,
-} = vi.hoisted(() => ({
-  mockGetMessage: vi.fn(
-    (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
-  ),
-  mockParseRev: vi.fn(),
-  mockConfigureRepository: vi.fn(),
-  mockSfProjectResolve: vi.fn(),
-}))
+const { mockGetMessage, mockParseRev, mockGetMergeBase, mockSfProjectResolve } =
+  vi.hoisted(() => ({
+    mockGetMessage: vi.fn(
+      (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
+    ),
+    mockParseRev: vi.fn(),
+    mockGetMergeBase: vi.fn(),
+    mockSfProjectResolve: vi.fn(),
+  }))
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -46,7 +42,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
     default: {
       getInstance: () => ({
         parseRev: mockParseRev,
-        configureRepository: mockConfigureRepository,
+        getMergeBase: mockGetMergeBase,
       }),
     },
   }
@@ -579,6 +575,26 @@ describe('Given a ConfigValidator', () => {
       })
     })
 
+    describe('_resolveLatestSupportedVersion diagnostic logging (L267)', () => {
+      it('When the latest version lookup fails but a usable apiVersion is already set, Then the fallback is logged for diagnostics', async () => {
+        // Arrange
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+          new Error('offline')
+        )
+        config.apiVersion = 46
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const latest = await sut['_resolveLatestSupportedVersion']()
+
+        // Assert — content is not asserted (see the StringLiteral disable
+        // on this call site); presence of the call is what a
+        // CallExpression removal mutant would drop.
+        expect(latest).toBeUndefined()
+        expect(Logger.debug).toHaveBeenCalledOnce()
+      })
+    })
+
     describe('when apiVersion is set and project file exists', () => {
       it('When apiVersion is defined, Then project file sourceApiVersion is ignored', async () => {
         // Arrange
@@ -632,6 +648,32 @@ describe('Given a ConfigValidator', () => {
           message: expect.stringContaining('error.ParameterIsNotGitSHA'),
         })
       )
+      // Content is not asserted (see the StringLiteral,ArrowFunction
+      // disable on this call site); presence of the call is what a
+      // CallExpression removal mutant (L58) would drop.
+      expect(Logger.debug).toHaveBeenCalled()
+    })
+
+    it('Given "to" contains a control character and git sha validation fails, When validating, Then the error message carries the escaped form and never the raw character', async () => {
+      // Arrange — proves sanitizeForMessage is still applied at this error
+      // site: dropping the call would leak the raw control character (and
+      // any ANSI/bidi payload it carries) straight into the message.
+      const shaWithControl = 'bad\nsha'
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...config,
+        to: shaWithControl,
+        from: 'HEAD',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain('bad\\u{a}sha')
+      expect((error as Error).message).not.toContain(shaWithControl)
     })
   })
 
@@ -1065,18 +1107,20 @@ describe('Given a ConfigValidator', () => {
       expect(error.message).not.toContain(controlValue)
     })
 
-    it('Given two rejections at once, When validating, Then the joined message carries both keys', async () => {
+    it('Given two rejections at once, When validating, Then the joined message carries both keys separated by ", "', async () => {
       // Arrange
       const sut = new ConfigValidator(config, [
         { value: 'force-app/**', reason: 'wildcard' },
         { value: '../sibling', reason: 'escapes' },
       ])
 
-      // Act & Assert
+      // Act & Assert — a plain `.*` regex would also match the L96
+      // join('') mutant (it allows a zero-width gap), so the literal
+      // separator is asserted directly via stringContaining instead.
       await expect(sut.validateConfig()).rejects.toThrow(
         expect.objectContaining({
-          message: expect.stringMatching(
-            /error\.SourceDirContainsWildcard.*error\.SourceDirEscapesRepository/
+          message: expect.stringContaining(
+            'error.SourceDirContainsWildcard:force-app/**, error.SourceDirEscapesRepository:../sibling'
           ),
         })
       )
@@ -1206,6 +1250,163 @@ describe('Given a ConfigValidator', () => {
           message: expect.stringContaining('error.ChangesManifestStatFailed'),
         })
       )
+    })
+  })
+
+  describe('Given mergeBase', () => {
+    beforeEach(() => {
+      mockedPathExists.mockResolvedValue(true as never)
+    })
+
+    it('Given mergeBase is true, When validating, Then config.from becomes the resolved merge base and getMergeBase receives the post-parseRev SHAs', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue('base-sha')
+      const cfg = {
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: true,
+      }
+      const sut = new ConfigValidator(cfg)
+
+      // Act
+      const validated = await sut.validateConfig()
+
+      // Assert
+      expect(validated).toBeDefined()
+      expect(cfg.from).toBe('base-sha')
+      expect(mockGetMergeBase).toHaveBeenCalledWith(
+        'main-resolved',
+        'develop-resolved'
+      )
+    })
+
+    it('Given mergeBase is false, When validating, Then getMergeBase is never called', async () => {
+      // Arrange
+      mockParseRev.mockImplementation(() => Promise.resolve('resolved'))
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: false,
+      })
+
+      // Act
+      await sut.validateConfig()
+
+      // Assert
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('Given no common ancestor is found, When validating, Then it throws a ConfigError carrying error.MergeBaseNotFound with the user-typed refs', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue(undefined)
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: true,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          name: 'ConfigError',
+          message: expect.stringContaining(
+            'error.MergeBaseNotFound:main,develop'
+          ),
+        })
+      )
+    })
+
+    it('Given no common ancestor is found and both refs contain a control character, When validating, Then the error message carries the escaped form of both refs and never the raw characters', async () => {
+      // Arrange — proves sanitizeForMessage is applied to both
+      // requestedFrom and requestedTo at this error site.
+      const fromWithControl = 'main\nPASSED'
+      const toWithControl = 'develop\rPASSED'
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue(undefined)
+      const sut = new ConfigValidator({
+        ...config,
+        from: fromWithControl,
+        to: toWithControl,
+        mergeBase: true,
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain('main\\u{a}PASSED')
+      expect((error as Error).message).toContain('develop\\u{d}PASSED')
+      expect((error as Error).message).not.toContain(fromWithControl)
+      expect((error as Error).message).not.toContain(toWithControl)
+    })
+
+    it('Given "from" is already an ancestor of "to", When validating, Then the resolved base equals the post-parseRev "from" (idempotency fixpoint)', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-resolved`)
+      )
+      mockGetMergeBase.mockResolvedValue('main-resolved')
+      const cfg = {
+        ...config,
+        from: 'main',
+        to: 'develop',
+        mergeBase: true,
+      }
+      const sut = new ConfigValidator(cfg)
+
+      // Act
+      await sut.validateConfig()
+
+      // Assert
+      expect(cfg.from).toBe('main-resolved')
+    })
+
+    it('Given an invalid "--from" and mergeBase is true, When validating, Then it throws ParameterIsNotGitSHA and never calls getMergeBase (ordering)', async () => {
+      // Arrange
+      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'bad-from',
+        to: 'develop',
+        mergeBase: true,
+      })
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          message: expect.stringContaining('error.ParameterIsNotGitSHA'),
+        })
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('Given a rejected "--source-dir" and mergeBase is true, When validating, Then it throws the source-dir error alone and never calls getMergeBase (the _validateSource short-circuit fires first)', async () => {
+      // Arrange
+      const sut = new ConfigValidator({ ...config, mergeBase: true }, [
+        { value: '', reason: 'empty' },
+      ])
+
+      // Act & Assert
+      await expect(sut.validateConfig()).rejects.toThrow(
+        expect.objectContaining({
+          name: 'ConfigError',
+          message: expect.stringContaining('error.SourceDirIsEmpty'),
+        })
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
     })
   })
 })
