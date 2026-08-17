@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786022626840,
+  "lastUpdate": 1786984184699,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Runtime Benchmark": [
@@ -9029,6 +9029,282 @@ window.BENCHMARK_DATA = {
             "name": "writeXmlDocument-largeProfile",
             "value": 177,
             "range": "±6.74%",
+            "unit": "ops/sec"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8e71ba57e0b8859b45da14bfcc3d2bc13975def9",
+          "message": "feat: add --merge-base flag for common-ancestor diffs (#1383)\n\nCo-authored-by: Matt Carvin <90224411+mcarvin8@users.noreply.github.com>",
+          "timestamp": "2026-08-17T18:24:25+02:00",
+          "tree_id": "b0ecb687bc58e2a073a85f6a0424ad2df7e2da8d",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/8e71ba57e0b8859b45da14bfcc3d2bc13975def9"
+        },
+        "date": 1786984184333,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "shallow-equal",
+            "value": 3479319,
+            "range": "±0.12%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 3571061,
+            "range": "±0.12%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "nested-equal",
+            "value": 458886,
+            "range": "±0.33%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 973319,
+            "range": "±0.29%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 41995,
+            "range": "±0.37%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 620506,
+            "range": "±0.42%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 15963544,
+            "range": "±0.11%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseRev-HEAD~20-and-HEAD",
+            "value": 914,
+            "range": "±1.64%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "streamDiffLines-HEAD~20..HEAD",
+            "value": 425,
+            "range": "±2.32%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "getBufferContent-HEAD~20-and-HEAD",
+            "value": 24313,
+            "range": "±2.01%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "buildTreeIndex-HEAD-cold",
+            "value": 94,
+            "range": "±8.93%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 3726,
+            "range": "±1.70%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 872,
+            "range": "±1.23%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 228,
+            "range": "±0.96%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 7828,
+            "range": "±0.44%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 2862820,
+            "range": "±0.17%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 2831711,
+            "range": "±0.11%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 59266,
+            "range": "±0.44%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 442873,
+            "range": "±0.11%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 447177,
+            "range": "±0.11%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 9924,
+            "range": "±0.42%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 80625,
+            "range": "±0.13%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 75625,
+            "range": "±0.51%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 2250,
+            "range": "±0.99%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 23627,
+            "range": "±0.46%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 733101,
+            "range": "±0.41%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 7068,
+            "range": "±2.30%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 109038,
+            "range": "±0.37%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 2328,
+            "range": "±0.36%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 26684,
+            "range": "±0.35%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 20859,
+            "range": "±0.44%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 18476,
+            "range": "±0.46%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 18889,
+            "range": "±0.39%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 1317,
+            "range": "±1.68%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 1180,
+            "range": "±1.32%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 1300,
+            "range": "±0.59%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 131,
+            "range": "±4.84%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 130,
+            "range": "±1.85%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 132,
+            "range": "±0.35%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 22070,
+            "range": "±1.54%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 1719,
+            "range": "±2.20%",
+            "unit": "ops/sec"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 163,
+            "range": "±7.38%",
             "unit": "ops/sec"
           }
         ]
