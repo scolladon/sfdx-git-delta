@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.3.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.2.0...v7.3.0) (2026-08-17)
+
+
+### Features
+
+* add --merge-base flag for common-ancestor diffs ([#1383](https://github.com/scolladon/sfdx-git-delta/issues/1383)) ([8e71ba5](https://github.com/scolladon/sfdx-git-delta/commit/8e71ba57e0b8859b45da14bfcc3d2bc13975def9))
+
 ## [7.2.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.1.0...v7.2.0) (2026-08-06)
 
 
