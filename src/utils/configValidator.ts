@@ -9,7 +9,11 @@ import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
 import { pushAll } from './arrayUtils.js'
-import { ConfigError, getErrorMessage } from './errorUtils.js'
+import {
+  ConfigError,
+  getErrorMessage,
+  RepositoryRefusalError,
+} from './errorUtils.js'
 import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
@@ -59,17 +63,27 @@ export default class ConfigValidator {
             // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch log content is observability only
             lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' is not a valid git SHA: ${() => getErrorMessage(error)}`
           )
-          errors.push(
-            this.message.getMessage('error.ParameterIsNotGitSHA', [
-              shaParameter,
-              sanitizeForMessage(shaValue),
-            ])
-          )
+          errors.push(this._shaFailureMessage(error, shaParameter, shaValue))
         }
       })
     )
 
     return errors
+  }
+
+  // A refusal is about the repository, not about either ref: reporting it
+  // verbatim replaces two bogus "check the fetch depth" lines with the one
+  // thing the user can act on.
+  protected _shaFailureMessage(
+    error: unknown,
+    shaParameter: ShaKey,
+    shaValue: string
+  ): string {
+    if (error instanceof RepositoryRefusalError) return error.message
+    return this.message.getMessage('error.ParameterIsNotGitSHA', [
+      shaParameter,
+      sanitizeForMessage(shaValue),
+    ])
   }
 
   protected _validateSource(): string[] {
@@ -114,7 +128,10 @@ export default class ConfigValidator {
     pushAll(errors, changesManifestErrors)
 
     if (errors.length > 0) {
-      throw new ConfigError(errors.join(', '))
+      // Two SHA keys against one repository produce the same refusal twice,
+      // and a missing .git makes the config check and the engine say the
+      // same sentence. Identical strings carry no extra information.
+      throw new ConfigError([...new Set(errors)].join(', '))
     }
 
     // Runs after the SHA validation above so a typo in either ref surfaces

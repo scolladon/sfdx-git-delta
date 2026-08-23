@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
+import { RepositoryRefusalError } from '../../../../src/utils/errorUtils'
 import {
   pathExists,
   sanitizePath,
@@ -674,6 +675,68 @@ describe('Given a ConfigValidator', () => {
       // Assert
       expect((error as Error).message).toContain('bad\\u{a}sha')
       expect((error as Error).message).not.toContain(shaWithControl)
+    })
+  })
+
+  describe('Given a repository-level refusal from parseRev', () => {
+    it('When parseRev refuses the repository, Then the refusal is reported once instead of two sha-pointer errors', async () => {
+      // Arrange
+      const refusal = new RepositoryRefusalError(
+        "'/proj/repo' uses a repository format this version of sgd cannot read"
+      )
+      mockParseRev.mockRejectedValue(refusal)
+      const sut = new ConfigValidator({ ...config, from: 'HEAD~1', to: 'HEAD' })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(refusal.message)
+      expect((error as Error).message).not.toContain(
+        'error.ParameterIsNotGitSHA'
+      )
+    })
+
+    it('When parseRev rejects both refs with an ordinary error, Then both sha-pointer messages are reported (the refusal dedupe does not over-collapse distinct errors)', async () => {
+      // Arrange
+      mockParseRev.mockImplementation((sha: string) =>
+        Promise.reject(new Error(`bad sha: ${sha}`))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'bad-from',
+        to: 'bad-to',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      const parts = (error as Error).message.split(', ')
+      expect(parts).toHaveLength(2)
+      expect(parts).toContain('error.ParameterIsNotGitSHA:from,bad-from')
+      expect(parts).toContain('error.ParameterIsNotGitSHA:to,bad-to')
+    })
+
+    it('When only one of the two SHA keys refuses, Then the single reported message is the refusal', async () => {
+      // Arrange
+      const refusal = new RepositoryRefusalError(
+        "'/proj/repo' is not a git repository"
+      )
+      mockParseRev.mockResolvedValueOnce('valid').mockRejectedValueOnce(refusal)
+      const sut = new ConfigValidator({ ...config, from: 'HEAD~1', to: 'HEAD' })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(refusal.message)
     })
   })
 

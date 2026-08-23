@@ -121,10 +121,39 @@ describe('Given the released error-message contract (validated surface)', () => 
 
       // Assert — the CLI sanitizes paths to forward slashes before they
       // reach messages, so the expected value gets the same treatment
-      // (on win32 mkdtemp returns a backslashed path).
+      // (on win32 mkdtemp returns a backslashed path). pathExists and
+      // parseRev now report the identical sentence for the same missing
+      // .git, and the Set at validateConfig's join collapses the pair.
       expect((error as Error).message).toContain(
         `'${treatPathSep(repoDir)}' is not a git repository`
       )
+    })
+  })
+
+  describe('When ConfigValidator validates against a repository declaring an unsupported format version', () => {
+    it('Then it throws the mapped refusal message instead of two sha-pointer errors', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-cfg-formatv-')
+      initRepoWithCommit(repoDir)
+      runGit(['config', 'core.repositoryformatversion', '99'], {
+        cwd: repoDir,
+      })
+      const config = makeConfig({ repo: repoDir, from: 'HEAD', to: 'HEAD' })
+      const sut = new ConfigValidator(config)
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        `'${adapterRepoPath(repoDir)}' uses a repository format this version of sgd cannot read`
+      )
+      expect((error as Error).message).not.toContain(
+        'is not a valid sha pointer'
+      )
+      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })
 })
