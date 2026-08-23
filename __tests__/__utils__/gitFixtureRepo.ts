@@ -1,5 +1,74 @@
 'use strict'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { runGit, runGitText } from './gitTestHarness'
+
+export type RepoFormat = {
+  // The name that appears in vitest output, so a reduced run names itself.
+  readonly name: string
+  readonly refFormat: 'files' | 'reftable'
+  readonly objectFormat: 'sha1' | 'sha256'
+}
+
+export const FILES_SHA1: RepoFormat = {
+  name: 'files/sha1',
+  refFormat: 'files',
+  objectFormat: 'sha1',
+}
+export const REFTABLE_SHA1: RepoFormat = {
+  name: 'reftable/sha1',
+  refFormat: 'reftable',
+  objectFormat: 'sha1',
+}
+export const FILES_SHA256: RepoFormat = {
+  name: 'files/sha256',
+  refFormat: 'files',
+  objectFormat: 'sha256',
+}
+
+/**
+ * `dir` is already an empty directory. Only non-default dimensions are
+ * named on the command line: `--ref-format` landed in git 2.45, so passing
+ * it unconditionally would fail the baseline fixture — and the capability
+ * probe below, which reuses this function — on an older runner for no
+ * reason. Callers that pass no format get the exact invocation this file
+ * has always used.
+ */
+export const initRepo = (
+  dir: string,
+  format: RepoFormat = FILES_SHA1
+): void => {
+  const args = ['init', '--quiet']
+  if (format.refFormat !== FILES_SHA1.refFormat) {
+    args.push(`--ref-format=${format.refFormat}`)
+  }
+  if (format.objectFormat !== FILES_SHA1.objectFormat) {
+    args.push(`--object-format=${format.objectFormat}`)
+  }
+  runGit(args, { cwd: dir })
+}
+
+/**
+ * Builds a throwaway repository in a fresh temp directory to answer "does
+ * this runner's git binary support this ref/object format combination".
+ * The verdict is the handled outcome: an older git rejects an unknown
+ * `--ref-format`/`--object-format` value with a non-zero exit, which
+ * `execFileSync` surfaces as a thrown error, caught here and turned into
+ * `false` rather than failing the whole test file.
+ */
+export const isRepoFormatSupported = (format: RepoFormat): boolean => {
+  const probeDir = mkdtempSync(join(tmpdir(), 'sgd-format-probe-'))
+  try {
+    initRepo(probeDir, format)
+    return true
+  } catch {
+    return false
+  } finally {
+    rmSync(probeDir, { recursive: true, force: true })
+  }
+}
 
 export type FixtureRefs = {
   // The very first commit — no parents.
@@ -84,6 +153,56 @@ const makeCommit = (
   return runGitText(args, { cwd: dir })
 }
 
+export type RefNameFixture = {
+  readonly branch: string // 'refs/heads/main'
+  readonly branchName: string // 'main'
+  readonly tag: string // 'refs/tags/v1'
+  readonly tagName: string // 'v1'
+  readonly tagOid: string // first commit
+  readonly headOid: string // second commit, what HEAD resolves to
+}
+
+const REF_NAME_BRANCH = 'refs/heads/main'
+const REF_NAME_BRANCH_NAME = 'main'
+const REF_NAME_TAG = 'refs/tags/v1'
+const REF_NAME_TAG_NAME = 'v1'
+
+/**
+ * Two commits so `tag` -> `branch` is a non-empty range: the first gets a
+ * lightweight tag (points straight at the commit, no tag-object peeling),
+ * the second becomes what `main` and `HEAD` resolve to. `symbolic-ref` — not
+ * `update-ref HEAD <sha>` — pins the branch name: `update-ref HEAD` writes
+ * through the symbolic HEAD into whatever branch `init.defaultBranch` chose
+ * on that runner (`main` or `master`), which would leave the very thing this
+ * fixture exists to pin runner-dependent.
+ */
+export const buildRefNameFixtureRepo = (
+  dir: string,
+  format: RepoFormat = FILES_SHA1
+): RefNameFixture => {
+  initRepo(dir, format)
+
+  const tagOid = makeCommit(dir, null, 'tagged commit', [
+    { kind: 'add', mode: '100644', path: 'README.md', content: 'first\n' },
+  ])
+  runGit(['update-ref', REF_NAME_TAG, tagOid], { cwd: dir })
+
+  const headOid = makeCommit(dir, tagOid, 'head commit', [
+    { kind: 'add', mode: '100644', path: 'src/index.txt', content: 'second\n' },
+  ])
+  runGit(['update-ref', REF_NAME_BRANCH, headOid], { cwd: dir })
+  runGit(['symbolic-ref', 'HEAD', REF_NAME_BRANCH], { cwd: dir })
+
+  return {
+    branch: REF_NAME_BRANCH,
+    branchName: REF_NAME_BRANCH_NAME,
+    tag: REF_NAME_TAG,
+    tagName: REF_NAME_TAG_NAME,
+    tagOid,
+    headOid,
+  }
+}
+
 /**
  * Builds a fully self-contained history in `dir` (already an empty
  * directory) — a dozen-ish commits reachable only from within this repo, so
@@ -95,7 +214,7 @@ const makeCommit = (
  * for a non-degenerate shallow clone.
  */
 export const buildFixtureRepo = (dir: string): FixtureRefs => {
-  runGit(['init', '--quiet'], { cwd: dir })
+  initRepo(dir)
 
   const root = makeCommit(dir, null, 'root', [
     {
@@ -272,7 +391,7 @@ export const NEW_RESOURCE_FILE =
  * (ADDITION from the root commit, DELETION back to it) exercises.
  */
 export const buildMetadataFixtureRepo = (dir: string): MetadataFixtureRefs => {
-  runGit(['init', '--quiet'], { cwd: dir })
+  initRepo(dir)
 
   const root = makeCommit(dir, null, 'add existing static resource', [
     {
