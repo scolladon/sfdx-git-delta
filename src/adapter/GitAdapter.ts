@@ -161,7 +161,19 @@ export default class GitAdapter implements GitBlobReader {
 
   protected getRepo(): Promise<Repository> {
     if (!this.repoHandle) {
-      this.repoHandle = openRepository({ cwd: this.repo })
+      // sgd only ever reads a repository (revParse, diff, tree walks,
+      // blobs) and never runs a verb that fires a hook or a merge driver,
+      // so both execution surfaces are switched off outright. The
+      // ownership gate is opted out of for the same reason: it would
+      // refuse the container-mounted checkouts README.md documents as
+      // supported, and tsgit cannot see the `safe.directory` those users
+      // already configured for git itself.
+      this.repoHandle = openRepository({
+        cwd: this.repo,
+        trust: 'always',
+        hooks: false,
+        command: false,
+      })
     }
     return this.repoHandle
   }

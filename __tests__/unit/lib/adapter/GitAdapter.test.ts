@@ -234,7 +234,27 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledOnce()
-      expect(mockOpenRepository).toHaveBeenCalledWith({ cwd: repoKey('/repo') })
+      expect(mockOpenRepository).toHaveBeenCalledWith({
+        cwd: repoKey('/repo'),
+        trust: 'always',
+        hooks: false,
+        command: false,
+      })
+    })
+
+    it('When a repository is opened, Then hook and merge-driver execution are switched off', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      await sut.parseRev('HEAD')
+
+      // Assert
+      expect(mockOpenRepository.mock.calls[0][0]).toMatchObject({
+        hooks: false,
+        command: false,
+      })
     })
   })
 
