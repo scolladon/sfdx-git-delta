@@ -21,6 +21,13 @@ export class MetadataRegistryError extends SgdError {
   }
 }
 
+export class RepositoryRefusalError extends SgdError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RepositoryRefusalError'
+  }
+}
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message

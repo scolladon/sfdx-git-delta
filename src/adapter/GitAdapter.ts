@@ -202,7 +202,7 @@ export default class GitAdapter implements GitBlobReader {
       const repo = await this.getRepo()
       return await repo.revParse(ref)
     } catch (error) {
-      throw mapTsgitError(error, ref)
+      throw mapTsgitError(error, ref, this.repo)
     }
   }
 
@@ -312,7 +312,7 @@ export default class GitAdapter implements GitBlobReader {
       ])
       return base
     } catch (error) {
-      throw mapTsgitError(error, `${from}...${to}`)
+      throw mapTsgitError(error, `${from}...${to}`, this.repo)
     }
   }
 
@@ -332,7 +332,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       return firstCommit
     } catch (error) {
-      throw mapTsgitError(error, HEAD)
+      throw mapTsgitError(error, HEAD, this.repo)
     }
   }
 
@@ -361,7 +361,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       return content
     } catch (error) {
-      throw mapTsgitError(error, forRef.oid)
+      throw mapTsgitError(error, forRef.oid, this.repo)
     }
   }
 
@@ -574,7 +574,7 @@ export default class GitAdapter implements GitBlobReader {
         ...(spec.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
       })
     } catch (error) {
-      throw mapTsgitError(error, `${spec.from}..${spec.to}`)
+      throw mapTsgitError(error, `${spec.from}..${spec.to}`, this.repo)
     }
   }
 }
