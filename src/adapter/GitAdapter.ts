@@ -179,10 +179,20 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   public async close(): Promise<void> {
-    if (this.repoHandle) {
-      const repo = await this.repoHandle
+    if (!this.repoHandle) return
+    const handle = this.repoHandle
+    // A failed open is cached like any other handle, so awaiting it here
+    // would rethrow the raw engine error out of main.ts's finally and
+    // replace the mapped error the caller already reported. There is
+    // nothing to dispose when the open never produced a repository.
+    this.repoHandle = null
+    try {
+      const repo = await handle
       await repo.dispose()
-      this.repoHandle = null
+    } catch (error) {
+      Logger.debug(
+        lazy`GitAdapter.close: no disposable repository handle for '${this.repo}': ${() => getErrorMessage(error)}`
+      )
     }
   }
 

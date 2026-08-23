@@ -304,6 +304,43 @@ describe('GitAdapter', () => {
       // Assert
       expect(fakeRepo.dispose).toHaveBeenCalledOnce()
     })
+
+    it('When the cached handle is a failed open, Then close resolves, logs the reason and drops the handle', async () => {
+      // Arrange
+      const openFailure = new Error(
+        'INVALID_OPTION: invalid option: cwd — must be an absolute path'
+      )
+      mockOpenRepository.mockRejectedValue(openFailure)
+      const sut = GitAdapter.getInstance(makeConfig())
+      await sut.parseRev('HEAD').catch(() => undefined)
+
+      // Act
+      const result = await sut.close().catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(resolveLazyCall(Logger.debug)).toContain(repoKey('/repo'))
+    })
+
+    it('When close has run over a failed open, Then the next operation opens the repository again', async () => {
+      // Arrange
+      const openFailure = new Error(
+        'INVALID_OPTION: invalid option: cwd — must be an absolute path'
+      )
+      mockOpenRepository.mockRejectedValue(openFailure)
+      const sut = GitAdapter.getInstance(makeConfig())
+      await sut.parseRev('HEAD').catch(() => undefined)
+      await sut.close().catch(() => undefined)
+      mockOpenRepository.mockResolvedValue(fakeRepo as unknown as Repository)
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      const result = await sut.parseRev('HEAD')
+
+      // Assert
+      expect(mockOpenRepository).toHaveBeenCalledTimes(2)
+      expect(result).toBe('abc')
+    })
   })
 
   describe('Given closeAll', () => {
@@ -329,6 +366,32 @@ describe('GitAdapter', () => {
       // Assert
       expect(fakeRepo.dispose).toHaveBeenCalledOnce()
       expect(secondRepo.dispose).toHaveBeenCalledOnce()
+      expect(GitAdapter.getInstance(makeConfig())).not.toBe(first)
+    })
+
+    it('When one pooled instance holds a failed open, Then closeAll resolves and still clears the pool', async () => {
+      // Arrange
+      const openFailure = new Error(
+        'INVALID_OPTION: invalid option: cwd — must be an absolute path'
+      )
+      mockOpenRepository.mockResolvedValueOnce(
+        fakeRepo as unknown as Repository
+      )
+      mockOpenRepository.mockRejectedValueOnce(openFailure)
+      fakeRepo.revParse.mockResolvedValue('abc')
+      const first = GitAdapter.getInstance(makeConfig())
+      const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-2' }))
+      await first.parseRev('HEAD')
+      await second.parseRev('HEAD~1').catch(() => undefined)
+
+      // Act
+      const result = await GitAdapter.closeAll().catch(
+        (thrown: unknown) => thrown
+      )
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(fakeRepo.dispose).toHaveBeenCalledOnce()
       expect(GitAdapter.getInstance(makeConfig())).not.toBe(first)
     })
   })
