@@ -93,6 +93,77 @@ describe('Given the built sfdx-git-delta CLI', () => {
     )
 
     it(
+      'Then it succeeds with no --repo-dir flag at all, running from the repository root',
+      async () => {
+        // Arrange
+        const outputDir = await trackedTempDir('sgd-lifecycle-output-')
+
+        // Act
+        const sut = spawnSync(
+          process.execPath,
+          [
+            CLI_ENTRY,
+            'sgd',
+            'source',
+            'delta',
+            '--from',
+            refs.diffFrom,
+            '--to',
+            refs.diffTo,
+            '--output-dir',
+            outputDir,
+          ],
+          { cwd: fixtureDir, encoding: 'utf8' }
+        )
+
+        // Assert
+        expect({
+          status: sut.status,
+          stdout: sut.stdout,
+          stderr: sut.stderr,
+        }).toMatchObject({ status: 0 })
+        expect(existsSync(join(outputDir, 'package'))).toBe(true)
+      },
+      CLI_SPAWN_TIMEOUT_MS
+    )
+
+    it(
+      'Then it succeeds with an explicit relative --repo-dir',
+      async () => {
+        // Arrange
+        const outputDir = await trackedTempDir('sgd-lifecycle-output-')
+
+        // Act
+        const sut = spawnSync(
+          process.execPath,
+          [
+            CLI_ENTRY,
+            'sgd',
+            'source',
+            'delta',
+            '--from',
+            refs.diffFrom,
+            '--to',
+            refs.diffTo,
+            '--repo-dir',
+            './',
+            '--output-dir',
+            outputDir,
+          ],
+          { cwd: fixtureDir, encoding: 'utf8' }
+        )
+
+        // Assert
+        expect({
+          status: sut.status,
+          stdout: sut.stdout,
+          stderr: sut.stderr,
+        }).toMatchObject({ status: 0 })
+      },
+      CLI_SPAWN_TIMEOUT_MS
+    )
+
+    it(
       'Then a --source-dir with a trailing slash produces a manifest carrying members',
       async () => {
         // Arrange — a folder-looking source-dir value that must canonicalise

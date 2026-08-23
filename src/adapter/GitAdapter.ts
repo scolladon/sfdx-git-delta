@@ -29,6 +29,7 @@
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
 
@@ -121,8 +122,14 @@ export default class GitAdapter implements GitBlobReader {
   // still resolve to one instance. ConfigValidator pools an adapter on the
   // raw config.repo before _sanitizeConfig runs, so without this a single
   // `--repo-dir ./repo` invocation would still allocate two instances.
+  // Resolved to an absolute path first: tsgit's openRepository validates
+  // `cwd` eagerly and refuses anything relative outright, which sgd's own
+  // CLI default ('./') would otherwise be. Platform resolve() runs before
+  // the posix sanitizePath so a win32 drive letter survives (e.g. `C:/proj`,
+  // satisfying tsgit's drive-letter arm) rather than being stripped by the
+  // posix-only normalisation.
   private static keyFor(config: Config): string {
-    return sanitizePath(config.repo)!
+    return sanitizePath(resolve(config.repo))!
   }
 
   public static getInstance(config: Config): GitAdapter {

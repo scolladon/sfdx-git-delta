@@ -1,6 +1,7 @@
 'use strict'
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { join } from 'node:path/posix'
 import { PassThrough, Readable } from 'node:stream'
 
@@ -17,6 +18,7 @@ import {
 } from '../../../../src/adapter/gitBlobReader'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
+import { sanitizePath } from '../../../../src/utils/fsUtils'
 import {
   getLFSObjectContentPath,
   isLFS,
@@ -90,6 +92,11 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   generateDelta: true,
   ...overrides,
 })
+
+// The SUT absolutizes the pool key with platform resolve() then the posix
+// sanitizePath, so an expectation written as a literal would be wrong on
+// win32, where resolve('/repo') is 'C:\repo'. Compose it the same way.
+const repoKey = (repo: string): string => sanitizePath(resolve(repo))!
 
 const asCommit = (tree: string) => ({
   type: 'commit',
@@ -227,7 +234,29 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledOnce()
-      expect(mockOpenRepository).toHaveBeenCalledWith({ cwd: '/repo' })
+      expect(mockOpenRepository).toHaveBeenCalledWith({ cwd: repoKey('/repo') })
+    })
+  })
+
+  describe('Given a relative repository path', () => {
+    // tsgit 3.5.0's own absolute-path predicate: a leading '/', a UNC '\\',
+    // or a drive letter followed by a separator. Asserting against the
+    // engine's own rule — not merely "not './'" — is what stops this
+    // regressing.
+    const TSGIT_ABSOLUTE_PATH = /^(\/|\\\\|[A-Za-z]:[/\\])/
+
+    it('When the repository path is relative, Then openRepository receives an absolute cwd', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: './' }))
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      await sut.parseRev('HEAD')
+
+      // Assert
+      const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
+      expect(cwd).toMatch(TSGIT_ABSOLUTE_PATH)
+      expect(cwd).toBe(repoKey('./'))
     })
   })
 
@@ -813,7 +842,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(Buffer.from('resolved-content'))
       expect(readFileMocked).toHaveBeenCalledWith(
-        join('/repo', '.git/lfs/objects/aa/bb/aabb')
+        join(repoKey('/repo'), '.git/lfs/objects/aa/bb/aabb')
       )
     })
 
@@ -1028,7 +1057,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(Buffer.from('resolved-content'))
       expect(readFileMocked).toHaveBeenCalledWith(
-        join('/repo', '.git/lfs/objects/aa/bb/aabb')
+        join(repoKey('/repo'), '.git/lfs/objects/aa/bb/aabb')
       )
     })
 
@@ -1312,7 +1341,7 @@ describe('GitAdapter', () => {
       expect(result).toEqual(Buffer.from('lfs-content'))
       expect(getLFSObjectContentPathMocked).toHaveBeenCalledWith(pointer)
       expect(createReadStreamMocked).toHaveBeenCalledWith(
-        join('/repo', '.git/lfs/objects/aa/bb/abc')
+        join(repoKey('/repo'), '.git/lfs/objects/aa/bb/abc')
       )
     })
 
