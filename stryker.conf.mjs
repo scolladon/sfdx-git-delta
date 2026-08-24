@@ -1,4 +1,10 @@
 const config = {
+  // Stryker's sandbox TSConfigPreprocessor calls ts.parseConfigFileTextToJson,
+  // removed in TypeScript 7, and crashes the run outright. Pointing at a
+  // file that does not exist makes the preprocessor a no-op: it looks the
+  // name up in the sandbox and skips when absent. Nothing here needs the
+  // rewrite — the vitest runner resolves through vitest.config.ts, not tsc.
+  tsconfigFile: 'tsconfig.stryker-absent.json',
   coverageAnalysis: 'perTest',
   // Static mutants live in top-level / module-init code that runs once
   // per worker. With perTest coverage Stryker has to spin up a fresh

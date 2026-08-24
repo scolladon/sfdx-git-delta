@@ -334,7 +334,7 @@
       ]
     },
     "test:mutation:incremental": {
-      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -) && [ -n \"$FILES\" ] && stryker run --mutate \"$FILES\" || echo 'No source files changed — skipping mutation testing'",
+      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -); if [ -n \"$FILES\" ]; then stryker run --mutate \"$FILES\"; else echo 'No source files changed — skipping mutation testing'; fi",
       "files": [
         "src/**/*.ts",
         "__tests__/**/*.ts",

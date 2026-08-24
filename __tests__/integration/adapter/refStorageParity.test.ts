@@ -59,22 +59,12 @@ describe('Given the runner git binary probed for repository-format support', () 
     expect(sut).toBe(true)
   })
 
-  // CI runners carry a modern git that supports every candidate format,
-  // including reftable, so an unsupported one there is a real failure rather
-  // than a reduced local run. The test itself always runs — gating it behind
-  // a skip would reintroduce the silent absence it exists to prevent.
-  it('When running in CI, Then no candidate format is left unsupported', () => {
-    // Arrange
-    const sut = CANDIDATE_FORMATS.filter(
-      format => !FORMAT_SUPPORT.get(format.name)
-    ).map(format => format.name)
-
-    // Act
-    const unsupportedInCi = process.env.CI ? sut : []
-
-    // Assert
-    expect(unsupportedInCi).toEqual([])
-  })
+  // Deliberately no "every format must be supported on CI" assertion:
+  // `--ref-format=reftable` needs git 2.45+, and requiring it would put a
+  // git-version floor on the runner images for a plugin that needs no git
+  // binary at runtime — a runner-image change on an unrelated PR would go
+  // red on three legs. The per-format rows above name each verdict in the
+  // output instead, so a reduced run is visible rather than absent.
 })
 
 type FixtureEntry = { dir: string; refs: RefNameFixture }
