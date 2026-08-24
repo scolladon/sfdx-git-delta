@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.3.0...v7.4.0) (2026-08-24)
+
+
+### Features
+
+* **git-adapter:** support reftable and sha256 repositories ([#1394](https://github.com/scolladon/sfdx-git-delta/issues/1394)) ([27d9825](https://github.com/scolladon/sfdx-git-delta/commit/27d9825a80153f778cb3408e21484ce1e34235d1))
+
 ## [7.3.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.2.0...v7.3.0) (2026-08-17)
 
 
