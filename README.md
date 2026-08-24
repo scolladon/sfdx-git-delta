@@ -122,7 +122,7 @@ It's also important to implement a way to switch back to full deployment in case
 
 ### Prerequisites
 
-No `git` binary is required: the plugin reads the repository's git object store in-process.
+No `git` binary is required: the plugin reads the repository's git object store in-process, including `--ref-format=reftable` and `--object-format=sha256` repositories (the latter isn't hosted by GitHub or GitLab today, so you're unlikely to run into one).
 
 **Node v22 or above is required**.
 To check if Salesforce CLI runs under a supported node version for SGD, run `sf --version`. You should see a node version of v22 or above to use SGD.

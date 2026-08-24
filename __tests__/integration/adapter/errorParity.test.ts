@@ -1,12 +1,13 @@
 'use strict'
 import { rm } from 'node:fs/promises'
+import { resolve } from 'node:path'
 
 import { afterAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
-import { treatPathSep } from '../../../src/utils/fsUtils'
+import { sanitizePath } from '../../../src/utils/fsUtils'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
@@ -14,7 +15,28 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 // resolves: tsgit rejects it with `OBJECT_NOT_FOUND: object not found:
 // deadbeef`, the raw shape mapTsgitError narrows away from user output.
 const MISSING_OID = 'deadbeef'
-const RAW_CODE_LEAK_PATTERN = /OBJECT_NOT_FOUND|TsgitError|ENOENT.*realpath/
+
+// Every raw engine shape the mapper must narrow away before a message can
+// reach a user: the object-lookup code, the four repository-acceptance
+// refusal codes, 3.5.0's eager option-validation code, the error class
+// name, and the pre-3.5.0 ENOENT/realpath shape the retired arm targeted.
+const RAW_TSGIT_SHAPES = [
+  'OBJECT_NOT_FOUND',
+  'NOT_A_REPOSITORY',
+  'REPOSITORY_FORMAT_VERSION_UNSUPPORTED',
+  'REPOSITORY_EXTENSIONS_UNSUPPORTED',
+  'REPOSITORY_EXTENSION_UNSUPPORTED',
+  'INVALID_OPTION',
+  'TsgitError',
+  'ENOENT.*realpath',
+]
+const RAW_CODE_LEAK_PATTERN = new RegExp(RAW_TSGIT_SHAPES.join('|'))
+
+// The adapter resolves its repository path to an absolute, forward-slashed form, so an
+// expectation must compose it the same way (mkdtemp returns backslashes on
+// win32, and resolve() adds a drive letter there).
+const adapterRepoPath = (repoDir: string): string =>
+  sanitizePath(resolve(repoDir))!
 
 const tempDirs: string[] = []
 
@@ -86,7 +108,7 @@ describe('Given the released error-message contract (validated surface)', () => 
   })
 
   describe('When ConfigValidator validates a repo path with no .git directory', () => {
-    it('Then it throws the released error.PathIsNotGit message', async () => {
+    it('Then it throws the released error.PathIsNotGit message exactly once, not twice', async () => {
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-nogit-')
       const config = makeConfig({ repo: repoDir })
@@ -97,12 +119,69 @@ describe('Given the released error-message contract (validated surface)', () => 
         .validateConfig()
         .catch((thrown: unknown) => thrown)
 
-      // Assert — the CLI sanitizes paths to forward slashes before they
-      // reach messages, so the expected value gets the same treatment
-      // (on win32 mkdtemp returns a backslashed path).
-      expect((error as Error).message).toContain(
-        `'${treatPathSep(repoDir)}' is not a git repository`
+      // Assert — pathExists (error.PathIsNotGit, rendered from the
+      // adapter's absolute key) and parseRev x2 (RepositoryRefusalError,
+      // rendered from the same key) now report byte-identical sentences for
+      // the same missing .git, so validateConfig's `new Set(errors)` join
+      // collapses all three into exactly one — not `.toContain`, which
+      // would still pass on the pre-fix, comma-joined duplicate.
+      expect((error as Error).message).toBe(
+        `'${adapterRepoPath(repoDir)}' is not a git repository`
       )
+    })
+  })
+
+  describe('When the same missing-repository refusal is rendered by both the config-validated and the raw adapter surface', () => {
+    it('Then ConfigValidator and GitAdapter produce byte-identical messages', async () => {
+      // Arrange — proves Fix 1 and Fix 3's critical interaction: both
+      // renderers must apply the same sanitization to the same
+      // absolute repository key, or the Set-based dedupe above would
+      // silently stop collapsing them.
+      const repoDir = await trackedTempDir('sgd-error-parity-dual-')
+      const validator = new ConfigValidator(makeConfig({ repo: repoDir }))
+      const adapter = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
+
+      // Act
+      const configError = await validator
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+      const adapterError = await adapter
+        .parseRev('HEAD')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((configError as Error).message).toBe(
+        (adapterError as Error).message
+      )
+    })
+  })
+
+  describe('When ConfigValidator validates against a repository declaring an unsupported format version', () => {
+    it('Then it throws the mapped refusal message instead of two sha-pointer errors', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir(
+        'sgd-error-parity-cfg-format-version-'
+      )
+      initRepoWithCommit(repoDir)
+      runGit(['config', 'core.repositoryformatversion', '99'], {
+        cwd: repoDir,
+      })
+      const config = makeConfig({ repo: repoDir, from: 'HEAD', to: 'HEAD' })
+      const sut = new ConfigValidator(config)
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        `'${adapterRepoPath(repoDir)}' uses a repository format this version of sgd cannot read`
+      )
+      expect((error as Error).message).not.toContain(
+        'is not a valid sha pointer'
+      )
+      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })
 })
@@ -122,6 +201,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Assert
       expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toBe('HEAD: not a valid git revision')
       expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })
@@ -140,6 +220,51 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Assert
       expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toBe(
+        `${MISSING_OID}: not a valid git revision`
+      )
+      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
+    })
+  })
+
+  describe('When parseRev runs against a repository declaring an unsupported format version', () => {
+    it('Then it rejects naming the repository, mapped to the unreadable-format message', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-format-version-')
+      initRepoWithCommit(repoDir)
+      runGit(['config', 'core.repositoryformatversion', '99'], {
+        cwd: repoDir,
+      })
+      const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
+
+      // Act
+      const error = await sut
+        .parseRev('HEAD')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        `'${adapterRepoPath(repoDir)}' uses a repository format this version of sgd cannot read`
+      )
+      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
+    })
+  })
+
+  describe('When parseRev runs against a directory with no .git', () => {
+    it('Then it rejects naming the repository, mapped to the not-a-repository message', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-nogit-adapter-')
+      const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
+
+      // Act
+      const error = await sut
+        .parseRev('HEAD')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        `'${adapterRepoPath(repoDir)}' is not a git repository`
+      )
       expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })

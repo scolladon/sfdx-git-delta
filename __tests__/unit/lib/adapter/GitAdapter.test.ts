@@ -1,7 +1,7 @@
 'use strict'
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
-import { join } from 'node:path/posix'
+import { join, resolve, win32 } from 'node:path'
 import { PassThrough, Readable } from 'node:stream'
 
 import type { Repository } from '@scolladon/tsgit'
@@ -17,6 +17,7 @@ import {
 } from '../../../../src/adapter/gitBlobReader'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
+import { sanitizePath } from '../../../../src/utils/fsUtils'
 import {
   getLFSObjectContentPath,
   isLFS,
@@ -90,6 +91,18 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   generateDelta: true,
   ...overrides,
 })
+
+// The SUT resolves the pool key to an absolute path with platform resolve() then the posix
+// sanitizePath, so an expectation written as a literal would be wrong on
+// win32, where resolve('/repo') is 'C:\repo'. Compose it the same way.
+const repoKey = (repo: string): string => sanitizePath(resolve(repo))!
+
+// The repository path GitAdapter actually opens and reads from: platform
+// resolve() only, no sanitizePath. Reads (openRepository's cwd, the LFS
+// joins) must stay platform-native — sanitizePath's posix normalisation
+// collapses a win32 UNC root's doubled leading separator, pointing reads at
+// the wrong location (see the win32 UNC tests below).
+const repoPath = (repo: string): string => resolve(repo)
 
 const asCommit = (tree: string) => ({
   type: 'commit',
@@ -215,6 +228,19 @@ describe('GitAdapter', () => {
     })
   })
 
+  describe('Given repositoryKey', () => {
+    it('When read, Then it returns the same absolute, sanitized value used as the pool key', () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: './repo' }))
+
+      // Act
+      const result = sut.repositoryKey
+
+      // Assert
+      expect(result).toBe(repoKey('./repo'))
+    })
+  })
+
   describe('Given getRepo caching', () => {
     it('When multiple methods run against the same instance, Then openRepository is called only once', async () => {
       // Arrange
@@ -227,7 +253,110 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledOnce()
-      expect(mockOpenRepository).toHaveBeenCalledWith({ cwd: '/repo' })
+      expect(mockOpenRepository).toHaveBeenCalledWith({
+        cwd: repoPath('/repo'),
+        trust: 'always',
+        hooks: false,
+        command: false,
+      })
+    })
+  })
+
+  describe('Given a relative repository path', () => {
+    // tsgit 3.5.0's own absolute-path predicate: a leading '/', a UNC '\\',
+    // or a drive letter followed by a separator. Asserting against the
+    // engine's own rule — not merely "not './'" — is what stops this
+    // regressing.
+    const TSGIT_ABSOLUTE_PATH = /^(\/|\\\\|[A-Za-z]:[/\\])/
+
+    it('When the repository path is relative, Then openRepository receives an absolute cwd', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: './' }))
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      await sut.parseRev('HEAD')
+
+      // Assert
+      const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
+      expect(cwd).toMatch(TSGIT_ABSOLUTE_PATH)
+      expect(cwd).toBe(repoPath('./'))
+    })
+  })
+
+  describe('Given a repository path sanitizePath would alter', () => {
+    // sanitizePath treats a literal backslash as a path separator (see
+    // fsUtils#treatPathSep) — the same rule that collapses a win32 UNC
+    // root, observable here without leaving posix via a directory segment
+    // that happens to contain a backslash. Reads (openRepository's cwd,
+    // and the LFS object read below) must stay on the unsanitized,
+    // platform-form path — never the posix-only pool key.
+    const backslashRepo = String.raw`/repo\name`
+
+    it('When the repository path contains a character sanitizePath would treat as a separator, Then openRepository still receives the unsanitized platform-form path', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      await sut.parseRev('HEAD')
+
+      // Assert
+      const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
+      expect(cwd).toBe(repoPath(backslashRepo))
+      expect(cwd).not.toBe(repoKey(backslashRepo))
+    })
+
+    it('When an LFS-backed blob is read from that repository, Then the object file is read from the unsanitized platform-form path', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'blob-1',
+        content: new Uint8Array(Buffer.from('pointer')),
+      })
+      isLFSMocked.mockReturnValue(true)
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/aabb'
+      )
+      readFileMocked.mockResolvedValue(Buffer.from('resolved-content') as never)
+
+      // Act
+      await sut.getBufferContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+
+      // Assert
+      expect(readFileMocked).toHaveBeenCalledWith(
+        join(repoPath(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
+      )
+      expect(readFileMocked).not.toHaveBeenCalledWith(
+        join(repoKey(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
+      )
+    })
+  })
+
+  // Why the key/repoPath split exists, in executable form. The behavioral
+  // guard is the backslash-repo pair above: those drive GitAdapter itself
+  // and fail on linux if a read ever goes back to the pool key. This case
+  // pins the sgd-side reason a UNC root cannot survive that key, which no
+  // CI leg can reach (none of the 9 has a UNC share).
+  describe('Given a win32 UNC repository path', () => {
+    const uncInput = String.raw`\\srv\share\co`
+
+    it('When the normalised pool key is derived from a UNC path, Then its doubled leading separator collapses to one (why reads must use the platform-form path, not the pool key)', () => {
+      // Arrange
+      const uncRepoPath = win32.resolve(uncInput)
+
+      // Act
+      const poolKey = sanitizePath(uncRepoPath)!
+
+      // Assert
+      expect(poolKey.startsWith('//')).toBe(false)
+      expect(poolKey).not.toBe(uncRepoPath)
     })
   })
 
@@ -239,8 +368,11 @@ describe('GitAdapter', () => {
       // Act
       await sut.close()
 
-      // Assert
+      // Assert — the early return must skip the disposal path outright, not
+      // fall into it and rely on the catch to absorb a null handle: that
+      // would log a failure for a repository that was simply never opened.
       expect(fakeRepo.dispose).not.toHaveBeenCalled()
+      expect(Logger.debug).not.toHaveBeenCalled()
     })
 
     it('When the repo was opened, Then close disposes it and clears the handle', async () => {
@@ -254,6 +386,64 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(fakeRepo.dispose).toHaveBeenCalledOnce()
+    })
+
+    it('When the cached handle is a failed open, Then close resolves, logs the reason and drops the handle', async () => {
+      // Arrange
+      const openFailure = new Error(
+        'INVALID_OPTION: invalid option: cwd — must be an absolute path'
+      )
+      mockOpenRepository.mockRejectedValue(openFailure)
+      const sut = GitAdapter.getInstance(makeConfig())
+      await sut.parseRev('HEAD').catch(() => undefined)
+
+      // Act
+      const result = await sut.close().catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        `GitAdapter.close: releasing '${repoKey('/repo')}' failed: INVALID_OPTION: invalid option: cwd — must be an absolute path`
+      )
+    })
+
+    it('When the cached handle opened successfully but repo.dispose() rejects, Then close resolves and logs the dispose failure (not a missing-handle message)', async () => {
+      // Arrange — a real dispose failure is a resource-release problem,
+      // the opposite of "no disposable repository handle": the log text
+      // must name what actually happened instead of contradicting it.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('abc')
+      await sut.parseRev('HEAD')
+      fakeRepo.dispose.mockRejectedValue(new Error('dispose boom'))
+
+      // Act
+      const result = await sut.close().catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        `GitAdapter.close: releasing '${repoKey('/repo')}' failed: dispose boom`
+      )
+    })
+
+    it('When close has run over a failed open, Then the next operation opens the repository again', async () => {
+      // Arrange
+      const openFailure = new Error(
+        'INVALID_OPTION: invalid option: cwd — must be an absolute path'
+      )
+      mockOpenRepository.mockRejectedValue(openFailure)
+      const sut = GitAdapter.getInstance(makeConfig())
+      await sut.parseRev('HEAD').catch(() => undefined)
+      await sut.close().catch(() => undefined)
+      mockOpenRepository.mockResolvedValue(fakeRepo as unknown as Repository)
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      const result = await sut.parseRev('HEAD')
+
+      // Assert
+      expect(mockOpenRepository).toHaveBeenCalledTimes(2)
+      expect(result).toBe('abc')
     })
   })
 
@@ -282,6 +472,32 @@ describe('GitAdapter', () => {
       expect(secondRepo.dispose).toHaveBeenCalledOnce()
       expect(GitAdapter.getInstance(makeConfig())).not.toBe(first)
     })
+
+    it('When one pooled instance holds a failed open, Then closeAll resolves and still clears the pool', async () => {
+      // Arrange
+      const openFailure = new Error(
+        'INVALID_OPTION: invalid option: cwd — must be an absolute path'
+      )
+      mockOpenRepository.mockResolvedValueOnce(
+        fakeRepo as unknown as Repository
+      )
+      mockOpenRepository.mockRejectedValueOnce(openFailure)
+      fakeRepo.revParse.mockResolvedValue('abc')
+      const first = GitAdapter.getInstance(makeConfig())
+      const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-2' }))
+      await first.parseRev('HEAD')
+      await second.parseRev('HEAD~1').catch(() => undefined)
+
+      // Act
+      const result = await GitAdapter.closeAll().catch(
+        (thrown: unknown) => thrown
+      )
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(fakeRepo.dispose).toHaveBeenCalledOnce()
+      expect(GitAdapter.getInstance(makeConfig())).not.toBe(first)
+    })
   })
 
   describe('Given parseRev', () => {
@@ -303,7 +519,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-ref'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -362,7 +578,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: HEAD'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -457,7 +673,7 @@ describe('GitAdapter', () => {
       )
       fakeRepo.primitives.mergeBase.mockRejectedValue(
         Object.assign(new Error('object not found'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -625,7 +841,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-ref'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -813,7 +1029,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(Buffer.from('resolved-content'))
       expect(readFileMocked).toHaveBeenCalledWith(
-        join('/repo', '.git/lfs/objects/aa/bb/aabb')
+        join(repoPath('/repo'), '.git/lfs/objects/aa/bb/aabb')
       )
     })
 
@@ -963,7 +1179,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-oid'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -1028,7 +1244,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(Buffer.from('resolved-content'))
       expect(readFileMocked).toHaveBeenCalledWith(
-        join('/repo', '.git/lfs/objects/aa/bb/aabb')
+        join(repoPath('/repo'), '.git/lfs/objects/aa/bb/aabb')
       )
     })
 
@@ -1166,7 +1382,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-oid'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -1312,7 +1528,7 @@ describe('GitAdapter', () => {
       expect(result).toEqual(Buffer.from('lfs-content'))
       expect(getLFSObjectContentPathMocked).toHaveBeenCalledWith(pointer)
       expect(createReadStreamMocked).toHaveBeenCalledWith(
-        join('/repo', '.git/lfs/objects/aa/bb/abc')
+        join(repoPath('/repo'), '.git/lfs/objects/aa/bb/abc')
       )
     })
 
@@ -1946,7 +2162,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockRejectedValue(
         Object.assign(new Error('object not found: HEAD~1'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 

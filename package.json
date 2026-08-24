@@ -48,17 +48,17 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "4.13.5",
-    "@salesforce/core": "9.1.2",
-    "@salesforce/sf-plugins-core": "13.0.0",
-    "@salesforce/source-deploy-retrieve": "13.1.1",
-    "@scolladon/tsgit": "3.4.0",
+    "@oclif/core": "4.14.0",
+    "@salesforce/core": "9.1.5",
+    "@salesforce/sf-plugins-core": "13.0.3",
+    "@salesforce/source-deploy-retrieve": "13.2.0",
+    "@scolladon/tsgit": "3.6.0",
     "ignore": "7.0.6",
     "txml": "6.0.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
+    "@biomejs/biome": "2.5.10",
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
     "@ls-lint/ls-lint": "2.3.1",
@@ -68,7 +68,7 @@
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.2.0",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "husky": "9.1.7",
     "knip": "6.32.2",
     "lint-staged": "17.3.0",
@@ -79,7 +79,7 @@
     "ts-node": "10.9.2",
     "typescript": "7.0.2",
     "validate-branch-name": "1.3.2",
-    "vitest": "4.1.10",
+    "vitest": "4.1.11",
     "wireit": "0.14.13"
   },
   "overrides": {
@@ -265,7 +265,9 @@
         "__tests__/functional/**/*.test.ts",
         "__tests__/functional/byteEquality/fixtures/**",
         "**/tsconfig.json",
-        "vitest.functional.config.ts"
+        "vitest.functional.config.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [],
       "dependencies": [
@@ -278,7 +280,10 @@
         "src/**/*.ts",
         "__tests__/integration/**/*.test.ts",
         "**/tsconfig.json",
-        "vitest.integration.config.ts"
+        "vitest.integration.config.ts",
+        "package.json",
+        "package-lock.json",
+        "__tests__/__utils__/**/*.ts"
       ],
       "output": [],
       "dependencies": [
@@ -298,7 +303,9 @@
         "src/**/*.ts",
         "__tests__/perf/**",
         "**/tsconfig.json",
-        "vitest.config.perf.ts"
+        "vitest.config.perf.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         "perf-raw.json",
@@ -315,7 +322,9 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/tsconfig.json"
+        "**/tsconfig.json",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         ".stryker-tmp/**"
@@ -325,12 +334,14 @@
       ]
     },
     "test:mutation:incremental": {
-      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -) && [ -n \"$FILES\" ] && stryker run --mutate \"$FILES\" || echo 'No source files changed — skipping mutation testing'",
+      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -); if [ -n \"$FILES\" ]; then stryker run --mutate \"$FILES\"; else echo 'No source files changed — skipping mutation testing'; fi",
       "files": [
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/tsconfig.json"
+        "**/tsconfig.json",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         ".stryker-tmp/**"
@@ -346,7 +357,9 @@
         "__tests__/nut/**/*.nut.ts",
         "messages/**",
         "**/tsconfig.json",
-        "vitest.nut.config.ts"
+        "vitest.nut.config.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [],
       "dependencies": [
@@ -361,7 +374,9 @@
         "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json",
-        "vitest.config.ts"
+        "vitest.config.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         "reports/coverage/**"
