@@ -265,7 +265,9 @@
         "__tests__/functional/**/*.test.ts",
         "__tests__/functional/byteEquality/fixtures/**",
         "**/tsconfig.json",
-        "vitest.functional.config.ts"
+        "vitest.functional.config.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [],
       "dependencies": [
@@ -278,7 +280,10 @@
         "src/**/*.ts",
         "__tests__/integration/**/*.test.ts",
         "**/tsconfig.json",
-        "vitest.integration.config.ts"
+        "vitest.integration.config.ts",
+        "package.json",
+        "package-lock.json",
+        "__tests__/__utils__/**/*.ts"
       ],
       "output": [],
       "dependencies": [
@@ -346,7 +351,9 @@
         "__tests__/nut/**/*.nut.ts",
         "messages/**",
         "**/tsconfig.json",
-        "vitest.nut.config.ts"
+        "vitest.nut.config.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [],
       "dependencies": [
@@ -361,7 +368,9 @@
         "__tests__/**/*.ts",
         "messages/**",
         "**/tsconfig.json",
-        "vitest.config.ts"
+        "vitest.config.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         "reports/coverage/**"
