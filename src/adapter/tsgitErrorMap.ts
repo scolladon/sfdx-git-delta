@@ -1,11 +1,14 @@
 'use strict'
 import { getErrorMessage, RepositoryRefusalError } from '../utils/errorUtils.js'
+import { sanitizeForMessage } from '../utils/messageSanitizer.js'
 
 // Raw tsgit surfaces this module narrows away from GitAdapter's
 // user-surfacing methods: a bad ref/oid rejects with `TsgitError` whose
-// message is prefixed `OBJECT_NOT_FOUND:`; a repository tsgit refuses to
-// open at all rejects with one of the codes in REFUSAL_MESSAGES below.
-// Neither raw shape is release-compatible.
+// `data.code` is 'OBJECT_NOT_FOUND' and whose message is prefixed
+// `OBJECT_NOT_FOUND:`; a repository tsgit refuses to open at all rejects
+// with one of the codes in REFUSAL_MESSAGES below, carried the same way.
+// Neither raw shape is release-compatible. tsgit never sets a top-level
+// `error.code` — every code lives under `error.data.code`.
 const OBJECT_NOT_FOUND_CODE = 'OBJECT_NOT_FOUND'
 const OBJECT_NOT_FOUND_PREFIX = `${OBJECT_NOT_FOUND_CODE}:`
 
@@ -16,27 +19,28 @@ const REPOSITORY_EXTENSIONS_UNSUPPORTED_CODE =
   'REPOSITORY_EXTENSIONS_UNSUPPORTED'
 const REPOSITORY_EXTENSION_UNSUPPORTED_CODE = 'REPOSITORY_EXTENSION_UNSUPPORTED'
 
-type CodedError = { code?: unknown } | null | undefined
-
-const codeOf = (error: unknown): unknown => (error as CodedError)?.code
-
-const isObjectNotFound = (error: unknown, message: string): boolean =>
-  codeOf(error) === OBJECT_NOT_FOUND_CODE ||
-  message.startsWith(OBJECT_NOT_FOUND_PREFIX)
-
 type TsgitDataError = { data?: { code?: unknown } } | null | undefined
 
 const dataCodeOf = (error: unknown): unknown =>
   (error as TsgitDataError)?.data?.code
 
+const isObjectNotFound = (error: unknown, message: string): boolean =>
+  dataCodeOf(error) === OBJECT_NOT_FOUND_CODE ||
+  message.startsWith(OBJECT_NOT_FOUND_PREFIX)
+
 // tsgit renders every repository path down to its basename, so a mapped
 // message has to be rebuilt from the path sgd itself opened. One sentence
 // per condition, not per code: the three format refusals are not separately
-// actionable — the user's move is the same for all three.
+// actionable — the user's move is the same for all three. The path is
+// untrusted (it can come straight from --repo-dir), so it is sanitized
+// here the same way ConfigValidator sanitizes error.PathIsNotGit's — that
+// shared transformation is what keeps the two renderings byte-identical,
+// which is what lets validateConfig's `new Set(errors)` collapse a
+// same-repository refusal reported through both paths into one sentence.
 const notARepository = (repoPath: string) =>
-  `'${repoPath}' is not a git repository`
+  `'${sanitizeForMessage(repoPath)}' is not a git repository`
 const unreadableFormat = (repoPath: string) =>
-  `'${repoPath}' uses a repository format this version of sgd cannot read`
+  `'${sanitizeForMessage(repoPath)}' uses a repository format this version of sgd cannot read`
 
 const REFUSAL_MESSAGES: ReadonlyMap<string, (repoPath: string) => string> =
   new Map([

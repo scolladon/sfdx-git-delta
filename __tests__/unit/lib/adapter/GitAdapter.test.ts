@@ -228,6 +228,19 @@ describe('GitAdapter', () => {
     })
   })
 
+  describe('Given repositoryKey', () => {
+    it('When read, Then it returns the same absolutized, sanitized value used as the pool key', () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: './repo' }))
+
+      // Act
+      const result = sut.repositoryKey
+
+      // Assert
+      expect(result).toBe(repoKey('./repo'))
+    })
+  })
+
   describe('Given getRepo caching', () => {
     it('When multiple methods run against the same instance, Then openRepository is called only once', async () => {
       // Arrange
@@ -433,6 +446,25 @@ describe('GitAdapter', () => {
       expect(resolveLazyCall(Logger.debug)).toContain(repoKey('/repo'))
     })
 
+    it('When the cached handle opened successfully but repo.dispose() rejects, Then close resolves and logs the dispose failure (not a missing-handle message)', async () => {
+      // Arrange — a real dispose failure is a resource-release problem,
+      // the opposite of "no disposable repository handle": the log text
+      // must name what actually happened instead of contradicting it.
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('abc')
+      await sut.parseRev('HEAD')
+      fakeRepo.dispose.mockRejectedValue(new Error('dispose boom'))
+
+      // Act
+      const result = await sut.close().catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        `GitAdapter.close: releasing '${repoKey('/repo')}' failed: dispose boom`
+      )
+    })
+
     it('When close has run over a failed open, Then the next operation opens the repository again', async () => {
       // Arrange
       const openFailure = new Error(
@@ -526,7 +558,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-ref'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -585,7 +617,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: HEAD'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -680,7 +712,7 @@ describe('GitAdapter', () => {
       )
       fakeRepo.primitives.mergeBase.mockRejectedValue(
         Object.assign(new Error('object not found'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -848,7 +880,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-ref'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -1186,7 +1218,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-oid'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -1389,7 +1421,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue(
         Object.assign(new Error('object not found: bad-oid'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 
@@ -2169,7 +2201,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.diff.mockRejectedValue(
         Object.assign(new Error('object not found: HEAD~1'), {
-          code: 'OBJECT_NOT_FOUND',
+          data: { code: 'OBJECT_NOT_FOUND' },
         })
       )
 

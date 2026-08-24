@@ -7,7 +7,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
-import { sanitizePath, treatPathSep } from '../../../src/utils/fsUtils'
+import { sanitizePath } from '../../../src/utils/fsUtils'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
@@ -108,7 +108,7 @@ describe('Given the released error-message contract (validated surface)', () => 
   })
 
   describe('When ConfigValidator validates a repo path with no .git directory', () => {
-    it('Then it throws the released error.PathIsNotGit message', async () => {
+    it('Then it throws the released error.PathIsNotGit message exactly once, not twice', async () => {
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-nogit-')
       const config = makeConfig({ repo: repoDir })
@@ -119,13 +119,39 @@ describe('Given the released error-message contract (validated surface)', () => 
         .validateConfig()
         .catch((thrown: unknown) => thrown)
 
-      // Assert — the CLI sanitizes paths to forward slashes before they
-      // reach messages, so the expected value gets the same treatment
-      // (on win32 mkdtemp returns a backslashed path). pathExists and
-      // parseRev now report the identical sentence for the same missing
-      // .git, and the Set at validateConfig's join collapses the pair.
-      expect((error as Error).message).toContain(
-        `'${treatPathSep(repoDir)}' is not a git repository`
+      // Assert — pathExists (error.PathIsNotGit, rendered from the
+      // adapter's absolutized key) and parseRev x2 (RepositoryRefusalError,
+      // rendered from the same key) now report byte-identical sentences for
+      // the same missing .git, so validateConfig's `new Set(errors)` join
+      // collapses all three into exactly one — not `.toContain`, which
+      // would still pass on the pre-fix, comma-joined duplicate.
+      expect((error as Error).message).toBe(
+        `'${adapterRepoPath(repoDir)}' is not a git repository`
+      )
+    })
+  })
+
+  describe('When the same missing-repository refusal is rendered by both the config-validated and the raw adapter surface', () => {
+    it('Then ConfigValidator and GitAdapter produce byte-identical messages', async () => {
+      // Arrange — proves Fix 1 and Fix 3's critical interaction: both
+      // renderers must apply the same sanitization to the same
+      // absolutized repository key, or the Set-based dedupe above would
+      // silently stop collapsing them.
+      const repoDir = await trackedTempDir('sgd-error-parity-dual-')
+      const validator = new ConfigValidator(makeConfig({ repo: repoDir }))
+      const adapter = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
+
+      // Act
+      const configError = await validator
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+      const adapterError = await adapter
+        .parseRev('HEAD')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((configError as Error).message).toBe(
+        (adapterError as Error).message
       )
     })
   })

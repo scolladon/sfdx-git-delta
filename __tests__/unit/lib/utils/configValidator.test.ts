@@ -13,15 +13,24 @@ import {
 import { Logger } from '../../../../src/utils/LoggingService'
 import { getConfig } from '../../../__utils__/testWork'
 
-const { mockGetMessage, mockParseRev, mockGetMergeBase, mockSfProjectResolve } =
-  vi.hoisted(() => ({
-    mockGetMessage: vi.fn(
-      (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
-    ),
-    mockParseRev: vi.fn(),
-    mockGetMergeBase: vi.fn(),
-    mockSfProjectResolve: vi.fn(),
-  }))
+const {
+  mockGetMessage,
+  mockParseRev,
+  mockGetMergeBase,
+  mockSfProjectResolve,
+  MOCK_REPOSITORY_KEY,
+} = vi.hoisted(() => ({
+  mockGetMessage: vi.fn(
+    (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
+  ),
+  mockParseRev: vi.fn(),
+  mockGetMergeBase: vi.fn(),
+  mockSfProjectResolve: vi.fn(),
+  // Stands in for GitAdapter's absolutized repository key — a fixed,
+  // recognizable value so PathIsNotGit assertions can pin exactly what
+  // reaches the message, independent of the test's own config.repo.
+  MOCK_REPOSITORY_KEY: '/abs/mock-repo',
+}))
 
 vi.mock('node:fs/promises', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -44,6 +53,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
       getInstance: () => ({
         parseRev: mockParseRev,
         getMergeBase: mockGetMergeBase,
+        repositoryKey: MOCK_REPOSITORY_KEY,
       }),
     },
   }
@@ -852,7 +862,9 @@ describe('Given a ConfigValidator', () => {
 
       await expect(sut.validateConfig()).rejects.toThrow(
         expect.objectContaining({
-          message: expect.stringContaining('error.PathIsNotGit:not-git'),
+          message: expect.stringContaining(
+            `error.PathIsNotGit:${MOCK_REPOSITORY_KEY}`
+          ),
         })
       )
     })

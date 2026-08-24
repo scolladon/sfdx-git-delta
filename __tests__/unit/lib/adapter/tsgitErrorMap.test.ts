@@ -14,9 +14,9 @@ const enoentOther = Object.assign(
   { code: 'ENOENT' }
 )
 
-const objectNotFoundByCode = Object.assign(
+const objectNotFoundByDataCode = Object.assign(
   new Error('object not found: deadbeef'),
-  { code: 'OBJECT_NOT_FOUND' }
+  { data: { code: 'OBJECT_NOT_FOUND' } }
 )
 
 const objectNotFoundByMessage = new Error(
@@ -112,8 +112,8 @@ const MAPPING_ROWS = [
     "git operation failed: ENOENT: no such file or directory, open '/repo/some-file'",
   ],
   [
-    'an OBJECT_NOT_FOUND error identified by code only',
-    objectNotFoundByCode,
+    'an OBJECT_NOT_FOUND error identified by data.code, message without the prefix',
+    objectNotFoundByDataCode,
     'HEAD~999',
     '/repo',
     'HEAD~999: not a valid git revision',
@@ -267,7 +267,11 @@ describe('Given mapTsgitError', () => {
     const sut = mapTsgitError
 
     // Act
-    const objectNotFoundResult = sut(objectNotFoundByCode, 'HEAD~999', '/repo')
+    const objectNotFoundResult = sut(
+      objectNotFoundByDataCode,
+      'HEAD~999',
+      '/repo'
+    )
     const genericResult = sut(genericTsgitError, 'op', '/repo')
 
     // Assert
@@ -275,5 +279,37 @@ describe('Given mapTsgitError', () => {
     expect(objectNotFoundResult).not.toBeInstanceOf(RepositoryRefusalError)
     expect(genericResult).toBeInstanceOf(Error)
     expect(genericResult).not.toBeInstanceOf(RepositoryRefusalError)
+  })
+
+  describe('Given a repository path carrying injectable characters', () => {
+    const injectedPath = 'a\nERROR: deployment approved\nb'
+
+    it('When mapping a not-a-repository refusal, Then the repository path is sanitized in the mapped message', () => {
+      // Arrange
+      const sut = mapTsgitError
+
+      // Act
+      const result = sut(notARepositoryByPrefix, 'HEAD', injectedPath)
+
+      // Assert
+      expect(result.message).toBe(
+        "'a\\u{a}ERROR: deployment approved\\u{a}b' is not a git repository"
+      )
+      expect(result.message.split('\n')).toHaveLength(1)
+    })
+
+    it('When mapping an unreadable-format refusal, Then the repository path is sanitized in the mapped message', () => {
+      // Arrange
+      const sut = mapTsgitError
+
+      // Act
+      const result = sut(formatVersionUnsupportedByPrefix, 'HEAD', injectedPath)
+
+      // Assert
+      expect(result.message).toBe(
+        "'a\\u{a}ERROR: deployment approved\\u{a}b' uses a repository format this version of sgd cannot read"
+      )
+      expect(result.message.split('\n')).toHaveLength(1)
+    })
   })
 })

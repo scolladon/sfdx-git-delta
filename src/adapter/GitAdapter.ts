@@ -172,6 +172,23 @@ export default class GitAdapter implements GitBlobReader {
     this.blobIdIndex = new Map<string, Map<string, ObjectId>>()
   }
 
+  // Read by ConfigValidator to render `error.PathIsNotGit` from the exact
+  // same absolutized value this adapter renders its own repository-refusal
+  // messages from (see mapError below), so the two collapse to one sentence
+  // through validateConfig's `new Set(errors)` dedupe instead of reporting
+  // the same missing repository twice in different forms.
+  public get repositoryKey(): string {
+    return this.key
+  }
+
+  // Binds the repository argument every mapTsgitError call site needs so a
+  // transposition between it and the adjacent `context: string` argument
+  // can no longer compile — mapTsgitError itself stays a pure 3-argument
+  // function for its own unit surface.
+  private mapError(error: unknown, context: string): Error {
+    return mapTsgitError(error, context, this.key)
+  }
+
   protected getRepo(): Promise<Repository> {
     if (!this.repoHandle) {
       // sgd only ever reads a repository (revParse, diff, tree walks,
@@ -204,7 +221,7 @@ export default class GitAdapter implements GitBlobReader {
       await repo.dispose()
     } catch (error) {
       Logger.debug(
-        lazy`GitAdapter.close: no disposable repository handle for '${this.key}': ${() => getErrorMessage(error)}`
+        lazy`GitAdapter.close: releasing '${this.key}' failed: ${() => getErrorMessage(error)}`
       )
     }
   }
@@ -215,7 +232,7 @@ export default class GitAdapter implements GitBlobReader {
       const repo = await this.getRepo()
       return await repo.revParse(ref)
     } catch (error) {
-      throw mapTsgitError(error, ref, this.key)
+      throw this.mapError(error, ref)
     }
   }
 
@@ -325,7 +342,7 @@ export default class GitAdapter implements GitBlobReader {
       ])
       return base
     } catch (error) {
-      throw mapTsgitError(error, `${from}...${to}`, this.key)
+      throw this.mapError(error, `${from}...${to}`)
     }
   }
 
@@ -345,7 +362,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       return firstCommit
     } catch (error) {
-      throw mapTsgitError(error, HEAD, this.key)
+      throw this.mapError(error, HEAD)
     }
   }
 
@@ -374,7 +391,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       return content
     } catch (error) {
-      throw mapTsgitError(error, forRef.oid, this.key)
+      throw this.mapError(error, forRef.oid)
     }
   }
 
@@ -587,7 +604,7 @@ export default class GitAdapter implements GitBlobReader {
         ...(spec.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
       })
     } catch (error) {
-      throw mapTsgitError(error, `${spec.from}..${spec.to}`, this.key)
+      throw this.mapError(error, `${spec.from}..${spec.to}`)
     }
   }
 }
