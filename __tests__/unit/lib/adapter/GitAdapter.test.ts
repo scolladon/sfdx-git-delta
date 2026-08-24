@@ -368,8 +368,11 @@ describe('GitAdapter', () => {
       // Act
       await sut.close()
 
-      // Assert
+      // Assert — the early return must skip the disposal path outright, not
+      // fall into it and rely on the catch to absorb a null handle: that
+      // would log a failure for a repository that was simply never opened.
       expect(fakeRepo.dispose).not.toHaveBeenCalled()
+      expect(Logger.debug).not.toHaveBeenCalled()
     })
 
     it('When the repo was opened, Then close disposes it and clears the handle', async () => {

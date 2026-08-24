@@ -258,8 +258,10 @@ describe('Given mapTsgitError', () => {
     // Act
     const result = sut(notARepositoryByPrefix, 'HEAD', '/proj/my-repo')
 
-    // Assert
+    // Assert — the name rides along into stack traces and serialized
+    // output, where `instanceof` cannot reach.
     expect(result).toBeInstanceOf(RepositoryRefusalError)
+    expect(result.name).toBe('RepositoryRefusalError')
   })
 
   it('When mapping any other failure, Then it returns a plain Error', () => {
