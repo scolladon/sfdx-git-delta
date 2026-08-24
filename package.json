@@ -52,7 +52,7 @@
     "@salesforce/core": "9.1.5",
     "@salesforce/sf-plugins-core": "13.0.3",
     "@salesforce/source-deploy-retrieve": "13.2.0",
-    "@scolladon/tsgit": "3.5.0",
+    "@scolladon/tsgit": "3.6.0",
     "ignore": "7.0.6",
     "txml": "6.0.1",
     "zod": "4.4.3"
