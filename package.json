@@ -322,7 +322,9 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/tsconfig.json"
+        "**/tsconfig.json",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         ".stryker-tmp/**"
@@ -337,7 +339,9 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/tsconfig.json"
+        "**/tsconfig.json",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         ".stryker-tmp/**"

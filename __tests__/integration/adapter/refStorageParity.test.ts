@@ -39,14 +39,16 @@ describe('Given the runner git binary probed for repository-format support', () 
   it.each(
     CANDIDATE_FORMATS.map(f => [f.name, FORMAT_SUPPORT.get(f.name)] as const)
   )('When probed for %s support, Then support is %s', (name, verdict) => {
-    // Arrange
-    const sut = EXERCISED_FORMATS
+    // Arrange — assert the probe against the work it gates, not against a
+    // filter of itself: a format claimed supported must have produced a
+    // fixture repository, and one claimed unsupported must not have.
+    const sut = fixtures
 
     // Act
-    const exercised = sut.some(format => format.name === name)
+    const built = sut.has(name)
 
     // Assert
-    expect(exercised).toBe(verdict)
+    expect(built).toBe(verdict)
   })
 
   it('When the probe has run, Then the files/sha1 baseline is supported', () => {

@@ -55,10 +55,11 @@ describe('Given the real tsgit engine validating open-repository options', () =>
   // and the same probe against `command` both resolve without error —
   // wrong-typed values are silently accepted, indistinguishable from an
   // unknown option name going through unchecked. There is no engine-side
-  // rejection to assert against, so a rename of either key would go
-  // undetected here exactly as it already would for a genuinely unknown
-  // option. This is an honest, documented gap rather than an assertion
-  // dressed up to look like a guard: the branch's ratified decision was
-  // not to synthesize a DUBIOUS_OWNERSHIP refusal arm for the same reason
-  // — a real gap, left visible, beats a fake one, hidden.
+  // rejection to assert against, so no runtime guard is possible here and
+  // none is faked — a real gap, left visible, beats a fake one, hidden.
+  // The gap is runtime-only, though: OpenRepositoryOptions declares both
+  // keys, and getRepo passes a fresh object literal, so TypeScript's
+  // excess-property check turns an upstream rename into a build failure at
+  // the call site. Renaming `trust` is caught here; renaming `hooks` or
+  // `command` is caught by tsc.
 })

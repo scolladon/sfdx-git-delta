@@ -339,44 +339,15 @@ describe('GitAdapter', () => {
     })
   })
 
-  // node:path's ambient resolve()/join() (used above via repoPath/repoKey)
-  // are platform-bound to whatever OS runs the test, so they can only ever
-  // exercise posix semantics on darwin/linux CI — a UNC share never appears.
-  // The win32 namespace replays GitAdapter's exact pipeline (resolve, then
-  // join for LFS reads) under win32 rules deterministically, on any
-  // platform, pinning the regression a subprocess-parity CI leg could never
-  // catch (none of the 9 legs has a UNC share).
+  // Why the key/repoPath split exists, in executable form. The behavioural
+  // guard is the backslash-repo pair above: those drive GitAdapter itself
+  // and fail on linux if a read ever goes back to the pool key. This case
+  // pins the sgd-side reason a UNC root cannot survive that key, which no
+  // CI leg can reach (none of the 9 has a UNC share).
   describe('Given a win32 UNC repository path', () => {
     const uncInput = String.raw`\\srv\share\co`
 
-    it('When resolved as the platform-form repository path, Then the UNC root survives and win32.resolve maps it back to the same location', () => {
-      // Arrange
-      const uncRepoPath = win32.resolve(uncInput)
-
-      // Act
-      const roundTripped = win32.resolve(uncRepoPath)
-
-      // Assert
-      expect(uncRepoPath.startsWith(String.raw`\\`)).toBe(true)
-      expect(roundTripped).toBe(uncRepoPath)
-    })
-
-    it('When an LFS object fragment is joined with the platform join, Then it still resolves under the same UNC share', () => {
-      // Arrange
-      const uncRepoPath = win32.resolve(uncInput)
-      const lfsFragment = '.git/lfs/objects/aa/bb/aabbccdd'
-
-      // Act
-      const joined = win32.join(uncRepoPath, lfsFragment)
-
-      // Assert
-      expect(win32.resolve(joined)).toBe(
-        win32.resolve(uncRepoPath, lfsFragment)
-      )
-      expect(joined.startsWith(String.raw`\\srv\share\co`)).toBe(true)
-    })
-
-    it('When the normalised pool key is derived from the same UNC input instead, Then its doubled leading separator collapses to one (why reads must use the platform-form path, not the pool key)', () => {
+    it('When the normalised pool key is derived from a UNC path, Then its doubled leading separator collapses to one (why reads must use the platform-form path, not the pool key)', () => {
       // Arrange
       const uncRepoPath = win32.resolve(uncInput)
 

@@ -19,6 +19,7 @@ const {
   mockGetMergeBase,
   mockSfProjectResolve,
   MOCK_REPOSITORY_KEY,
+  MOCK_REPOSITORY_KEY_ESCAPED,
 } = vi.hoisted(() => ({
   mockGetMessage: vi.fn(
     (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
@@ -28,8 +29,11 @@ const {
   mockSfProjectResolve: vi.fn(),
   // Stands in for GitAdapter's absolutized repository key — a fixed,
   // recognizable value so PathIsNotGit assertions can pin exactly what
-  // reaches the message, independent of the test's own config.repo.
-  MOCK_REPOSITORY_KEY: '/abs/mock-repo',
+  // reaches the message, independent of the test's own config.repo. It
+  // carries a newline on purpose: a repository path is user input, and
+  // every sanitizer fixed point would let the escaping silently vanish.
+  MOCK_REPOSITORY_KEY: '/abs/mock\nrepo',
+  MOCK_REPOSITORY_KEY_ESCAPED: '/abs/mock\\u{a}repo',
 }))
 
 vi.mock('node:fs/promises', async importOriginal => {
@@ -863,7 +867,7 @@ describe('Given a ConfigValidator', () => {
       await expect(sut.validateConfig()).rejects.toThrow(
         expect.objectContaining({
           message: expect.stringContaining(
-            `error.PathIsNotGit:${MOCK_REPOSITORY_KEY}`
+            `error.PathIsNotGit:${MOCK_REPOSITORY_KEY_ESCAPED}`
           ),
         })
       )
