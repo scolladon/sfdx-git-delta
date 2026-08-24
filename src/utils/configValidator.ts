@@ -120,7 +120,7 @@ export default class ConfigValidator {
 
     const errors: string[] = []
     if (!repoExists) {
-      // Rendered from the adapter's own absolutized repository key — not
+      // Rendered from the adapter's own absolute repository key — not
       // this.config.repo, which is only sanitizePath-normalized, never
       // resolved to absolute — so this collapses with the identical
       // RepositoryRefusalError message a same-repository parseRev failure

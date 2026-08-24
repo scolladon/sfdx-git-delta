@@ -61,24 +61,24 @@ const extensionsUnsupportedByPrefix = new Error(
 )
 
 const extensionUnsupportedByDataCode = Object.assign(
-  new Error('repository extension not supported: objectformat = madeup'),
+  new Error('repository extension not supported: objectformat = bogus-value'),
   {
     data: {
       code: 'REPOSITORY_EXTENSION_UNSUPPORTED',
       extension: 'objectformat',
-      value: 'madeup',
+      value: 'bogus-value',
     },
   }
 )
 
 const extensionUnsupportedByPrefix = new Error(
-  'REPOSITORY_EXTENSION_UNSUPPORTED: repository extension not supported: objectformat = madeup'
+  'REPOSITORY_EXTENSION_UNSUPPORTED: repository extension not supported: objectformat = bogus-value'
 )
 
 const notARepositoryNearMiss = new Error('NOT_A_REPOSITORY_SOMETHING: invented')
 
 const extensionUnsupportedNearMiss = new Error(
-  'REPOSITORY_EXTENSION_UNSUPPORTEDX: invented'
+  'REPOSITORY_EXTENSION_UNSUPPORTED_EXTRA: invented'
 )
 
 const NOT_A_REPOSITORY_MESSAGE = "'/proj/my-repo' is not a git repository"
@@ -208,7 +208,7 @@ const MAPPING_ROWS = [
     extensionUnsupportedNearMiss,
     'op',
     '/repo',
-    `${GENERIC_PREFIX}REPOSITORY_EXTENSION_UNSUPPORTEDX: invented`,
+    `${GENERIC_PREFIX}REPOSITORY_EXTENSION_UNSUPPORTED_EXTRA: invented`,
   ],
 ] as const
 

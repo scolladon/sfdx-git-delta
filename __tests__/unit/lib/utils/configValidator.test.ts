@@ -27,7 +27,7 @@ const {
   mockParseRev: vi.fn(),
   mockGetMergeBase: vi.fn(),
   mockSfProjectResolve: vi.fn(),
-  // Stands in for GitAdapter's absolutized repository key — a fixed,
+  // Stands in for GitAdapter's absolute repository key — a fixed,
   // recognizable value so PathIsNotGit assertions can pin exactly what
   // reaches the message, independent of the test's own config.repo. It
   // carries a newline on purpose: a repository path is user input, and

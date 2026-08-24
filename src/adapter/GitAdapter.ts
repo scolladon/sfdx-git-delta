@@ -173,7 +173,7 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   // Read by ConfigValidator to render `error.PathIsNotGit` from the exact
-  // same absolutized value this adapter renders its own repository-refusal
+  // same absolute value this adapter renders its own repository-refusal
   // messages from (see mapError below), so the two collapse to one sentence
   // through validateConfig's `new Set(errors)` dedupe instead of reporting
   // the same missing repository twice in different forms.

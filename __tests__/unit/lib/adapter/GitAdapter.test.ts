@@ -92,7 +92,7 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
   ...overrides,
 })
 
-// The SUT absolutizes the pool key with platform resolve() then the posix
+// The SUT resolves the pool key to an absolute path with platform resolve() then the posix
 // sanitizePath, so an expectation written as a literal would be wrong on
 // win32, where resolve('/repo') is 'C:\repo'. Compose it the same way.
 const repoKey = (repo: string): string => sanitizePath(resolve(repo))!
@@ -229,7 +229,7 @@ describe('GitAdapter', () => {
   })
 
   describe('Given repositoryKey', () => {
-    it('When read, Then it returns the same absolutized, sanitized value used as the pool key', () => {
+    it('When read, Then it returns the same absolute, sanitized value used as the pool key', () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: './repo' }))
 
@@ -339,7 +339,7 @@ describe('GitAdapter', () => {
     })
   })
 
-  // Why the key/repoPath split exists, in executable form. The behavioural
+  // Why the key/repoPath split exists, in executable form. The behavioral
   // guard is the backslash-repo pair above: those drive GitAdapter itself
   // and fail on linux if a read ever goes back to the pool key. This case
   // pins the sgd-side reason a UNC root cannot survive that key, which no

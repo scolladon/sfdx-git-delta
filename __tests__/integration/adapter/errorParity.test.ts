@@ -32,7 +32,7 @@ const RAW_TSGIT_SHAPES = [
 ]
 const RAW_CODE_LEAK_PATTERN = new RegExp(RAW_TSGIT_SHAPES.join('|'))
 
-// The adapter absolutizes and forward-slashes its repository path, so an
+// The adapter resolves its repository path to an absolute, forward-slashed form, so an
 // expectation must compose it the same way (mkdtemp returns backslashes on
 // win32, and resolve() adds a drive letter there).
 const adapterRepoPath = (repoDir: string): string =>
@@ -120,7 +120,7 @@ describe('Given the released error-message contract (validated surface)', () => 
         .catch((thrown: unknown) => thrown)
 
       // Assert — pathExists (error.PathIsNotGit, rendered from the
-      // adapter's absolutized key) and parseRev x2 (RepositoryRefusalError,
+      // adapter's absolute key) and parseRev x2 (RepositoryRefusalError,
       // rendered from the same key) now report byte-identical sentences for
       // the same missing .git, so validateConfig's `new Set(errors)` join
       // collapses all three into exactly one — not `.toContain`, which
@@ -135,7 +135,7 @@ describe('Given the released error-message contract (validated surface)', () => 
     it('Then ConfigValidator and GitAdapter produce byte-identical messages', async () => {
       // Arrange — proves Fix 1 and Fix 3's critical interaction: both
       // renderers must apply the same sanitization to the same
-      // absolutized repository key, or the Set-based dedupe above would
+      // absolute repository key, or the Set-based dedupe above would
       // silently stop collapsing them.
       const repoDir = await trackedTempDir('sgd-error-parity-dual-')
       const validator = new ConfigValidator(makeConfig({ repo: repoDir }))
@@ -159,7 +159,9 @@ describe('Given the released error-message contract (validated surface)', () => 
   describe('When ConfigValidator validates against a repository declaring an unsupported format version', () => {
     it('Then it throws the mapped refusal message instead of two sha-pointer errors', async () => {
       // Arrange
-      const repoDir = await trackedTempDir('sgd-error-parity-cfg-formatv-')
+      const repoDir = await trackedTempDir(
+        'sgd-error-parity-cfg-format-version-'
+      )
       initRepoWithCommit(repoDir)
       runGit(['config', 'core.repositoryformatversion', '99'], {
         cwd: repoDir,
@@ -228,7 +230,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
   describe('When parseRev runs against a repository declaring an unsupported format version', () => {
     it('Then it rejects naming the repository, mapped to the unreadable-format message', async () => {
       // Arrange
-      const repoDir = await trackedTempDir('sgd-error-parity-formatv-')
+      const repoDir = await trackedTempDir('sgd-error-parity-format-version-')
       initRepoWithCommit(repoDir)
       runGit(['config', 'core.repositoryformatversion', '99'], {
         cwd: repoDir,
