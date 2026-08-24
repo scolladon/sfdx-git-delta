@@ -1,8 +1,7 @@
 'use strict'
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import { join } from 'node:path/posix'
+import { join, resolve, win32 } from 'node:path'
 import { PassThrough, Readable } from 'node:stream'
 
 import type { Repository } from '@scolladon/tsgit'
@@ -97,6 +96,13 @@ const makeConfig = (overrides: Partial<Config> = {}): Config => ({
 // sanitizePath, so an expectation written as a literal would be wrong on
 // win32, where resolve('/repo') is 'C:\repo'. Compose it the same way.
 const repoKey = (repo: string): string => sanitizePath(resolve(repo))!
+
+// The repository path GitAdapter actually opens and reads from: platform
+// resolve() only, no sanitizePath. Reads (openRepository's cwd, the LFS
+// joins) must stay platform-native — sanitizePath's posix normalisation
+// collapses a win32 UNC root's doubled leading separator, pointing reads at
+// the wrong location (see the win32 UNC tests below).
+const repoPath = (repo: string): string => resolve(repo)
 
 const asCommit = (tree: string) => ({
   type: 'commit',
@@ -235,7 +241,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledOnce()
       expect(mockOpenRepository).toHaveBeenCalledWith({
-        cwd: repoKey('/repo'),
+        cwd: repoPath('/repo'),
         trust: 'always',
         hooks: false,
         command: false,
@@ -276,7 +282,112 @@ describe('GitAdapter', () => {
       // Assert
       const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
       expect(cwd).toMatch(TSGIT_ABSOLUTE_PATH)
-      expect(cwd).toBe(repoKey('./'))
+      expect(cwd).toBe(repoPath('./'))
+    })
+  })
+
+  describe('Given a repository path sanitizePath would alter', () => {
+    // sanitizePath treats a literal backslash as a path separator (see
+    // fsUtils#treatPathSep) — the same rule that collapses a win32 UNC
+    // root, observable here without leaving posix via a directory segment
+    // that happens to contain a backslash. Reads (openRepository's cwd,
+    // and the LFS object read below) must stay on the unsanitized,
+    // platform-form path — never the posix-only pool key.
+    const backslashRepo = String.raw`/repo\name`
+
+    it('When the repository path contains a character sanitizePath would treat as a separator, Then openRepository still receives the unsanitized platform-form path', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
+      fakeRepo.revParse.mockResolvedValue('abc')
+
+      // Act
+      await sut.parseRev('HEAD')
+
+      // Assert
+      const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
+      expect(cwd).toBe(repoPath(backslashRepo))
+      expect(cwd).not.toBe(repoKey(backslashRepo))
+    })
+
+    it('When an LFS-backed blob is read from that repository, Then the object file is read from the unsanitized platform-form path', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+      )
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'blob-1',
+        content: new Uint8Array(Buffer.from('pointer')),
+      })
+      isLFSMocked.mockReturnValue(true)
+      getLFSObjectContentPathMocked.mockReturnValue(
+        '.git/lfs/objects/aa/bb/aabb'
+      )
+      readFileMocked.mockResolvedValue(Buffer.from('resolved-content') as never)
+
+      // Act
+      await sut.getBufferContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+
+      // Assert
+      expect(readFileMocked).toHaveBeenCalledWith(
+        join(repoPath(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
+      )
+      expect(readFileMocked).not.toHaveBeenCalledWith(
+        join(repoKey(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
+      )
+    })
+  })
+
+  // node:path's ambient resolve()/join() (used above via repoPath/repoKey)
+  // are platform-bound to whatever OS runs the test, so they can only ever
+  // exercise posix semantics on darwin/linux CI — a UNC share never appears.
+  // The win32 namespace replays GitAdapter's exact pipeline (resolve, then
+  // join for LFS reads) under win32 rules deterministically, on any
+  // platform, pinning the regression a subprocess-parity CI leg could never
+  // catch (none of the 9 legs has a UNC share).
+  describe('Given a win32 UNC repository path', () => {
+    const uncInput = String.raw`\\srv\share\co`
+
+    it('When resolved as the platform-form repository path, Then the UNC root survives and win32.resolve maps it back to the same location', () => {
+      // Arrange
+      const uncRepoPath = win32.resolve(uncInput)
+
+      // Act
+      const roundTripped = win32.resolve(uncRepoPath)
+
+      // Assert
+      expect(uncRepoPath.startsWith(String.raw`\\`)).toBe(true)
+      expect(roundTripped).toBe(uncRepoPath)
+    })
+
+    it('When an LFS object fragment is joined with the platform join, Then it still resolves under the same UNC share', () => {
+      // Arrange
+      const uncRepoPath = win32.resolve(uncInput)
+      const lfsFragment = '.git/lfs/objects/aa/bb/aabbccdd'
+
+      // Act
+      const joined = win32.join(uncRepoPath, lfsFragment)
+
+      // Assert
+      expect(win32.resolve(joined)).toBe(
+        win32.resolve(uncRepoPath, lfsFragment)
+      )
+      expect(joined.startsWith(String.raw`\\srv\share\co`)).toBe(true)
+    })
+
+    it('When the normalised pool key is derived from the same UNC input instead, Then its doubled leading separator collapses to one (why reads must use the platform-form path, not the pool key)', () => {
+      // Arrange
+      const uncRepoPath = win32.resolve(uncInput)
+
+      // Act
+      const poolKey = sanitizePath(uncRepoPath)!
+
+      // Assert
+      expect(poolKey.startsWith('//')).toBe(false)
+      expect(poolKey).not.toBe(uncRepoPath)
     })
   })
 
@@ -925,7 +1036,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(Buffer.from('resolved-content'))
       expect(readFileMocked).toHaveBeenCalledWith(
-        join(repoKey('/repo'), '.git/lfs/objects/aa/bb/aabb')
+        join(repoPath('/repo'), '.git/lfs/objects/aa/bb/aabb')
       )
     })
 
@@ -1140,7 +1251,7 @@ describe('GitAdapter', () => {
       // Assert
       expect(result).toEqual(Buffer.from('resolved-content'))
       expect(readFileMocked).toHaveBeenCalledWith(
-        join(repoKey('/repo'), '.git/lfs/objects/aa/bb/aabb')
+        join(repoPath('/repo'), '.git/lfs/objects/aa/bb/aabb')
       )
     })
 
@@ -1424,7 +1535,7 @@ describe('GitAdapter', () => {
       expect(result).toEqual(Buffer.from('lfs-content'))
       expect(getLFSObjectContentPathMocked).toHaveBeenCalledWith(pointer)
       expect(createReadStreamMocked).toHaveBeenCalledWith(
-        join(repoKey('/repo'), '.git/lfs/objects/aa/bb/abc')
+        join(repoPath('/repo'), '.git/lfs/objects/aa/bb/abc')
       )
     })
 

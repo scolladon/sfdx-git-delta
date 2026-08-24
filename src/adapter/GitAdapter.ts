@@ -29,8 +29,7 @@
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import { join } from 'node:path/posix'
+import { join, resolve } from 'node:path'
 import { PassThrough, Readable } from 'node:stream'
 
 import {
@@ -122,20 +121,25 @@ export default class GitAdapter implements GitBlobReader {
   // still resolve to one instance. ConfigValidator pools an adapter on the
   // raw config.repo before _sanitizeConfig runs, so without this a single
   // `--repo-dir ./repo` invocation would still allocate two instances.
-  // Resolved to an absolute path first: tsgit's openRepository validates
-  // `cwd` eagerly and refuses anything relative outright, which sgd's own
-  // CLI default ('./') would otherwise be. Platform resolve() runs before
-  // the posix sanitizePath so a win32 drive letter survives (e.g. `C:/proj`,
-  // satisfying tsgit's drive-letter arm) rather than being stripped by the
-  // posix-only normalisation.
-  private static keyFor(config: Config): string {
-    return sanitizePath(resolve(config.repo))!
+  // Takes the already-resolved (platform-form) path rather than resolving
+  // again, so the key and the repository path it is derived from can never
+  // drift onto two different resolutions of the same config.repo.
+  private static keyFor(resolvedRepo: string): string {
+    return sanitizePath(resolvedRepo)!
   }
 
   public static getInstance(config: Config): GitAdapter {
-    const key = GitAdapter.keyFor(config)
+    // Resolved to an absolute path first: tsgit's openRepository validates
+    // `cwd` eagerly and refuses anything relative outright, which sgd's own
+    // CLI default ('./') would otherwise be. This platform-form value is
+    // threaded straight through to repository reads (see getRepo and the
+    // LFS reads below); the pool key instead takes its posix-sanitized
+    // form, since sanitizePath's separator normalisation — safe for an
+    // identity key — would corrupt a win32 UNC root if reads used it too.
+    const resolvedRepo = resolve(config.repo)
+    const key = GitAdapter.keyFor(resolvedRepo)
     if (!GitAdapter.instances.has(key)) {
-      GitAdapter.instances.set(key, new GitAdapter(key))
+      GitAdapter.instances.set(key, new GitAdapter(key, resolvedRepo))
     }
     return GitAdapter.instances.get(key)!
   }
@@ -155,7 +159,16 @@ export default class GitAdapter implements GitBlobReader {
   protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
   private repoHandle: Promise<Repository> | null = null
 
-  private constructor(private readonly repo: string) {
+  // `key` identifies the repository — the pool map key and every
+  // user-facing message (mapTsgitError, the debug log below) render it, so
+  // a repository that fails the same way twice always reads identically.
+  // `repoPath` is the platform-native path actually opened and read from
+  // (openRepository's cwd, the LFS reads) — never sanitized, since
+  // sanitizePath's posix-only normalisation would corrupt a win32 UNC root.
+  private constructor(
+    private readonly key: string,
+    private readonly repoPath: string
+  ) {
     this.blobIdIndex = new Map<string, Map<string, ObjectId>>()
   }
 
@@ -169,7 +182,7 @@ export default class GitAdapter implements GitBlobReader {
       // supported, and tsgit cannot see the `safe.directory` those users
       // already configured for git itself.
       this.repoHandle = openRepository({
-        cwd: this.repo,
+        cwd: this.repoPath,
         trust: 'always',
         hooks: false,
         command: false,
@@ -191,7 +204,7 @@ export default class GitAdapter implements GitBlobReader {
       await repo.dispose()
     } catch (error) {
       Logger.debug(
-        lazy`GitAdapter.close: no disposable repository handle for '${this.repo}': ${() => getErrorMessage(error)}`
+        lazy`GitAdapter.close: no disposable repository handle for '${this.key}': ${() => getErrorMessage(error)}`
       )
     }
   }
@@ -202,7 +215,7 @@ export default class GitAdapter implements GitBlobReader {
       const repo = await this.getRepo()
       return await repo.revParse(ref)
     } catch (error) {
-      throw mapTsgitError(error, ref, this.repo)
+      throw mapTsgitError(error, ref, this.key)
     }
   }
 
@@ -312,7 +325,7 @@ export default class GitAdapter implements GitBlobReader {
       ])
       return base
     } catch (error) {
-      throw mapTsgitError(error, `${from}...${to}`, this.repo)
+      throw mapTsgitError(error, `${from}...${to}`, this.key)
     }
   }
 
@@ -332,7 +345,7 @@ export default class GitAdapter implements GitBlobReader {
       }
       return firstCommit
     } catch (error) {
-      throw mapTsgitError(error, HEAD, this.repo)
+      throw mapTsgitError(error, HEAD, this.key)
     }
   }
 
@@ -357,11 +370,11 @@ export default class GitAdapter implements GitBlobReader {
       let content = await this.readBlobBuffer(forRef)
       if (isLFS(content)) {
         const lfsPath = getLFSObjectContentPath(content)
-        content = await readFile(join(this.repo, lfsPath))
+        content = await readFile(join(this.repoPath, lfsPath))
       }
       return content
     } catch (error) {
-      throw mapTsgitError(error, forRef.oid, this.repo)
+      throw mapTsgitError(error, forRef.oid, this.key)
     }
   }
 
@@ -387,7 +400,7 @@ export default class GitAdapter implements GitBlobReader {
       // The pointer itself is tiny, so the accumulated-length guard above
       // never fires for LFS-backed files — size the resolved object instead
       // and escalate oversized ones onto the streaming path.
-      const lfsFile = join(this.repo, getLFSObjectContentPath(content))
+      const lfsFile = join(this.repoPath, getLFSObjectContentPath(content))
       const { size } = await stat(lfsFile)
       if (size > SIZE_THRESHOLD) {
         throw new EscalateToStreamingSignal(size, forRef)
@@ -435,7 +448,7 @@ export default class GitAdapter implements GitBlobReader {
   ): Promise<void> {
     const pointer = await accumulatePointer(chunks, head)
     const lfsPath = getLFSObjectContentPath(pointer)
-    createReadStream(join(this.repo, lfsPath))
+    createReadStream(join(this.repoPath, lfsPath))
       .on('error', (error: Error) => out.destroy(error))
       .pipe(out)
   }
@@ -574,7 +587,7 @@ export default class GitAdapter implements GitBlobReader {
         ...(spec.ignoreWhitespace ? IGNORE_WHITESPACE_OPTIONS : {}),
       })
     } catch (error) {
-      throw mapTsgitError(error, `${spec.from}..${spec.to}`, this.repo)
+      throw mapTsgitError(error, `${spec.from}..${spec.to}`, this.key)
     }
   }
 }
