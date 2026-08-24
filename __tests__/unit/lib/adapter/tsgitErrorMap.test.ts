@@ -220,7 +220,7 @@ const REWRITTEN_ROWS = MAPPING_ROWS.filter(
 
 describe('Given mapTsgitError', () => {
   it.each(MAPPING_ROWS)(
-    'When mapping %s, Then it returns %s',
+    'When mapping %s, Then it returns the mapped message',
     (_description, error, context, repoPath, expected) => {
       // Arrange
       const sut = mapTsgitError

@@ -199,6 +199,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Assert
       expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toBe('HEAD: not a valid git revision')
       expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })
@@ -217,6 +218,9 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Assert
       expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toBe(
+        `${MISSING_OID}: not a valid git revision`
+      )
       expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })

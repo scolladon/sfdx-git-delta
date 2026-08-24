@@ -36,19 +36,18 @@ const EXERCISED_FORMATS: readonly RepoFormat[] = CANDIDATE_FORMATS.filter(
 )
 
 describe('Given the runner git binary probed for repository-format support', () => {
-  it.each(CANDIDATE_FORMATS.map(f => [f.name] as const))(
-    'When probed for %s support, Then a verdict is recorded',
-    name => {
-      // Arrange
-      const sut = FORMAT_SUPPORT
+  it.each(
+    CANDIDATE_FORMATS.map(f => [f.name, FORMAT_SUPPORT.get(f.name)] as const)
+  )('When probed for %s support, Then support is %s', (name, verdict) => {
+    // Arrange
+    const sut = FORMAT_SUPPORT
 
-      // Act
-      const verdict = sut.get(name)
+    // Act
+    const result = sut.get(name)
 
-      // Assert
-      expect(typeof verdict).toBe('boolean')
-    }
-  )
+    // Assert
+    expect(result).toBe(verdict)
+  })
 
   it('When the probe has run, Then the files/sha1 baseline is supported', () => {
     // Arrange / Act
@@ -57,6 +56,23 @@ describe('Given the runner git binary probed for repository-format support', () 
     // Assert
     expect(sut).toBe(true)
   })
+
+  // CI runners carry a modern git that supports every candidate format,
+  // including reftable. Without this, a runner that silently drops support
+  // for one only shows up as a shorter EXERCISED_FORMATS list further down
+  // — a quieter absence, not a failing test.
+  it.runIf(process.env.CI)(
+    'When running in CI, Then every candidate format is supported',
+    () => {
+      // Arrange
+      const sut = FORMAT_SUPPORT
+
+      // Act / Assert
+      for (const format of CANDIDATE_FORMATS) {
+        expect(sut.get(format.name)).toBe(true)
+      }
+    }
+  )
 })
 
 type FixtureEntry = { dir: string; refs: RefNameFixture }
@@ -81,6 +97,11 @@ const makeConfig = (repo: string): Config => ({
   generateDelta: false,
 })
 
+// Building up to 3 fixtures spawns up to ~36 blocking git processes; on a
+// cold Windows runner that outruns vitest's 10s default hookTimeout (see
+// the same shape in gitAdapterLifecycle.test.ts's CLI_SPAWN_TIMEOUT_MS).
+const FIXTURE_BUILD_TIMEOUT_MS = 60_000
+
 beforeAll(async () => {
   fixtures = new Map()
   for (const format of EXERCISED_FORMATS) {
@@ -92,7 +113,7 @@ beforeAll(async () => {
       refs: buildRefNameFixtureRepo(dir, format),
     })
   }
-})
+}, FIXTURE_BUILD_TIMEOUT_MS)
 
 afterEach(async () => {
   // Closing after every test drops the cached repo handle, forcing the

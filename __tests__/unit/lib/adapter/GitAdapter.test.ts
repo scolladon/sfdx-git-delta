@@ -260,21 +260,6 @@ describe('GitAdapter', () => {
         command: false,
       })
     })
-
-    it('When a repository is opened, Then hook and merge-driver execution are switched off', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('abc')
-
-      // Act
-      await sut.parseRev('HEAD')
-
-      // Assert
-      expect(mockOpenRepository.mock.calls[0][0]).toMatchObject({
-        hooks: false,
-        command: false,
-      })
-    })
   })
 
   describe('Given a relative repository path', () => {
@@ -443,7 +428,9 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toBeUndefined()
-      expect(resolveLazyCall(Logger.debug)).toContain(repoKey('/repo'))
+      expect(resolveLazyCall(Logger.debug)).toBe(
+        `GitAdapter.close: releasing '${repoKey('/repo')}' failed: INVALID_OPTION: invalid option: cwd — must be an absolute path`
+      )
     })
 
     it('When the cached handle opened successfully but repo.dispose() rejects, Then close resolves and logs the dispose failure (not a missing-handle message)', async () => {
