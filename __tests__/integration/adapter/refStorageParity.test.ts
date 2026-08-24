@@ -40,13 +40,13 @@ describe('Given the runner git binary probed for repository-format support', () 
     CANDIDATE_FORMATS.map(f => [f.name, FORMAT_SUPPORT.get(f.name)] as const)
   )('When probed for %s support, Then support is %s', (name, verdict) => {
     // Arrange
-    const sut = FORMAT_SUPPORT
+    const sut = EXERCISED_FORMATS
 
     // Act
-    const result = sut.get(name)
+    const exercised = sut.some(format => format.name === name)
 
     // Assert
-    expect(result).toBe(verdict)
+    expect(exercised).toBe(verdict)
   })
 
   it('When the probe has run, Then the files/sha1 baseline is supported', () => {
@@ -58,21 +58,21 @@ describe('Given the runner git binary probed for repository-format support', () 
   })
 
   // CI runners carry a modern git that supports every candidate format,
-  // including reftable. Without this, a runner that silently drops support
-  // for one only shows up as a shorter EXERCISED_FORMATS list further down
-  // — a quieter absence, not a failing test.
-  it.runIf(process.env.CI)(
-    'When running in CI, Then every candidate format is supported',
-    () => {
-      // Arrange
-      const sut = FORMAT_SUPPORT
+  // including reftable, so an unsupported one there is a real failure rather
+  // than a reduced local run. The test itself always runs — gating it behind
+  // a skip would reintroduce the silent absence it exists to prevent.
+  it('When running in CI, Then no candidate format is left unsupported', () => {
+    // Arrange
+    const sut = CANDIDATE_FORMATS.filter(
+      format => !FORMAT_SUPPORT.get(format.name)
+    ).map(format => format.name)
 
-      // Act / Assert
-      for (const format of CANDIDATE_FORMATS) {
-        expect(sut.get(format.name)).toBe(true)
-      }
-    }
-  )
+    // Act
+    const unsupportedInCi = process.env.CI ? sut : []
+
+    // Assert
+    expect(unsupportedInCi).toEqual([])
+  })
 })
 
 type FixtureEntry = { dir: string; refs: RefNameFixture }
