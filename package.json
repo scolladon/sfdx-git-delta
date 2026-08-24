@@ -303,7 +303,9 @@
         "src/**/*.ts",
         "__tests__/perf/**",
         "**/tsconfig.json",
-        "vitest.config.perf.ts"
+        "vitest.config.perf.ts",
+        "package.json",
+        "package-lock.json"
       ],
       "output": [
         "perf-raw.json",
