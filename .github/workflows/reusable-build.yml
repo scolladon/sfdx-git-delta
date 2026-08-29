@@ -25,6 +25,16 @@ jobs:
       - name: Lint plugin
         run: npm run lint
 
+      # internalRegistry.ts is kept in step with SDR by `sync:registry`, which
+      # dependabot-auto-merge.yml runs unattended on every SDR bump. That script
+      # broke silently under a TypeScript major and stalled the SDR metadata
+      # pipeline for weeks before anyone noticed, because nothing else ran it.
+      # Failing here turns the next such breakage into a red build.
+      - name: Registry sync runnable and up to date
+        run: |
+          npm run sync:registry
+          git diff --no-ext-diff --exit-code src/metadata/internalRegistry.ts
+
       - name: Build plugin
         run: npm pack
 
