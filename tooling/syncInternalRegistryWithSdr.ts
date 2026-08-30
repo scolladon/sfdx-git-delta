@@ -6,7 +6,7 @@
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { registry } from '@salesforce/source-deploy-retrieve'
-import internalRegistry from '../src/metadata/internalRegistry.js'
+import internalRegistry from '../src/metadata/internalRegistry.ts'
 
 const SPECIAL_FIELDS = [
   'xmlTag',

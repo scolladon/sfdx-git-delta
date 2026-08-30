@@ -396,7 +396,10 @@ A script in `tooling/` keeps the internal registry clean:
 npm run sync:registry
 ```
 
-The sync runs automatically via CI when dependabot upgrades the SDR dependency.
+The sync runs on every pull request in the `quality` CI job, which fails if the
+script cannot run or if it leaves `internalRegistry.ts` modified. It also runs
+unattended when dependabot upgrades the SDR dependency, where it gates the
+`feat(metadata)` retitle and auto-merge.
 
 ## Update Salesforce API version
 
