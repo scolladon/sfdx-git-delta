@@ -42,6 +42,14 @@ const line =
 const parentObjectTranslationPath =
   'force-app/main/default/objectTranslations/Account-es/Account-es.objectTranslation-meta.xml'
 
+// Flat layout: the objectTranslation file sits directly under the type
+// directory with no component sub-folder. SDR resolves it to the same
+// component (fullName 'Account-es') as the nested layout, so sgd must too.
+const flatLine =
+  'A       force-app/main/default/objectTranslations/Account-es.objectTranslation-meta.xml'
+const flatObjectTranslationPath =
+  'force-app/main/default/objectTranslations/Account-es.objectTranslation-meta.xml'
+
 let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
@@ -272,6 +280,121 @@ describe('ObjectTranslation', () => {
 
       // Assert
       expect(result.copies.some(c => c.path.includes('undefined'))).toBe(false)
+    })
+
+    it('Given flat-layout objectTranslation addition, When collect, Then member is the component name without the file extension', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        flatLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(elementsOf(result)).toEqual([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'CustomObjectTranslation',
+          member: 'Account-es',
+        }),
+      ])
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given flat-layout objectTranslation addition, When collect, Then the StreamedContent copy targets the file itself', async () => {
+      // Arrange
+      config.generateDelta = true
+      const { changeType, element } = createElement(
+        flatLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.StreamedContent &&
+            c.path === flatObjectTranslationPath
+        )
+      ).toBe(true)
+    })
+
+    it('Given flat-layout objectTranslation addition and writer undefined, When collectAddition, Then the fallback GitCopy targets the file itself', async () => {
+      // Arrange
+      config.generateDelta = true
+      mockRun.mockResolvedValue({
+        manifests: { added: [], modified: [], deleted: [] },
+        hasPackageContent: true,
+        writer: undefined,
+      })
+      const { changeType, element } = createElement(
+        flatLine,
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.GitCopy &&
+            c.path === flatObjectTranslationPath
+        )
+      ).toBe(true)
+      expect(
+        result.copies.some(c => c.path.includes('objectTranslations.'))
+      ).toBe(false)
+    })
+
+    it('Given flat-layout objectTranslation deletion, When collect, Then destructive member is the component name', async () => {
+      // Arrange
+      const { changeType, element } = createElement(
+        flatLine.replace('A ', 'D '),
+        objectType,
+        globalMetadata
+      )
+      const sut = new ObjectTranslation(
+        changeType,
+        element,
+        getContext({ config })
+      )
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(elementsOf(result)).toEqual([
+        expect.objectContaining({
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObjectTranslation',
+          member: 'Account-es',
+        }),
+      ])
     })
 
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
