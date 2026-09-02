@@ -10,6 +10,8 @@ export const CONTENT_CONTAINER_ADAPTERS = new Set([
   DIGITAL_EXPERIENCE_ADAPTER,
   'mixedContent',
 ])
+export const BOT_TYPE = 'Bot'
+export const BOT_VERSION_TYPE = 'BotVersion'
 export const CUSTOM_APPLICATION_SUFFIX = 'app'
 export const CUSTOM_METADATA_SUFFIX = 'md'
 export const DIGITAL_EXPERIENCE_BUNDLE_TYPE = 'DigitalExperienceBundle'
