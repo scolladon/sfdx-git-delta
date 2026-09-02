@@ -911,6 +911,16 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(assets).not.toStrictEqual(other)
       })
+
+      it('When the path carries a package prefix, Then the key still anchors on the type directory', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'force-app/main/default/documents/Assets/logo.png'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('documents/Assets/logo')
+      })
     })
 
     describe('Given a bundle content container', () => {
@@ -976,6 +986,30 @@ describe('MetadataRepositoryImpl', () => {
       })
     })
 
+    describe('Given a digitalExperience content container path carrying a package prefix', () => {
+      it('When exactly four segments follow the type directory, Then the bundle depth still applies', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'force-app/main/default/digitalExperiences/site/B/home/fr.json'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('digitalExperiences/site/B')
+      })
+
+      it('When more than four segments follow the type directory, Then the content depth still applies', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'force-app/main/default/digitalExperiences/site/B/sfdc_cms__view/home/content.json'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          'digitalExperiences/site/B/sfdc_cms__view/home'
+        )
+      })
+    })
+
     describe('Given nested content families sharing one flat directory', () => {
       it('When two families differ only by extension, Then they answer different keys', () => {
         // Act
@@ -1008,6 +1042,16 @@ describe('MetadataRepositoryImpl', () => {
 
         // Assert
         expect(first).not.toStrictEqual(second)
+      })
+
+      it('When the path carries a package prefix, Then the bot folder is still kept', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'force-app/main/default/bots/MyBot/v1.botVersion-meta.xml'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('bots/MyBot/v1.botVersion')
       })
     })
   })

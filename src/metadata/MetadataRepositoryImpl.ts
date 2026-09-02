@@ -39,6 +39,11 @@ import { MetadataRepository } from './MetadataRepository.js'
 const asFilePath = (path: string): string =>
   path.replace(GIT_DIFF_TYPE_REGEX, '')
 
+// Shared by every scoped-name arm that owns a metaFile companion, so the
+// `-meta.xml` strip is a single call site both `containerName` and
+// `folderScopedName` route through.
+const withoutMetaSuffix = (name: string): string => name.replace(META_REGEX, '')
+
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
   protected readonly metadataPerDir: Map<string, Metadata>
@@ -51,10 +56,10 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // chain) from repeating the work. Stores `undefined` negatives too —
   // distinguished from "uncached" via .has().
   private readonly pathCache: Map<string, Metadata | undefined> = new Map()
-  // A suffix declared by more than one type is ambiguous for this registry only.
-  // Kept per instance rather than shared across the process, so a registry
-  // built from an additional user-supplied file cannot make an extension
-  // unsafe for every registry built after it.
+  // A suffix declared by more than one type is ambiguous for this registry
+  // only. Kept per instance rather than shared across the process, so a
+  // registry built from an additional user-supplied file cannot make an
+  // extension unsafe for every registry built after it.
   private readonly unsafeExtensions = new Set<string>([
     CUSTOM_APPLICATION_SUFFIX,
     EMAIL_SERVICES_FUNCTION_SUFFIX,
@@ -189,11 +194,9 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   private isContentContainer(
     metadata: Metadata
   ): metadata is Metadata & { adapter: string } {
+    const adapter = metadata.adapter
     // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
-    return (
-      metadata.adapter !== undefined &&
-      CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)
-    )
+    return adapter !== undefined && CONTENT_CONTAINER_ADAPTERS.has(adapter)
   }
 
   // A type declares nested content when its `content[]` lists suffix-keyed
@@ -289,10 +292,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // derivation, so the key cannot disagree with the descriptor for a name
   // that happens to end in Folder.
   private folderScopedName(parts: string[], typeIndex: number): string {
-    return parts
-      .slice(typeIndex)
-      .join(PATH_SEP)
-      .replace(META_REGEX, '')
+    return withoutMetaSuffix(parts.slice(typeIndex).join(PATH_SEP))
       .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
   }
@@ -326,7 +326,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     const nested = parts.slice(typeIndex + 1)
     const name = [parts[typeIndex], ...nested.slice(0, depth)].join(PATH_SEP)
     return depth >= nested.length
-      ? name.replace(META_REGEX, '').replace(EXTENSION_SUFFIX_REGEX, '')
+      ? withoutMetaSuffix(name).replace(EXTENSION_SUFFIX_REGEX, '')
       : name
   }
 

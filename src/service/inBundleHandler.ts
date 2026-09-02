@@ -10,22 +10,16 @@ import {
 } from '../constant/metadataConstants.js'
 import InResourceHandler from './inResourceHandler.js'
 
-const suffixRegexCache = new Map<string, RegExp>()
-
 export default class BundleHandler extends InResourceHandler {
   protected override _getElementName() {
-    const suffix = this.element.type.suffix!
-    let suffixRegex = suffixRegexCache.get(suffix)
-    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: cache short-circuit; flipping to true rebuilds the regex on every call, but the cache+rebuild produce the same RegExp instance shape and the downstream replace operates identically
-    if (!suffixRegex) {
-      suffixRegex = new RegExp(`\\.${suffix}$`)
-      suffixRegexCache.set(suffix, suffixRegex)
-    }
-    return this.element.pathAfterType
+    const name = this.element.pathAfterType
       .slice(0, DIGITAL_EXPERIENCE_BUNDLE_DEPTH)
       .join(PATH_SEP)
       .replace(META_REGEX, '')
-      .replace(suffixRegex, '')
+    const suffixExtension = `${DOT}${this.element.type.suffix!}`
+    return name.endsWith(suffixExtension)
+      ? name.slice(0, -suffixExtension.length)
+      : name
   }
 
   // A page content change deploys as the fine-grained `DigitalExperience` child

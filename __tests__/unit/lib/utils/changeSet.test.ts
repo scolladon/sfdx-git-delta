@@ -60,6 +60,23 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given a ChangeSet with only a destructive deletion', () => {
+    it('When isEmpty is read, Then it returns false', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'ApexClass',
+          member: 'Old',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act & Assert
+      expect(sut.isEmpty()).toBe(false)
+    })
+  })
+
   describe('Given add and modify entries', () => {
     it('When reading forPackageManifest, Then it unions add ∪ modify per type', () => {
       // Arrange
@@ -90,6 +107,26 @@ describe('ChangeSet', () => {
       // Assert
       expect(result.get('ApexClass')).toEqual(new Set(['New', 'Edited']))
       expect(result.get('CustomObject')).toEqual(new Set(['Account']))
+    })
+
+    it('When reading byChangeKind, Then the modify bucket carries the modify entry', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'Edited',
+          changeKind: ChangeKind.Modify,
+        },
+      ])
+
+      // Act
+      const byKind = sut.byChangeKind()
+
+      // Assert
+      expect(byKind[ChangeKind.Modify].get('ApexClass')).toEqual(
+        new Set(['Edited'])
+      )
     })
   })
 
