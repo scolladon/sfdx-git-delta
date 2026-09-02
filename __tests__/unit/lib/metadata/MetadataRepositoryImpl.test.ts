@@ -29,6 +29,7 @@ const registryFixture: Metadata[] = [
     xmlName: 'CustomMetadata',
   },
   {
+    adapter: 'mixedContent',
     directoryName: 'documents',
     inFolder: true,
     metaFile: true,
@@ -214,6 +215,26 @@ const registryFixture: Metadata[] = [
       { suffix: 'botVersion', xmlName: 'BotVersion' },
     ],
     xmlName: 'VirtualBot',
+  } as Metadata,
+  {
+    directoryName: 'permissionsets',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'permissionset',
+    xmlName: 'PermissionSet',
+  },
+  {
+    directoryName: 'objectTranslations',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'objectTranslation',
+    xmlName: 'CustomObjectTranslation',
+  },
+  {
+    inFolder: false,
+    metaFile: false,
+    suffix: 'assignmentRule',
+    xmlName: 'AssignmentRule',
   } as Metadata,
 ]
 
@@ -612,6 +633,18 @@ describe('MetadataRepositoryImpl', () => {
     })
   })
 
+  describe('getByXmlName', () => {
+    it('returns the metadata registered under that xmlName', () => {
+      // Act
+      const result = sut.getByXmlName('AuraDefinitionBundle')
+
+      // Assert
+      expect(result).toStrictEqual(
+        expect.objectContaining({ directoryName: 'aura' })
+      )
+    })
+  })
+
   describe('Given a repository whose package directory is the repository root', () => {
     // Counts calls into the search chain so a test can prove the diff line
     // and the bare path share one pathCache entry, rather than merely
@@ -674,15 +707,62 @@ describe('MetadataRepositoryImpl', () => {
   })
 
   describe('getFullyQualifiedName', () => {
-    describe('when the metadata as its own folder', () => {
-      it('returns the file', () => {
+    describe('Given a path resolving to no type', () => {
+      it('When the fully qualified name is derived, Then it answers with the basename', () => {
         // Act
         const result = sut.getFullyQualifiedName(
-          'Z force-app/main/classes/TestFactory.cls'
+          'Z force-app/main/folder/TestFactory'
         )
 
         // Assert
-        expect(result).toStrictEqual('TestFactory.cls')
+        expect(result).toStrictEqual('TestFactory')
+      })
+    })
+
+    describe('Given a decomposed holder and its child files', () => {
+      it('When a PermissionSet is spelled three ways, Then every spelling answers the same key', () => {
+        // Act
+        const keys = [
+          sut.getFullyQualifiedName('permissionsets/PS.permissionset-meta.xml'),
+          sut.getFullyQualifiedName(
+            'permissionsets/PS/PS.permissionset-meta.xml'
+          ),
+          sut.getFullyQualifiedName(
+            'permissionsets/PS/objectSettings/Account.objectSettings-meta.xml'
+          ),
+        ]
+
+        // Assert
+        expect(new Set(keys).size).toBe(1)
+        expect(keys[0]).toStrictEqual('permissionsets/PS')
+      })
+
+      it('When a CustomObjectTranslation is spelled two ways, Then every spelling answers the same key', () => {
+        // Act
+        const keys = [
+          sut.getFullyQualifiedName(
+            'objectTranslations/X-fr/X-fr.objectTranslation-meta.xml'
+          ),
+          sut.getFullyQualifiedName(
+            'objectTranslations/X-fr/Account.fieldTranslation-meta.xml'
+          ),
+        ]
+
+        // Assert
+        expect(new Set(keys).size).toBe(1)
+        expect(keys[0]).toStrictEqual('objectTranslations/X-fr')
+      })
+    })
+
+    describe('Given a holder-scoped path whose type directory never appears in it', () => {
+      it('When resolved by suffix alone, Then it answers with the basename', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'src/PS.permissionset-meta.xml'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('PS.permissionset-meta.xml')
       })
     })
 
@@ -697,15 +777,228 @@ describe('MetadataRepositoryImpl', () => {
       })
     })
 
-    describe('when the metadata is not in its folder', () => {
-      it('returns the full path', () => {
+    describe('Given a plain type file sitting directly in its type directory', () => {
+      it('When its fully qualified name is derived, Then the answer carries the type directory and the file', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'Z force-app/main/classes/TestFactory.cls'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('classes/TestFactory.cls')
+      })
+    })
+
+    describe('Given a plain type file sitting outside its type directory', () => {
+      it('When its fully qualified name is derived, Then the answer carries the directory the registry resolved, not the one on disk', () => {
         // Act
         const result = sut.getFullyQualifiedName(
           'Z force-app/main/TestFactory.cls'
         )
 
         // Assert
-        expect(result).toStrictEqual('TestFactory.cls')
+        expect(result).toStrictEqual('classes/TestFactory.cls')
+      })
+    })
+
+    describe('Given a plain type file and its meta companion', () => {
+      it('When both are resolved, Then they answer the same key', () => {
+        // Act
+        const withoutCompanion = sut.getFullyQualifiedName(
+          'classes/TestFactory.cls'
+        )
+        const withCompanion = sut.getFullyQualifiedName(
+          'classes/TestFactory.cls-meta.xml'
+        )
+
+        // Assert
+        expect(withCompanion).toStrictEqual(withoutCompanion)
+      })
+    })
+
+    describe('Given the same plain type file filed under two different package directories', () => {
+      it('When both are resolved, Then they answer the same key', () => {
+        // Act
+        const underMain = sut.getFullyQualifiedName(
+          'Z force-app/main/classes/TestFactory.cls'
+        )
+        const underAnother = sut.getFullyQualifiedName(
+          'Z another-app/classes/TestFactory.cls'
+        )
+
+        // Assert
+        expect(underAnother).toStrictEqual(underMain)
+      })
+    })
+
+    describe('Given two plain types declaring one suffix under different directories', () => {
+      it('When both are resolved, Then they stay apart', () => {
+        // Act
+        const site = sut.getFullyQualifiedName('sites/ASite.site')
+        const siteDotCom = sut.getFullyQualifiedName(
+          'siteDotComSites/ASite.site'
+        )
+
+        // Assert
+        expect(site).not.toStrictEqual(siteDotCom)
+      })
+    })
+
+    describe('Given a plain type with no directoryName', () => {
+      it('When resolved by suffix alone, Then it answers with the basename', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'force-app/main/Foo.assignmentRule'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('Foo.assignmentRule')
+      })
+    })
+
+    describe('when a nested-path type is resolved without its directory', () => {
+      it('When a content-container path never carries its type directory, Then it answers with the basename', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'force-app/main/myResource.resource-meta.xml'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('myResource.resource-meta.xml')
+      })
+    })
+
+    describe('Given an inFolder type file with a varying extension', () => {
+      it('When two files share a folder but differ by extension, Then they answer the same key', () => {
+        // Act
+        const keys = [
+          sut.getFullyQualifiedName('documents/Assets/logo.png'),
+          sut.getFullyQualifiedName('documents/Assets/logo.jpg'),
+        ]
+
+        // Assert
+        expect(new Set(keys).size).toBe(1)
+        expect(keys[0]).toStrictEqual('documents/Assets/logo')
+      })
+
+      it('When a folder file and its meta companion are resolved, Then they answer the same key', () => {
+        // Act
+        const withoutCompanion = sut.getFullyQualifiedName(
+          'documents/Assets/README'
+        )
+        const withCompanion = sut.getFullyQualifiedName(
+          'documents/Assets/README-meta.xml'
+        )
+
+        // Assert
+        expect(withCompanion).toStrictEqual(withoutCompanion)
+      })
+
+      it('When two same-named documents sit under different folders, Then they stay apart', () => {
+        // Act
+        const assets = sut.getFullyQualifiedName('documents/Assets/logo.png')
+        const other = sut.getFullyQualifiedName('documents/Other/logo.png')
+
+        // Assert
+        expect(assets).not.toStrictEqual(other)
+      })
+    })
+
+    describe('Given a bundle content container', () => {
+      it('When every file of the bundle is resolved, Then they all answer the container directory', () => {
+        // Act
+        const keys = [
+          sut.getFullyQualifiedName('lwc/foo/foo.js'),
+          sut.getFullyQualifiedName('lwc/foo/foo.html'),
+          sut.getFullyQualifiedName('lwc/foo/foo.js-meta.xml'),
+        ]
+
+        // Assert
+        expect(new Set(keys).size).toBe(1)
+        expect(keys[0]).toStrictEqual('lwc/foo')
+      })
+
+      it('When the container directory name contains a dot, Then the whole name is kept', () => {
+        // Act
+        const result = sut.getFullyQualifiedName('lwc/foo.bar/foo.bar.js')
+
+        // Assert
+        expect(result).toStrictEqual('lwc/foo.bar')
+      })
+    })
+
+    describe('Given a mixedContent container named by a file below its type directory', () => {
+      it('When compared to a file nested inside the resulting directory, Then they answer the same key', () => {
+        // Act
+        const namedByFile = sut.getFullyQualifiedName(
+          'staticresources/R.resource-meta.xml'
+        )
+        const nestedContent = sut.getFullyQualifiedName(
+          'staticresources/R/content/a.txt'
+        )
+
+        // Assert
+        expect(nestedContent).toStrictEqual(namedByFile)
+        expect(namedByFile).toStrictEqual('staticresources/R')
+      })
+    })
+
+    describe('Given a digitalExperience content container at the depth boundary', () => {
+      it('When exactly four segments follow the type directory, Then the bundle depth applies', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'digitalExperiences/site/B/home/fr.json'
+        )
+
+        // Assert
+        expect(result).toStrictEqual('digitalExperiences/site/B')
+      })
+
+      it('When more than four segments follow the type directory, Then the content depth applies', () => {
+        // Act
+        const result = sut.getFullyQualifiedName(
+          'digitalExperiences/site/B/sfdc_cms__view/home/content.json'
+        )
+
+        // Assert
+        expect(result).toStrictEqual(
+          'digitalExperiences/site/B/sfdc_cms__view/home'
+        )
+      })
+    })
+
+    describe('Given nested content families sharing one flat directory', () => {
+      it('When two families differ only by extension, Then they answer different keys', () => {
+        // Act
+        const wdash = sut.getFullyQualifiedName('wave/A.wdash')
+        const xmd = sut.getFullyQualifiedName('wave/A.xmd')
+
+        // Assert
+        expect(wdash).not.toStrictEqual(xmd)
+      })
+
+      it('When a file sits under a sub-directory, Then the sub-directory is discarded from the key', () => {
+        // Act
+        const nested = sut.getFullyQualifiedName('wave/Grp/A.wdash')
+        const direct = sut.getFullyQualifiedName('wave/A.wdash')
+
+        // Assert
+        expect(nested).toStrictEqual(direct)
+      })
+    })
+
+    describe('Given a folder-scoped nested content type', () => {
+      it('When two BotVersions belong to different bots, Then they stay apart', () => {
+        // Act
+        const first = sut.getFullyQualifiedName(
+          'bots/FirstBot/v1.botVersion-meta.xml'
+        )
+        const second = sut.getFullyQualifiedName(
+          'bots/SecondBot/v1.botVersion-meta.xml'
+        )
+
+        // Assert
+        expect(first).not.toStrictEqual(second)
       })
     })
   })

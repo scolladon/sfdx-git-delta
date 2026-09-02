@@ -325,6 +325,42 @@ describe('Given a RepoGitDiff', () => {
     expect(result).toHaveLength(lines.length)
   })
 
+  it('Given two reports sharing a basename under different folders, When getLines, Then both lines survive', async () => {
+    // Arrange — the collision #1411 reports: a filename-only key wrongly
+    // cancelled these because both reports are named Quarterly.
+    const lines = [
+      `${DELETION}${TAB}force-app/main/default/reports/Sales/Quarterly.report-meta.xml`,
+      `${ADDITION}${TAB}force-app/main/default/reports/Archive/Quarterly.report-meta.xml`,
+    ]
+    mockGetDiffLines.mockReturnValue(lines)
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual(expect.arrayContaining(lines))
+    expect(result).toHaveLength(lines.length)
+  })
+
+  it('Given an lwc bundle losing one file while gaining another, When getLines, Then the deletion cancels against the addition', async () => {
+    // Arrange — every file of a bundle is the one component, so losing
+    // helper.js while gaining foo.js in the same bundle directory is not a
+    // destructive change.
+    const additionLine = `${ADDITION}${TAB}force-app/main/default/lwc/foo/foo.js`
+    mockGetDiffLines.mockReturnValue([
+      `${DELETION}${TAB}force-app/main/default/lwc/foo/helper.js`,
+      additionLine,
+    ])
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toStrictEqual([additionLine])
+  })
+
   it('Given multiple files with same change type, When getLines, Then returns all', async () => {
     // Arrange
     const lines = [
@@ -464,7 +500,7 @@ describe('Given a RepoGitDiff', () => {
       sut = new RepoGitDiff(config, globalMetadata)
     })
     describe('when called with normal type', () => {
-      it('returns the file name', () => {
+      it('returns the file name with its type directory', () => {
         // Arrange
         const line = 'A path/to/classes/Test.cls'
 
@@ -472,14 +508,13 @@ describe('Given a RepoGitDiff', () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe('test.cls')
+        expect(result).toBe('classes/test.cls')
       })
     })
 
     describe.each([
       'objects/Account/fields/custom__c.field',
       'objects/custom__c/custom__c.object',
-      'objectTranslations/Account/custom__c.objectTranslation',
     ])('when called with path type', elPath => {
       it('returns the file name with the parent path', () => {
         // Arrange
@@ -490,6 +525,20 @@ describe('Given a RepoGitDiff', () => {
 
         // Assert
         expect(result).toBe(elPath.replace(/\//g, '').toLocaleLowerCase())
+      })
+    })
+
+    describe('when called with a decomposed holder-scoped type', () => {
+      it('returns the holder path instead of the decomposed child path', () => {
+        // Arrange
+        const line =
+          'A path/to/objectTranslations/Account/custom__c.objectTranslation'
+
+        // Act
+        const result = sut['_extractComparisonName'](line)
+
+        // Assert
+        expect(result).toBe('objecttranslations/account')
       })
     })
   })

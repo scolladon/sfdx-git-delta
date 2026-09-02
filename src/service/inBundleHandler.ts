@@ -3,21 +3,14 @@ import { join } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import {
+  DIGITAL_EXPERIENCE_BUNDLE_DEPTH,
+  DIGITAL_EXPERIENCE_CONTENT_DEPTH,
   DIGITAL_EXPERIENCE_TYPE,
   META_REGEX,
 } from '../constant/metadataConstants.js'
 import InResourceHandler from './inResourceHandler.js'
 
 const suffixRegexCache = new Map<string, RegExp>()
-
-// SDR canonical Digital Experience layout after the `digitalExperiences`
-// directory is `<baseType>/<spaceApiName>/<contentType>/<contentApiName>/<file>`:
-// a page content file always lives strictly inside that four-segment content
-// folder, so `pathAfterType.length > 4` is the structural signature of a
-// page-level change. Shorter paths target the bundle itself (its
-// `*.digitalExperience-meta.xml`) or a non-canonical layout, and keep the
-// coarse `DigitalExperienceBundle` behaviour.
-const CONTENT_FOLDER_DEPTH = 4
 
 export default class BundleHandler extends InResourceHandler {
   protected override _getElementName() {
@@ -29,7 +22,7 @@ export default class BundleHandler extends InResourceHandler {
       suffixRegexCache.set(suffix, suffixRegex)
     }
     return this.element.pathAfterType
-      .slice(0, 2)
+      .slice(0, DIGITAL_EXPERIENCE_BUNDLE_DEPTH)
       .join(PATH_SEP)
       .replace(META_REGEX, '')
       .replace(suffixRegex, '')
@@ -78,8 +71,8 @@ export default class BundleHandler extends InResourceHandler {
   // page content file, or `null` when it targets the bundle itself.
   private _pageContentSegments(): string[] | null {
     const segments = this.element.pathAfterType
-    return segments.length > CONTENT_FOLDER_DEPTH
-      ? segments.slice(0, CONTENT_FOLDER_DEPTH)
+    return segments.length > DIGITAL_EXPERIENCE_CONTENT_DEPTH
+      ? segments.slice(0, DIGITAL_EXPERIENCE_CONTENT_DEPTH)
       : null
   }
 }

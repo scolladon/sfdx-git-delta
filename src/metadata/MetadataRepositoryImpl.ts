@@ -2,19 +2,28 @@
 
 import { parse } from 'node:path/posix'
 
-import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import {
+  DOT,
+  EXTENSION_SUFFIX_REGEX,
+  PATH_SEP,
+} from '../constant/fsConstants.js'
 import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import {
   CONTENT_CONTAINER_ADAPTERS,
   CUSTOM_APPLICATION_SUFFIX,
   CUSTOM_METADATA_SUFFIX,
+  DIGITAL_EXPERIENCE_ADAPTER,
+  DIGITAL_EXPERIENCE_BUNDLE_DEPTH,
+  DIGITAL_EXPERIENCE_CONTENT_DEPTH,
   EMAIL_SERVICES_FUNCTION_SUFFIX,
+  META_REGEX,
   METAFILE_SUFFIX,
   OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
   PERMISSIONSET_TYPE,
   SHARING_RULE_TYPE,
   SUB_OBJECT_TYPES,
+  VIRTUAL_BOT_TYPE,
   WORKFLOW_TYPE,
 } from '../constant/metadataConstants.js'
 import type { Metadata } from '../types/metadata.js'
@@ -148,10 +157,20 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   protected ownsNestedPaths(metadata: Metadata): boolean {
     return (
       metadata.inFolder ||
-      // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
-      (metadata.adapter !== undefined &&
-        CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)) ||
+      this.isContentContainer(metadata) ||
       this.declaresNestedContent(metadata)
+    )
+  }
+
+  // Extracted so componentScopedName can pick a container's nesting depth
+  // from its adapter without re-deriving what counts as a container.
+  private isContentContainer(
+    metadata: Metadata
+  ): metadata is Metadata & { adapter: string } {
+    // Stryker disable next-line ConditionalExpression -- equivalent: Set.has(undefined) is already false, so the `!== undefined` operand changes no runtime outcome; it exists only to narrow string|undefined → string for the Set<string>.has call under strict mode
+    return (
+      metadata.adapter !== undefined &&
+      CONTENT_CONTAINER_ADAPTERS.has(metadata.adapter)
     )
   }
 
@@ -183,17 +202,118 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   @log
   public getFullyQualifiedName(path: string): string {
     const filePath = asFilePath(path)
-    let fullyQualifiedName = parse(filePath).base
     const type = this.resolve(filePath)
-    if (type && MetadataRepositoryImpl.COMPOSED_TYPES.has(type.xmlName!)) {
-      const parentType = filePath
-        .split(PATH_SEP)
-        .find(part => this.metadataPerDir.has(part))!
-      fullyQualifiedName = filePath
-        .slice(filePath.indexOf(parentType))
-        .replace(PATH_SEP_GLOBAL, '')
+    if (!type) return parse(filePath).base
+    if (MetadataRepositoryImpl.HOLDER_SCOPED_COMPOSED_TYPES.has(type.xmlName!))
+      return this.holderScopedName(filePath, type)
+    if (MetadataRepositoryImpl.COMPOSED_TYPES.has(type.xmlName!))
+      return this.composedTypeName(filePath)
+    if (!this.ownsNestedPaths(type)) return this.plainTypeName(filePath, type)
+    return this.componentScopedName(filePath, type)
+  }
+
+  // The type directory leads a plain key because a suffix belongs to no
+  // single type (`policy`, `settings`, `site`, `rule` are each declared by
+  // several) — it is the registry's directory, not the file's own, which is
+  // what lets a component moved between package directories key the same.
+  // Four live registry entries (AssignmentRule, AutoResponseRule,
+  // EscalationRule, ManagedTopic) carry a suffix and no directory: the key
+  // must never read `undefined/…`.
+  private plainTypeName(path: string, type: Metadata): string {
+    const fileName = parse(path).base.replace(META_REGEX, '')
+    return type.directoryName ? `${type.directoryName}/${fileName}` : fileName
+  }
+
+  private composedTypeName(path: string): string {
+    const parentType = path
+      .split(PATH_SEP)
+      .find(part => this.metadataPerDir.has(part))!
+    return path.slice(path.indexOf(parentType)).replace(PATH_SEP_GLOBAL, '')
+  }
+
+  // Depth 1 handles every decomposed spelling a holder can appear under: a
+  // single file directly beneath its type directory, or a child file nested
+  // several segments down — both collapse to the same one-segment container
+  // name, because the holder is one component regardless of how SFDX
+  // decomposed it into files.
+  private holderScopedName(path: string, type: Metadata): string {
+    const parts = path.split(PATH_SEP)
+    const typeIndex = parts.lastIndexOf(type.directoryName!)
+    if (typeIndex === -1) return parse(path).base
+    return this.containerName(parts, typeIndex, 1)
+  }
+
+  // inFolder is checked before the container check because a type can be
+  // both inFolder and a content container (Document): adapter-first would
+  // truncate every Document to its folder, discarding the varying-extension
+  // files that folder owns.
+  private componentScopedName(path: string, type: Metadata): string {
+    const parts = path.split(PATH_SEP)
+    const typeIndex = parts.lastIndexOf(type.directoryName!)
+    if (typeIndex === -1) return parse(path).base
+    if (type.inFolder) return this.folderScopedName(parts, typeIndex)
+    if (this.isContentContainer(type)) {
+      const nestedCount = parts.length - typeIndex - 1
+      const depth = this.containerDepth(type.adapter, nestedCount)
+      return this.containerName(parts, typeIndex, depth)
     }
-    return fullyQualifiedName
+    return this.nestedContentName(parts, typeIndex, type)
+  }
+
+  // The `-meta.xml` companion sits outside the extension
+  // (`logo.png-meta.xml`), so it must fall away before the extension strip
+  // runs — the reverse order would leave it attached and never removed.
+  private folderScopedName(parts: string[], typeIndex: number): string {
+    return parts
+      .slice(typeIndex)
+      .join(PATH_SEP)
+      .replace(META_REGEX, '')
+      .replace(EXTENSION_SUFFIX_REGEX, '')
+  }
+
+  // A flat nested-content directory tells its families apart by extension
+  // (`wave/A.wdash` vs `wave/A.wapp`), so the extension is kept and any
+  // sub-directory is discarded, matching the descriptor. A
+  // FOLDER_SCOPED_TYPES member (VirtualBot) is instead named
+  // `<bot>.<version>` and needs every segment from the type directory down.
+  private nestedContentName(
+    parts: string[],
+    typeIndex: number,
+    type: Metadata
+  ): string {
+    const tail = MetadataRepositoryImpl.FOLDER_SCOPED_TYPES.has(type.xmlName!)
+      ? parts.slice(typeIndex)
+      : [parts[typeIndex], parts.at(-1)]
+    return tail.join(PATH_SEP).replace(META_REGEX, '')
+  }
+
+  // A deeper remainder means the container is named by a directory, and a
+  // directory name is the component's whole name — stripping it would
+  // corrupt one that merely contains a dot (`lwc/foo.bar/…`). Only when the
+  // taken segments consume the whole remainder is the name actually a file,
+  // and only then are `-meta.xml` and the extension noise to strip away.
+  private containerName(
+    parts: string[],
+    typeIndex: number,
+    depth: number
+  ): string {
+    const nested = parts.slice(typeIndex + 1)
+    const name = [parts[typeIndex], ...nested.slice(0, depth)].join(PATH_SEP)
+    return depth >= nested.length
+      ? name.replace(META_REGEX, '').replace(EXTENSION_SUFFIX_REGEX, '')
+      : name
+  }
+
+  // Only digitalExperience varies by depth: a page content file lives
+  // DIGITAL_EXPERIENCE_CONTENT_DEPTH segments below the bundle directory,
+  // while the bundle itself and any shallower/non-canonical layout share the
+  // coarser DIGITAL_EXPERIENCE_BUNDLE_DEPTH. Every other content-container
+  // adapter names its component by the single segment below its directory.
+  private containerDepth(adapter: string, nestedCount: number): number {
+    if (adapter !== DIGITAL_EXPERIENCE_ADAPTER) return 1
+    return nestedCount > DIGITAL_EXPERIENCE_CONTENT_DEPTH
+      ? DIGITAL_EXPERIENCE_CONTENT_DEPTH
+      : DIGITAL_EXPERIENCE_BUNDLE_DEPTH
   }
 
   public values(): Metadata[] {
@@ -214,4 +334,20 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     SHARING_RULE_TYPE,
     ...SUB_OBJECT_TYPES,
   ])
+
+  // A subset of COMPOSED_TYPES: PermissionSet and CustomObjectTranslation
+  // decompose into per-file children like every other composed type, but
+  // (unlike CustomObject/Workflow/SharingRules) their children are not
+  // distinct components — every file under one holder is the same
+  // PermissionSet or CustomObjectTranslation, so they key on the holder
+  // instead of the decomposed path.
+  private static HOLDER_SCOPED_COMPOSED_TYPES = new Set([
+    PERMISSIONSET_TYPE,
+    OBJECT_TRANSLATION_TYPE,
+  ])
+
+  // Nested-content families sharing one flat directory are told apart by
+  // extension, except VirtualBot: a BotVersion member is `<bot>.<version>`,
+  // so its key must keep the bot folder that the extension alone would lose.
+  private static FOLDER_SCOPED_TYPES = new Set([VIRTUAL_BOT_TYPE])
 }

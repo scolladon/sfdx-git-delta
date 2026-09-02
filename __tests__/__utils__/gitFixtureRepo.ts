@@ -544,3 +544,56 @@ export const buildRootAnchoredFixtureRepo = (
 
   return { root, deleted, moved }
 }
+
+export type IgnoreFixtureRefs = {
+  // Adds the class pair under the source directory.
+  root: string
+  // From `root`: renames both files into the sibling recycle-bin directory.
+  moved: string
+}
+
+export const IGNORE_SOURCE_CLASS =
+  'force-app/main/default/classes/AccountService.cls'
+export const IGNORE_SOURCE_CLASS_META =
+  'force-app/main/default/classes/AccountService.cls-meta.xml'
+export const IGNORE_MOVED_CLASS =
+  'force-app/recycle-bin/classes/AccountService.cls'
+export const IGNORE_MOVED_CLASS_META =
+  'force-app/recycle-bin/classes/AccountService.cls-meta.xml'
+
+/**
+ * A class and its meta companion, moved wholesale into a sibling directory —
+ * both paths resolve to the one ApexClass component, which is what the
+ * cancellation rule exists for. Exists to drive the real ignore-before/
+ * after-registration ordering against a fixture an `--ignore-file` pattern
+ * can target by directory.
+ */
+export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'add class pair', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IGNORE_SOURCE_CLASS,
+      content: 'public class AccountService {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IGNORE_SOURCE_CLASS_META,
+      content: '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+  ])
+
+  const moved = makeCommit(dir, root, 'move class pair to the recycle bin', [
+    { kind: 'rename', from: IGNORE_SOURCE_CLASS, to: IGNORE_MOVED_CLASS },
+    {
+      kind: 'rename',
+      from: IGNORE_SOURCE_CLASS_META,
+      to: IGNORE_MOVED_CLASS_META,
+    },
+  ])
+
+  return { root, moved }
+}
