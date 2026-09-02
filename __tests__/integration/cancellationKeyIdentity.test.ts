@@ -124,7 +124,7 @@ const pathsFor = (meta: Metadata): string[][] => {
 
   // Checked before the DECOMPOSED_ADAPTER branch and the generic tail: a
   // decomposed holder's own file and its decomposed children are one
-  // component, spelled every way #1411 names. The flat
+  // component, spelled every way a repository lays it out. The flat
   // `objectTranslations/<name>.objectTranslation-meta.xml` layout is
   // deliberately not emitted here — its descriptor answers a garbage member
   // (`CustomObjectTranslation/<name>.objectTranslation-meta.xml`) because

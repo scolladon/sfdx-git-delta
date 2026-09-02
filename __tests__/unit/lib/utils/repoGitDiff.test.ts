@@ -326,7 +326,7 @@ describe('Given a RepoGitDiff', () => {
   })
 
   it('Given two reports sharing a basename under different folders, When getLines, Then both lines survive', async () => {
-    // Arrange — the collision #1411 reports: a filename-only key wrongly
+    // Arrange — the reported collision: a filename-only key wrongly
     // cancelled these because both reports are named Quarterly.
     const lines = [
       `${DELETION}${TAB}force-app/main/default/reports/Sales/Quarterly.report-meta.xml`,

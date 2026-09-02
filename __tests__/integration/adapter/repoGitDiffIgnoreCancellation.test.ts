@@ -26,7 +26,7 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 // directory still yields its source deletion instead of silently cancelling
 // it. Precise keys make that ordering load-bearing (a stale copy under an
 // ignored path could otherwise suppress a genuine deletion), so these four
-// cases pin the ordering deliberately: #1406 must flip this behaviour on
+// cases pin the ordering deliberately: the ignore-ordering fix must flip it on
 // purpose, not rediscover it by accident.
 //
 // The real RepoGitDiff drives a real GitAdapter and a real IgnoreHelper
