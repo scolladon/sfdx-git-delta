@@ -429,3 +429,118 @@ export const buildMetadataFixtureRepo = (dir: string): MetadataFixtureRefs => {
 
   return { root, head }
 }
+
+export type RootAnchoredFixtureRefs = {
+  // Adds the class pair, the aura bundle, the lwc bundle, and a plain class
+  // sitting at the repository root with no directory above it.
+  root: string
+  // From `root`: deletes the class pair and both bundles, leaves the
+  // root-level class untouched.
+  deleted: string
+  // From `root`: renames the root-level class into `classes/`.
+  moved: string
+}
+
+export const ROOT_ANCHORED_CLASS = 'classes/AccountService.cls'
+export const ROOT_ANCHORED_CLASS_META = 'classes/AccountService.cls-meta.xml'
+export const ROOT_ANCHORED_AURA_MARKUP = 'aura/accountCard/accountCard.cmp'
+export const ROOT_ANCHORED_AURA_CONTROLLER =
+  'aura/accountCard/accountCardController.js'
+export const ROOT_ANCHORED_BUNDLE_MARKUP = 'lwc/accountCard/accountCard.html'
+export const ROOT_ANCHORED_BUNDLE_SCRIPT = 'lwc/accountCard/accountCard.js'
+export const ROOT_ANCHORED_BUNDLE_META =
+  'lwc/accountCard/accountCard.js-meta.xml'
+export const ROOT_ANCHORED_MOVED_CLASS = 'Ledger.cls'
+export const ROOT_ANCHORED_MOVED_CLASS_TO = 'classes/Ledger.cls'
+
+/**
+ * A package laid out at the repository root (no `force-app/main/default`
+ * prefix): every metadata type directory sits in path segment 0, exactly
+ * where a git diff-status letter and tab also land. The aura and lwc
+ * bundles carry no registry-known suffix, so only the directory walk can
+ * recognise them; `Ledger.cls` at the root is the shape whose diff-line key
+ * carries the status prefix inside it today.
+ */
+export const buildRootAnchoredFixtureRepo = (
+  dir: string
+): RootAnchoredFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'root', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_CLASS,
+      content: 'public class AccountService {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_CLASS_META,
+      content: '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_AURA_MARKUP,
+      content: '<aura:component/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_AURA_CONTROLLER,
+      content: '({})\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_BUNDLE_MARKUP,
+      content: '<template></template>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_BUNDLE_SCRIPT,
+      content: 'export default class {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_BUNDLE_META,
+      content:
+        '<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: ROOT_ANCHORED_MOVED_CLASS,
+      content: 'public class Ledger {}\n',
+    },
+  ])
+
+  const deleted = makeCommit(dir, root, 'delete class and bundles', [
+    { kind: 'delete', path: ROOT_ANCHORED_CLASS },
+    { kind: 'delete', path: ROOT_ANCHORED_CLASS_META },
+    { kind: 'delete', path: ROOT_ANCHORED_AURA_MARKUP },
+    { kind: 'delete', path: ROOT_ANCHORED_AURA_CONTROLLER },
+    { kind: 'delete', path: ROOT_ANCHORED_BUNDLE_MARKUP },
+    { kind: 'delete', path: ROOT_ANCHORED_BUNDLE_SCRIPT },
+    { kind: 'delete', path: ROOT_ANCHORED_BUNDLE_META },
+  ])
+
+  // `deleted` above left the index holding its own tree, not `root`'s — the
+  // index is a single persistent file across these plumbing-only commits,
+  // not reset per commit. Re-seed it from `root` so this sibling commit
+  // branches off `root` instead of continuing from `deleted`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const moved = makeCommit(dir, root, 'move class out of the repository root', [
+    {
+      kind: 'rename',
+      from: ROOT_ANCHORED_MOVED_CLASS,
+      to: ROOT_ANCHORED_MOVED_CLASS_TO,
+    },
+  ])
+
+  return { root, deleted, moved }
+}

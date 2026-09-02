@@ -3,6 +3,7 @@
 import { parse } from 'node:path/posix'
 
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import {
   CONTENT_CONTAINER_ADAPTERS,
   CUSTOM_APPLICATION_SUFFIX,
@@ -21,6 +22,12 @@ import { log } from '../utils/LoggingDecorator.js'
 import { MetadataRepository } from './MetadataRepository.js'
 
 const PATH_SEP_GLOBAL = new RegExp(PATH_SEP, 'g')
+// Callers hand over a git diff line as readily as a bare path, and the
+// status prefix rides on the first segment — which is exactly where a
+// repository laid out at its own root keeps the type directory — so nothing
+// may compare segments before this has run.
+const asFilePath = (path: string): string =>
+  path.replace(GIT_DIFF_TYPE_REGEX, '')
 
 export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerExt: Map<string, Metadata>
@@ -89,14 +96,20 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   public get(path: string): Metadata | undefined {
+    return this.resolve(asFilePath(path))
+  }
+
+  // Split out of get() so a caller that already holds a stripped path does
+  // not pay to strip twice.
+  private resolve(filePath: string): Metadata | undefined {
     // Stryker disable next-line ConditionalExpression -- equivalent: cache short-circuit; flipping to false re-runs the search chain which is deterministic in path, so the result is identical
-    if (this.pathCache.has(path)) return this.pathCache.get(path)
-    const parts = path.split(PATH_SEP)
+    if (this.pathCache.has(filePath)) return this.pathCache.get(filePath)
+    const parts = filePath.split(PATH_SEP)
     const result =
       this.searchByExtension(parts) ??
       this.searchByDirectory(parts) ??
-      this.searchByXmlName(path)
-    this.pathCache.set(path, result)
+      this.searchByXmlName(filePath)
+    this.pathCache.set(filePath, result)
     return result
   }
 
@@ -169,14 +182,15 @@ export class MetadataRepositoryImpl implements MetadataRepository {
 
   @log
   public getFullyQualifiedName(path: string): string {
-    let fullyQualifiedName = parse(path).base
-    const type = this.get(path)
+    const filePath = asFilePath(path)
+    let fullyQualifiedName = parse(filePath).base
+    const type = this.resolve(filePath)
     if (type && MetadataRepositoryImpl.COMPOSED_TYPES.has(type.xmlName!)) {
-      const parentType = path
+      const parentType = filePath
         .split(PATH_SEP)
         .find(part => this.metadataPerDir.has(part))!
-      fullyQualifiedName = path
-        .slice(path.indexOf(parentType))
+      fullyQualifiedName = filePath
+        .slice(filePath.indexOf(parentType))
         .replace(PATH_SEP_GLOBAL, '')
     }
     return fullyQualifiedName

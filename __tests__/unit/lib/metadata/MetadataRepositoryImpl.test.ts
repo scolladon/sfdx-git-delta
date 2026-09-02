@@ -5,218 +5,222 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { MetadataRepositoryImpl } from '../../../../src/metadata/MetadataRepositoryImpl'
 import type { Metadata } from '../../../../src/types/metadata'
 
+// Hoisted so a test can build its own MetadataRepositoryImpl subclass
+// against the exact same registry entries the shared beforeEach uses.
+const registryFixture: Metadata[] = [
+  {
+    directoryName: 'aura',
+    inFolder: false,
+    metaFile: false,
+    xmlName: 'AuraDefinitionBundle',
+  },
+  {
+    directoryName: 'applications',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'app',
+    xmlName: 'CustomApplication',
+  },
+  {
+    directoryName: 'customMetadata',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'md',
+    xmlName: 'CustomMetadata',
+  },
+  {
+    directoryName: 'documents',
+    inFolder: true,
+    metaFile: true,
+    suffix: 'document',
+    xmlName: 'Document',
+  },
+  {
+    directoryName: 'restrictionRules',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'rule',
+    xmlName: 'RestrictionRule',
+  },
+  {
+    directoryName: 'moderation',
+    inFolder: false,
+    metaFile: false,
+    content: [
+      {
+        suffix: 'keywords',
+        xmlName: 'KeywordList',
+      },
+      {
+        suffix: 'rule',
+        xmlName: 'ModerationRule',
+      },
+    ],
+  } as Metadata,
+  {
+    directoryName: 'fields',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'field',
+    xmlName: 'CustomField',
+  },
+  {
+    childXmlNames: [
+      'CustomField',
+      'Index',
+      'BusinessProcess',
+      'RecordType',
+      'CompactLayout',
+      'WebLink',
+      'ValidationRule',
+      'SharingReason',
+      'ListView',
+      'FieldSet',
+    ],
+    directoryName: 'objects',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'object',
+    xmlName: 'CustomObject',
+  },
+  {
+    adapter: 'matchingContentFile',
+    directoryName: 'classes',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'cls',
+    xmlName: 'ApexClass',
+  },
+  {
+    adapter: 'bundle',
+    directoryName: 'lwc',
+    inFolder: false,
+    metaFile: false,
+    xmlName: 'LightningComponentBundle',
+  },
+  {
+    adapter: 'mixedContent',
+    directoryName: 'staticresources',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'resource',
+    xmlName: 'StaticResource',
+  },
+  {
+    directoryName: 'icons',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'icon',
+    xmlName: 'Icon',
+  },
+  {
+    directoryName: 'emailservices',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'xml',
+    xmlName: 'EmailServicesFunction',
+  },
+  {
+    directoryName: 'sites',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'site',
+    xmlName: 'CustomSite',
+  },
+  {
+    directoryName: 'siteDotComSites',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'site',
+    xmlName: 'SiteDotCom',
+  },
+  {
+    adapter: 'mixedContent',
+    directoryName: 'experiences',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'site',
+    xmlName: 'ExperienceBundle',
+  },
+  {
+    adapter: 'digitalExperience',
+    directoryName: 'digitalExperiences',
+    inFolder: false,
+    metaFile: false,
+    xmlName: 'DigitalExperienceBundle',
+  },
+  {
+    directoryName: 'portals',
+    inFolder: false,
+    metaFile: false,
+    suffix: 'portal',
+    xmlName: 'Portal',
+  },
+  // The SDR-style WaveDashboard/WaveXmd entries register `wdash`/`xmd` a
+  // second time (alongside VirtualWave.content below), marking those
+  // suffixes UNSAFE so searchByExtension yields and the directory walk —
+  // where the nested-folder bug lives — becomes the deciding path. Mirrors
+  // the real registry, where SDR and the internal registry both define them.
+  {
+    adapter: 'matchingContentFile',
+    directoryName: 'wave',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'wdash',
+    xmlName: 'WaveDashboard',
+  },
+  {
+    adapter: 'matchingContentFile',
+    directoryName: 'wave',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'xmd',
+    xmlName: 'WaveXmd',
+  },
+  {
+    directoryName: 'wave',
+    inFolder: false,
+    metaFile: true,
+    content: [
+      { suffix: 'wdash', xmlName: 'WaveDashboard' },
+      { suffix: 'xmd', xmlName: 'WaveXmd' },
+    ],
+    xmlName: 'VirtualWave',
+  } as Metadata,
+  {
+    directoryName: 'dashboards',
+    inFolder: true,
+    metaFile: true,
+    suffix: 'dashboard',
+    xmlName: 'Dashboard',
+  },
+  // VirtualBot is a sibling virtual content-container; it locks the fix's
+  // symmetry across all virtual content-container types — the predicate
+  // keys off the non-empty content[], never xmlName.
+  {
+    adapter: 'matchingContentFile',
+    directoryName: 'bots',
+    inFolder: false,
+    metaFile: true,
+    suffix: 'botVersion',
+    xmlName: 'BotVersion',
+  },
+  {
+    directoryName: 'bots',
+    inFolder: false,
+    metaFile: true,
+    content: [
+      { suffix: 'bot', xmlName: 'Bot' },
+      { suffix: 'botVersion', xmlName: 'BotVersion' },
+    ],
+    xmlName: 'VirtualBot',
+  } as Metadata,
+]
+
 describe('MetadataRepositoryImpl', () => {
   let sut: MetadataRepository
   beforeEach(() => {
-    sut = new MetadataRepositoryImpl([
-      {
-        directoryName: 'aura',
-        inFolder: false,
-        metaFile: false,
-        xmlName: 'AuraDefinitionBundle',
-      },
-      {
-        directoryName: 'applications',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'app',
-        xmlName: 'CustomApplication',
-      },
-      {
-        directoryName: 'customMetadata',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'md',
-        xmlName: 'CustomMetadata',
-      },
-      {
-        directoryName: 'documents',
-        inFolder: true,
-        metaFile: true,
-        suffix: 'document',
-        xmlName: 'Document',
-      },
-      {
-        directoryName: 'restrictionRules',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'rule',
-        xmlName: 'RestrictionRule',
-      },
-      {
-        directoryName: 'moderation',
-        inFolder: false,
-        metaFile: false,
-        content: [
-          {
-            suffix: 'keywords',
-            xmlName: 'KeywordList',
-          },
-          {
-            suffix: 'rule',
-            xmlName: 'ModerationRule',
-          },
-        ],
-      } as Metadata,
-      {
-        directoryName: 'fields',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'field',
-        xmlName: 'CustomField',
-      },
-      {
-        childXmlNames: [
-          'CustomField',
-          'Index',
-          'BusinessProcess',
-          'RecordType',
-          'CompactLayout',
-          'WebLink',
-          'ValidationRule',
-          'SharingReason',
-          'ListView',
-          'FieldSet',
-        ],
-        directoryName: 'objects',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'object',
-        xmlName: 'CustomObject',
-      },
-      {
-        adapter: 'matchingContentFile',
-        directoryName: 'classes',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'cls',
-        xmlName: 'ApexClass',
-      },
-      {
-        adapter: 'bundle',
-        directoryName: 'lwc',
-        inFolder: false,
-        metaFile: false,
-        xmlName: 'LightningComponentBundle',
-      },
-      {
-        adapter: 'mixedContent',
-        directoryName: 'staticresources',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'resource',
-        xmlName: 'StaticResource',
-      },
-      {
-        directoryName: 'icons',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'icon',
-        xmlName: 'Icon',
-      },
-      {
-        directoryName: 'emailservices',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'xml',
-        xmlName: 'EmailServicesFunction',
-      },
-      {
-        directoryName: 'sites',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'site',
-        xmlName: 'CustomSite',
-      },
-      {
-        directoryName: 'siteDotComSites',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'site',
-        xmlName: 'SiteDotCom',
-      },
-      {
-        adapter: 'mixedContent',
-        directoryName: 'experiences',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'site',
-        xmlName: 'ExperienceBundle',
-      },
-      {
-        adapter: 'digitalExperience',
-        directoryName: 'digitalExperiences',
-        inFolder: false,
-        metaFile: false,
-        xmlName: 'DigitalExperienceBundle',
-      },
-      {
-        directoryName: 'portals',
-        inFolder: false,
-        metaFile: false,
-        suffix: 'portal',
-        xmlName: 'Portal',
-      },
-      // The SDR-style WaveDashboard/WaveXmd entries register `wdash`/`xmd` a
-      // second time (alongside VirtualWave.content below), marking those
-      // suffixes UNSAFE so searchByExtension yields and the directory walk —
-      // where the nested-folder bug lives — becomes the deciding path. Mirrors
-      // the real registry, where SDR and the internal registry both define them.
-      {
-        adapter: 'matchingContentFile',
-        directoryName: 'wave',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'wdash',
-        xmlName: 'WaveDashboard',
-      },
-      {
-        adapter: 'matchingContentFile',
-        directoryName: 'wave',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'xmd',
-        xmlName: 'WaveXmd',
-      },
-      {
-        directoryName: 'wave',
-        inFolder: false,
-        metaFile: true,
-        content: [
-          { suffix: 'wdash', xmlName: 'WaveDashboard' },
-          { suffix: 'xmd', xmlName: 'WaveXmd' },
-        ],
-        xmlName: 'VirtualWave',
-      } as Metadata,
-      {
-        directoryName: 'dashboards',
-        inFolder: true,
-        metaFile: true,
-        suffix: 'dashboard',
-        xmlName: 'Dashboard',
-      },
-      // VirtualBot is a sibling virtual content-container; it locks the fix's
-      // symmetry across all virtual content-container types — the predicate
-      // keys off the non-empty content[], never xmlName.
-      {
-        adapter: 'matchingContentFile',
-        directoryName: 'bots',
-        inFolder: false,
-        metaFile: true,
-        suffix: 'botVersion',
-        xmlName: 'BotVersion',
-      },
-      {
-        directoryName: 'bots',
-        inFolder: false,
-        metaFile: true,
-        content: [
-          { suffix: 'bot', xmlName: 'Bot' },
-          { suffix: 'botVersion', xmlName: 'BotVersion' },
-        ],
-        xmlName: 'VirtualBot',
-      } as Metadata,
-    ])
+    sut = new MetadataRepositoryImpl(registryFixture)
   })
   describe('has', () => {
     describe('when matching on folder', () => {
@@ -605,6 +609,67 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(result).toBeUndefined()
       })
+    })
+  })
+
+  describe('Given a repository whose package directory is the repository root', () => {
+    // Counts calls into the search chain so a test can prove the diff line
+    // and the bare path share one pathCache entry, rather than merely
+    // sharing the same registry object the search chain would have
+    // returned anyway.
+    class CountingRepository extends MetadataRepositoryImpl {
+      public searches = 0
+      protected override searchByExtension(parts: string[]) {
+        this.searches += 1
+        return super.searchByExtension(parts)
+      }
+    }
+
+    it('When a diff line names a type only its directory resolves, Then the status prefix does not hide that directory', () => {
+      // Act
+      const result = sut.get('A\taura/comp/comp.js')
+
+      // Assert
+      expect(result).toStrictEqual(
+        expect.objectContaining({ xmlName: 'AuraDefinitionBundle' })
+      )
+    })
+
+    it('When the diff line is offered to has, Then the component is recognised', () => {
+      // Act
+      const result = sut.has('D\taura/comp/comp.js')
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('When the same file arrives as a diff line and as a bare path, Then the registry searches once', () => {
+      // Arrange
+      const counting = new CountingRepository(registryFixture)
+
+      // Act
+      const fromDiffLine = counting.get('A\tclasses/Foo.cls')
+      const fromBarePath = counting.get('classes/Foo.cls')
+
+      // Assert
+      expect(counting.searches).toBe(1)
+      expect(fromDiffLine).toBe(fromBarePath)
+    })
+  })
+
+  describe('Given a path whose first segment is one character followed by a space', () => {
+    it('When it is resolved, Then the diff-status regex strips that segment too', () => {
+      // A real Salesforce package directory is never one character followed
+      // by a space, so this collision is unreachable in practice;
+      // GIT_DIFF_TYPE_REGEX is deliberately left as-is here.
+
+      // Act
+      const result = sut.get('a aura/comp/comp.js')
+
+      // Assert
+      expect(result).toStrictEqual(
+        expect.objectContaining({ xmlName: 'AuraDefinitionBundle' })
+      )
     })
   })
 
