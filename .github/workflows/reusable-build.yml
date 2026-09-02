@@ -1,7 +1,7 @@
 ---
 name: Build Checks
 on:
-  workflow_call:
+  workflow_call: {}
 
 jobs:
   # Platform-independent logic gates: run exactly once, on the reference
