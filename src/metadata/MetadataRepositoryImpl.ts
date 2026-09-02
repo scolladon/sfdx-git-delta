@@ -64,23 +64,36 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   protected addSuffix(metadata: Metadata) {
-    // Stryker disable next-line ConditionalExpression -- equivalent: suffix presence guard; flipping to true runs the inner Map.has lookup on undefined which returns false, falling into the metadataPerExt.set with undefined key — observable as a stray entry that no test path queries by undefined suffix
-    if (metadata.suffix) {
-      if (this.metadataPerExt.has(metadata.suffix)) {
-        MetadataRepositoryImpl.UNSAFE_EXTENSION.add(metadata.suffix)
-      } else {
-        this.metadataPerExt.set(metadata.suffix, metadata)
-      }
-    }
+    this.registerSuffix(metadata)
     this.addSharedFolderSuffix(metadata)
   }
 
+  // Content clones must register through here, not through addSuffix: a clone
+  // keeps the same content[] as its source (see addSharedFolderSuffix below),
+  // so routing it back through addSuffix would re-enter addSharedFolderSuffix
+  // on that same content[] and recurse forever.
+  private registerSuffix(metadata: Metadata) {
+    // Stryker disable next-line ConditionalExpression -- equivalent: suffix presence guard; flipping to true runs the inner Map.has lookup on undefined which returns false, falling into the metadataPerExt.set with undefined key — observable as a stray entry that no test path queries by undefined suffix
+    if (!metadata.suffix) return
+    if (this.metadataPerExt.has(metadata.suffix)) {
+      MetadataRepositoryImpl.UNSAFE_EXTENSION.add(metadata.suffix)
+      return
+    }
+    this.metadataPerExt.set(metadata.suffix, metadata)
+  }
+
+  // content is kept on the clone (not stripped) because it is what tells the
+  // rest of the registry — ownsNestedPaths, via declaresNestedContent — that
+  // this suffix's type owns every path nested below the shared directory,
+  // not just the file itself. Dropping it here would make a component
+  // resolved through its content suffix indistinguishable from a type with no
+  // nested content, losing the folder segment that tells same-named
+  // components under different folders apart.
   protected addSharedFolderSuffix(metadata: Metadata) {
     if (!metadata.content) return
-    const { content: _content, ...metadataWithoutContent } = metadata
     for (const sharedFolderMetadataDef of metadata.content) {
-      this.addSuffix({
-        ...metadataWithoutContent,
+      this.registerSuffix({
+        ...metadata,
         suffix: sharedFolderMetadataDef.suffix,
       })
     }
