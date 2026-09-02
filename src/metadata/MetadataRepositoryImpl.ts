@@ -51,6 +51,15 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // chain) from repeating the work. Stores `undefined` negatives too —
   // distinguished from "uncached" via .has().
   private readonly pathCache: Map<string, Metadata | undefined> = new Map()
+  // A suffix declared by more than one type is ambiguous for this registry only.
+  // Kept per instance rather than shared across the process, so a registry
+  // built from an additional user-supplied file cannot make an extension
+  // unsafe for every registry built after it.
+  private readonly unsafeExtensions = new Set<string>([
+    CUSTOM_APPLICATION_SUFFIX,
+    EMAIL_SERVICES_FUNCTION_SUFFIX,
+    CUSTOM_METADATA_SUFFIX,
+  ])
 
   constructor(protected readonly metadatas: Metadata[]) {
     this.metadataPerExt = new Map<string, Metadata>()
@@ -77,7 +86,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     // Stryker disable next-line ConditionalExpression -- equivalent: suffix presence guard; flipping to false lets a suffix-less entry reach the Map.has lookup on undefined, which returns false and falls into metadataPerExt.set under an undefined key — a stray entry no test path queries by undefined suffix (the true flip registers nothing and is killed by the suite)
     if (!metadata.suffix) return
     if (this.metadataPerExt.has(metadata.suffix)) {
-      MetadataRepositoryImpl.UNSAFE_EXTENSION.add(metadata.suffix)
+      this.unsafeExtensions.add(metadata.suffix)
       return
     }
     this.metadataPerExt.set(metadata.suffix, metadata)
@@ -140,7 +149,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
       parts[parts.length - 1].replace(METAFILE_SUFFIX, '')
     ).ext.replace(DOT, '')
 
-    if (MetadataRepositoryImpl.UNSAFE_EXTENSION.has(extension)) {
+    if (this.unsafeExtensions.has(extension)) {
       return
     }
     return this.metadataPerExt.get(extension)
@@ -336,12 +345,6 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   public values(): Metadata[] {
     return this.metadatas
   }
-
-  private static UNSAFE_EXTENSION = new Set([
-    CUSTOM_APPLICATION_SUFFIX,
-    EMAIL_SERVICES_FUNCTION_SUFFIX,
-    CUSTOM_METADATA_SUFFIX,
-  ])
 
   private static COMPOSED_TYPES = new Set([
     OBJECT_TYPE,
