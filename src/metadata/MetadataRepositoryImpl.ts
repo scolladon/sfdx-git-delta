@@ -122,8 +122,9 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     return this.resolve(asFilePath(path))
   }
 
-  // Split out of get() so a caller that already holds a stripped path does
-  // not pay to strip twice.
+  // Split out of get() so the key rule, which already holds the stripped
+  // path, resolves it without stripping twice; every other caller goes
+  // through get() and its single strip.
   private resolve(filePath: string): Metadata | undefined {
     // Stryker disable next-line ConditionalExpression -- equivalent: cache short-circuit; flipping to false re-runs the search chain which is deterministic in path, so the result is identical
     if (this.pathCache.has(filePath)) return this.pathCache.get(filePath)

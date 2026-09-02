@@ -75,10 +75,13 @@ const buildPath = (shape: Shape, root: string, n: string): string => {
 // rule under test costs low hundreds of nanoseconds per line, so a round of
 // only one line per shape spends most of its time on registry construction,
 // not on the code being measured. Repeating one shape this many times per
-// round derives a reading dominated by key-derivation cost instead, without
-// abandoning a cold registry.
-const LINES_PER_ROUND = 300
-const ROUND_COUNTER_PAD = 4
+// round keeps the registry build below a twentieth of the round, so a
+// regression in the key reads at close to its true multiple instead of being
+// diluted — without abandoning a cold registry.
+const LINES_PER_ROUND = 1500
+// Wide enough that the counter never outgrows its padding over a whole
+// benchmark run, so every sample keys a path of constant length.
+const ROUND_COUNTER_PAD = 7
 
 // Encapsulates the round counter so freshness is an invariant of this one
 // generator rather than a module-level mutable a later edit could read out
