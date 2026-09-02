@@ -1099,6 +1099,36 @@ describe('MetadataRepositoryImpl', () => {
     })
   })
 
+  describe('Given two registries built in one process', () => {
+    it('When the first declares a suffix twice and the second declares it once, Then the second still resolves that suffix by extension', () => {
+      // Arrange — the ambiguity a registry finds among its own entries stays
+      // its own: an additional registry loaded for one run must not decide
+      // what an extension means for a registry built after it.
+      const thing = {
+        directoryName: 'things',
+        inFolder: false,
+        metaFile: false,
+        suffix: 'thing',
+        xmlName: 'Thing',
+      }
+      const ambiguous = new MetadataRepositoryImpl([
+        thing,
+        { ...thing, directoryName: 'otherThings', xmlName: 'OtherThing' },
+      ] as Metadata[])
+      const sut = new MetadataRepositoryImpl([thing] as Metadata[])
+
+      // Act
+      const shadowed = ambiguous.get('src/Alpha.thing')
+      const result = sut.get('src/Alpha.thing')
+
+      // Assert
+      expect(shadowed).toBeUndefined()
+      expect(result).toStrictEqual(
+        expect.objectContaining({ xmlName: 'Thing' })
+      )
+    })
+  })
+
   describe('values', () => {
     it('returns the array of Metadata', () => {
       // Arrange
