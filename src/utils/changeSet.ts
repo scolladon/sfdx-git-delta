@@ -149,7 +149,11 @@ export default class ChangeSet {
   // A deleted Bot takes its versions with it, so a BotVersion listed beside
   // its own deleted parent is redundant. A BotVersion member is
   // `<bot>.<version>`, and a Bot API name cannot contain a dot, so the
-  // segment before the first one names the parent.
+  // segment before the first one names the parent. Both halves are
+  // Salesforce API names, so a bot folder that carries a dot is not
+  // deployable source and is not catered for. Only the destructive manifest
+  // is filtered: the change-kind review view keeps the version, because that
+  // file really was deleted.
   private _suppressVersionsOfDeletedBots(deletes: Manifest): Manifest {
     const bots = deletes.get(BOT_TYPE)
     const versions = deletes.get(BOT_VERSION_TYPE)

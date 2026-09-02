@@ -572,18 +572,27 @@ describe('MetadataRepositoryImpl', () => {
       })
     })
 
-    describe('when matching on xmlName', () => {
-      it('matches existing xmlName', () => {
+    describe('Given a bare type name offered as a path', () => {
+      it('When it is resolved, Then it is not a component and the name lookup stays with getByXmlName', () => {
         // Act
         const result = sut.get('AuraDefinitionBundle')
 
         // Assert
-        expect(result).toStrictEqual(
+        expect(result).toBeUndefined()
+        expect(sut.getByXmlName('AuraDefinitionBundle')).toStrictEqual(
           expect.objectContaining({ directoryName: 'aura' })
         )
       })
 
-      it('does not match non existing xmlName', () => {
+      it('When a diff line names a repository-root file after a type, Then it is not a component', () => {
+        // Act
+        const result = sut.has('A\tAuraDefinitionBundle')
+
+        // Assert
+        expect(result).toBe(false)
+      })
+
+      it('When the name matches no type at all, Then nothing resolves', () => {
         // Act
         const result = sut.get('DoNotExist')
 
@@ -1000,6 +1009,36 @@ describe('MetadataRepositoryImpl', () => {
         // Assert
         expect(first).not.toStrictEqual(second)
       })
+    })
+  })
+
+  describe('Given a composed type outside any registry directory', () => {
+    it('When the fully qualified name is derived, Then the file name stands in for the missing scope', () => {
+      // Act
+      const result = sut.getFullyQualifiedName('A\tsrc/Foo.object-meta.xml')
+
+      // Assert
+      expect(result).toBe('Foo.object-meta.xml')
+    })
+  })
+
+  describe('Given a composed component under a directory whose name merely contains a type directory', () => {
+    it('When both spellings are derived, Then the key anchors on the type segment and both agree', () => {
+      // Arrange
+      const shadowed =
+        'A\tobjects_backup/objects/Account/fields/Test__c.field-meta.xml'
+      const plain = 'A\tforce-app/objects/Account/fields/Test__c.field-meta.xml'
+
+      // Act
+      const keys = new Set([
+        sut.getFullyQualifiedName(shadowed),
+        sut.getFullyQualifiedName(plain),
+      ])
+
+      // Assert
+      expect(keys).toStrictEqual(
+        new Set(['objectsAccountfieldsTest__c.field-meta.xml'])
+      )
     })
   })
 

@@ -30,7 +30,6 @@ import type { Metadata } from '../types/metadata.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataRepository } from './MetadataRepository.js'
 
-const PATH_SEP_GLOBAL = new RegExp(PATH_SEP, 'g')
 // Callers hand over a git diff line as readily as a bare path, and the
 // status prefix rides on the first segment — which is exactly where a
 // repository laid out at its own root keeps the type directory — so nothing
@@ -43,7 +42,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerDir: Map<string, Metadata>
   protected readonly metadataPerXmlName: Map<string, Metadata>
   // Memoizes get(path) results across the registry's lifetime. The lookup
-  // chain (split + extension + directory walk + xmlName) is deterministic
+  // chain (split + extension + directory walk) is deterministic
   // in `path` and the registry is read-only after construction, so a
   // single cache here is safe and frees every consumer (has,
   // getFullyQualifiedName, TypeHandlerFactory, computeTreeIndexScope, the
@@ -128,9 +127,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     if (this.pathCache.has(filePath)) return this.pathCache.get(filePath)
     const parts = filePath.split(PATH_SEP)
     const result =
-      this.searchByExtension(parts) ??
-      this.searchByDirectory(parts) ??
-      this.searchByXmlName(filePath)
+      this.searchByExtension(parts) ?? this.searchByDirectory(parts)
     this.pathCache.set(filePath, result)
     return result
   }
@@ -204,10 +201,6 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     return (metadata.content?.length ?? 0) > 0
   }
 
-  protected searchByXmlName(xmlName: string): Metadata | undefined {
-    return this.metadataPerXmlName.get(xmlName)
-  }
-
   public getByXmlName(xmlName: string): Metadata | undefined {
     return this.metadataPerXmlName.get(xmlName)
   }
@@ -237,11 +230,16 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     return type.directoryName ? `${type.directoryName}/${fileName}` : fileName
   }
 
+  // Anchored segment-wise on the first registry directory in the path: a
+  // substring search would also hit an unrelated directory that merely
+  // contains that name (`objects_backup/objects/…`) and drag it into the key.
+  // With no such segment the path has no component scope to name, so the
+  // file name stands, as it does for every other arm.
   private composedTypeName(path: string): string {
-    const parentType = path
-      .split(PATH_SEP)
-      .find(part => this.metadataPerDir.has(part))!
-    return path.slice(path.indexOf(parentType)).replace(PATH_SEP_GLOBAL, '')
+    const parts = path.split(PATH_SEP)
+    const typeIndex = parts.findIndex(part => this.metadataPerDir.has(part))
+    if (typeIndex === -1) return parse(path).base
+    return parts.slice(typeIndex).join('')
   }
 
   // Depth 1 handles every decomposed spelling a holder can appear under: a
