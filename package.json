@@ -54,7 +54,7 @@
     "@salesforce/source-deploy-retrieve": "13.3.0",
     "@scolladon/tsgit": "3.6.0",
     "ignore": "7.0.8",
-    "txml": "6.0.1",
+    "txml": "6.0.3",
     "zod": "4.5.4"
   },
   "devDependencies": {
