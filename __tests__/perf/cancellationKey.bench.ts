@@ -33,14 +33,16 @@ class CancellationKeyProbe extends RepoGitDiff {
 // actually takes: a plain type (extension lookup only), a content container
 // (bundle adapter, stops at its directory), a folder-organised type, a
 // nested-content type sharing one flat directory with siblings told apart
-// by suffix, and a composed type whose children are decomposed under their
-// holder.
+// by suffix, a composed type whose children are decomposed under their
+// holder, and a holder-scoped composed type whose every file keys on the
+// holder itself.
 type Shape =
   | 'plain-type'
   | 'content-container'
   | 'in-folder-type'
   | 'nested-content-type'
   | 'composed-type'
+  | 'holder-scoped-type'
 
 const SHAPES: readonly Shape[] = [
   'plain-type',
@@ -48,6 +50,7 @@ const SHAPES: readonly Shape[] = [
   'in-folder-type',
   'nested-content-type',
   'composed-type',
+  'holder-scoped-type',
 ]
 
 const buildPath = (shape: Shape, root: string, n: string): string => {
@@ -62,6 +65,8 @@ const buildPath = (shape: Shape, root: string, n: string): string => {
       return `${root}/bots/MyBot${n}/v${n}.botVersion`
     case 'composed-type':
       return `${root}/objects/Account${n}/fields/MyField${n}.field-meta.xml`
+    case 'holder-scoped-type':
+      return `${root}/permissionsets/PS${n}/objectSettings/Account.objectSettings-meta.xml`
   }
 }
 

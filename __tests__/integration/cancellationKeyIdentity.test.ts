@@ -279,7 +279,7 @@ beforeAll(async () => {
         perComponent.set(id, {
           id,
           type,
-          paths: [...(perComponent.get(id)?.paths ?? []), path],
+          paths: [...new Set([...(perComponent.get(id)?.paths ?? []), path])],
         })
       }
     }
@@ -396,5 +396,24 @@ describe('Given the residual collision between a report and its reporting folder
 
     // Assert
     expect(reportFolderDescriptor.id).not.toStrictEqual(reportDescriptor.id)
+  })
+})
+
+describe('Given the unsupported flat CustomObjectTranslation layout', () => {
+  it('When its key and descriptor are derived, Then the key names the holder while the descriptor answers a garbage member', async () => {
+    // Arrange — `objectTranslations/<name>.objectTranslation-meta.xml` is not
+    // a layout SFDX accepts, so the generator above never emits it; this pins
+    // why the two sides are not compared there rather than leaving it unsaid.
+    const flat = `${SOURCE}/objectTranslations/Alpha-fr.objectTranslation${METAFILE_SUFFIX}`
+
+    // Act
+    const key = probe.cancellationKey(flat)
+    const { id } = await descriptorOf(flat)
+
+    // Assert
+    expect(key).toBe('objecttranslations/alpha-fr')
+    expect(id).toBe(
+      `customobjecttranslation/alpha-fr.objecttranslation${METAFILE_SUFFIX}`
+    )
   })
 })

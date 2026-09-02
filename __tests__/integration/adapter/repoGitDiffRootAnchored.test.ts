@@ -21,7 +21,7 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 // registry, so directory-only types (no registry-known suffix, e.g. aura
 // and lwc bundles) are invisible, and a plain file at the root keys its
 // diff line with the status prefix baked in. Neither case involves the
-// cancellation key rule (Part 2) — stripping the prefix alone is enough
+// cancellation-key rule — stripping the prefix alone is enough
 // for both.
 
 let fixtureDir: string

@@ -642,8 +642,8 @@ describe('MetadataRepositoryImpl', () => {
     })
   })
 
-  describe('getByXmlName', () => {
-    it('returns the metadata registered under that xmlName', () => {
+  describe('Given a registered xmlName', () => {
+    it('When it is looked up by name, Then its registry entry answers', () => {
       // Act
       const result = sut.getByXmlName('AuraDefinitionBundle')
 
@@ -865,7 +865,7 @@ describe('MetadataRepositoryImpl', () => {
       })
     })
 
-    describe('when a nested-path type is resolved without its directory', () => {
+    describe('Given a content-container path that never carries its type directory', () => {
       it('When a content-container path never carries its type directory, Then it answers with the basename', () => {
         // Act
         const result = sut.getFullyQualifiedName(
