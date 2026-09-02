@@ -101,7 +101,7 @@ Per upstream line, `getLines()` then applies three ordered gates:
 
 1. Expands rename lines into synthetic `A`/`D` pairs (capturing the rename-pair side-channel).
 2. **Registry membership** — filters through the metadata registry; only paths that resolve to a known metadata type are yielded.
-3. **Ignore** (output policy) — applies `IgnoreHelper` (separate global and destructive-only ignore files), **before** registration in the gate below. An ignored addition therefore never registers and can never vouch for a deletion. (A later `--ignore-file` ordering change is a separate, unrelated concern.)
+3. **Ignore** (output policy) — applies `IgnoreHelper` (separate global and destructive-only ignore files), **before** registration in the gate below. An ignored addition therefore never registers and can never vouch for a deletion. Any reordering of this gate after registration must keep an ignored copy of a component from vouching for one that still has non-ignored files at `to`; with precise keys the two decisions are coupled.
 4. **Cancellation index** — defers `D` lines until upstream EOF so the rule has the full A-name set. A/M lines yield as they arrive; D lines are buffered and yielded last, dropping any whose key matches an addition's key: the legacy file-move-same-component safety net, keyed on the Salesforce component identity `MetadataRepositoryImpl.getFullyQualifiedName` derives from the path, compared lowercased — not on the raw filename. True component renames (different keys) surface via tsgit's `detectRenames`.
 
 The key per registry shape:
