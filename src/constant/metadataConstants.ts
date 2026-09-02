@@ -1,5 +1,12 @@
 'use strict'
-export const DIGITAL_EXPERIENCE_ADAPTER = 'digitalExperience' // reuse it inside CONTENT_CONTAINER_ADAPTERS
+export const BOT_TYPE = 'Bot'
+export const BOT_VERSION_TYPE = 'BotVersion'
+export const CUSTOM_APPLICATION_SUFFIX = 'app'
+export const CUSTOM_METADATA_SUFFIX = 'md'
+// Every content-container adapter names its component by the single segment
+// below the type directory; only digitalExperience varies (depths below).
+export const DEFAULT_CONTAINER_DEPTH = 1
+export const DIGITAL_EXPERIENCE_ADAPTER = 'digitalExperience'
 // SDR adapters whose component is a directory owning an opaque content subtree
 // (StaticResource/ExperienceBundle/Document via mixedContent, Aura/LWC via
 // bundle, DigitalExperienceBundle via digitalExperience). When such a type is
@@ -10,10 +17,6 @@ export const CONTENT_CONTAINER_ADAPTERS = new Set([
   DIGITAL_EXPERIENCE_ADAPTER,
   'mixedContent',
 ])
-export const BOT_TYPE = 'Bot'
-export const BOT_VERSION_TYPE = 'BotVersion'
-export const CUSTOM_APPLICATION_SUFFIX = 'app'
-export const CUSTOM_METADATA_SUFFIX = 'md'
 export const DIGITAL_EXPERIENCE_BUNDLE_TYPE = 'DigitalExperienceBundle'
 // SDR's canonical layout below `digitalExperiences/` is
 // `<baseType>/<spaceApiName>/<contentType>/<contentApiName>/<file>`: the
@@ -26,6 +29,7 @@ export const FIELD_DIRECTORY_NAME = 'fields'
 export const FLOW_DEFINITIONS_KEY = 'flowDefinitions'
 export const FLOW_XML_NAME = 'Flow'
 export const INFOLDER_SUFFIX = `Folder`
+export const INFOLDER_SUFFIX_REGEX = new RegExp(`${INFOLDER_SUFFIX}$`)
 export const LABEL_DECOMPOSED_SUFFIX = 'label'
 export const MASTER_DETAIL_TAG = '<type>MasterDetail</type>'
 export const METAFILE_SUFFIX = '-meta.xml'

@@ -1042,6 +1042,19 @@ describe('MetadataRepositoryImpl', () => {
     })
   })
 
+  describe('Given a folder-organised file whose name ends in Folder', () => {
+    it('When it is keyed beside its extension-bearing sibling, Then both answer with one name, as the folder handler derives it', () => {
+      // Act
+      const keys = new Set([
+        sut.getFullyQualifiedName('A\tdocuments/Assets/logoFolder'),
+        sut.getFullyQualifiedName('A\tdocuments/Assets/logo.png'),
+      ])
+
+      // Assert
+      expect(keys).toStrictEqual(new Set(['documents/Assets/logo']))
+    })
+  })
+
   describe('values', () => {
     it('returns the array of Metadata', () => {
       // Arrange

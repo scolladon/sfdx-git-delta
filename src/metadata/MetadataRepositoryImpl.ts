@@ -12,10 +12,12 @@ import {
   CONTENT_CONTAINER_ADAPTERS,
   CUSTOM_APPLICATION_SUFFIX,
   CUSTOM_METADATA_SUFFIX,
+  DEFAULT_CONTAINER_DEPTH,
   DIGITAL_EXPERIENCE_ADAPTER,
   DIGITAL_EXPERIENCE_BUNDLE_DEPTH,
   DIGITAL_EXPERIENCE_CONTENT_DEPTH,
   EMAIL_SERVICES_FUNCTION_SUFFIX,
+  INFOLDER_SUFFIX_REGEX,
   META_REGEX,
   METAFILE_SUFFIX,
   OBJECT_TRANSLATION_TYPE,
@@ -72,7 +74,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // so routing it back through addSuffix would re-enter addSharedFolderSuffix
   // on that same content[] and recurse forever.
   private registerSuffix(metadata: Metadata) {
-    // Stryker disable next-line ConditionalExpression -- equivalent: suffix presence guard; flipping to true runs the inner Map.has lookup on undefined which returns false, falling into the metadataPerExt.set with undefined key — observable as a stray entry that no test path queries by undefined suffix
+    // Stryker disable next-line ConditionalExpression -- equivalent: suffix presence guard; flipping to false lets a suffix-less entry reach the Map.has lookup on undefined, which returns false and falls into metadataPerExt.set under an undefined key — a stray entry no test path queries by undefined suffix (the true flip registers nothing and is killed by the suite)
     if (!metadata.suffix) return
     if (this.metadataPerExt.has(metadata.suffix)) {
       MetadataRepositoryImpl.UNSAFE_EXTENSION.add(metadata.suffix)
@@ -251,7 +253,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
     const parts = path.split(PATH_SEP)
     const typeIndex = parts.lastIndexOf(type.directoryName!)
     if (typeIndex === -1) return parse(path).base
-    return this.containerName(parts, typeIndex, 1)
+    return this.containerName(parts, typeIndex, DEFAULT_CONTAINER_DEPTH)
   }
 
   // inFolder is checked before the container check because a type can be
@@ -274,11 +276,15 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // The `-meta.xml` companion sits outside the extension
   // (`logo.png-meta.xml`), so it must fall away before the extension strip
   // runs — the reverse order would leave it attached and never removed.
+  // The trailing `Folder` strip mirrors the folder handler's own name
+  // derivation, so the key cannot disagree with the descriptor for a name
+  // that happens to end in Folder.
   private folderScopedName(parts: string[], typeIndex: number): string {
     return parts
       .slice(typeIndex)
       .join(PATH_SEP)
       .replace(META_REGEX, '')
+      .replace(INFOLDER_SUFFIX_REGEX, '')
       .replace(EXTENSION_SUFFIX_REGEX, '')
   }
 
@@ -321,7 +327,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // coarser DIGITAL_EXPERIENCE_BUNDLE_DEPTH. Every other content-container
   // adapter names its component by the single segment below its directory.
   private containerDepth(adapter: string, nestedCount: number): number {
-    if (adapter !== DIGITAL_EXPERIENCE_ADAPTER) return 1
+    if (adapter !== DIGITAL_EXPERIENCE_ADAPTER) return DEFAULT_CONTAINER_DEPTH
     return nestedCount > DIGITAL_EXPERIENCE_CONTENT_DEPTH
       ? DIGITAL_EXPERIENCE_CONTENT_DEPTH
       : DIGITAL_EXPERIENCE_BUNDLE_DEPTH
