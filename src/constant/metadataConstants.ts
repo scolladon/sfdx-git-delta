@@ -3,8 +3,9 @@ export const BOT_TYPE = 'Bot'
 export const BOT_VERSION_TYPE = 'BotVersion'
 export const CUSTOM_APPLICATION_SUFFIX = 'app'
 export const CUSTOM_METADATA_SUFFIX = 'md'
-// Every content-container adapter names its component by the single segment
-// below the type directory; only digitalExperience varies (depths below).
+// A component named by the single segment below its type directory: every
+// content-container adapter except digitalExperience (depths below), and the
+// holder-scoped composed types, whose every file keys on that one segment.
 export const DEFAULT_CONTAINER_DEPTH = 1
 export const DIGITAL_EXPERIENCE_ADAPTER = 'digitalExperience'
 // SDR adapters whose component is a directory owning an opaque content subtree

@@ -417,3 +417,49 @@ describe('Given the unsupported flat CustomObjectTranslation layout', () => {
     )
   })
 })
+
+describe('Given a folder-organised name that ends in Folder', () => {
+  it('When key and descriptor are derived beside an extension-bearing sibling, Then both sides agree they are one component', async () => {
+    // Arrange — the generator only names components Alpha and Beta, so a
+    // name ending in Folder is a shape it never reaches; the key strips that
+    // suffix the way the folder handler does, and this pins that they agree.
+    const bare = `${SOURCE}/documents/${SUB_FOLDER}/logoFolder`
+    const withExtension = `${SOURCE}/documents/${SUB_FOLDER}/logo.png`
+    const spellings = [bare, withExtension]
+
+    // Act
+    const keys = new Set(spellings.map(path => probe.cancellationKey(path)))
+    const ids = new Set(
+      (await Promise.all(spellings.map(descriptorOf))).map(({ id }) => id)
+    )
+
+    // Assert
+    expect(keys.size).toBe(1)
+    expect(ids.size).toBe(1)
+  })
+})
+
+describe('Given a composed component under a package root named after a registry directory', () => {
+  it('When both spellings are keyed, Then the descriptor sees one component while the key sees two — a recorded residual', async () => {
+    // Arrange — the composed arm anchors on the first registry directory in
+    // the path, so a package root that happens to share a registry
+    // directory's name (`applications`, `components`, …) is dragged into the
+    // key. Mirroring the descriptor (the child's own directory and its parent
+    // segment) would change every existing composed key, so the residual is
+    // recorded here rather than fixed silently.
+    const underNamedRoot =
+      'applications/objects/Account/fields/X__c.field-meta.xml'
+    const underPlainRoot = `${SOURCE}/objects/Account/fields/X__c.field-meta.xml`
+    const spellings = [underNamedRoot, underPlainRoot]
+
+    // Act
+    const ids = new Set(
+      (await Promise.all(spellings.map(descriptorOf))).map(({ id }) => id)
+    )
+    const keys = new Set(spellings.map(path => probe.cancellationKey(path)))
+
+    // Assert
+    expect(ids.size).toBe(1)
+    expect(keys.size).toBe(2)
+  })
+})

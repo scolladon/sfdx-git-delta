@@ -44,12 +44,12 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   protected readonly metadataPerDir: Map<string, Metadata>
   protected readonly metadataPerXmlName: Map<string, Metadata>
   // Memoizes get(path) results across the registry's lifetime. The lookup
-  // chain (split + extension + directory walk) is deterministic
-  // in `path` and the registry is read-only after construction, so a
-  // single cache here is safe and frees every consumer (has,
-  // getFullyQualifiedName, TypeHandlerFactory, computeTreeIndexScope, the
-  // RepoGitDiff filter chain) from repeating the work. Stores `undefined`
-  // negatives too — distinguished from "uncached" via .has().
+  // chain (split + extension + directory walk) is deterministic in `path`
+  // and the registry is read-only after construction, so a single cache
+  // here is safe and frees every consumer (has, getFullyQualifiedName,
+  // TypeHandlerFactory, computeTreeIndexScope, the RepoGitDiff filter
+  // chain) from repeating the work. Stores `undefined` negatives too —
+  // distinguished from "uncached" via .has().
   private readonly pathCache: Map<string, Metadata | undefined> = new Map()
 
   constructor(protected readonly metadatas: Metadata[]) {
@@ -236,12 +236,11 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   // Anchored segment-wise on the first registry directory in the path: a
   // substring search would also hit an unrelated directory that merely
   // contains that name (`objects_backup/objects/…`) and drag it into the key.
-  // With no such segment the path has no component scope to name, so the
-  // file name stands, as it does for every other arm.
+  // With no such segment findIndex answers -1 and slice(-1) keeps only the
+  // file name, so the fallback every other arm spells out needs no branch.
   private composedTypeName(path: string): string {
     const parts = path.split(PATH_SEP)
     const typeIndex = parts.findIndex(part => this.metadataPerDir.has(part))
-    if (typeIndex === -1) return parse(path).base
     return parts.slice(typeIndex).join('')
   }
 

@@ -70,14 +70,14 @@ const buildPath = (shape: Shape, root: string, n: string): string => {
   }
 }
 
-// A single registry build (tens of microseconds, paid once per round below)
-// would otherwise swamp the per-line signal this bench exists to catch: the
-// rule under test costs low hundreds of nanoseconds per line, so a round of
-// only one line per shape spends most of its time on registry construction,
-// not on the code being measured. Repeating one shape this many times per
-// round keeps the registry build below a twentieth of the round, so a
-// regression in the key reads at close to its true multiple instead of being
-// diluted — without abandoning a cold registry.
+// A single registry build (paid once per round below) would otherwise swamp
+// the per-line signal this bench exists to catch: the rule under test costs
+// low single-digit microseconds per line, so a round of only one line per
+// shape spends most of its time on registry construction, not on the code
+// being measured. Repeating one shape this many times per round keeps the
+// registry build to a small minority of the round (measured at around a
+// tenth or less), so a regression in the key reads at close to its true
+// multiple instead of being diluted — without abandoning a cold registry.
 const LINES_PER_ROUND = 1500
 // Wide enough that the counter never outgrows its padding over a whole
 // benchmark run, so every sample keys a path of constant length.

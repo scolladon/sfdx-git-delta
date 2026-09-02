@@ -494,6 +494,7 @@ describe('ChangeSet', () => {
 
       // Assert
       expect(result.has('BotVersion')).toBe(false)
+      expect(result.get('Bot')).toEqual(new Set(['X']))
     })
   })
 
