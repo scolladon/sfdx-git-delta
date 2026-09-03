@@ -16,7 +16,6 @@ ignore:
   - .nyc_output
   - .serena
   - .stryker-tmp
-  - .vitest
   - .vscode
   - .idea
   - .wireit

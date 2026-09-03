@@ -1,5 +1,4 @@
 .stryker-tmp
-.vitest
 .wireit
 *-debug.log
 *-error.log
