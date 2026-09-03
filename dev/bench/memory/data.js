@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788077845588,
+  "lastUpdate": 1788423458402,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -9859,6 +9859,318 @@ window.BENCHMARK_DATA = {
             "name": "writeXmlDocument-largeProfile",
             "value": 6.1037,
             "range": "±6.03%",
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2c00aeff82f1e69debeefd815433bcd1f19d4ce1",
+          "message": "fix(metadata): key the cancellation index on component identity (#1414)",
+          "timestamp": "2026-09-03T10:12:05+02:00",
+          "tree_id": "ef29b8985ad2255a07a371eac565e98cbaedb92f",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/2c00aeff82f1e69debeefd815433bcd1f19d4ce1"
+        },
+        "date": 1788423458376,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "cancellation-key-derivation-cold-plain-type",
+            "value": 3.9556,
+            "range": "±1.99%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-content-container",
+            "value": 4.5064,
+            "range": "±4.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-in-folder-type",
+            "value": 4.9814,
+            "range": "±1.01%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-nested-content-type",
+            "value": 4.5419,
+            "range": "±1.03%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-composed-type",
+            "value": 4.3381,
+            "range": "±1.06%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-holder-scoped-type",
+            "value": 4.8517,
+            "range": "±1.91%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-equal",
+            "value": 0.0003,
+            "range": "±0.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 0.0003,
+            "range": "±0.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-equal",
+            "value": 0.0021,
+            "range": "±0.33%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 0.0011,
+            "range": "±0.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 0.0211,
+            "range": "±0.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 0.0013,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 0.0001,
+            "range": "±0.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseRev-HEAD~20-and-HEAD",
+            "value": 1.2471,
+            "range": "±2.69%",
+            "unit": "ms"
+          },
+          {
+            "name": "streamDiffLines-HEAD~20..HEAD",
+            "value": 2.8172,
+            "range": "±2.33%",
+            "unit": "ms"
+          },
+          {
+            "name": "getBufferContent-HEAD~20-and-HEAD",
+            "value": 0.039,
+            "range": "±3.77%",
+            "unit": "ms"
+          },
+          {
+            "name": "buildTreeIndex-HEAD-cold",
+            "value": 10.2284,
+            "range": "±9.17%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.2049,
+            "range": "±2.87%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 1.0282,
+            "range": "±1.39%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 3.8712,
+            "range": "±1.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.1423,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-small",
+            "value": 0.001,
+            "range": "±0.06%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-small",
+            "value": 0.0011,
+            "range": "±0.07%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-small",
+            "value": 0.0198,
+            "range": "±0.48%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-medium",
+            "value": 0.0072,
+            "range": "±0.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-medium",
+            "value": 0.0072,
+            "range": "±0.07%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-medium",
+            "value": 0.1248,
+            "range": "±0.54%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-large",
+            "value": 0.0333,
+            "range": "±0.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-has-large",
+            "value": 0.033,
+            "range": "±0.09%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-large",
+            "value": 0.5181,
+            "range": "±0.55%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.0437,
+            "range": "±0.39%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0014,
+            "range": "±0.34%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.1387,
+            "range": "±1.82%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.0085,
+            "range": "±0.43%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 0.4455,
+            "range": "±0.44%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0371,
+            "range": "±0.38%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 0.0464,
+            "range": "±0.48%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 0.0523,
+            "range": "±0.48%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 0.0516,
+            "range": "±0.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 0.7068,
+            "range": "±0.67%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 0.723,
+            "range": "±0.39%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 0.7204,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 8.2768,
+            "range": "±2.98%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 7.1523,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 7.1398,
+            "range": "±0.47%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 0.0438,
+            "range": "±2.93%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 0.5281,
+            "range": "±1.58%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 6.2407,
+            "range": "±4.52%",
             "unit": "ms"
           }
         ]
