@@ -815,17 +815,14 @@ describe('external library inclusion', () => {
 
     it('Given the target revision contains a control character, When sgd runs, Then the warning carries the escaped form and never the raw character', async () => {
       // Arrange
-      mockGetHeldAdditionProbeFailure.mockReturnValueOnce({
-        revision: 'HEAD',
-        candidateCount: 1,
-      })
-      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+      mockGetHeldAdditionProbeFailure.mockReturnValueOnce({ candidateCount: 1 })
+      const sut = { from: 'HEAD~1', to: 'HEAD\x07' } as ConfigInput
 
       // Act
       const result = await sgd(sut)
 
       // Assert
-      expect(result.warnings[0]?.message).not.toContain('')
+      expect(result.warnings[0]?.message).not.toContain('\x07')
     })
   })
 

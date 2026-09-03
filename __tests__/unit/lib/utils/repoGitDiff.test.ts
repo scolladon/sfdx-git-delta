@@ -1016,6 +1016,26 @@ describe('Given a RepoGitDiff', () => {
       expect(result).toStrictEqual({ candidateCount: 1 })
     })
 
+    it('When a failed drain is followed by a successful one, Then the second drain does not inherit the first drain report', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(indexOf(`${IGNORED_DIR}/${CLASS}`))
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+      await collect(sut.getLines())
+      const result = sut.getHeldAdditionProbeFailure()
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
     it('When the tree read succeeds, Then no degraded move check is reported', async () => {
       // Arrange
       mockGetDiffLines.mockReturnValue([
