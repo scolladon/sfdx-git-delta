@@ -12,6 +12,8 @@ import { IgnoreHelper } from '../../../src/utils/ignoreHelper'
 import RepoGitDiff from '../../../src/utils/repoGitDiff'
 import {
   buildIgnoreFixtureRepo,
+  IGNORE_BUNDLE_MARKUP,
+  IGNORE_BUNDLE_STALE_MARKUP,
   IGNORE_MOVED_CLASS,
   IGNORE_MOVED_CLASS_META,
   IGNORE_SOURCE_CLASS,
@@ -32,6 +34,12 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 // The real RepoGitDiff drives a real GitAdapter and a real IgnoreHelper
 // reading a real pattern file here — the unit seam mocks buildIgnoreHelper,
 // so this ordering is not observable there at all.
+//
+// The second block pins the trap the held-addition rule exists to avoid:
+// one file of a live bundle moved into the ignored directory is a stale
+// copy, not a move — the bundle's other files are still at `to` — so its
+// deletion must survive under every ordering. Both cases hold on the
+// ignore-first ordering and must keep holding once the gate moves.
 
 let fixtureDir: string
 let ignorePatternPath: string
@@ -143,5 +151,33 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
 
     // Assert
     expect(result).toEqual(SOURCE_DELETION_SURVIVES)
+  })
+})
+
+describe('Given one bundle file moved into an ignored directory while the bundle stays live', () => {
+  it('When --ignore-file covers the destination, Then the deletion survives instead of being cancelled', async () => {
+    // Arrange — the bundle's script and meta file are still at `to`, so the
+    // recycle-bin copy is stale and cannot stand in for the component.
+    const config = makeConfig({ to: refs.staleCopy, ignore: ignorePatternPath })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([`D\t${IGNORE_BUNDLE_MARKUP}`])
+  })
+
+  it('When no ignore file is configured, Then the kept addition cancels the deletion', async () => {
+    // Arrange — pins that the survival above comes from the ignore verdict,
+    // not from the diff shape.
+    const config = makeConfig({ to: refs.staleCopy })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([`A\t${IGNORE_BUNDLE_STALE_MARKUP}`])
   })
 })
