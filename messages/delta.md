@@ -175,3 +175,6 @@ Failure
 💡 Enjoying sfdx-git-delta?
 Your contribution helps us provide fast support 🚀 and high quality features 🔥
 Become a sponsor: https://github.com/sponsors/scolladon 💙
+# warning.IgnoredMoveCheckSkipped
+
+Could not list '%s', so %s component(s) moved into an ignored directory could not be confirmed as moves and are reported as deletions. Pass a commit-ish to --to for the move check to run.

@@ -40,11 +40,13 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 // The second block pins the trap the held-addition rule exists to avoid:
 // one file of a live bundle moved into the ignored directory is a stale
 // copy, not a move — the bundle's other files are still at `to` — so its
-// deletion must survive under every ordering. Both cases hold on the
-// ignore-first ordering and must keep holding once the gate moves.
+// deletion must survive under every ordering. Both cases held under the old
+// ignore-first ordering and still hold now that the gate has moved — they are
+// the guard the move was made against.
 
 let fixtureDir: string
 let ignorePatternPath: string
+let unrelatedDestructivePatternPath: string
 let refs: IgnoreFixtureRefs
 let globalMetadata: MetadataRepository
 
@@ -90,6 +92,8 @@ beforeAll(async () => {
   // the path handed to config.ignore/ignoreDestructive must be absolute.
   ignorePatternPath = join(fixtureDir, '.sgdignore-recycle-bin')
   await writeFile(ignorePatternPath, 'force-app/recycle-bin/\n')
+  unrelatedDestructivePatternPath = join(fixtureDir, '.sgdignore-unrelated')
+  await writeFile(unrelatedDestructivePatternPath, 'nothing-here/\n')
 })
 
 afterEach(async () => {
@@ -127,6 +131,25 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
 
     // Assert
     expect(result).toEqual(NO_IGNORE_BASELINE)
+  })
+
+  it('When an unrelated --ignore-destructive-file is also configured, Then the move is still cancelled', async () => {
+    // Arrange — visibility at `to` is decided by the global ignore alone.
+    // With a destructive ignore that covers nothing, the moved copies are
+    // still invisible, so the deletions must still cancel; were the
+    // visibility test to consult the destructive set instead, the copies
+    // would count as survivors and the deletions would reappear.
+    const config = makeConfig({
+      ignore: ignorePatternPath,
+      ignoreDestructive: unrelatedDestructivePatternPath,
+    })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([])
   })
 
   it('When --ignore-destructive-file covers the move destination, Then the result is identical to the no-ignore baseline', async () => {

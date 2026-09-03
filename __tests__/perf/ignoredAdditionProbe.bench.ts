@@ -46,7 +46,7 @@ class VisibilityProbe extends RepoGitDiff {
     candidates: ReadonlySet<string>,
     ignoreHelper: IgnoreHelper
   ): Promise<ReadonlySet<string>> {
-    return this._visibleNamesAt(candidates, ignoreHelper)
+    return this._visibleNamesAtTo(candidates, ignoreHelper)
   }
 }
 
@@ -54,6 +54,9 @@ const LISTING_SIZES = [10_000, 50_000] as const
 const PER_PATH_BUDGET_US = 3
 // Shared runners are noisy (±40 % run-to-run is normal); the ceiling exists
 // to catch an order-of-magnitude regression, not to police variance.
+// It fails `npm run test:perf` locally (a throwing bench yields no samples
+// and the results formatter rejects that), but the CI perf job is
+// continue-on-error, so it blocks nothing there.
 const RUNNER_NOISE_FACTOR = 3
 const ROUND_COUNTER_PAD = 9
 const IGNORE_PATTERNS = ['force-app/recycle-bin/', '**/__tests__/**', '*.bak']

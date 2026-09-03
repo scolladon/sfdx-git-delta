@@ -13,6 +13,8 @@ import { Logger, lazy } from './LoggingService.js'
 
 export type RenamePathPair = Readonly<{ fromPath: string; toPath: string }>
 
+export type HeldAdditionProbeFailure = Readonly<{ candidateCount: number }>
+
 type DeferredDeletion = Readonly<{ line: string; name: string }>
 
 export default class RepoGitDiff {
@@ -27,6 +29,13 @@ export default class RepoGitDiff {
     changesSeen: 0,
     linesYielded: 0,
   }
+
+  // Set when the `to` listing could not be read while held additions were
+  // still pending, so the run can tell the user its move detection was
+  // degraded instead of silently falling back to the uncancelled output.
+  // Reset per getLines() call, like the verdict above, and read after the
+  // diff is drained.
+  private probeFailure: HeldAdditionProbeFailure | undefined
 
   constructor(
     protected readonly config: Config,
@@ -50,6 +59,7 @@ export default class RepoGitDiff {
     this.renamePairs = []
     this.diffScopeVerdict.changesSeen = 0
     this.diffScopeVerdict.linesYielded = 0
+    this.probeFailure = undefined
     const ignoreHelper = await buildIgnoreHelper(this.config)
     const additionNames = new Set<string>()
     const heldAdditionNames = new Set<string>()
@@ -96,8 +106,16 @@ export default class RepoGitDiff {
     const vouching = await this._vouchingHeldNames(
       heldAdditionNames,
       deferredDeletions,
+      additionNames,
       ignoreHelper
     )
+    if (vouching.size > 0) {
+      // A cancelled deletion appears in neither manifest, so without this
+      // line a debug run cannot explain why a destructive entry is missing.
+      Logger.debug(
+        lazy`getLines: held addition(s) '${[...vouching].join("', '")}' survive only under ignored paths at '${this.config.to}', cancelling their deletions`
+      )
+    }
     for (const name of vouching) additionNames.add(name)
     for (const { line, name } of deferredDeletions) {
       if (!additionNames.has(name)) yield line
@@ -106,6 +124,11 @@ export default class RepoGitDiff {
 
   public getRenamePairs(): readonly RenamePathPair[] {
     return this.renamePairs
+  }
+
+  // Meaningful only once the diff is drained, like getUnmatchedSourceScopes().
+  public getHeldAdditionProbeFailure(): HeldAdditionProbeFailure | undefined {
+    return this.probeFailure
   }
 
   public getUnmatchedSourceScopes(): readonly string[] {
@@ -148,30 +171,38 @@ export default class RepoGitDiff {
   protected async _vouchingHeldNames(
     held: ReadonlySet<string>,
     deferred: readonly DeferredDeletion[],
+    registered: ReadonlySet<string>,
     ignoreHelper: IgnoreHelper
   ): Promise<ReadonlySet<string>> {
+    // A name a kept addition already registered is cancelled whatever the
+    // tree says, so excluding it keeps the read to the names whose answer
+    // can still change an outcome.
     const candidates = new Set(
-      deferred.map(({ name }) => name).filter(name => held.has(name))
+      deferred
+        .map(({ name }) => name)
+        .filter(name => held.has(name) && !registered.has(name))
     )
     if (candidates.size === 0) return candidates
-    const visible = await this._visibleNamesAt(candidates, ignoreHelper)
+    const visible = await this._visibleNamesAtTo(candidates, ignoreHelper)
     return new Set([...candidates].filter(name => !visible.has(name)))
   }
 
   // Visibility is decided by the global ignore, never the destructive one:
   // the question is whether sgd would still treat a file of the component
   // as live source, which is the A/M routing.
-  protected async _visibleNamesAt(
+  protected async _visibleNamesAtTo(
     candidates: ReadonlySet<string>,
     ignoreHelper: IgnoreHelper
   ): Promise<ReadonlySet<string>> {
     const listing = await this._listFilesAt(this.config.to)
     if (!listing) {
       // Fail closed: a tree that cannot be read lets nothing vouch, so a
-      // read failure can surface a spurious destructive entry but never
-      // silently suppress a real one.
+      // read failure keeps the uncancelled output rather than silently
+      // suppressing a real deletion. Recorded so the run can warn — a
+      // degraded result the user never sees is the failure worth avoiding.
+      this.probeFailure = { candidateCount: candidates.size }
       Logger.debug(
-        lazy`getLines: '${this.config.to}' could not be listed, ${candidates.size} held addition(s) cannot vouch`
+        lazy`_visibleNamesAtTo: '${this.config.to}' could not be listed, ${candidates.size} candidate component(s) cannot vouch`
       )
       return candidates
     }

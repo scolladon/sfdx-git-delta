@@ -26,6 +26,7 @@ const {
   mockGetLines,
   mockGetRenamePairs,
   mockGetUnmatchedSourceScopes,
+  mockGetHeldAdditionProbeFailure,
   mockProcess,
   mockExecute,
   mockCloseAll,
@@ -39,6 +40,8 @@ const {
   mockGetRenamePairs:
     vi.fn<() => Array<{ fromPath: string; toPath: string }>>(),
   mockGetUnmatchedSourceScopes: vi.fn<() => readonly string[]>(),
+  mockGetHeldAdditionProbeFailure:
+    vi.fn<() => { candidateCount: number } | undefined>(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockExecute: vi.fn(),
   mockCloseAll: vi.fn(),
@@ -87,6 +90,7 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
         getLines: mockGetLines,
         getRenamePairs: mockGetRenamePairs,
         getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
+        getHeldAdditionProbeFailure: mockGetHeldAdditionProbeFailure,
       }
     }),
   }
@@ -154,6 +158,7 @@ beforeEach(() => {
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockGetUnmatchedSourceScopes.mockReturnValue([])
+  mockGetHeldAdditionProbeFailure.mockReturnValue(undefined)
   mockComputeTreeIndexScope.mockReturnValue(new Set())
   mockExecute.mockResolvedValue(undefined)
   mockMkdir.mockResolvedValue(undefined)

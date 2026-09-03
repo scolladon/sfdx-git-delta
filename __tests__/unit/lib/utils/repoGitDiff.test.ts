@@ -907,16 +907,17 @@ describe('Given a RepoGitDiff', () => {
       expect(mockBuildTreeIndex).not.toHaveBeenCalled()
     })
 
-    it('When two files of one component are held, Then the tree is read once', async () => {
+    it('When two components are held, Then one listing serves both', async () => {
       // Arrange
+      const otherClass = 'classes/OrderService.cls'
       mockGetDiffLines.mockReturnValue([
         `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
-        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS_META}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${otherClass}`,
         `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
-        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS_META}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${otherClass}`,
       ])
       mockBuildTreeIndex.mockResolvedValue(
-        indexOf(`${IGNORED_DIR}/${CLASS}`, `${IGNORED_DIR}/${CLASS_META}`)
+        indexOf(`${IGNORED_DIR}/${CLASS}`, `${IGNORED_DIR}/${otherClass}`)
       )
       const sut = new RepoGitDiff(config, globalMetadata)
 
@@ -926,6 +927,52 @@ describe('Given a RepoGitDiff', () => {
       // Assert
       expect(result).toStrictEqual([])
       expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+    })
+
+    it('When a kept addition already registered the name, Then no tree is read', async () => {
+      // Arrange — the deletion cancels against the kept copy whatever the
+      // tree says, so the read cannot change the outcome and must not run.
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}force-app/other/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([
+        `${ADDITION}${TAB}force-app/other/${CLASS}`,
+      ])
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('When the only survivor at to is itself ignored, Then the component is treated as moved', async () => {
+      // Arrange — a component whose sole remaining file sits under an
+      // ignored path is indistinguishable from a move by construction, so
+      // its deletions cancel and nothing is reported destructively.
+      const bundle = 'lwc/foo'
+      mockKeep.mockImplementation(
+        (line: string) => !line.includes('/__tests__/')
+      )
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${bundle}/foo.js`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${bundle}/foo.js-meta.xml`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${bundle}/foo.html`,
+        `${ADDITION}${TAB}${SOURCE_DIR}/${bundle}/__tests__/foo.test.js`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(`${SOURCE_DIR}/${bundle}/__tests__/foo.test.js`)
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
     })
 
     it('When the tree read fails, Then nothing vouches and the deletions survive', async () => {
@@ -948,6 +995,42 @@ describe('Given a RepoGitDiff', () => {
       // Assert
       expect(result).toStrictEqual(deletionLines)
       expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+    })
+
+    it('When the tree read fails, Then the degraded move check is reported', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS_META}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS_META}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValueOnce(undefined)
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+      const result = sut.getHeldAdditionProbeFailure()
+
+      // Assert
+      expect(result).toStrictEqual({ candidateCount: 1 })
+    })
+
+    it('When the tree read succeeds, Then no degraded move check is reported', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(indexOf(`${IGNORED_DIR}/${CLASS}`))
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+      const result = sut.getHeldAdditionProbeFailure()
+
+      // Assert
+      expect(result).toBeUndefined()
     })
 
     it('When the visible survivor lies outside the configured source, Then it does not count', async () => {
