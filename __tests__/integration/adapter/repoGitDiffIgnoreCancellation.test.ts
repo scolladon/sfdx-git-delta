@@ -23,17 +23,19 @@ import {
 import { createTempDir } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
-// `main` applies ignoreHelper.keep() before an addition registers, so an
-// ignored addition never vouches for anything — a move into an ignored
-// directory still yields its source deletion instead of silently cancelling
-// it. Precise keys make that ordering load-bearing (a stale copy under an
-// ignored path could otherwise suppress a genuine deletion), so these four
-// cases pin the ordering deliberately: the ignore-ordering fix must flip it on
-// purpose, not rediscover it by accident.
+// An addition the global ignore rejects is held, not dropped: it cancels the
+// matching deletion only when, at `to`, nothing of its component is visible
+// outside the ignore set. A class moved wholesale into an ignored directory
+// therefore yields nothing — no destructive entry for a component that still
+// exists — while an ignored copy of a component that is still alive cannot
+// suppress a real deletion. The first case below was the guard that pinned
+// the previous ignore-first ordering; it was flipped on purpose when the gate
+// moved, not rediscovered by accident.
 //
 // The real RepoGitDiff drives a real GitAdapter and a real IgnoreHelper
-// reading a real pattern file here — the unit seam mocks buildIgnoreHelper,
-// so this ordering is not observable there at all.
+// reading a real pattern file here — the unit seam mocks both
+// buildIgnoreHelper and the `to`-tree read, so only this file exercises a
+// real pattern file against a real tree.
 //
 // The second block pins the trap the held-addition rule exists to avoid:
 // one file of a live bundle moved into the ignored directory is a stale
@@ -103,7 +105,7 @@ afterAll(async () => {
 })
 
 describe('Given a class moved wholesale into a directory an ignore pattern covers', () => {
-  it('When --ignore-file covers the move destination, Then the source deletion survives instead of being cancelled', async () => {
+  it('When --ignore-file covers the move destination, Then the source deletion is cancelled and nothing is yielded', async () => {
     // Arrange
     const config = makeConfig({ ignore: ignorePatternPath })
     const sut = new RepoGitDiff(config, globalMetadata)
@@ -112,7 +114,7 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
     const result = await collect(sut.getLines())
 
     // Assert
-    expect(result).toEqual(SOURCE_DELETION_SURVIVES)
+    expect(result).toEqual([])
   })
 
   it('When no ignore file is configured, Then the deletion cancels against the addition', async () => {
