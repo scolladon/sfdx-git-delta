@@ -1121,6 +1121,37 @@ describe('Given a RepoGitDiff', () => {
         },
       ])
     })
+
+    it('When an unregistered file at to happens to derive the same key as a candidate, Then it still cannot vouch and the deletion cancels', async () => {
+      // Arrange — a registry stub where one path is unknown (has() false)
+      // yet resolves to the exact key the deletion/held-addition pair uses:
+      // the coincidence `_visibleNamesAtTo`'s `!this.metadata.has(line)`
+      // guard exists to reject before an unrelated file can pass itself off
+      // as a live sibling of the component being probed.
+      const componentKey = 'classes/accountservice'
+      const junkPath = 'junk/whatever'
+      const stubMetadata: MetadataRepository = {
+        has: (line: string) => !line.includes(junkPath),
+        get: () => undefined,
+        getByXmlName: () => undefined,
+        getFullyQualifiedName: () => componentKey,
+        values: () => [],
+      }
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(indexOf(junkPath))
+      const sut = new RepoGitDiff(config, stubMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert — nothing registered survives at to besides the ignored
+      // copy, so the deletion still cancels; a guard-less probe would let
+      // the junk path count as a visible sibling and keep it instead.
+      expect(result).toStrictEqual([])
+    })
   })
 
   describe('Given a non-addition line the ignore helper rejects', () => {
