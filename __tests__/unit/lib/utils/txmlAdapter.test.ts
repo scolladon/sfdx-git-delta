@@ -1,7 +1,7 @@
 'use strict'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('txml', () => ({
+vi.mock('txml/txml', () => ({
   parse: vi.fn(() => {
     throw new Error('boom')
   }),

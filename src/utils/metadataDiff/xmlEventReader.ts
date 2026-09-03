@@ -1,5 +1,5 @@
 'use strict'
-import { parse as txmlParse } from 'txml'
+import { parse as txmlParse } from 'txml/txml'
 
 import { getErrorMessage } from '../errorUtils.js'
 import { Logger, lazy } from '../LoggingService.js'

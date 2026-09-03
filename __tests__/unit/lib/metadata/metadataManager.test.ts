@@ -230,7 +230,10 @@ describe('Given metadata definitions', () => {
     const metadata = await getDefinition({
       additionalMetadataRegistryPath: 'path/to/registry.json',
     })
-    expect(metadata.get('CustomThing')).toBeDefined()
+    expect(
+      metadata.get('force-app/main/default/things/Alpha.thing')
+    ).toBeDefined()
+    expect(metadata.getByXmlName('CustomThing')).toBeDefined()
     expect(readFileSpy).toHaveBeenCalledWith('path/to/registry.json')
     readFileSpy.mockRestore()
   })

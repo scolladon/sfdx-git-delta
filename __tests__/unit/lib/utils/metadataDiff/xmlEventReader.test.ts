@@ -465,7 +465,7 @@ describe('xmlEventReader', () => {
       // tag. txml does emit a `?xml` node for a well-formed declaration,
       // so we test the unreachable defensive arm via direct module access.
       vi.resetModules()
-      vi.doMock('txml', () => ({
+      vi.doMock('txml/txml', () => ({
         // First call (parseDeclaration) returns an empty tree → declNode
         // is undefined → !declNode branch fires.
         parse: vi.fn(() => []),
@@ -486,7 +486,7 @@ describe('xmlEventReader', () => {
       // root parse also yields nothing; the swallowing path then returns
       // null. That still exercises the L49 fallback inside parseDeclaration.
       expect(sut === null || sut?.xmlHeader !== undefined).toBe(true)
-      vi.doUnmock('txml')
+      vi.doUnmock('txml/txml')
       vi.resetModules()
     })
   })

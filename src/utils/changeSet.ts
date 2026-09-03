@@ -1,5 +1,7 @@
 'use strict'
 
+import { DOT } from '../constant/fsConstants.js'
+import { BOT_TYPE, BOT_VERSION_TYPE } from '../constant/metadataConstants.js'
 import {
   type AddKind,
   ChangeKind,
@@ -139,7 +141,34 @@ export default class ChangeSet {
       this.byTarget[ManifestTarget.DestructiveChanges],
       this._renameSourcesByType(),
     ])
-    return this._subtractByType(baseDeletes, this.forPackageManifest())
+    return this._suppressVersionsOfDeletedBots(
+      this._subtractByType(baseDeletes, this.forPackageManifest())
+    )
+  }
+
+  // A deleted Bot takes its versions with it, so a BotVersion listed beside
+  // its own deleted parent is redundant. A BotVersion member is
+  // `<bot>.<version>`, and a Bot API name cannot contain a dot, so the
+  // segment before the first one names the parent. Both halves are
+  // Salesforce API names, so a bot folder that carries a dot is not
+  // deployable source and is not catered for. Only the destructive manifest
+  // is filtered: the change-kind review view keeps the version, because that
+  // file really was deleted.
+  private _suppressVersionsOfDeletedBots(deletes: Manifest): Manifest {
+    const bots = deletes.get(BOT_TYPE)
+    const versions = deletes.get(BOT_VERSION_TYPE)
+    if (!bots?.size || !versions?.size) return deletes
+
+    const kept = new Set(
+      [...versions].filter(version => !bots.has(version.split(DOT)[0]!))
+    )
+    const result = new Map(deletes)
+    if (kept.size > 0) {
+      result.set(BOT_VERSION_TYPE, kept)
+    } else {
+      result.delete(BOT_VERSION_TYPE)
+    }
+    return result
   }
 
   // Whether either manifest view would carry at least one member — the

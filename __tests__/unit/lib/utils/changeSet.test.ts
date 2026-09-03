@@ -60,6 +60,23 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given a ChangeSet with only a destructive deletion', () => {
+    it('When isEmpty is read, Then it returns false', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'ApexClass',
+          member: 'Old',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act & Assert
+      expect(sut.isEmpty()).toBe(false)
+    })
+  })
+
   describe('Given add and modify entries', () => {
     it('When reading forPackageManifest, Then it unions add ∪ modify per type', () => {
       // Arrange
@@ -90,6 +107,26 @@ describe('ChangeSet', () => {
       // Assert
       expect(result.get('ApexClass')).toEqual(new Set(['New', 'Edited']))
       expect(result.get('CustomObject')).toEqual(new Set(['Account']))
+    })
+
+    it('When reading byChangeKind, Then the modify bucket carries the modify entry', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'Edited',
+          changeKind: ChangeKind.Modify,
+        },
+      ])
+
+      // Act
+      const byKind = sut.byChangeKind()
+
+      // Assert
+      expect(byKind[ChangeKind.Modify].get('ApexClass')).toEqual(
+        new Set(['Edited'])
+      )
     })
   })
 
@@ -414,6 +451,128 @@ describe('ChangeSet', () => {
       // Assert
       expect(bucket.size).toBe(1)
       expect([...bucket.values()]).toEqual([{ from: 'old', to: 'new' }])
+    })
+  })
+
+  describe('Given a Bot and one of its versions are both deleted', () => {
+    it('When another bot version is also deleted, Then only the matching version is suppressed', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Bot',
+          member: 'X',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'BotVersion',
+          member: 'X.v1',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'BotVersion',
+          member: 'Y.v1',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('BotVersion')).toEqual(new Set(['Y.v1']))
+    })
+
+    it('When only a different bot version is deleted, Then that version is unaffected', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Bot',
+          member: 'X',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'BotVersion',
+          member: 'Y.v1',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('BotVersion')).toEqual(new Set(['Y.v1']))
+    })
+
+    it('When only the matching bot version is deleted, Then the BotVersion type is dropped entirely', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Bot',
+          member: 'X',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'BotVersion',
+          member: 'X.v1',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.has('BotVersion')).toBe(false)
+      expect(result.get('Bot')).toEqual(new Set(['X']))
+    })
+  })
+
+  describe('Given only a bot version is deleted', () => {
+    it('When the destructive manifest is read, Then the version is unchanged', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'BotVersion',
+          member: 'X.v1',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('BotVersion')).toEqual(new Set(['X.v1']))
+    })
+  })
+
+  describe('Given only a bot is deleted', () => {
+    it('When the destructive manifest is read, Then the manifest is unchanged', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Bot',
+          member: 'X',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('Bot')).toEqual(new Set(['X']))
+      expect(result.has('BotVersion')).toBe(false)
     })
   })
 })

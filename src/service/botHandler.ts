@@ -1,11 +1,11 @@
 'use strict'
 import { parse } from 'node:path/posix'
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import { BOT_TYPE } from '../constant/metadataConstants.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { ManifestTarget } from '../types/handlerResult.js'
 import ShareFolderHandler from './sharedFolderHandler.js'
 
-const BOT_TYPE = 'Bot'
 const BOT_EXTENSION = 'bot'
 
 export default class BotHandler extends ShareFolderHandler {
