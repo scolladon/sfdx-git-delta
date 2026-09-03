@@ -448,6 +448,21 @@ sf project deploy start -p change-sources
 The `--ignore-file [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
 element on the diff to ignore. SGD ignores every diff line matching the pattern from the ignore file specified in the `--ignore-file [-i]`. `package.xml` generation, `destructiveChanges.xml` generation and `--delta-generate` will ignore those lines.
 
+Moving a component into a directory `--ignore-file [-i]` covers is treated as a move, not a deletion: SGD holds the ignored addition and, when nothing else of that component is visible at `--to`, cancels the matching deletion so neither manifest gets an entry. If the component still has a file outside the ignored patterns at `--to`, the ignored copy is stale and the deletion is reported as usual.
+
+```sh
+# ignorefile
+force-app/recycle-bin/**
+
+$ git mv force-app/main/default/classes/AccountService.cls force-app/recycle-bin/classes/AccountService.cls
+$ git mv force-app/main/default/classes/AccountService.cls-meta.xml force-app/recycle-bin/classes/AccountService.cls-meta.xml
+$ git commit -m "retire AccountService"
+
+$ sf sgd source delta --from HEAD~1 --ignore-file ignorefile
+```
+
+Before this behavior, `destructiveChanges.xml` listed `ApexClass/AccountService` and `package.xml` was empty. Now both are empty: the class moved into a directory SGD ignores, it wasn't deleted.
+
 Sometimes you may need to have two different ignore policies. One for the `package.xml` and another one for `destructiveChanges.xml` files. This is where the `--ignore-destructive-file [-D]` option comes handy!
 Use the `--ignore-destructive-file` parameter to specify a dedicated ignore file to handle deletions. It will apply to metadata listed in the `destructiveChanges.xml`. In other words, this will override the `--ignore-file [-i]` parameter for deleted items.
 
@@ -465,6 +480,10 @@ The Custom\_\_c object appears in the `package.xml` and in `destructiveChanges.x
 $ sf sgd source delta --from commit --ignore-destructive-file destructiveignore
 
 ```
+
+`--ignore-destructive-file [-D]` does not affect the move detection described above. Whether a moved addition can cancel its deletion is decided purely against the `--ignore-file [-i]` patterns — the same file that held the addition in the first place — never the destructive-only one. A permissive `--ignore-destructive-file [-D]` does not turn the move back into a destructive change: as long as the component has no file outside `--ignore-file [-i]`'s patterns at `--to`, the deletion still cancels.
+
+If SGD cannot read the file listing at `--to`, the move check is skipped, the deletion is reported as usual, and SGD emits a warning noting the check could not run.
 
 Note: when only using the `--ignore-file [-i]` parameter (and not `--ignore-destructive-file [-D]`) the plugin will apply it to added/changed/deleted elements.
 
