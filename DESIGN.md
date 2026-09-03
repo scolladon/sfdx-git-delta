@@ -606,7 +606,7 @@ Terminal value object — the pipeline's return type, constructed exactly once a
 | ----- | ---- | ----------- |
 | `config` | `Config` | The configuration |
 | `changes` | `ChangeSet` | The final read model, built once by `ChangeSet.from(keptElements, renameTriples)` in `assembleChanges()`. Views (`forPackageManifest`, `forDestructiveManifest`, `byChangeKind`) are pure projections. |
-| `warnings` | `readonly Error[]` | Non-fatal warnings, concatenated in the order they were produced: config warnings, then handler+collector warnings, then rollup warnings, then post-processor warnings |
+| `warnings` | `readonly Error[]` | Non-fatal warnings, concatenated in the order they were produced: config warnings, then handler+collector warnings, then post-processor warnings, then unmatched-source-scope warnings, then the skipped-move-check warning |
 
 ### HandlerResult (`src/types/handlerResult.ts`)
 
