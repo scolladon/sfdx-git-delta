@@ -97,12 +97,12 @@ Streams diff lines between the `from` and `to` commits. `getLines()` is an `Asyn
 
 `toDiffLines()` replicates two subprocess-era filters in one pass over each `DiffChange`: the `--diff-filter=AMD(R)` status filter, and per-side `-- <source>` pathspec scoping via `keepSide`/`inScope`. The latter matches against `config.source`'s canonical literal paths by repository-relative prefix — never a glob or pathspec magic, since only a validated `Pathspec` can ever reach `config.source`. Gitlink (submodule pointer) changes are skipped via the same `keepSide` mode check, and `type-change`/`copy` entries are dropped. Whitespace-only changes are excluded by passing `ignoreWhitespace: 'all'` / `ignoreBlankLines: true` diff-mode options to `repo.diff()` when `config.ignoreWhitespace` is set — one facade call covers both the default and whitespace-ignoring cases; there is no separate code path, no per-filter round trip, and no numstat/`-z` rename-path encoding to parse, since `DiffChange` already carries typed `oldPath`/`newPath` fields.
 
-Per upstream line, `getLines()` then applies three ordered gates:
+Per upstream line, `getLines()` then applies four ordered gates:
 
 1. Expands rename lines into synthetic `A`/`D` pairs (capturing the rename-pair side-channel).
 2. **Registry membership** — filters through the metadata registry; only paths that resolve to a known metadata type are yielded.
-3. **Ignore** (output policy) — applies `IgnoreHelper` (separate global and destructive-only ignore files), **before** registration in the gate below. An ignored addition therefore never registers and can never vouch for a deletion. Any reordering of this gate after registration must keep an ignored copy of a component from vouching for one that still has non-ignored files at `to`; with precise keys the two decisions are coupled.
-4. **Cancellation index** — defers `D` lines until upstream EOF so the rule has the full A-name set. A/M lines yield as they arrive; D lines are buffered and yielded last, dropping any whose key matches an addition's key: the legacy file-move-same-component safety net, keyed on the Salesforce component identity `MetadataRepositoryImpl.getFullyQualifiedName` derives from the path, compared lowercased — not on the raw filename. True component renames (different keys) surface via tsgit's `detectRenames`.
+3. **Ignore** (output policy) — applies `IgnoreHelper` (separate global and destructive-only ignore files). A `D` or `M` line the helper rejects is dropped. An `A` line it rejects is **held**, not dropped: it never yields, and it enters the cancellation index below only if, at `to`, the component it resolves to has no file the global ignore would keep — read once at upstream EOF through `GitAdapter.buildTreeIndex(config.to, config.source)`, and only when a held addition shares a key with a deferred deletion. A component that survives solely under ignored paths was moved into the ignore set and its deletions cancel; a component still visible at `to` keeps its deletions, so a stale ignored copy can never suppress a real one. `--ignore-destructive-file` plays no part in that visibility test. A name a kept (non-held) addition already registered is excluded from the read's candidates — its deletion is already cancelled, so the read cannot change the outcome. When the `to` listing itself cannot be read, the read fails closed: every pending candidate counts as visible, nothing vouches, and the deletions yield exactly as they do today; `main.ts` turns that failure into the `warning.IgnoredMoveCheckSkipped` warning.
+4. **Cancellation index** — defers `D` lines until upstream EOF so the rule has the full A-name set. A/M lines yield as they arrive; D lines are buffered and yielded last, dropping any whose key matches an addition's key: the legacy file-move-same-component safety net, keyed on the Salesforce component identity `MetadataRepositoryImpl.getFullyQualifiedName` derives from the path, compared lowercased — not on the raw filename. True component renames (different keys) surface via tsgit's `detectRenames`. Held additions are folded in after the visibility read, before any `D` line is classified.
 
 The key per registry shape:
 
@@ -127,6 +127,8 @@ When the orchestrator (`src/main.ts`) needs to also compute the tree-index scope
 
 - **globalIgnore**: applied to all diff lines
 - **destructiveIgnore**: applied only to deletions; falls back to globalIgnore if `--ignore-destructive-file` is not provided; always hard-codes `recordTypes/` (Salesforce API limitation)
+
+The repository's own end-to-end baseline is the live proof of the held-addition ordering: `e2e/expected/` is both sgd's output directory and the committed baseline, and it sits inside the `e2e/base..e2e/head` range under the ignored `/expected` pattern, so every regenerated copy is an ignored addition sharing its key with a component still alive under `test/`. A regeneration that reaches a fixed point — a second run changes nothing — shows those copies did not vouch; a baseline that appears, disappears and reappears across runs is the signature of an ignored copy cancelling a real deletion.
 
 ---
 
@@ -604,7 +606,7 @@ Terminal value object — the pipeline's return type, constructed exactly once a
 | ----- | ---- | ----------- |
 | `config` | `Config` | The configuration |
 | `changes` | `ChangeSet` | The final read model, built once by `ChangeSet.from(keptElements, renameTriples)` in `assembleChanges()`. Views (`forPackageManifest`, `forDestructiveManifest`, `byChangeKind`) are pure projections. |
-| `warnings` | `readonly Error[]` | Non-fatal warnings, concatenated in the order they were produced: config warnings, then handler+collector warnings, then rollup warnings, then post-processor warnings |
+| `warnings` | `readonly Error[]` | Non-fatal warnings, concatenated in the order they were produced: config warnings, then handler+collector warnings, then post-processor warnings, then unmatched-source-scope warnings, then the skipped-move-check warning |
 
 ### HandlerResult (`src/types/handlerResult.ts`)
 

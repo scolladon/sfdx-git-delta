@@ -12,6 +12,8 @@ import { IgnoreHelper } from '../../../src/utils/ignoreHelper'
 import RepoGitDiff from '../../../src/utils/repoGitDiff'
 import {
   buildIgnoreFixtureRepo,
+  IGNORE_BUNDLE_MARKUP,
+  IGNORE_BUNDLE_STALE_MARKUP,
   IGNORE_MOVED_CLASS,
   IGNORE_MOVED_CLASS_META,
   IGNORE_SOURCE_CLASS,
@@ -21,20 +23,30 @@ import {
 import { createTempDir } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
-// `main` applies ignoreHelper.keep() before an addition registers, so an
-// ignored addition never vouches for anything — a move into an ignored
-// directory still yields its source deletion instead of silently cancelling
-// it. Precise keys make that ordering load-bearing (a stale copy under an
-// ignored path could otherwise suppress a genuine deletion), so these four
-// cases pin the ordering deliberately: the ignore-ordering fix must flip it on
-// purpose, not rediscover it by accident.
+// An addition the global ignore rejects is held, not dropped: it cancels the
+// matching deletion only when, at `to`, nothing of its component is visible
+// outside the ignore set. A class moved wholesale into an ignored directory
+// therefore yields nothing — no destructive entry for a component that still
+// exists — while an ignored copy of a component that is still alive cannot
+// suppress a real deletion. The first case below was the guard that pinned
+// the previous ignore-first ordering; it was flipped on purpose when the gate
+// moved, not rediscovered by accident.
 //
 // The real RepoGitDiff drives a real GitAdapter and a real IgnoreHelper
-// reading a real pattern file here — the unit seam mocks buildIgnoreHelper,
-// so this ordering is not observable there at all.
+// reading a real pattern file here — the unit seam mocks both
+// buildIgnoreHelper and the `to`-tree read, so only this file exercises a
+// real pattern file against a real tree.
+//
+// The second block pins the trap the held-addition rule exists to avoid:
+// one file of a live bundle moved into the ignored directory is a stale
+// copy, not a move — the bundle's other files are still at `to` — so its
+// deletion must survive under every ordering. Both cases held under the old
+// ignore-first ordering and still hold now that the gate has moved — they are
+// the guard the move was made against.
 
 let fixtureDir: string
 let ignorePatternPath: string
+let unrelatedDestructivePatternPath: string
 let refs: IgnoreFixtureRefs
 let globalMetadata: MetadataRepository
 
@@ -80,6 +92,8 @@ beforeAll(async () => {
   // the path handed to config.ignore/ignoreDestructive must be absolute.
   ignorePatternPath = join(fixtureDir, '.sgdignore-recycle-bin')
   await writeFile(ignorePatternPath, 'force-app/recycle-bin/\n')
+  unrelatedDestructivePatternPath = join(fixtureDir, '.sgdignore-unrelated')
+  await writeFile(unrelatedDestructivePatternPath, 'nothing-here/\n')
 })
 
 afterEach(async () => {
@@ -95,7 +109,7 @@ afterAll(async () => {
 })
 
 describe('Given a class moved wholesale into a directory an ignore pattern covers', () => {
-  it('When --ignore-file covers the move destination, Then the source deletion survives instead of being cancelled', async () => {
+  it('When --ignore-file covers the move destination, Then the source deletion is cancelled and nothing is yielded', async () => {
     // Arrange
     const config = makeConfig({ ignore: ignorePatternPath })
     const sut = new RepoGitDiff(config, globalMetadata)
@@ -104,7 +118,7 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
     const result = await collect(sut.getLines())
 
     // Assert
-    expect(result).toEqual(SOURCE_DELETION_SURVIVES)
+    expect(result).toEqual([])
   })
 
   it('When no ignore file is configured, Then the deletion cancels against the addition', async () => {
@@ -117,6 +131,25 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
 
     // Assert
     expect(result).toEqual(NO_IGNORE_BASELINE)
+  })
+
+  it('When an unrelated --ignore-destructive-file is also configured, Then the move is still cancelled', async () => {
+    // Arrange — visibility at `to` is decided by the global ignore alone.
+    // With a destructive ignore that covers nothing, the moved copies are
+    // still invisible, so the deletions must still cancel; were the
+    // visibility test to consult the destructive set instead, the copies
+    // would count as survivors and the deletions would reappear.
+    const config = makeConfig({
+      ignore: ignorePatternPath,
+      ignoreDestructive: unrelatedDestructivePatternPath,
+    })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([])
   })
 
   it('When --ignore-destructive-file covers the move destination, Then the result is identical to the no-ignore baseline', async () => {
@@ -143,5 +176,33 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
 
     // Assert
     expect(result).toEqual(SOURCE_DELETION_SURVIVES)
+  })
+})
+
+describe('Given one bundle file moved into an ignored directory while the bundle stays live', () => {
+  it('When --ignore-file covers the destination, Then the deletion survives instead of being cancelled', async () => {
+    // Arrange — the bundle's script and meta file are still at `to`, so the
+    // recycle-bin copy is stale and cannot stand in for the component.
+    const config = makeConfig({ to: refs.staleCopy, ignore: ignorePatternPath })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([`D\t${IGNORE_BUNDLE_MARKUP}`])
+  })
+
+  it('When no ignore file is configured, Then the kept addition cancels the deletion', async () => {
+    // Arrange — pins that the survival above comes from the ignore verdict,
+    // not from the diff shape.
+    const config = makeConfig({ to: refs.staleCopy })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([`A\t${IGNORE_BUNDLE_STALE_MARKUP}`])
   })
 })

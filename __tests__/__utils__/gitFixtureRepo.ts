@@ -546,10 +546,14 @@ export const buildRootAnchoredFixtureRepo = (
 }
 
 export type IgnoreFixtureRefs = {
-  // Adds the class pair under the source directory.
+  // Adds the class pair and the lwc bundle under the source directory.
   root: string
-  // From `root`: renames both files into the sibling recycle-bin directory.
+  // From `root`: renames both class files into the sibling recycle-bin directory.
   moved: string
+  // From `root`: renames one bundle file into the recycle-bin directory while
+  // the bundle's two other files stay where they are — a stale ignored copy
+  // of a component that is still alive.
+  staleCopy: string
 }
 
 export const IGNORE_SOURCE_CLASS =
@@ -560,13 +564,20 @@ export const IGNORE_MOVED_CLASS =
   'force-app/recycle-bin/classes/AccountService.cls'
 export const IGNORE_MOVED_CLASS_META =
   'force-app/recycle-bin/classes/AccountService.cls-meta.xml'
+const IGNORE_BUNDLE_SCRIPT = 'force-app/main/default/lwc/foo/foo.js'
+export const IGNORE_BUNDLE_MARKUP = 'force-app/main/default/lwc/foo/foo.html'
+const IGNORE_BUNDLE_META = 'force-app/main/default/lwc/foo/foo.js-meta.xml'
+export const IGNORE_BUNDLE_STALE_MARKUP =
+  'force-app/recycle-bin/lwc/foo/foo.html'
 
 /**
  * A class and its meta companion, moved wholesale into a sibling directory —
  * both paths resolve to the one ApexClass component, which is what the
  * cancellation rule exists for. Exists to drive the real ignore-before/
  * after-registration ordering against a fixture an `--ignore-file` pattern
- * can target by directory.
+ * can target by directory. `root` also carries an untouched lwc bundle so a
+ * sibling commit can move just one of its files into the recycle bin,
+ * leaving the bundle live at `to` — a stale ignored copy rather than a move.
  */
 export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
   initRepo(dir)
@@ -584,6 +595,25 @@ export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
       path: IGNORE_SOURCE_CLASS_META,
       content: '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
     },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IGNORE_BUNDLE_SCRIPT,
+      content: 'export default class {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IGNORE_BUNDLE_MARKUP,
+      content: '<template></template>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IGNORE_BUNDLE_META,
+      content:
+        '<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
   ])
 
   const moved = makeCommit(dir, root, 'move class pair to the recycle bin', [
@@ -595,5 +625,24 @@ export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
     },
   ])
 
-  return { root, moved }
+  // `moved` above left the index holding its own tree, not `root`'s — the
+  // index is a single persistent file across these plumbing-only commits,
+  // not reset per commit. Re-seed it from `root` so this sibling commit
+  // branches off `root` instead of continuing from `moved`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const staleCopy = makeCommit(
+    dir,
+    root,
+    'move one bundle file to the recycle bin',
+    [
+      {
+        kind: 'rename',
+        from: IGNORE_BUNDLE_MARKUP,
+        to: IGNORE_BUNDLE_STALE_MARKUP,
+      },
+    ]
+  )
+
+  return { root, moved, staleCopy }
 }

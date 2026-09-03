@@ -1,6 +1,15 @@
 'use strict'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
+import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import {
   ADDITION,
   DELETION,
@@ -39,14 +48,30 @@ const streamDiffLines = async function* (request: DiffRequest) {
 }
 const mockGetUnmatchedSourceScopes =
   vi.fn<(verdict: unknown, scopes: readonly string[]) => readonly string[]>()
+const mockBuildTreeIndex =
+  vi.fn<
+    (
+      revision: string,
+      scopes: readonly string[]
+    ) => Promise<TreeIndex | undefined>
+  >()
 vi.mock('../../../../src/adapter/GitAdapter', () => ({
   default: {
     getInstance: vi.fn(() => ({
       streamDiffLines,
       getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
+      buildTreeIndex: mockBuildTreeIndex,
     })),
   },
 }))
+
+// A real trie so getFilesPath's ROOT_PATHS/scope behaviour is the real one —
+// only GitAdapter is mocked, not the tree index it returns.
+const indexOf = (...paths: string[]): TreeIndex => {
+  const index = new TreeIndex()
+  for (const path of paths) index.add(path)
+  return index
+}
 
 // Materializes an AsyncIterable<string> for assertions; isolates the
 // test code from the producer being a generator.
@@ -67,6 +92,14 @@ mockKeep.mockReturnValue(true)
 const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
 
 const TAB = '\t'
+
+const TO = 'sha-to'
+const SOURCE_DIR = 'force-app/main/default'
+const IGNORED_DIR = 'force-app/recycle-bin'
+const CLASS = 'classes/AccountService.cls'
+const CLASS_META = 'classes/AccountService.cls-meta.xml'
+const rejectsIgnoredDir = (line: string): boolean =>
+  !line.includes(`${IGNORED_DIR}/`)
 
 describe('Given a RepoGitDiff', () => {
   let globalMetadata: MetadataRepository
@@ -778,6 +811,409 @@ describe('Given a RepoGitDiff', () => {
       const verdictPassedToGetUnmatchedSourceScopes =
         mockGetUnmatchedSourceScopes.mock.calls.at(-1)?.[0]
       expect(verdictPassedToGetUnmatchedSourceScopes).toBe(verdictOnSecondDrain)
+    })
+  })
+
+  describe('Given an addition the ignore helper rejects', () => {
+    beforeEach(() => {
+      config.to = TO
+      mockKeep.mockImplementation(rejectsIgnoredDir)
+    })
+
+    afterEach(() => {
+      mockKeep.mockReturnValue(true)
+    })
+
+    it('When its component has no file outside the ignore set at to, Then the matching deletions are cancelled', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS_META}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS_META}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(
+          `${IGNORED_DIR}/${CLASS}`,
+          `${IGNORED_DIR}/${CLASS_META}`,
+          'README.md'
+        )
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+      expect(mockBuildTreeIndex).toHaveBeenCalledWith(TO, sourceDirs('.'))
+    })
+
+    it('When its component still has a file outside the ignore set at to, Then the deletion survives', async () => {
+      // Arrange
+      const deletionLine = `${DELETION}${TAB}${SOURCE_DIR}/lwc/foo/helper.js`
+      mockGetDiffLines.mockReturnValue([
+        deletionLine,
+        `${ADDITION}${TAB}${IGNORED_DIR}/lwc/foo/helper.js`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(
+          `${SOURCE_DIR}/lwc/foo/foo.js`,
+          `${SOURCE_DIR}/lwc/foo/foo.js-meta.xml`,
+          `${IGNORED_DIR}/lwc/foo/helper.js`,
+          `${SOURCE_DIR}/classes/Other.cls`
+        )
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([deletionLine])
+      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+    })
+
+    it('When no deletion shares its key, Then no tree is read and nothing is yielded', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('When a deletion of a different key is present, Then that deletion survives without a tree read', async () => {
+      // Arrange
+      const deletionLine = `${DELETION}${TAB}${SOURCE_DIR}/classes/Y.cls`
+      mockGetDiffLines.mockReturnValue([
+        `${ADDITION}${TAB}${IGNORED_DIR}/classes/X.cls`,
+        deletionLine,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([deletionLine])
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('When two components are held, Then one listing serves both', async () => {
+      // Arrange
+      const otherClass = 'classes/OrderService.cls'
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${otherClass}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${otherClass}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(`${IGNORED_DIR}/${CLASS}`, `${IGNORED_DIR}/${otherClass}`)
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+    })
+
+    it('When a kept addition already registered the name, Then no tree is read', async () => {
+      // Arrange — the deletion cancels against the kept copy whatever the
+      // tree says, so the read cannot change the outcome and must not run.
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}force-app/other/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([
+        `${ADDITION}${TAB}force-app/other/${CLASS}`,
+      ])
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('When the only survivor at to is itself ignored, Then the component is treated as moved', async () => {
+      // Arrange — a component whose sole remaining file sits under an
+      // ignored path is indistinguishable from a move by construction, so
+      // its deletions cancel and nothing is reported destructively.
+      const bundle = 'lwc/foo'
+      mockKeep.mockImplementation(
+        (line: string) => !line.includes('/__tests__/')
+      )
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${bundle}/foo.js`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${bundle}/foo.js-meta.xml`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${bundle}/foo.html`,
+        `${ADDITION}${TAB}${SOURCE_DIR}/${bundle}/__tests__/foo.test.js`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(`${SOURCE_DIR}/${bundle}/__tests__/foo.test.js`)
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+    })
+
+    it('When the tree read fails, Then nothing vouches and the deletions survive', async () => {
+      // Arrange
+      const deletionLines = [
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS_META}`,
+      ]
+      mockGetDiffLines.mockReturnValue([
+        ...deletionLines,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS_META}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValueOnce(undefined)
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual(deletionLines)
+      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+    })
+
+    it('When the tree read fails, Then the degraded move check is reported', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS_META}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS_META}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValueOnce(undefined)
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+      const result = sut.getHeldAdditionProbeFailure()
+
+      // Assert
+      expect(result).toStrictEqual({ candidateCount: 1 })
+    })
+
+    it('When a failed drain is followed by a successful one, Then the second drain does not inherit the first drain report', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(indexOf(`${IGNORED_DIR}/${CLASS}`))
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+      await collect(sut.getLines())
+      const result = sut.getHeldAdditionProbeFailure()
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('When the tree read succeeds, Then no degraded move check is reported', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(indexOf(`${IGNORED_DIR}/${CLASS}`))
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      await collect(sut.getLines())
+      const result = sut.getHeldAdditionProbeFailure()
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('When the visible survivor lies outside the configured source, Then it does not count', async () => {
+      // Arrange
+      config.source = sourceDirs('force-app')
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(`other/classes/AccountService.cls`, `${IGNORED_DIR}/${CLASS}`)
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+      expect(mockBuildTreeIndex).toHaveBeenCalledWith(
+        TO,
+        sourceDirs('force-app')
+      )
+    })
+
+    it('When getLines is called twice, Then the second drain does not inherit the first drain’s held names', async () => {
+      // Arrange
+      mockBuildTreeIndex.mockResolvedValue(
+        indexOf(`${IGNORED_DIR}/${CLASS}`, `${IGNORED_DIR}/${CLASS_META}`)
+      )
+      const sut = new RepoGitDiff(config, globalMetadata)
+      mockGetDiffLines.mockReturnValueOnce([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS_META}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS_META}`,
+      ])
+
+      // Act
+      const firstResult = await collect(sut.getLines())
+      const secondDeletionLine = `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`
+      mockGetDiffLines.mockReturnValueOnce([secondDeletionLine])
+      const secondResult = await collect(sut.getLines())
+
+      // Assert
+      expect(firstResult).toStrictEqual([])
+      expect(secondResult).toStrictEqual([secondDeletionLine])
+      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(1)
+    })
+
+    it('When a rename line lands on the ignored destination, Then the pair is still recorded and the source deletion is cancelled', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([
+        `R095${TAB}${SOURCE_DIR}/${CLASS}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(indexOf(`${IGNORED_DIR}/${CLASS}`))
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+      expect(sut.getRenamePairs()).toEqual([
+        {
+          fromPath: `${SOURCE_DIR}/${CLASS}`,
+          toPath: `${IGNORED_DIR}/${CLASS}`,
+        },
+      ])
+    })
+
+    it('When an unregistered file at to happens to derive the same key as a candidate, Then it still cannot vouch and the deletion cancels', async () => {
+      // Arrange — a registry stub where one path is unknown (has() false)
+      // yet resolves to the exact key the deletion/held-addition pair uses:
+      // the coincidence `_visibleNamesAtTo`'s `!this.metadata.has(line)`
+      // guard exists to reject before an unrelated file can pass itself off
+      // as a live sibling of the component being probed.
+      const componentKey = 'classes/accountservice'
+      const junkPath = 'junk/whatever'
+      const stubMetadata: MetadataRepository = {
+        has: (line: string) => !line.includes(junkPath),
+        get: () => undefined,
+        getByXmlName: () => undefined,
+        getFullyQualifiedName: () => componentKey,
+        values: () => [],
+      }
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(indexOf(junkPath))
+      const sut = new RepoGitDiff(config, stubMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert — nothing registered survives at to besides the ignored
+      // copy, so the deletion still cancels; a guard-less probe would let
+      // the junk path count as a visible sibling and keep it instead.
+      expect(result).toStrictEqual([])
+    })
+  })
+
+  describe('Given a non-addition line the ignore helper rejects', () => {
+    it('When a deletion is ignored, Then it is dropped and never deferred', async () => {
+      // Arrange
+      mockKeep.mockReturnValueOnce(false)
+      mockGetDiffLines.mockReturnValue([
+        `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+    })
+
+    it('When a modification is ignored, Then it is dropped', async () => {
+      // Arrange
+      mockKeep.mockReturnValueOnce(false)
+      mockGetDiffLines.mockReturnValue([`M${TAB}${SOURCE_DIR}/${CLASS}`])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+    })
+  })
+
+  describe('Given modification lines', () => {
+    it('When a modification precedes an addition, Then they yield in arrival order', async () => {
+      // Arrange
+      const modificationLine = `M${TAB}${SOURCE_DIR}/classes/Other.cls`
+      const additionLine = `${ADDITION}${TAB}${SOURCE_DIR}/classes/New.cls`
+      mockGetDiffLines.mockReturnValue([modificationLine, additionLine])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([modificationLine, additionLine])
+    })
+
+    it('When a modification shares a fully-qualified name with an addition, Then the modification is not cancelled', async () => {
+      // Arrange
+      const modificationLine = `M${TAB}${SOURCE_DIR}/${CLASS}`
+      mockGetDiffLines.mockReturnValue([
+        modificationLine,
+        `${ADDITION}${TAB}force-app/other/${CLASS}`,
+      ])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toHaveLength(2)
+      expect(result).toContain(modificationLine)
     })
   })
 })

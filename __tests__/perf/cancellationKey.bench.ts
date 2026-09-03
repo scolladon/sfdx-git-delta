@@ -5,6 +5,7 @@ import { getDefinition } from '../../src/metadata/metadataManager.js'
 import type { Config } from '../../src/types/config.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { buildPath, SHAPES, type Shape } from './fixtures/registryShapes.js'
 
 // Pins the cost of deriving a cancellation key on a COLD registry — the
 // worst case getLines() actually pays once per sgd() invocation. It
@@ -26,47 +27,6 @@ import { sourceDirs } from '../__utils__/sourceDirs.js'
 class CancellationKeyProbe extends RepoGitDiff {
   public key(line: string): string {
     return this._extractComparisonName(line)
-  }
-}
-
-// One path shape per branch MetadataRepositoryImpl's getFullyQualifiedName
-// actually takes: a plain type (extension lookup only), a content container
-// (bundle adapter, stops at its directory), a folder-organised type, a
-// nested-content type sharing one flat directory with siblings told apart
-// by suffix, a composed type whose children are decomposed under their
-// holder, and a holder-scoped composed type whose every file keys on the
-// holder itself.
-type Shape =
-  | 'plain-type'
-  | 'content-container'
-  | 'in-folder-type'
-  | 'nested-content-type'
-  | 'composed-type'
-  | 'holder-scoped-type'
-
-const SHAPES: readonly Shape[] = [
-  'plain-type',
-  'content-container',
-  'in-folder-type',
-  'nested-content-type',
-  'composed-type',
-  'holder-scoped-type',
-]
-
-const buildPath = (shape: Shape, root: string, n: string): string => {
-  switch (shape) {
-    case 'plain-type':
-      return `${root}/classes/MyClass${n}.cls`
-    case 'content-container':
-      return `${root}/lwc/myComponent${n}/myComponent${n}.js`
-    case 'in-folder-type':
-      return `${root}/reports/Sales${n}/Sales${n}.report-meta.xml`
-    case 'nested-content-type':
-      return `${root}/bots/MyBot${n}/v${n}.botVersion`
-    case 'composed-type':
-      return `${root}/objects/Account${n}/fields/MyField${n}.field-meta.xml`
-    case 'holder-scoped-type':
-      return `${root}/permissionsets/PS${n}/objectSettings/Account.objectSettings-meta.xml`
   }
 }
 

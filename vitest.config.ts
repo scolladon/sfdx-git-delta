@@ -12,7 +12,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reportsDirectory: 'reports/coverage',
-      exclude: ['node_modules/', '__tests__/__utils__/', 'reports/'],
+      // Directory-prefix excludes stopped matching in vitest 5; these must
+      // be globs or the test helpers land in the coverage denominator.
+      exclude: [
+        '**/node_modules/**',
+        '**/__tests__/__utils__/**',
+        '**/reports/**',
+      ],
       reporter: ['lcov'],
       thresholds: {
         branches: 100,

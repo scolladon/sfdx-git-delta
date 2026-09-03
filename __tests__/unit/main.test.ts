@@ -24,6 +24,7 @@ const {
   mockGetLines,
   mockGetRenamePairs,
   mockGetUnmatchedSourceScopes,
+  mockGetHeldAdditionProbeFailure,
   mockProcess,
   mockCollectAll,
   mockExecuteRemaining,
@@ -38,6 +39,8 @@ const {
   mockGetRenamePairs:
     vi.fn<() => Array<{ fromPath: string; toPath: string }>>(),
   mockGetUnmatchedSourceScopes: vi.fn<() => readonly string[]>(),
+  mockGetHeldAdditionProbeFailure:
+    vi.fn<() => { candidateCount: number } | undefined>(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockCollectAll: vi.fn<(changes: ChangeSet) => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
@@ -95,6 +98,7 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
         getLines: mockGetLines,
         getRenamePairs: mockGetRenamePairs,
         getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
+        getHeldAdditionProbeFailure: mockGetHeldAdditionProbeFailure,
       }
     }),
   }
@@ -165,6 +169,7 @@ beforeEach(() => {
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockGetUnmatchedSourceScopes.mockReturnValue([])
+  mockGetHeldAdditionProbeFailure.mockReturnValue(undefined)
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
 
@@ -779,7 +784,49 @@ describe('external library inclusion', () => {
       // Assert
       expect(result.warnings).toEqual([])
     })
+  })
 
+  describe('ignored move check warning', () => {
+    it('Given RepoGitDiff could not list the target revision, When sgd runs, Then a warning naming the revision and the component count is pushed to work.warnings', async () => {
+      // Arrange
+      mockGetHeldAdditionProbeFailure.mockReturnValueOnce({ candidateCount: 2 })
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        'warning.IgnoredMoveCheckSkipped:HEAD,2'
+      )
+    })
+
+    it('Given RepoGitDiff listed the target revision, When sgd runs, Then no warning is pushed', async () => {
+      // Arrange
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given the target revision contains a control character, When sgd runs, Then the warning carries the escaped form and never the raw character', async () => {
+      // Arrange
+      mockGetHeldAdditionProbeFailure.mockReturnValueOnce({ candidateCount: 1 })
+      const sut = { from: 'HEAD~1', to: 'HEAD\x07' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings[0]?.message).not.toContain('\x07')
+    })
+  })
+
+  describe('source scope warning (continued)', () => {
     it('Given source is nullish, When sgd runs, Then it is treated as an empty source list', async () => {
       // Arrange
       const sut = { source: undefined } as unknown as ConfigInput

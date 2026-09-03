@@ -58,7 +58,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.11",
+    "@biomejs/biome": "2.5.12",
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
     "@ls-lint/ls-lint": "2.3.1",
@@ -73,7 +73,7 @@
     "knip": "6.34.0",
     "lint-staged": "17.4.1",
     "ls-engines": "0.10.1",
-    "oclif": "5.0.0",
+    "oclif": "5.0.1",
     "pkg-pr-new": "0.0.88",
     "shx": "0.4.0",
     "typescript": "7.0.2",

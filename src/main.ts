@@ -146,6 +146,22 @@ export default async (configInput: ConfigInput): Promise<Work> => {
           ]
         : []
 
+    // Also final by this point. When the `to` listing could not be read,
+    // components moved into an ignored directory were not recognised as
+    // moves, so their deletions are reported destructively. That is the
+    // safe direction, but it is a degraded answer and must not be silent.
+    const probeFailure = repoGitDiffHelper.getHeldAdditionProbeFailure()
+    const ignoredMoveWarnings = probeFailure
+      ? [
+          new Error(
+            new MessageService().getMessage('warning.IgnoredMoveCheckSkipped', [
+              sanitizeForMessage(requestedTo),
+              probeFailure.candidateCount.toString(),
+            ])
+          ),
+        ]
+      : []
+
     const work: Work = {
       config,
       changes,
@@ -154,6 +170,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ...assemblyWarnings,
         ...processorWarnings,
         ...sourceScopeWarnings,
+        ...ignoredMoveWarnings,
       ],
     }
     // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
