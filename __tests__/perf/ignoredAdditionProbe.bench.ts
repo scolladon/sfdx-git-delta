@@ -1,5 +1,5 @@
 import ignore from 'ignore'
-import { bench, describe } from 'vitest'
+import { describe } from 'vitest'
 import { TAB } from '../../src/constant/cliConstants.js'
 import { ADDITION } from '../../src/constant/gitConstants.js'
 import type { MetadataRepository } from '../../src/metadata/MetadataRepository.js'
@@ -9,6 +9,7 @@ import { IgnoreHelper } from '../../src/utils/ignoreHelper.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { buildPath, SHAPES } from './fixtures/registryShapes.js'
+import { perfBench } from './harness/perfBench.js'
 
 // Pins the cost of the visibility pass the fix introduced: one linear walk
 // over every in-scope file at `to`, doing a registry-membership check plus
@@ -54,8 +55,8 @@ const LISTING_SIZES = [10_000, 50_000] as const
 const PER_PATH_BUDGET_US = 3
 // Shared runners are noisy (±40 % run-to-run is normal); the ceiling exists
 // to catch an order-of-magnitude regression, not to police variance.
-// It fails `npm run test:perf` locally (a throwing bench yields no samples
-// and the results formatter rejects that), but the CI perf job is
+// It fails `npm run test:perf` locally (a throwing bench fails its vitest
+// test and the reporter writes nothing), but the CI perf job is
 // continue-on-error, so it blocks nothing there.
 const RUNNER_NOISE_FACTOR = 3
 const ROUND_COUNTER_PAD = 9
@@ -126,7 +127,7 @@ const ceilingMs = (size: number): number =>
 describe('ignored-addition-probe-cold-registry', () => {
   for (const size of LISTING_SIZES) {
     const nextRound = createFreshListing(size)
-    bench(`visibility-pass-cold-${size}-paths`, async () => {
+    perfBench(`visibility-pass-cold-${size}-paths`, async () => {
       // Cold per round: a brand-new registry means pathCache starts empty,
       // so every lookup below pays the full miss cost a fresh sgd()
       // invocation pays — the cost getLines() cannot amortise away for a

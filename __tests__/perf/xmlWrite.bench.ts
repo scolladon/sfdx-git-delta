@@ -1,10 +1,11 @@
 import { Writable } from 'node:stream'
-import { bench, describe } from 'vitest'
+import { describe } from 'vitest'
 import type { RootCapture } from '../../src/utils/metadataDiff/xmlEventReader.js'
 import {
   type WriteOptions,
   writeXmlDocument,
 } from '../../src/utils/metadataDiff/xmlWriter.js'
+import { perfBench } from './harness/perfBench.js'
 
 // A /dev/null Writable: counts bytes but throws nothing away that
 // matters. Backpressure path is exercised by toggling highWaterMark.
@@ -90,7 +91,7 @@ for (const [size, fixture] of Object.entries(FIXTURES) as Array<
   [keyof typeof FIXTURES, (typeof FIXTURES)[keyof typeof FIXTURES]]
 >) {
   describe(`xml-write-${size}`, () => {
-    bench(`writeXmlDocument-${size}`, async () => {
+    perfBench(`writeXmlDocument-${size}`, async () => {
       const out = nullStream()
       await writeXmlDocument(out, fixture.capture, fixture.children, writeOpts)
     })

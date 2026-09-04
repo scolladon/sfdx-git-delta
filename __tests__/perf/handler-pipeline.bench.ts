@@ -1,10 +1,11 @@
-import { bench, describe, vi } from 'vitest'
+import { describe, vi } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
 import type { Config } from '../../src/types/config.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { getContext } from '../__utils__/testWork.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.js'
+import { perfBench } from './harness/perfBench.js'
 
 vi.mock('../../src/adapter/GitAdapter.js', () => {
   const mockAdapter = {
@@ -47,7 +48,7 @@ for (const size of sizes) {
   const { lines } = generateDiffFixtures(size)
 
   describe(`pipeline-handler-${size}`, () => {
-    bench(`pipeline-handler-dispatch-${size}`, async () => {
+    perfBench(`pipeline-handler-dispatch-${size}`, async () => {
       const config = createConfig()
       const interpreter = new DiffLineInterpreter(
         getContext({ config, metadata })

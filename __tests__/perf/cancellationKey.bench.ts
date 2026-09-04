@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest'
+import { describe } from 'vitest'
 import { TAB } from '../../src/constant/cliConstants.js'
 import { ADDITION } from '../../src/constant/gitConstants.js'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
@@ -6,6 +6,7 @@ import type { Config } from '../../src/types/config.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { buildPath, SHAPES, type Shape } from './fixtures/registryShapes.js'
+import { perfBench } from './harness/perfBench.js'
 
 // Pins the cost of deriving a cancellation key on a COLD registry — the
 // worst case getLines() actually pays once per sgd() invocation. It
@@ -89,7 +90,7 @@ const baseConfig: Config = {
 describe('cancellation-key-cold-registry', () => {
   for (const shape of SHAPES) {
     const nextRoundLines = createFreshLinesForShape(shape)
-    bench(`cancellation-key-derivation-cold-${shape}`, async () => {
+    perfBench(`cancellation-key-derivation-cold-${shape}`, async () => {
       // Cold per round: a brand-new registry means pathCache starts empty,
       // so every lookup below pays the full miss cost a fresh sgd()
       // invocation pays on its very first line — the cost getLines() cannot

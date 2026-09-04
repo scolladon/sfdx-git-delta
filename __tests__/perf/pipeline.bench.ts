@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest'
+import { describe } from 'vitest'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
 import ChangeSet from '../../src/utils/changeSet.js'
 import { computeTreeIndexScope } from '../../src/utils/treeIndexScope.js'
@@ -6,6 +6,7 @@ import {
   generateDiffFixtures,
   generateManifestElements,
 } from './fixtures/generateFixtures.js'
+import { perfBench } from './harness/perfBench.js'
 
 const metadata = await getDefinition({})
 
@@ -16,11 +17,11 @@ for (const size of sizes) {
   const elements = generateManifestElements(size)
 
   describe(`pipeline-${size}`, () => {
-    bench(`pipeline-${size}-tree-scope`, () => {
+    perfBench(`pipeline-${size}-tree-scope`, () => {
       computeTreeIndexScope(lines, metadata)
     })
 
-    bench(`pipeline-${size}-manifest-aggregation`, () => {
+    perfBench(`pipeline-${size}-manifest-aggregation`, () => {
       ChangeSet.from(elements)
     })
   })

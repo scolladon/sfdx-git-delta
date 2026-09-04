@@ -1,8 +1,9 @@
-import { afterAll, bench, describe } from 'vitest'
+import { afterAll, describe } from 'vitest'
 import GitAdapter from '../../src/adapter/GitAdapter.js'
 import type { Config } from '../../src/types/config.js'
 import type { FileGitRef } from '../../src/types/git.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { perfBench } from './harness/perfBench.js'
 
 // Regression bench over the sgd repo's OWN history (HEAD~20..HEAD): a
 // lightweight per-run sanity check that a future @scolladon/tsgit upgrade
@@ -57,7 +58,7 @@ afterAll(async () => {
 describe('gitAdapter-history-parseRev', () => {
   const adapter = GitAdapter.getInstance(baseConfig)
 
-  bench('parseRev-HEAD~20-and-HEAD', async () => {
+  perfBench('parseRev-HEAD~20-and-HEAD', async () => {
     const start = performance.now()
     await adapter.parseRev(FROM)
     await adapter.parseRev(TO)
@@ -72,7 +73,7 @@ describe('gitAdapter-history-parseRev', () => {
 describe('gitAdapter-history-streamDiffLines', () => {
   const adapter = GitAdapter.getInstance(baseConfig)
 
-  bench('streamDiffLines-HEAD~20..HEAD', async () => {
+  perfBench('streamDiffLines-HEAD~20..HEAD', async () => {
     const start = performance.now()
     const verdict = { changesSeen: 0, linesYielded: 0 }
     for await (const _line of adapter.streamDiffLines({
@@ -99,7 +100,7 @@ describe('gitAdapter-history-streamDiffLines', () => {
 describe('gitAdapter-history-blobReads', () => {
   const adapter = GitAdapter.getInstance(baseConfig)
 
-  bench('getBufferContent-HEAD~20-and-HEAD', async () => {
+  perfBench('getBufferContent-HEAD~20-and-HEAD', async () => {
     const start = performance.now()
     for (const ref of BLOB_REFS) {
       await adapter.getBufferContent(ref)
@@ -118,7 +119,7 @@ describe('gitAdapter-history-blobReads', () => {
 // re-acquiring the singleton each iteration forces a genuine cold tree walk
 // every time — the same cost a fresh CLI invocation pays exactly once.
 describe('gitAdapter-history-buildTreeIndex', () => {
-  bench('buildTreeIndex-HEAD-cold', async () => {
+  perfBench('buildTreeIndex-HEAD-cold', async () => {
     await GitAdapter.closeAll()
     const adapter = GitAdapter.getInstance(baseConfig)
     const start = performance.now()

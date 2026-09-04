@@ -1,6 +1,6 @@
-import { bench, describe } from 'vitest'
-
+import { describe } from 'vitest'
 import { deepEqualJson } from '../../src/utils/metadataDiff/deepEqualJson.js'
+import { perfBench } from './harness/perfBench.js'
 
 // XML-shaped fixtures matching txml output: nested objects with @_attr
 // keys and arrays of repeated tags. The diff hot path compares
@@ -57,43 +57,43 @@ const arrayDifferentLast = (() => {
 })()
 
 describe('deepEqualJson-equal-shallow', () => {
-  bench('shallow-equal', () => {
+  perfBench('shallow-equal', () => {
     deepEqualJson(shallowA, shallowB)
   })
 })
 
 describe('deepEqualJson-different-shallow', () => {
-  bench('shallow-different-last-field', () => {
+  perfBench('shallow-different-last-field', () => {
     deepEqualJson(shallowA, shallowDifferent)
   })
 })
 
 describe('deepEqualJson-equal-nested', () => {
-  bench('nested-equal', () => {
+  perfBench('nested-equal', () => {
     deepEqualJson(nestedA, nestedB)
   })
 })
 
 describe('deepEqualJson-different-nested', () => {
-  bench('nested-different-array-length', () => {
+  perfBench('nested-different-array-length', () => {
     deepEqualJson(nestedA, nestedDifferent)
   })
 })
 
 describe('deepEqualJson-equal-large-array', () => {
-  bench('array-of-100-elements-equal', () => {
+  perfBench('array-of-100-elements-equal', () => {
     deepEqualJson(arrayA, arrayB)
   })
 })
 
 describe('deepEqualJson-different-large-array', () => {
-  bench('array-of-100-elements-last-differs', () => {
+  perfBench('array-of-100-elements-last-differs', () => {
     deepEqualJson(arrayA, arrayDifferentLast)
   })
 })
 
 describe('deepEqualJson-reference-identical', () => {
-  bench('same-reference-short-circuit', () => {
+  perfBench('same-reference-short-circuit', () => {
     deepEqualJson(arrayA, arrayA)
   })
 })
