@@ -164,8 +164,26 @@ format, and only format is safe to regenerate.
 
 ### Performance Testing
 
-Performance benchmarks live in `__tests__/perf/`. They run through
-vitest's `bench` mode and emit `perf-runtime.json` / `perf-memory.json`.
+Performance benchmarks live in `__tests__/perf/`. Each bench is a vitest
+test that calls the `bench` fixture through
+`__tests__/perf/harness/perfBench.ts`, which pins the sample budget
+(`time: 1000`, `iterations: 64`, `warmupTime: 250`, `warmupIterations: 16`).
+`__tests__/perf/perfReporter.ts` writes `perf-runtime.json`
+(`{name, unit: 'ops/sec', value: round(1000 / latency.mean), range: '±rme%'}`)
+and `perf-memory.json` (`{name, unit: 'ms', value: latency.mean to 4 dp,
+range}` — despite the name it carries mean latency, kept because it is the
+`dev/bench/memory` gh-pages series id). Both arrays hold the same entries in
+the same order (file path byte order, then registration order).
+
+Benches that carry a cost budget assert on the **mean over the run**, not on
+each sample. A per-sample assertion is a max-over-N: raising the sample budget
+raises the breach rate even though nothing got slower, and a single tail draw
+then discards all 50 series for that commit.
+
+The `name` is the `bench()` registration name and the join key for
+`compareBaseline.mjs`, `preview.mjs` and the gh-pages history, so renaming a
+bench orphans its history. A throwing bench body fails the run and nothing is
+written; a `-t` filter writes partial files.
 
 ```bash
 npm run test:perf

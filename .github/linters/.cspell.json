@@ -238,6 +238,7 @@
     "unstub",
     "ustar",
     "venv",
+    "vitest",
     "wagoid",
     "wapp",
     "wavehandler",

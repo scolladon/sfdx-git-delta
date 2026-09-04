@@ -6,6 +6,17 @@ const MEMORY_THRESHOLD = 1.5
 const loadJson = path =>
   existsSync(path) ? JSON.parse(readFileSync(path, 'utf-8')) : []
 
+// An absent PR file means the bench run did not complete. Loading it as []
+// would compare nothing against nothing and report "No regressions detected",
+// turning a failed run into a clean bill of health.
+for (const required of ['perf-runtime.json', 'perf-memory.json']) {
+  if (!existsSync(required)) {
+    throw new Error(
+      `${required} is missing: the benchmark run did not complete, so there is nothing to compare. Refusing to report on absent data.`
+    )
+  }
+}
+
 const baseRuntime = loadJson('perf-runtime-base.json')
 const prRuntime = loadJson('perf-runtime.json')
 const baseMemory = loadJson('perf-memory-base.json')

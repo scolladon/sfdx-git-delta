@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@oclif/core": "5.0.0",
-    "@salesforce/core": "9.1.9",
+    "@salesforce/core": "9.1.10",
     "@salesforce/sf-plugins-core": "13.0.4",
     "@salesforce/source-deploy-retrieve": "13.3.0",
     "@scolladon/tsgit": "3.6.0",
@@ -68,7 +68,7 @@
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.4.1",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "5.0.0",
     "husky": "9.1.7",
     "knip": "6.34.0",
     "lint-staged": "17.4.1",
@@ -78,7 +78,7 @@
     "shx": "0.4.0",
     "typescript": "7.0.2",
     "validate-branch-name": "1.3.2",
-    "vitest": "4.1.11",
+    "vitest": "5.0.0",
     "wireit": "0.14.13"
   },
   "overrides": {
@@ -141,14 +141,13 @@
       "clean": "if-file-deleted"
     },
     "clean": {
-      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-raw.json perf-runtime.json perf-memory.json perf-preview.html",
+      "command": "shx rm -rf 'reports/*' oclif.manifest.json package.tgz 'sfdx-git-delta-*.tgz' 'stderr*.txt' 'stdout*.txt' '.stryker-tmp/*' perf-result.txt perf-runtime.json perf-memory.json perf-preview.html",
       "files": [
         ".stryker-tmp/*",
         "lib",
         "oclif.manifest.json",
         "package.tgz",
         "perf-result.txt",
-        "perf-raw.json",
         "perf-runtime.json",
         "perf-memory.json",
         "perf-preview.html",
@@ -297,7 +296,7 @@
       ]
     },
     "test:perf": {
-      "command": "node --expose-gc ./node_modules/.bin/vitest bench --config vitest.config.perf.ts && node __tests__/perf/formatResults.mjs",
+      "command": "vitest bench --config vitest.config.perf.ts",
       "files": [
         "src/**/*.ts",
         "__tests__/perf/**",
@@ -307,7 +306,6 @@
         "package-lock.json"
       ],
       "output": [
-        "perf-raw.json",
         "perf-runtime.json",
         "perf-memory.json"
       ],

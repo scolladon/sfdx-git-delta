@@ -88,7 +88,7 @@ jobs:
           # and survive `git clean -fd` via the whitelist below.
           git status --short
           git checkout -- .
-          git clean -fd -e perf-runtime.json -e perf-memory.json -e perf-runtime-base.json -e perf-memory-base.json -e perf-comparison.md -e perf-preview.html -e perf-raw.json -e gh-pages-data
+          git clean -fd -e perf-runtime.json -e perf-memory.json -e perf-runtime-base.json -e perf-memory-base.json -e perf-comparison.md -e perf-preview.html -e gh-pages-data
 
       - name: Runtime benchmark
         uses: benchmark-action/github-action-benchmark@v1

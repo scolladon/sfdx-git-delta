@@ -1,10 +1,10 @@
-import { bench, describe } from 'vitest'
-
+import { describe } from 'vitest'
 import {
   parseFromSideSwallowing,
   parseToSidePropagating,
 } from '../../src/utils/metadataDiff/xmlEventReader.js'
 import { parseXml } from '../../src/utils/txmlAdapter.js'
+import { perfBench } from './harness/perfBench.js'
 
 // Salesforce-shaped XML payloads at three rough sizes. The fixtures are
 // generated in-memory rather than read from disk so the benchmark
@@ -44,15 +44,15 @@ for (const [size, payload] of Object.entries(FIXTURES) as Array<
   [keyof typeof FIXTURES, string]
 >) {
   describe(`xml-parse-${size}`, () => {
-    bench(`parseXml-${size}`, () => {
+    perfBench(`parseXml-${size}`, () => {
       parseXml(payload)
     })
 
-    bench(`parseToSidePropagating-${size}`, async () => {
+    perfBench(`parseToSidePropagating-${size}`, async () => {
       await parseToSidePropagating(payload, noopElement)
     })
 
-    bench(`parseFromSideSwallowing-${size}`, async () => {
+    perfBench(`parseFromSideSwallowing-${size}`, async () => {
       await parseFromSideSwallowing(payload, noopElement)
     })
   })
