@@ -175,6 +175,11 @@ range}` — despite the name it carries mean latency, kept because it is the
 `dev/bench/memory` gh-pages series id). Both arrays hold the same entries in
 the same order (file path byte order, then registration order).
 
+Benches that carry a cost budget assert on the **mean over the run**, not on
+each sample. A per-sample assertion is a max-over-N: raising the sample budget
+raises the breach rate even though nothing got slower, and a single tail draw
+then discards all 50 series for that commit.
+
 The `name` is the `bench()` registration name and the join key for
 `compareBaseline.mjs`, `preview.mjs` and the gh-pages history, so renaming a
 bench orphans its history. A throwing bench body fails the run and nothing is
