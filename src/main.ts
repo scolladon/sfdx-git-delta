@@ -1,7 +1,6 @@
 'use strict'
 import GitAdapter from './adapter/GitAdapter.js'
 import IOExecutor from './adapter/ioExecutor.js'
-import { EMPTY_TREE_READER, type TreeReader } from './adapter/treeReader.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
@@ -42,13 +41,12 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-    // The treeIndex scope read needs the full path set up front, so when
-    // generateDelta is on without an include override we materialize the
-    // streamed diff once. Otherwise we feed the async iterable straight
-    // into DiffLineInterpreter so handlers start firing while git is
-    // still emitting lines.
-    const needsScopeFromDiff =
-      config.generateDelta && !config.include && !config.includeDestructive
+    // The tree-index scope is read off the diff whenever no include file
+    // overrides it, so the stream is materialised once: computeTreeIndexScope
+    // and lineProcessor.process walk the same lines. With an include file the
+    // scope is config.source and the async iterable feeds straight into
+    // DiffLineInterpreter, so handlers fire while git is still emitting.
+    const needsScopeFromDiff = !config.include && !config.includeDestructive
     let lines: Iterable<string> | AsyncIterable<string>
     if (needsScopeFromDiff) {
       const materialized: string[] = []
@@ -56,30 +54,26 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         materialized.push(line)
       }
       lines = materialized
-    }
-    // Stryker disable next-line BlockStatement -- equivalent: emptying the else block leaves `lines` undefined which downstream lineProcessor.process(undefined) iterates as empty; the test main.test.ts only asserts mockProcess was called with the materialized array in the if-branch fixture, and the else-body BlockStatement mutant on the assignment expression is observably equivalent because mockProcess accepts undefined under stryker's perTest path-coverage analysis
-    else {
+    } else {
       lines = repoGitDiffHelper.getLines()
     }
 
-    // Built here and threaded to every reader (DiffLineInterpreter,
-    // RenameResolver, IOExecutor, the post-processors) rather than cached
-    // on GitAdapter: one TreeIndex per revision, for this run only, so a
-    // reader can never see a different scope than the one this block just
-    // built under — the lesson from the shared, scope-keyed cache this
-    // replaces (see design history) is that a cache keyed by a value each
-    // reader recomputes is an implicit contract that will drift.
-    let trees: TreeReader = EMPTY_TREE_READER
-    if (config.generateDelta) {
-      const gitAdapter = GitAdapter.getInstance(config)
-      let scopePaths: readonly string[] = config.source
-      if (needsScopeFromDiff) {
-        scopePaths = [
-          ...computeTreeIndexScope(lines as Iterable<string>, metadata),
-        ]
-      }
-      trees = await buildRunTreeReader(gitAdapter, config, scopePaths)
-    }
+    // The manifests must not depend on --generate-delta: every index-backed
+    // read that decides package.xml vs destructiveChanges.xml (container
+    // liveness, decomposed-holder liveness, the include listing) runs in
+    // every mode, so the run's two indexes are built in every mode. The flag
+    // gates only what is copied. Built here and threaded to every reader
+    // (DiffLineInterpreter, RenameResolver, IOExecutor, the post-processors)
+    // through RunContext rather than cached on GitAdapter, so no reader can
+    // see a different scope than the one this run built under.
+    const scopePaths: readonly string[] = needsScopeFromDiff
+      ? [...computeTreeIndexScope(lines as Iterable<string>, metadata)]
+      : config.source
+    const trees = await buildRunTreeReader(
+      GitAdapter.getInstance(config),
+      config,
+      scopePaths
+    )
     const ctx: RunContext = { config, metadata, trees }
 
     const lineProcessor = new DiffLineInterpreter(ctx)

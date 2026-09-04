@@ -646,3 +646,186 @@ export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
 
   return { root, moved, staleCopy }
 }
+
+export type LiveContainerFixtureRefs = {
+  // Parentless — what getFirstCommitRef() resolves to. Carries the `still`
+  // bundle so a run whose `from` IS the first commit can reproduce the
+  // include re-entry residual: the forced-deletion target has to exist at
+  // that revision for the honest index to answer true.
+  genesis: string
+  // Every other container shape, all alive.
+  root: string
+  // HEAD — one file deleted from each live container, one bundle deleted
+  // whole, one decomposed child deleted with its holder surviving.
+  head: string
+}
+
+const LIVE_ROOT = 'force-app/main/default'
+export const LIVE_STILL_SCRIPT = `${LIVE_ROOT}/lwc/still/still.js`
+export const LIVE_STILL_META = `${LIVE_ROOT}/lwc/still/still.js-meta.xml`
+export const LIVE_FOO_SCRIPT = `${LIVE_ROOT}/lwc/foo/foo.js`
+export const LIVE_FOO_META = `${LIVE_ROOT}/lwc/foo/foo.js-meta.xml`
+export const LIVE_FOO_MARKUP = `${LIVE_ROOT}/lwc/foo/foo.html`
+export const LIVE_GONE_SCRIPT = `${LIVE_ROOT}/lwc/gone/gone.js`
+export const LIVE_GONE_META = `${LIVE_ROOT}/lwc/gone/gone.js-meta.xml`
+export const LIVE_BAR_META = `${LIVE_ROOT}/staticresources/bar.resource-meta.xml`
+export const LIVE_BAR_A = `${LIVE_ROOT}/staticresources/bar/a.js`
+export const LIVE_BAR_B = `${LIVE_ROOT}/staticresources/bar/b.js`
+export const LIVE_DEEP_META = `${LIVE_ROOT}/staticresources/deep.resource-meta.xml`
+export const LIVE_DEEP_X = `${LIVE_ROOT}/staticresources/deep/sub/dir/x.js`
+export const LIVE_DEEP_Y = `${LIVE_ROOT}/staticresources/deep/sub/y.js`
+export const LIVE_ADMIN_META = `${LIVE_ROOT}/permissionsets/Admin/Admin.permissionset-meta.xml`
+export const LIVE_ADMIN_FIELD = `${LIVE_ROOT}/permissionsets/Admin/fieldPermissions/Account.Name.fieldPermission-meta.xml`
+export const LIVE_ADMIN_OBJECT = `${LIVE_ROOT}/permissionsets/Admin/objectPermissions/Account.objectPermission-meta.xml`
+export const LIVE_SITE_META = `${LIVE_ROOT}/digitalExperiences/site/mysite/mysite.digitalExperience-meta.xml`
+export const LIVE_PAGE_META = `${LIVE_ROOT}/digitalExperiences/site/mysite/sfdc_cms__view/about/_meta.json`
+export const LIVE_PAGE_CONTENT = `${LIVE_ROOT}/digitalExperiences/site/mysite/sfdc_cms__view/about/content.json`
+export const LIVE_PAGE_MOBILE = `${LIVE_ROOT}/digitalExperiences/site/mysite/sfdc_cms__view/about/mobile/content.json`
+export const LIVE_KEEP_CLASS = `${LIVE_ROOT}/classes/Keep.cls`
+export const LIVE_KEEP_META = `${LIVE_ROOT}/classes/Keep.cls-meta.xml`
+
+const LWC_META_CONTENT =
+  '<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const STATIC_RESOURCE_META_CONTENT =
+  '<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const PERMISSION_SET_META_CONTENT =
+  '<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const DIGITAL_EXPERIENCE_META_CONTENT =
+  '<DigitalExperienceBundle xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const APEX_CLASS_META_CONTENT =
+  '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+
+/**
+ * Every live-container shape sgd knows how to reclassify from destructive to
+ * package when the component survives: a plain bundle (lwc), a bundle that
+ * dies whole (lwc), a decomposed-format container (permission set), and a
+ * shared-folder container (static resource, digital experience bundle). One
+ * file is deleted from each surviving container at `head`; `gone` loses both
+ * of its files and truly disappears. `still` lives only at `genesis`, the
+ * parentless commit `getFirstCommitRef()` resolves to — it exists so a run
+ * whose `--from` IS the first commit can reproduce the include re-entry
+ * residual (see manifestParityAcrossGenerateDelta.test.ts, Leg E).
+ */
+export const buildLiveContainerFixtureRepo = (
+  dir: string
+): LiveContainerFixtureRefs => {
+  initRepo(dir)
+
+  const genesis = makeCommit(dir, null, 'genesis', [
+    { kind: 'add', mode: '100644', path: 'README.md', content: 'genesis\n' },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_STILL_SCRIPT,
+      content: 'export default class {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_STILL_META,
+      content: LWC_META_CONTENT,
+    },
+  ])
+
+  const root = makeCommit(dir, genesis, 'root', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_FOO_SCRIPT,
+      content: 'export default class {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_FOO_META,
+      content: LWC_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_FOO_MARKUP,
+      content: '<template></template>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_GONE_SCRIPT,
+      content: 'export default class {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_GONE_META,
+      content: LWC_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_BAR_META,
+      content: STATIC_RESOURCE_META_CONTENT,
+    },
+    { kind: 'add', mode: '100644', path: LIVE_BAR_A, content: 'a\n' },
+    { kind: 'add', mode: '100644', path: LIVE_BAR_B, content: 'b\n' },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_DEEP_META,
+      content: STATIC_RESOURCE_META_CONTENT,
+    },
+    { kind: 'add', mode: '100644', path: LIVE_DEEP_X, content: 'x\n' },
+    { kind: 'add', mode: '100644', path: LIVE_DEEP_Y, content: 'y\n' },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_ADMIN_META,
+      content: PERMISSION_SET_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_ADMIN_FIELD,
+      content: PERMISSION_SET_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_ADMIN_OBJECT,
+      content: PERMISSION_SET_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_SITE_META,
+      content: DIGITAL_EXPERIENCE_META_CONTENT,
+    },
+    { kind: 'add', mode: '100644', path: LIVE_PAGE_META, content: '{}\n' },
+    { kind: 'add', mode: '100644', path: LIVE_PAGE_CONTENT, content: '{}\n' },
+    { kind: 'add', mode: '100644', path: LIVE_PAGE_MOBILE, content: '{}\n' },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_KEEP_CLASS,
+      content: 'public class Keep {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LIVE_KEEP_META,
+      content: APEX_CLASS_META_CONTENT,
+    },
+  ])
+
+  const head = makeCommit(dir, root, 'head', [
+    { kind: 'delete', path: LIVE_FOO_MARKUP },
+    { kind: 'delete', path: LIVE_GONE_SCRIPT },
+    { kind: 'delete', path: LIVE_GONE_META },
+    { kind: 'delete', path: LIVE_BAR_A },
+    { kind: 'delete', path: LIVE_DEEP_X },
+    { kind: 'delete', path: LIVE_ADMIN_FIELD },
+    { kind: 'delete', path: LIVE_PAGE_MOBILE },
+  ])
+
+  runGit(['update-ref', 'HEAD', head], { cwd: dir })
+
+  return { genesis, root, head }
+}
