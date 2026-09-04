@@ -1,8 +1,7 @@
 'use strict'
 import GitAdapter from './adapter/GitAdapter.js'
 import IOExecutor from './adapter/ioExecutor.js'
-import type { TreeIndex } from './adapter/treeIndex.js'
-import { createTreeReader, EMPTY_TREE_READER } from './adapter/treeReader.js'
+import { EMPTY_TREE_READER, type TreeReader } from './adapter/treeReader.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
@@ -20,6 +19,7 @@ import { parseSourceDirs } from './utils/pathspec.js'
 import RenameResolver from './utils/renameResolver.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
 import { computeTreeIndexScope } from './utils/treeIndexScope.js'
+import { buildRunTreeReader } from './utils/treeReaderBuilder.js'
 
 export default async (configInput: ConfigInput): Promise<Work> => {
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the returned Work, not lazy log lines
@@ -69,27 +69,16 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // built under — the lesson from the shared, scope-keyed cache this
     // replaces (see design history) is that a cache keyed by a value each
     // reader recomputes is an implicit contract that will drift.
-    let trees = EMPTY_TREE_READER
+    let trees: TreeReader = EMPTY_TREE_READER
     if (config.generateDelta) {
       const gitAdapter = GitAdapter.getInstance(config)
-      let scopePaths: string[] = config.source
+      let scopePaths: readonly string[] = config.source
       if (needsScopeFromDiff) {
         scopePaths = [
           ...computeTreeIndexScope(lines as Iterable<string>, metadata),
         ]
       }
-      if (scopePaths.length > 0) {
-        const [toIndex, fromIndex] = await Promise.all([
-          gitAdapter.buildTreeIndex(config.to, scopePaths),
-          gitAdapter.buildTreeIndex(config.from, scopePaths),
-        ])
-        const entries = new Map<string, TreeIndex>()
-        // Stryker disable ConditionalExpression -- equivalent: forcing either guard to always run stores `undefined` at that revision key instead of skipping it, but the only reader is createTreeReader's `entries.get(revision) ?? NO_INDEX`, and Map.get answers `undefined` for an absent key and an explicitly-undefined value alike. `entries` is local to this block and exposes no has/size/enumeration, so no observer can tell the two apart
-        if (toIndex) entries.set(config.to, toIndex)
-        if (fromIndex) entries.set(config.from, fromIndex)
-        // Stryker restore ConditionalExpression
-        trees = createTreeReader(entries)
-      }
+      trees = await buildRunTreeReader(gitAdapter, config, scopePaths)
     }
     const ctx: RunContext = { config, metadata, trees }
 

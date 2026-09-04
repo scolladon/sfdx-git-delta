@@ -1,8 +1,6 @@
 'use strict'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import IOExecutor from '../../src/adapter/ioExecutor'
-import { TreeIndex } from '../../src/adapter/treeIndex'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
@@ -12,7 +10,6 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../src/types/handlerResult'
-import type { RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
 import { Logger } from '../../src/utils/LoggingService'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
@@ -474,87 +471,6 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['force-app'])
       expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
-    })
-
-    it('Given buildTreeIndex resolves a real index for both revisions, When sgd runs, Then the run completes without error (both entries.set branches taken)', async () => {
-      // Arrange — covers the `if (toIndex)` / `if (fromIndex)` true
-      // branches: a successful build for both revisions populates the
-      // TreeReader threaded to every downstream reader.
-      mockBuildTreeIndex
-        .mockResolvedValueOnce({} as never)
-        .mockResolvedValueOnce({} as never)
-      const sut = {
-        generateDelta: true,
-        to: 'HEAD',
-        from: 'HEAD~1',
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act & Assert
-      await expect(sgd(sut)).resolves.toBeDefined()
-      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(2)
-    })
-
-    it('Given buildTreeIndex resolves an index for "to" but undefined for "from", When sgd runs, Then the TreeReader answers "to" with real data and "from" with the empty degrade', async () => {
-      // Arrange — pins the `if (toIndex) entries.set(...)` guard on both
-      // sides: a successful build must be reachable at its own revision
-      // key (kills the false/CallExpression-removal mutants), and a
-      // failed build must not leak a phantom entry into the reader.
-      const toIndex = new TreeIndex()
-      toIndex.add('force-app/main/default/classes/Foo.cls')
-      mockBuildTreeIndex
-        .mockResolvedValueOnce(toIndex) // config.to
-        .mockResolvedValueOnce(undefined) // config.from
-      const sut = {
-        generateDelta: true,
-        to: 'HEAD',
-        from: 'HEAD~1',
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act
-      await sgd(sut)
-
-      // Assert — inspect the RunContext threaded to IOExecutor.
-      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
-        | RunContext
-        | undefined
-      expect(ctxArg?.trees.filesUnder('HEAD', '')).toEqual([
-        'force-app/main/default/classes/Foo.cls',
-      ])
-      expect(ctxArg?.trees.filesUnder('HEAD~1', '')).toEqual([])
-    })
-
-    it('Given buildTreeIndex resolves undefined for "to" but an index for "from", When sgd runs, Then the TreeReader answers "to" with the empty degrade and "from" with real data', async () => {
-      // Arrange — mirrors the previous test for the `if (fromIndex)`
-      // guard, so both sides of the truthiness check are proven
-      // independently rather than only ever exercising them together.
-      const fromIndex = new TreeIndex()
-      fromIndex.add('force-app/main/default/classes/Bar.cls')
-      mockBuildTreeIndex
-        .mockResolvedValueOnce(undefined) // config.to
-        .mockResolvedValueOnce(fromIndex) // config.from
-      const sut = {
-        generateDelta: true,
-        to: 'HEAD',
-        from: 'HEAD~1',
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act
-      await sgd(sut)
-
-      // Assert
-      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
-        | RunContext
-        | undefined
-      expect(ctxArg?.trees.filesUnder('HEAD', '')).toEqual([])
-      expect(ctxArg?.trees.filesUnder('HEAD~1', '')).toEqual([
-        'force-app/main/default/classes/Bar.cls',
-      ])
     })
 
     it('Given a --source-dir with a trailing slash, When sgd runs, Then buildTreeIndex receives the canonical path', async () => {
