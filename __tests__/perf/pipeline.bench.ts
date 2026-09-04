@@ -1,12 +1,17 @@
-import { describe } from 'vitest'
+import { rm } from 'node:fs/promises'
+import { afterAll, describe, vi } from 'vitest'
+import sgd from '../../src/main.js'
 import { getDefinition } from '../../src/metadata/metadataManager.js'
+import type { ConfigInput } from '../../src/types/config.js'
 import ChangeSet from '../../src/utils/changeSet.js'
 import { computeTreeIndexScope } from '../../src/utils/treeIndexScope.js'
+import { createTempDir } from '../__utils__/gitTestHarness.js'
 import {
   generateDiffFixtures,
   generateManifestElements,
 } from './fixtures/generateFixtures.js'
-import { perfBench } from './harness/perfBench.js'
+import { buildLwcDiffRepo } from './fixtures/lwcRepoFixture.js'
+import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
 
 const metadata = await getDefinition({})
 
@@ -26,3 +31,71 @@ for (const size of sizes) {
     })
   })
 }
+
+// Same seam the parity integration test pins: the apiVersion cap is a live
+// SDR coverage lookup; pinned so every sample measures sgd, not the network.
+const API_VERSION = 60
+vi.mock('../../src/metadata/metadataManager.js', async importOriginal => ({
+  ...(await importOriginal<
+    typeof import('../../src/metadata/metadataManager.js')
+  >()),
+  getLatestSupportedVersion: async () => API_VERSION,
+}))
+
+const BUNDLE_COUNTS = [100, 1_000] as const
+
+// Measured over three runs (worst-of-three means): 100 bundles 24.80/24.43/
+// 24.11ms, 1000 bundles 600.83/616.88/609.01ms. Ceiling is the worst mean ×
+// RUNNER_NOISE_FACTOR = 3 (ignoredAdditionProbe.bench.ts:54-64), rounded up to
+// the next 100ms.
+const SGD_NO_DELTA_CEILING_MS: Record<(typeof BUNDLE_COUNTS)[number], number> =
+  {
+    100: 100,
+    1_000: 1_900,
+  }
+
+const tempDirs: string[] = []
+
+for (const count of BUNDLE_COUNTS) {
+  const dir = await createTempDir(`sgd-bench-lwc-${count}-`)
+  const refs = buildLwcDiffRepo(dir, count)
+  const output = await createTempDir('sgd-bench-out-')
+  tempDirs.push(dir, output)
+
+  const input: ConfigInput = {
+    to: refs.head,
+    from: refs.root,
+    repo: dir,
+    output,
+    source: ['force-app'],
+    generateDelta: false,
+    mergeBase: false,
+    ignoreWhitespace: false,
+    apiVersion: API_VERSION,
+  }
+
+  describe(`pipeline-sgd-no-delta-${count}-bundles`, () => {
+    const elapsedMs: number[] = []
+
+    perfBench(
+      `pipeline-sgd-no-delta-${count}-bundles`,
+      async () => {
+        const start = performance.now()
+        await sgd(input)
+        elapsedMs.push(performance.now() - start)
+      },
+      () =>
+        assertMeanWithinCeiling(
+          `sgd-no-delta-${count}-bundles`,
+          elapsedMs,
+          SGD_NO_DELTA_CEILING_MS[count]
+        )
+    )
+  })
+}
+
+afterAll(async () => {
+  await Promise.all(
+    tempDirs.map(dir => rm(dir, { recursive: true, force: true }))
+  )
+})
