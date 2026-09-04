@@ -9,7 +9,7 @@ import { IgnoreHelper } from '../../src/utils/ignoreHelper.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { buildPath, SHAPES } from './fixtures/registryShapes.js'
-import { perfBench } from './harness/perfBench.js'
+import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
 
 // Pins the cost of the visibility pass the fix introduced: one linear walk
 // over every in-scope file at `to`, doing a registry-membership check plus
@@ -54,25 +54,16 @@ class VisibilityProbe extends RepoGitDiff {
 const LISTING_SIZES = [10_000, 50_000] as const
 const PER_PATH_BUDGET_US = 3
 // Shared runners are noisy (±40 % run-to-run is normal); the ceiling exists
-// to catch an order-of-magnitude regression, not to police variance.
-// It fails `npm run test:perf` locally (a throwing bench fails its vitest
-// test and the reporter writes nothing), but the CI perf job is
-// continue-on-error, so it blocks nothing there.
+// to catch an order-of-magnitude regression, not to police variance. It bounds
+// the MEAN over the run, so the sample budget can change without changing the
+// breach rate — bounding each sample instead made this a max-over-N and it
+// breached on CI from a single tail draw.
+// It fails `npm run test:perf` locally (the assertion fails its vitest test
+// and the reporter writes nothing), but the CI perf job is continue-on-error,
+// so it blocks nothing there.
 const RUNNER_NOISE_FACTOR = 3
 const ROUND_COUNTER_PAD = 9
 const IGNORE_PATTERNS = ['force-app/recycle-bin/', '**/__tests__/**', '*.bak']
-
-const assertWithinCeiling = (
-  label: string,
-  elapsedMs: number,
-  ceilingMs: number
-): void => {
-  if (elapsedMs > ceilingMs) {
-    throw new Error(
-      `${label} took ${elapsedMs.toFixed(2)}ms, exceeding the ${ceilingMs}ms noise-tolerant ceiling`
-    )
-  }
-}
 
 // Encapsulates the round counter so freshness is an invariant of this one
 // generator rather than a module-level mutable a later edit could read out
@@ -127,24 +118,30 @@ const ceilingMs = (size: number): number =>
 describe('ignored-addition-probe-cold-registry', () => {
   for (const size of LISTING_SIZES) {
     const nextRound = createFreshListing(size)
-    perfBench(`visibility-pass-cold-${size}-paths`, async () => {
-      // Cold per round: a brand-new registry means pathCache starts empty,
-      // so every lookup below pays the full miss cost a fresh sgd()
-      // invocation pays — the cost getLines() cannot amortise away for a
-      // one-shot CLI run.
-      const metadata = await getDefinition({})
-      const { listing, candidatePaths } = nextRound()
-      const probe = new VisibilityProbe(baseConfig, metadata, listing)
-      const candidates = new Set(
-        candidatePaths.map(path => probe.key(`${ADDITION}${TAB}${path}`))
-      )
-      const start = performance.now()
-      await probe.visible(candidates, ignoreHelper)
-      assertWithinCeiling(
-        `visibility pass over ${size} paths`,
-        performance.now() - start,
-        ceilingMs(size)
-      )
-    })
+    const elapsedMs: number[] = []
+    perfBench(
+      `visibility-pass-cold-${size}-paths`,
+      async () => {
+        // Cold per round: a brand-new registry means pathCache starts empty,
+        // so every lookup below pays the full miss cost a fresh sgd()
+        // invocation pays — the cost getLines() cannot amortise away for a
+        // one-shot CLI run.
+        const metadata = await getDefinition({})
+        const { listing, candidatePaths } = nextRound()
+        const probe = new VisibilityProbe(baseConfig, metadata, listing)
+        const candidates = new Set(
+          candidatePaths.map(path => probe.key(`${ADDITION}${TAB}${path}`))
+        )
+        const start = performance.now()
+        await probe.visible(candidates, ignoreHelper)
+        elapsedMs.push(performance.now() - start)
+      },
+      () =>
+        assertMeanWithinCeiling(
+          `visibility pass over ${size} paths`,
+          elapsedMs,
+          ceilingMs(size)
+        )
+    )
   }
 })

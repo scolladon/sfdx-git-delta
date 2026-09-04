@@ -37,6 +37,17 @@ const testDouble = (
       tasks.length ? [{ name: `group > ${name}`, tasks }] : [],
   }) as unknown as TestCase
 
+const multiBenchTestDouble = (
+  name: string,
+  benchmarks: ReturnType<typeof taskDouble>[][]
+) =>
+  ({
+    name,
+    result: () => ({ state: 'passed' }),
+    benchmarks: () =>
+      benchmarks.map((tasks, index) => ({ name: `group > ${index}`, tasks })),
+  }) as unknown as TestCase
+
 const moduleDouble = (relativeModuleId: string, tests: TestCase[]) =>
   ({
     relativeModuleId,
@@ -53,6 +64,22 @@ describe('Given a benchmark reporter', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('When every test passed but the run carries an unhandled error, Then it throws and writes nothing', () => {
+    // Arrange
+    const task = taskDouble('only-bench', 2, 1)
+    const testModule = moduleDouble('a.bench.ts', [
+      testDouble('only-bench', 'passed', [task]),
+    ])
+    const unhandled = [new Error('worker crashed after the last test')]
+
+    // Act
+    const act = () => sut.onTestRunEnd([testModule], unhandled, 'passed')
+
+    // Assert
+    expect(act).toThrow(/unhandled error/i)
+    expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
 
   it('When a passed run carries one benchmark task, Then it writes runtime and latency entries computed from latency.mean and latency.rme', () => {
@@ -98,7 +125,7 @@ describe('Given a benchmark reporter', () => {
     )
   })
 
-  it('When a task has a sub-microsecond mean, Then ops/sec rounds up and latency rounds down to zero', () => {
+  it('When a task has a sub-microsecond mean, Then ops/sec is rounded to the nearest integer and latency rounds to zero', () => {
     // Arrange
     const task = taskDouble('fast-bench', 0.000026, 0.0733)
     const testCase = testDouble('carrier', 'passed', [task])
@@ -138,41 +165,32 @@ describe('Given a benchmark reporter', () => {
   })
 
   it('When modules run out of byte order, Then entries are written sorted by relativeModuleId with tasks kept in registration order', () => {
-    // Arrange
-    const xmlWriteFirstTest = testDouble('carrier-1', 'passed', [
-      taskDouble('xw-t1', 1, 1),
-    ])
-    const xmlWriteSecondTest = testDouble('carrier-2', 'passed', [
-      taskDouble('xw-t2a', 1, 1),
-      taskDouble('xw-t2b', 1, 1),
-    ])
-    const xmlWriteModule = moduleDouble('__tests__/perf/xmlWrite.bench.ts', [
-      xmlWriteFirstTest,
-      xmlWriteSecondTest,
-    ])
-    const cancellationKeyFirstTest = testDouble('carrier-1', 'passed', [
-      taskDouble('ck-t1', 1, 1),
-    ])
-    const cancellationKeySecondTest = testDouble('carrier-2', 'passed', [
-      taskDouble('ck-t2a', 1, 1),
-      taskDouble('ck-t2b', 1, 1),
-    ])
+    // Arrange — names are chosen to contradict both orderings under test: a
+    // reporter that sorted by task name, or that ignored module order, or that
+    // reordered tasks within a module, each produces a different sequence.
     const cancellationKeyModule = moduleDouble(
       '__tests__/perf/cancellationKey.bench.ts',
-      [cancellationKeyFirstTest, cancellationKeySecondTest]
+      [
+        testDouble('carrier-1', 'passed', [
+          taskDouble('zz-first-registered', 1, 1),
+        ]),
+        testDouble('carrier-2', 'passed', [
+          taskDouble('yy-second-registered', 1, 1),
+        ]),
+      ]
     )
+    const xmlWriteModule = moduleDouble('__tests__/perf/xmlWrite.bench.ts', [
+      testDouble('carrier-1', 'passed', [taskDouble('aa-later-module', 1, 1)]),
+    ])
 
     // Act
     sut.onTestRunEnd([xmlWriteModule, cancellationKeyModule], [], 'passed')
 
     // Assert
     const expectedNames = [
-      'ck-t1',
-      'ck-t2a',
-      'ck-t2b',
-      'xw-t1',
-      'xw-t2a',
-      'xw-t2b',
+      'zz-first-registered',
+      'yy-second-registered',
+      'aa-later-module',
     ]
     const runtimeWritten = JSON.parse(
       mockWriteFileSync.mock.calls[0]![1] as string
@@ -181,9 +199,30 @@ describe('Given a benchmark reporter', () => {
       mockWriteFileSync.mock.calls[1]![1] as string
     ) as { name: string }[]
     expect(runtimeWritten.map(entry => entry.name)).toEqual(expectedNames)
-    expect(latencyWritten.map(entry => entry.name)).toEqual(
-      runtimeWritten.map(entry => entry.name)
-    )
+    expect(latencyWritten.map(entry => entry.name)).toEqual(expectedNames)
+  })
+
+  it('When one test carries two benchmarks, Then tasks from both are written in benchmark order', () => {
+    // Arrange
+    const testCase = multiBenchTestDouble('carrier', [
+      [taskDouble('first-benchmark-task', 1, 1)],
+      [taskDouble('second-benchmark-task', 2, 1)],
+    ])
+    const testModule = moduleDouble('__tests__/perf/sample.bench.ts', [
+      testCase,
+    ])
+
+    // Act
+    sut.onTestRunEnd([testModule], [], 'passed')
+
+    // Assert
+    const runtimeWritten = JSON.parse(
+      mockWriteFileSync.mock.calls[0]![1] as string
+    ) as { name: string }[]
+    expect(runtimeWritten.map(entry => entry.name)).toEqual([
+      'first-benchmark-task',
+      'second-benchmark-task',
+    ])
   })
 
   it('When the run is interrupted, Then nothing is written and no error is thrown', () => {
@@ -223,7 +262,7 @@ describe('Given a benchmark reporter', () => {
 
     // Assert
     expect(act).toThrow(
-      'Benchmarks produced no samples (their body threw): failed-carrier, empty-carrier'
+      'Benchmarks produced no samples (body threw, never ran, or never called bench): failed-carrier, empty-carrier'
     )
     expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
@@ -240,7 +279,7 @@ describe('Given a benchmark reporter', () => {
 
     // Assert
     expect(act).toThrow(
-      'Benchmarks produced no samples (their body threw): pending-carrier'
+      'Benchmarks produced no samples (body threw, never ran, or never called bench): pending-carrier'
     )
     expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
@@ -325,11 +364,15 @@ describe('Given a benchmark reporter', () => {
     const secondTest = testDouble('carrier-2', 'passed', [
       taskDouble('dup', 1, 1),
     ])
+    const thirdTest = testDouble('carrier-3', 'passed', [
+      taskDouble('dup', 1, 1),
+    ])
     const firstModule = moduleDouble('__tests__/perf/first.bench.ts', [
       firstTest,
     ])
     const secondModule = moduleDouble('__tests__/perf/second.bench.ts', [
       secondTest,
+      thirdTest,
     ])
 
     // Act
@@ -337,7 +380,7 @@ describe('Given a benchmark reporter', () => {
       sut.onTestRunEnd([firstModule, secondModule], [], 'passed')
 
     // Assert
-    expect(act).toThrow('Duplicate benchmark names: dup')
+    expect(act).toThrow(/^Duplicate benchmark names: dup$/)
     expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
 

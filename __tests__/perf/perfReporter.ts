@@ -34,22 +34,15 @@ const toLatencyEntry = (task: BenchTask): Entry => ({
   range: range(task),
 })
 
-type Classification = { readonly tasks: readonly BenchTask[] } & (
-  | { readonly broken: false }
-  | { readonly broken: true; readonly name: string }
-)
+// A test either contributed samples or is broken; partitioning once keeps the
+// two sides from having to be re-narrowed (and re-checked) further down.
+type Partitioned = {
+  readonly brokenNames: readonly string[]
+  readonly tasks: readonly BenchTask[]
+}
 
 const tasksOf = (testCase: TestCase): BenchTask[] =>
   testCase.benchmarks().flatMap(benchmark => benchmark.tasks)
-
-const classifyTest = (testCase: TestCase): Classification => {
-  const state = testCase.result().state
-  if (state === 'skipped') return { broken: false, tasks: [] }
-  const tasks = tasksOf(testCase)
-  return state === 'passed' && tasks.length > 0
-    ? { broken: false, tasks }
-    : { broken: true, name: testCase.name, tasks: [] }
-}
 
 // relativeModuleId is a file path: two modules never share one, so the
 // comparator only needs a total order between "before" and "after".
@@ -64,26 +57,42 @@ const allTestsInOrder = (modules: readonly TestModule[]): TestCase[] =>
     ...testModule.children.allTests(),
   ])
 
-const classifyTests = (modules: readonly TestModule[]): Classification[] =>
-  allTestsInOrder(modules).map(classifyTest)
-
-const brokenNamesOf = (classifications: readonly Classification[]): string[] =>
-  classifications.flatMap(c => (c.broken ? [c.name] : []))
-
-const tasksFrom = (classifications: readonly Classification[]): BenchTask[] =>
-  classifications.flatMap(c => c.tasks)
+const partition = (modules: readonly TestModule[]): Partitioned => {
+  const brokenNames: string[] = []
+  const tasks: BenchTask[] = []
+  for (const testCase of allTestsInOrder(modules)) {
+    const state = testCase.result().state
+    if (state === 'skipped') continue
+    const own = tasksOf(testCase)
+    if (state === 'passed' && own.length > 0) tasks.push(...own)
+    else brokenNames.push(testCase.name)
+  }
+  return { brokenNames, tasks }
+}
 
 const assertNoBrokenTests = (brokenNames: readonly string[]): void => {
   if (brokenNames.length === 0) return
   throw new Error(
-    `Benchmarks produced no samples (their body threw): ${brokenNames.join(', ')}`
+    `Benchmarks produced no samples (body threw, never ran, or never called bench): ${brokenNames.join(', ')}`
   )
 }
 
-const assertRunPassed = (reason: TestRunEndReason): void => {
+// vitest derives `reason` from module results alone, but an unhandled error
+// sets a non-zero exit code on its own path — so a run can arrive here as
+// 'passed' while having failed. Writing then would publish a series built from
+// an incomplete run.
+const assertRunPassed = (
+  reason: TestRunEndReason,
+  unhandledErrors: ReadonlyArray<unknown>
+): void => {
+  if (unhandledErrors.length > 0) {
+    throw new Error(
+      `Benchmark run raised ${unhandledErrors.length} unhandled error(s); ${RUNTIME_PATH} and ${LATENCY_PATH} not written`
+    )
+  }
   if (reason === 'passed') return
   throw new Error(
-    'Benchmark run did not pass; perf-runtime.json and perf-memory.json not written'
+    `Benchmark run did not pass; ${RUNTIME_PATH} and ${LATENCY_PATH} not written`
   )
 }
 
@@ -133,22 +142,22 @@ const writeOutputs = (tasks: readonly BenchTask[]): void => {
 
 const logInterrupted = (): void => {
   console.log(
-    'Benchmark run interrupted: perf-runtime.json and perf-memory.json not written'
+    `Benchmark run interrupted: ${RUNTIME_PATH} and ${LATENCY_PATH} not written`
   )
 }
 
 const report = (
   testModules: ReadonlyArray<TestModule>,
+  unhandledErrors: ReadonlyArray<unknown>,
   reason: TestRunEndReason
 ): void => {
   if (reason === 'interrupted') {
     logInterrupted()
     return
   }
-  const classifications = classifyTests(testModules)
-  assertNoBrokenTests(brokenNamesOf(classifications))
-  assertRunPassed(reason)
-  const tasks = tasksFrom(classifications)
+  const { brokenNames, tasks } = partition(testModules)
+  assertNoBrokenTests(brokenNames)
+  assertRunPassed(reason, unhandledErrors)
   assertHasTasks(tasks)
   assertNonEmptyNames(tasks)
   assertUniqueNames(tasks)
@@ -158,9 +167,9 @@ const report = (
 export default class PerfReporter implements Reporter {
   onTestRunEnd(
     testModules: ReadonlyArray<TestModule>,
-    _unhandledErrors: ReadonlyArray<unknown>,
+    unhandledErrors: ReadonlyArray<unknown>,
     reason: TestRunEndReason
   ): void {
-    report(testModules, reason)
+    report(testModules, unhandledErrors, reason)
   }
 }
