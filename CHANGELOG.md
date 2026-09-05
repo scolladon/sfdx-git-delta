@@ -4,6 +4,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.0...v7.4.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* build tree indexes in every mode so manifests do not depend on --generate-delta ([#1426](https://github.com/scolladon/sfdx-git-delta/issues/1426)) ([fa374df](https://github.com/scolladon/sfdx-git-delta/commit/fa374df4e4a84b64174d4c4d19ea3c8d2fb5500b))
+* **metadata:** key the cancellation index on component identity ([#1414](https://github.com/scolladon/sfdx-git-delta/issues/1414)) ([2c00aef](https://github.com/scolladon/sfdx-git-delta/commit/2c00aeff82f1e69debeefd815433bcd1f19d4ce1))
+* **metadata:** let an ignored addition cancel its deletion when no file of its component survives ([#1419](https://github.com/scolladon/sfdx-git-delta/issues/1419)) ([05bac7c](https://github.com/scolladon/sfdx-git-delta/commit/05bac7c86eee458cb2f2f732694bffe8ce321dbe))
+
 ## [7.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.3.0...v7.4.0) (2026-08-24)
 
 
