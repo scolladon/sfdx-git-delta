@@ -1352,6 +1352,194 @@ describe('GitAdapter', () => {
     })
   })
 
+  describe('Given concurrent indexRevision callers', () => {
+    type Flattened = ReturnType<typeof flatten>
+    const TWO_BLOBS = flatten([
+      ['force-app/foo.cls', { mode: '100644', id: 'blob-1' }],
+      ['force-app/bar.cls', { mode: '100644', id: 'blob-2' }],
+    ])
+
+    // Every step before flattenTree answers instantly; streamBlob echoes the
+    // blob id so a caller's result names the tree that served it.
+    const armWalk = (): void => {
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.streamBlob.mockImplementation(async (id: string) => [
+        Buffer.from(id),
+      ])
+    }
+
+    // Holds the walk open at flattenTree. `mockReturnValue` (not Once): on a
+    // per-caller memo every miss reaches flattenTree and must get the same
+    // held promise, so the only thing that differs between the two memo
+    // policies is the call count — never the settlement.
+    const holdFlattenTree = () => {
+      let release!: (value: Flattened) => void
+      let fail!: (reason: unknown) => void
+      const held = new Promise<Flattened>((resolve, reject) => {
+        release = resolve
+        fail = reject
+      })
+      fakeRepo.primitives.flattenTree.mockReturnValue(held)
+      return { release, fail }
+    }
+
+    // Both callers have passed the memo read once flattenTree has been
+    // reached; settling the held walk only after this makes "inside the
+    // window" an observed fact, not a timing assumption.
+    const walkReached = (): Promise<void> =>
+      vi.waitFor(() =>
+        expect(fakeRepo.primitives.flattenTree).toHaveBeenCalled()
+      )
+
+    const foo = { path: 'force-app/foo.cls', oid: 'HEAD' }
+    const bar = { path: 'force-app/bar.cls', oid: 'HEAD' }
+
+    it('When two getBufferContentOrEscalate calls for the same revision start before the first walk settles, Then the tree is flattened once and each caller gets its own blob', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      armWalk()
+      const { release } = holdFlattenTree()
+
+      // Act
+      const first = sut.getBufferContentOrEscalate(foo)
+      const second = sut.getBufferContentOrEscalate(bar)
+      await walkReached()
+      release(TWO_BLOBS)
+      const [fooContent, barContent] = await Promise.all([first, second])
+
+      // Assert
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
+      expect(fooContent).toEqual(Buffer.from('blob-1'))
+      expect(barContent).toEqual(Buffer.from('blob-2'))
+    })
+
+    it('When callers for two different revisions start before either walk settles, Then each revision is flattened exactly once and every caller is served its own tree', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockImplementation(async (rev: string) => `${rev}-oid`)
+      fakeRepo.primitives.readObject.mockImplementation(async (oid: string) =>
+        asCommit(`${oid}-tree`)
+      )
+      fakeRepo.primitives.streamBlob.mockImplementation(async (id: string) => [
+        Buffer.from(id),
+      ])
+      const headAgain = { path: 'force-app/foo.cls', oid: 'HEAD' }
+      const headTilde = { path: 'force-app/foo.cls', oid: 'HEAD~1' }
+
+      // Every tree is held open until all three callers have passed the memo
+      // read, so "before either walk settles" is observed, not inferred from
+      // microtask depth — a later await on the read path would otherwise make
+      // the sharing claim vacuous while the test still passed.
+      const held = new Map<string, (value: Flattened) => void>()
+      fakeRepo.primitives.flattenTree.mockImplementation(
+        (tree: string) =>
+          new Promise<Flattened>(resolve => {
+            held.set(tree, resolve)
+          })
+      )
+
+      // Act
+      const first = sut.getBufferContentOrEscalate(foo)
+      const second = sut.getBufferContentOrEscalate(headAgain)
+      const third = sut.getBufferContentOrEscalate(headTilde)
+      await vi.waitFor(() =>
+        expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledTimes(2)
+      )
+      for (const [tree, release] of held) {
+        release(
+          flatten([
+            ['force-app/foo.cls', { mode: '100644', id: `${tree}-blob` }],
+          ])
+        )
+      }
+      const [firstContent, secondContent, thirdContent] = await Promise.all([
+        first,
+        second,
+        third,
+      ])
+
+      // Assert
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledTimes(2)
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledWith(
+        'HEAD-oid-tree'
+      )
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledWith(
+        'HEAD~1-oid-tree'
+      )
+      expect(firstContent).toEqual(Buffer.from('HEAD-oid-tree-blob'))
+      expect(secondContent).toEqual(Buffer.from('HEAD-oid-tree-blob'))
+      expect(thirdContent).toEqual(Buffer.from('HEAD~1-oid-tree-blob'))
+    })
+
+    it('When two buildTreeIndex calls for the same revision start before the walk settles (the --from equals --to shape), Then the tree is flattened once and each call still gets its own TreeIndex', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      armWalk()
+      const { release } = holdFlattenTree()
+
+      // Act
+      const first = sut.buildTreeIndex('HEAD', [])
+      const second = sut.buildTreeIndex('HEAD', [])
+      await walkReached()
+      release(TWO_BLOBS)
+      const [toIndex, fromIndex] = await Promise.all([first, second])
+
+      // Assert
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
+      expect(toIndex).not.toBe(fromIndex)
+      expect(toIndex!.getFilesPath('').sort()).toEqual([
+        'force-app/bar.cls',
+        'force-app/foo.cls',
+      ])
+      expect(fromIndex!.getFilesPath('').sort()).toEqual([
+        'force-app/bar.cls',
+        'force-app/foo.cls',
+      ])
+    })
+
+    it('When the shared walk rejects after a second caller joined it, Then both callers reject with that same error object and the revision was resolved once', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      armWalk()
+      const { fail } = holdFlattenTree()
+      const error = new Error('object store unreadable')
+
+      // Act
+      const first = sut.getBufferContentOrEscalate(foo)
+      const second = sut.getBufferContentOrEscalate(bar)
+      await walkReached()
+      fail(error)
+
+      // Assert
+      await expect(first).rejects.toBe(error)
+      await expect(second).rejects.toBe(error)
+      expect(fakeRepo.revParse).toHaveBeenCalledOnce()
+    })
+
+    it('When a walk has rejected and a later caller asks for the same revision, Then the slot was evicted so the revision is resolved again and the caller is served', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      armWalk()
+      const { fail } = holdFlattenTree()
+      const error = new Error('object store unreadable')
+      const first = sut.getBufferContentOrEscalate(foo)
+      const second = sut.getBufferContentOrEscalate(bar)
+      await walkReached()
+      fail(error)
+      await expect(first).rejects.toBe(error)
+      await expect(second).rejects.toBe(error)
+      fakeRepo.primitives.flattenTree.mockResolvedValue(TWO_BLOBS)
+
+      // Act
+      const retried = await sut.getBufferContentOrEscalate(foo)
+
+      // Assert
+      expect(retried).toEqual(Buffer.from('blob-1'))
+      expect(fakeRepo.revParse).toHaveBeenCalledTimes(2)
+    })
+  })
+
   describe('Given getStringContent', () => {
     it('When called, Then it returns the buffer content decoded as UTF-8', async () => {
       // Arrange

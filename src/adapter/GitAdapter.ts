@@ -151,12 +151,21 @@ export default class GitAdapter implements GitBlobReader {
     GitAdapter.instances.clear()
   }
 
-  // Per revision: repo-relative path -> blob ObjectId. The tsgit counterpart
-  // of `git cat-file --batch` oid:path resolution. Deterministic per
-  // revision and safe to share across every run against this repository —
-  // unlike the tree index (see buildTreeIndex), nothing here varies by
-  // caller-supplied scope.
-  protected readonly blobIdIndex: Map<string, Map<string, ObjectId>>
+  // Per revision: the pending (or settled) build of repo-relative path ->
+  // blob ObjectId. Stored as the promise, not the resolved map, and written
+  // before the first await, so every caller that arrives while the first
+  // walk is still running awaits that same walk instead of starting its own
+  // (the DiffLineInterpreter queue and IOExecutor both fan out at
+  // getConcurrencyThreshold(); buildRunTreeReader asks for `to` and `from`
+  // under one Promise.all). Deterministic per revision and safe to share
+  // across every run against this repository — unlike the tree index (see
+  // buildTreeIndex), nothing here varies by caller-supplied scope. The map
+  // is handed out read-only: one instance is shared by every caller, and two
+  // consumers iterate it across an await.
+  protected readonly blobIdIndex: Map<
+    string,
+    Promise<ReadonlyMap<string, ObjectId>>
+  >
   private repoHandle: Promise<Repository> | null = null
 
   // `key` identifies the repository — the pool map key and every
@@ -169,7 +178,7 @@ export default class GitAdapter implements GitBlobReader {
     private readonly key: string,
     private readonly repoPath: string
   ) {
-    this.blobIdIndex = new Map<string, Map<string, ObjectId>>()
+    this.blobIdIndex = new Map<string, Promise<ReadonlyMap<string, ObjectId>>>()
   }
 
   // Read by ConfigValidator to render `error.PathIsNotGit` from the exact
@@ -284,17 +293,34 @@ export default class GitAdapter implements GitBlobReader {
     return target
   }
 
-  // Flattens the full tree at `revision` once and caches path -> blob oid.
-  // Shared by the tree index, blob reads, archive streaming and grep.
+  // Not `async` on purpose: an `await` between the memo read and the memo
+  // write is what let concurrent callers each re-walk the tree, and a
+  // non-async function cannot contain one.
+  protected indexRevision(
+    revision: string
+  ): Promise<ReadonlyMap<string, ObjectId>> {
+    const memoised = this.blobIdIndex.get(revision)
+    if (memoised) {
+      return memoised
+    }
+    const build = this.flattenRevision(revision).catch((error: unknown) => {
+      // Evict so a later caller retries rather than inheriting the failure.
+      // No identity check is needed: the slot holds this build until this
+      // handler deletes it, so nothing can replace it first, and the
+      // reaction cannot run before the synchronous set below, so the delete
+      // never outruns the write.
+      this.blobIdIndex.delete(revision)
+      throw error
+    })
+    this.blobIdIndex.set(revision, build)
+    return build
+  }
+
   // flattenTree is the bulk traversal path (one call, no per-entry yields);
   // it takes a tree oid, so the commit is peeled first.
-  protected async indexRevision(
+  private async flattenRevision(
     revision: string
-  ): Promise<Map<string, ObjectId>> {
-    const cached = this.blobIdIndex.get(revision)
-    if (cached) {
-      return cached
-    }
+  ): Promise<ReadonlyMap<string, ObjectId>> {
     const repo = await this.getRepo()
     const revisionId = await repo.revParse(revision)
     const commit = await this.peelToCommit(revisionId, revision)
@@ -305,7 +331,6 @@ export default class GitAdapter implements GitBlobReader {
         blobIds.set(treatPathSep(path), entry.id)
       }
     }
-    this.blobIdIndex.set(revision, blobIds)
     return blobIds
   }
 

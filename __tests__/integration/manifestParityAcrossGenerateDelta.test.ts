@@ -22,14 +22,25 @@ import DiffLineInterpreter from '../../src/service/diffLineInterpreter'
 import type { Config, ConfigInput } from '../../src/types/config'
 import type { Manifest } from '../../src/types/work'
 import ChangeSet from '../../src/utils/changeSet'
+import { getConcurrencyThreshold } from '../../src/utils/concurrencyUtils'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
+import { MessageService } from '../../src/utils/MessageService'
 import RepoGitDiff from '../../src/utils/repoGitDiff'
 import { computeTreeIndexScope } from '../../src/utils/treeIndexScope'
 import { buildRunTreeReader } from '../../src/utils/treeReaderBuilder'
 import {
+  buildInFileFanOutFixtureRepo,
   buildLiveContainerFixtureRepo,
+  buildUnreadableSubtreeFixtureRepo,
+  IN_FILE_FAN_OUT_ADDED_ALERT,
+  type InFileFanOutFixtureRefs,
+  inFileFanOutWorkflowName,
   LIVE_KEEP_CLASS,
   type LiveContainerFixtureRefs,
+  UNREADABLE_SUBTREE_COPY_COUNT,
+  UNREADABLE_SUBTREE_PATH,
+  type UnreadableSubtreeFixtureRefs,
+  unlinkTreeObjectAt,
 } from '../__utils__/gitFixtureRepo'
 import { createTempDir, runGit, toFileUrl } from '../__utils__/gitTestHarness'
 import { sourceDirs } from '../__utils__/sourceDirs'
@@ -40,12 +51,12 @@ const SHALLOW_CLONE_DEPTH = '2'
 // GitAdapter.indexRevision is protected; this names just enough of its
 // shape to spy on the shared prototype method without an `any` escape.
 type IndexRevisionHost = {
-  indexRevision: (revision: string) => Promise<Map<string, ObjectId>>
+  indexRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
 // GitAdapter.peelToCommit is protected too. It sits past indexRevision's
-// early-return memo check (`if (cached) return cached`), so it runs only on
-// a genuine miss — spying it distinguishes "the memo answered" from "the
+// early-return in-flight memo check, inside flattenRevision, so it runs only
+// on a genuine miss — spying it distinguishes "the memo answered" from "the
 // tree got walked again", which spying indexRevision itself cannot.
 type PeelToCommitHost = {
   peelToCommit: (oid: ObjectId, label: string) => Promise<Commit>
@@ -444,5 +455,187 @@ describe('Given the live-container fixture cloned shallow so getFirstCommitRef r
     expect(members(destructive, 'LightningComponentBundle')).toContain('still')
     expect(off.packageXml).toBe(on.packageXml)
     expect(off.destructiveXml).toBe(on.destructiveXml)
+  })
+})
+
+describe('Given a diff whose tree-index scope is empty and whose handlers read content concurrently', () => {
+  const FAN_OUT_FILE_COUNT = 12
+  let fanOutDir: string
+  let fanOut: InFileFanOutFixtureRefs
+
+  beforeAll(async () => {
+    fanOutDir = await trackedTempDir('sgd-parity-fan-out-')
+    fanOut = buildInFileFanOutFixtureRepo(fanOutDir, FAN_OUT_FILE_COUNT)
+    // ~50 git spawns; same Windows hook-timeout flake shape as the top-level
+    // beforeAll.
+  }, 30_000)
+
+  it.each([false, true])(
+    'When sgd runs with generateDelta=%s, Then every handler asks indexRevision for both revisions but each revision is walked exactly once',
+    async generateDelta => {
+      // Arrange — two preconditions keep this leg from passing vacuously: a
+      // 1-slot queue serialises the handlers (no race left to catch), and a
+      // non-empty scope would let buildRunTreeReader warm the memo before
+      // any handler runs (nothing left to race on).
+      expect(getConcurrencyThreshold()).toBeGreaterThan(1)
+      const scopeProbe = makeConfig({
+        repo: fanOutDir,
+        to: fanOut.head,
+        from: fanOut.base,
+      })
+      expect(
+        computeTreeIndexScope(await materialize(scopeProbe), metadata).size
+      ).toBe(0)
+      // The probe pooled an adapter for fanOutDir; the measured run starts
+      // cold.
+      await GitAdapter.closeAll()
+      const indexRevisionSpy = vi.spyOn(
+        GitAdapter.prototype as unknown as IndexRevisionHost,
+        'indexRevision'
+      )
+      const peelToCommitSpy = vi.spyOn(
+        GitAdapter.prototype as unknown as PeelToCommitHost,
+        'peelToCommit'
+      )
+
+      // Act
+      const { work } = await runSgd({
+        generateDelta,
+        repo: fanOutDir,
+        to: fanOut.head,
+        from: fanOut.base,
+      })
+
+      // Assert — every handler asked for both revisions (the "asked"
+      // count), yet each revision was walked once (the traversal count).
+      // Exact counts, not bounds: a regression to per-caller walking must
+      // not be able to hide behind a loose comparison.
+      const revisionsSeen = new Set(
+        indexRevisionSpy.mock.calls.map(call => call[0])
+      )
+      expect(revisionsSeen).toEqual(new Set([fanOut.head, fanOut.base]))
+      expect(indexRevisionSpy).toHaveBeenCalledTimes(2 * FAN_OUT_FILE_COUNT)
+      expect(peelToCommitSpy).toHaveBeenCalledTimes(revisionsSeen.size)
+      // The run did real work with the content it read: the alert added at
+      // head lands as a WorkflowAlert member for every file.
+      const addedAlerts = Array.from(
+        { length: FAN_OUT_FILE_COUNT },
+        (_, offset) =>
+          `${inFileFanOutWorkflowName(offset + 1)}.${IN_FILE_FAN_OUT_ADDED_ALERT}`
+      ).sort()
+      expect(
+        members(work.changes.forPackageManifest(), 'WorkflowAlert')
+      ).toEqual(addedAlerts)
+    }
+  )
+})
+
+describe('Given --from equal to --to and an include file (non-empty scope)', () => {
+  it("When sgd runs, Then buildRunTreeReader's two slots for the one revision share a single walk", async () => {
+    // Arrange — the include file makes the scope config.source, so
+    // buildRunTreeReader runs and asks buildTreeIndex(head) twice under one
+    // Promise.all (config.to and config.from are the same string); the
+    // empty diff alone would skip the builder and walk nothing.
+    const include = await writePatterns('include-same-revision.txt', [
+      LIVE_KEEP_CLASS,
+    ])
+    const indexRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as IndexRevisionHost,
+      'indexRevision'
+    )
+    const peelToCommitSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as PeelToCommitHost,
+      'peelToCommit'
+    )
+
+    // Act
+    const { work } = await runSgd({ from: refs.head, to: refs.head, include })
+
+    // Assert
+    const headAsked = indexRevisionSpy.mock.calls.filter(
+      ([revision]) => revision === refs.head
+    )
+    const headWalked = peelToCommitSpy.mock.calls.filter(
+      ([, label]) => label === refs.head
+    )
+    expect(headAsked).toHaveLength(2)
+    expect(headWalked).toHaveLength(1)
+    const revisionsSeen = new Set(
+      indexRevisionSpy.mock.calls.map(call => call[0])
+    )
+    expect(peelToCommitSpy).toHaveBeenCalledTimes(revisionsSeen.size)
+    expect(members(work.changes.forPackageManifest(), 'ApexClass')).toEqual([
+      'Keep',
+    ])
+  })
+})
+
+describe('Given an unreadable subtree that the diff never opens at either revision', () => {
+  let unreadableDir: string
+  let unreadable: UnreadableSubtreeFixtureRefs
+
+  beforeAll(async () => {
+    unreadableDir = await trackedTempDir('sgd-parity-unreadable-')
+    unreadable = buildUnreadableSubtreeFixtureRepo(unreadableDir)
+  }, 30_000)
+
+  it('When sgd runs with --generate-delta, Then exactly one TreeIndexUnavailable warning is raised, the builder walks to once and the copy batch retries it once more', async () => {
+    // Arrange — with fewer queue slots than copies the copies would run
+    // one after another and each retry for itself; the precondition keeps
+    // the expected count exact instead of runner-dependent.
+    expect(getConcurrencyThreshold()).toBeGreaterThanOrEqual(
+      UNREADABLE_SUBTREE_COPY_COUNT
+    )
+    unlinkTreeObjectAt(unreadableDir, unreadable.head, UNREADABLE_SUBTREE_PATH)
+    const indexRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as IndexRevisionHost,
+      'indexRevision'
+    )
+    const peelToCommitSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as PeelToCommitHost,
+      'peelToCommit'
+    )
+
+    // Act
+    const { work } = await runSgd({
+      generateDelta: true,
+      repo: unreadableDir,
+      to: unreadable.head,
+      from: unreadable.base,
+    })
+
+    // Assert — one warning, from main.ts's own attempt (buildRunTreeReader),
+    // rendered through the real message catalogue.
+    const expectedWarning = new MessageService().getMessage(
+      'warning.TreeIndexUnavailable',
+      [unreadable.head]
+    )
+    expect(work.warnings.map(warning => warning.message)).toEqual([
+      expectedWarning,
+    ])
+    // The subtree is byte-identical at base and head, so one shared tree
+    // oid is unlinked and BOTH walks reject; only `to` is warned about,
+    // which is what the single-warning assertion above pins.
+    // Attempt-scoped means every attempt walks for itself: the builder's
+    // rejected walk was evicted, so the copy batch starts one fresh walk
+    // and its second copy joins it. `from` is only ever asked by the
+    // builder, hence one attempt.
+    const headWalked = peelToCommitSpy.mock.calls.filter(
+      ([, label]) => label === unreadable.head
+    )
+    const baseWalked = peelToCommitSpy.mock.calls.filter(
+      ([, label]) => label === unreadable.base
+    )
+    expect(headWalked).toHaveLength(2)
+    expect(baseWalked).toHaveLength(1)
+    const headAsked = indexRevisionSpy.mock.calls.filter(
+      ([revision]) => revision === unreadable.head
+    )
+    expect(headAsked).toHaveLength(1 + UNREADABLE_SUBTREE_COPY_COUNT)
+    // The manifest still lists the modified bundle: the degrade degrades,
+    // it does not abort.
+    expect(
+      members(work.changes.forPackageManifest(), 'LightningComponentBundle')
+    ).toEqual(['foo'])
   })
 })
