@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import type { ObjectId } from '@scolladon/tsgit'
 import {
   afterAll,
   afterEach,
@@ -35,6 +36,12 @@ import { sourceDirs } from '../__utils__/sourceDirs'
 import { getContext } from '../__utils__/testWork'
 
 const SHALLOW_CLONE_DEPTH = '2'
+
+// GitAdapter.indexRevision is protected; this names just enough of its
+// shape to spy on the shared prototype method without an `any` escape.
+type IndexRevisionHost = {
+  indexRevision: (revision: string) => Promise<Map<string, ObjectId>>
+}
 
 // The one seam that leaves the process: ConfigValidator caps apiVersion
 // against SDR's live coverage lookup. Pinned so the run is offline and
@@ -202,6 +209,30 @@ describe('Given the live-container fixture and no include file', () => {
       ...on.work.changes.forDestructiveManifest(),
     ])
     expect(off.work.warnings).toEqual([])
+  })
+})
+
+describe('Given a --generate-delta-off run over the live-container fixture', () => {
+  it('When sgd runs, Then indexRevision is called exactly once per revision (the per-run memo holds)', async () => {
+    // Arrange — a timing ceiling cannot catch the per-revision memo
+    // breaking: one extra flatten costs only a few ms, invisible against
+    // bench noise (see pipeline.bench.ts). This pins the call count
+    // directly instead.
+    const indexRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as IndexRevisionHost,
+      'indexRevision'
+    )
+
+    // Act
+    await runSgd({ generateDelta: false })
+
+    // Assert — exactly one flatten per revision (to, from): a broken memo
+    // would surface as extra calls repeating a revision already seen.
+    const revisionsSeen = indexRevisionSpy.mock.calls.map(call => call[0])
+    expect(indexRevisionSpy).toHaveBeenCalledTimes(2)
+    expect(new Set(revisionsSeen).size).toBe(2)
+
+    indexRevisionSpy.mockRestore()
   })
 })
 

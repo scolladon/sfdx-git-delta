@@ -11,7 +11,11 @@ import {
   generateManifestElements,
 } from './fixtures/generateFixtures.js'
 import { buildLwcDiffRepo } from './fixtures/lwcRepoFixture.js'
-import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
+import {
+  assertMeanWithinCeiling,
+  perfBench,
+  RUNNER_NOISE_FACTOR,
+} from './harness/perfBench.js'
 
 const metadata = await getDefinition({})
 
@@ -44,14 +48,21 @@ vi.mock('../../src/metadata/metadataManager.js', async importOriginal => ({
 
 const BUNDLE_COUNTS = [100, 1_000] as const
 
-// Measured over three runs (worst-of-three means): 100 bundles 24.80/24.43/
-// 24.11ms, 1000 bundles 600.83/616.88/609.01ms. Ceiling is the worst mean ×
-// RUNNER_NOISE_FACTOR = 3 (ignoredAdditionProbe.bench.ts:54-64), rounded up to
-// the next 100ms.
+const deriveCeilingMs = (worstMeanMs: number): number =>
+  Math.ceil((worstMeanMs * RUNNER_NOISE_FACTOR) / 100) * 100
+
+// Measured over three runs against the packed fixture (worst-of-three means):
+// 100 bundles 9.61/9.60/9.46ms, 1000 bundles 53.00/50.71/50.10ms. Ceiling is
+// the worst mean × RUNNER_NOISE_FACTOR, rounded up to the next 100ms.
+const WORST_MEAN_MS: Record<(typeof BUNDLE_COUNTS)[number], number> = {
+  100: 9.61,
+  1_000: 53.0036,
+}
+
 const SGD_NO_DELTA_CEILING_MS: Record<(typeof BUNDLE_COUNTS)[number], number> =
   {
-    100: 100,
-    1_000: 1_900,
+    100: deriveCeilingMs(WORST_MEAN_MS[100]),
+    1_000: deriveCeilingMs(WORST_MEAN_MS[1_000]),
   }
 
 const tempDirs: string[] = []

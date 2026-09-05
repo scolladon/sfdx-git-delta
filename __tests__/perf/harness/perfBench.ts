@@ -1,5 +1,11 @@
 import { test } from 'vitest'
 
+// Shared runners are noisy (±40% run-to-run is normal); ceilings exist to
+// catch an order-of-magnitude regression, not to police variance. A ceiling
+// bounds the worst-of-three measured mean × this factor, rounded up to the
+// next 100ms.
+export const RUNNER_NOISE_FACTOR = 3
+
 // tinybench 6 defaults, stated so a future tinybench bump cannot move the
 // sample budget silently: every gh-pages series is comparable only while
 // this budget holds.

@@ -28,10 +28,17 @@ const metaPath = (name: string): string =>
 /**
  * N live bundles at `root` (script, markup, meta), the markup of every one
  * deleted at `head` — every diff line is index-needing and every bundle
- * survives, the shape whose liveness check is the cost under measurement.
- * Built with one `update-index --index-info` per commit: per-file plumbing
- * (gitFixtureRepo's makeCommit) spawns two processes per file, which at a
- * few thousand files costs more than the bench itself.
+ * survives. The sample this feeds is dominated by the git tree-diff walk
+ * over all 3N files, buildTreeIndex's per-revision trie build (rebuilt
+ * fresh every sample — indexRevision's blob-id flatten underneath it is
+ * memoised, but the TreeIndex itself is not), and manifest aggregation;
+ * the liveness check itself is a handful of Trie lookups, measured at
+ * ~0.3% of a sample. Built with one `update-index --index-info` per commit:
+ * per-file plumbing (gitFixtureRepo's makeCommit) spawns two processes per
+ * file, which at a few thousand files costs more than the bench itself.
+ * Packed with `repack -adq` once history is built: real clones and CI
+ * checkouts are packed, and an unpacked fixture would otherwise bench
+ * tsgit's loose-object reader rather than sgd.
  */
 export const buildLwcDiffRepo = (
   dir: string,
@@ -74,6 +81,10 @@ export const buildLwcDiffRepo = (
   )
 
   runGit(['update-ref', 'HEAD', head], { cwd: dir })
+  // Real clones and CI checkouts are packed; a loose-object fixture would
+  // bench tsgit's loose-object reader instead of sgd (108ms vs 16ms to
+  // flatten at 3k files, 400ms vs 17ms at 9k).
+  runGit(['repack', '-adq'], { cwd: dir })
 
   return { root, head }
 }
