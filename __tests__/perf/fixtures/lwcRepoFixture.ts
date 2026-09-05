@@ -29,11 +29,13 @@ const metaPath = (name: string): string =>
  * N live bundles at `root` (script, markup, meta), the markup of every one
  * deleted at `head` — every diff line is index-needing and every bundle
  * survives. The sample this feeds is dominated by the git tree-diff walk
- * over all 3N files, buildTreeIndex's per-revision trie build (rebuilt
- * fresh every sample — indexRevision's blob-id flatten underneath it is
- * memoised, but the TreeIndex itself is not), and manifest aggregation;
- * the liveness check itself is a handful of Trie lookups, measured at
- * ~0.3% of a sample. Built with one `update-index --index-info` per commit:
+ * over all 3N files, buildTreeIndex's per-revision trie build, and
+ * manifest aggregation; the liveness check itself is a handful of Trie
+ * lookups, measured at ~0.3% of a sample. Nothing here is memoised across
+ * samples: sgd()'s `finally` calls GitAdapter.closeAll() (src/main.ts),
+ * clearing the pool, so every sample re-flattens both revisions'
+ * blob-id indexes (indexRevision) from scratch on top of rebuilding the
+ * trie. Built with one `update-index --index-info` per commit:
  * per-file plumbing (gitFixtureRepo's makeCommit) spawns two processes per
  * file, which at a few thousand files costs more than the bench itself.
  * Packed with `repack -adq` once history is built: real clones and CI

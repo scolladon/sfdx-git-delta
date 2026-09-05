@@ -5,6 +5,7 @@ import IOExecutor from '../../src/adapter/ioExecutor'
 import { TreeIndex } from '../../src/adapter/treeIndex'
 import { EMPTY_TREE_READER } from '../../src/adapter/treeReader'
 import sgd from '../../src/main'
+import DiffLineInterpreter from '../../src/service/diffLineInterpreter'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
 import {
@@ -515,11 +516,10 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).not.toHaveBeenCalled()
     })
 
-    it('Given empty scope paths, When sgd runs, Then IOExecutor receives the shared EMPTY_TREE_READER as ctx.trees', async () => {
-      // Arrange — the only unit-level pin that the run's built TreeReader
-      // actually reaches consumers; a `trees: EMPTY_TREE_READER` regression
-      // (e.g. threading a fresh empty reader instead of the shared
-      // singleton) would otherwise surface only via integration.
+    it('Given empty scope paths, When sgd runs, Then IOExecutor falls back to the shared EMPTY_TREE_READER as ctx.trees', async () => {
+      // Arrange — pins the empty-scope fallback only (buildRunTreeReader's
+      // own short-circuit). It cannot guard a built reader actually
+      // reaching consumers: see the non-empty-scope case below for that.
       mockComputeTreeIndexScope.mockReturnValueOnce(new Set())
       const sut = {
         to: 'HEAD',
@@ -535,6 +535,40 @@ describe('external library inclusion', () => {
         | RunContext
         | undefined
       expect(ctxArg?.trees).toBe(EMPTY_TREE_READER)
+    })
+
+    it('Given a non-empty scope, When sgd runs, Then IOExecutor and DiffLineInterpreter both receive the built tree reader as ctx.trees', async () => {
+      // Arrange — the previous version of this pin expected EMPTY_TREE_READER
+      // itself, which is also what the regression it claims to guard
+      // (threading `trees: EMPTY_TREE_READER` unconditionally, ignoring
+      // whatever buildRunTreeReader actually returned) would produce: the
+      // assertion cannot fail under that regression. A non-empty scope
+      // forces buildTreeIndex to run and its result to reach every
+      // consumer for the pin to mean anything; pathExists answering true
+      // for a path only the built index holds proves it is that reader,
+      // not a fallback.
+      const scopedPath = 'force-app/main/default/classes/Foo.cls'
+      const toIndex = new TreeIndex()
+      toIndex.add(scopedPath)
+      mockComputeTreeIndexScope.mockReturnValueOnce(new Set([scopedPath]))
+      mockBuildTreeIndex.mockResolvedValueOnce(toIndex)
+      const sut = {
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const ioExecutorCtx = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
+        | RunContext
+        | undefined
+      const interpreterCtx = vi.mocked(DiffLineInterpreter).mock
+        .calls[0]?.[0] as RunContext | undefined
+      expect(ioExecutorCtx?.trees.pathExists('HEAD', scopedPath)).toBe(true)
+      expect(interpreterCtx?.trees).toBe(ioExecutorCtx?.trees)
     })
 
     it('Given the diff stream emits lines, When sgd runs, Then the materialize-once branch buffers them for both the scope read and the handler pass (main L46)', async () => {

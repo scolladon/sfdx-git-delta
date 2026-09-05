@@ -100,16 +100,29 @@ describe('withMaskedTreeRevision', () => {
     })
 
     it('When the revision is masked, Then a different revision still reads through untouched', () => {
-      // Arrange
-      const ctx = buildCtx()
+      // Arrange — otherSHA needs a REAL index holding the queried path:
+      // buildCtx() alone has no index at otherSHA at all, so the
+      // pass-through's true answer would be indistinguishable from a
+      // masked always-false one.
+      const index = new TreeIndex()
+      index.add('force-app/lwc/still/still.js')
+      const otherIndex = new TreeIndex()
+      otherIndex.add('force-app/classes/Other.cls')
+      const trees = createTreeReader(
+        new Map([
+          ['firstSHA', index],
+          ['otherSHA', otherIndex],
+        ])
+      )
+      const ctx = getContext({ trees })
 
       // Act
       const result = withMaskedTreeRevision(ctx, 'firstSHA')
 
       // Assert
       expect(
-        result.trees.pathExists('otherSHA', 'force-app/lwc/still/still.js')
-      ).toBe(false)
+        result.trees.pathExists('otherSHA', 'force-app/classes/Other.cls')
+      ).toBe(true)
     })
 
     it('When the revision is masked, Then config and metadata are carried through unchanged', () => {

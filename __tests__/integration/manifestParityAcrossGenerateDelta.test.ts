@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { ObjectId } from '@scolladon/tsgit'
+import type { Commit, ObjectId } from '@scolladon/tsgit'
 import {
   afterAll,
   afterEach,
@@ -41,6 +41,14 @@ const SHALLOW_CLONE_DEPTH = '2'
 // shape to spy on the shared prototype method without an `any` escape.
 type IndexRevisionHost = {
   indexRevision: (revision: string) => Promise<Map<string, ObjectId>>
+}
+
+// GitAdapter.peelToCommit is protected too. It sits past indexRevision's
+// early-return memo check (`if (cached) return cached`), so it runs only on
+// a genuine miss — spying it distinguishes "the memo answered" from "the
+// tree got walked again", which spying indexRevision itself cannot.
+type PeelToCommitHost = {
+  peelToCommit: (oid: ObjectId, label: string) => Promise<Commit>
 }
 
 // The one seam that leaves the process: ConfigValidator caps apiVersion
@@ -170,6 +178,9 @@ afterEach(async () => {
   await GitAdapter.closeAll()
   IgnoreHelper.resetIgnoreInstance()
   IgnoreHelper.resetIncludeInstance()
+  // A failing assertion on a spy set up mid-test would otherwise skip its
+  // mockRestore() and leak the prototype spy into later tests.
+  vi.restoreAllMocks()
 })
 
 afterAll(async () => {
@@ -212,27 +223,42 @@ describe('Given the live-container fixture and no include file', () => {
   })
 })
 
-describe('Given a --generate-delta-off run over the live-container fixture', () => {
-  it('When sgd runs, Then indexRevision is called exactly once per revision (the per-run memo holds)', async () => {
-    // Arrange — a timing ceiling cannot catch the per-revision memo
-    // breaking: one extra flatten costs only a few ms, invisible against
-    // bench noise (see pipeline.bench.ts). This pins the call count
-    // directly instead.
+describe('Given a --generate-delta-on run over the live-container fixture', () => {
+  it("When sgd runs, Then a repeated request for `to` is served from indexRevision's memo instead of re-walking the tree", async () => {
+    // Arrange — a --generate-delta-off run never re-asks indexRevision for a
+    // revision it already has (buildTreeIndex asks for `to` and `from`
+    // once each), so it cannot exercise the memo at all. --generate-delta
+    // does: IOExecutor's file copies resolve blob content at `to`
+    // (getBufferContentOrEscalate -> resolveObjectId -> indexRevision(to))
+    // on top of buildTreeIndex's own call, so indexRevision('to') is asked
+    // for more than once. A timing ceiling cannot catch the memo breaking
+    // either — one extra flatten costs only a few ms, invisible against
+    // bench noise (see pipeline.bench.ts) — so this pins call counts
+    // directly: peelToCommit runs only past indexRevision's early-return,
+    // so its count divides "answered from the memo" from "walked again".
     const indexRevisionSpy = vi.spyOn(
       GitAdapter.prototype as unknown as IndexRevisionHost,
       'indexRevision'
     )
+    const peelToCommitSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as PeelToCommitHost,
+      'peelToCommit'
+    )
 
     // Act
-    await runSgd({ generateDelta: false })
+    await runSgd({ generateDelta: true })
 
-    // Assert — exactly one flatten per revision (to, from): a broken memo
-    // would surface as extra calls repeating a revision already seen.
-    const revisionsSeen = indexRevisionSpy.mock.calls.map(call => call[0])
-    expect(indexRevisionSpy).toHaveBeenCalledTimes(2)
-    expect(new Set(revisionsSeen).size).toBe(2)
-
-    indexRevisionSpy.mockRestore()
+    // Assert — more indexRevision calls than distinct revisions means a
+    // revision got asked for twice; peelToCommit running exactly once per
+    // distinct revision proves that repeat was served from the memo rather
+    // than re-walking the tree.
+    const revisionsSeen = new Set(
+      indexRevisionSpy.mock.calls.map(call => call[0])
+    )
+    expect(indexRevisionSpy.mock.calls.length).toBeGreaterThan(
+      revisionsSeen.size
+    )
+    expect(peelToCommitSpy).toHaveBeenCalledTimes(revisionsSeen.size)
   })
 })
 

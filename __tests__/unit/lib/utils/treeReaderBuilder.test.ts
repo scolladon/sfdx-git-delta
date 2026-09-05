@@ -102,6 +102,9 @@ describe('buildRunTreeReader', () => {
       )
 
       // Assert
+      expect(trees.filesUnder('HEAD', '')).toEqual([
+        'force-app/main/default/lwc/foo/foo.js',
+      ])
       expect(trees.filesUnder('HEAD~1', '')).toEqual([])
       expect(trees.pathExists('HEAD~1', '')).toBe(false)
       expect(unindexed).toEqual(['HEAD~1'])
@@ -127,6 +130,9 @@ describe('buildRunTreeReader', () => {
       // Assert
       expect(trees.filesUnder('HEAD', '')).toEqual([])
       expect(trees.pathExists('HEAD', '')).toBe(false)
+      expect(trees.filesUnder('HEAD~1', '')).toEqual([
+        'force-app/main/default/lwc/foo/foo.html',
+      ])
       expect(unindexed).toEqual(['HEAD'])
     })
   })

@@ -262,18 +262,30 @@ describe('withoutRevision', () => {
 
     describe('When pathExists is queried at a revision other than the masked one', () => {
       it('Then it delegates to the underlying reader', () => {
-        // Arrange
-        const sut = buildMasked()
+        // Arrange — otherRevision needs a REAL index holding the queried
+        // path: with no index at otherRevision at all (as buildMasked()
+        // alone provides), the pass-through's true answer is
+        // indistinguishable from a masked always-false one.
+        const otherIndex = new TreeIndex()
+        otherIndex.add('force-app/classes/Bar.cls')
+        const sut = withoutRevision(
+          createTreeReader(
+            new Map([
+              [maskedRevision, buildIndex()],
+              [otherRevision, otherIndex],
+            ])
+          ),
+          maskedRevision
+        )
 
         // Act
         const result = sut.pathExists(
           otherRevision,
-          'force-app/classes/Foo.cls'
+          'force-app/classes/Bar.cls'
         )
 
-        // Assert — the underlying reader has no entry for HEAD either, so
-        // delegation surfaces its own (unmasked) empty answer.
-        expect(result).toBe(false)
+        // Assert
+        expect(result).toBe(true)
       })
     })
 
