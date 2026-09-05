@@ -9,7 +9,11 @@ import { IgnoreHelper } from '../../src/utils/ignoreHelper.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { buildPath, SHAPES } from './fixtures/registryShapes.js'
-import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
+import {
+  assertMeanWithinCeiling,
+  perfBench,
+  RUNNER_NOISE_FACTOR,
+} from './harness/perfBench.js'
 
 // Pins the cost of the visibility pass the fix introduced: one linear walk
 // over every in-scope file at `to`, doing a registry-membership check plus
@@ -61,7 +65,6 @@ const PER_PATH_BUDGET_US = 3
 // It fails `npm run test:perf` locally (the assertion fails its vitest test
 // and the reporter writes nothing), but the CI perf job is continue-on-error,
 // so it blocks nothing there.
-const RUNNER_NOISE_FACTOR = 3
 const ROUND_COUNTER_PAD = 9
 const IGNORE_PATTERNS = ['force-app/recycle-bin/', '**/__tests__/**', '*.bak']
 

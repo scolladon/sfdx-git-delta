@@ -15,47 +15,40 @@ export const ROOT_PATHS = new Set(['', '.', './'])
 
 const GITLINK_MODE = '160000'
 
-type ScopeIndex = {
-  readonly hasRoot: boolean
-  readonly paths: ReadonlySet<string>
-}
-
-// Callers that check many paths against the same scopes (buildTreeIndex's
-// per-revision walk, a grep matcher applied over every blob) pass the same
-// `scopes` array reference on every call. Keying the index by that reference
-// turns "build the scope set once" into a cache hit instead of a parameter
-// threading exercise, so `inScope` keeps its existing shape.
-const scopeIndexCache = new WeakMap<readonly string[], ScopeIndex>()
-
-const indexScopes = (scopes: readonly string[]): ScopeIndex => {
-  const cached = scopeIndexCache.get(scopes)
-  if (cached) return cached
-
-  const index: ScopeIndex = {
-    hasRoot: scopes.some(scope => ROOT_PATHS.has(scope)),
-    paths: new Set(scopes),
-  }
-  scopeIndexCache.set(scopes, index)
-  return index
-}
-
 // A path is in scope when it equals a scope, or descends from one — i.e. any
 // ancestor-directory prefix of the path is itself a scope. Walking the
 // path's own prefixes against a Set is O(depth) per path regardless of scope
-// count, replacing the former O(scopes) scan. Slicing at each separator
-// (rather than a naive `startsWith(scope + '/')` scan) is what keeps a
-// sibling like `lwc/foobar` from matching scope `lwc/foo`.
-export const inScope = (path: string, scopes: readonly string[]): boolean => {
-  const { hasRoot, paths } = indexScopes(scopes)
-  if (hasRoot) return true
+// count, replacing a naive O(scopes) scan per path. Slicing at each
+// separator (rather than a naive `startsWith(scope + '/')` scan) is what
+// keeps a sibling like `lwc/foobar` from matching scope `lwc/foo`.
+//
+// A factory, not a cache: `hasRoot` and `paths` derive from the scopes'
+// contents, so a caller with a hot loop over the same scopes (buildTreeIndex)
+// builds the matcher once and calls it per path, while a fresh-array-per-call
+// site (streamArchive's per-file `[path]`) hoists its own single matcher out
+// of its loop instead of paying a reference-keyed cache's lookup cost on
+// every miss.
+export const buildScopeMatcher = (
+  scopes: readonly string[]
+): ((path: string) => boolean) => {
+  const hasRoot = scopes.some(scope => ROOT_PATHS.has(scope))
+  const paths = new Set(scopes)
+  return (path: string): boolean => {
+    if (hasRoot) return true
 
-  let separatorIndex = path.indexOf(PATH_SEP)
-  while (separatorIndex !== -1) {
-    if (paths.has(path.slice(0, separatorIndex))) return true
-    separatorIndex = path.indexOf(PATH_SEP, separatorIndex + 1)
+    let separatorIndex = path.indexOf(PATH_SEP)
+    while (separatorIndex !== -1) {
+      if (paths.has(path.slice(0, separatorIndex))) return true
+      separatorIndex = path.indexOf(PATH_SEP, separatorIndex + 1)
+    }
+    return paths.has(path)
   }
-  return paths.has(path)
 }
+
+// One-shot check for callers with no hot loop to hoist a matcher out of
+// (toDiffLines/keepSide: one call per side per change).
+export const inScope = (path: string, scopes: readonly string[]): boolean =>
+  buildScopeMatcher(scopes)(path)
 
 const keepSide = (
   mode: string,
@@ -126,10 +119,9 @@ const REGEXP_SPECIALS = /[.+^${}()|\\\]]/g
 // never carry a leading './' or '/' (treatPathSep and basePath already rule
 // those out), and treating `[` as a glob-class opener would misread real
 // path segments like an object folder named `Custom[1]__c`.
-export const buildLiteralMatcher =
-  (specs: string[]) =>
-  (path: string): boolean =>
-    inScope(path, specs)
+export const buildLiteralMatcher = (
+  specs: string[]
+): ((path: string) => boolean) => buildScopeMatcher(specs)
 
 // Git pathspec semantics: a literal pathspec matches by directory prefix; a
 // pathspec containing wildcards uses wildmatch where `*` also crosses `/`
@@ -154,7 +146,8 @@ export const buildPathspecMatcher = (
         .replace(/\?/g, '.')
       return new RegExp(`^${escaped}$`)
     })
+  const matchesLiteral = buildScopeMatcher(literals)
   return (path: string): boolean =>
-    (literals.length > 0 && inScope(path, literals)) ||
+    (literals.length > 0 && matchesLiteral(path)) ||
     globs.some(glob => glob.test(path))
 }

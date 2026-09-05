@@ -181,4 +181,4 @@ Could not read the file list at '%s', so %s component(s) moved into an ignored d
 
 # warning.TreeIndexUnavailable
 
-Could not build the file tree index for '%s', so components that still exist there may be listed in destructiveChanges.xml as deleted. Check that --to resolves to a readable commit.
+Could not build the file tree index for '%s', so components that still exist there may be listed in destructiveChanges.xml as deleted. Check that the commit's tree objects are present locally (a partial clone created with --filter may not have them).
