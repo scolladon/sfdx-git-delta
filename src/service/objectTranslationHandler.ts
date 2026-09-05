@@ -38,10 +38,18 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     return outcome.writer
   }
 
+  // The parent objectTranslation file always sits in the changed file's own
+  // directory, named after the component. Deriving it from the component name
+  // rather than from a fixed path position covers both layouts SDR resolves to
+  // the same component: the sub-folder form
+  // (objectTranslations/Account-es/Account-es.objectTranslation-meta.xml, which
+  // also hosts the sibling fieldTranslation files) and the flat form
+  // (objectTranslations/Account-es.objectTranslation-meta.xml). A positional
+  // `parts.at(-2)` reads the type directory itself in the flat form, yielding
+  // objectTranslations/objectTranslations.objectTranslation-meta.xml — a path
+  // that matches nothing, so the file silently never reaches the package.
   protected _getObjectTranslationPath() {
-    return `${parse(this.element.basePath).dir}${PATH_SEP}${
-      this.element.parts[this.element.parts.length - 2]
-    }.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
+    return `${parse(this.element.basePath).dir}${PATH_SEP}${this._getElementName()}.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
   }
 
   protected override _delegateFileCopy() {
@@ -56,7 +64,9 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     return false
   }
 
-  protected override _getElementName() {
-    return this.element.pathAfterType[0]
-  }
+  // NOTE: _getElementName is deliberately NOT overridden here. ResourceHandler
+  // already resolves the component name for both layouts described on
+  // _getObjectTranslationPath above; narrowing it to `pathAfterType[0]` reads
+  // the file's own base name in the flat form and leaks the ".objectTranslation
+  // -meta.xml" extension into the package.xml member.
 }
