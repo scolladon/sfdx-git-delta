@@ -5,11 +5,6 @@ import { CONTENT_CONTAINER_ADAPTERS } from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Metadata } from '../types/metadata.js'
 
-// Bundle-style adapters get a deeper scope slice in scopeForType than the
-// flat mixedContent containers, so this stays distinct from the broader
-// CONTENT_CONTAINER_ADAPTERS membership used by needsTreeIndex.
-const BUNDLE_ADAPTERS = new Set(['bundle', 'digitalExperience'])
-
 const TREE_INDEX_XML_NAMES = new Set([
   'CustomObject',
   'Dashboard',
@@ -41,21 +36,15 @@ const buildParentIndex = (
   return index
 }
 
+// Every tree-index-needing type scopes to its type directory, regardless of
+// adapter: a bundle's liveness check (pathExists on its component directory)
+// answers identically whether the index was built from just that component
+// or from the whole type directory, so there is no need to slice deeper for
+// bundle-style adapters.
 const scopeForType = (parts: string[], type: Metadata): string | null => {
   const dirIndex = parts.indexOf(type.directoryName)
-  // Stryker disable next-line ConditionalExpression -- equivalent: dir-not-found guard; flipping to false continues with dirIndex=-1 and slice(0, 0) returns an empty string that the caller's scope set absorbs as a useless entry not asserted on
   if (dirIndex < 0) return null
 
-  if (type.adapter && BUNDLE_ADAPTERS.has(type.adapter)) {
-    // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator -- equivalent: bundle-vs-non-bundle slice gate; for bundles the scope expands by one segment if the path has another segment, otherwise stays at dirIndex+1; the mutants flip the boundary by one position which still produces a valid scope path that the test surface accepts as either the parent dir or the bundle dir — both are observed as the same set membership in scope
-    if (dirIndex + 1 < parts.length) {
-      return parts.slice(0, dirIndex + 2).join(PATH_SEP)
-    }
-    // Stryker disable next-line MethodExpression -- equivalent: this branch fires only when `dirIndex + 1 >= parts.length`, i.e. parts ends at the type directory; in that case `parts.slice(0, dirIndex + 1)` is reference-distinct but value-identical to `parts`, so the join produces the same string
-    return parts.slice(0, dirIndex + 1).join(PATH_SEP)
-  }
-
-  // Stryker disable next-line MethodExpression -- equivalent: parts.slice(0, dirIndex + 1).join(PATH_SEP) computes the scope path; mutating slice to return parts wholesale would yield the full path joined, but the consuming Set absorbs both forms and tests assert on the directory-prefix membership which both forms satisfy
   return parts.slice(0, dirIndex + 1).join(PATH_SEP)
 }
 

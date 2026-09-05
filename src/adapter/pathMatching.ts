@@ -1,6 +1,7 @@
 import { type DiffChange, toSimilarityPercent } from '@scolladon/tsgit'
 
 import { TAB } from '../constant/cliConstants.js'
+import { PATH_SEP } from '../constant/fsConstants.js'
 import {
   ADDITION,
   DELETION,
@@ -14,11 +15,47 @@ export const ROOT_PATHS = new Set(['', '.', './'])
 
 const GITLINK_MODE = '160000'
 
-export const inScope = (path: string, scopes: readonly string[]): boolean =>
-  scopes.some(
-    scope =>
-      ROOT_PATHS.has(scope) || path === scope || path.startsWith(`${scope}/`)
-  )
+type ScopeIndex = {
+  readonly hasRoot: boolean
+  readonly paths: ReadonlySet<string>
+}
+
+// Callers that check many paths against the same scopes (buildTreeIndex's
+// per-revision walk, a grep matcher applied over every blob) pass the same
+// `scopes` array reference on every call. Keying the index by that reference
+// turns "build the scope set once" into a cache hit instead of a parameter
+// threading exercise, so `inScope` keeps its existing shape.
+const scopeIndexCache = new WeakMap<readonly string[], ScopeIndex>()
+
+const indexScopes = (scopes: readonly string[]): ScopeIndex => {
+  const cached = scopeIndexCache.get(scopes)
+  if (cached) return cached
+
+  const index: ScopeIndex = {
+    hasRoot: scopes.some(scope => ROOT_PATHS.has(scope)),
+    paths: new Set(scopes),
+  }
+  scopeIndexCache.set(scopes, index)
+  return index
+}
+
+// A path is in scope when it equals a scope, or descends from one — i.e. any
+// ancestor-directory prefix of the path is itself a scope. Walking the
+// path's own prefixes against a Set is O(depth) per path regardless of scope
+// count, replacing the former O(scopes) scan. Slicing at each separator
+// (rather than a naive `startsWith(scope + '/')` scan) is what keeps a
+// sibling like `lwc/foobar` from matching scope `lwc/foo`.
+export const inScope = (path: string, scopes: readonly string[]): boolean => {
+  const { hasRoot, paths } = indexScopes(scopes)
+  if (hasRoot) return true
+
+  let separatorIndex = path.indexOf(PATH_SEP)
+  while (separatorIndex !== -1) {
+    if (paths.has(path.slice(0, separatorIndex))) return true
+    separatorIndex = path.indexOf(PATH_SEP, separatorIndex + 1)
+  }
+  return paths.has(path)
+}
 
 const keepSide = (
   mode: string,
