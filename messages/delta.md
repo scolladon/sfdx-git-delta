@@ -178,3 +178,7 @@ Become a sponsor: https://github.com/sponsors/scolladon 💙
 # warning.IgnoredMoveCheckSkipped
 
 Could not read the file list at '%s', so %s component(s) moved into an ignored directory could not be confirmed as moves and are reported as deletions. Check that --to resolves to a readable commit.
+
+# warning.TreeIndexUnavailable
+
+Could not build the file tree index for '%s', so components that still exist there may be listed in destructiveChanges.xml as deleted. Check that --to resolves to a readable commit.

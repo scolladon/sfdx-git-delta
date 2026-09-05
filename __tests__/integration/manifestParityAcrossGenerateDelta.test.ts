@@ -130,7 +130,7 @@ const runBuilderPipeline = async (
 ): Promise<{ packageManifest: Manifest; destructiveManifest: Manifest }> => {
   const lines = await materialize(config)
   const scopePaths = [...computeTreeIndexScope(lines, metadata)]
-  const trees = await buildRunTreeReader(
+  const { trees } = await buildRunTreeReader(
     GitAdapter.getInstance(config),
     config,
     scopePaths

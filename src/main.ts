@@ -69,7 +69,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     const scopePaths: readonly string[] = needsScopeFromDiff
       ? [...computeTreeIndexScope(lines as Iterable<string>, metadata)]
       : config.source
-    const trees = await buildRunTreeReader(
+    const { trees, unindexed } = await buildRunTreeReader(
       GitAdapter.getInstance(config),
       config,
       scopePaths
@@ -145,6 +145,22 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ]
       : []
 
+    // Known as soon as the tree reader is built, but raised here with the
+    // rest of the warnings for a single review point. Only `to` is
+    // warn-worthy: it is the revision every liveness read (pathExists,
+    // readDirs) resolves through, so its degrade is what lets a live
+    // container land in destructiveChanges.xml. `from` only feeds deep-path
+    // member-name resolution, a narrower and already-attributed effect.
+    const treeIndexWarnings = unindexed.includes(config.to)
+      ? [
+          new Error(
+            new MessageService().getMessage('warning.TreeIndexUnavailable', [
+              sanitizeForMessage(requestedTo),
+            ])
+          ),
+        ]
+      : []
+
     const work: Work = {
       config,
       changes,
@@ -154,6 +170,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ...processorWarnings,
         ...sourceScopeWarnings,
         ...ignoredMoveWarnings,
+        ...treeIndexWarnings,
       ],
     }
     // Stryker disable next-line StringLiteral -- equivalent: log content is observability only

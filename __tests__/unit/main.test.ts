@@ -1,6 +1,7 @@
 'use strict'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { TreeIndex } from '../../src/adapter/treeIndex'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
@@ -803,6 +804,90 @@ describe('external library inclusion', () => {
     it('Given the target revision contains a control character, When sgd runs, Then the warning carries the escaped form and never the raw character', async () => {
       // Arrange
       mockGetHeldAdditionProbeFailure.mockReturnValueOnce({ candidateCount: 1 })
+      const sut = { from: 'HEAD~1', to: 'HEAD\x07' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings[0]?.message).not.toContain('\x07')
+    })
+  })
+
+  describe('tree index unavailable warning', () => {
+    beforeEach(() => {
+      // Arrange — a non-empty scope so buildRunTreeReader actually attempts
+      // to walk both revisions instead of short-circuiting to the empty
+      // reader.
+      mockComputeTreeIndexScope.mockReturnValue(
+        new Set(['force-app/main/default/lwc/foo'])
+      )
+    })
+
+    it('Given buildTreeIndex could not build an index for the to revision, When sgd runs, Then a warning naming the to revision is pushed to work.warnings', async () => {
+      // Arrange
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined) // to
+        .mockResolvedValueOnce(new TreeIndex()) // from
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        'warning.TreeIndexUnavailable:HEAD'
+      )
+    })
+
+    it('Given buildTreeIndex could not build an index for the from revision but the to revision indexed, When sgd runs, Then no warning is pushed', async () => {
+      // Arrange — the from revision only feeds deep-path member-name
+      // resolution, not container liveness, so it is not warn-worthy here.
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(new TreeIndex()) // to
+        .mockResolvedValueOnce(undefined) // from
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given both revisions index successfully, When sgd runs, Then no warning is pushed', async () => {
+      // Arrange
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(new TreeIndex()) // to
+        .mockResolvedValueOnce(new TreeIndex()) // from
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given the scope is empty, When sgd runs, Then no tree index warning is pushed and buildTreeIndex is never called', async () => {
+      // Arrange — nothing was attempted, so nothing degraded.
+      mockComputeTreeIndexScope.mockReturnValue(new Set())
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given the to revision contains a control character and its walk failed, When sgd runs, Then the warning carries the escaped form and never the raw character', async () => {
+      // Arrange
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined) // to
+        .mockResolvedValueOnce(new TreeIndex()) // from
       const sut = { from: 'HEAD~1', to: 'HEAD\x07' } as ConfigInput
 
       // Act
