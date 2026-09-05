@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import IOExecutor from '../../src/adapter/ioExecutor'
 import { TreeIndex } from '../../src/adapter/treeIndex'
+import { EMPTY_TREE_READER } from '../../src/adapter/treeReader'
 import sgd from '../../src/main'
+import DiffLineInterpreter from '../../src/service/diffLineInterpreter'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
 import {
@@ -197,9 +199,9 @@ describe('external library inclusion', () => {
       // Act
       await sgd({ generateDelta: false, source: [] } as ConfigInput)
 
-      // Assert — when generateDelta is off, main.ts streams getLines()
-      // straight into process(), so process() receives the async
-      // iterable directly rather than a materialized array.
+      // Assert — with no include file the diff is materialised for the
+      // scope read; the suite's default empty scope builds no index, so
+      // only the single process() call is observable here.
       expect(mockProcess).toHaveBeenCalledTimes(1)
     })
   })
@@ -414,41 +416,6 @@ describe('external library inclusion', () => {
   })
 
   describe('tree index scoping', () => {
-    it('Given generateDelta is false, When sgd runs, Then buildTreeIndex is not called', async () => {
-      // Act
-      await sgd({ generateDelta: false, source: [] } as ConfigInput)
-
-      // Assert
-      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
-      // Kills main L43/L49/L53: when needsScopeFromDiff is false the
-      // production code must hand the raw async iterable returned by
-      // getLines() to process(). The materialize branch (mutant) would
-      // substitute a string[]; the empty-else BlockStatement mutant would
-      // leave `lines` undefined and skip getLines() entirely.
-      expect(mockGetLines).toHaveBeenCalledTimes(1)
-      const passedLines = mockProcess.mock.calls[0]?.[0]
-      expect(passedLines).toBeDefined()
-      expect(Array.isArray(passedLines)).toBe(false)
-      expect(passedLines).toBe(mockGetLines.mock.results[0]?.value)
-    })
-
-    it('Given generateDelta is false BUT source is populated, When sgd runs, Then buildTreeIndex is still not called (the generateDelta gate short-circuits before the scope computation)', async () => {
-      // Arrange — distinguishes the generateDelta guard from the
-      // scopePaths.length > 0 guard. Without the outer `if`, scopePaths
-      // would take config.source and trigger buildTreeIndex.
-      const sut = {
-        generateDelta: false,
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act
-      await sgd(sut)
-
-      // Assert
-      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
-    })
-
     it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to dispose the tsgit repository', async () => {
       // Act
       await sgd({ source: [] } as ConfigInput)
@@ -457,10 +424,9 @@ describe('external library inclusion', () => {
       expect(mockCloseAll).toHaveBeenCalledOnce()
     })
 
-    it('Given generateDelta is true with include set, When sgd runs, Then buildTreeIndex is called with config.source', async () => {
+    it('Given include set, When sgd runs, Then buildTreeIndex is called with config.source', async () => {
       // Arrange
       const sut = {
-        generateDelta: true,
         include: 'include.txt',
         to: 'HEAD',
         from: 'HEAD~1',
@@ -476,91 +442,9 @@ describe('external library inclusion', () => {
       expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
     })
 
-    it('Given buildTreeIndex resolves a real index for both revisions, When sgd runs, Then the run completes without error (both entries.set branches taken)', async () => {
-      // Arrange — covers the `if (toIndex)` / `if (fromIndex)` true
-      // branches: a successful build for both revisions populates the
-      // TreeReader threaded to every downstream reader.
-      mockBuildTreeIndex
-        .mockResolvedValueOnce({} as never)
-        .mockResolvedValueOnce({} as never)
-      const sut = {
-        generateDelta: true,
-        to: 'HEAD',
-        from: 'HEAD~1',
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act & Assert
-      await expect(sgd(sut)).resolves.toBeDefined()
-      expect(mockBuildTreeIndex).toHaveBeenCalledTimes(2)
-    })
-
-    it('Given buildTreeIndex resolves an index for "to" but undefined for "from", When sgd runs, Then the TreeReader answers "to" with real data and "from" with the empty degrade', async () => {
-      // Arrange — pins the `if (toIndex) entries.set(...)` guard on both
-      // sides: a successful build must be reachable at its own revision
-      // key (kills the false/CallExpression-removal mutants), and a
-      // failed build must not leak a phantom entry into the reader.
-      const toIndex = new TreeIndex()
-      toIndex.add('force-app/main/default/classes/Foo.cls')
-      mockBuildTreeIndex
-        .mockResolvedValueOnce(toIndex) // config.to
-        .mockResolvedValueOnce(undefined) // config.from
-      const sut = {
-        generateDelta: true,
-        to: 'HEAD',
-        from: 'HEAD~1',
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act
-      await sgd(sut)
-
-      // Assert — inspect the RunContext threaded to IOExecutor.
-      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
-        | RunContext
-        | undefined
-      expect(ctxArg?.trees.filesUnder('HEAD', '')).toEqual([
-        'force-app/main/default/classes/Foo.cls',
-      ])
-      expect(ctxArg?.trees.filesUnder('HEAD~1', '')).toEqual([])
-    })
-
-    it('Given buildTreeIndex resolves undefined for "to" but an index for "from", When sgd runs, Then the TreeReader answers "to" with the empty degrade and "from" with real data', async () => {
-      // Arrange — mirrors the previous test for the `if (fromIndex)`
-      // guard, so both sides of the truthiness check are proven
-      // independently rather than only ever exercising them together.
-      const fromIndex = new TreeIndex()
-      fromIndex.add('force-app/main/default/classes/Bar.cls')
-      mockBuildTreeIndex
-        .mockResolvedValueOnce(undefined) // config.to
-        .mockResolvedValueOnce(fromIndex) // config.from
-      const sut = {
-        generateDelta: true,
-        to: 'HEAD',
-        from: 'HEAD~1',
-        source: ['force-app'],
-        include: 'include.txt',
-      } as ConfigInput
-
-      // Act
-      await sgd(sut)
-
-      // Assert
-      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
-        | RunContext
-        | undefined
-      expect(ctxArg?.trees.filesUnder('HEAD', '')).toEqual([])
-      expect(ctxArg?.trees.filesUnder('HEAD~1', '')).toEqual([
-        'force-app/main/default/classes/Bar.cls',
-      ])
-    })
-
     it('Given a --source-dir with a trailing slash, When sgd runs, Then buildTreeIndex receives the canonical path', async () => {
       // Arrange
       const sut = {
-        generateDelta: true,
         include: 'include.txt',
         to: 'HEAD',
         from: 'HEAD~1',
@@ -574,10 +458,9 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
     })
 
-    it('Given generateDelta is true with includeDestructive set, When sgd runs, Then buildTreeIndex is called with config.source', async () => {
+    it('Given includeDestructive set, When sgd runs, Then buildTreeIndex is called with config.source', async () => {
       // Arrange
       const sut = {
-        generateDelta: true,
         includeDestructive: 'destructive.txt',
         to: 'HEAD',
         from: 'HEAD~1',
@@ -592,13 +475,12 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['src'])
     })
 
-    it('Given generateDelta is true with computed scope paths, When sgd runs, Then buildTreeIndex is called with scope paths', async () => {
+    it('Given computed scope paths, When sgd runs, Then buildTreeIndex is called with scope paths', async () => {
       // Arrange
       mockComputeTreeIndexScope.mockReturnValueOnce(
         new Set(['force-app/main/default/classes'])
       )
       const sut = {
-        generateDelta: true,
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
@@ -617,11 +499,10 @@ describe('external library inclusion', () => {
       ])
     })
 
-    it('Given generateDelta is true with empty scope paths, When sgd runs, Then buildTreeIndex is not called', async () => {
+    it('Given empty scope paths, When sgd runs, Then buildTreeIndex is not called', async () => {
       // Arrange
       mockComputeTreeIndexScope.mockReturnValueOnce(new Set())
       const sut = {
-        generateDelta: true,
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
@@ -635,7 +516,62 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).not.toHaveBeenCalled()
     })
 
-    it('Given generateDelta is true and the diff stream emits lines, When sgd runs, Then the materialize-once branch buffers them for both the scope read and the handler pass (main L46)', async () => {
+    it('Given empty scope paths, When sgd runs, Then IOExecutor falls back to the shared EMPTY_TREE_READER as ctx.trees', async () => {
+      // Arrange — pins the empty-scope fallback only (buildRunTreeReader's
+      // own short-circuit). It cannot guard a built reader actually
+      // reaching consumers: see the non-empty-scope case below for that.
+      mockComputeTreeIndexScope.mockReturnValueOnce(new Set())
+      const sut = {
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
+        | RunContext
+        | undefined
+      expect(ctxArg?.trees).toBe(EMPTY_TREE_READER)
+    })
+
+    it('Given a non-empty scope, When sgd runs, Then IOExecutor and DiffLineInterpreter both receive the built tree reader as ctx.trees', async () => {
+      // Arrange — the previous version of this pin expected EMPTY_TREE_READER
+      // itself, which is also what the regression it claims to guard
+      // (threading `trees: EMPTY_TREE_READER` unconditionally, ignoring
+      // whatever buildRunTreeReader actually returned) would produce: the
+      // assertion cannot fail under that regression. A non-empty scope
+      // forces buildTreeIndex to run and its result to reach every
+      // consumer for the pin to mean anything; pathExists answering true
+      // for a path only the built index holds proves it is that reader,
+      // not a fallback.
+      const scopedPath = 'force-app/main/default/classes/Foo.cls'
+      const toIndex = new TreeIndex()
+      toIndex.add(scopedPath)
+      mockComputeTreeIndexScope.mockReturnValueOnce(new Set([scopedPath]))
+      mockBuildTreeIndex.mockResolvedValueOnce(toIndex)
+      const sut = {
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const ioExecutorCtx = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
+        | RunContext
+        | undefined
+      const interpreterCtx = vi.mocked(DiffLineInterpreter).mock
+        .calls[0]?.[0] as RunContext | undefined
+      expect(ioExecutorCtx?.trees.pathExists('HEAD', scopedPath)).toBe(true)
+      expect(interpreterCtx?.trees).toBe(ioExecutorCtx?.trees)
+    })
+
+    it('Given the diff stream emits lines, When sgd runs, Then the materialize-once branch buffers them for both the scope read and the handler pass (main L46)', async () => {
       // Arrange — the materialize branch (`needsScopeFromDiff` true)
       // pushes each yielded line into a string[] so both
       // computeTreeIndexScope and lineProcessor.process can iterate
@@ -651,7 +587,6 @@ describe('external library inclusion', () => {
         new Set(['force-app/main/default/classes'])
       )
       const sut = {
-        generateDelta: true,
         to: 'HEAD',
         from: 'HEAD~1',
         source: ['force-app'],
@@ -667,6 +602,118 @@ describe('external library inclusion', () => {
       const passedLines = mockProcess.mock.calls[0]?.[0]
       expect(Array.isArray(passedLines)).toBe(true)
       expect(passedLines).toHaveLength(2)
+    })
+
+    it('Given no include file and generateDelta false, When sgd runs, Then buildTreeIndex is called for config.to and config.from with the computed scope', async () => {
+      // Arrange
+      mockComputeTreeIndexScope.mockReturnValueOnce(
+        new Set(['force-app/main/default/lwc/foo'])
+      )
+      const sut = {
+        generateDelta: false,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD', [
+        'force-app/main/default/lwc/foo',
+      ])
+      expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', [
+        'force-app/main/default/lwc/foo',
+      ])
+    })
+
+    it('Given no include file and generateDelta false, When sgd runs, Then process receives the materialised line array that the scope read also saw', async () => {
+      // Arrange
+      mockGetLines.mockReturnValueOnce(
+        asAsyncIterable([
+          'D\tforce-app/main/default/lwc/foo/foo.html',
+          'M\tforce-app/main/default/classes/Bar.cls',
+        ])
+      )
+      const sut = {
+        generateDelta: false,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const passedLines = mockProcess.mock.calls[0]?.[0]
+      expect(Array.isArray(passedLines)).toBe(true)
+      expect(passedLines).toHaveLength(2)
+      expect(mockComputeTreeIndexScope).toHaveBeenCalledWith(
+        passedLines,
+        expect.anything()
+      )
+    })
+
+    it('Given an include file and generateDelta false, When sgd runs, Then buildTreeIndex is called with config.source and process receives the streamed iterable', async () => {
+      // Arrange
+      const sut = {
+        generateDelta: false,
+        include: 'include.txt',
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
+      expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['force-app'])
+      expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
+      expect(mockProcess.mock.calls[0]?.[0]).toBe(
+        mockGetLines.mock.results[0]?.value
+      )
+    })
+
+    it('Given an empty computed scope and generateDelta false, When sgd runs, Then buildTreeIndex is not called', async () => {
+      // Arrange
+      const sut = {
+        generateDelta: false,
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given the same config with generateDelta false and true, When sgd runs once each, Then buildTreeIndex receives identical arguments in both runs', async () => {
+      // Arrange
+      const baseConfig = {
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      }
+      mockComputeTreeIndexScope.mockReturnValue(
+        new Set(['force-app/main/default/lwc/foo'])
+      )
+
+      // Act
+      await sgd({ ...baseConfig, generateDelta: false } as ConfigInput)
+      const callsWhenFalse = mockBuildTreeIndex.mock.calls
+      mockBuildTreeIndex.mockClear()
+      await sgd({ ...baseConfig, generateDelta: true } as ConfigInput)
+      const callsWhenTrue = mockBuildTreeIndex.mock.calls
+
+      // Assert
+      expect(callsWhenFalse).toEqual(callsWhenTrue)
     })
   })
 
@@ -816,6 +863,90 @@ describe('external library inclusion', () => {
     it('Given the target revision contains a control character, When sgd runs, Then the warning carries the escaped form and never the raw character', async () => {
       // Arrange
       mockGetHeldAdditionProbeFailure.mockReturnValueOnce({ candidateCount: 1 })
+      const sut = { from: 'HEAD~1', to: 'HEAD\x07' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings[0]?.message).not.toContain('\x07')
+    })
+  })
+
+  describe('tree index unavailable warning', () => {
+    beforeEach(() => {
+      // Arrange — a non-empty scope so buildRunTreeReader actually attempts
+      // to walk both revisions instead of short-circuiting to the empty
+      // reader.
+      mockComputeTreeIndexScope.mockReturnValue(
+        new Set(['force-app/main/default/lwc/foo'])
+      )
+    })
+
+    it('Given buildTreeIndex could not build an index for the to revision, When sgd runs, Then a warning naming the to revision is pushed to work.warnings', async () => {
+      // Arrange
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined) // to
+        .mockResolvedValueOnce(new TreeIndex()) // from
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        'warning.TreeIndexUnavailable:HEAD'
+      )
+    })
+
+    it('Given buildTreeIndex could not build an index for the from revision but the to revision indexed, When sgd runs, Then no warning is pushed', async () => {
+      // Arrange — the from revision only feeds deep-path member-name
+      // resolution, not container liveness, so it is not warn-worthy here.
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(new TreeIndex()) // to
+        .mockResolvedValueOnce(undefined) // from
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given both revisions index successfully, When sgd runs, Then no warning is pushed', async () => {
+      // Arrange
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(new TreeIndex()) // to
+        .mockResolvedValueOnce(new TreeIndex()) // from
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given the scope is empty, When sgd runs, Then no tree index warning is pushed and buildTreeIndex is never called', async () => {
+      // Arrange — nothing was attempted, so nothing degraded.
+      mockComputeTreeIndexScope.mockReturnValue(new Set())
+      const sut = { from: 'HEAD~1', to: 'HEAD' } as ConfigInput
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+      expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given the to revision contains a control character and its walk failed, When sgd runs, Then the warning carries the escaped form and never the raw character', async () => {
+      // Arrange
+      mockBuildTreeIndex
+        .mockResolvedValueOnce(undefined) // to
+        .mockResolvedValueOnce(new TreeIndex()) // from
       const sut = { from: 'HEAD~1', to: 'HEAD\x07' } as ConfigInput
 
       // Act

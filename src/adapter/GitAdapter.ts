@@ -58,8 +58,8 @@ import {
 import {
   buildLiteralMatcher,
   buildPathspecMatcher,
+  buildScopeMatcher,
   hasRootScope,
-  inScope,
   nonRootScopes,
   ROOT_PATHS,
   toDiffLines,
@@ -252,8 +252,9 @@ export default class GitAdapter implements GitBlobReader {
       const blobIds = await this.indexRevision(revision)
       const index = new TreeIndex()
       const scopes = scopePaths.filter(path => !ROOT_PATHS.has(path))
+      const matchesScope = buildScopeMatcher(scopes)
       for (const path of blobIds.keys()) {
-        if (scopes.length === 0 || inScope(path, scopes)) {
+        if (scopes.length === 0 || matchesScope(path)) {
           index.add(path)
         }
       }
@@ -476,8 +477,9 @@ export default class GitAdapter implements GitBlobReader {
   ): AsyncGenerator<{ path: string; stream: Readable }> {
     const repo = await this.getRepo()
     const blobIds = await this.indexRevision(revision)
+    const inArchiveScope = buildScopeMatcher([path])
     for (const [filePath, blobId] of blobIds) {
-      if (!inScope(filePath, [path])) continue
+      if (!inArchiveScope(filePath)) continue
       const blob = await repo.primitives.streamBlob(blobId)
       yield {
         path: filePath,

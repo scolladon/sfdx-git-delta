@@ -8,6 +8,7 @@ import {
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
+import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import type { Config } from '../../../../src/types/config'
 import {
   ChangeKind,
@@ -461,6 +462,54 @@ describe('IncludeProcessor', () => {
           expect.any(Array),
           expect.objectContaining({ from: 'HEAD', to: firstSHA })
         )
+      })
+    })
+
+    describe('DELETION pass masks firstSHA out of trees, ADDITION pass does not', () => {
+      const firstSHA = 'first-sha-000'
+      const stillPath = 'force-app/lwc/still/still.js'
+
+      beforeEach(() => {
+        mockGetFirstCommitRef.mockResolvedValue(firstSHA)
+        mockKeep.mockReturnValue(false) // keep neither: both ADDITION and DELETION lines are collected
+      })
+
+      it('Then the ADDITION DiffLineInterpreter is built on the original, unmasked ctx', async () => {
+        // Arrange
+        mockFilesUnder.mockReturnValue(['test'])
+        config.include = '.sgdinclude'
+        const ctx = getContext({ config, metadata, trees: treeReader })
+        const sut = new IncludeProcessor(ctx)
+
+        // Act
+        await sut.transformAndCollect(new ChangeSet())
+
+        // Assert
+        const additionCtx = vi.mocked(DiffLineInterpreter).mock.calls[0][0]
+        expect(additionCtx.trees).toBe(treeReader)
+      })
+
+      it('Then the DELETION DiffLineInterpreter is built on a ctx whose trees report firstSHA absent, although the real reader holds a live entry for it', async () => {
+        // Arrange — pathExists really does answer true for (firstSHA,
+        // stillPath) on the unmasked reader, proving the mask overrides a
+        // real answer rather than matching an already-empty one.
+        const liveAtFirstSHA: TreeReader = {
+          pathExists: (rev, path) => rev === firstSHA && path === stillPath,
+          filesUnder: () => [stillPath],
+          children: () => [],
+        }
+        config.includeDestructive = '.sgdincludedestructive'
+        const sut = new IncludeProcessor(
+          getContext({ config, metadata, trees: liveAtFirstSHA })
+        )
+
+        // Act
+        await sut.transformAndCollect(new ChangeSet())
+
+        // Assert
+        const deletionCtx = vi.mocked(DiffLineInterpreter).mock.calls[1][0]
+        expect(deletionCtx.trees).not.toBe(liveAtFirstSHA)
+        expect(deletionCtx.trees.pathExists(firstSHA, stillPath)).toBe(false)
       })
     })
   })

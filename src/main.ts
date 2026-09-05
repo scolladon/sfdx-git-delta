@@ -1,8 +1,6 @@
 'use strict'
 import GitAdapter from './adapter/GitAdapter.js'
 import IOExecutor from './adapter/ioExecutor.js'
-import type { TreeIndex } from './adapter/treeIndex.js'
-import { createTreeReader, EMPTY_TREE_READER } from './adapter/treeReader.js'
 import { MetadataRepository } from './metadata/MetadataRepository.js'
 import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
@@ -20,6 +18,17 @@ import { parseSourceDirs } from './utils/pathspec.js'
 import RenameResolver from './utils/renameResolver.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
 import { computeTreeIndexScope } from './utils/treeIndexScope.js'
+import { buildRunTreeReader } from './utils/treeReaderBuilder.js'
+
+const collectLines = async (
+  lines: AsyncIterable<string>
+): Promise<string[]> => {
+  const materialized: string[] = []
+  for await (const line of lines) {
+    materialized.push(line)
+  }
+  return materialized
+}
 
 export default async (configInput: ConfigInput): Promise<Work> => {
   // Stryker disable next-line StringLiteral -- equivalent: log content is observability only; tests assert on the returned Work, not lazy log lines
@@ -42,55 +51,33 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-    // The treeIndex scope read needs the full path set up front, so when
-    // generateDelta is on without an include override we materialize the
-    // streamed diff once. Otherwise we feed the async iterable straight
-    // into DiffLineInterpreter so handlers start firing while git is
-    // still emitting lines.
-    const needsScopeFromDiff =
-      config.generateDelta && !config.include && !config.includeDestructive
-    let lines: Iterable<string> | AsyncIterable<string>
-    if (needsScopeFromDiff) {
-      const materialized: string[] = []
-      for await (const line of repoGitDiffHelper.getLines()) {
-        materialized.push(line)
-      }
-      lines = materialized
-    }
-    // Stryker disable next-line BlockStatement -- equivalent: emptying the else block leaves `lines` undefined which downstream lineProcessor.process(undefined) iterates as empty; the test main.test.ts only asserts mockProcess was called with the materialized array in the if-branch fixture, and the else-body BlockStatement mutant on the assignment expression is observably equivalent because mockProcess accepts undefined under stryker's perTest path-coverage analysis
-    else {
-      lines = repoGitDiffHelper.getLines()
-    }
+    // The tree-index scope is read off the diff whenever no include file
+    // overrides it, so the stream is materialised once: computeTreeIndexScope
+    // and lineProcessor.process walk the same lines. With an include file the
+    // scope is config.source and the async iterable feeds straight into
+    // DiffLineInterpreter, so handlers fire while git is still emitting.
+    const needsScopeFromDiff = !config.include && !config.includeDestructive
+    const materialized = needsScopeFromDiff
+      ? await collectLines(repoGitDiffHelper.getLines())
+      : undefined
+    const lines = materialized ?? repoGitDiffHelper.getLines()
 
-    // Built here and threaded to every reader (DiffLineInterpreter,
-    // RenameResolver, IOExecutor, the post-processors) rather than cached
-    // on GitAdapter: one TreeIndex per revision, for this run only, so a
-    // reader can never see a different scope than the one this block just
-    // built under — the lesson from the shared, scope-keyed cache this
-    // replaces (see design history) is that a cache keyed by a value each
-    // reader recomputes is an implicit contract that will drift.
-    let trees = EMPTY_TREE_READER
-    if (config.generateDelta) {
-      const gitAdapter = GitAdapter.getInstance(config)
-      let scopePaths: string[] = config.source
-      if (needsScopeFromDiff) {
-        scopePaths = [
-          ...computeTreeIndexScope(lines as Iterable<string>, metadata),
-        ]
-      }
-      if (scopePaths.length > 0) {
-        const [toIndex, fromIndex] = await Promise.all([
-          gitAdapter.buildTreeIndex(config.to, scopePaths),
-          gitAdapter.buildTreeIndex(config.from, scopePaths),
-        ])
-        const entries = new Map<string, TreeIndex>()
-        // Stryker disable ConditionalExpression -- equivalent: forcing either guard to always run stores `undefined` at that revision key instead of skipping it, but the only reader is createTreeReader's `entries.get(revision) ?? NO_INDEX`, and Map.get answers `undefined` for an absent key and an explicitly-undefined value alike. `entries` is local to this block and exposes no has/size/enumeration, so no observer can tell the two apart
-        if (toIndex) entries.set(config.to, toIndex)
-        if (fromIndex) entries.set(config.from, fromIndex)
-        // Stryker restore ConditionalExpression
-        trees = createTreeReader(entries)
-      }
-    }
+    // The manifests must not depend on --generate-delta: every index-backed
+    // read that decides package.xml vs destructiveChanges.xml (container
+    // liveness, decomposed-holder liveness, the include listing) runs in
+    // every mode, so the run's two indexes are built in every mode. The flag
+    // gates only what is copied. Built here and threaded to every reader
+    // (DiffLineInterpreter, RenameResolver, IOExecutor, the post-processors)
+    // through RunContext rather than cached on GitAdapter, so no reader can
+    // see a different scope than the one this run built under.
+    const scopePaths: readonly string[] = materialized
+      ? [...computeTreeIndexScope(materialized, metadata)]
+      : config.source
+    const { trees, unindexed } = await buildRunTreeReader(
+      GitAdapter.getInstance(config),
+      config,
+      scopePaths
+    )
     const ctx: RunContext = { config, metadata, trees }
 
     const lineProcessor = new DiffLineInterpreter(ctx)
@@ -125,42 +112,60 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // changes at all — a non-empty manifest (e.g. members sourced by
     // --include-file independent of the diff) means the scope did its
     // job, so naming it as unmatched would be misleading.
+    const messages = new MessageService()
+    // tokens is a thunk, not a precomputed array: sanitizeForMessage must
+    // only run when the warning actually fires, matching the ternaries this
+    // replaces (some callers never set config.to/from, so an unconditional
+    // sanitizeForMessage(requestedTo) would crash on undefined).
+    const warnIf = (
+      condition: boolean,
+      key: string,
+      tokens: () => string[]
+    ): Error[] =>
+      condition ? [new Error(messages.getMessage(key, tokens()))] : []
+
     const unmatchedScopes = repoGitDiffHelper.getUnmatchedSourceScopes()
-    const sourceScopeWarnings =
-      unmatchedScopes.length > 0 && changes.isEmpty()
-        ? [
-            new Error(
-              new MessageService().getMessage(
-                'warning.SourceDirMatchedNothing',
-                [
-                  // Sanitize each scope before joining: the length cap in
-                  // sanitizeForMessage must apply per scope, not to the
-                  // joined aggregate, or one long scope name silently
-                  // elides every scope listed after it.
-                  unmatchedScopes.map(sanitizeForMessage).join(', '),
-                  sanitizeForMessage(requestedFrom),
-                  sanitizeForMessage(requestedTo),
-                ]
-              )
-            ),
-          ]
-        : []
+    const sourceScopeWarnings = warnIf(
+      unmatchedScopes.length > 0 && changes.isEmpty(),
+      'warning.SourceDirMatchedNothing',
+      () => [
+        // Sanitize each scope before joining: the length cap in
+        // sanitizeForMessage must apply per scope, not to the
+        // joined aggregate, or one long scope name silently
+        // elides every scope listed after it.
+        unmatchedScopes.map(sanitizeForMessage).join(', '),
+        sanitizeForMessage(requestedFrom),
+        sanitizeForMessage(requestedTo),
+      ]
+    )
 
     // Also final by this point. When the `to` listing could not be read,
     // components moved into an ignored directory were not recognised as
     // moves, so their deletions are reported destructively. That is the
     // safe direction, but it is a degraded answer and must not be silent.
     const probeFailure = repoGitDiffHelper.getHeldAdditionProbeFailure()
-    const ignoredMoveWarnings = probeFailure
-      ? [
-          new Error(
-            new MessageService().getMessage('warning.IgnoredMoveCheckSkipped', [
-              sanitizeForMessage(requestedTo),
-              probeFailure.candidateCount.toString(),
-            ])
-          ),
-        ]
-      : []
+    const ignoredMoveWarnings = warnIf(
+      !!probeFailure,
+      'warning.IgnoredMoveCheckSkipped',
+      // Non-null: this thunk only runs when warnIf's condition (!!probeFailure)
+      // is true, but the closure sits outside TS's narrowing of that check.
+      () => [
+        sanitizeForMessage(requestedTo),
+        probeFailure!.candidateCount.toString(),
+      ]
+    )
+
+    // Known as soon as the tree reader is built, but raised here with the
+    // rest of the warnings for a single review point. Only `to` is
+    // warn-worthy: it is the revision every liveness read (pathExists,
+    // readDirs) resolves through, so its degrade is what lets a live
+    // container land in destructiveChanges.xml. `from` only feeds deep-path
+    // member-name resolution, a narrower and already-attributed effect.
+    const treeIndexWarnings = warnIf(
+      unindexed.includes(config.to),
+      'warning.TreeIndexUnavailable',
+      () => [sanitizeForMessage(requestedTo)]
+    )
 
     const work: Work = {
       config,
@@ -171,6 +176,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ...processorWarnings,
         ...sourceScopeWarnings,
         ...ignoredMoveWarnings,
+        ...treeIndexWarnings,
       ],
     }
     // Stryker disable next-line StringLiteral -- equivalent: log content is observability only
