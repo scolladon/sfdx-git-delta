@@ -155,7 +155,9 @@ beforeAll(async () => {
   // Warms the metadata registry once so no single test pays the SDR load
   // against the 5s default integration timeout.
   metadata = await getDefinition({})
-})
+  // ~61 git spawns plus the SDR registry load; the default 10s hook timeout
+  // has a documented Windows-runner flake of exactly this shape.
+}, 30_000)
 
 afterEach(async () => {
   await GitAdapter.closeAll()
@@ -184,7 +186,12 @@ describe('Given the live-container fixture and no include file', () => {
     expect(members(pkg, 'DigitalExperience')).toEqual([
       'site/mysite.sfdc_cms__view/about',
     ])
-    expect(members(destructive, 'LightningComponentBundle')).toEqual(['gone'])
+    // The whole manifest, not just one type's members: a regression that
+    // ALSO landed bar/deep/Admin/the page destructively would still pass a
+    // members(destructive, 'LightningComponentBundle') check alone.
+    expect([...destructive]).toEqual([
+      ['LightningComponentBundle', new Set(['gone'])],
+    ])
 
     expect(off.packageXml).toBe(on.packageXml)
     expect(off.destructiveXml).toBe(on.destructiveXml)
@@ -199,7 +206,12 @@ describe('Given the live-container fixture and no include file', () => {
 })
 
 describe("Given the run's reader built by buildRunTreeReader from the diff-derived scope", () => {
-  it("When the interpreter processes the materialised diff with generateDelta false and true, Then the package and destructive views are equal and match Leg A's table", async () => {
+  // This leg calls buildRunTreeReader/DiffLineInterpreter directly, bypassing
+  // main.ts entirely — buildRunTreeReader never reads config.generateDelta,
+  // so it cannot pin cross-mode parity for the --generate-delta fix itself
+  // (Leg A does that). What it does pin: handler classification into
+  // package vs. destructive is identical regardless of generateDelta.
+  it("When the interpreter classifies the same materialised diff with generateDelta false and true, Then handler classification is identical in both modes and matches Leg A's table", async () => {
     // Act
     const off = await runBuilderPipeline(makeConfig({ generateDelta: false }))
     const on = await runBuilderPipeline(makeConfig({ generateDelta: true }))
@@ -263,9 +275,15 @@ describe('Given --include-destructive-file naming the untouched still bundle and
       includeDestructive,
     })
 
-    // Assert
+    // Assert — the exact destructive set (gone from the real diff, still
+    // forced by the include-destructive file), and still is not
+    // double-classified into package.xml too.
+    const pkg = off.work.changes.forPackageManifest()
     const destructive = off.work.changes.forDestructiveManifest()
-    expect(members(destructive, 'LightningComponentBundle')).toContain('still')
+    expect([...destructive]).toEqual([
+      ['LightningComponentBundle', new Set(['gone', 'still'])],
+    ])
+    expect(members(pkg, 'LightningComponentBundle')).not.toContain('still')
     expect(off.packageXml).toBe(on.packageXml)
     expect(off.destructiveXml).toBe(on.destructiveXml)
   })
@@ -305,6 +323,23 @@ describe('Given --include-destructive-file naming the still bundle and a from th
     expect(members(destructive, 'LightningComponentBundle')).toContain('still')
     expect(off.packageXml).toBe(on.packageXml)
     expect(off.destructiveXml).toBe(on.destructiveXml)
+
+    // Isolate the forced deletion as the sole source of `still`: the same
+    // range with no include-destructive file must not mention it in either
+    // manifest. Without this, moving `still`'s addition from genesis to
+    // root would still pass every assertion above — it would enter the
+    // genesis..head range as its own addition and get cancelled against
+    // the forced deletion, a different mechanism than the mask this fix
+    // adds.
+    const baseline = await runSgd({ generateDelta: false, from: refs.genesis })
+    const baselinePkg = baseline.work.changes.forPackageManifest()
+    const baselineDestructive = baseline.work.changes.forDestructiveManifest()
+    expect(members(baselinePkg, 'LightningComponentBundle')).not.toContain(
+      'still'
+    )
+    expect(
+      members(baselineDestructive, 'LightningComponentBundle')
+    ).not.toContain('still')
   })
 })
 

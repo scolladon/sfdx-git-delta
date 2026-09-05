@@ -1,7 +1,9 @@
 'use strict'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import IOExecutor from '../../src/adapter/ioExecutor'
 import { TreeIndex } from '../../src/adapter/treeIndex'
+import { EMPTY_TREE_READER } from '../../src/adapter/treeReader'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
@@ -11,6 +13,7 @@ import {
   emptyResult,
   ManifestTarget,
 } from '../../src/types/handlerResult'
+import type { RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
 import { Logger } from '../../src/utils/LoggingService'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
@@ -510,6 +513,28 @@ describe('external library inclusion', () => {
       // Assert
       expect(mockComputeTreeIndexScope).toHaveBeenCalled()
       expect(mockBuildTreeIndex).not.toHaveBeenCalled()
+    })
+
+    it('Given empty scope paths, When sgd runs, Then IOExecutor receives the shared EMPTY_TREE_READER as ctx.trees', async () => {
+      // Arrange — the only unit-level pin that the run's built TreeReader
+      // actually reaches consumers; a `trees: EMPTY_TREE_READER` regression
+      // (e.g. threading a fresh empty reader instead of the shared
+      // singleton) would otherwise surface only via integration.
+      mockComputeTreeIndexScope.mockReturnValueOnce(new Set())
+      const sut = {
+        to: 'HEAD',
+        from: 'HEAD~1',
+        source: ['force-app'],
+      } as ConfigInput
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const ctxArg = vi.mocked(IOExecutor).mock.calls[0]?.[0] as
+        | RunContext
+        | undefined
+      expect(ctxArg?.trees).toBe(EMPTY_TREE_READER)
     })
 
     it('Given the diff stream emits lines, When sgd runs, Then the materialize-once branch buffers them for both the scope read and the handler pass (main L46)', async () => {
