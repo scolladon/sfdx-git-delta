@@ -1,5 +1,5 @@
 'use strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -828,4 +828,149 @@ export const buildLiveContainerFixtureRepo = (
   runGit(['update-ref', 'HEAD', head], { cwd: dir })
 
   return { genesis, root, head }
+}
+
+export type InFileFanOutFixtureRefs = { base: string; head: string }
+
+export const IN_FILE_FAN_OUT_BASE_ALERT = 'A1'
+export const IN_FILE_FAN_OUT_ADDED_ALERT = 'A2'
+export const inFileFanOutWorkflowName = (index: number): string => `W${index}`
+export const inFileFanOutWorkflowPath = (index: number): string =>
+  `${LIVE_ROOT}/workflows/${inFileFanOutWorkflowName(index)}.workflow-meta.xml`
+
+const workflowXml = (alertNames: readonly string[]): string => {
+  const alerts = alertNames
+    .map(name => `  <alerts>\n    <fullName>${name}</fullName>\n  </alerts>\n`)
+    .join('')
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">\n${alerts}</Workflow>\n`
+}
+
+const addWorkflow = (
+  index: number,
+  alertNames: readonly string[]
+): FixtureOp => ({
+  kind: 'add',
+  mode: '100644',
+  path: inFileFanOutWorkflowPath(index),
+  content: workflowXml(alertNames),
+})
+
+const oneBased = (count: number): number[] =>
+  Array.from({ length: count }, (_, offset) => offset + 1)
+
+/**
+ * `count` Workflow files, each with one alert at `base` and two at `head`, so
+ * every diff line is an inFile modification: the handler reads the file at
+ * both revisions, the type needs no tree index (empty scope, so
+ * buildRunTreeReader never pre-warms the memo), and the handler queue fans
+ * the first content read out across getConcurrencyThreshold() slots.
+ */
+export const buildInFileFanOutFixtureRepo = (
+  dir: string,
+  count: number
+): InFileFanOutFixtureRefs => {
+  initRepo(dir)
+  const base = makeCommit(
+    dir,
+    null,
+    'base',
+    oneBased(count).map(index =>
+      addWorkflow(index, [IN_FILE_FAN_OUT_BASE_ALERT])
+    )
+  )
+  const head = makeCommit(
+    dir,
+    base,
+    'head',
+    oneBased(count).map(index =>
+      addWorkflow(index, [
+        IN_FILE_FAN_OUT_BASE_ALERT,
+        IN_FILE_FAN_OUT_ADDED_ALERT,
+      ])
+    )
+  )
+  runGit(['update-ref', 'HEAD', head], { cwd: dir })
+  return { base, head }
+}
+
+export type UnreadableSubtreeFixtureRefs = { base: string; head: string }
+
+export const UNREADABLE_SUBTREE_PATH = `${LIVE_ROOT}/classes`
+export const UNREADABLE_SUBTREE_BUNDLE_SCRIPT = `${LIVE_ROOT}/lwc/foo/foo.js`
+export const UNREADABLE_SUBTREE_BUNDLE_META = `${LIVE_ROOT}/lwc/foo/foo.js-meta.xml`
+// GitCopy operations the modified bundle emits under --generate-delta: the
+// changed script plus its meta file (ResourceHandler always copies the meta).
+export const UNREADABLE_SUBTREE_COPY_COUNT = 2
+
+/**
+ * One LWC bundle modified between `base` and `head`, next to a `classes/`
+ * subtree that is byte-identical at both — so its single tree object can be
+ * removed (see unlinkTreeObjectAt) to make every full tree walk fail while
+ * the diff, which never opens an identical subtree, keeps working.
+ */
+export const buildUnreadableSubtreeFixtureRepo = (
+  dir: string
+): UnreadableSubtreeFixtureRefs => {
+  initRepo(dir)
+  const base = makeCommit(dir, null, 'base', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNREADABLE_SUBTREE_BUNDLE_SCRIPT,
+      content: 'export default class {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNREADABLE_SUBTREE_BUNDLE_META,
+      content: LWC_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: `${UNREADABLE_SUBTREE_PATH}/Keep.cls`,
+      content: 'public class Keep {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: `${UNREADABLE_SUBTREE_PATH}/Keep.cls-meta.xml`,
+      content: APEX_CLASS_META_CONTENT,
+    },
+  ])
+  const head = makeCommit(dir, base, 'head', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNREADABLE_SUBTREE_BUNDLE_SCRIPT,
+      content: 'export default class { changed = true }\n',
+    },
+  ])
+  runGit(['update-ref', 'HEAD', head], { cwd: dir })
+  return { base, head }
+}
+
+/**
+ * Removes the loose object of the tree at `treePath` in `revision`. Objects
+ * are loose because every fixture here is built with plumbing
+ * (hash-object / write-tree / commit-tree), which never packs; the existence
+ * check turns that assumption into a loud failure instead of a vacuous test.
+ * Returns the removed tree oid.
+ */
+export const unlinkTreeObjectAt = (
+  dir: string,
+  revision: string,
+  treePath: string
+): string => {
+  const oid = runGitText(['rev-parse', `${revision}:${treePath}`], {
+    cwd: dir,
+  })
+  const objectPath = join(dir, '.git', 'objects', oid.slice(0, 2), oid.slice(2))
+  if (!existsSync(objectPath)) {
+    throw new Error(
+      `expected a loose object for ${revision}:${treePath} at ${objectPath}`
+    )
+  }
+  unlinkSync(objectPath)
+  return oid
 }
