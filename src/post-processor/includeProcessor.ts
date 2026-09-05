@@ -6,6 +6,7 @@ import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
 import type { RunContext } from '../types/runContext.js'
+import { withMaskedTreeRevision } from '../types/runContext.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { buildIncludeHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -83,22 +84,28 @@ export default class IncludeProcessor extends BaseProcessor {
     }
 
     const firstSHA = await this.gitAdapter.getFirstCommitRef()
-    const lineProcessor = new DiffLineInterpreter(this.ctx)
     const results: HandlerResult[] = []
 
     if (includeLines.has(ADDITION)) {
-      const result = await lineProcessor.process(includeLines.get(ADDITION)!, {
-        from: firstSHA,
-        to: this.config.to,
-      })
+      const additionProcessor = new DiffLineInterpreter(this.ctx)
+      const result = await additionProcessor.process(
+        includeLines.get(ADDITION)!,
+        { from: firstSHA, to: this.config.to }
+      )
       results.push(result)
     }
 
     if (includeLines.has(DELETION)) {
-      const result = await lineProcessor.process(includeLines.get(DELETION)!, {
-        from: this.config.to,
-        to: firstSHA,
-      })
+      // The pass's effective `to` becomes firstSHA: mask it so a container's
+      // liveness answers false by construction, not by firstSHA happening to
+      // be unindexed (see withMaskedTreeRevision).
+      const deletionProcessor = new DiffLineInterpreter(
+        withMaskedTreeRevision(this.ctx, firstSHA)
+      )
+      const result = await deletionProcessor.process(
+        includeLines.get(DELETION)!,
+        { from: this.config.to, to: firstSHA }
+      )
       results.push(result)
     }
 

@@ -48,3 +48,19 @@ export const createTreeReader = (
 // that was never built would produce. Expressed via the real factory over
 // an empty map so it cannot drift from what createTreeReader actually does.
 export const EMPTY_TREE_READER: TreeReader = createTreeReader(new Map())
+
+// Forces one named revision to answer exactly as an unbuilt one would —
+// false/[]/[] — regardless of whether the wrapped reader holds a real index
+// for it. Every other revision passes through untouched. Used to make a
+// container-liveness check answer `false` by construction rather than by a
+// revision happening to be unindexed (see IncludeProcessor's DELETION pass).
+export const withoutRevision = (
+  reader: TreeReader,
+  revision: string
+): TreeReader => ({
+  pathExists: (rev, path) =>
+    rev === revision ? false : reader.pathExists(rev, path),
+  filesUnder: (rev, paths) =>
+    rev === revision ? [] : reader.filesUnder(rev, paths),
+  children: (rev, dir) => (rev === revision ? [] : reader.children(rev, dir)),
+})

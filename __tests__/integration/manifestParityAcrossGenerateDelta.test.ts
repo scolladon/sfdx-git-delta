@@ -1,4 +1,5 @@
 'use strict'
+import { existsSync } from 'node:fs'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -29,9 +30,11 @@ import {
   LIVE_KEEP_CLASS,
   type LiveContainerFixtureRefs,
 } from '../__utils__/gitFixtureRepo'
-import { createTempDir } from '../__utils__/gitTestHarness'
+import { createTempDir, runGit, toFileUrl } from '../__utils__/gitTestHarness'
 import { sourceDirs } from '../__utils__/sourceDirs'
 import { getContext } from '../__utils__/testWork'
+
+const SHALLOW_CLONE_DEPTH = '2'
 
 // The one seam that leaves the process: ConfigValidator caps apiVersion
 // against SDR's live coverage lookup. Pinned so the run is offline and
@@ -269,10 +272,12 @@ describe('Given --include-destructive-file naming the untouched still bundle and
 })
 
 describe('Given --include-destructive-file naming the still bundle and a from that IS the first commit', () => {
-  it('When sgd runs without and with --generate-delta, Then the forced deletion is reported as a modification in package.xml and is absent from destructiveChanges.xml in both modes (known residual of the include re-entry: the first commit is indexed, so the liveness check answers true)', async () => {
+  it('When sgd runs without and with --generate-delta, Then the forced deletion lands in destructiveChanges.xml and not in package.xml in both modes, even though the first commit is indexed', async () => {
     // Arrange — config.from IS genesis here, so the run's tree reader
-    // carries a real entry for it: the re-entry's liveness check reads the
-    // bundle as alive, even though it was force-deleted.
+    // carries a real entry for it. Before the fix this made the DELETION
+    // pass's liveness check read the bundle as alive and reclassify the
+    // forced deletion into package.xml; the mask must force that check to
+    // answer false regardless.
     const includeDestructive = await writePatterns(
       'include-destructive-genesis.txt',
       ['force-app/main/default/lwc/still/**']
@@ -290,13 +295,61 @@ describe('Given --include-destructive-file naming the still bundle and a from th
       includeDestructive,
     })
 
-    // Assert
+    // Assert — precondition: `still` is genuinely alive at config.to (never
+    // deleted by the fixture), so a correct run can only classify it as a
+    // deletion because the include-destructive file forced it, not because
+    // the diff itself found it gone.
     const pkg = off.work.changes.forPackageManifest()
     const destructive = off.work.changes.forDestructiveManifest()
-    expect(members(pkg, 'LightningComponentBundle')).toContain('still')
-    expect(members(destructive, 'LightningComponentBundle')).not.toContain(
-      'still'
+    expect(members(pkg, 'LightningComponentBundle')).not.toContain('still')
+    expect(members(destructive, 'LightningComponentBundle')).toContain('still')
+    expect(off.packageXml).toBe(on.packageXml)
+    expect(off.destructiveXml).toBe(on.destructiveXml)
+  })
+})
+
+describe('Given the live-container fixture cloned shallow so getFirstCommitRef resolves to the graft boundary', () => {
+  it('When --include-destructive-file names the still bundle and from is the boundary commit, Then sgd still reports the forced deletion in destructiveChanges.xml, not package.xml, in both modes', async () => {
+    // Arrange — a depth-2 clone of the 3-commit fixture grafts `root` as a
+    // parentless boundary: getFirstCommitRef() returns `root`, which IS
+    // indexed here because it equals config.from — the exact accident
+    // `actions/checkout`'s default shallow clone reproduces in CI.
+    const shallowDir = await trackedTempDir('sgd-parity-shallow-')
+    runGit([
+      'clone',
+      '--depth',
+      SHALLOW_CLONE_DEPTH,
+      toFileUrl(fixtureDir),
+      shallowDir,
+    ])
+    const includeDestructive = await writePatterns(
+      'include-destructive-shallow.txt',
+      ['force-app/main/default/lwc/still/**']
     )
+
+    // Act
+    const off = await runSgd({
+      generateDelta: false,
+      repo: shallowDir,
+      from: refs.root,
+      to: refs.head,
+      includeDestructive,
+    })
+    const on = await runSgd({
+      generateDelta: true,
+      repo: shallowDir,
+      from: refs.root,
+      to: refs.head,
+      includeDestructive,
+    })
+
+    // Assert — the clone must actually be shallow, or the scenario silently
+    // stops exercising `.git/shallow` at all.
+    expect(existsSync(join(shallowDir, '.git', 'shallow'))).toBe(true)
+    const pkg = off.work.changes.forPackageManifest()
+    const destructive = off.work.changes.forDestructiveManifest()
+    expect(members(pkg, 'LightningComponentBundle')).not.toContain('still')
+    expect(members(destructive, 'LightningComponentBundle')).toContain('still')
     expect(off.packageXml).toBe(on.packageXml)
     expect(off.destructiveXml).toBe(on.destructiveXml)
   })

@@ -4,6 +4,7 @@ import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import {
   createTreeReader,
   EMPTY_TREE_READER,
+  withoutRevision,
 } from '../../../../src/adapter/treeReader'
 
 const buildIndex = (): TreeIndex => {
@@ -200,6 +201,116 @@ describe('createTreeReader', () => {
       expect(EMPTY_TREE_READER.children('HEAD', 'force-app')).toEqual(
         sut.children('HEAD', 'force-app')
       )
+    })
+  })
+})
+
+describe('withoutRevision', () => {
+  // The masked revision has a real, populated index — every assertion below
+  // proves the mask overrides that index rather than merely matching an
+  // already-empty one.
+  const maskedRevision = 'firstSHA'
+  const otherRevision = 'HEAD'
+  const buildMasked = () =>
+    withoutRevision(
+      createTreeReader(new Map([[maskedRevision, buildIndex()]])),
+      maskedRevision
+    )
+
+  describe('Given a reader wrapped with withoutRevision for a populated revision', () => {
+    describe('When pathExists is queried at the masked revision', () => {
+      it('Then it returns false although the underlying reader holds the path', () => {
+        // Arrange
+        const sut = buildMasked()
+
+        // Act
+        const result = sut.pathExists(
+          maskedRevision,
+          'force-app/classes/Foo.cls'
+        )
+
+        // Assert
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('When filesUnder is queried at the masked revision', () => {
+      it('Then it returns an empty array although the underlying reader holds files', () => {
+        // Arrange
+        const sut = buildMasked()
+
+        // Act
+        const result = sut.filesUnder(maskedRevision, 'force-app')
+
+        // Assert
+        expect(result).toEqual([])
+      })
+    })
+
+    describe('When children is queried at the masked revision', () => {
+      it('Then it returns an empty array although the underlying reader holds children', () => {
+        // Arrange
+        const sut = buildMasked()
+
+        // Act
+        const result = sut.children(maskedRevision, 'force-app')
+
+        // Assert
+        expect(result).toEqual([])
+      })
+    })
+
+    describe('When pathExists is queried at a revision other than the masked one', () => {
+      it('Then it delegates to the underlying reader', () => {
+        // Arrange
+        const sut = buildMasked()
+
+        // Act
+        const result = sut.pathExists(
+          otherRevision,
+          'force-app/classes/Foo.cls'
+        )
+
+        // Assert — the underlying reader has no entry for HEAD either, so
+        // delegation surfaces its own (unmasked) empty answer.
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('When filesUnder is queried at a revision other than the masked one', () => {
+      it('Then it delegates to the underlying reader', () => {
+        // Arrange
+        const index = new TreeIndex()
+        index.add('force-app/classes/Bar.cls')
+        const sut = withoutRevision(
+          createTreeReader(new Map([[otherRevision, index]])),
+          maskedRevision
+        )
+
+        // Act
+        const result = sut.filesUnder(otherRevision, 'force-app')
+
+        // Assert
+        expect(result).toEqual(['force-app/classes/Bar.cls'])
+      })
+    })
+
+    describe('When children is queried at a revision other than the masked one', () => {
+      it('Then it delegates to the underlying reader', () => {
+        // Arrange
+        const index = new TreeIndex()
+        index.add('force-app/classes/Bar.cls')
+        const sut = withoutRevision(
+          createTreeReader(new Map([[otherRevision, index]])),
+          maskedRevision
+        )
+
+        // Act
+        const result = sut.children(otherRevision, 'force-app')
+
+        // Assert
+        expect(result).toEqual(['classes'])
+      })
     })
   })
 })

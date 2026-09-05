@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 
 import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import { createTreeReader } from '../../../../src/adapter/treeReader'
-import { withRevisions } from '../../../../src/types/runContext'
+import {
+  withMaskedTreeRevision,
+  withRevisions,
+} from '../../../../src/types/runContext'
 import { getContext } from '../../../__utils__/testWork'
 
 describe('withRevisions', () => {
@@ -70,6 +73,70 @@ describe('withRevisions', () => {
       expect(ctx.config).toBe(config)
       expect(ctx.config.from).toBe('')
       expect(ctx.config.to).toBe('')
+    })
+  })
+})
+
+describe('withMaskedTreeRevision', () => {
+  describe('Given a context whose trees holds a real index for a revision', () => {
+    const buildCtx = () => {
+      const index = new TreeIndex()
+      index.add('force-app/lwc/still/still.js')
+      const trees = createTreeReader(new Map([['firstSHA', index]]))
+      return getContext({ trees })
+    }
+
+    it('When the revision is masked, Then trees reports it absent although the underlying reader holds it', () => {
+      // Arrange
+      const ctx = buildCtx()
+
+      // Act
+      const result = withMaskedTreeRevision(ctx, 'firstSHA')
+
+      // Assert
+      expect(
+        result.trees.pathExists('firstSHA', 'force-app/lwc/still/still.js')
+      ).toBe(false)
+    })
+
+    it('When the revision is masked, Then a different revision still reads through untouched', () => {
+      // Arrange
+      const ctx = buildCtx()
+
+      // Act
+      const result = withMaskedTreeRevision(ctx, 'firstSHA')
+
+      // Assert
+      expect(
+        result.trees.pathExists('otherSHA', 'force-app/lwc/still/still.js')
+      ).toBe(false)
+    })
+
+    it('When the revision is masked, Then config and metadata are carried through unchanged', () => {
+      // Arrange
+      const ctx = buildCtx()
+
+      // Act
+      const result = withMaskedTreeRevision(ctx, 'firstSHA')
+
+      // Assert
+      expect(result.config).toBe(ctx.config)
+      expect(result.metadata).toBe(ctx.metadata)
+    })
+
+    it('When the revision is masked, Then the original context is left unmutated', () => {
+      // Arrange
+      const ctx = buildCtx()
+      const originalTrees = ctx.trees
+
+      // Act
+      withMaskedTreeRevision(ctx, 'firstSHA')
+
+      // Assert
+      expect(ctx.trees).toBe(originalTrees)
+      expect(
+        ctx.trees.pathExists('firstSHA', 'force-app/lwc/still/still.js')
+      ).toBe(true)
     })
   })
 })
