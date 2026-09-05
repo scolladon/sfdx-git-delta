@@ -1421,19 +1421,38 @@ describe('GitAdapter', () => {
       fakeRepo.primitives.readObject.mockImplementation(async (oid: string) =>
         asCommit(`${oid}-tree`)
       )
-      fakeRepo.primitives.flattenTree.mockImplementation(async (tree: string) =>
-        flatten([['force-app/foo.cls', { mode: '100644', id: `${tree}-blob` }]])
-      )
       fakeRepo.primitives.streamBlob.mockImplementation(async (id: string) => [
         Buffer.from(id),
       ])
       const headAgain = { path: 'force-app/foo.cls', oid: 'HEAD' }
       const headTilde = { path: 'force-app/foo.cls', oid: 'HEAD~1' }
 
+      // Every tree is held open until all three callers have passed the memo
+      // read, so "before either walk settles" is observed, not inferred from
+      // microtask depth — a later await on the read path would otherwise make
+      // the sharing claim vacuous while the test still passed.
+      const held = new Map<string, (value: Flattened) => void>()
+      fakeRepo.primitives.flattenTree.mockImplementation(
+        (tree: string) =>
+          new Promise<Flattened>(resolve => {
+            held.set(tree, resolve)
+          })
+      )
+
       // Act
       const first = sut.getBufferContentOrEscalate(foo)
       const second = sut.getBufferContentOrEscalate(headAgain)
       const third = sut.getBufferContentOrEscalate(headTilde)
+      await vi.waitFor(() =>
+        expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledTimes(2)
+      )
+      for (const [tree, release] of held) {
+        release(
+          flatten([
+            ['force-app/foo.cls', { mode: '100644', id: `${tree}-blob` }],
+          ])
+        )
+      }
       const [firstContent, secondContent, thirdContent] = await Promise.all([
         first,
         second,

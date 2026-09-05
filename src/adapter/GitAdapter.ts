@@ -159,9 +159,13 @@ export default class GitAdapter implements GitBlobReader {
   // getConcurrencyThreshold(); buildRunTreeReader asks for `to` and `from`
   // under one Promise.all). Deterministic per revision and safe to share
   // across every run against this repository — unlike the tree index (see
-  // buildTreeIndex), nothing here varies by caller-supplied scope. Consumers
-  // only iterate or `get` the shared map; none mutates it.
-  protected readonly blobIdIndex: Map<string, Promise<Map<string, ObjectId>>>
+  // buildTreeIndex), nothing here varies by caller-supplied scope. The map
+  // is handed out read-only: one instance is shared by every caller, and two
+  // consumers iterate it across an await.
+  protected readonly blobIdIndex: Map<
+    string,
+    Promise<ReadonlyMap<string, ObjectId>>
+  >
   private repoHandle: Promise<Repository> | null = null
 
   // `key` identifies the repository — the pool map key and every
@@ -174,7 +178,7 @@ export default class GitAdapter implements GitBlobReader {
     private readonly key: string,
     private readonly repoPath: string
   ) {
-    this.blobIdIndex = new Map<string, Promise<Map<string, ObjectId>>>()
+    this.blobIdIndex = new Map<string, Promise<ReadonlyMap<string, ObjectId>>>()
   }
 
   // Read by ConfigValidator to render `error.PathIsNotGit` from the exact
@@ -292,15 +296,19 @@ export default class GitAdapter implements GitBlobReader {
   // Not `async` on purpose: an `await` between the memo read and the memo
   // write is what let concurrent callers each re-walk the tree, and a
   // non-async function cannot contain one.
-  protected indexRevision(revision: string): Promise<Map<string, ObjectId>> {
-    const inFlight = this.blobIdIndex.get(revision)
-    if (inFlight) {
-      return inFlight
+  protected indexRevision(
+    revision: string
+  ): Promise<ReadonlyMap<string, ObjectId>> {
+    const memoised = this.blobIdIndex.get(revision)
+    if (memoised) {
+      return memoised
     }
     const build = this.flattenRevision(revision).catch((error: unknown) => {
-      // Evict so a later caller retries rather than inheriting the failure
-      // (no identity check: reactions run after the synchronous set and in
-      // attachment order, so a retry always finds the slot empty).
+      // Evict so a later caller retries rather than inheriting the failure.
+      // No identity check is needed: the slot holds this build until this
+      // handler deletes it, so nothing can replace it first, and the
+      // reaction cannot run before the synchronous set below, so the delete
+      // never outruns the write.
       this.blobIdIndex.delete(revision)
       throw error
     })
@@ -308,11 +316,11 @@ export default class GitAdapter implements GitBlobReader {
     return build
   }
 
-  // The walk itself: revParse -> peel the tag chain -> one bulk flattenTree.
-  // flattenTree takes a tree oid, so the commit is peeled first.
+  // flattenTree is the bulk traversal path (one call, no per-entry yields);
+  // it takes a tree oid, so the commit is peeled first.
   private async flattenRevision(
     revision: string
-  ): Promise<Map<string, ObjectId>> {
+  ): Promise<ReadonlyMap<string, ObjectId>> {
     const repo = await this.getRepo()
     const revisionId = await repo.revParse(revision)
     const commit = await this.peelToCommit(revisionId, revision)

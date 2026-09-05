@@ -1,7 +1,13 @@
 'use strict'
-import { existsSync, mkdtempSync, rmSync, unlinkSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  unlinkSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 import { runGit, runGitText } from './gitTestHarness'
 
@@ -955,13 +961,23 @@ export const buildUnreadableSubtreeFixtureRepo = (
  * are loose because every fixture here is built with plumbing
  * (hash-object / write-tree / commit-tree), which never packs; the existence
  * check turns that assumption into a loud failure instead of a vacuous test.
- * Returns the removed tree oid.
+ *
+ * `dir` must live under the OS temp dir: this deletes from a real object
+ * store, so containment is enforced rather than left to the caller's care.
  */
 export const unlinkTreeObjectAt = (
   dir: string,
   revision: string,
   treePath: string
-): string => {
+): void => {
+  const root = realpathSync(tmpdir())
+  const target = realpathSync(dir)
+  const inside = relative(root, target)
+  if (inside.startsWith('..') || inside.startsWith(sep) || inside === '') {
+    throw new Error(
+      `refusing to unlink git objects outside the temp dir: ${target}`
+    )
+  }
   const oid = runGitText(['rev-parse', `${revision}:${treePath}`], {
     cwd: dir,
   })
@@ -972,5 +988,4 @@ export const unlinkTreeObjectAt = (
     )
   }
   unlinkSync(objectPath)
-  return oid
 }

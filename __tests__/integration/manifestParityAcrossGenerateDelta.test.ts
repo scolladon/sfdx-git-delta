@@ -51,12 +51,12 @@ const SHALLOW_CLONE_DEPTH = '2'
 // GitAdapter.indexRevision is protected; this names just enough of its
 // shape to spy on the shared prototype method without an `any` escape.
 type IndexRevisionHost = {
-  indexRevision: (revision: string) => Promise<Map<string, ObjectId>>
+  indexRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
 // GitAdapter.peelToCommit is protected too. It sits past indexRevision's
-// early-return memo check (`if (cached) return cached`), so it runs only on
-// a genuine miss — spying it distinguishes "the memo answered" from "the
+// early-return in-flight memo check, inside flattenRevision, so it runs only
+// on a genuine miss — spying it distinguishes "the memo answered" from "the
 // tree got walked again", which spying indexRevision itself cannot.
 type PeelToCommitHost = {
   peelToCommit: (oid: ObjectId, label: string) => Promise<Commit>
@@ -570,7 +570,7 @@ describe('Given --from equal to --to and an include file (non-empty scope)', () 
   })
 })
 
-describe('Given the to revision has an unreadable subtree that the diff never opens', () => {
+describe('Given an unreadable subtree that the diff never opens at either revision', () => {
   let unreadableDir: string
   let unreadable: UnreadableSubtreeFixtureRefs
 
@@ -613,10 +613,13 @@ describe('Given the to revision has an unreadable subtree that the diff never op
     expect(work.warnings.map(warning => warning.message)).toEqual([
       expectedWarning,
     ])
+    // The subtree is byte-identical at base and head, so one shared tree
+    // oid is unlinked and BOTH walks reject; only `to` is warned about,
+    // which is what the single-warning assertion above pins.
     // Attempt-scoped means every attempt walks for itself: the builder's
     // rejected walk was evicted, so the copy batch starts one fresh walk
     // and its second copy joins it. `from` is only ever asked by the
-    // builder.
+    // builder, hence one attempt.
     const headWalked = peelToCommitSpy.mock.calls.filter(
       ([, label]) => label === unreadable.head
     )
