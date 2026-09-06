@@ -52,8 +52,16 @@ const trackedTempDir = async (prefix: string): Promise<string> => {
 // invoking porcelain `git commit`, which would consult the host's
 // `commit.gpgsign` — this throwaway fixture repo has no business
 // triggering a signing prompt.
-const initRepoWithCommit = (repoDir: string): void => {
-  runGit(['init', '--quiet'], { cwd: repoDir })
+// `refFormat` is only pinned by callers that reach into `.git/refs` by hand;
+// everyone else inherits the host default so both backends stay exercised.
+const initRepoWithCommit = (
+  repoDir: string,
+  options: { refFormat?: 'files' } = {}
+): void => {
+  const initArgs = options.refFormat
+    ? ['-c', `init.defaultRefFormat=${options.refFormat}`, 'init', '--quiet']
+    : ['init', '--quiet']
+  runGit(initArgs, { cwd: repoDir })
   const treeOid = runGit(['write-tree'], { cwd: repoDir })
     .toString('utf8')
     .trim()
@@ -191,9 +199,12 @@ describe('Given the released error-message contract (validated surface)', () => 
     it('Then it throws the released error.ParameterIsNotGitSHA message, whose fetch-depth hint is the right one for a missing object', async () => {
       // Arrange — git itself refuses `update-ref` to a nonexistent object,
       // so the loose ref file is written by hand, exactly as a partial
-      // clone would leave it.
+      // clone would leave it. That hand-write needs the `files` backend:
+      // under reftable `.git/refs/heads` is a stub file, so a host with
+      // init.defaultRefFormat=reftable would fail here with ENOTDIR rather
+      // than exercise the missing-object path.
       const repoDir = await trackedTempDir('sgd-error-parity-ghost-')
-      initRepoWithCommit(repoDir)
+      initRepoWithCommit(repoDir, { refFormat: 'files' })
       await writeFile(
         join(repoDir, '.git', 'refs', 'heads', 'ghost'),
         `${'a'.repeat(40)}\n`

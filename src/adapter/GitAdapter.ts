@@ -329,10 +329,10 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   // flattenTree is the bulk traversal path (one call, no per-entry yields);
-  // it takes a tree oid, so the commit is peeled first. Protected rather
-  // than private so the integration memo guards can spy the one call that
-  // runs only on a memo miss — peelToCommit stopped being that proxy once
-  // validation started peeling.
+  // it takes a tree oid, so the commit is peeled first. Declared protected
+  // to mark it as the test seam the integration memo guards spy: it is the
+  // one call that runs only on a memo miss, and peelToCommit stopped being
+  // that proxy once validation started peeling every --from/--to up front.
   protected async flattenRevision(
     revision: string
   ): Promise<ReadonlyMap<string, ObjectId>> {

@@ -876,8 +876,12 @@ describe('Given a ConfigValidator', () => {
         .validateConfig()
         .catch((thrown: unknown) => thrown)
 
-      // Assert
-      expect((error as Error).message).toContain('HEAD\\u{a}^{tree}')
+      // Assert — pins the branch as well as the escaping: asserting only
+      // that the raw character is gone would also hold on the
+      // ParameterIsNotGitSHA fallback, which sanitizes too.
+      expect((error as Error).message).toContain(
+        'error.ParameterIsNotCommit:to,HEAD\\u{a}^{tree},tree'
+      )
       expect((error as Error).message).not.toContain(shaWithControl)
     })
 

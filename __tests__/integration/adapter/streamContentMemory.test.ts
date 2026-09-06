@@ -96,7 +96,6 @@ afterAll(async () => {
 describe('Given a repository with a large non-LFS blob', () => {
   describe('When streamContent reads it', () => {
     let repoDir: string
-    let content: Buffer
     let commitOid: string
 
     // Hoisted out of the assertion's default timeout budget so that budget
@@ -104,7 +103,7 @@ describe('Given a repository with a large non-LFS blob', () => {
     // it via plumbing is fixture I/O, not the behaviour under test.
     beforeAll(async () => {
       repoDir = await trackedTempDir('sgd-stream-memory-')
-      content = buildBlobContent()
+      const content = buildBlobContent()
       commitOid = commitLargeBlob(repoDir, content)
     }, 60_000)
 
