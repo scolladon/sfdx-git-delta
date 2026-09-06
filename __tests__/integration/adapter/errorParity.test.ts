@@ -9,6 +9,7 @@ import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
 import { NotACommitError } from '../../../src/utils/errorUtils'
 import { sanitizePath } from '../../../src/utils/fsUtils'
+import { buildRefNameFixtureRepo } from '../../__utils__/gitFixtureRepo'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
@@ -210,6 +211,60 @@ describe('Given the released error-message contract (validated surface)', () => 
       expect((error as Error).message).toBe(
         "--to is not a valid sha pointer: 'ghost' (If in CI/CD context, check the fetch depth is properly set)"
       )
+    })
+  })
+
+  describe('When ConfigValidator validates a revision that resolves to a tree', () => {
+    it.each([
+      { flag: 'to', from: 'HEAD', to: 'HEAD^{tree}' },
+      { flag: 'from', from: 'HEAD^{tree}', to: 'HEAD' },
+    ])(
+      'Then --$flag is refused with the released error.ParameterIsNotCommit message naming the value as typed',
+      async ({ flag, from, to }) => {
+        // Arrange
+        const repoDir = await trackedTempDir('sgd-error-parity-tree-')
+        initRepoWithCommit(repoDir)
+        const sut = new ConfigValidator(makeConfig({ repo: repoDir, from, to }))
+
+        // Act
+        const error = await sut
+          .validateConfig()
+          .catch((thrown: unknown) => thrown)
+
+        // Assert
+        expect((error as Error).message).toBe(
+          `--${flag} must resolve to a commit: 'HEAD^{tree}' resolves to a tree. Use a commit sha, a branch, or a tag that points to a commit`
+        )
+        expect((error as Error).message).not.toContain(
+          'is not a valid sha pointer'
+        )
+        expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
+      }
+    )
+  })
+
+  describe('When ConfigValidator validates a revision that resolves to a blob', () => {
+    it('Then --to is refused with the released error.ParameterIsNotCommit message naming the value as typed', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-blob-')
+      buildRefNameFixtureRepo(repoDir)
+      const sut = new ConfigValidator(
+        makeConfig({ repo: repoDir, from: 'HEAD', to: 'HEAD:README.md' })
+      )
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        "--to must resolve to a commit: 'HEAD:README.md' resolves to a blob. Use a commit sha, a branch, or a tag that points to a commit"
+      )
+      expect((error as Error).message).not.toContain(
+        'is not a valid sha pointer'
+      )
+      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })
 })

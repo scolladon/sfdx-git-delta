@@ -4,7 +4,10 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
-import { RepositoryRefusalError } from '../../../../src/utils/errorUtils'
+import {
+  NotACommitError,
+  RepositoryRefusalError,
+} from '../../../../src/utils/errorUtils'
 import {
   pathExists,
   sanitizePath,
@@ -753,6 +756,170 @@ describe('Given a ConfigValidator', () => {
 
       // Assert
       expect((error as Error).message).toBe(refusal.message)
+    })
+  })
+
+  describe('Given a revision that does not resolve to a commit', () => {
+    it('When --to peels to a tree, Then the error carries ParameterIsNotCommit for to with the typed value and the kind, and never the sha-pointer message', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'HEAD^{tree}'
+          ? Promise.reject(new NotACommitError('HEAD^{tree}', 'tree'))
+          : Promise.resolve('commit-oid')
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD~1',
+        to: 'HEAD^{tree}',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'error.ParameterIsNotCommit:to,HEAD^{tree},tree'
+      )
+      expect((error as Error).message).not.toContain(
+        'error.ParameterIsNotGitSHA'
+      )
+      expect((error as Error).name).toBe('ConfigError')
+    })
+
+    it('When --from peels to a blob, Then the error carries ParameterIsNotCommit for from', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'HEAD:file'
+          ? Promise.reject(new NotACommitError('HEAD:file', 'blob'))
+          : Promise.resolve('commit-oid')
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD:file',
+        to: 'HEAD',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'error.ParameterIsNotCommit:from,HEAD:file,blob'
+      )
+    })
+
+    it('When both flags peel to trees, Then two distinct ParameterIsNotCommit sentences are reported', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        Promise.reject(new NotACommitError(ref, 'tree'))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'a^{tree}',
+        to: 'b^{tree}',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      const parts = (error as Error).message.split(', ')
+      expect(parts).toHaveLength(2)
+      expect(parts).toContain('error.ParameterIsNotCommit:from,a^{tree},tree')
+      expect(parts).toContain('error.ParameterIsNotCommit:to,b^{tree},tree')
+    })
+
+    it('When --from is unresolvable and --to peels to a tree, Then one sha-pointer sentence and one non-commit sentence are reported', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'nope'
+          ? Promise.reject(new Error('bad'))
+          : Promise.reject(new NotACommitError('HEAD^{tree}', 'tree'))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'nope',
+        to: 'HEAD^{tree}',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      const parts = (error as Error).message.split(', ')
+      expect(parts).toContain('error.ParameterIsNotGitSHA:from,nope')
+      expect(parts).toContain('error.ParameterIsNotCommit:to,HEAD^{tree},tree')
+    })
+
+    it('When the typed value carries a control character, Then the message carries its escaped form and never the raw character', async () => {
+      // Arrange
+      const shaWithControl = 'HEAD\n^{tree}'
+      mockResolveCommit.mockImplementation(() =>
+        Promise.reject(new NotACommitError(shaWithControl, 'tree'))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD',
+        to: shaWithControl,
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain('HEAD\\u{a}^{tree}')
+      expect((error as Error).message).not.toContain(shaWithControl)
+    })
+
+    it('When mergeBase is set and --to peels to a tree, Then it throws ParameterIsNotCommit and never calls getMergeBase', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'HEAD^{tree}'
+          ? Promise.reject(new NotACommitError('HEAD^{tree}', 'tree'))
+          : Promise.resolve('commit-oid')
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD~1',
+        to: 'HEAD^{tree}',
+        mergeBase: true,
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'error.ParameterIsNotCommit:to,HEAD^{tree},tree'
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('When both flags resolve, Then config.from and config.to hold what the resolver returned', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-peeled`)
+      )
+      const cfg = { ...config, from: 'v-annot', to: 'main' }
+
+      // Act
+      await new ConfigValidator(cfg).validateConfig()
+
+      // Assert
+      expect(cfg.from).toBe('v-annot-peeled')
+      expect(cfg.to).toBe('main-peeled')
     })
   })
 

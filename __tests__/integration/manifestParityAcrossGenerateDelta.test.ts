@@ -640,3 +640,29 @@ describe('Given an unreadable subtree that the diff never opens at either revisi
     ).toEqual(['foo'])
   })
 })
+
+describe('Given --to is a tree-ish of the fixture head', () => {
+  it('When sgd runs, Then it rejects with the released ParameterIsNotCommit sentence before any tree is walked', async () => {
+    // Arrange — through the real main.ts, catalogue and object store:
+    // validation refuses first, so indexRevision is never even asked.
+    const treeish = `${refs.head}^{tree}`
+    const indexRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as IndexRevisionHost,
+      'indexRevision'
+    )
+    const input = await makeInput({ to: treeish })
+
+    // Act
+    const error = await sgd(input).catch((thrown: unknown) => thrown)
+
+    // Assert
+    expect((error as Error).message).toBe(
+      new MessageService().getMessage('error.ParameterIsNotCommit', [
+        'to',
+        treeish,
+        'tree',
+      ])
+    )
+    expect(indexRevisionSpy).not.toHaveBeenCalled()
+  })
+})

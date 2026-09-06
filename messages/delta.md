@@ -94,6 +94,10 @@ path to a JSON file grouping changed components by kind (add, modify, delete, re
 
 --%s is not a valid sha pointer: '%s' (If in CI/CD context, check the fetch depth is properly set)
 
+# error.ParameterIsNotCommit
+
+--%s must resolve to a commit: '%s' resolves to a %s. Use a commit sha, a branch, or a tag that points to a commit
+
 # error.MergeBaseNotFound
 
 no merge base found between --from '%s' and --to '%s' (If in CI/CD context, check the fetch depth is properly set)

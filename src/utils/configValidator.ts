@@ -12,6 +12,7 @@ import { pushAll } from './arrayUtils.js'
 import {
   ConfigError,
   getErrorMessage,
+  NotACommitError,
   RepositoryRefusalError,
 } from './errorUtils.js'
 import { pathExists, sanitizePath } from './fsUtils.js'
@@ -62,7 +63,7 @@ export default class ConfigValidator {
         } catch (error) {
           Logger.debug(
             // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch log content is observability only
-            lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' is not a valid git SHA: ${() => getErrorMessage(error)}`
+            lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' does not resolve to a commit: ${() => getErrorMessage(error)}`
           )
           errors.push(this._shaFailureMessage(error, shaParameter, shaValue))
         }
@@ -74,13 +75,23 @@ export default class ConfigValidator {
 
   // A refusal is about the repository, not about either ref: reporting it
   // verbatim replaces two bogus "check the fetch depth" lines with the one
-  // thing the user can act on.
+  // thing the user can act on. A non-commit is about the ref's KIND, not
+  // its existence: the fetch-depth hint would send the user to deepen a
+  // clone that is already complete, so it gets its own sentence. Both name
+  // shaValue — what the user typed — never the oid resolveCommit produced.
   protected _shaFailureMessage(
     error: unknown,
     shaParameter: ShaKey,
     shaValue: string
   ): string {
     if (error instanceof RepositoryRefusalError) return error.message
+    if (error instanceof NotACommitError) {
+      return this.message.getMessage('error.ParameterIsNotCommit', [
+        shaParameter,
+        sanitizeForMessage(shaValue),
+        error.objectType,
+      ])
+    }
     return this.message.getMessage('error.ParameterIsNotGitSHA', [
       shaParameter,
       sanitizeForMessage(shaValue),
