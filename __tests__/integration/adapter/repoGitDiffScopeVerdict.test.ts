@@ -57,7 +57,11 @@ beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-scope-verdict-fixture-')
   refs = buildFixtureRepo(fixtureDir)
   globalMetadata = await getDefinition({})
-})
+  // Building the fixture repo plus the SDR registry load is fixture I/O,
+  // not the behaviour under test, and the default 10s hook timeout has a
+  // documented flake of exactly this shape under CPU contention. The
+  // assertions keep the tight default so they stay regression detectors.
+}, 30_000)
 
 afterEach(async () => {
   // Closing after every test drops the cached repo handle and the
