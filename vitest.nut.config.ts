@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config'
 
-import { oxc } from './vitest.shared'
+import { oxc } from './vitest.shared.ts'
 
 export default defineConfig({
   test: {
