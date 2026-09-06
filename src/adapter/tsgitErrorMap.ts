@@ -1,5 +1,9 @@
 'use strict'
-import { getErrorMessage, RepositoryRefusalError } from '../utils/errorUtils.js'
+import {
+  getErrorMessage,
+  RepositoryRefusalError,
+  SgdError,
+} from '../utils/errorUtils.js'
 import { sanitizeForMessage } from '../utils/messageSanitizer.js'
 
 // Raw tsgit surfaces this module narrows away from GitAdapter's
@@ -65,16 +69,22 @@ const refusalMessageFor = (
 /**
  * Normalizes a raw tsgit rejection into a release-compatible Error. Pure —
  * no I/O, never throws itself, always returns an Error for the caller to
- * rethrow. `context` identifies the operation (a ref, an oid, a range) and
- * is interpolated into object-lookup messages; `repoPath` identifies the
- * repository and is interpolated into repository-refusal messages instead,
- * since tsgit renders those down to a bare basename.
+ * rethrow — sgd's own `SgdError` instances come back by identity. `context`
+ * identifies the operation (a ref, an oid, a range) and is interpolated into
+ * object-lookup messages; `repoPath` identifies the repository and is
+ * interpolated into repository-refusal messages instead, since tsgit
+ * renders those down to a bare basename.
  */
 export const mapTsgitError = (
   error: unknown,
   context: string,
   repoPath: string
 ): Error => {
+  // sgd's own typed errors are already release-shaped; only raw tsgit
+  // rejections need rewriting. Without this, a NotACommitError raised inside
+  // an adapter method would leave it as a generic `git operation failed: …`
+  // and ConfigValidator could not tell a non-commit from any other failure.
+  if (error instanceof SgdError) return error
   const message = getErrorMessage(error)
   if (isObjectNotFound(error, message)) {
     return new Error(`${context}: not a valid git revision`)
