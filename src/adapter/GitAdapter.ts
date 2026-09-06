@@ -287,9 +287,10 @@ export default class GitAdapter implements GitBlobReader {
   // `git ls-tree -r <tag>` / `git merge-base` peeling semantics. `label`
   // identifies the original ref/oid for the error message (it can differ
   // from `oid` itself, e.g. a revision string vs. its resolved object id).
-  // Shared by resolveCommit too, now that validation peels every --from/--to
-  // up front — the typed error is what lets ConfigValidator name the kind
-  // of object a revision resolved to instead of just reporting a failure.
+  // Reached through peelRevision by resolveCommit as well, now that
+  // validation peels every --from/--to up front — the typed error is what
+  // lets ConfigValidator name the kind of object a revision resolved to
+  // instead of just reporting a failure.
   protected async peelToCommit(oid: ObjectId, label: string): Promise<Commit> {
     const repo = await this.getRepo()
     let target = await repo.primitives.readObject(oid)
@@ -303,9 +304,10 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   // The shared resolve-then-peel invariant behind resolveCommit,
-  // flattenRevision and getMergeBase: each needs a revision string turned
-  // into the Commit it names, then projects a different field off that
-  // Commit (`.id`, `.data.tree`, or both ids for a merge-base pair).
+  // flattenRevision and getMergeBase. Centralizing it also pins the part
+  // no test can catch: the label handed to peelToCommit must stay the
+  // caller's revision string, never the oid revParse just returned, or the
+  // error names a hash instead of what the user typed.
   private async peelRevision(revision: string): Promise<Commit> {
     const repo = await this.getRepo()
     const oid = await repo.revParse(revision)
