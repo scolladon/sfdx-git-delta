@@ -245,10 +245,7 @@ export default class GitAdapter implements GitBlobReader {
   @log
   public async resolveCommit(ref: string): Promise<string> {
     try {
-      const repo = await this.getRepo()
-      const oid = await repo.revParse(ref)
-      const commit = await this.peelToCommit(oid, ref)
-      return commit.id
+      return (await this.peelRevision(ref)).id
     } catch (error) {
       throw this.mapError(error, ref)
     }
@@ -305,6 +302,16 @@ export default class GitAdapter implements GitBlobReader {
     return target
   }
 
+  // The shared resolve-then-peel invariant behind resolveCommit,
+  // flattenRevision and getMergeBase: each needs a revision string turned
+  // into the Commit it names, then projects a different field off that
+  // Commit (`.id`, `.data.tree`, or both ids for a merge-base pair).
+  private async peelRevision(revision: string): Promise<Commit> {
+    const repo = await this.getRepo()
+    const oid = await repo.revParse(revision)
+    return await this.peelToCommit(oid, revision)
+  }
+
   // Not `async` on purpose: an `await` between the memo read and the memo
   // write is what let concurrent callers each re-walk the tree, and a
   // non-async function cannot contain one.
@@ -337,8 +344,7 @@ export default class GitAdapter implements GitBlobReader {
     revision: string
   ): Promise<ReadonlyMap<string, ObjectId>> {
     const repo = await this.getRepo()
-    const revisionId = await repo.revParse(revision)
-    const commit = await this.peelToCommit(revisionId, revision)
+    const commit = await this.peelRevision(revision)
     const { entries } = await repo.primitives.flattenTree(commit.data.tree)
     const blobIds = new Map<string, ObjectId>()
     for (const [path, entry] of entries) {
@@ -364,13 +370,9 @@ export default class GitAdapter implements GitBlobReader {
   ): Promise<string | undefined> {
     try {
       const repo = await this.getRepo()
-      const [fromId, toId] = await Promise.all([
-        repo.revParse(from),
-        repo.revParse(to),
-      ])
       const [fromCommit, toCommit] = await Promise.all([
-        this.peelToCommit(fromId, from),
-        this.peelToCommit(toId, to),
+        this.peelRevision(from),
+        this.peelRevision(to),
       ])
       // Criss-cross histories can legitimately have several common
       // ancestors; tsgit's mergeBase primitive returns all of them. Taking
