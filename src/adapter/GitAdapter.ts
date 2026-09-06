@@ -3,7 +3,7 @@
  * (zero-dependency, no `git` binary, no subprocess). Object-store reads,
  * diffs, tree walks and blob content all go through the tsgit facade:
  *
- *   git rev-parse --verify <ref>        -> repo.revParse(ref)
+ *   git rev-parse --verify <ref>^{commit} -> repo.revParse(ref) + peelToCommit
  *   git ls-tree --name-only -r <rev>    -> repo.primitives.flattenTree
  *   git rev-list --max-parents=0 HEAD   -> repo.primitives.walkCommits
  *   git cat-file --batch / blob         -> repo.primitives.readBlob / streamBlob
@@ -44,7 +44,7 @@ import { UTF8_ENCODING } from '../constant/fsConstants.js'
 import { HEAD } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
-import { getErrorMessage } from '../utils/errorUtils.js'
+import { getErrorMessage, NotACommitError } from '../utils/errorUtils.js'
 import { sanitizePath, treatPathSep } from '../utils/fsUtils.js'
 import { getLFSObjectContentPath, isLFS } from '../utils/gitLfsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -235,11 +235,17 @@ export default class GitAdapter implements GitBlobReader {
     }
   }
 
+  // Equivalent to `git rev-parse --verify <ref>^{commit}`: resolves the
+  // revision and follows any tag chain down to the commit it names, so an
+  // annotated tag is accepted while a tree-ish or blob (`HEAD^{tree}`,
+  // `HEAD:path`, a bare tree oid, a tag pointing at a tree) is refused here
+  // instead of being accepted and left to degrade every later read. Returns
+  // the peeled COMMIT id, not the tag object's, so every consumer downstream
+  // is handed a commit.
   @log
-  public async parseRev(ref: string): Promise<string> {
+  public async resolveCommit(ref: string): Promise<string> {
     try {
-      const repo = await this.getRepo()
-      return await repo.revParse(ref)
+      return (await this.peelRevision(ref)).id
     } catch (error) {
       throw this.mapError(error, ref)
     }
@@ -281,6 +287,10 @@ export default class GitAdapter implements GitBlobReader {
   // `git ls-tree -r <tag>` / `git merge-base` peeling semantics. `label`
   // identifies the original ref/oid for the error message (it can differ
   // from `oid` itself, e.g. a revision string vs. its resolved object id).
+  // Reached through peelRevision by resolveCommit as well, now that
+  // validation peels every --from/--to up front — the typed error is what
+  // lets ConfigValidator name the kind of object a revision resolved to
+  // instead of just reporting a failure.
   protected async peelToCommit(oid: ObjectId, label: string): Promise<Commit> {
     const repo = await this.getRepo()
     let target = await repo.primitives.readObject(oid)
@@ -288,9 +298,20 @@ export default class GitAdapter implements GitBlobReader {
       target = await repo.primitives.readObject(target.data.object)
     }
     if (target.type !== 'commit') {
-      throw new Error(`'${label}' does not resolve to a commit`)
+      throw new NotACommitError(label, target.type)
     }
     return target
+  }
+
+  // The shared resolve-then-peel invariant behind resolveCommit,
+  // flattenRevision and getMergeBase. Centralizing it also pins the part
+  // no test can catch: the label handed to peelToCommit must stay the
+  // caller's revision string, never the oid revParse just returned, or the
+  // error names a hash instead of what the user typed.
+  private async peelRevision(revision: string): Promise<Commit> {
+    const repo = await this.getRepo()
+    const oid = await repo.revParse(revision)
+    return await this.peelToCommit(oid, revision)
   }
 
   // Not `async` on purpose: an `await` between the memo read and the memo
@@ -317,13 +338,15 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   // flattenTree is the bulk traversal path (one call, no per-entry yields);
-  // it takes a tree oid, so the commit is peeled first.
-  private async flattenRevision(
+  // it takes a tree oid, so the commit is peeled first. Declared protected
+  // to mark it as the test seam the integration memo guards spy: it is the
+  // one call that runs only on a memo miss, and peelToCommit stopped being
+  // that proxy once validation started peeling every --from/--to up front.
+  protected async flattenRevision(
     revision: string
   ): Promise<ReadonlyMap<string, ObjectId>> {
     const repo = await this.getRepo()
-    const revisionId = await repo.revParse(revision)
-    const commit = await this.peelToCommit(revisionId, revision)
+    const commit = await this.peelRevision(revision)
     const { entries } = await repo.primitives.flattenTree(commit.data.tree)
     const blobIds = new Map<string, ObjectId>()
     for (const [path, entry] of entries) {
@@ -349,13 +372,9 @@ export default class GitAdapter implements GitBlobReader {
   ): Promise<string | undefined> {
     try {
       const repo = await this.getRepo()
-      const [fromId, toId] = await Promise.all([
-        repo.revParse(from),
-        repo.revParse(to),
-      ])
       const [fromCommit, toCommit] = await Promise.all([
-        this.peelToCommit(fromId, from),
-        this.peelToCommit(toId, to),
+        this.peelRevision(from),
+        this.peelRevision(to),
       ])
       // Criss-cross histories can legitimately have several common
       // ancestors; tsgit's mergeBase primitive returns all of them. Taking

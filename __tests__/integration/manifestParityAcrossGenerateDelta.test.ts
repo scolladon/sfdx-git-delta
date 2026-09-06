@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { Commit, ObjectId } from '@scolladon/tsgit'
+import type { ObjectId } from '@scolladon/tsgit'
 import {
   afterAll,
   afterEach,
@@ -54,12 +54,13 @@ type IndexRevisionHost = {
   indexRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
-// GitAdapter.peelToCommit is protected too. It sits past indexRevision's
-// early-return in-flight memo check, inside flattenRevision, so it runs only
-// on a genuine miss — spying it distinguishes "the memo answered" from "the
-// tree got walked again", which spying indexRevision itself cannot.
-type PeelToCommitHost = {
-  peelToCommit: (oid: ObjectId, label: string) => Promise<Commit>
+// GitAdapter.flattenRevision is protected too. It is the one call that runs
+// only on a genuine indexRevision memo miss, so spying it distinguishes
+// "the memo answered" from "the tree got walked again", which spying
+// indexRevision itself cannot. peelToCommit is no longer that proxy:
+// ConfigValidator peels every --from/--to at validation, before any walk.
+type FlattenRevisionHost = {
+  flattenRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
 // The one seam that leaves the process: ConfigValidator caps apiVersion
@@ -245,22 +246,22 @@ describe('Given a --generate-delta-on run over the live-container fixture', () =
     // for more than once. A timing ceiling cannot catch the memo breaking
     // either — one extra flatten costs only a few ms, invisible against
     // bench noise (see pipeline.bench.ts) — so this pins call counts
-    // directly: peelToCommit runs only past indexRevision's early-return,
+    // directly: flattenRevision runs only past indexRevision's early-return,
     // so its count divides "answered from the memo" from "walked again".
     const indexRevisionSpy = vi.spyOn(
       GitAdapter.prototype as unknown as IndexRevisionHost,
       'indexRevision'
     )
-    const peelToCommitSpy = vi.spyOn(
-      GitAdapter.prototype as unknown as PeelToCommitHost,
-      'peelToCommit'
+    const flattenRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as FlattenRevisionHost,
+      'flattenRevision'
     )
 
     // Act
     await runSgd({ generateDelta: true })
 
     // Assert — more indexRevision calls than distinct revisions means a
-    // revision got asked for twice; peelToCommit running exactly once per
+    // revision got asked for twice; flattenRevision running exactly once per
     // distinct revision proves that repeat was served from the memo rather
     // than re-walking the tree.
     const revisionsSeen = new Set(
@@ -269,7 +270,7 @@ describe('Given a --generate-delta-on run over the live-container fixture', () =
     expect(indexRevisionSpy.mock.calls.length).toBeGreaterThan(
       revisionsSeen.size
     )
-    expect(peelToCommitSpy).toHaveBeenCalledTimes(revisionsSeen.size)
+    expect(flattenRevisionSpy).toHaveBeenCalledTimes(revisionsSeen.size)
   })
 })
 
@@ -493,9 +494,9 @@ describe('Given a diff whose tree-index scope is empty and whose handlers read c
         GitAdapter.prototype as unknown as IndexRevisionHost,
         'indexRevision'
       )
-      const peelToCommitSpy = vi.spyOn(
-        GitAdapter.prototype as unknown as PeelToCommitHost,
-        'peelToCommit'
+      const flattenRevisionSpy = vi.spyOn(
+        GitAdapter.prototype as unknown as FlattenRevisionHost,
+        'flattenRevision'
       )
 
       // Act
@@ -515,7 +516,7 @@ describe('Given a diff whose tree-index scope is empty and whose handlers read c
       )
       expect(revisionsSeen).toEqual(new Set([fanOut.head, fanOut.base]))
       expect(indexRevisionSpy).toHaveBeenCalledTimes(2 * FAN_OUT_FILE_COUNT)
-      expect(peelToCommitSpy).toHaveBeenCalledTimes(revisionsSeen.size)
+      expect(flattenRevisionSpy).toHaveBeenCalledTimes(revisionsSeen.size)
       // The run did real work with the content it read: the alert added at
       // head lands as a WorkflowAlert member for every file.
       const addedAlerts = Array.from(
@@ -543,9 +544,9 @@ describe('Given --from equal to --to and an include file (non-empty scope)', () 
       GitAdapter.prototype as unknown as IndexRevisionHost,
       'indexRevision'
     )
-    const peelToCommitSpy = vi.spyOn(
-      GitAdapter.prototype as unknown as PeelToCommitHost,
-      'peelToCommit'
+    const flattenRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as FlattenRevisionHost,
+      'flattenRevision'
     )
 
     // Act
@@ -555,15 +556,15 @@ describe('Given --from equal to --to and an include file (non-empty scope)', () 
     const headAsked = indexRevisionSpy.mock.calls.filter(
       ([revision]) => revision === refs.head
     )
-    const headWalked = peelToCommitSpy.mock.calls.filter(
-      ([, label]) => label === refs.head
+    const headWalked = flattenRevisionSpy.mock.calls.filter(
+      ([revision]) => revision === refs.head
     )
     expect(headAsked).toHaveLength(2)
     expect(headWalked).toHaveLength(1)
     const revisionsSeen = new Set(
       indexRevisionSpy.mock.calls.map(call => call[0])
     )
-    expect(peelToCommitSpy).toHaveBeenCalledTimes(revisionsSeen.size)
+    expect(flattenRevisionSpy).toHaveBeenCalledTimes(revisionsSeen.size)
     expect(members(work.changes.forPackageManifest(), 'ApexClass')).toEqual([
       'Keep',
     ])
@@ -591,9 +592,9 @@ describe('Given an unreadable subtree that the diff never opens at either revisi
       GitAdapter.prototype as unknown as IndexRevisionHost,
       'indexRevision'
     )
-    const peelToCommitSpy = vi.spyOn(
-      GitAdapter.prototype as unknown as PeelToCommitHost,
-      'peelToCommit'
+    const flattenRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as FlattenRevisionHost,
+      'flattenRevision'
     )
 
     // Act
@@ -620,11 +621,11 @@ describe('Given an unreadable subtree that the diff never opens at either revisi
     // rejected walk was evicted, so the copy batch starts one fresh walk
     // and its second copy joins it. `from` is only ever asked by the
     // builder, hence one attempt.
-    const headWalked = peelToCommitSpy.mock.calls.filter(
-      ([, label]) => label === unreadable.head
+    const headWalked = flattenRevisionSpy.mock.calls.filter(
+      ([revision]) => revision === unreadable.head
     )
-    const baseWalked = peelToCommitSpy.mock.calls.filter(
-      ([, label]) => label === unreadable.base
+    const baseWalked = flattenRevisionSpy.mock.calls.filter(
+      ([revision]) => revision === unreadable.base
     )
     expect(headWalked).toHaveLength(2)
     expect(baseWalked).toHaveLength(1)
@@ -637,5 +638,31 @@ describe('Given an unreadable subtree that the diff never opens at either revisi
     expect(
       members(work.changes.forPackageManifest(), 'LightningComponentBundle')
     ).toEqual(['foo'])
+  })
+})
+
+describe('Given --to is a tree-ish of the fixture head', () => {
+  it('When sgd runs, Then it rejects with the released ParameterIsNotCommit sentence before any tree is walked', async () => {
+    // Arrange — through the real main.ts, catalogue and object store:
+    // validation refuses first, so indexRevision is never even asked.
+    const treeish = `${refs.head}^{tree}`
+    const indexRevisionSpy = vi.spyOn(
+      GitAdapter.prototype as unknown as IndexRevisionHost,
+      'indexRevision'
+    )
+    const input = await makeInput({ to: treeish })
+
+    // Act
+    const error = await sgd(input).catch((thrown: unknown) => thrown)
+
+    // Assert
+    expect((error as Error).message).toBe(
+      new MessageService().getMessage('error.ParameterIsNotCommit', [
+        'to',
+        treeish,
+        'tree',
+      ])
+    )
+    expect(indexRevisionSpy).not.toHaveBeenCalled()
   })
 })

@@ -139,7 +139,7 @@ describe('Given a real GitAdapter against repositories in every exercised ref-st
 
       // Act / Assert
       for (const [ref, expectedOid] of expectations) {
-        await expect(sut.parseRev(ref)).resolves.toBe(expectedOid)
+        await expect(sut.resolveCommit(ref)).resolves.toBe(expectedOid)
       }
     }
   )

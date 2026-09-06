@@ -33,6 +33,19 @@ describe('sgd source delta NUTS', () => {
     expect(sut).toContain('error')
   })
 
+  it('Given --to is a tree-ish revision, When running command, Then exits 1 and the error names --to and the value as typed', () => {
+    // Act — HEAD:messages is this repository's own messages/ tree, so it
+    // resolves at every clone depth (the same constraint the --merge-base
+    // legs below document). HEAD^{tree} would prove the same thing but
+    // carries a caret, which cmd/pwsh on the Windows runners treat as an
+    // escape character.
+    const sut = run('sgd source delta --from HEAD --to HEAD:messages --json', 1)
+
+    // Assert
+    expect(sut).toContain('must resolve to a commit')
+    expect(sut).toContain("'HEAD:messages' resolves to a tree")
+  })
+
   it('Given non-existing --repo-dir, When running command, Then exits with error', () => {
     // Act
     const sut = run(

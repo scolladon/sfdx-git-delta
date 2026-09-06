@@ -8,6 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
+import { NotACommitError } from '../../../src/utils/errorUtils'
 import {
   ARCHIVE_SCOPE,
   buildFixtureRepo,
@@ -154,13 +155,13 @@ afterAll(async () => {
 
 describe('Given a self-contained git fixture repository', () => {
   describe('When resolving refs', () => {
-    it('Then parseRev matches git rev-parse --verify', async () => {
+    it('Then resolveCommit matches git rev-parse --verify', async () => {
       // Arrange
       const config = makeConfig()
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actual = await sut.parseRev('HEAD')
+      const actual = await sut.resolveCommit('HEAD')
 
       // Assert
       expect(actual).toBe(
@@ -475,7 +476,7 @@ describe('Given a self-contained git fixture repository', () => {
   })
 
   describe('When the repo is a worktree', () => {
-    it('Then parseRev, getFilesPath and streamDiffLines match git run against the worktree', async () => {
+    it('Then resolveCommit, getFilesPath and streamDiffLines match git run against the worktree', async () => {
       // Arrange: a `.git` FILE (gitdir: pointer), not a directory. Checks
       // out `diffFrom` (an absolute oid, not a relative HEAD~N) so this
       // scenario never depends on how deep the fixture's own history is.
@@ -494,7 +495,7 @@ describe('Given a self-contained git fixture repository', () => {
       const sut = GitAdapter.getInstance(config)
 
       // Act
-      const actualRev = await sut.parseRev('HEAD')
+      const actualRev = await sut.resolveCommit('HEAD')
       const index = await sut.buildTreeIndex('HEAD', [])
       const actualFiles = index!.getFilesPath('').sort()
       const actualDiff = await streamDiff(sut, config)
@@ -558,6 +559,49 @@ describe('Given a self-contained git fixture repository', () => {
         { cwd: tagDir }
       )
       expect(actualContent.equals(expectedContent)).toBe(true)
+
+      // The resolver hands back the COMMIT the tag points at, not the tag
+      // object rev-parse returns — pinned against git's own peel.
+      const resolved = await sut.resolveCommit('parity-tag')
+      expect(resolved).toBe(
+        runGitText(['rev-parse', '--verify', 'parity-tag^{commit}'], {
+          cwd: tagDir,
+        })
+      )
+      expect(resolved).not.toBe(
+        runGitText(['rev-parse', 'parity-tag'], { cwd: tagDir })
+      )
+    })
+
+    it('Then a tag pointing at a tree is refused as a tree once the chain is followed', async () => {
+      // Arrange — chain-then-type order against a real object store: the
+      // tag peels, and what it peels to is what gets judged.
+      const tagDir = await trackedTempDir('sgd-parity-tree-tag-')
+      runGit(['clone', fixtureDir, tagDir])
+      runGit(
+        [
+          '-c',
+          'tag.gpgSign=false',
+          'tag',
+          '-a',
+          'tree-tag',
+          '-m',
+          'tree',
+          `${refs.head}^{tree}`,
+        ],
+        { cwd: tagDir }
+      )
+      const sut = GitAdapter.getInstance(makeConfig({ repo: tagDir }))
+
+      // Act
+      const error = await sut
+        .resolveCommit('tree-tag')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(NotACommitError)
+      expect((error as NotACommitError).objectType).toBe('tree')
+      expect((error as Error).message).toContain("'tree-tag'")
     })
   })
 

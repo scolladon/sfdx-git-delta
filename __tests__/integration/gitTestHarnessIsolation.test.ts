@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createTempDir, runGit, runGitText } from '../__utils__/gitTestHarness'
 
@@ -31,15 +31,25 @@ describe('Given an ambient GIT_DIR, as a git hook exports', () => {
     return dir
   }
 
-  it('When a fixture command runs, Then it targets its own cwd and leaves the ambient repository untouched', async () => {
-    // Arrange — `bystander` stands in for the developer's real checkout, the
-    // one the ambient GIT_DIR points at while a hook is running.
-    const bystander = await makeRepoWithACommit('sgd-bystander-')
-    const headBefore = runGitText(['rev-parse', 'HEAD'], { cwd: bystander })
-    const target = await createTempDir('sgd-target-')
+  let bystander: string
+  let headBefore: string
+  let target: string
+
+  // Hoisted out of the assertion's default timeout budget so that budget
+  // measures only the isolation behaviour — building the bystander and
+  // target repositories via real git subprocesses is fixture I/O, not the
+  // behaviour under test.
+  beforeEach(async () => {
+    // `bystander` stands in for the developer's real checkout, the one the
+    // ambient GIT_DIR points at while a hook is running.
+    bystander = await makeRepoWithACommit('sgd-bystander-')
+    headBefore = runGitText(['rev-parse', 'HEAD'], { cwd: bystander })
+    target = await createTempDir('sgd-target-')
     tempDirs.push(target)
     vi.stubEnv('GIT_DIR', join(bystander, '.git'))
+  }, 30_000)
 
+  it('When a fixture command runs, Then it targets its own cwd and leaves the ambient repository untouched', async () => {
     // Act
     runGit(['init', '--quiet'], { cwd: target })
     const sut = runGit(

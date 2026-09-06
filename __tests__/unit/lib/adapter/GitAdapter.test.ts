@@ -17,6 +17,10 @@ import {
 } from '../../../../src/adapter/gitBlobReader'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
+import {
+  NotACommitError,
+  RepositoryRefusalError,
+} from '../../../../src/utils/errorUtils'
 import { sanitizePath } from '../../../../src/utils/fsUtils'
 import {
   getLFSObjectContentPath,
@@ -108,6 +112,22 @@ const asCommit = (tree: string) => ({
   type: 'commit',
   data: { tree, parents: [] },
 })
+
+// Distinct from asCommit(): resolveCommit/getMergeBase read `.id` off the
+// peeled object, so the fake must carry an `id` matching the oid it was
+// read from (real tsgit readObject results always do).
+const asCommitAt = (oid: string) => ({
+  type: 'commit',
+  id: oid,
+  data: { tree: `tree-of-${oid}`, parents: [] },
+})
+
+// resolveCommit peels after revParse, so an "open the repository" smoke call
+// needs both stubs: the resolved oid and a commit object carrying that id.
+const stubCommit = (repo: FakeRepo, oid: string): void => {
+  repo.revParse.mockResolvedValue(oid)
+  repo.primitives.readObject.mockResolvedValue(asCommitAt(oid))
+}
 
 const flatten = (entries: Array<[string, { mode: string; id: string }]>) => ({
   entries: new Map(entries),
@@ -245,11 +265,11 @@ describe('GitAdapter', () => {
     it('When multiple methods run against the same instance, Then openRepository is called only once', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('deadbeef')
+      stubCommit(fakeRepo, 'deadbeef')
 
       // Act
-      await sut.parseRev('HEAD')
-      await sut.parseRev('HEAD~1')
+      await sut.resolveCommit('HEAD')
+      await sut.resolveCommit('HEAD~1')
 
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledOnce()
@@ -272,10 +292,10 @@ describe('GitAdapter', () => {
     it('When the repository path is relative, Then openRepository receives an absolute cwd', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: './' }))
-      fakeRepo.revParse.mockResolvedValue('abc')
+      stubCommit(fakeRepo, 'abc')
 
       // Act
-      await sut.parseRev('HEAD')
+      await sut.resolveCommit('HEAD')
 
       // Assert
       const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
@@ -296,10 +316,10 @@ describe('GitAdapter', () => {
     it('When the repository path contains a character sanitizePath would treat as a separator, Then openRepository still receives the unsanitized platform-form path', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
-      fakeRepo.revParse.mockResolvedValue('abc')
+      stubCommit(fakeRepo, 'abc')
 
       // Act
-      await sut.parseRev('HEAD')
+      await sut.resolveCommit('HEAD')
 
       // Assert
       const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
@@ -378,8 +398,8 @@ describe('GitAdapter', () => {
     it('When the repo was opened, Then close disposes it and clears the handle', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('abc')
-      await sut.parseRev('HEAD')
+      stubCommit(fakeRepo, 'abc')
+      await sut.resolveCommit('HEAD')
 
       // Act
       await sut.close()
@@ -395,7 +415,7 @@ describe('GitAdapter', () => {
       )
       mockOpenRepository.mockRejectedValue(openFailure)
       const sut = GitAdapter.getInstance(makeConfig())
-      await sut.parseRev('HEAD').catch(() => undefined)
+      await sut.resolveCommit('HEAD').catch(() => undefined)
 
       // Act
       const result = await sut.close().catch((thrown: unknown) => thrown)
@@ -412,8 +432,8 @@ describe('GitAdapter', () => {
       // the opposite of "no disposable repository handle": the log text
       // must name what actually happened instead of contradicting it.
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('abc')
-      await sut.parseRev('HEAD')
+      stubCommit(fakeRepo, 'abc')
+      await sut.resolveCommit('HEAD')
       fakeRepo.dispose.mockRejectedValue(new Error('dispose boom'))
 
       // Act
@@ -433,13 +453,13 @@ describe('GitAdapter', () => {
       )
       mockOpenRepository.mockRejectedValue(openFailure)
       const sut = GitAdapter.getInstance(makeConfig())
-      await sut.parseRev('HEAD').catch(() => undefined)
+      await sut.resolveCommit('HEAD').catch(() => undefined)
       await sut.close().catch(() => undefined)
       mockOpenRepository.mockResolvedValue(fakeRepo as unknown as Repository)
-      fakeRepo.revParse.mockResolvedValue('abc')
+      stubCommit(fakeRepo, 'abc')
 
       // Act
-      const result = await sut.parseRev('HEAD')
+      const result = await sut.resolveCommit('HEAD')
 
       // Assert
       expect(mockOpenRepository).toHaveBeenCalledTimes(2)
@@ -457,12 +477,12 @@ describe('GitAdapter', () => {
       mockOpenRepository.mockResolvedValueOnce(
         secondRepo as unknown as Repository
       )
-      fakeRepo.revParse.mockResolvedValue('abc')
-      secondRepo.revParse.mockResolvedValue('def')
+      stubCommit(fakeRepo, 'abc')
+      stubCommit(secondRepo, 'def')
       const first = GitAdapter.getInstance(makeConfig())
       const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-2' }))
-      await first.parseRev('HEAD')
-      await second.parseRev('HEAD~1')
+      await first.resolveCommit('HEAD')
+      await second.resolveCommit('HEAD~1')
 
       // Act
       await GitAdapter.closeAll()
@@ -482,11 +502,11 @@ describe('GitAdapter', () => {
         fakeRepo as unknown as Repository
       )
       mockOpenRepository.mockRejectedValueOnce(openFailure)
-      fakeRepo.revParse.mockResolvedValue('abc')
+      stubCommit(fakeRepo, 'abc')
       const first = GitAdapter.getInstance(makeConfig())
       const second = GitAdapter.getInstance(makeConfig({ repo: '/repo-2' }))
-      await first.parseRev('HEAD')
-      await second.parseRev('HEAD~1').catch(() => undefined)
+      await first.resolveCommit('HEAD')
+      await second.resolveCommit('HEAD~1').catch(() => undefined)
 
       // Act
       const result = await GitAdapter.closeAll().catch(
@@ -500,18 +520,95 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('Given parseRev', () => {
-    it('When called with a ref, Then it resolves the object id via repo.revParse', async () => {
+  describe('Given resolveCommit', () => {
+    it('When the revision names a commit, Then it resolves the commit id after one readObject', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('deadbeef')
+      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommitAt('commit-oid'))
 
       // Act
-      const result = await sut.parseRev('HEAD')
+      const result = await sut.resolveCommit('HEAD')
 
       // Assert
-      expect(result).toBe('deadbeef')
+      expect(result).toBe('commit-oid')
       expect(fakeRepo.revParse).toHaveBeenCalledWith('HEAD')
+      expect(fakeRepo.primitives.readObject).toHaveBeenCalledOnce()
+      expect(fakeRepo.primitives.readObject).toHaveBeenCalledWith('commit-oid')
+    })
+
+    it('When the revision is a two-deep annotated tag, Then it resolves the tagged commit id, not the tag oid', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
+        if (oid === 'tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'nested-tag-oid' },
+          })
+        }
+        if (oid === 'nested-tag-oid') {
+          return Promise.resolve({
+            type: 'tag',
+            data: { object: 'commit-oid' },
+          })
+        }
+        return Promise.resolve(asCommitAt(oid))
+      })
+
+      // Act
+      const result = await sut.resolveCommit('v-nested')
+
+      // Assert
+      expect(result).toBe('commit-oid')
+      expect(fakeRepo.primitives.readObject).toHaveBeenCalledTimes(3)
+    })
+
+    it('When the revision resolves to a tree, Then it rejects with a NotACommitError naming the typed revision, not the oid', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('tree-oid')
+      fakeRepo.primitives.readObject.mockResolvedValue({
+        type: 'tree',
+        data: {},
+      })
+
+      // Act
+      const error = await sut
+        .resolveCommit('HEAD^{tree}')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(NotACommitError)
+      expect((error as NotACommitError).objectType).toBe('tree')
+      expect((error as Error).message).toContain("'HEAD^{tree}'")
+      expect((error as Error).message).not.toContain('tree-oid')
+    })
+
+    it('When an annotated tag peels to a blob, Then it rejects with a NotACommitError of kind blob', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.primitives.readObject
+        .mockResolvedValueOnce({
+          type: 'tag',
+          data: { object: 'blob-oid' },
+        })
+        .mockResolvedValueOnce({
+          type: 'blob',
+          data: {},
+        })
+
+      // Act
+      const error = await sut
+        .resolveCommit('v1.0.0')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(NotACommitError)
+      expect((error as NotACommitError).objectType).toBe('blob')
+      expect((error as Error).message).toContain("'v1.0.0'")
     })
 
     it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
@@ -525,12 +622,79 @@ describe('GitAdapter', () => {
 
       // Act
       const error = await sut
-        .parseRev('bad-ref')
+        .resolveCommit('bad-ref')
         .catch((thrown: unknown) => thrown)
 
       // Assert
       expect((error as Error).message).toBe('bad-ref: not a valid git revision')
       expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
+      expect(error).not.toBeInstanceOf(NotACommitError)
+    })
+
+    it('When an annotated tag points at an object the store does not hold, Then it rejects as not-a-valid-revision, not as a non-commit', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.primitives.readObject
+        .mockResolvedValueOnce({
+          type: 'tag',
+          data: { object: 'gone-oid' },
+        })
+        .mockRejectedValueOnce(
+          Object.assign(new Error('object not found: gone-oid'), {
+            data: { code: 'OBJECT_NOT_FOUND' },
+          })
+        )
+
+      // Act
+      const error = await sut
+        .resolveCommit('v-annot')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe('v-annot: not a valid git revision')
+      expect(error).not.toBeInstanceOf(NotACommitError)
+    })
+
+    it('When tsgit refuses to open the repository, Then it rejects with a RepositoryRefusalError', async () => {
+      // Arrange
+      mockOpenRepository.mockRejectedValue(
+        Object.assign(new Error('not a git repository: repo'), {
+          data: { code: 'NOT_A_REPOSITORY' },
+        })
+      )
+      const sut = GitAdapter.getInstance(makeConfig())
+
+      // Act
+      const error = await sut
+        .resolveCommit('HEAD')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(RepositoryRefusalError)
+      expect((error as Error).message).toBe(
+        `'${repoKey('/repo')}' is not a git repository`
+      )
+    })
+
+    it('When a ref resolves to an oid the store does not hold, Then it rejects naming the typed ref as not a valid revision', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue('a'.repeat(40))
+      fakeRepo.primitives.readObject.mockRejectedValue(
+        Object.assign(new Error('object not found: ghost-oid'), {
+          data: { code: 'OBJECT_NOT_FOUND' },
+        })
+      )
+
+      // Act
+      const error = await sut
+        .resolveCommit('ghost')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe('ghost: not a valid git revision')
+      expect(error).not.toBeInstanceOf(NotACommitError)
     })
   })
 
@@ -594,16 +758,6 @@ describe('GitAdapter', () => {
   })
 
   describe('Given getMergeBase', () => {
-    // Distinct from the shared asCommit() helper: getMergeBase reads
-    // fromCommit.id / toCommit.id off the peeled object, so the fake must
-    // carry an `id` matching the oid it was read from (real tsgit
-    // readObject results always do).
-    const asCommitAt = (oid: string) => ({
-      type: 'commit',
-      id: oid,
-      data: { tree: `tree-of-${oid}`, parents: [] },
-    })
-
     beforeEach(() => {
       // getMergeBase now resolves both revisions via repo.revParse before
       // peeling (indexRevision's cast-free idiom) — identity pass-through
@@ -761,7 +915,7 @@ describe('GitAdapter', () => {
       ])
     })
 
-    it('When an oid peels to a non-commit object, Then it rejects mentioning the label, wrapped by mapTsgitError', async () => {
+    it('When an oid peels to a non-commit object, Then it rejects with a NotACommitError naming the label and the kind', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
@@ -776,11 +930,13 @@ describe('GitAdapter', () => {
         .getMergeBase('tree-oid', 'to-oid')
         .catch((thrown: unknown) => thrown)
 
-      // Assert — the full mapped message, not a substring: a mapTsgitError
-      // bypass (peelToCommit's raw Error escaping unwrapped) would still
-      // contain the label and pass a substring-only assertion.
+      // Assert — the typed error, not a wrapped string: the mapper returns
+      // sgd's own errors by identity, so the type is what proves nothing
+      // rewrapped it on the way out.
+      expect(error).toBeInstanceOf(NotACommitError)
+      expect((error as NotACommitError).objectType).toBe('tree')
       expect((error as Error).message).toBe(
-        "git operation failed: 'tree-oid' does not resolve to a commit"
+        "'tree-oid' does not resolve to a commit (it is a tree)"
       )
     })
 

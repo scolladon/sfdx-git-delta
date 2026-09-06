@@ -16,7 +16,7 @@ const REPO_ROOT = process.cwd()
 const FROM = 'HEAD~20'
 const TO = 'HEAD'
 
-const PARSE_REV_CEILING_MS = 200
+const RESOLVE_COMMIT_CEILING_MS = 200
 const BUILD_TREE_INDEX_CEILING_MS = 1_000
 const STREAM_DIFF_LINES_CEILING_MS = 500
 const BLOB_READ_CEILING_MS = 200
@@ -43,20 +43,25 @@ afterAll(async () => {
   await GitAdapter.closeAll()
 })
 
-describe('gitAdapter-history-parseRev', () => {
+describe('gitAdapter-history-resolveCommit', () => {
   const adapter = GitAdapter.getInstance(baseConfig)
 
   const elapsedMs: number[] = []
 
   perfBench(
-    'parseRev-HEAD~20-and-HEAD',
+    'resolveCommit-HEAD~20-and-HEAD',
     async () => {
       const start = performance.now()
-      await adapter.parseRev(FROM)
-      await adapter.parseRev(TO)
+      await adapter.resolveCommit(FROM)
+      await adapter.resolveCommit(TO)
       elapsedMs.push(performance.now() - start)
     },
-    () => assertMeanWithinCeiling('parseRev', elapsedMs, PARSE_REV_CEILING_MS)
+    () =>
+      assertMeanWithinCeiling(
+        'resolveCommit',
+        elapsedMs,
+        RESOLVE_COMMIT_CEILING_MS
+      )
   )
 })
 

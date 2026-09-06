@@ -2,7 +2,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { mapTsgitError } from '../../../../src/adapter/tsgitErrorMap'
-import { RepositoryRefusalError } from '../../../../src/utils/errorUtils'
+import {
+  NotACommitError,
+  RepositoryRefusalError,
+  SgdError,
+} from '../../../../src/utils/errorUtils'
 
 const enoentRealpath = Object.assign(
   new Error("ENOENT: no such file or directory, realpath '/missing/repo'"),
@@ -262,6 +266,30 @@ describe('Given mapTsgitError', () => {
     // output, where `instanceof` cannot reach.
     expect(result).toBeInstanceOf(RepositoryRefusalError)
     expect(result.name).toBe('RepositoryRefusalError')
+  })
+
+  describe("Given one of sgd's own typed errors", () => {
+    it.each([
+      ['an SgdError', new SgdError('already release-shaped')],
+      [
+        'a RepositoryRefusalError',
+        new RepositoryRefusalError("'/proj/repo' is not a git repository"),
+      ],
+      ['a NotACommitError', new NotACommitError('HEAD^{tree}', 'tree')],
+    ])(
+      'When mapping %s, Then the same instance is returned untouched',
+      (_description, error) => {
+        // Arrange
+        const sut = mapTsgitError
+
+        // Act
+        const result = sut(error, 'HEAD^{tree}', '/proj/repo')
+
+        // Assert — identity, not equality: the type is what the validator
+        // branches on, and a rewrap would lose it while keeping the text.
+        expect(result).toBe(error)
+      }
+    )
   })
 
   it('When mapping any other failure, Then it returns a plain Error', () => {

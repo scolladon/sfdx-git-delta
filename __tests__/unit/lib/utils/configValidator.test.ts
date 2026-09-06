@@ -4,7 +4,10 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
-import { RepositoryRefusalError } from '../../../../src/utils/errorUtils'
+import {
+  NotACommitError,
+  RepositoryRefusalError,
+} from '../../../../src/utils/errorUtils'
 import {
   pathExists,
   sanitizePath,
@@ -15,7 +18,7 @@ import { getConfig } from '../../../__utils__/testWork'
 
 const {
   mockGetMessage,
-  mockParseRev,
+  mockResolveCommit,
   mockGetMergeBase,
   mockSfProjectResolve,
   MOCK_REPOSITORY_KEY,
@@ -24,7 +27,7 @@ const {
   mockGetMessage: vi.fn(
     (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
   ),
-  mockParseRev: vi.fn(),
+  mockResolveCommit: vi.fn(),
   mockGetMergeBase: vi.fn(),
   mockSfProjectResolve: vi.fn(),
   // Stands in for GitAdapter's absolute repository key — a fixed,
@@ -55,7 +58,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
   return {
     default: {
       getInstance: () => ({
-        parseRev: mockParseRev,
+        resolveCommit: mockResolveCommit,
         getMergeBase: mockGetMergeBase,
         repositoryKey: MOCK_REPOSITORY_KEY,
       }),
@@ -115,7 +118,7 @@ describe('Given a ConfigValidator', () => {
     config.to = 'test'
     config.apiVersion = 46
     mockedPathExists.mockResolvedValue(true as never)
-    mockParseRev.mockImplementation(() => Promise.resolve('ref'))
+    mockResolveCommit.mockImplementation(() => Promise.resolve('ref'))
   })
 
   it('resume nicely when everything is well configured', async () => {
@@ -151,7 +154,7 @@ describe('Given a ConfigValidator', () => {
   })
 
   it('throws errors when "-t" is not a git expression', async () => {
-    mockParseRev.mockImplementation(() => Promise.reject())
+    mockResolveCommit.mockImplementation(() => Promise.reject())
     const emptyString = ''
     const sut = new ConfigValidator({
       ...config,
@@ -163,7 +166,7 @@ describe('Given a ConfigValidator', () => {
   })
 
   it('throws errors when "-f" is not a git expression', async () => {
-    mockParseRev.mockImplementation(() => Promise.reject())
+    mockResolveCommit.mockImplementation(() => Promise.reject())
     const emptyString = ''
     const sut = new ConfigValidator({
       ...config,
@@ -175,7 +178,7 @@ describe('Given a ConfigValidator', () => {
   })
 
   it('throws errors when "-t" is not a valid sha pointer', async () => {
-    mockParseRev.mockImplementationOnce(() =>
+    mockResolveCommit.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
@@ -189,8 +192,8 @@ describe('Given a ConfigValidator', () => {
   })
 
   it('throws errors when "-f" is not a valid sha pointer', async () => {
-    mockParseRev.mockImplementationOnce(() => Promise.resolve('ref'))
-    mockParseRev.mockImplementationOnce(() =>
+    mockResolveCommit.mockImplementationOnce(() => Promise.resolve('ref'))
+    mockResolveCommit.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
@@ -205,10 +208,10 @@ describe('Given a ConfigValidator', () => {
 
   it('throws errors when "-t" and "-f" are not a valid sha pointer', async () => {
     // Arrange
-    mockParseRev.mockImplementationOnce(() =>
+    mockResolveCommit.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
-    mockParseRev.mockImplementationOnce(() =>
+    mockResolveCommit.mockImplementationOnce(() =>
       Promise.reject(new Error('not a valid sha pointer'))
     )
     const notHeadSHA = 'test'
@@ -650,7 +653,7 @@ describe('Given a ConfigValidator', () => {
 
     it('When git sha is invalid, Then error contains the parameter message', async () => {
       // Arrange
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         to: 'invalid-sha',
@@ -674,7 +677,7 @@ describe('Given a ConfigValidator', () => {
       // site: dropping the call would leak the raw control character (and
       // any ANSI/bidi payload it carries) straight into the message.
       const shaWithControl = 'bad\nsha'
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         to: shaWithControl,
@@ -692,13 +695,13 @@ describe('Given a ConfigValidator', () => {
     })
   })
 
-  describe('Given a repository-level refusal from parseRev', () => {
-    it('When parseRev refuses the repository, Then the refusal is reported once instead of two sha-pointer errors', async () => {
+  describe('Given a repository-level refusal from resolveCommit', () => {
+    it('When resolveCommit refuses the repository, Then the refusal is reported once instead of two sha-pointer errors', async () => {
       // Arrange
       const refusal = new RepositoryRefusalError(
         "'/proj/repo' uses a repository format this version of sgd cannot read"
       )
-      mockParseRev.mockRejectedValue(refusal)
+      mockResolveCommit.mockRejectedValue(refusal)
       const sut = new ConfigValidator({ ...config, from: 'HEAD~1', to: 'HEAD' })
 
       // Act
@@ -713,9 +716,9 @@ describe('Given a ConfigValidator', () => {
       )
     })
 
-    it('When parseRev rejects both refs with an ordinary error, Then both sha-pointer messages are reported (the refusal dedupe does not over-collapse distinct errors)', async () => {
+    it('When resolveCommit rejects both refs with an ordinary error, Then both sha-pointer messages are reported (the refusal dedupe does not over-collapse distinct errors)', async () => {
       // Arrange
-      mockParseRev.mockImplementation((sha: string) =>
+      mockResolveCommit.mockImplementation((sha: string) =>
         Promise.reject(new Error(`bad sha: ${sha}`))
       )
       const sut = new ConfigValidator({
@@ -741,7 +744,9 @@ describe('Given a ConfigValidator', () => {
       const refusal = new RepositoryRefusalError(
         "'/proj/repo' is not a git repository"
       )
-      mockParseRev.mockResolvedValueOnce('valid').mockRejectedValueOnce(refusal)
+      mockResolveCommit
+        .mockResolvedValueOnce('valid')
+        .mockRejectedValueOnce(refusal)
       const sut = new ConfigValidator({ ...config, from: 'HEAD~1', to: 'HEAD' })
 
       // Act
@@ -754,11 +759,179 @@ describe('Given a ConfigValidator', () => {
     })
   })
 
+  describe('Given a revision that does not resolve to a commit', () => {
+    it('When --to peels to a tree, Then the error carries ParameterIsNotCommit for to with the typed value and the kind, and never the sha-pointer message', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'HEAD^{tree}'
+          ? Promise.reject(new NotACommitError('HEAD^{tree}', 'tree'))
+          : Promise.resolve('commit-oid')
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD~1',
+        to: 'HEAD^{tree}',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'error.ParameterIsNotCommit:to,HEAD^{tree},tree'
+      )
+      expect((error as Error).message).not.toContain(
+        'error.ParameterIsNotGitSHA'
+      )
+      expect((error as Error).name).toBe('ConfigError')
+    })
+
+    it('When --from peels to a blob, Then the error carries ParameterIsNotCommit for from', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'HEAD:file'
+          ? Promise.reject(new NotACommitError('HEAD:file', 'blob'))
+          : Promise.resolve('commit-oid')
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD:file',
+        to: 'HEAD',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'error.ParameterIsNotCommit:from,HEAD:file,blob'
+      )
+    })
+
+    it('When both flags peel to trees, Then two distinct ParameterIsNotCommit sentences are reported', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        Promise.reject(new NotACommitError(ref, 'tree'))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'a^{tree}',
+        to: 'b^{tree}',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      const parts = (error as Error).message.split(', ')
+      expect(parts).toHaveLength(2)
+      expect(parts).toContain('error.ParameterIsNotCommit:from,a^{tree},tree')
+      expect(parts).toContain('error.ParameterIsNotCommit:to,b^{tree},tree')
+    })
+
+    it('When --from is unresolvable and --to peels to a tree, Then one sha-pointer sentence and one non-commit sentence are reported', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'nope'
+          ? Promise.reject(new Error('bad'))
+          : Promise.reject(new NotACommitError('HEAD^{tree}', 'tree'))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'nope',
+        to: 'HEAD^{tree}',
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      const parts = (error as Error).message.split(', ')
+      expect(parts).toContain('error.ParameterIsNotGitSHA:from,nope')
+      expect(parts).toContain('error.ParameterIsNotCommit:to,HEAD^{tree},tree')
+    })
+
+    it('When the typed value carries a control character, Then the message carries its escaped form and never the raw character', async () => {
+      // Arrange
+      const shaWithControl = 'HEAD\n^{tree}'
+      mockResolveCommit.mockImplementation(() =>
+        Promise.reject(new NotACommitError(shaWithControl, 'tree'))
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD',
+        to: shaWithControl,
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert — pins the branch as well as the escaping: asserting only
+      // that the raw character is gone would also hold on the
+      // ParameterIsNotGitSHA fallback, which sanitizes too.
+      expect((error as Error).message).toContain(
+        'error.ParameterIsNotCommit:to,HEAD\\u{a}^{tree},tree'
+      )
+      expect((error as Error).message).not.toContain(shaWithControl)
+    })
+
+    it('When mergeBase is set and --to peels to a tree, Then it throws ParameterIsNotCommit and never calls getMergeBase', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        ref === 'HEAD^{tree}'
+          ? Promise.reject(new NotACommitError('HEAD^{tree}', 'tree'))
+          : Promise.resolve('commit-oid')
+      )
+      const sut = new ConfigValidator({
+        ...config,
+        from: 'HEAD~1',
+        to: 'HEAD^{tree}',
+        mergeBase: true,
+      })
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'error.ParameterIsNotCommit:to,HEAD^{tree},tree'
+      )
+      expect(mockGetMergeBase).not.toHaveBeenCalled()
+    })
+
+    it('When both flags resolve, Then config.from and config.to hold what the resolver returned', async () => {
+      // Arrange
+      mockResolveCommit.mockImplementation((ref: string) =>
+        Promise.resolve(`${ref}-peeled`)
+      )
+      const cfg = { ...config, from: 'v-annot', to: 'main' }
+
+      // Act
+      await new ConfigValidator(cfg).validateConfig()
+
+      // Assert
+      expect(cfg.from).toBe('v-annot-peeled')
+      expect(cfg.to).toBe('main-peeled')
+    })
+  })
+
   describe('getMessage token arrays contain correct values (L46, L72, L109, L152, L165)', () => {
     it('Given invalid SHA for "to", When error thrown, Then message contains the SHA parameter name and value (kills L46 [] mutant)', async () => {
       // L46 mutant: getMessage(..., []) → message = 'error.ParameterIsNotGitSHA:'
       // Real: getMessage(..., ['to', 'bad-to']) → 'error.ParameterIsNotGitSHA:to,bad-to'
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         to: 'bad-to',
@@ -803,7 +976,7 @@ describe('Given a ConfigValidator', () => {
   describe('SHA_KEYS covers both from and to (L20)', () => {
     it('Given both from and to are invalid SHAs, When validating, Then error message includes both parameters', async () => {
       // Mutant '' instead of 'from' or 'to' would lose the parameter names in messages
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         to: 'bad-to',
@@ -820,7 +993,7 @@ describe('Given a ConfigValidator', () => {
 
     it('Given from is invalid SHA only, When validating, Then error is thrown for from key', async () => {
       // Ensures SHA_KEYS contains 'from' (not empty string)
-      mockParseRev
+      mockResolveCommit
         .mockResolvedValueOnce('valid-to')
         .mockRejectedValueOnce(new Error('bad sha'))
       const sut = new ConfigValidator({
@@ -842,7 +1015,7 @@ describe('Given a ConfigValidator', () => {
       // Mutant [] on errors.push in SHA loop would lose the SHA error
       // Mutant [] on getMessage([repo]) would lose the path in message
       mockedPathExists.mockResolvedValue(false as never)
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         repo: 'missing/repo',
@@ -927,7 +1100,7 @@ describe('Given a ConfigValidator', () => {
   describe('_validateChangesManifest message tokens (L96, L109, L132, L137)', () => {
     beforeEach(() => {
       mockedPathExists.mockResolvedValue(true as never)
-      mockParseRev.mockResolvedValue('ref')
+      mockResolveCommit.mockResolvedValue('ref')
     })
 
     it('Given target is directory (isFile=false), When validating, Then error message contains target path (L96 [])', async () => {
@@ -1022,7 +1195,7 @@ describe('Given a ConfigValidator', () => {
       // strings end up in the array; the message must contain ", " between
       // them — that is the only observable channel for the separator.
       mockedPathExists.mockResolvedValue(false as never)
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         repo: 'missing/repo',
@@ -1068,10 +1241,10 @@ describe('Given a ConfigValidator', () => {
     it('Given two invalid SHAs, When validateConfig throws, Then both parameter names appear in the joined message (kills L20 SHA_KEYS[0] empty mutant)', async () => {
       // SHA_KEYS = ['from', 'to']. The L20 mutant replaces 'from' with ''.
       // Under that mutant, this.config[''] is undefined for both
-      // iterations and parseRev gets called with undefined twice; the
+      // iterations and resolveCommit gets called with undefined twice; the
       // resulting error tokens contain '', '' (no parameter name). We
       // assert the genuine 'from' identifier survives in the message.
-      mockParseRev.mockImplementation((sha: string | undefined) =>
+      mockResolveCommit.mockImplementation((sha: string | undefined) =>
         sha && sha.startsWith('valid')
           ? Promise.resolve('ref')
           : Promise.reject(new Error('bad sha'))
@@ -1087,10 +1260,10 @@ describe('Given a ConfigValidator', () => {
           message: expect.stringContaining('from'),
         })
       )
-      // Both real keys must be threaded through to parseRev (mutant '' would
-      // call parseRev with undefined for the empty key)
-      expect(mockParseRev).toHaveBeenCalledWith('invalid-from')
-      expect(mockParseRev).toHaveBeenCalledWith('invalid-to')
+      // Both real keys must be threaded through to resolveCommit (mutant '' would
+      // call resolveCommit with undefined for the empty key)
+      expect(mockResolveCommit).toHaveBeenCalledWith('invalid-from')
+      expect(mockResolveCommit).toHaveBeenCalledWith('invalid-to')
     })
 
     it('Given apiVersion is NaN with a working SfProject, When _handleDefault runs, Then it is reset to latest with a single warning (kills L161 cond=false mutant)', async () => {
@@ -1163,7 +1336,7 @@ describe('Given a ConfigValidator', () => {
             message: expect.stringContaining(`${key}:${value}`),
           })
         )
-        expect(mockParseRev).not.toHaveBeenCalled()
+        expect(mockResolveCommit).not.toHaveBeenCalled()
       }
     )
 
@@ -1203,7 +1376,7 @@ describe('Given a ConfigValidator', () => {
           ),
         })
       )
-      expect(mockParseRev).not.toHaveBeenCalled()
+      expect(mockResolveCommit).not.toHaveBeenCalled()
     })
 
     it('Given the flag default, When validating, Then the whole repository stays in scope', async () => {
@@ -1221,7 +1394,7 @@ describe('Given a ConfigValidator', () => {
   describe('changesManifest validation', () => {
     beforeEach(() => {
       mockedPathExists.mockResolvedValue(true as never)
-      mockParseRev.mockImplementation(() => Promise.resolve('ref'))
+      mockResolveCommit.mockImplementation(() => Promise.resolve('ref'))
     })
 
     it('Given changesManifest is undefined, When validating, Then stat is not called and no error is added', async () => {
@@ -1337,9 +1510,9 @@ describe('Given a ConfigValidator', () => {
       mockedPathExists.mockResolvedValue(true as never)
     })
 
-    it('Given mergeBase is true, When validating, Then config.from becomes the resolved merge base and getMergeBase receives the post-parseRev SHAs', async () => {
+    it('Given mergeBase is true, When validating, Then config.from becomes the resolved merge base and getMergeBase receives the post-resolveCommit SHAs', async () => {
       // Arrange
-      mockParseRev.mockImplementation((ref: string) =>
+      mockResolveCommit.mockImplementation((ref: string) =>
         Promise.resolve(`${ref}-resolved`)
       )
       mockGetMergeBase.mockResolvedValue('base-sha')
@@ -1365,7 +1538,7 @@ describe('Given a ConfigValidator', () => {
 
     it('Given mergeBase is false, When validating, Then getMergeBase is never called', async () => {
       // Arrange
-      mockParseRev.mockImplementation(() => Promise.resolve('resolved'))
+      mockResolveCommit.mockImplementation(() => Promise.resolve('resolved'))
       const sut = new ConfigValidator({
         ...config,
         from: 'main',
@@ -1382,7 +1555,7 @@ describe('Given a ConfigValidator', () => {
 
     it('Given no common ancestor is found, When validating, Then it throws a ConfigError carrying error.MergeBaseNotFound with the user-typed refs', async () => {
       // Arrange
-      mockParseRev.mockImplementation((ref: string) =>
+      mockResolveCommit.mockImplementation((ref: string) =>
         Promise.resolve(`${ref}-resolved`)
       )
       mockGetMergeBase.mockResolvedValue(undefined)
@@ -1409,7 +1582,7 @@ describe('Given a ConfigValidator', () => {
       // requestedFrom and requestedTo at this error site.
       const fromWithControl = 'main\nPASSED'
       const toWithControl = 'develop\rPASSED'
-      mockParseRev.mockImplementation((ref: string) =>
+      mockResolveCommit.mockImplementation((ref: string) =>
         Promise.resolve(`${ref}-resolved`)
       )
       mockGetMergeBase.mockResolvedValue(undefined)
@@ -1432,9 +1605,9 @@ describe('Given a ConfigValidator', () => {
       expect((error as Error).message).not.toContain(toWithControl)
     })
 
-    it('Given "from" is already an ancestor of "to", When validating, Then the resolved base equals the post-parseRev "from" (idempotency fixpoint)', async () => {
+    it('Given "from" is already an ancestor of "to", When validating, Then the resolved base equals the post-resolveCommit "from" (idempotency fixpoint)', async () => {
       // Arrange
-      mockParseRev.mockImplementation((ref: string) =>
+      mockResolveCommit.mockImplementation((ref: string) =>
         Promise.resolve(`${ref}-resolved`)
       )
       mockGetMergeBase.mockResolvedValue('main-resolved')
@@ -1455,7 +1628,7 @@ describe('Given a ConfigValidator', () => {
 
     it('Given an invalid "--from" and mergeBase is true, When validating, Then it throws ParameterIsNotGitSHA and never calls getMergeBase (ordering)', async () => {
       // Arrange
-      mockParseRev.mockRejectedValue(new Error('bad sha'))
+      mockResolveCommit.mockRejectedValue(new Error('bad sha'))
       const sut = new ConfigValidator({
         ...config,
         from: 'bad-from',

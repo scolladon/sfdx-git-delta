@@ -5,6 +5,7 @@ import {
   ConfigError,
   getErrorMessage,
   MetadataRegistryError,
+  NotACommitError,
   SgdError,
   wrapError,
 } from '../../../../src/utils/errorUtils'
@@ -80,6 +81,23 @@ describe('MetadataRegistryError', () => {
     expect(error).toBeInstanceOf(SgdError)
     expect(error).toBeInstanceOf(MetadataRegistryError)
     expect(error.name).toBe('MetadataRegistryError')
+  })
+})
+
+describe('NotACommitError', () => {
+  it('Given a label and an object kind, When constructed, Then it is an SgdError named NotACommitError carrying the kind and naming both in its message', () => {
+    // Act
+    const error = new NotACommitError('HEAD^{tree}', 'tree')
+
+    // Assert
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(SgdError)
+    expect(error).toBeInstanceOf(NotACommitError)
+    expect(error.name).toBe('NotACommitError')
+    expect(error.objectType).toBe('tree')
+    expect(error.message).toBe(
+      "'HEAD^{tree}' does not resolve to a commit (it is a tree)"
+    )
   })
 })
 

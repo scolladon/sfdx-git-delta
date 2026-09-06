@@ -269,7 +269,7 @@ It is the user responsibility to ensure LFS content is present when the plugin i
 
 ### Use cases
 
-Any git sha pointer is supported: commit sha, branch, tag, git expression (HEAD, etc.).
+Any git sha pointer is supported as long as it resolves to a commit: commit sha, branch, tag (an annotated tag is followed to the commit it points at), git expression (`HEAD`, `HEAD~1`, etc.). A tree or blob expression such as `HEAD^{tree}` or `HEAD:path` is rejected with an error naming the flag and the value you typed.
 
 `--from` parameter is the base commit (the first, the oldest, the closest)
 `--to` parameter is the target commit (the last, the youngest, the farthest)

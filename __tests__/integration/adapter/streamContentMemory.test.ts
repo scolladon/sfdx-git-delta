@@ -1,7 +1,7 @@
 'use strict'
 import { rm } from 'node:fs/promises'
 
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
@@ -95,11 +95,20 @@ afterAll(async () => {
 
 describe('Given a repository with a large non-LFS blob', () => {
   describe('When streamContent reads it', () => {
+    let repoDir: string
+    let commitOid: string
+
+    // Hoisted out of the assertion's default timeout budget so that budget
+    // measures only the streaming read — building the blob and committing
+    // it via plumbing is fixture I/O, not the behaviour under test.
+    beforeAll(async () => {
+      repoDir = await trackedTempDir('sgd-stream-memory-')
+      const content = buildBlobContent()
+      commitOid = commitLargeBlob(repoDir, content)
+    }, 60_000)
+
     it('Then RSS grows by only a bounded delta, not by the blob size', async () => {
       // Arrange
-      const repoDir = await trackedTempDir('sgd-stream-memory-')
-      const content = buildBlobContent()
-      const commitOid = commitLargeBlob(repoDir, content)
       const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
 
       // Act

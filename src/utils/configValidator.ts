@@ -12,6 +12,7 @@ import { pushAll } from './arrayUtils.js'
 import {
   ConfigError,
   getErrorMessage,
+  NotACommitError,
   RepositoryRefusalError,
 } from './errorUtils.js'
 import { pathExists, sanitizePath } from './fsUtils.js'
@@ -57,11 +58,12 @@ export default class ConfigValidator {
       SHA_KEYS.map(async shaParameter => {
         const shaValue = this.config[shaParameter]
         try {
-          this.config[shaParameter] = await this.gitAdapter.parseRev(shaValue)
+          this.config[shaParameter] =
+            await this.gitAdapter.resolveCommit(shaValue)
         } catch (error) {
           Logger.debug(
             // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch log content is observability only
-            lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' is not a valid git SHA: ${() => getErrorMessage(error)}`
+            lazy`_validateGitSha: '${shaParameter}' = '${shaValue}' does not resolve to a commit: ${() => getErrorMessage(error)}`
           )
           errors.push(this._shaFailureMessage(error, shaParameter, shaValue))
         }
@@ -73,13 +75,23 @@ export default class ConfigValidator {
 
   // A refusal is about the repository, not about either ref: reporting it
   // verbatim replaces two bogus "check the fetch depth" lines with the one
-  // thing the user can act on.
+  // thing the user can act on. A non-commit is about the ref's KIND, not
+  // its existence: the fetch-depth hint would send the user to deepen a
+  // clone that is already complete, so it gets its own sentence. Both name
+  // shaValue — what the user typed — never the oid resolveCommit produced.
   protected _shaFailureMessage(
     error: unknown,
     shaParameter: ShaKey,
     shaValue: string
   ): string {
     if (error instanceof RepositoryRefusalError) return error.message
+    if (error instanceof NotACommitError) {
+      return this.message.getMessage('error.ParameterIsNotCommit', [
+        shaParameter,
+        sanitizeForMessage(shaValue),
+        error.objectType,
+      ])
+    }
     return this.message.getMessage('error.ParameterIsNotGitSHA', [
       shaParameter,
       sanitizeForMessage(shaValue),
@@ -102,7 +114,7 @@ export default class ConfigValidator {
     this._sanitizeConfig()
 
     // Short-circuits before any git object is read: _validateGitSha below
-    // calls parseRev, which opens the repository. A bad --source-dir is
+    // calls resolveCommit, which opens the repository. A bad --source-dir is
     // the actionable error and the one that today produces a silent empty
     // manifest, so it is reported alone even if the SHAs are also invalid.
     const sourceErrors = this._validateSource()
@@ -123,7 +135,7 @@ export default class ConfigValidator {
       // Rendered from the adapter's own absolute repository key — not
       // this.config.repo, which is only sanitizePath-normalized, never
       // resolved to absolute — so this collapses with the identical
-      // RepositoryRefusalError message a same-repository parseRev failure
+      // RepositoryRefusalError message a same-repository resolveCommit failure
       // produces below, instead of reporting the missing repository twice
       // in two different forms.
       errors.push(
