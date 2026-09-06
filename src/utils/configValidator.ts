@@ -57,7 +57,8 @@ export default class ConfigValidator {
       SHA_KEYS.map(async shaParameter => {
         const shaValue = this.config[shaParameter]
         try {
-          this.config[shaParameter] = await this.gitAdapter.parseRev(shaValue)
+          this.config[shaParameter] =
+            await this.gitAdapter.resolveCommit(shaValue)
         } catch (error) {
           Logger.debug(
             // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: catch log content is observability only
@@ -102,7 +103,7 @@ export default class ConfigValidator {
     this._sanitizeConfig()
 
     // Short-circuits before any git object is read: _validateGitSha below
-    // calls parseRev, which opens the repository. A bad --source-dir is
+    // calls resolveCommit, which opens the repository. A bad --source-dir is
     // the actionable error and the one that today produces a silent empty
     // manifest, so it is reported alone even if the SHAs are also invalid.
     const sourceErrors = this._validateSource()
@@ -123,7 +124,7 @@ export default class ConfigValidator {
       // Rendered from the adapter's own absolute repository key — not
       // this.config.repo, which is only sanitizePath-normalized, never
       // resolved to absolute — so this collapses with the identical
-      // RepositoryRefusalError message a same-repository parseRev failure
+      // RepositoryRefusalError message a same-repository resolveCommit failure
       // produces below, instead of reporting the missing repository twice
       // in two different forms.
       errors.push(

@@ -1,12 +1,13 @@
 'use strict'
-import { rm } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { rm, writeFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 
 import { afterAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
+import { NotACommitError } from '../../../src/utils/errorUtils'
 import { sanitizePath } from '../../../src/utils/fsUtils'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
@@ -120,7 +121,7 @@ describe('Given the released error-message contract (validated surface)', () => 
         .catch((thrown: unknown) => thrown)
 
       // Assert — pathExists (error.PathIsNotGit, rendered from the
-      // adapter's absolute key) and parseRev x2 (RepositoryRefusalError,
+      // adapter's absolute key) and resolveCommit x2 (RepositoryRefusalError,
       // rendered from the same key) now report byte-identical sentences for
       // the same missing .git, so validateConfig's `new Set(errors)` join
       // collapses all three into exactly one — not `.toContain`, which
@@ -146,7 +147,7 @@ describe('Given the released error-message contract (validated surface)', () => 
         .validateConfig()
         .catch((thrown: unknown) => thrown)
       const adapterError = await adapter
-        .parseRev('HEAD')
+        .resolveCommit('HEAD')
         .catch((thrown: unknown) => thrown)
 
       // Assert
@@ -184,6 +185,33 @@ describe('Given the released error-message contract (validated surface)', () => 
       expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
   })
+
+  describe('When ConfigValidator validates a ref whose commit object is absent from the store', () => {
+    it('Then it throws the released error.ParameterIsNotGitSHA message, whose fetch-depth hint is the right one for a missing object', async () => {
+      // Arrange — git itself refuses `update-ref` to a nonexistent object,
+      // so the loose ref file is written by hand, exactly as a partial
+      // clone would leave it.
+      const repoDir = await trackedTempDir('sgd-error-parity-ghost-')
+      initRepoWithCommit(repoDir)
+      await writeFile(
+        join(repoDir, '.git', 'refs', 'heads', 'ghost'),
+        `${'a'.repeat(40)}\n`
+      )
+      const sut = new ConfigValidator(
+        makeConfig({ repo: repoDir, from: 'HEAD', to: 'ghost' })
+      )
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        "--to is not a valid sha pointer: 'ghost' (If in CI/CD context, check the fetch depth is properly set)"
+      )
+    })
+  })
 })
 
 describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-validated surface)', () => {
@@ -206,7 +234,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
     })
   })
 
-  describe('When parseRev runs against a missing oid', () => {
+  describe('When resolveCommit runs against a missing oid', () => {
     it('Then it rejects with a mapped error that never leaks the raw tsgit shape', async () => {
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-badoid-')
@@ -215,7 +243,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Act
       const error = await sut
-        .parseRev(MISSING_OID)
+        .resolveCommit(MISSING_OID)
         .catch((thrown: unknown) => thrown)
 
       // Assert
@@ -227,7 +255,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
     })
   })
 
-  describe('When parseRev runs against a repository declaring an unsupported format version', () => {
+  describe('When resolveCommit runs against a repository declaring an unsupported format version', () => {
     it('Then it rejects naming the repository, mapped to the unreadable-format message', async () => {
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-format-version-')
@@ -239,7 +267,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Act
       const error = await sut
-        .parseRev('HEAD')
+        .resolveCommit('HEAD')
         .catch((thrown: unknown) => thrown)
 
       // Assert
@@ -250,7 +278,7 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
     })
   })
 
-  describe('When parseRev runs against a directory with no .git', () => {
+  describe('When resolveCommit runs against a directory with no .git', () => {
     it('Then it rejects naming the repository, mapped to the not-a-repository message', async () => {
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-nogit-adapter-')
@@ -258,12 +286,34 @@ describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-v
 
       // Act
       const error = await sut
-        .parseRev('HEAD')
+        .resolveCommit('HEAD')
         .catch((thrown: unknown) => thrown)
 
       // Assert
       expect((error as Error).message).toBe(
         `'${adapterRepoPath(repoDir)}' is not a git repository`
+      )
+      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
+    })
+  })
+
+  describe('When resolveCommit runs against a tree-ish revision', () => {
+    it('Then it rejects with a NotACommitError naming the revision as typed, never the tree oid', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-treeish-')
+      initRepoWithCommit(repoDir)
+      const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
+
+      // Act
+      const error = await sut
+        .resolveCommit('HEAD^{tree}')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect(error).toBeInstanceOf(NotACommitError)
+      expect((error as NotACommitError).objectType).toBe('tree')
+      expect((error as Error).message).toBe(
+        "'HEAD^{tree}' does not resolve to a commit (it is a tree)"
       )
       expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
     })
