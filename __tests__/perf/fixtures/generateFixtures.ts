@@ -111,8 +111,13 @@ export type DiffLineSource = () => readonly string[]
 
 // Wide enough that the counter never outgrows its padding over a whole
 // benchmark run, so every generated line keeps a constant length across
-// samples (mirrors cancellationKey.bench.ts's ROUND_COUNTER_PAD).
-const ROUND_COUNTER_PAD = 7
+// samples. Exported so cancellationKey.bench.ts — same per-round scale — can
+// import this exact declaration instead of re-declaring its own copy.
+// ignoredAdditionProbe.bench.ts declares its own, wider ROUND_COUNTER_PAD:
+// its per-round scale (up to 50,000 paths, versus the 1,500 lines/round this
+// value is sized for) can outgrow 7 digits sooner, so that one is not a
+// candidate for unifying onto this value.
+export const ROUND_COUNTER_PAD = 7
 
 // Distinct content every call: a `round<N>` directory segment rides between
 // `force-app/` and `main/`, so every line is a registry miss on any

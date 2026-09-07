@@ -6,45 +6,65 @@ import type { FileGitRef } from '../../src/types/git.js'
 import { createTempDir } from '../__utils__/gitTestHarness.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
 import { buildHistoryRepo } from './fixtures/historyRepoFixture.js'
-import {
-  assertMeanWithinCeiling,
-  deriveCeilingMs,
-  perfBench,
-} from './harness/perfBench.js'
+import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
 
 // Regression bench over a FIXED synthetic history (historyRepoFixture.ts),
 // never over this repository's own commits: a lightweight per-run sanity
 // check that a future @scolladon/tsgit upgrade (or an adapter change) has
-// not silently reintroduced an order-of-magnitude slowdown (e.g. a
-// materialize-everything code path). The fixture is rebuilt from a fixed
-// `git fast-import` stream on every run, so what these four ceilings bound
-// is GitAdapter's own cost, never how many commits have landed on the
-// branch under test. Shared CI runners are noisy (±40% run-to-run variance
-// is normal, see docs/plans/tsgit-bench/README.md) — these ceilings exist
-// to catch real regressions, not to police ordinary variance.
+// not silently reintroduced an order-of-magnitude slowdown. A
+// materialize-everything code path is one instance buildTreeIndex is built
+// to catch; the other three below catch a lost deltaCache hit or any other
+// per-object cold-read regression — a different failure mode, not that one.
+// The fixture is rebuilt from a fixed `git fast-import` stream on every run,
+// so what these four ceilings bound is GitAdapter's own cost, never how many
+// commits have landed on the branch under test. Shared CI runners are noisy
+// (±40% run-to-run variance is normal, see docs/plans/tsgit-bench/README.md)
+// — these ceilings exist to catch real regressions, not to police ordinary
+// variance.
 const REPO_ROOT = await createTempDir('sgd-bench-history-')
 const { from: FROM, to: TO, blobPaths } = buildHistoryRepo(REPO_ROOT)
 
-// Re-derived against the fixture above (worst-of-three measured means, ms):
-//   resolveCommit:    0.5614 / 0.5494 / 0.5526
-//   streamDiffLines:  1.6279 / 1.6010 / 1.5901
-//   getBufferContent: 0.0214 / 0.0213 / 0.0214
-//   buildTreeIndex:   6.3120 / 6.1365 / 6.1487
-// Ceiling is the worst mean × RUNNER_NOISE_FACTOR, rounded up to two
-// significant figures (see deriveCeilingMs).
-const RESOLVE_COMMIT_WORST_MEAN_MS = 0.5614
-const STREAM_DIFF_LINES_WORST_MEAN_MS = 1.6279
-const BLOB_READ_WORST_MEAN_MS = 0.0214
-const BUILD_TREE_INDEX_WORST_MEAN_MS = 6.312
+// A ref distinct from both FROM ('HEAD~20') and TO ('HEAD'): resolving it in
+// a beforeEach hook pays tsgit's one-time repo-open cost (openRepository,
+// pack index parsing — lazily paid on a handle's first read, see
+// GitAdapter#getRepo) without warming the deltaCache entry that FROM or TO
+// is about to be measured on.
+const HANDLE_OPEN_REF = 'HEAD~1'
 
-const RESOLVE_COMMIT_CEILING_MS = deriveCeilingMs(RESOLVE_COMMIT_WORST_MEAN_MS)
-const BUILD_TREE_INDEX_CEILING_MS = deriveCeilingMs(
-  BUILD_TREE_INDEX_WORST_MEAN_MS
-)
-const STREAM_DIFF_LINES_CEILING_MS = deriveCeilingMs(
-  STREAM_DIFF_LINES_WORST_MEAN_MS
-)
-const BLOB_READ_CEILING_MS = deriveCeilingMs(BLOB_READ_WORST_MEAN_MS)
+// Provisional. This fixture is new AND, as of this change, measures cold
+// reads (closeAll + getInstance + one untimed open per sample — see the
+// beforeEach hooks below), so no gh-pages CI history exists yet for any of
+// these four (contrast pipeline.bench.ts, which has 48 CI runs to derive
+// from — see the CI-sourced comment there). Ceiling = local cold worst-of-
+// three mean × ~3.2 (the CI/local ratio measured independently on
+// pipeline.bench.ts's own benches) × RUNNER_NOISE_FACTOR (3), rounded to the
+// nearest whole ms — not deriveCeilingMs's measured-worst-mean formula,
+// since there is no CI-measured worst mean to feed it yet. Re-seed all four
+// from this branch's first CI perf run and switch back to
+// deriveCeilingMs(ciWorstMeanMs) once that history exists.
+//
+// Local cold worst-of-three measured means, ms (three `vitest bench` runs
+// against this exact beforeEach implementation, each averaging ~140-750
+// fresh-handle samples):
+//   resolveCommit:    2.0283 / 1.6642 / 1.3358  (worst × 9.6 = 19.5 -> 20)
+//   streamDiffLines:  5.5584 / 5.3818 / 4.7968  (worst × 9.6 = 53.4 -> 53)
+//   getBufferContent: 7.1166 / 7.3443 / 6.4534  (worst × 9.6 = 70.5 -> 71)
+//   buildTreeIndex:   5.9972 / 4.6063 / 6.0402  (worst × 9.6 = 58.0 -> 58,
+//     unchanged bench body — see its own describe)
+//
+// getBufferContent disagrees sharply with a design-doc estimate of 2.6ms:
+// measured here it is the single most expensive read of the four, not the
+// cheapest. Isolated follow-up (one blob, one revision, same beforeEach)
+// still cost 3.06ms (FROM) / 4.36ms (TO) per single cold read — this
+// fixture's ~9KB blobs are packed as delta chains against every prior
+// revision (historyRepoFixture writes both BLOB_PATH_A/B on all 21 commits),
+// so a cold read walks that chain; a Map-lookup-cheap estimate does not hold
+// here. Ceiling below is derived from the measurement actually reproduced on
+// this fixture, not the estimate.
+const RESOLVE_COMMIT_CEILING_MS = 20
+const STREAM_DIFF_LINES_CEILING_MS = 53
+const BLOB_READ_CEILING_MS = 71
+const BUILD_TREE_INDEX_CEILING_MS = 58
 
 const BLOB_REFS: FileGitRef[] = [FROM, TO].flatMap(oid =>
   blobPaths.map(path => ({ path, oid }))
@@ -66,10 +86,14 @@ afterAll(async () => {
   await rm(REPO_ROOT, { recursive: true, force: true })
 })
 
+// A fresh handle per sample (closeAll + getInstance in beforeEach, which
+// tinybench runs outside the timed window — see perfBench's PerfBenchHooks
+// doc) so every timed resolveCommit call below hits an empty deltaCache —
+// the cost a real sgd() invocation always pays, since it opens exactly one
+// handle per run and resolves --from/--to on it exactly once.
 describe('gitAdapter-history-resolveCommit', () => {
-  const adapter = GitAdapter.getInstance(baseConfig)
-
   const elapsedMs: number[] = []
+  let adapter: GitAdapter
 
   perfBench(
     'resolveCommit-fixture-HEAD~20-and-HEAD',
@@ -80,6 +104,11 @@ describe('gitAdapter-history-resolveCommit', () => {
       elapsedMs.push(performance.now() - start)
     },
     {
+      beforeEach: async () => {
+        await GitAdapter.closeAll()
+        adapter = GitAdapter.getInstance(baseConfig)
+        await adapter.resolveCommit(HANDLE_OPEN_REF)
+      },
       afterRun: () =>
         assertMeanWithinCeiling(
           'resolveCommit',
@@ -91,9 +120,8 @@ describe('gitAdapter-history-resolveCommit', () => {
 })
 
 describe('gitAdapter-history-streamDiffLines', () => {
-  const adapter = GitAdapter.getInstance(baseConfig)
-
   const elapsedMs: number[] = []
+  let adapter: GitAdapter
 
   perfBench(
     'streamDiffLines-fixture-HEAD~20..HEAD',
@@ -116,6 +144,11 @@ describe('gitAdapter-history-streamDiffLines', () => {
       elapsedMs.push(performance.now() - start)
     },
     {
+      beforeEach: async () => {
+        await GitAdapter.closeAll()
+        adapter = GitAdapter.getInstance(baseConfig)
+        await adapter.resolveCommit(HANDLE_OPEN_REF)
+      },
       afterRun: () =>
         assertMeanWithinCeiling(
           'streamDiffLines',
@@ -127,9 +160,8 @@ describe('gitAdapter-history-streamDiffLines', () => {
 })
 
 describe('gitAdapter-history-blobReads', () => {
-  const adapter = GitAdapter.getInstance(baseConfig)
-
   const elapsedMs: number[] = []
+  let adapter: GitAdapter
 
   perfBench(
     'getBufferContent-fixture-HEAD~20-and-HEAD',
@@ -141,6 +173,11 @@ describe('gitAdapter-history-blobReads', () => {
       elapsedMs.push(performance.now() - start)
     },
     {
+      beforeEach: async () => {
+        await GitAdapter.closeAll()
+        adapter = GitAdapter.getInstance(baseConfig)
+        await adapter.resolveCommit(HANDLE_OPEN_REF)
+      },
       afterRun: () =>
         assertMeanWithinCeiling(
           'getBufferContent',
@@ -155,7 +192,9 @@ describe('gitAdapter-history-blobReads', () => {
 // revision on the adapter instance, so a shared instance would measure a
 // cache hit (a Map lookup) on every sample after the first. Closing and
 // re-acquiring the singleton each iteration forces a genuine cold tree walk
-// every time — the same cost a fresh CLI invocation pays exactly once.
+// every time — the same cost a fresh CLI invocation pays exactly once. This
+// was already cold before this change and its in-sample closeAll() is
+// settled: left exactly as it is.
 describe('gitAdapter-history-buildTreeIndex', () => {
   const elapsedMs: number[] = []
 

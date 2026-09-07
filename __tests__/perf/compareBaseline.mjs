@@ -33,15 +33,20 @@ const namesOf = entries => new Set(entries.map(entry => entry.name))
 // skipped, or produced no row. Skipping it would report the remaining rows as
 // a complete comparison, turning a vanished benchmark into a clean bill of
 // health — the same silence the missing-file guard above refuses.
-const missingFromRun = (base, pr) =>
-  base.filter(entry => !namesOf(pr).has(entry.name))
-const newInRun = (base, pr) =>
-  pr.filter(entry => !namesOf(base).has(entry.name))
+const missingFromRun = (base, prNames) =>
+  base.filter(entry => !prNames.has(entry.name))
+const newInRun = (pr, baseNames) =>
+  pr.filter(entry => !baseNames.has(entry.name))
 
-const missingRuntime = missingFromRun(baseRuntime, prRuntime)
-const newRuntime = newInRun(baseRuntime, prRuntime)
-const missingMemory = missingFromRun(baseMemory, prMemory)
-const newMemory = newInRun(baseMemory, prMemory)
+const prRuntimeNames = namesOf(prRuntime)
+const baseRuntimeNames = namesOf(baseRuntime)
+const prMemoryNames = namesOf(prMemory)
+const baseMemoryNames = namesOf(baseMemory)
+
+const missingRuntime = missingFromRun(baseRuntime, prRuntimeNames)
+const newRuntime = newInRun(prRuntime, baseRuntimeNames)
+const missingMemory = missingFromRun(baseMemory, prMemoryNames)
+const newMemory = newInRun(prMemory, baseMemoryNames)
 
 const regressions = []
 const improvements = []
@@ -131,7 +136,10 @@ if (missingRows.length > 0) {
   lines.push('')
 }
 
-if (missingRows.length > 0 || newRows.length > 0) {
+// A "new" row with no "missing" section above it has nothing to be a rename
+// counterpart to — the legend only makes sense once a benchmark actually
+// vanished from the base series.
+if (missingRows.length > 0) {
   lines.push(RENAME_LEGEND)
   lines.push('')
 }

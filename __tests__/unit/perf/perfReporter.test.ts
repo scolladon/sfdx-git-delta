@@ -28,11 +28,12 @@ const taskDouble = (name: string, mean: number, rme: number) => ({
 const testDouble = (
   name: string,
   state: 'passed' | 'failed' | 'skipped' | 'pending',
-  tasks: ReturnType<typeof taskDouble>[]
+  tasks: ReturnType<typeof taskDouble>[],
+  errors: { message: string }[] = []
 ) =>
   ({
     name,
-    result: () => ({ state }),
+    result: () => ({ state, errors }),
     benchmarks: () =>
       tasks.length ? [{ name: `group > ${name}`, tasks }] : [],
   }) as unknown as TestCase
@@ -305,6 +306,90 @@ describe('Given a benchmark reporter', () => {
     ) as { name: string }[]
     expect(runtimeWritten).toHaveLength(1)
     expect(runtimeWritten[0]!.name).toBe('sample-bench')
+  })
+
+  it('When a bench fails after producing samples (a ceiling breach), Then it still writes those samples and logs a ::warning:: naming the failure', () => {
+    // Arrange
+    const task = taskDouble('resolveCommit-fixture', 2, 1)
+    const breachTest = testDouble(
+      'gitAdapter-history-resolveCommit',
+      'failed',
+      [task],
+      [
+        {
+          message:
+            'resolveCommit averaged 20.15ms over 5 samples, exceeding the 16ms noise-tolerant ceiling',
+        },
+      ]
+    )
+    const testModule = moduleDouble('__tests__/perf/gitAdapter.bench.ts', [
+      breachTest,
+    ])
+
+    // Act
+    const act = () => sut.onTestRunEnd([testModule], [], 'failed')
+
+    // Assert
+    expect(act).not.toThrow()
+    const runtimeWritten = JSON.parse(
+      mockWriteFileSync.mock.calls[0]![1] as string
+    ) as { name: string }[]
+    expect(runtimeWritten.map(entry => entry.name)).toEqual([
+      'resolveCommit-fixture',
+    ])
+    expect(console.log).toHaveBeenCalledWith(
+      '::warning::gitAdapter-history-resolveCommit: resolveCommit averaged 20.15ms over 5 samples, exceeding the 16ms noise-tolerant ceiling'
+    )
+  })
+
+  it('When a non-failed, non-passed test somehow carries samples, Then it is still published and nothing is logged for it', () => {
+    // Arrange
+    const task = taskDouble('sample-bench', 1, 1)
+    const pendingWithSamples = testDouble('carrier', 'pending', [task])
+    const testModule = moduleDouble('__tests__/perf/sample.bench.ts', [
+      pendingWithSamples,
+    ])
+
+    // Act
+    sut.onTestRunEnd([testModule], [], 'passed')
+
+    // Assert
+    const runtimeWritten = JSON.parse(
+      mockWriteFileSync.mock.calls[0]![1] as string
+    ) as { name: string }[]
+    expect(runtimeWritten.map(entry => entry.name)).toEqual(['sample-bench'])
+    expect(console.log).not.toHaveBeenCalledWith(
+      expect.stringContaining('::warning::')
+    )
+  })
+
+  it('When a bench fails after producing samples alongside a bench that produced none, Then it still throws naming only the sample-less one and writes nothing', () => {
+    // Arrange
+    const task = taskDouble('resolveCommit-fixture', 2, 1)
+    const breachTest = testDouble(
+      'gitAdapter-history-resolveCommit',
+      'failed',
+      [task],
+      [{ message: 'resolveCommit exceeded its ceiling' }]
+    )
+    const noSamplesTest = testDouble(
+      'gitAdapter-history-blobReads',
+      'failed',
+      []
+    )
+    const testModule = moduleDouble('__tests__/perf/gitAdapter.bench.ts', [
+      breachTest,
+      noSamplesTest,
+    ])
+
+    // Act
+    const act = () => sut.onTestRunEnd([testModule], [], 'failed')
+
+    // Assert
+    expect(act).toThrow(
+      'Benchmarks produced no samples (body threw, never ran, or never called bench): gitAdapter-history-blobReads'
+    )
+    expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
 
   it('When every test passed with tasks but the run reason is failed, Then it throws a generic run error and writes nothing', () => {

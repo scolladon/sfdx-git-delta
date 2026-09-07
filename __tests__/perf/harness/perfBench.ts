@@ -34,8 +34,16 @@ export type PerfBenchHooks = Readonly<{
 export const perfBench = (
   name: string,
   fn: () => unknown,
-  hooks: PerfBenchHooks = {}
+  hooks: PerfBenchHooks | (() => void) = {}
 ): void => {
+  // __tests__ is not type-checked, so a call site regressed to the old
+  // positional `afterRun` function reads `hooks.afterRun` as undefined and
+  // its budget assertion silently stops running. Refuse it at runtime.
+  if (typeof hooks === 'function') {
+    throw new Error(
+      `perfBench("${name}") received a function as its third argument; pass { afterRun } instead of the old positional afterRun callback`
+    )
+  }
   test(name, async ({ bench }) => {
     // tinybench crashes reading a property off an `undefined` options
     // object, so a hookless bench must call the two-argument overload
@@ -66,6 +74,14 @@ const CEILING_DISPLAY_PRECISION = 10
 // number — keeps it capable of catching an order-of-magnitude regression at
 // any scale.
 export const deriveCeilingMs = (worstMeanMs: number): number => {
+  // Math.log10(0) is -Infinity, so a zero (or negative, or non-finite)
+  // worstMeanMs would otherwise flow through to a NaN step and a ceiling
+  // that can never be exceeded — a ceiling that silently cannot fail.
+  if (!Number.isFinite(worstMeanMs) || worstMeanMs <= 0) {
+    throw new Error(
+      `deriveCeilingMs requires a finite, positive worstMeanMs; got ${worstMeanMs}`
+    )
+  }
   const raw = worstMeanMs * RUNNER_NOISE_FACTOR
   const step =
     10 ** Math.floor(Math.log10(raw) - TWO_SIGNIFICANT_FIGURES_OFFSET)

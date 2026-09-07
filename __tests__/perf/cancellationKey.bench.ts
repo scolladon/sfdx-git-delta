@@ -5,6 +5,7 @@ import { getDefinition } from '../../src/metadata/metadataManager.js'
 import type { Config } from '../../src/types/config.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.js'
 import { buildPath, SHAPES, type Shape } from './fixtures/registryShapes.js'
 import { perfBench } from './harness/perfBench.js'
 
@@ -41,9 +42,6 @@ class CancellationKeyProbe extends RepoGitDiff {
 // tenth or less), so a regression in the key reads at close to its true
 // multiple instead of being diluted — without abandoning a cold registry.
 const LINES_PER_ROUND = 1500
-// Wide enough that the counter never outgrows its padding over a whole
-// benchmark run, so every sample keys a path of constant length.
-const ROUND_COUNTER_PAD = 7
 
 // Encapsulates the round counter so freshness is an invariant of this one
 // generator rather than a module-level mutable a later edit could read out

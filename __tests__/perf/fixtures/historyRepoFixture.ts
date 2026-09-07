@@ -107,8 +107,10 @@ const commitBlock = (revision: number, message: string): string =>
  * HEAD~20..HEAD shape so the four gitAdapter benches keep their scale. Built
  * with one `git fast-import` stream carrying fixed author/committer
  * timestamps — same input, same OIDs, on every machine and every run
- * (measured: 39/41/43 ms, 3 spawns total for the whole build, identical
- * `HEAD`/`HEAD~20` OIDs across repeated builds). fast-import writes
+ * (measured: 58-100 ms across three runs on a dev machine, load-dependent,
+ * not a promised bound; 4 spawns total for the whole build — init,
+ * fast-import, symbolic-ref, repack — identical `HEAD`/`HEAD~20` OIDs across
+ * repeated builds). fast-import writes
  * `refs/heads/main` directly; `HEAD` still follows the runner's
  * `init.defaultBranch` until pointed there explicitly. Finished with
  * `repack -adq` so the bench reads one pack, the way a real clone or CI
