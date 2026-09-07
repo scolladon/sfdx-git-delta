@@ -244,10 +244,26 @@ Then execute:
 ```bash
 # remove expected content
 npm run clean
-# run the test
-sf sgd source delta --from "e2e/base" --to "e2e/head" --output "expected" --generate-delta
+# run the test — prefer the package script, which already carries every flag
+npm run test:e2e:local
 # check expected is back to normal
-npm run test:e2e
+npm run validate
+```
+
+Run it through the package script rather than by hand. The scripts in
+`e2e/package.json` carry flags the baseline depends on — in particular
+`--source-dir test`, which keeps the committed `expected/` tree out of the diff
+model rather than filtering it back out afterwards. Invoking the CLI directly
+without that flag regenerates `expected/` from a diff that contains `expected/`
+itself, and the copy it produces is what `npm run validate` then fails on. The
+equivalent long form, if you do need to run it by hand:
+
+```bash
+sf sgd source delta --from "e2e/base" --to "e2e/head" --output-dir "expected" \
+  --generate-delta --repo-dir . --source-dir test \
+  --include-file .sgdinclude --include-destructive-file .sgdincludeDestructive \
+  --ignore-file .sgdignore --ignore-destructive-file .sgdignoreDestructive \
+  --ignore-whitespace
 ```
 
 `e2e/.sgdignore` keeps its `/expected` line on purpose: `--source-dir test` is what scopes the diff away from the baseline, and the ignore line stays as live `--ignore-file` coverage against a real, populated directory, so do not delete it as redundant.
@@ -255,7 +271,8 @@ npm run test:e2e
 Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
 
 ```bash
-node path/to/sfdx-git-delta/bin/run sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+node path/to/sfdx-git-delta/bin/run.js sgd source delta --from "e2e/base" --to "e2e/head" \
+  --output-dir "expected" --generate-delta --repo-dir . --source-dir test
 ```
 
 ## Editor Configurations
