@@ -174,8 +174,9 @@
       ]
     },
     "lint": {
-      "command": "npx @biomejs/biome check --error-on-warnings src __tests__ messages",
+      "command": "npx @biomejs/biome check --error-on-warnings tooling src __tests__ messages",
       "files": [
+        "tooling/**",
         "src/**",
         "__tests__/**/*.ts",
         "messages/**",
@@ -319,6 +320,7 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "tooling/**/*.ts",
+        "stryker.conf.mjs",
         "messages/**",
         "**/tsconfig.json",
         "package.json",
@@ -337,6 +339,7 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "tooling/**/*.ts",
+        "stryker.conf.mjs",
         "messages/**",
         "**/tsconfig.json",
         "package.json",

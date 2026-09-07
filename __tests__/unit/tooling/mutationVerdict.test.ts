@@ -45,13 +45,27 @@ describe('Given a mutation report', () => {
   })
 
   describe('When the mutant set is empty', () => {
-    it('Then the verdict is no-coverage', () => {
+    it('Then the verdict is no-mutants', () => {
       const sut = classifyRun
       const report = buildReport([])
 
       const result = sut(report)
 
-      expect(result).toBe('no-coverage')
+      expect(result).toBe('no-mutants')
+    })
+  })
+
+  describe('When every mutant is Ignored', () => {
+    it('Then the verdict is no-mutants', () => {
+      const sut = classifyRun
+      const report = buildReport([
+        { status: 'Ignored', coveredBy: ['test A'], testsCompleted: 1 },
+        { status: 'Ignored' },
+      ])
+
+      const result = sut(report)
+
+      expect(result).toBe('no-mutants')
     })
   })
 

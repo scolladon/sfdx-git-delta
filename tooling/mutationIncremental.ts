@@ -33,6 +33,9 @@ const reportPath = strykerConfig.jsonReporter.fileName
 
 const NOT_RUN_MESSAGE =
   'Mutation testing not run: no mutable source changed against origin/main'
+const NO_MUTANTS_MESSAGE =
+  'Mutation testing not run: every mutant in the scoped diff was ignored'
+const NO_TEST_COVERS_MESSAGE = 'No test covers the changed code'
 const VACUOUS_MESSAGE =
   'Mutation run executed no tests against any covered mutant — the test runner did not run, the score above is not a measurement'
 const ABSENT_MESSAGE =
@@ -44,7 +47,7 @@ const PR_COMMENT_MARKER = '<!-- incremental-mutation-testing -->'
 // -- Reporting surfaces: console annotation, step summary, PR comment ----
 
 const appendStepSummary = (text: string): void => {
-  const summaryPath = process.env.GITHUB_STEP_SUMMARY
+  const summaryPath = process.env['GITHUB_STEP_SUMMARY']
   if (!summaryPath) return
   appendFileSync(summaryPath, `${text}\n`)
 }
@@ -54,10 +57,20 @@ const findMarkedComment = (
 ): GithubComment | undefined =>
   comments.find(comment => comment.body?.includes(PR_COMMENT_MARKER))
 
+const isGithubCommentArray = (
+  value: unknown
+): value is readonly GithubComment[] => Array.isArray(value)
+
+// Never log the response body or headers here: the body can carry
+// GitHub's own diagnostic text and the headers carry the bearer token.
+const logHttpFailure = (action: string, res: Response, url: string): void => {
+  console.log(`::error::${action} failed: ${res.status} ${url}`)
+}
+
 const postPrComment = async (body: string): Promise<void> => {
-  const token = process.env.GITHUB_TOKEN
-  const repo = process.env.GITHUB_REPOSITORY
-  const prNumber = process.env.PR_NUMBER
+  const token = process.env['GITHUB_TOKEN']
+  const repo = process.env['GITHUB_REPOSITORY']
+  const prNumber = process.env['PR_NUMBER']
   if (!token || !repo || !prNumber) return
 
   const [owner, repoName] = repo.split('/')
@@ -69,22 +82,28 @@ const postPrComment = async (body: string): Promise<void> => {
   }
   const commentBody = `${PR_COMMENT_MARKER}\n${body}`
 
-  const commentsRes = await fetch(
-    `${apiBase}/issues/${prNumber}/comments?per_page=100`,
-    { headers }
-  )
-  const comments = (await commentsRes.json()) as readonly GithubComment[]
+  const listUrl = `${apiBase}/issues/${prNumber}/comments?per_page=100`
+  const commentsRes = await fetch(listUrl, { headers })
+  if (!commentsRes.ok) {
+    logHttpFailure('Listing PR comments', commentsRes, listUrl)
+    return
+  }
+  const commentsBody: unknown = await commentsRes.json()
+  const comments = isGithubCommentArray(commentsBody) ? commentsBody : []
   const existing = findMarkedComment(comments)
 
   const request = existing
     ? { url: `${apiBase}/issues/comments/${existing.id}`, method: 'PATCH' }
     : { url: `${apiBase}/issues/${prNumber}/comments`, method: 'POST' }
 
-  await fetch(request.url, {
+  const writeRes = await fetch(request.url, {
     method: request.method,
     headers,
     body: JSON.stringify({ body: commentBody }),
   })
+  if (!writeRes.ok) {
+    logHttpFailure('Posting PR comment', writeRes, request.url)
+  }
 }
 
 // -- Scope: plain git diff, then the config's own mutate negations -------
@@ -95,10 +114,20 @@ const escapeGlobLiteral = (chunk: string): string =>
 const convertGlobWildcards = (chunk: string): string =>
   escapeGlobLiteral(chunk).replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]')
 
-const globToRegExp = (pattern: string): RegExp =>
-  new RegExp(
-    `^${pattern.split('**/').map(convertGlobWildcards).join('(?:.*/)?')}$`
-  )
+// Supports two globstar forms, matching the negations this project writes:
+// a mid-pattern `**/` (zero or more directories) and a trailing `/**`
+// (the directory itself plus everything under it, any depth). A bare `**`
+// anywhere else (e.g. `a**b`) is not a globstar here — it degrades to two
+// single-segment wildcards, same as before this function grew `**` support.
+const TRAILING_GLOBSTAR = /\/\*\*$/
+
+const globToRegExp = (pattern: string): RegExp => {
+  const hasTrailingGlobstar = TRAILING_GLOBSTAR.test(pattern)
+  const body = hasTrailingGlobstar ? pattern.slice(0, -'/**'.length) : pattern
+  const boundary = body.split('**/').map(convertGlobWildcards).join('(?:.*/)?')
+  const suffix = hasTrailingGlobstar ? '(?:/.*)?' : ''
+  return new RegExp(`^${boundary}${suffix}$`)
+}
 
 const changedTsFiles = (): readonly string[] =>
   execFileSync(
@@ -139,25 +168,27 @@ const resolveStrykerCliPath = (): string => {
   return join(dirname(corePackageJsonPath), 'bin/stryker.js')
 }
 
-const exitStatusOf = (error: unknown): number => {
+const numericExitStatusOf = (error: unknown): number => {
   const status =
     typeof error === 'object' && error !== null && 'status' in error
       ? (error as { status: unknown }).status
       : undefined
-  return typeof status === 'number' ? status : 1
+  if (typeof status !== 'number') throw error
+  return status
 }
 
 const runStryker = (mutateList: string): number => {
+  const strykerCliPath = resolveStrykerCliPath()
   console.log(`Running Stryker with --mutate ${mutateList}`)
   try {
     execFileSync(
       process.execPath,
-      [resolveStrykerCliPath(), 'run', '--mutate', mutateList],
+      [strykerCliPath, 'run', '--mutate', mutateList],
       { stdio: 'inherit' }
     )
     return 0
   } catch (error) {
-    return exitStatusOf(error)
+    return numericExitStatusOf(error)
   }
 }
 
@@ -210,10 +241,10 @@ const buildSummaryTable = (report: MutationReport): string => {
 
 // -- Reporting the outcome ------------------------------------------------
 
-const reportNotRun = (): void => {
-  console.log(NOT_RUN_MESSAGE)
-  console.log(`::notice::${NOT_RUN_MESSAGE}`)
-  appendStepSummary(NOT_RUN_MESSAGE)
+const reportNotRun = (message: string): void => {
+  console.log(message)
+  console.log(`::notice::${message}`)
+  appendStepSummary(message)
 }
 
 const reportGuardFailure = async (message: string): Promise<void> => {
@@ -224,12 +255,15 @@ const reportGuardFailure = async (message: string): Promise<void> => {
 
 const reportScore = async (
   report: MutationReport,
-  strykerExitStatus: number
+  strykerExitStatus: number,
+  verdict: 'measured' | 'no-coverage'
 ): Promise<void> => {
   const table = buildSummaryTable(report)
+  const noCoverageLine =
+    verdict === 'no-coverage' ? `${NO_TEST_COVERS_MESSAGE}\n` : ''
   const errorLine =
     strykerExitStatus === 0 ? '' : `::error::${BREAK_THRESHOLD_MESSAGE}\n`
-  const body = `${errorLine}${table}`
+  const body = `${noCoverageLine}${errorLine}${table}`
   console.log(body)
   appendStepSummary(body)
   await postPrComment(body)
@@ -245,7 +279,7 @@ const negations = negationsOf(strykerConfig.mutate)
 const scopedFiles = applyNegations(changedTsFiles(), negations)
 
 if (scopedFiles.length === 0) {
-  reportNotRun()
+  reportNotRun(NOT_RUN_MESSAGE)
   process.exit(0)
 }
 
@@ -258,7 +292,7 @@ const verdict = classifyRun(report)
 
 if (verdict === 'absent') {
   await reportGuardFailure(ABSENT_MESSAGE)
-  process.exit(strykerExitStatus)
+  process.exit(strykerExitStatus === 0 ? 1 : strykerExitStatus)
 }
 
 if (verdict === 'vacuous') {
@@ -266,5 +300,10 @@ if (verdict === 'vacuous') {
   process.exit(1)
 }
 
-await reportScore(report as MutationReport, strykerExitStatus)
+if (verdict === 'no-mutants') {
+  reportNotRun(NO_MUTANTS_MESSAGE)
+  process.exit(0)
+}
+
+await reportScore(report as MutationReport, strykerExitStatus, verdict)
 process.exit(strykerExitStatus)

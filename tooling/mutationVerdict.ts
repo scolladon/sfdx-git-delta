@@ -17,6 +17,7 @@ export type MutationRunVerdict =
   | 'vacuous'
   | 'measured'
   | 'no-coverage'
+  | 'no-mutants'
   | 'absent'
 
 const isCovered = (mutant: Mutant): boolean =>
@@ -40,6 +41,7 @@ export const classifyRun = (
 
   const mutants = flattenMutants(report)
 
+  if (mutants.length === 0) return 'no-mutants'
   if (!mutants.some(isCovered)) return 'no-coverage'
 
   const isVacuous =
