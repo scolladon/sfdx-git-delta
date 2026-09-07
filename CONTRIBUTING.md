@@ -238,6 +238,7 @@ Base scenarios are implemented in the `e2e/base` branch.
 Updates to the metadata are implemented in `e2e/head`.
 
 To run the E2E tests locally, clone the repository in another folder and checkout the branch `e2e/head`.
+If your own checkout also has local branches named `e2e/base` or `e2e/head` (for example a worktree of this same repository), those are decoys: the E2E commands only ever read the branches inside the cloned folder, so always run git commands there with `git -C e2e …` and compare against `git -C e2e ls-remote origin` before trusting what a ref points to.
 Then execute:
 
 ```bash
@@ -248,6 +249,8 @@ sf sgd source delta --from "e2e/base" --to "e2e/head" --output "expected" --gene
 # check expected is back to normal
 npm run test:e2e
 ```
+
+`e2e/.sgdignore` keeps its `/expected` line on purpose: `--source-dir test` is what scopes the diff away from the baseline, and the ignore line stays as live `--ignore-file` coverage against a real, populated directory, so do not delete it as redundant.
 
 Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
 
