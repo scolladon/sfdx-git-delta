@@ -327,7 +327,8 @@
         "package-lock.json"
       ],
       "output": [
-        ".stryker-tmp/**"
+        ".stryker-tmp/**",
+        "reports/mutation/**"
       ],
       "dependencies": [
         "lint"
@@ -346,7 +347,8 @@
         "package-lock.json"
       ],
       "output": [
-        ".stryker-tmp/**"
+        ".stryker-tmp/**",
+        "reports/mutation/**"
       ],
       "dependencies": [
         "lint"

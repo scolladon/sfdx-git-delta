@@ -34,12 +34,12 @@ export type PerfBenchHooks = Readonly<{
 export const perfBench = (
   name: string,
   fn: () => unknown,
-  hooks: PerfBenchHooks | (() => void) = {}
+  hooks: PerfBenchHooks = {}
 ): void => {
   // __tests__ is not type-checked, so a call site regressed to the old
   // positional `afterRun` function reads `hooks.afterRun` as undefined and
   // its budget assertion silently stops running. Refuse it at runtime.
-  if (typeof hooks === 'function') {
+  if (typeof (hooks as unknown) === 'function') {
     throw new Error(
       `perfBench("${name}") received a function as its third argument; pass { afterRun } instead of the old positional afterRun callback`
     )

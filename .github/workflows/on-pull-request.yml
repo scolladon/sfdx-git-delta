@@ -149,10 +149,11 @@ jobs:
           name: mutation-report
           path: reports/mutation
 
-  # Separate job on purpose: it is the only one holding a write scope for
-  # mutation feedback, and it checks out nothing and runs no repository
-  # code — mutation-testing above runs `npm ci` and the pull request's own
-  # tests under Stryker, which is not where a PR-comment token belongs.
+  # Separate job on purpose: it isolates the write scope mutation feedback
+  # needs from the job that runs `npm ci` and the pull request's own tests
+  # under Stryker, keeping a PR-comment token out of that untrusted-code
+  # path — not a repo-wide rule (the perf job's own comment step runs from a
+  # job that does check out and run PR code; see reusable-perf.yml).
   # continue-on-error on mutation-testing masks a guard failure (today's
   # normal outcome on the unpatched runner) as a "success" needs.result,
   # but that masking is exactly why this job cannot rely on the implicit
@@ -171,13 +172,19 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      # Neither an empty scope nor a failure before the script writes
+      # (checkout, setup-node, npm ci, Stryker OOM) leaves a mutation-report
+      # artifact behind — download-artifact hard-errors on a missing
+      # artifact, so this step must not be allowed to fail the job on top.
       - name: Download mutation report
         uses: actions/download-artifact@v7
+        continue-on-error: true
         with:
           name: mutation-report
           path: reports/mutation
 
       - name: Comment mutation report
+        if: hashFiles('reports/mutation/comment.md') != ''
         uses: thollander/actions-comment-pull-request@v3
         with:
           file-path: reports/mutation/comment.md

@@ -27,8 +27,10 @@ const { from: FROM, to: TO, blobPaths } = buildHistoryRepo(REPO_ROOT)
 // A ref distinct from both FROM ('HEAD~20') and TO ('HEAD'): resolving it in
 // a beforeEach hook pays tsgit's one-time repo-open cost (openRepository,
 // pack index parsing — lazily paid on a handle's first read, see
-// GitAdapter#getRepo) without warming the deltaCache entry that FROM or TO
-// is about to be measured on.
+// GitAdapter#getRepo). It does still warm HEAD and HEAD~1 (2 of ~21 commit
+// objects in the timed walk) — resolving 'HEAD~1' must peel HEAD to reach
+// its parent — but no ref in this linear fixture can avoid warming at least
+// one commit that FROM or TO is about to be measured on.
 const HANDLE_OPEN_REF = 'HEAD~1'
 
 // Provisional. This fixture is new AND, as of this change, measures cold
@@ -38,14 +40,17 @@ const HANDLE_OPEN_REF = 'HEAD~1'
 // from — see the CI-sourced comment there). Ceiling = local cold worst-of-
 // three mean × ~3.2 (the CI/local ratio measured independently on
 // pipeline.bench.ts's own benches) × RUNNER_NOISE_FACTOR (3), rounded to the
-// nearest whole ms — not deriveCeilingMs's measured-worst-mean formula,
-// since there is no CI-measured worst mean to feed it yet. Re-seed all four
-// from this branch's first CI perf run and switch back to
-// deriveCeilingMs(ciWorstMeanMs) once that history exists.
+// nearest whole ms via a one-decimal (3-significant-figure) intermediate —
+// not deriveCeilingMs's measured-worst-mean formula, since there is no
+// CI-measured worst mean to feed it yet. Re-seed all four from this branch's
+// first CI perf run and switch back to deriveCeilingMs(ciWorstMeanMs) once
+// that history exists.
 //
 // Local cold worst-of-three measured means, ms (three `vitest bench` runs
 // against this exact beforeEach implementation, each averaging ~140-750
-// fresh-handle samples):
+// fresh-handle samples). The one-decimal intermediate is why resolveCommit's
+// raw 19.47 lands on 20 rather than the 19 a single direct rounding would
+// give — the other three raw products round the same way either way:
 //   resolveCommit:    2.0283 / 1.6642 / 1.3358  (worst × 9.6 = 19.5 -> 20)
 //   streamDiffLines:  5.5584 / 5.3818 / 4.7968  (worst × 9.6 = 53.4 -> 53)
 //   getBufferContent: 7.1166 / 7.3443 / 6.4534  (worst × 9.6 = 70.5 -> 71)

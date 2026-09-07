@@ -96,6 +96,25 @@ const partition = (modules: readonly TestModule[]): Partitioned => {
   return { brokenNames, tasks, hasTolerableFailure }
 }
 
+// hasTolerableFailure is a run-level boolean: once any bench both produced
+// samples and failed, assertRunPassed would otherwise wave through every
+// OTHER cause of a failed run too, including a module that failed during
+// collection (a syntax error, say) and so contributed zero TestCases —
+// no brokenNames entry, no task, nothing for assertNoBrokenTests to name.
+// This check runs independently of hasTolerableFailure so that combination
+// still refuses to publish.
+const assertNoCollectionErrors = (
+  testModules: ReadonlyArray<TestModule>
+): void => {
+  const brokenModuleIds = testModules
+    .filter(testModule => testModule.errors().length > 0)
+    .map(testModule => testModule.relativeModuleId)
+  if (brokenModuleIds.length === 0) return
+  throw new Error(
+    `Test module(s) failed to collect: ${brokenModuleIds.join(', ')}`
+  )
+}
+
 const assertNoBrokenTests = (brokenNames: readonly string[]): void => {
   if (brokenNames.length === 0) return
   throw new Error(
@@ -188,6 +207,7 @@ const report = (
     logInterrupted()
     return
   }
+  assertNoCollectionErrors(testModules)
   const { brokenNames, tasks, hasTolerableFailure } = partition(testModules)
   assertNoBrokenTests(brokenNames)
   assertRunPassed(reason, unhandledErrors, hasTolerableFailure)

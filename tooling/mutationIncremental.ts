@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process'
 import {
   appendFileSync,
   existsSync,
+  mkdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -63,6 +64,10 @@ const appendStepSummary = (text: string): void => {
 }
 
 const writeCommentFile = (body: string): void => {
+  // reports/ is gitignored and absent from a fresh checkout — the `absent`
+  // verdict means Stryker wrote no report, precisely the case where it may
+  // never have created this directory either.
+  mkdirSync(dirname(commentPath), { recursive: true })
   writeFileSync(commentPath, body)
 }
 
@@ -179,14 +184,21 @@ const tallyStatuses = (
   }, empty)
 }
 
-const scoreOf = (tally: MutantTally): number => {
+// null, not 0, when nothing was measured: a file whose mutants are all
+// Ignored (routine under ignoreStatic: true) or all RuntimeError/CompileError
+// (dropped by tallyStatuses's default arm) has no score to report — 0.00%
+// would read as a measurement that was never taken.
+const scoreOf = (tally: MutantTally): number | null => {
   const detected = tally.killed + tally.timeout
   const total = detected + tally.survived + tally.noCoverage
-  return total > 0 ? (detected / total) * 100 : 0
+  return total > 0 ? (detected / total) * 100 : null
 }
 
+const formatScore = (score: number | null): string =>
+  score === null ? 'n/a' : `${score.toFixed(2)}%`
+
 const summaryRow = (name: string, tally: MutantTally): string =>
-  `| ${name} | ${scoreOf(tally).toFixed(2)}% | ${tally.killed} | ${tally.survived} | ${tally.timeout} | ${tally.noCoverage} |`
+  `| ${name} | ${formatScore(scoreOf(tally))} | ${tally.killed} | ${tally.survived} | ${tally.timeout} | ${tally.noCoverage} |`
 
 const buildSummaryTable = (report: MutationReport): string => {
   const entries = Object.entries(report.files)
@@ -201,17 +213,14 @@ const buildSummaryTable = (report: MutationReport): string => {
 
 // -- Reporting the outcome ------------------------------------------------
 
+// Every not-run outcome — an empty scope that never reaches Stryker, or a
+// scoped diff whose mutants were all ignored — still needs a comment.md: the
+// mutation-comment job downloads whatever artifact this run produced, and a
+// missing file there is what turns an advisory gate into a hard failure.
 const reportNotRun = (message: string): void => {
   console.log(message)
   console.log(`::notice::${message}`)
   appendStepSummary(message)
-}
-
-// Distinct from reportNotRun: a scoped diff whose mutants were all ignored
-// still has something worth telling a reviewer, so it also gets a comment
-// file, unlike the empty-scope case above which never reaches Stryker.
-const reportNoMutants = (message: string): void => {
-  reportNotRun(message)
   writeCommentFile(message)
 }
 
@@ -272,7 +281,7 @@ if (verdict === 'vacuous') {
 }
 
 if (verdict === 'no-mutants') {
-  reportNoMutants(NO_MUTANTS_MESSAGE)
+  reportNotRun(NO_MUTANTS_MESSAGE)
   process.exit(0)
 }
 

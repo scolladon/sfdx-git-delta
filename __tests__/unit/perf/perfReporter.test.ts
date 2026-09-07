@@ -49,10 +49,15 @@ const multiBenchTestDouble = (
       benchmarks.map((tasks, index) => ({ name: `group > ${index}`, tasks })),
   }) as unknown as TestCase
 
-const moduleDouble = (relativeModuleId: string, tests: TestCase[]) =>
+const moduleDouble = (
+  relativeModuleId: string,
+  tests: TestCase[],
+  errors: { message: string }[] = []
+) =>
   ({
     relativeModuleId,
     children: { allTests: () => tests.values() },
+    errors: () => errors,
   }) as unknown as TestModule
 
 describe('Given a benchmark reporter', () => {
@@ -340,6 +345,35 @@ describe('Given a benchmark reporter', () => {
     expect(console.log).toHaveBeenCalledWith(
       '::warning::gitAdapter-history-resolveCommit: resolveCommit averaged 20.15ms over 5 samples, exceeding the 16ms noise-tolerant ceiling'
     )
+  })
+
+  it('When a module failed to collect while another bench has a tolerated breach, Then it throws naming the module and writes nothing', () => {
+    // Arrange
+    const task = taskDouble('resolveCommit-fixture', 2, 1)
+    const breachTest = testDouble(
+      'gitAdapter-history-resolveCommit',
+      'failed',
+      [task],
+      [{ message: 'resolveCommit exceeded its ceiling' }]
+    )
+    const toleratedModule = moduleDouble('__tests__/perf/gitAdapter.bench.ts', [
+      breachTest,
+    ])
+    const brokenModule = moduleDouble(
+      '__tests__/perf/broken.bench.ts',
+      [],
+      [{ message: 'Unexpected token' }]
+    )
+
+    // Act
+    const act = () =>
+      sut.onTestRunEnd([toleratedModule, brokenModule], [], 'failed')
+
+    // Assert
+    expect(act).toThrow(
+      'Test module(s) failed to collect: __tests__/perf/broken.bench.ts'
+    )
+    expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
 
   it('When a non-failed, non-passed test somehow carries samples, Then it is still published and nothing is logged for it', () => {
