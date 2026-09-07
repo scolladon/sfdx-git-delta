@@ -16,20 +16,33 @@ const RUN_OPTIONS = {
   warmupIterations: 16,
 } as const
 
-// Runs once after the samples are in, so a budget assertion can be a statistic
-// over the whole run rather than a max over however many samples the budget
-// happened to draw. A per-sample assertion is a max-over-N: raising the sample
-// count raises the breach rate without the measured cost changing at all.
-type AfterRun = () => void
+export type PerfBenchHooks = Readonly<{
+  // Runs before every iteration, warmup included, outside the timed window
+  // (tinybench times only `fn`): the place to build inputs a sample must not
+  // pay for, and the only place a per-iteration cold state can be made.
+  beforeEach?: () => void | Promise<void>
+  // Runs once after the samples are in, so a budget assertion can be a
+  // statistic over the whole run rather than a max over however many
+  // samples the budget happened to draw. A per-sample assertion is a
+  // max-over-N: raising the sample count raises the breach rate without the
+  // measured cost changing at all.
+  afterRun?: () => void
+}>
 
 export const perfBench = (
   name: string,
   fn: () => unknown,
-  afterRun?: AfterRun
+  hooks: PerfBenchHooks = {}
 ): void => {
   test(name, async ({ bench }) => {
-    await bench(name, fn).run(RUN_OPTIONS)
-    afterRun?.()
+    // tinybench crashes reading a property off an `undefined` options
+    // object, so a hookless bench must call the two-argument overload
+    // rather than pass `undefined` where `{ beforeEach }` would go.
+    const task = hooks.beforeEach
+      ? bench(name, { beforeEach: hooks.beforeEach }, fn)
+      : bench(name, fn)
+    await task.run(RUN_OPTIONS)
+    hooks.afterRun?.()
   })
 }
 

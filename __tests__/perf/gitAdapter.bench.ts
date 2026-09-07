@@ -56,12 +56,14 @@ describe('gitAdapter-history-resolveCommit', () => {
       await adapter.resolveCommit(TO)
       elapsedMs.push(performance.now() - start)
     },
-    () =>
-      assertMeanWithinCeiling(
-        'resolveCommit',
-        elapsedMs,
-        RESOLVE_COMMIT_CEILING_MS
-      )
+    {
+      afterRun: () =>
+        assertMeanWithinCeiling(
+          'resolveCommit',
+          elapsedMs,
+          RESOLVE_COMMIT_CEILING_MS
+        ),
+    }
   )
 })
 
@@ -90,12 +92,14 @@ describe('gitAdapter-history-streamDiffLines', () => {
       }
       elapsedMs.push(performance.now() - start)
     },
-    () =>
-      assertMeanWithinCeiling(
-        'streamDiffLines',
-        elapsedMs,
-        STREAM_DIFF_LINES_CEILING_MS
-      )
+    {
+      afterRun: () =>
+        assertMeanWithinCeiling(
+          'streamDiffLines',
+          elapsedMs,
+          STREAM_DIFF_LINES_CEILING_MS
+        ),
+    }
   )
 })
 
@@ -113,12 +117,14 @@ describe('gitAdapter-history-blobReads', () => {
       }
       elapsedMs.push(performance.now() - start)
     },
-    () =>
-      assertMeanWithinCeiling(
-        'getBufferContent',
-        elapsedMs,
-        BLOB_READ_CEILING_MS
-      )
+    {
+      afterRun: () =>
+        assertMeanWithinCeiling(
+          'getBufferContent',
+          elapsedMs,
+          BLOB_READ_CEILING_MS
+        ),
+    }
   )
 })
 
@@ -139,11 +145,13 @@ describe('gitAdapter-history-buildTreeIndex', () => {
       await adapter.buildTreeIndex(TO, ['.'])
       elapsedMs.push(performance.now() - start)
     },
-    () =>
-      assertMeanWithinCeiling(
-        'buildTreeIndex',
-        elapsedMs,
-        BUILD_TREE_INDEX_CEILING_MS
-      )
+    {
+      afterRun: () =>
+        assertMeanWithinCeiling(
+          'buildTreeIndex',
+          elapsedMs,
+          BUILD_TREE_INDEX_CEILING_MS
+        ),
+    }
   )
 })

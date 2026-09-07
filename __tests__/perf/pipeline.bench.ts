@@ -95,12 +95,14 @@ for (const count of BUNDLE_COUNTS) {
         await sgd(input)
         elapsedMs.push(performance.now() - start)
       },
-      () =>
-        assertMeanWithinCeiling(
-          `sgd-no-delta-${count}-bundles`,
-          elapsedMs,
-          SGD_NO_DELTA_CEILING_MS[count]
-        )
+      {
+        afterRun: () =>
+          assertMeanWithinCeiling(
+            `sgd-no-delta-${count}-bundles`,
+            elapsedMs,
+            SGD_NO_DELTA_CEILING_MS[count]
+          ),
+      }
     )
   })
 }

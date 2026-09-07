@@ -16,7 +16,7 @@ const CHANGE_KIND_BY_GIT: Record<string, AddKind> = {
   [DELETION]: ChangeKind.Delete,
 }
 
-type FixtureSize = 'small' | 'medium' | 'large'
+export type FixtureSize = 'small' | 'medium' | 'large'
 
 interface SizeConfig {
   readonly classes: number
@@ -52,53 +52,49 @@ const SIZE_CONFIGS: Record<FixtureSize, SizeConfig> = {
 
 const pad = (n: number): string => String(n).padStart(4, '0')
 
-const generateDiffLines = (config: SizeConfig): string[] => {
+const DEFAULT_ROOT = 'force-app/main/default'
+
+const generateDiffLines = (config: SizeConfig, root: string): string[] => {
   const lines: string[] = []
 
   for (let i = 0; i < config.classes; i++) {
     const changeType =
       i % 3 === 0 ? ADDITION : i % 3 === 1 ? MODIFICATION : DELETION
-    lines.push(
-      `${changeType}\tforce-app/main/default/classes/MyClass${pad(i)}.cls`
-    )
-    lines.push(
-      `${changeType}\tforce-app/main/default/classes/MyClass${pad(i)}.cls-meta.xml`
-    )
+    lines.push(`${changeType}\t${root}/classes/MyClass${pad(i)}.cls`)
+    lines.push(`${changeType}\t${root}/classes/MyClass${pad(i)}.cls-meta.xml`)
   }
 
   for (let i = 0; i < config.triggers; i++) {
+    lines.push(`${ADDITION}\t${root}/triggers/MyTrigger${pad(i)}.trigger`)
     lines.push(
-      `${ADDITION}\tforce-app/main/default/triggers/MyTrigger${pad(i)}.trigger`
-    )
-    lines.push(
-      `${ADDITION}\tforce-app/main/default/triggers/MyTrigger${pad(i)}.trigger-meta.xml`
+      `${ADDITION}\t${root}/triggers/MyTrigger${pad(i)}.trigger-meta.xml`
     )
   }
 
   for (let i = 0; i < config.lwcComponents; i++) {
     lines.push(
-      `${MODIFICATION}\tforce-app/main/default/lwc/myComponent${pad(i)}/myComponent${pad(i)}.js`
+      `${MODIFICATION}\t${root}/lwc/myComponent${pad(i)}/myComponent${pad(i)}.js`
     )
     lines.push(
-      `${MODIFICATION}\tforce-app/main/default/lwc/myComponent${pad(i)}/myComponent${pad(i)}.html`
+      `${MODIFICATION}\t${root}/lwc/myComponent${pad(i)}/myComponent${pad(i)}.html`
     )
     lines.push(
-      `${MODIFICATION}\tforce-app/main/default/lwc/myComponent${pad(i)}/myComponent${pad(i)}.js-meta.xml`
+      `${MODIFICATION}\t${root}/lwc/myComponent${pad(i)}/myComponent${pad(i)}.js-meta.xml`
     )
   }
 
   for (let i = 0; i < config.customObjects; i++) {
     lines.push(
-      `${MODIFICATION}\tforce-app/main/default/objects/CustomObj${pad(i)}__c/CustomObj${pad(i)}__c.object-meta.xml`
+      `${MODIFICATION}\t${root}/objects/CustomObj${pad(i)}__c/CustomObj${pad(i)}__c.object-meta.xml`
     )
     lines.push(
-      `${ADDITION}\tforce-app/main/default/objects/CustomObj${pad(i)}__c/fields/NewField__c.field-meta.xml`
+      `${ADDITION}\t${root}/objects/CustomObj${pad(i)}__c/fields/NewField__c.field-meta.xml`
     )
   }
 
   for (let i = 0; i < config.profiles; i++) {
     lines.push(
-      `${MODIFICATION}\tforce-app/main/default/profiles/Admin${pad(i)}.profile-meta.xml`
+      `${MODIFICATION}\t${root}/profiles/Admin${pad(i)}.profile-meta.xml`
     )
   }
 
@@ -108,8 +104,38 @@ const generateDiffLines = (config: SizeConfig): string[] => {
 export const generateDiffFixtures = (
   size: FixtureSize
 ): { readonly lines: string[] } => ({
-  lines: generateDiffLines(SIZE_CONFIGS[size]),
+  lines: generateDiffLines(SIZE_CONFIGS[size], DEFAULT_ROOT),
 })
+
+export type DiffLineSource = () => readonly string[]
+
+// Wide enough that the counter never outgrows its padding over a whole
+// benchmark run, so every generated line keeps a constant length across
+// samples (mirrors cancellationKey.bench.ts's ROUND_COUNTER_PAD).
+const ROUND_COUNTER_PAD = 7
+
+// Distinct content every call: a `round<N>` directory segment rides between
+// `force-app/` and `main/`, so every line is a registry miss on any
+// registry and the round counter never matches a registry directory name.
+export const createDistinctRoundLines = (size: FixtureSize): DiffLineSource => {
+  let round = 0
+  return (): readonly string[] => {
+    round += 1
+    const n = String(round).padStart(ROUND_COUNTER_PAD, '0')
+    return generateDiffLines(
+      SIZE_CONFIGS[size],
+      `force-app/round${n}/main/default`
+    )
+  }
+}
+
+// Same content every call, new string objects every call: what a second sgd
+// run over the same paths pays — the Map lookup must hash a string V8 has
+// never seen, instead of reading a hash cached on a reused object.
+export const createSameContentLines = (size: FixtureSize): DiffLineSource => {
+  return (): readonly string[] =>
+    generateDiffLines(SIZE_CONFIGS[size], DEFAULT_ROOT)
+}
 
 export const generateManifestElements = (
   size: FixtureSize

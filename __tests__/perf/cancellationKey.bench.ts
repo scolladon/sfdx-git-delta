@@ -11,10 +11,10 @@ import { perfBench } from './harness/perfBench.js'
 // Pins the cost of deriving a cancellation key on a COLD registry — the
 // worst case getLines() actually pays once per sgd() invocation. It
 // deliberately does not reuse:
-//  - phase.bench.ts: one MetadataRepository built at module load and reused
-//    across every sample, over paths pre-stripped of their diff-status
-//    prefix. Both choices are exactly what a registry-lookup or line-shape
-//    regression would hide behind: warm pathCache, no prefix to strip.
+//  - phase.bench.ts: its cold benches already rebuild a fresh registry and
+//    fresh lines per iteration, but over MetadataRepository lookups, not
+//    the cancellation-key derivation this file measures — a different seam
+//    entirely, not a blindness to route around here.
 //  - gitAdapter.bench.ts: diffs this very repository's own `HEAD~20..HEAD`,
 //    which grows with every commit landed on a feature branch and is
 //    self-referential rather than a stable ceiling.

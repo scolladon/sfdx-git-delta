@@ -168,6 +168,12 @@ Performance benchmarks live in `__tests__/perf/`. Each bench is a vitest
 test that calls the `bench` fixture through
 `__tests__/perf/harness/perfBench.ts`, which pins the sample budget
 (`time: 1000`, `iterations: 64`, `warmupTime: 250`, `warmupIterations: 16`).
+`perfBench(name, fn, hooks?)` takes its hooks as one named object —
+`{ beforeEach?, afterRun? }` — never positionally. `beforeEach` runs before
+every iteration, warmup included, outside the timed window, so it is the
+place to build a sample's inputs (or a per-iteration cold registry) without
+that setup counting toward the measured cost; `afterRun` runs once after
+every sample is in, for a budget assertion over the whole run.
 `__tests__/perf/perfReporter.ts` writes `perf-runtime.json`
 (`{name, unit: 'ops/sec', value: round(1000 / latency.mean), range: '±rme%'}`)
 and `perf-memory.json` (`{name, unit: 'ms', value: latency.mean to 4 dp,

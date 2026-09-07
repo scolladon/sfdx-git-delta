@@ -139,12 +139,14 @@ describe('ignored-addition-probe-cold-registry', () => {
         await probe.visible(candidates, ignoreHelper)
         elapsedMs.push(performance.now() - start)
       },
-      () =>
-        assertMeanWithinCeiling(
-          `visibility pass over ${size} paths`,
-          elapsedMs,
-          ceilingMs(size)
-        )
+      {
+        afterRun: () =>
+          assertMeanWithinCeiling(
+            `visibility pass over ${size} paths`,
+            elapsedMs,
+            ceilingMs(size)
+          ),
+      }
     )
   }
 })
