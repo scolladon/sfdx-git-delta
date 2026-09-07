@@ -2,8 +2,10 @@ import { test } from 'vitest'
 
 // Shared runners are noisy (±40% run-to-run is normal); ceilings exist to
 // catch an order-of-magnitude regression, not to police variance. A ceiling
-// bounds the worst-of-three measured mean × this factor, rounded up to the
-// next 100ms.
+// bounds the worst-of-three measured mean × this factor, rounded up to two
+// significant figures (see deriveCeilingMs) — scaling with the measurement
+// rather than flooring at a round number, so a ceiling stays capable of
+// failing even when the measured cost is well under 100ms.
 export const RUNNER_NOISE_FACTOR = 3
 
 // tinybench 6 defaults, stated so a future tinybench bump cannot move the
@@ -44,6 +46,31 @@ export const perfBench = (
     await task.run(RUN_OPTIONS)
     hooks.afterRun?.()
   })
+}
+
+// "Two significant figures" arithmetically means: locate the order of
+// magnitude one digit below raw's leading digit, then round up to a
+// multiple of it — e.g. a 6.312ms worst mean × 3 = 18.936 rounds up to 19,
+// not 18.936 verbatim or a flattened 20.
+const TWO_SIGNIFICANT_FIGURES_OFFSET = 1
+// Math.log10/Math.ceil can leave float noise on the result (e.g.
+// 1.7000000000000002 instead of 1.7); a coarse display precision strips
+// that noise without touching the two significant figures above.
+const CEILING_DISPLAY_PRECISION = 10
+
+// A ceiling scales with what it bounds: a fixed 100ms floor is degenerate
+// for any worst mean below ~33ms (RUNNER_NOISE_FACTOR × mean never reaches
+// the floor), which is exactly why perfBench ceilings used to sit 10x-4600x
+// above their real cost. Deriving the ceiling from the measurement itself —
+// rounded up to two significant figures rather than flattened to a round
+// number — keeps it capable of catching an order-of-magnitude regression at
+// any scale.
+export const deriveCeilingMs = (worstMeanMs: number): number => {
+  const raw = worstMeanMs * RUNNER_NOISE_FACTOR
+  const step =
+    10 ** Math.floor(Math.log10(raw) - TWO_SIGNIFICANT_FIGURES_OFFSET)
+  const ceiling = Math.ceil(raw / step) * step
+  return Number(ceiling.toPrecision(CEILING_DISPLAY_PRECISION))
 }
 
 // The window a budget covers is usually narrower than the whole bench body

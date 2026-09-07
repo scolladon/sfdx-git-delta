@@ -13,8 +13,8 @@ import {
 import { buildLwcDiffRepo } from './fixtures/lwcRepoFixture.js'
 import {
   assertMeanWithinCeiling,
+  deriveCeilingMs,
   perfBench,
-  RUNNER_NOISE_FACTOR,
 } from './harness/perfBench.js'
 
 const metadata = await getDefinition({})
@@ -48,12 +48,10 @@ vi.mock('../../src/metadata/metadataManager.js', async importOriginal => ({
 
 const BUNDLE_COUNTS = [100, 1_000] as const
 
-const deriveCeilingMs = (worstMeanMs: number): number =>
-  Math.ceil((worstMeanMs * RUNNER_NOISE_FACTOR) / 100) * 100
-
 // Measured over three runs against the packed fixture (worst-of-three means):
 // 100 bundles 9.61/9.60/9.46ms, 1000 bundles 53.00/50.71/50.10ms. Ceiling is
-// the worst mean × RUNNER_NOISE_FACTOR, rounded up to the next 100ms.
+// the worst mean × RUNNER_NOISE_FACTOR, rounded up to two significant
+// figures (see deriveCeilingMs).
 const WORST_MEAN_MS: Record<(typeof BUNDLE_COUNTS)[number], number> = {
   100: 9.61,
   1_000: 53.0036,
