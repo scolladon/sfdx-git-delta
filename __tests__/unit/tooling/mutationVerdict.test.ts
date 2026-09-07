@@ -96,8 +96,8 @@ describe('Given a mutation report', () => {
     })
   })
 
-  describe('When the only Killed mutant is Ignored', () => {
-    it('Then the verdict is vacuous, not measured', () => {
+  describe('When an Ignored mutant is the only one that completed tests', () => {
+    it('Then it does not rescue the run from vacuous', () => {
       const sut = classifyRun
       const report = buildReport([
         { status: 'Ignored', coveredBy: ['test A'], testsCompleted: 1 },

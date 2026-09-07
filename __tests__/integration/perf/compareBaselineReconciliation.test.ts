@@ -20,6 +20,7 @@ const writeJson = (path: string, entries: unknown) =>
 
 let cwd: string
 let report: string
+let stdout: string
 let exitCode: number | null
 
 beforeAll(async () => {
@@ -55,17 +56,24 @@ beforeAll(async () => {
     ]),
   ])
 
-  // Act: spawn the real script with an explicit, stripped env — the
+  // Act: spawn the real script with only the GitHub variables removed — the
   // integration bucket runs in CI where GITHUB_TOKEN and GITHUB_REPOSITORY
   // are set, and an inherited env would make this attempt a real GitHub
-  // API call.
+  // API call. The rest of the environment is kept deliberately: a bare
+  // { PATH } also strips SystemRoot, which a Node child needs to start at
+  // all on the windows leg of the matrix.
+  const childEnv = { ...process.env }
+  delete childEnv.GITHUB_TOKEN
+  delete childEnv.GITHUB_REPOSITORY
+  delete childEnv.PR_NUMBER
   const sut = spawnSync(process.execPath, [SCRIPT_ENTRY], {
     cwd,
     encoding: 'utf8',
-    env: { PATH: process.env.PATH ?? '' },
+    env: childEnv,
   })
   exitCode = sut.status
 
+  stdout = sut.stdout
   report = await readFile(join(cwd, 'perf-comparison.md'), 'utf-8')
 })
 
@@ -128,6 +136,23 @@ describe('Given a PR run reconciled against a base run', () => {
   describe('When the run contains reconciliation rows to report', () => {
     it('Then the script still exits 0, staying advisory', () => {
       expect(exitCode).toBe(0)
+    })
+
+    // The annotation counts benchmark NAMES, while the tables above count
+    // (name, series) rows: b and c are missing from both series and e from
+    // memory alone, so the rows number five and the names three. Without the
+    // dedupe the annotation would double-count, and nothing else here would
+    // notice.
+    it('Then the missing annotation counts names once, not once per series', () => {
+      expect(stdout).toContain(
+        '::warning::3 benchmark(s) missing from this run: b, c, e'
+      )
+    })
+
+    it('Then the new-benchmark annotation is a notice, counted the same way', () => {
+      expect(stdout).toContain(
+        '::notice::2 new benchmark(s) in this run: b-renamed, d'
+      )
     })
   })
 })
