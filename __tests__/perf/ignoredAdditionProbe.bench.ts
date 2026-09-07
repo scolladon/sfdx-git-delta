@@ -19,11 +19,11 @@ import {
 // over every in-scope file at `to`, doing a registry-membership check plus
 // key derivation per path, and an ignore check only on candidate hits. This
 // bench deliberately does not reuse gitAdapter.bench.ts's approach of
-// diffing this very repository's own history — that grows with every commit
-// landed on a feature branch and is self-referential rather than a stable
-// ceiling. It walks a synthetic listing instead: no repository, no tsgit
-// flatten, no trie — those are GitAdapter's own costs and are bounded by
-// gitAdapter.bench.ts on a real repository.
+// diffing a real repository — that pays git IO and tsgit tree-walk costs
+// this bench exists to isolate away from. It walks a synthetic listing
+// instead: no repository, no tsgit flatten, no trie — those are GitAdapter's
+// own costs and are bounded by gitAdapter.bench.ts on a fixed synthetic
+// repository.
 
 // The seam under measurement: the visibility pass over a `to` listing,
 // reached through `protected` from a subclass that replaces the one git

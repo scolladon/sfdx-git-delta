@@ -15,9 +15,10 @@ import { perfBench } from './harness/perfBench.js'
 //    fresh lines per iteration, but over MetadataRepository lookups, not
 //    the cancellation-key derivation this file measures — a different seam
 //    entirely, not a blindness to route around here.
-//  - gitAdapter.bench.ts: diffs this very repository's own `HEAD~20..HEAD`,
-//    which grows with every commit landed on a feature branch and is
-//    self-referential rather than a stable ceiling.
+//  - gitAdapter.bench.ts: benches GitAdapter's own git IO (resolveCommit,
+//    streamDiffLines, getBufferContent, buildTreeIndex) against a fixed
+//    synthetic repository — a different seam entirely, not the
+//    key-derivation logic this file measures over synthetic diff lines.
 // Comparing this bench's number against the same file run over `main` (no
 // such file exists there, so the comparison happens in a throwaway checkout)
 // is what evidences the key-derivation budget.

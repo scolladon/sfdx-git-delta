@@ -1,32 +1,58 @@
+import { rm } from 'node:fs/promises'
 import { afterAll, describe } from 'vitest'
 import GitAdapter from '../../src/adapter/GitAdapter.js'
 import type { Config } from '../../src/types/config.js'
 import type { FileGitRef } from '../../src/types/git.js'
+import { createTempDir } from '../__utils__/gitTestHarness.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
-import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
+import { buildHistoryRepo } from './fixtures/historyRepoFixture.js'
+import {
+  assertMeanWithinCeiling,
+  perfBench,
+  RUNNER_NOISE_FACTOR,
+} from './harness/perfBench.js'
 
-// Regression bench over the sgd repo's OWN history (HEAD~20..HEAD): a
-// lightweight per-run sanity check that a future @scolladon/tsgit upgrade
-// (or an adapter change) has not silently reintroduced an order-of-magnitude
-// slowdown (e.g. a materialize-everything code path). Ceilings are
-// deliberately generous — shared CI runners are noisy (±40% run-to-run
-// variance is normal, see docs/plans/tsgit-bench/README.md) — so these exist
-// to catch real regressions, not to police ordinary variance.
-const REPO_ROOT = process.cwd()
-const FROM = 'HEAD~20'
-const TO = 'HEAD'
+// Regression bench over a FIXED synthetic history (historyRepoFixture.ts),
+// never over this repository's own commits: a lightweight per-run sanity
+// check that a future @scolladon/tsgit upgrade (or an adapter change) has
+// not silently reintroduced an order-of-magnitude slowdown (e.g. a
+// materialize-everything code path). The fixture is rebuilt from a fixed
+// `git fast-import` stream on every run, so what these four ceilings bound
+// is GitAdapter's own cost, never how many commits have landed on the
+// branch under test. Ceilings are deliberately generous — shared CI runners
+// are noisy (±40% run-to-run variance is normal, see
+// docs/plans/tsgit-bench/README.md) — so these exist to catch real
+// regressions, not to police ordinary variance.
+const REPO_ROOT = await createTempDir('sgd-bench-history-')
+const { from: FROM, to: TO, blobPaths } = buildHistoryRepo(REPO_ROOT)
 
-const RESOLVE_COMMIT_CEILING_MS = 200
-const BUILD_TREE_INDEX_CEILING_MS = 1_000
-const STREAM_DIFF_LINES_CEILING_MS = 500
-const BLOB_READ_CEILING_MS = 200
+const deriveCeilingMs = (worstMeanMs: number): number =>
+  Math.ceil((worstMeanMs * RUNNER_NOISE_FACTOR) / 100) * 100
 
-const BLOB_REFS: FileGitRef[] = [
-  { path: 'package.json', oid: FROM },
-  { path: 'src/main.ts', oid: FROM },
-  { path: 'package.json', oid: TO },
-  { path: 'src/main.ts', oid: TO },
-]
+// Re-derived against the fixture above (worst-of-three measured means, ms):
+//   resolveCommit:    0.5614 / 0.5494 / 0.5526
+//   streamDiffLines:  1.6279 / 1.6010 / 1.5901
+//   getBufferContent: 0.0214 / 0.0213 / 0.0214
+//   buildTreeIndex:   6.3120 / 6.1365 / 6.1487
+// Ceiling is the worst mean × RUNNER_NOISE_FACTOR, rounded up to the next
+// 100ms (the pipeline.bench.ts convention).
+const RESOLVE_COMMIT_WORST_MEAN_MS = 0.5614
+const STREAM_DIFF_LINES_WORST_MEAN_MS = 1.6279
+const BLOB_READ_WORST_MEAN_MS = 0.0214
+const BUILD_TREE_INDEX_WORST_MEAN_MS = 6.312
+
+const RESOLVE_COMMIT_CEILING_MS = deriveCeilingMs(RESOLVE_COMMIT_WORST_MEAN_MS)
+const BUILD_TREE_INDEX_CEILING_MS = deriveCeilingMs(
+  BUILD_TREE_INDEX_WORST_MEAN_MS
+)
+const STREAM_DIFF_LINES_CEILING_MS = deriveCeilingMs(
+  STREAM_DIFF_LINES_WORST_MEAN_MS
+)
+const BLOB_READ_CEILING_MS = deriveCeilingMs(BLOB_READ_WORST_MEAN_MS)
+
+const BLOB_REFS: FileGitRef[] = [FROM, TO].flatMap(oid =>
+  blobPaths.map(path => ({ path, oid }))
+)
 
 const baseConfig: Config = {
   to: TO,
@@ -41,6 +67,7 @@ const baseConfig: Config = {
 
 afterAll(async () => {
   await GitAdapter.closeAll()
+  await rm(REPO_ROOT, { recursive: true, force: true })
 })
 
 describe('gitAdapter-history-resolveCommit', () => {
@@ -49,7 +76,7 @@ describe('gitAdapter-history-resolveCommit', () => {
   const elapsedMs: number[] = []
 
   perfBench(
-    'resolveCommit-HEAD~20-and-HEAD',
+    'resolveCommit-fixture-HEAD~20-and-HEAD',
     async () => {
       const start = performance.now()
       await adapter.resolveCommit(FROM)
@@ -73,7 +100,7 @@ describe('gitAdapter-history-streamDiffLines', () => {
   const elapsedMs: number[] = []
 
   perfBench(
-    'streamDiffLines-HEAD~20..HEAD',
+    'streamDiffLines-fixture-HEAD~20..HEAD',
     async () => {
       const start = performance.now()
       const verdict = { changesSeen: 0, linesYielded: 0 }
@@ -109,7 +136,7 @@ describe('gitAdapter-history-blobReads', () => {
   const elapsedMs: number[] = []
 
   perfBench(
-    'getBufferContent-HEAD~20-and-HEAD',
+    'getBufferContent-fixture-HEAD~20-and-HEAD',
     async () => {
       const start = performance.now()
       for (const ref of BLOB_REFS) {
@@ -137,7 +164,7 @@ describe('gitAdapter-history-buildTreeIndex', () => {
   const elapsedMs: number[] = []
 
   perfBench(
-    'buildTreeIndex-HEAD-cold',
+    'buildTreeIndex-fixture-HEAD-cold',
     async () => {
       await GitAdapter.closeAll()
       const adapter = GitAdapter.getInstance(baseConfig)
