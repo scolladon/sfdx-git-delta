@@ -47,6 +47,7 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 let fixtureDir: string
 let ignorePatternPath: string
 let unrelatedDestructivePatternPath: string
+let sourceClassesPatternPath: string
 let refs: IgnoreFixtureRefs
 let globalMetadata: MetadataRepository
 
@@ -94,6 +95,8 @@ beforeAll(async () => {
   await writeFile(ignorePatternPath, 'force-app/recycle-bin/\n')
   unrelatedDestructivePatternPath = join(fixtureDir, '.sgdignore-unrelated')
   await writeFile(unrelatedDestructivePatternPath, 'nothing-here/\n')
+  sourceClassesPatternPath = join(fixtureDir, '.sgdignore-source-classes')
+  await writeFile(sourceClassesPatternPath, 'force-app/main/default/classes/\n')
 })
 
 afterEach(async () => {
@@ -204,5 +207,43 @@ describe('Given one bundle file moved into an ignored directory while the bundle
 
     // Assert
     expect(result).toEqual([`A\t${IGNORE_BUNDLE_STALE_MARKUP}`])
+  })
+})
+
+describe('Given a class deleted outright', () => {
+  it('When --ignore-destructive-file covers its path, Then the deletion is dropped', async () => {
+    // Arrange — a deletion consults only the destructive set, so a
+    // destructive pattern covering the deleted class's path suppresses it.
+    const config = makeConfig({
+      to: refs.deleted,
+      ignoreDestructive: sourceClassesPatternPath,
+    })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual([])
+  })
+
+  it('When only --ignore-file covers the same path, Then the deletion survives', async () => {
+    // Arrange — the global ignore never gates a deletion line, so the same
+    // pattern applied there leaves the deletion untouched. An unrelated
+    // destructive pattern is set explicitly: buildIgnore falls back to
+    // ignorePath for the destructive set when ignoreDestructive is empty,
+    // and that fallback would otherwise smuggle the global pattern back in.
+    const config = makeConfig({
+      to: refs.deleted,
+      ignore: sourceClassesPatternPath,
+      ignoreDestructive: unrelatedDestructivePatternPath,
+    })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toEqual(SOURCE_DELETION_SURVIVES)
   })
 })

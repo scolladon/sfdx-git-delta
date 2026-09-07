@@ -89,8 +89,6 @@ vi.mock('../../../../src/utils/ignoreHelper', () => ({
 }))
 mockKeep.mockReturnValue(true)
 
-const FORCEIGNORE_MOCK_PATH = '__mocks__/.forceignore'
-
 const TAB = '\t'
 
 const TO = 'sha-to'
@@ -128,7 +126,6 @@ describe('Given a RepoGitDiff', () => {
   it('Given empty diff and ignoreWhitespace, When getLines, Then returns empty', async () => {
     // Arrange
     mockGetDiffLines.mockReturnValue([])
-    config.ignore = FORCEIGNORE_MOCK_PATH
     config.ignoreWhitespace = true
     const sut = new RepoGitDiff(config, globalMetadata)
 
@@ -137,12 +134,16 @@ describe('Given a RepoGitDiff', () => {
 
     // Assert
     expect(result).toStrictEqual([])
+    expect(mockStreamDiffLinesCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spec: expect.objectContaining({ ignoreWhitespace: true }),
+      })
+    )
   })
 
   it('Given empty diff without ignoreWhitespace, When getLines, Then returns empty', async () => {
     // Arrange
     mockGetDiffLines.mockReturnValue([])
-    config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
 
     // Act
@@ -157,7 +158,6 @@ describe('Given a RepoGitDiff', () => {
     const filePath =
       'force-app/main/default/objects/Account/fields/awesome.field-meta.xml'
     mockGetDiffLines.mockReturnValue([`${DELETION}${TAB}${filePath}`])
-    config.ignore = FORCEIGNORE_MOCK_PATH
     const sut = new RepoGitDiff(config, globalMetadata)
 
     // Act
@@ -193,101 +193,6 @@ describe('Given a RepoGitDiff', () => {
 
     // Assert
     expect(result).toStrictEqual([`${MODIFICATION}${TAB}${filePath}`])
-  })
-
-  it('Given ignored file, When getLines, Then filters it out', async () => {
-    // Arrange
-    mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockReturnValue([
-      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
-    ])
-    config.ignore = FORCEIGNORE_MOCK_PATH
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    // Act
-    const result = await collect(sut.getLines())
-
-    // Assert
-    expect(result).toStrictEqual([])
-  })
-
-  it('Given ignored destructive file, When getLines, Then filters it out', async () => {
-    // Arrange
-    mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockReturnValue([
-      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
-    ])
-    config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    // Act
-    const result = await collect(sut.getLines())
-
-    // Assert
-    expect(result).toStrictEqual([])
-  })
-
-  it('Given both ignore and ignoreDestructive, When getLines, Then filters matching files', async () => {
-    // Arrange
-    mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockReturnValue([
-      `${ADDITION}${TAB}force-app/main/default/lwc/jsconfig.json`,
-    ])
-    config.ignore = FORCEIGNORE_MOCK_PATH
-    config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    // Act
-    const result = await collect(sut.getLines())
-
-    // Assert
-    expect(result).toStrictEqual([])
-  })
-
-  it('Given ignore set, When file matches ignore, Then filters it out', async () => {
-    // Arrange
-    mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockReturnValue([
-      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
-    ])
-    config.ignore = FORCEIGNORE_MOCK_PATH
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    // Act
-    const result = await collect(sut.getLines())
-
-    // Assert
-    expect(result).toStrictEqual([])
-  })
-
-  it('Given only ignoreDestructive set, When non-deletion added, Then keeps it', async () => {
-    // Arrange
-    const filePath = 'force-app/main/default/pages/test.page-meta.xml'
-    mockGetDiffLines.mockReturnValue([`${ADDITION}${TAB}${filePath}`])
-    config.ignoreDestructive = FORCEIGNORE_MOCK_PATH
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    // Act
-    const result = await collect(sut.getLines())
-
-    // Assert
-    expect(result).toStrictEqual([`${ADDITION}${TAB}${filePath}`])
-  })
-
-  it('Given ignored subfolder files, When getLines, Then filters them out', async () => {
-    // Arrange
-    mockKeep.mockReturnValueOnce(false)
-    mockGetDiffLines.mockReturnValue([
-      `${ADDITION}${TAB}force-app/main/default/pages/test.page-meta.xml`,
-    ])
-    config.ignore = FORCEIGNORE_MOCK_PATH
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    // Act
-    const result = await collect(sut.getLines())
-
-    // Assert
-    expect(result).toStrictEqual([])
   })
 
   it('Given moved file (same name different folder), When getLines, Then filters deletion and keeps addition', async () => {
