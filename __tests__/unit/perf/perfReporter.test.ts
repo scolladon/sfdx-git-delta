@@ -347,7 +347,7 @@ describe('Given a benchmark reporter', () => {
     )
   })
 
-  it('When a module failed to collect while another bench has a tolerated breach, Then it throws naming the module and writes nothing', () => {
+  it('When a module reports a module-level error while another bench has a tolerated breach, Then it throws naming the module and writes nothing', () => {
     // Arrange
     const task = taskDouble('resolveCommit-fixture', 2, 1)
     const breachTest = testDouble(
@@ -371,7 +371,7 @@ describe('Given a benchmark reporter', () => {
 
     // Assert
     expect(act).toThrow(
-      'Test module(s) failed to collect: __tests__/perf/broken.bench.ts'
+      'Test module(s) reported module-level errors (collection or module-scope hook): __tests__/perf/broken.bench.ts'
     )
     expect(mockWriteFileSync).not.toHaveBeenCalled()
   })

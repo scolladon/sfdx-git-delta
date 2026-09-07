@@ -98,20 +98,23 @@ const partition = (modules: readonly TestModule[]): Partitioned => {
 
 // hasTolerableFailure is a run-level boolean: once any bench both produced
 // samples and failed, assertRunPassed would otherwise wave through every
-// OTHER cause of a failed run too, including a module that failed during
-// collection (a syntax error, say) and so contributed zero TestCases —
-// no brokenNames entry, no task, nothing for assertNoBrokenTests to name.
-// This check runs independently of hasTolerableFailure so that combination
-// still refuses to publish.
-const assertNoCollectionErrors = (
-  testModules: ReadonlyArray<TestModule>
-): void => {
+// OTHER cause of a failed run too, including a module that errored outside
+// its test cases and so contributed none — no brokenNames entry, no task,
+// nothing for assertNoBrokenTests to name. This check runs independently of
+// hasTolerableFailure so that combination still refuses to publish.
+//
+// errors() is task.result.errors, which carries both collection failures (a
+// syntax error, say) and module-scope hook failures — a file-level afterAll
+// that throws lands here too, and this file's benches have one. Either way
+// the run cannot be trusted to have produced every series, so the message
+// names the channel rather than guessing which of the two occurred.
+const assertNoModuleErrors = (testModules: ReadonlyArray<TestModule>): void => {
   const brokenModuleIds = testModules
     .filter(testModule => testModule.errors().length > 0)
     .map(testModule => testModule.relativeModuleId)
   if (brokenModuleIds.length === 0) return
   throw new Error(
-    `Test module(s) failed to collect: ${brokenModuleIds.join(', ')}`
+    `Test module(s) reported module-level errors (collection or module-scope hook): ${brokenModuleIds.join(', ')}`
   )
 }
 
@@ -207,7 +210,7 @@ const report = (
     logInterrupted()
     return
   }
-  assertNoCollectionErrors(testModules)
+  assertNoModuleErrors(testModules)
   const { brokenNames, tasks, hasTolerableFailure } = partition(testModules)
   assertNoBrokenTests(brokenNames)
   assertRunPassed(reason, unhandledErrors, hasTolerableFailure)
