@@ -1,1 +1,2 @@
+# --source-dir test already keeps expected/ out of the diff; this line stays deliberately so --ignore-file is still exercised against a real, populated directory
 /expected
