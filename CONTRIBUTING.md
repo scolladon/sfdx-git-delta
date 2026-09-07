@@ -188,8 +188,9 @@ then discards all 50 series for that commit.
 
 The `name` is the `bench()` registration name and the join key for
 `compareBaseline.mjs`, `preview.mjs` and the gh-pages history, so renaming a
-bench orphans its history. A throwing bench body fails the run and nothing is
-written; a `-t` filter writes partial files.
+bench orphans its history, and is reported under *Benchmarks missing from
+this run*. A throwing bench body fails the run and nothing is written; a
+`-t` filter writes partial files.
 
 ```bash
 npm run test:perf
