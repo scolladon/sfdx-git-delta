@@ -6,7 +6,13 @@
 // says "error" and prints no score, and only a real run reports one.
 
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, existsSync, readFileSync, rmSync } from 'node:fs'
+import {
+  appendFileSync,
+  existsSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
@@ -26,10 +32,9 @@ type MutantTally = Readonly<{
   noCoverage: number
 }>
 
-type GithubComment = Readonly<{ id: number; body?: string }>
-
 const strykerConfig = strykerConfigRaw as StrykerConfigShape
 const reportPath = strykerConfig.jsonReporter.fileName
+const commentPath = join(dirname(reportPath), 'comment.md')
 
 const NOT_RUN_MESSAGE =
   'Mutation testing not run: no mutable source changed against origin/main'
@@ -42,9 +47,14 @@ const ABSENT_MESSAGE =
   'Mutation run produced no evidence: the report file was not written'
 const BREAK_THRESHOLD_MESSAGE =
   'Mutation score is below the configured break threshold'
-const PR_COMMENT_MARKER = '<!-- incremental-mutation-testing -->'
 
-// -- Reporting surfaces: console annotation, step summary, PR comment ----
+// -- Reporting surfaces: console annotation, step summary, comment file --
+//
+// No GitHub token, repository or PR number is read here: this script runs
+// inside the same job that executes the pull request's own code under
+// Stryker, so it must not hold anything that can write to GitHub. Posting
+// is a separate job's job — see the `mutation-comment` job, which reads
+// the file this writes from the uploaded `mutation-report` artifact.
 
 const appendStepSummary = (text: string): void => {
   const summaryPath = process.env['GITHUB_STEP_SUMMARY']
@@ -52,58 +62,8 @@ const appendStepSummary = (text: string): void => {
   appendFileSync(summaryPath, `${text}\n`)
 }
 
-const findMarkedComment = (
-  comments: readonly GithubComment[]
-): GithubComment | undefined =>
-  comments.find(comment => comment.body?.includes(PR_COMMENT_MARKER))
-
-const isGithubCommentArray = (
-  value: unknown
-): value is readonly GithubComment[] => Array.isArray(value)
-
-// Never log the response body or headers here: the body can carry
-// GitHub's own diagnostic text and the headers carry the bearer token.
-const logHttpFailure = (action: string, res: Response, url: string): void => {
-  console.log(`::error::${action} failed: ${res.status} ${url}`)
-}
-
-const postPrComment = async (body: string): Promise<void> => {
-  const token = process.env['GITHUB_TOKEN']
-  const repo = process.env['GITHUB_REPOSITORY']
-  const prNumber = process.env['PR_NUMBER']
-  if (!token || !repo || !prNumber) return
-
-  const [owner, repoName] = repo.split('/')
-  const apiBase = `https://api.github.com/repos/${owner}/${repoName}`
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-  }
-  const commentBody = `${PR_COMMENT_MARKER}\n${body}`
-
-  const listUrl = `${apiBase}/issues/${prNumber}/comments?per_page=100`
-  const commentsRes = await fetch(listUrl, { headers })
-  if (!commentsRes.ok) {
-    logHttpFailure('Listing PR comments', commentsRes, listUrl)
-    return
-  }
-  const commentsBody: unknown = await commentsRes.json()
-  const comments = isGithubCommentArray(commentsBody) ? commentsBody : []
-  const existing = findMarkedComment(comments)
-
-  const request = existing
-    ? { url: `${apiBase}/issues/comments/${existing.id}`, method: 'PATCH' }
-    : { url: `${apiBase}/issues/${prNumber}/comments`, method: 'POST' }
-
-  const writeRes = await fetch(request.url, {
-    method: request.method,
-    headers,
-    body: JSON.stringify({ body: commentBody }),
-  })
-  if (!writeRes.ok) {
-    logHttpFailure('Posting PR comment', writeRes, request.url)
-  }
+const writeCommentFile = (body: string): void => {
+  writeFileSync(commentPath, body)
 }
 
 // -- Scope: plain git diff, then the config's own mutate negations -------
@@ -247,17 +207,25 @@ const reportNotRun = (message: string): void => {
   appendStepSummary(message)
 }
 
-const reportGuardFailure = async (message: string): Promise<void> => {
-  console.log(`::error::${message}`)
-  appendStepSummary(message)
-  await postPrComment(message)
+// Distinct from reportNotRun: a scoped diff whose mutants were all ignored
+// still has something worth telling a reviewer, so it also gets a comment
+// file, unlike the empty-scope case above which never reaches Stryker.
+const reportNoMutants = (message: string): void => {
+  reportNotRun(message)
+  writeCommentFile(message)
 }
 
-const reportScore = async (
+const reportGuardFailure = (message: string): void => {
+  console.log(`::error::${message}`)
+  appendStepSummary(message)
+  writeCommentFile(message)
+}
+
+const reportScore = (
   report: MutationReport,
   strykerExitStatus: number,
   verdict: 'measured' | 'no-coverage'
-): Promise<void> => {
+): void => {
   const table = buildSummaryTable(report)
   const noCoverageLine =
     verdict === 'no-coverage' ? `${NO_TEST_COVERS_MESSAGE}\n` : ''
@@ -266,14 +234,17 @@ const reportScore = async (
   const body = `${noCoverageLine}${errorLine}${table}`
   console.log(body)
   appendStepSummary(body)
-  await postPrComment(body)
+  writeCommentFile(body)
 }
 
 // -- Main -------------------------------------------------------------------
 
-if (existsSync(reportPath)) {
-  rmSync(reportPath)
+const deleteStaleFile = (path: string): void => {
+  if (existsSync(path)) rmSync(path)
 }
+
+deleteStaleFile(reportPath)
+deleteStaleFile(commentPath)
 
 const negations = negationsOf(strykerConfig.mutate)
 const scopedFiles = applyNegations(changedTsFiles(), negations)
@@ -291,19 +262,19 @@ const report = existsSync(reportPath)
 const verdict = classifyRun(report)
 
 if (verdict === 'absent') {
-  await reportGuardFailure(ABSENT_MESSAGE)
+  reportGuardFailure(ABSENT_MESSAGE)
   process.exit(strykerExitStatus === 0 ? 1 : strykerExitStatus)
 }
 
 if (verdict === 'vacuous') {
-  await reportGuardFailure(VACUOUS_MESSAGE)
+  reportGuardFailure(VACUOUS_MESSAGE)
   process.exit(1)
 }
 
 if (verdict === 'no-mutants') {
-  reportNotRun(NO_MUTANTS_MESSAGE)
+  reportNoMutants(NO_MUTANTS_MESSAGE)
   process.exit(0)
 }
 
-await reportScore(report as MutationReport, strykerExitStatus, verdict)
+reportScore(report as MutationReport, strykerExitStatus, verdict)
 process.exit(strykerExitStatus)

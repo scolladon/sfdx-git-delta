@@ -122,8 +122,6 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     if: contains(github.event.pull_request.labels.*.name, 'mutation-testing')
-    permissions:
-      pull-requests: write
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
@@ -142,10 +140,6 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Run incremental mutation testing
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: npm run test:mutation:incremental
 
       - name: Upload mutation report
@@ -154,6 +148,41 @@ jobs:
         with:
           name: mutation-report
           path: reports/mutation
+
+  # Separate job on purpose: it is the only one holding a write scope for
+  # mutation feedback, and it checks out nothing and runs no repository
+  # code — mutation-testing above runs `npm ci` and the pull request's own
+  # tests under Stryker, which is not where a PR-comment token belongs.
+  # continue-on-error on mutation-testing masks a guard failure (today's
+  # normal outcome on the unpatched runner) as a "success" needs.result,
+  # but that masking is exactly why this job cannot rely on the implicit
+  # success() gate a plain `needs:` gets: always() removes that gate, so
+  # this job still fires whether mutation-testing measured a score or hit
+  # the vacuity guard. It only skips when mutation-testing itself never
+  # ran (no label — result is 'skipped', not masked) or for fork pull
+  # requests, whose token is read-only regardless.
+  mutation-comment:
+    needs: [mutation-testing]
+    if: |
+      always() &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.mutation-testing.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download mutation report
+        uses: actions/download-artifact@v7
+        with:
+          name: mutation-report
+          path: reports/mutation
+
+      - name: Comment mutation report
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          file-path: reports/mutation/comment.md
+          comment-tag: incremental-mutation-testing
+          mode: recreate
 
   build:
     uses: ./.github/workflows/reusable-build.yml
