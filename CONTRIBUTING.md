@@ -199,8 +199,12 @@ npm run test:perf
 ### Mutation Testing
 
 Mutation testing runs via Stryker against the unit-test bucket. The
-configured thresholds are `break: 90`, `low: 90`, `high: 95`; CI fails
-when the mutation score drops below 90%.
+configured thresholds are `break: 90`, `low: 90`, `high: 95`. The CI job
+is opt-in via the `mutation-testing` label and advisory
+(`continue-on-error: true`) — a low score never blocks a PR, but a run
+that executes no tests against a covered mutant is reported as an
+**error**, never as a score: a runner defect must not be mistaken for a
+regression.
 
 ```bash
 npm run test:mutation              # full run (~6 min)

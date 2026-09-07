@@ -122,6 +122,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     if: contains(github.event.pull_request.labels.*.name, 'mutation-testing')
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
@@ -140,6 +142,10 @@ jobs:
         uses: ./.github/actions/install
 
       - name: Run incremental mutation testing
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: npm run test:mutation:incremental
 
       - name: Upload mutation report
