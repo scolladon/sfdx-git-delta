@@ -333,6 +333,29 @@ describe('ignoreHelper', () => {
         }
       )
     })
+
+    describe('Given a missing ignore file', () => {
+      afterEach(() => {
+        IgnoreHelper.resetIgnoreInstance()
+      })
+
+      it('When readFile rejects, Then buildIgnoreHelper propagates the rejection', async () => {
+        // Arrange
+        IgnoreHelper.resetIgnoreInstance()
+        const error = Object.assign(
+          new Error(
+            "ENOENT: no such file or directory, open '.missing-ignore-file'"
+          ),
+          { code: 'ENOENT' }
+        )
+        mockedReadFile.mockRejectedValue(error)
+        config.ignore = '.missing-ignore-file'
+        const sut = buildIgnoreHelper
+
+        // Act & Assert
+        await expect(sut(config)).rejects.toThrow('ENOENT')
+      })
+    })
   })
 
   describe('buildIncludeHelper', () => {

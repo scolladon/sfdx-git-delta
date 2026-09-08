@@ -1015,7 +1015,6 @@ describe('FlowTranslationProcessor', () => {
         describe('when translation files are ignored', () => {
           beforeEach(() => {
             // Arrange
-            config.ignore = '.forceignore'
             mockIgnores.mockReturnValue(true)
           })
           it('should not add translation file', async () => {
@@ -1044,7 +1043,6 @@ describe('FlowTranslationProcessor', () => {
               FLOW_XML_NAME,
               flowFullName
             )
-            config.ignore = '.forceignore'
             mockIgnores.mockReturnValue(false)
           })
           it('should add translation file', async () => {
