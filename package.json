@@ -102,6 +102,7 @@
     "lint:dependencies": "wireit",
     "lint:engine": "wireit",
     "lint:fs": "wireit",
+    "lint:types": "wireit",
     "lint": "wireit",
     "lint:fix": "wireit",
     "postpack": "shx rm -f oclif.manifest.json && shx sed -i 'blob/v[^/]*/' 'blob/main/' README.md",
@@ -185,7 +186,8 @@
       ],
       "output": [],
       "dependencies": [
-        "lint:fs"
+        "lint:fs",
+        "lint:types"
       ]
     },
     "lint:fix": {
@@ -231,6 +233,18 @@
         "__tests__/**/*.ts",
         "messages/**",
         "**/.ls-lint.yml"
+      ],
+      "output": []
+    },
+    "lint:types": {
+      "command": "tsc -p tooling",
+      "files": [
+        "tooling/**",
+        "src/**/*.ts",
+        "stryker.conf.mjs",
+        "**/tsconfig.json",
+        "package.json",
+        "package-lock.json"
       ],
       "output": []
     },
