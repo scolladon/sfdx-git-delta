@@ -130,7 +130,9 @@
     "build": {
       "command": "tsc -p . --incremental",
       "files": [
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "messages/**",
         "src/**/*.json",
         "src/**/*.ts"
@@ -182,7 +184,9 @@
         "__tests__/**/*.ts",
         "messages/**",
         "**/biome.json",
-        "**/tsconfig.json"
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json"
       ],
       "output": [],
       "dependencies": [
@@ -191,13 +195,15 @@
       ]
     },
     "lint:fix": {
-      "command": "npx @biomejs/biome check --fix --unsafe src __tests__ messages",
+      "command": "npx @biomejs/biome check --fix --unsafe tooling src __tests__ messages",
       "files": [
         "src/**",
         "__tests__/**/*.ts",
         "messages/**",
         "**/biome.json",
-        "**/tsconfig.json"
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json"
       ],
       "output": [],
       "dependencies": [
@@ -210,7 +216,9 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "knip.config.ts"
       ],
       "output": [],
@@ -277,7 +285,9 @@
         "src/**/*.ts",
         "__tests__/functional/**/*.test.ts",
         "__tests__/functional/byteEquality/fixtures/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "vitest.functional.config.ts",
         "package.json",
         "package-lock.json"
@@ -292,7 +302,9 @@
       "files": [
         "src/**/*.ts",
         "__tests__/integration/**/*.test.ts",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "vitest.integration.config.ts",
         "package.json",
         "package-lock.json",
@@ -315,7 +327,9 @@
       "files": [
         "src/**/*.ts",
         "__tests__/perf/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "vitest.config.perf.ts",
         "package.json",
         "package-lock.json"
@@ -336,7 +350,9 @@
         "tooling/**/*.ts",
         "stryker.conf.mjs",
         "messages/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "package.json",
         "package-lock.json"
       ],
@@ -356,7 +372,9 @@
         "tooling/**/*.ts",
         "stryker.conf.mjs",
         "messages/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "package.json",
         "package-lock.json"
       ],
@@ -374,7 +392,9 @@
         "src/**/*.ts",
         "__tests__/nut/**/*.nut.ts",
         "messages/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "vitest.nut.config.ts",
         "package.json",
         "package-lock.json"
@@ -391,7 +411,9 @@
         "src/**/*.ts",
         "__tests__/**/*.ts",
         "messages/**",
-        "**/tsconfig.json",
+        "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "vitest.config.ts",
         "package.json",
         "package-lock.json"
