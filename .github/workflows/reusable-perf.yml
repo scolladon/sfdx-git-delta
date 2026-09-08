@@ -25,8 +25,8 @@ jobs:
     env:
       # Disable husky hooks (notably post-checkout, which runs
       # `npm run dependencies:reinstall`). Without this, every baseline
-      # `git checkout` inside this job re-dirties package-lock.json,
-      # breaking the benchmark-action step's internal `git switch gh-pages`.
+      # `git checkout` in the step below reinstalls dependencies mid-run,
+      # so the base and head benchmarks no longer measure the same tree.
       HUSKY: '0'
     steps:
       - name: Checkout sources
@@ -65,12 +65,6 @@ jobs:
           cp perf-memory.json perf-memory-base.json
           git checkout --force "$CURRENT_REF"
           npm ci --no-fund --prefer-offline
-          # npm ci can touch tracked files (e.g. metadata-only writes to
-          # package-lock.json on some npm versions) leaving the WC dirty.
-          # Reset every tracked file so the subsequent benchmark-action
-          # step's internal `git switch gh-pages` isn't blocked by a
-          # "Your local changes would be overwritten" error.
-          git checkout -- .
 
       - name: Run benchmarks
         id: benchmarks
@@ -82,21 +76,6 @@ jobs:
 
       - name: Generate preview with trends
         run: node __tests__/perf/preview.mjs gh-pages-data
-
-      - name: Reset WC before gh-pages switch
-        if: ${{ !inputs.auto-push }}
-        run: |
-          # benchmark-action's internal `git switch gh-pages` fails with
-          # "Your local changes would be overwritten" if any tracked file
-          # is dirty. Clean the WC now so the switch succeeds; perf
-          # artifacts (perf-runtime.json, perf-memory.json) are gitignored
-          # and survive `git clean -fd` via the whitelist below.
-          # benchmark-action now runs in perf-publish, a separate job whose
-          # checkout is definitionally clean, so this step is retained only
-          # until the first post-split run confirms it is unnecessary.
-          git status --short
-          git checkout -- .
-          git clean -fd -e perf-runtime.json -e perf-memory.json -e perf-runtime-base.json -e perf-memory-base.json -e perf-comparison.md -e perf-preview.html -e gh-pages-data
 
       - name: Upload benchmark report
         uses: actions/upload-artifact@v7
