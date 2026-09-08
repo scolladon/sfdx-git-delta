@@ -196,6 +196,15 @@ this run*. A throwing bench body fails the run and nothing is written; a
 npm run test:perf
 ```
 
+`test:perf` deliberately declares **no** wireit `files` array, so it is never
+fingerprinted and always executes. Wireit caches a script only when both `files`
+and `output` are declared, and a benchmark must not be cached: its result depends
+on the machine and the moment, not only on its inputs. With `files` present, CI
+restored `perf-runtime.json`/`perf-memory.json` for *both* sides of a pull request
+comparison and reported a full regression table having run nothing — the comment
+still labelled "(same runner)" while comparing two machines. `build` remains cached,
+because a build output genuinely is a function of its inputs. Do not add `files` back.
+
 ### Mutation Testing
 
 Mutation testing runs via Stryker against the unit-test bucket. The
