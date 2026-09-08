@@ -33,18 +33,31 @@ const { from: FROM, to: TO, blobPaths } = buildHistoryRepo(REPO_ROOT)
 // one commit that FROM or TO is about to be measured on.
 const HANDLE_OPEN_REF = 'HEAD~1'
 
-// Provisional. This fixture is new AND, as of this change, measures cold
-// reads (closeAll + getInstance + one untimed open per sample — see the
-// beforeEach hooks below), so no gh-pages CI history exists yet for any of
-// these four (contrast pipeline.bench.ts, which has 48 CI runs to derive
-// from — see the CI-sourced comment there). Ceiling = local cold worst-of-
-// three mean × ~3.2 (the CI/local ratio measured independently on
-// pipeline.bench.ts's own benches) × RUNNER_NOISE_FACTOR (3), rounded to the
-// nearest whole ms via a one-decimal (3-significant-figure) intermediate —
-// not deriveCeilingMs's measured-worst-mean formula, since there is no
-// CI-measured worst mean to feed it yet. Re-seed all four from this branch's
-// first CI perf run and switch back to deriveCeilingMs(ciWorstMeanMs) once
-// that history exists.
+// Seeded locally, then CONFIRMED against ubuntu-latest — the runner that
+// evaluates them. A ceiling compared against a CI number must be built from
+// CI numbers, so these were provisional until a CI run existed for this
+// fixture (it is new, and as of this change measures cold reads: closeAll +
+// getInstance + one untimed open per sample, see the beforeEach hooks below).
+//
+// First CI perf run of this branch measured, in ms:
+//   resolveCommit    4.59   (ceiling 20, headroom 4.4x)
+//   streamDiffLines 15.63   (ceiling 53, headroom 3.4x)
+//   getBufferContent 17.86  (ceiling 71, headroom 4.0x)
+//   buildTreeIndex  12.05   (ceiling 58, headroom 4.8x)
+// All four held. The values are deliberately NOT tightened to the ~3x these
+// measurements alone would give (14/47/54/37): that would be a re-derivation
+// from a single observation, and the same run showed pipeline-100 at 25.67ms
+// against a base of 33.18ms — a 22.7% swing with no relevant code change.
+// Tightening four ceilings against demonstrated +/-22% run-to-run variance
+// manufactures the flake this rule exists to avoid. Re-derive properly with
+// deriveCeilingMs(ciWorstMeanMs) once the gh-pages series holds three or more
+// points for these names.
+//
+// The local derivation that produced the current values, kept because it is
+// what the numbers still are: local cold worst-of-three mean x ~3.2 (the
+// CI/local ratio measured independently on pipeline.bench.ts's own benches)
+// x RUNNER_NOISE_FACTOR (3), rounded to the nearest whole ms via a
+// one-decimal (3-significant-figure) intermediate.
 //
 // Local cold worst-of-three measured means, ms (three `vitest bench` runs
 // against this exact beforeEach implementation, each averaging ~140-750
