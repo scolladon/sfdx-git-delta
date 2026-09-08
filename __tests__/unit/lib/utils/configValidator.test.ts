@@ -1323,7 +1323,7 @@ describe('Given a ConfigValidator', () => {
         value: '../sibling',
         key: 'error.SourceDirEscapesRepository',
       },
-    ])(
+    ] as const)(
       'Given a $reason rejection for "$value", When validating, Then it rejects with $key and never reads the repository',
       async ({ reason, value, key }) => {
         // Arrange
@@ -1347,10 +1347,13 @@ describe('Given a ConfigValidator', () => {
         { value: controlValue, reason: 'empty' },
       ])
 
-      // Act
-      const error: Error = await sut
+      // Act — validateConfig resolves with `readonly Error[]` on success, so
+      // typing the catch callback's return as `Error` would leave `error`
+      // typed `readonly Error[] | Error`; cast after the await instead,
+      // since this rejection is the very thing under test.
+      const error = (await sut
         .validateConfig()
-        .catch((thrown: unknown) => thrown as Error)
+        .catch((thrown: unknown) => thrown)) as Error
 
       // Assert
       expect(error.message).toContain(

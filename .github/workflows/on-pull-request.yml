@@ -152,8 +152,8 @@ jobs:
   # Separate job on purpose: it isolates the write scope mutation feedback
   # needs from the job that runs `npm ci` and the pull request's own tests
   # under Stryker, keeping a PR-comment token out of that untrusted-code
-  # path — not a repo-wide rule (the perf job's own comment step runs from a
-  # job that does check out and run PR code; see reusable-perf.yml).
+  # path — reusable-perf.yml now follows the same split, so this is the
+  # pattern every commenting job in this repository uses.
   # continue-on-error on mutation-testing masks a guard failure (today's
   # normal outcome on the unpatched runner) as a "success" needs.result,
   # but that masking is exactly why this job cannot rely on the implicit
@@ -197,11 +197,18 @@ jobs:
 
   perf:
     needs: [build]
+    # A ceiling, not a use. A called workflow's jobs may declare less than the
+    # caller grants but never more, and the grant is validated against every
+    # job the callee declares — including perf-publish, which an `if:` skips
+    # on a pull request but which still declares contents: write. Narrowing
+    # this to contents: read therefore fails the whole workflow at validation
+    # time, before any job runs. What actually scopes each token is the
+    # per-job permissions block in reusable-perf.yml: the job that runs
+    # `npm ci` holds contents: read there.
     permissions:
       contents: write
       pull-requests: write
     uses: ./.github/workflows/reusable-perf.yml
-    secrets: inherit
 
   # Publishes a per-commit preview build and runs the e2e matrix against it.
   #

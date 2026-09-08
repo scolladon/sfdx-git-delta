@@ -1,22 +1,15 @@
 'use strict'
 import { spawnSync } from 'node:child_process'
-import { readFile, rm, writeFile } from 'node:fs/promises'
+import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createTempDir } from '../../__utils__/gitTestHarness'
-
-// Resolved relative to this file's own URL, never process.cwd(): the
-// spawned script must be locatable regardless of which directory the test
-// runner itself was launched from.
-const SCRIPT_ENTRY = fileURLToPath(
-  new URL('../../perf/compareBaseline.mjs', import.meta.url)
-)
-
-const writeJson = (path: string, entries: unknown) =>
-  writeFile(path, JSON.stringify(entries))
+import {
+  COMPARE_BASELINE_ENTRY,
+  writeJson,
+} from '../../__utils__/perfScriptHarness'
 
 let cwd: string
 let report: string
@@ -56,20 +49,12 @@ beforeAll(async () => {
     ]),
   ])
 
-  // Act: spawn the real script with only the GitHub variables removed — the
-  // integration bucket runs in CI where GITHUB_TOKEN and GITHUB_REPOSITORY
-  // are set, and an inherited env would make this attempt a real GitHub
-  // API call. The rest of the environment is kept deliberately: a bare
-  // { PATH } also strips SystemRoot, which a Node child needs to start at
-  // all on the windows leg of the matrix.
-  const childEnv = { ...process.env }
-  delete childEnv.GITHUB_TOKEN
-  delete childEnv.GITHUB_REPOSITORY
-  delete childEnv.PR_NUMBER
-  const sut = spawnSync(process.execPath, [SCRIPT_ENTRY], {
+  // Act: spawn the real script. It makes no network call by construction —
+  // it no longer reads GITHUB_TOKEN, GITHUB_REPOSITORY or PR_NUMBER at all —
+  // so the inherited environment needs no stripping.
+  const sut = spawnSync(process.execPath, [COMPARE_BASELINE_ENTRY], {
     cwd,
     encoding: 'utf8',
-    env: childEnv,
   })
   exitCode = sut.status
 

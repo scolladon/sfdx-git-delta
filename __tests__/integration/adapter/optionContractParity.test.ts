@@ -1,6 +1,6 @@
 'use strict'
 import { rm } from 'node:fs/promises'
-
+import type { OpenRepositoryOptions } from '@scolladon/tsgit'
 import { openRepository } from '@scolladon/tsgit'
 import { afterAll, describe, expect, it } from 'vitest'
 
@@ -38,7 +38,10 @@ describe('Given the real tsgit engine validating open-repository options', () =>
       const sut = openRepository
 
       // Act
-      const error = await sut({ cwd, trust: 'never' }).catch(
+      const invalidTrust = 'never' as unknown as NonNullable<
+        OpenRepositoryOptions['trust']
+      >
+      const error = await sut({ cwd, trust: invalidTrust }).catch(
         (thrown: unknown) => thrown
       )
 

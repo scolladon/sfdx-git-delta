@@ -42,7 +42,7 @@ const nestedB = buildNestedElement(0)
 const nestedDifferent = {
   ...buildNestedElement(0),
   fieldPermissions: [
-    ...(buildNestedElement(0).fieldPermissions as Record<string, unknown>[]),
+    ...(buildNestedElement(0)['fieldPermissions'] as Record<string, unknown>[]),
     { editable: 'true', field: 'Extra', readable: 'true' },
   ],
 }

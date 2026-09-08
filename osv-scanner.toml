@@ -1,9 +1,11 @@
-# qs@6.15.1 is a transitive of @stryker-mutator/core (dev dependency) via
-# typed-rest-client, used only by the mutation-testing tooling. Fixed in 6.15.2
-# but typed-rest-client has not released a build pinning it, and an override is
-# not warranted: this is a dev/build-tool path with no runtime exposure —
-# qs.stringify is never called on user-controlled input from SGD's CLI surface,
-# so the DoS is not reachable.
+# csv-parse@5.6.0 is a transitive of @salesforce/core via @jsforce/jsforce-node,
+# which pulls it in for Bulk API CSV handling. SGD never reaches that path: it
+# imports only Logger/LoggerLevel, Messages and SfProject from @salesforce/core,
+# never connects to an org, and parses no CSV — so the `columns` option the
+# advisory turns on is never called, with user input or otherwise. The fix is a
+# major bump (7.0.2) of a package this project does not call, gated on jsforce
+# releasing against it; an override here would force a major on a transitive to
+# close a path that is not open.
 [[IgnoredVulns]]
-id = "GHSA-q8mj-m7cp-5q26"
-reason = "qs via stryker/typed-rest-client dev dependency; not reachable from runtime; not exposed"
+id = "GHSA-8cw4-87c7-c6xx"
+reason = "csv-parse via @salesforce/core/jsforce-node; Bulk API CSV path is never entered by SGD"

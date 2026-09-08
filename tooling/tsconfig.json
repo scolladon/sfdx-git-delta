@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // rootDir must widen to the repo root: `declaration: true` is inherited and
+    // TypeScript enforces rootDir containment even under noEmit (TS6059).
+    "rootDir": "..",
+    "noEmit": true,
+    // stryker.conf.mjs is imported for its `mutate` list; without allowJs the
+    // import is TS7016. checkJs stays at its false default — the .mjs is
+    // resolved, not type-checked.
+    "allowJs": true,
+    // tooling/ imports siblings by their real `.ts` extension (node runs these
+    // files directly via type stripping), which is TS5097 without this.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["./**/*"]
+}

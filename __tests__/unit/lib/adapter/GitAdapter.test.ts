@@ -27,6 +27,7 @@ import {
   isLFS,
 } from '../../../../src/utils/gitLfsHelper'
 import { Logger } from '../../../../src/utils/LoggingService'
+import type { Pathspec } from '../../../../src/utils/pathspec'
 import { sourceDirs } from '../../../__utils__/sourceDirs'
 
 vi.mock('@scolladon/tsgit', () => ({
@@ -178,7 +179,7 @@ const DEFAULT_DIFF_SPEC: DiffSpec = {
 
 const streamDiff = (
   sut: GitAdapter,
-  scopes: readonly string[] = sourceDirs('force-app'),
+  scopes: readonly Pathspec[] = sourceDirs('force-app'),
   spec: DiffSpec = DEFAULT_DIFF_SPEC
 ): Promise<string[]> =>
   collect(sut.streamDiffLines({ spec, verdict: freshVerdict(), scopes }))
@@ -422,7 +423,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toBeUndefined()
-      expect(resolveLazyCall(Logger.debug)).toBe(
+      expect(resolveLazyCall(vi.mocked(Logger.debug))).toBe(
         `GitAdapter.close: releasing '${repoKey('/repo')}' failed: INVALID_OPTION: invalid option: cwd — must be an absolute path`
       )
     })
@@ -441,7 +442,7 @@ describe('GitAdapter', () => {
 
       // Assert
       expect(result).toBeUndefined()
-      expect(resolveLazyCall(Logger.debug)).toBe(
+      expect(resolveLazyCall(vi.mocked(Logger.debug))).toBe(
         `GitAdapter.close: releasing '${repoKey('/repo')}' failed: dispose boom`
       )
     })
@@ -1099,7 +1100,7 @@ describe('GitAdapter', () => {
       await sut.buildTreeIndex('BAD', [])
 
       // Assert
-      expect(resolveLazyCall(Logger.debug)).toBe(
+      expect(resolveLazyCall(vi.mocked(Logger.debug))).toBe(
         "buildTreeIndex: tree walk for 'BAD' failed: boom"
       )
     })
@@ -2184,7 +2185,7 @@ describe('GitAdapter', () => {
       await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
 
       // Assert
-      expect(resolveLazyCall(Logger.debug)).toBe(
+      expect(resolveLazyCall(vi.mocked(Logger.debug))).toBe(
         "grepBlobs: grep for 'needle' in 'force-app' at 'HEAD' failed: grep boom"
       )
     })

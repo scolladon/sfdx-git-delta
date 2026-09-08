@@ -1,4 +1,5 @@
 'use strict'
+import type { Writable } from 'node:stream'
 import { PassThrough } from 'node:stream'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,6 +9,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
 import type { Config } from '../../../../src/types/config'
 import { ChangeKind } from '../../../../src/types/handlerResult'
+import type { Manifest } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { addChange } from '../../../__utils__/handlerResultView'
 import { getConfig, getContext } from '../../../__utils__/testWork'
@@ -18,9 +20,21 @@ const {
   mockMkdir,
   writtenPaths,
 } = vi.hoisted(() => ({
-  mockBuildPackageStream: vi.fn<() => Promise<void>>(),
+  // Matches packageHelper.buildPackageStream's real signature — the mock
+  // must accept what it is actually called with so calls[] captures the
+  // real argument shape, not an empty tuple.
+  mockBuildPackageStream:
+    vi.fn<(strucDiffPerType: Manifest, out: Writable) => Promise<void>>(),
   mockCreateWriteStream: vi.fn(),
-  mockMkdir: vi.fn<() => Promise<void>>(),
+  // Matches fs.promises.mkdir's call shape in packageGenerator (path,
+  // { recursive: true }) for the same reason.
+  mockMkdir:
+    vi.fn<
+      (
+        path: string,
+        options?: { recursive: boolean }
+      ) => Promise<string | undefined>
+    >(),
   writtenPaths: [] as string[],
 }))
 
@@ -47,7 +61,7 @@ vi.mock('../../../../src/utils/packageHelper', () => {
 beforeEach(() => {
   writtenPaths.length = 0
   mockBuildPackageStream.mockResolvedValue()
-  mockMkdir.mockResolvedValue()
+  mockMkdir.mockResolvedValue(undefined)
   mockCreateWriteStream.mockImplementation((path: string) => {
     writtenPaths.push(path)
     return new PassThrough()

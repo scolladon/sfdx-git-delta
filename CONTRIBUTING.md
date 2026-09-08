@@ -288,6 +288,19 @@ npm run lint      # check for issues
 npm run lint:fix  # auto-fix issues
 ```
 
+`npm run lint` also type-checks the two directories the published build does not
+compile. `tooling/` and `__tests__/` each carry their own `tsconfig.json` project,
+run together by `lint:types`:
+
+```bash
+npx tsc -p tooling     # tooling scripts, plus the src modules they import
+npx tsc -p __tests__   # the whole test tree
+```
+
+Biome has no `noPropertyAccessFromIndexSignature` equivalent, so linting these
+directories is not the same as type-checking them — errors in either will fail
+`npm run lint` and every task that depends on it.
+
 ### Commit linting
 
 This repository uses [Commitlint](https://github.com/conventional-changelog/commitlint) to check our commit convention.

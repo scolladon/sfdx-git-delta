@@ -12,6 +12,7 @@ import {
   ChangeKind,
   CopyOperationKind,
   emptyResult,
+  type ManifestElement,
   ManifestTarget,
 } from '../../src/types/handlerResult'
 import type { RunContext } from '../../src/types/runContext'
@@ -186,7 +187,9 @@ describe('external library inclusion', () => {
 
     it('it should throw', async () => {
       // Act & Assert
-      await expect(sgd({ source: [] } as ConfigInput)).rejects.toThrow('test')
+      await expect(
+        sgd({ source: [] } as unknown as ConfigInput)
+      ).rejects.toThrow('test')
     })
   })
 
@@ -197,7 +200,7 @@ describe('external library inclusion', () => {
     })
     it('it should not process lines', async () => {
       // Act
-      await sgd({ generateDelta: false, source: [] } as ConfigInput)
+      await sgd({ generateDelta: false, source: [] } as unknown as ConfigInput)
 
       // Assert — with no include file the diff is materialised for the
       // scope read; the suite's default empty scope builds no index, so
@@ -213,7 +216,7 @@ describe('external library inclusion', () => {
     })
     it('it should process those lines', async () => {
       // Act
-      await sgd({ generateDelta: false, source: [] } as ConfigInput)
+      await sgd({ generateDelta: false, source: [] } as unknown as ConfigInput)
 
       // Assert
       expect(mockProcess).toHaveBeenCalledTimes(1)
@@ -223,7 +226,7 @@ describe('external library inclusion', () => {
   describe('orchestration flow', () => {
     it('Given valid config, When sgd runs, Then returns work with an initialised ChangeSet and empty warnings', async () => {
       // Act
-      const result = await sgd({ source: [] } as ConfigInput)
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert
       expect(result.changes).toBeDefined()
@@ -244,7 +247,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      await sgd({ source: [] } as ConfigInput)
+      await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert
       expect(mockExecute).toHaveBeenCalledWith(
@@ -268,7 +271,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({ source: [] } as ConfigInput)
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert
       expect(result.changes.forPackageManifest().has('ApexClass')).toBe(true)
@@ -308,7 +311,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({ source: [] } as ConfigInput)
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert
       const rename = result.changes
@@ -336,7 +339,7 @@ describe('external library inclusion', () => {
       )
 
       // Act
-      const result = await sgd({ source: [] } as ConfigInput)
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert
       expect(result.warnings).toHaveLength(2)
@@ -349,13 +352,13 @@ describe('external library inclusion', () => {
       // emit, so they must see the handler pass before their own output is
       // folded in. Feeding them the combined set would let one collector's
       // output change another's decision.
-      const handlerElement = {
+      const handlerElement: ManifestElement = {
         target: ManifestTarget.Package,
         type: 'ApexClass',
         member: 'FromHandlerPass',
         changeKind: ChangeKind.Add,
       }
-      const collectorElement = {
+      const collectorElement: ManifestElement = {
         target: ManifestTarget.Package,
         type: 'ApexClass',
         member: 'FromCollector',
@@ -418,7 +421,7 @@ describe('external library inclusion', () => {
   describe('tree index scoping', () => {
     it('Given sgd runs to completion, When the finally block executes, Then GitAdapter.closeAll is invoked to dispose the tsgit repository', async () => {
       // Act
-      await sgd({ source: [] } as ConfigInput)
+      await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert — the mutation that empties the finally block would skip this.
       expect(mockCloseAll).toHaveBeenCalledOnce()
@@ -996,7 +999,7 @@ describe('external library inclusion', () => {
     // four Logger.trace/debug statements drops the relevant count.
     it('Given sgd completes successfully, When it runs, Then it emits exactly one entry trace and one exit trace', async () => {
       // Act
-      await sgd({ source: [] } as ConfigInput)
+      await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert — main.ts is the only reachable call site that hands
       // Logger.trace a plain string; every other trace call in this run
@@ -1011,7 +1014,7 @@ describe('external library inclusion', () => {
 
     it('Given sgd completes successfully, When it runs, Then it emits exactly one debug log for the received arguments and one for the returned work', async () => {
       // Act
-      await sgd({ source: [] } as ConfigInput)
+      await sgd({ source: [] } as unknown as ConfigInput)
 
       // Assert — main.ts is the only reachable Logger.debug call site in
       // this run (ConfigValidator/GitAdapter/IOExecutor are mocked out).

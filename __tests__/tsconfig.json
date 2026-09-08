@@ -1,4 +1,20 @@
 {
-  "extends": "../tsconfig"
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // rootDir must widen to the repo root: tests import `../../../src/x` and
+    // the root tsconfig's rootDir is `src`, which would put those imports
+    // outside the program (TS6059).
+    "rootDir": "..",
+    "noEmit": true,
+    // tests import src modules extensionless (`../../../src/x`, no `.js`);
+    // vitest resolves that via the `.js`-strip alias in vitest.config.ts.
+    // `bundler` models that resolution; `node16`/`nodenext` does not and
+    // demands the explicit extension (TS2835).
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    // some fixtures import `.ts` siblings by their real extension; without
+    // this it is TS5097 under `bundler` resolution.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["./**/*"]
 }
-

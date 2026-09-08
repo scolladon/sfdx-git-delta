@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup node
         uses: actions/setup-node@v7
@@ -76,6 +78,8 @@ jobs:
 
       - name: Checkout sources
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup node
         uses: actions/setup-node@v7
@@ -99,6 +103,7 @@ jobs:
       - name: Checkout e2e sources
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           ref: 'e2e/head'
           fetch-depth: 0
           path: ./e2e

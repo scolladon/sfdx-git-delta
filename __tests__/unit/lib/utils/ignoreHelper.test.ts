@@ -53,6 +53,16 @@ describe('ignoreHelper', () => {
     config = getConfig()
     vi.resetAllMocks()
   })
+
+  // Both helpers are cached in static fields, so a suite that builds one leaves
+  // it for whatever runs next: the next suite's beforeAll gets the cached
+  // instance back instead of building its own, and asserts against another
+  // suite's rules. Clearing after every test is what makes this file
+  // order-independent.
+  afterEach(() => {
+    IgnoreHelper.resetIgnoreInstance()
+    IgnoreHelper.resetIncludeInstance()
+  })
   describe('buildIgnoreHelper', () => {
     it('returns cached instance on subsequent calls', async () => {
       // Arrange
@@ -63,13 +73,12 @@ describe('ignoreHelper', () => {
 
       // Assert
       expect(secondCall).toBe(firstCall)
-      IgnoreHelper.resetIgnoreInstance()
     })
 
     describe('when config does not have ignore neither destructive ignore', () => {
       beforeAll(async () => {
         // Arrange
-        sut = await buildIgnoreHelper(config)
+        sut = await buildIgnoreHelper(getConfig())
       })
       afterAll(() => {
         IgnoreHelper.resetIgnoreInstance()
@@ -102,8 +111,10 @@ describe('ignoreHelper', () => {
       beforeAll(async () => {
         // Arrange
         mockedReadFile.mockResolvedValue('*ignoreFile*')
-        config.ignoreDestructive = 'path'
-        sut = await buildIgnoreHelper(config)
+        sut = await buildIgnoreHelper({
+          ...getConfig(),
+          ignoreDestructive: 'path',
+        })
       })
 
       afterAll(() => {
@@ -174,8 +185,7 @@ describe('ignoreHelper', () => {
       beforeAll(async () => {
         // Arrange
         mockedReadFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
-        config.ignore = 'path'
-        sut = await buildIgnoreHelper(config)
+        sut = await buildIgnoreHelper({ ...getConfig(), ignore: 'path' })
       })
 
       afterAll(() => {
@@ -333,6 +343,32 @@ describe('ignoreHelper', () => {
         }
       )
     })
+
+    describe('Given a missing ignore file', () => {
+      afterEach(() => {
+        IgnoreHelper.resetIgnoreInstance()
+      })
+
+      it('When readFile rejects, Then buildIgnoreHelper propagates the rejection', async () => {
+        // Arrange
+        IgnoreHelper.resetIgnoreInstance()
+        const error = Object.assign(
+          new Error(
+            "ENOENT: no such file or directory, open '.missing-ignore-file'"
+          ),
+          { code: 'ENOENT' }
+        )
+        mockedReadFile.mockRejectedValue(error)
+        const buildFromConfig = buildIgnoreHelper
+
+        // Act & Assert
+        await expect(
+          buildFromConfig({ ...getConfig(), ignore: '.missing-ignore-file' })
+        ).rejects.toMatchObject({
+          code: 'ENOENT',
+        })
+      })
+    })
   })
 
   describe('buildIncludeHelper', () => {
@@ -350,7 +386,7 @@ describe('ignoreHelper', () => {
     describe('when config does not have include neither destructive include', () => {
       beforeAll(async () => {
         // Arrange
-        sut = await buildIncludeHelper(config)
+        sut = await buildIncludeHelper(getConfig())
       })
       afterAll(() => {
         IgnoreHelper.resetIncludeInstance()
@@ -383,8 +419,10 @@ describe('ignoreHelper', () => {
       beforeAll(async () => {
         // Arrange
         mockedReadFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
-        config.includeDestructive = 'path'
-        sut = await buildIncludeHelper(config)
+        sut = await buildIncludeHelper({
+          ...getConfig(),
+          includeDestructive: 'path',
+        })
       })
 
       afterAll(() => {
@@ -442,9 +480,11 @@ describe('ignoreHelper', () => {
       beforeAll(async () => {
         // Arrange
         mockedReadFile.mockImplementation(() => Promise.resolve('*ignoreFile*'))
-        config.include = 'path'
-        config.includeDestructive = ''
-        sut = await buildIncludeHelper(config)
+        sut = await buildIncludeHelper({
+          ...getConfig(),
+          include: 'path',
+          includeDestructive: '',
+        })
       })
 
       afterAll(() => {
@@ -512,9 +552,11 @@ describe('ignoreHelper', () => {
         // Arrange
         mockedReadFile.mockResolvedValueOnce('*ignoreFile*')
         mockedReadFile.mockResolvedValueOnce('*ignoreFile*')
-        config.include = 'path'
-        config.includeDestructive = 'path'
-        sut = await buildIncludeHelper(config)
+        sut = await buildIncludeHelper({
+          ...getConfig(),
+          include: 'path',
+          includeDestructive: 'path',
+        })
       })
 
       afterAll(() => {
