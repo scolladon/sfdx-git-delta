@@ -56,20 +56,12 @@ beforeAll(async () => {
     ]),
   ])
 
-  // Act: spawn the real script with only the GitHub variables removed — the
-  // integration bucket runs in CI where GITHUB_TOKEN and GITHUB_REPOSITORY
-  // are set, and an inherited env would make this attempt a real GitHub
-  // API call. The rest of the environment is kept deliberately: a bare
-  // { PATH } also strips SystemRoot, which a Node child needs to start at
-  // all on the windows leg of the matrix.
-  const childEnv = { ...process.env }
-  delete childEnv.GITHUB_TOKEN
-  delete childEnv.GITHUB_REPOSITORY
-  delete childEnv.PR_NUMBER
+  // Act: spawn the real script. It makes no network call by construction —
+  // it no longer reads GITHUB_TOKEN, GITHUB_REPOSITORY or PR_NUMBER at all —
+  // so the inherited environment needs no stripping.
   const sut = spawnSync(process.execPath, [SCRIPT_ENTRY], {
     cwd,
     encoding: 'utf8',
-    env: childEnv,
   })
   exitCode = sut.status
 

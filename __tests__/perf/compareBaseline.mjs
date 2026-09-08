@@ -1,5 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
+// No GitHub token, repository or PR number is read here: this script runs
+// inside the job that executes the pull request's own code, so it must not
+// hold anything that can write to GitHub. Posting is a separate job's job —
+// see `perf-comment`, which reads the file this writes from the uploaded
+// `perf-report` artifact.
+
 const RUNTIME_THRESHOLD = 1.3
 const MEMORY_THRESHOLD = 1.5
 
@@ -160,44 +166,6 @@ const report = lines.join('\n')
 writeFileSync('perf-comparison.md', report)
 
 console.log(report)
-
-// Post PR comment when running in CI
-const token = process.env.GITHUB_TOKEN
-const repo = process.env.GITHUB_REPOSITORY
-const prNumber = process.env.PR_NUMBER
-
-if (token && repo && prNumber) {
-  const commentMarker = '<!-- same-runner-perf -->'
-  const commentBody = `${commentMarker}\n${report}`
-  const [owner, repoName] = repo.split('/')
-  const apiBase = `https://api.github.com/repos/${owner}/${repoName}`
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-  }
-
-  const commentsRes = await fetch(
-    `${apiBase}/issues/${prNumber}/comments?per_page=100`,
-    { headers }
-  )
-  const comments = await commentsRes.json()
-  const existing = comments.find?.(c => c.body?.includes(commentMarker))
-
-  if (existing) {
-    await fetch(`${apiBase}/issues/comments/${existing.id}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ body: commentBody }),
-    })
-  } else {
-    await fetch(`${apiBase}/issues/${prNumber}/comments`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ body: commentBody }),
-    })
-  }
-}
 
 // Perf regressions are informational only — the PR comment + Actions
 // annotation carry the signal, but the job never blocks the merge (see

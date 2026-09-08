@@ -15,8 +15,7 @@ jobs:
     # comment from compareBaseline.mjs but never block the merge.
     continue-on-error: true
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     env:
       # Disable husky hooks (notably post-checkout, which runs
       # `npm run dependencies:reinstall`). Without this, every baseline
@@ -27,6 +26,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup node
@@ -42,6 +42,7 @@ jobs:
       - name: Checkout gh-pages baseline data
         uses: actions/checkout@v7
         with:
+          persist-credentials: false
           ref: gh-pages
           path: gh-pages-data
 
@@ -70,9 +71,6 @@ jobs:
 
       - name: Compare against baseline (same runner)
         if: ${{ !inputs.auto-push }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: node __tests__/perf/compareBaseline.mjs
 
       - name: Generate preview with trends
@@ -86,9 +84,97 @@ jobs:
           # is dirty. Clean the WC now so the switch succeeds; perf
           # artifacts (perf-runtime.json, perf-memory.json) are gitignored
           # and survive `git clean -fd` via the whitelist below.
+          # benchmark-action now runs in perf-publish, a separate job whose
+          # checkout is definitionally clean, so this step is retained only
+          # until the first post-split run confirms it is unnecessary.
           git status --short
           git checkout -- .
           git clean -fd -e perf-runtime.json -e perf-memory.json -e perf-runtime-base.json -e perf-memory-base.json -e perf-comparison.md -e perf-preview.html -e gh-pages-data
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: perf-report
+          path: |
+            perf-preview.html
+            perf-runtime.json
+            perf-memory.json
+            perf-comparison.md
+
+  # Separate job on purpose: it holds the only write scope this workflow
+  # needs on a pull request, checks out nothing and runs no repository
+  # code. always() is required, not decorative — continue-on-error: true on
+  # `perf` makes needs.perf.result report success even when the job failed,
+  # so the implicit success() gate a plain `needs:` gets would be a gate
+  # that cannot fail. != 'skipped' is what still distinguishes "did not
+  # run" from "ran and was masked".
+  perf-comment:
+    needs: [perf]
+    if: |
+      always() &&
+      !inputs.auto-push &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.perf.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # Neither an empty scope nor a failure before compareBaseline.mjs
+      # writes (checkout, setup-node, npm ci, a bench crash) leaves a
+      # perf-report artifact behind — download-artifact hard-errors on a
+      # missing artifact, so this step must not be allowed to fail the job
+      # on top: the job's only remaining failure mode must stay "the
+      # comment genuinely did not post".
+      - name: Download benchmark report
+        uses: actions/download-artifact@v7
+        continue-on-error: true
+        with:
+          name: perf-report
+
+      - name: Comment perf comparison
+        if: hashFiles('perf-comparison.md') != ''
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          file-path: perf-comparison.md
+          comment-tag: same-runner-perf
+          mode: recreate
+
+      - name: Comment missing perf comparison
+        if: hashFiles('perf-comparison.md') == ''
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            The performance run produced no comparison for this pull request — check the `perf` job log for details.
+          comment-tag: same-runner-perf
+          mode: recreate
+
+  # Separate job on purpose: it is the only one holding contents: write,
+  # and it installs no repository dependencies — benchmark-action is a
+  # bundled JavaScript action that does not read the repository's
+  # node_modules. Runs only on a main push (auto-push), never on a pull
+  # request, and never blocks that push: continue-on-error keeps a
+  # gh-pages publish failure from failing the caller.
+  perf-publish:
+    needs: [perf]
+    if: always() && inputs.auto-push
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # Unnecessary here (no `npm install` runs, so husky never sets
+      # core.hooksPath), but free, and the failure it prevents is
+      # expensive.
+      HUSKY: '0'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+
+      - name: Download benchmark report
+        uses: actions/download-artifact@v7
+        with:
+          name: perf-report
 
       - name: Runtime benchmark
         uses: benchmark-action/github-action-benchmark@v1
@@ -122,13 +208,3 @@ jobs:
           summary-always: ${{ inputs.auto-push }}
           alert-comment-cc-users: '@scolladon'
           benchmark-data-dir-path: dev/bench/memory
-
-      - name: Upload benchmark report
-        uses: actions/upload-artifact@v7
-        with:
-          name: perf-report
-          path: |
-            perf-preview.html
-            perf-runtime.json
-            perf-memory.json
-            perf-comparison.md

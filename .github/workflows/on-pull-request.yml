@@ -152,8 +152,8 @@ jobs:
   # Separate job on purpose: it isolates the write scope mutation feedback
   # needs from the job that runs `npm ci` and the pull request's own tests
   # under Stryker, keeping a PR-comment token out of that untrusted-code
-  # path — not a repo-wide rule (the perf job's own comment step runs from a
-  # job that does check out and run PR code; see reusable-perf.yml).
+  # path — reusable-perf.yml now follows the same split, so this is the
+  # pattern every commenting job in this repository uses.
   # continue-on-error on mutation-testing masks a guard failure (today's
   # normal outcome on the unpatched runner) as a "success" needs.result,
   # but that masking is exactly why this job cannot rely on the implicit
@@ -198,7 +198,7 @@ jobs:
   perf:
     needs: [build]
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     uses: ./.github/workflows/reusable-perf.yml
     secrets: inherit
