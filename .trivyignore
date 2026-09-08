@@ -1,1 +1,8 @@
 CVE-2023-0842
+
+# csv-parse@5.6.0, reached only through @salesforce/core -> @jsforce/jsforce-node,
+# which carries it for Bulk API CSV handling. SGD imports just Logger/LoggerLevel,
+# Messages and SfProject from @salesforce/core, never connects to an org and parses
+# no CSV, so the malicious-header path this covers is never entered. Same advisory
+# as GHSA-8cw4-87c7-c6xx in osv-scanner.toml; both scanners need it listed.
+CVE-2026-85063
