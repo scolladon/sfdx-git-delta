@@ -18,6 +18,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
 import strykerConfigRaw from '../stryker.conf.mjs'
+import { applyNegations, negationsOf } from './mutationScope.ts'
 import { buildSummaryTable } from './mutationScore.ts'
 import type { MutationReport } from './mutationVerdict.ts'
 import { classifyRun } from './mutationVerdict.ts'
@@ -67,27 +68,6 @@ const writeCommentFile = (body: string): void => {
 
 // -- Scope: plain git diff, then the config's own mutate negations -------
 
-const escapeGlobLiteral = (chunk: string): string =>
-  chunk.replace(/[.+^${}()|[\]\\]/g, '\\$&')
-
-const convertGlobWildcards = (chunk: string): string =>
-  escapeGlobLiteral(chunk).replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]')
-
-// Supports two globstar forms, matching the negations this project writes:
-// a mid-pattern `**/` (zero or more directories) and a trailing `/**`
-// (the directory itself plus everything under it, any depth). A bare `**`
-// anywhere else (e.g. `a**b`) is not a globstar here — it degrades to two
-// single-segment wildcards, same as before this function grew `**` support.
-const TRAILING_GLOBSTAR = /\/\*\*$/
-
-const globToRegExp = (pattern: string): RegExp => {
-  const hasTrailingGlobstar = TRAILING_GLOBSTAR.test(pattern)
-  const body = hasTrailingGlobstar ? pattern.slice(0, -'/**'.length) : pattern
-  const boundary = body.split('**/').map(convertGlobWildcards).join('(?:.*/)?')
-  const suffix = hasTrailingGlobstar ? '(?:/.*)?' : ''
-  return new RegExp(`^${boundary}${suffix}$`)
-}
-
 const changedTsFiles = (): readonly string[] =>
   execFileSync(
     'git',
@@ -105,17 +85,6 @@ const changedTsFiles = (): readonly string[] =>
   )
     .split('\n')
     .filter(path => path.endsWith('.ts'))
-
-const negationsOf = (mutate: readonly string[]): readonly RegExp[] =>
-  mutate
-    .filter(pattern => pattern.startsWith('!'))
-    .map(pattern => globToRegExp(pattern.slice(1)))
-
-const applyNegations = (
-  files: readonly string[],
-  negations: readonly RegExp[]
-): readonly string[] =>
-  files.filter(file => !negations.some(negation => negation.test(file)))
 
 // -- Stryker, run without a shell -----------------------------------------
 
