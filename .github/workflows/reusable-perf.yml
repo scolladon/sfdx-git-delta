@@ -153,7 +153,7 @@ jobs:
 
       - name: Comment perf comparison
         if: hashFiles('perf-comparison.md') != ''
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        uses: thollander/actions-comment-pull-request@v3
         with:
           file-path: perf-comment.md
           comment-tag: same-runner-perf
@@ -161,7 +161,7 @@ jobs:
 
       - name: Comment missing perf comparison
         if: hashFiles('perf-comparison.md') == ''
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
             The performance run produced no comparison for this pull request — check the `perf` job log for details.
@@ -206,7 +206,7 @@ jobs:
           name: perf-report
 
       - name: Runtime benchmark
-        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Runtime Benchmark
           tool: customBiggerIsBetter
@@ -222,7 +222,7 @@ jobs:
           benchmark-data-dir-path: dev/bench/runtime
 
       - name: Latency benchmark
-        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Latency Benchmark
           tool: customSmallerIsBetter
