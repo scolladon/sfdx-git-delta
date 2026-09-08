@@ -9,6 +9,7 @@ import {
   ChangeKind,
   CopyOperationKind,
   emptyResult,
+  type GitCopyOperation,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { RenameTriple } from '../../../../src/utils/changeSet'
@@ -172,12 +173,12 @@ describe('assembleChanges', () => {
   describe('Given the handler pass and the collector pass each emit a copy operation', () => {
     it('When assembleChanges runs, Then the returned copies are the concatenation of both passes', () => {
       // Arrange
-      const handlerCopy = {
+      const handlerCopy: GitCopyOperation = {
         kind: CopyOperationKind.GitCopy,
         path: 'handler/path',
         revision: 'HEAD',
       }
-      const collectorCopy = {
+      const collectorCopy: GitCopyOperation = {
         kind: CopyOperationKind.GitCopy,
         path: 'collector/path',
         revision: 'HEAD',

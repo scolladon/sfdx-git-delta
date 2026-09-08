@@ -245,12 +245,15 @@
       "output": []
     },
     "lint:types": {
-      "command": "tsc -p tooling",
+      "command": "tsc -p tooling && tsc -p __tests__",
       "files": [
         "tooling/**",
         "src/**/*.ts",
+        "__tests__/**/*.ts",
         "stryker.conf.mjs",
         "tsconfig.json",
+        "__tests__/tsconfig.json",
+        "tooling/tsconfig.json",
         "package.json",
         "package-lock.json"
       ],

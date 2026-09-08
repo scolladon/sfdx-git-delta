@@ -171,11 +171,17 @@ describe('ObjectTranslation', () => {
       // Arrange — writer is null, so the `if (writer)` guard must prevent pushing StreamedContent
       // and the `else` branch must fall back to a parent GitCopy
       config.generateDelta = true
+      // `writer: null` is deliberately out of DiffOutcome's contract (real
+      // producers only ever omit the key or supply a function — see
+      // MetadataDiff.run's `...(writer ? { writer } : {})`): it exercises
+      // the `if (writer)` guard against a second falsy value distinct from
+      // `undefined`, so a mutant weakening the guard to `!== undefined`
+      // would still be caught.
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
         writer: null,
-      })
+      } as unknown as DiffOutcome)
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -207,10 +213,12 @@ describe('ObjectTranslation', () => {
       // Arrange — mirrors the #1341 regression: only a child fieldTranslation changed,
       // parent has no surviving pruned content, so buildWriter returns undefined
       config.generateDelta = true
+      // Key omitted, not set to `undefined`: mirrors how MetadataDiff.run
+      // actually builds DiffOutcome (`...(writer ? { writer } : {})`), and
+      // avoids exactOptionalPropertyTypes rejecting an explicit undefined.
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
-        writer: undefined,
       })
       const fieldTranslationLine =
         'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'
@@ -249,10 +257,12 @@ describe('ObjectTranslation', () => {
       // Arrange — the inherited meta-file copy must not emit a bogus "undefined.*"
       // path; the parent objectTranslation is handled by the writer/fallback branch
       config.generateDelta = true
+      // Key omitted, not set to `undefined`: mirrors how MetadataDiff.run
+      // actually builds DiffOutcome (`...(writer ? { writer } : {})`), and
+      // avoids exactOptionalPropertyTypes rejecting an explicit undefined.
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
-        writer: undefined,
       })
       const fieldTranslationLine =
         'A       force-app/main/default/objectTranslations/Account-es/BillingFloor__c.fieldTranslation-meta.xml'

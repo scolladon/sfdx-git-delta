@@ -27,7 +27,16 @@ import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const { mockProcess, mockFilesUnder, mockGetFirstCommitRef } = vi.hoisted(
   () => ({
-    mockProcess: vi.fn<() => Promise<HandlerResult>>(),
+    // Matches DiffLineInterpreter.process's real signature — the mock must
+    // accept the (lines, revisions?) it is actually called with so calls[]
+    // captures the real argument shape, not an empty tuple.
+    mockProcess:
+      vi.fn<
+        (
+          lines: Iterable<string> | AsyncIterable<string>,
+          revisions?: { from: string; to: string }
+        ) => Promise<HandlerResult>
+      >(),
     mockFilesUnder: vi.fn(),
     mockGetFirstCommitRef: vi.fn<() => Promise<string>>(),
   })

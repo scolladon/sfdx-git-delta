@@ -48,7 +48,7 @@ describe('xmlHelper', () => {
       // Assert
       expect(sut).toHaveProperty('root.#comment')
       expect(
-        (sut as Record<string, Record<string, unknown>>).root['#comment']
+        (sut as Record<string, Record<string, unknown>>)['root']['#comment']
       ).toContain(' a comment ')
     })
   })
@@ -76,8 +76,9 @@ describe('xmlHelper', () => {
       const sut = parseXml(xmlWithNumber)
 
       // Assert
-      const version = (sut as Record<string, Record<string, unknown>>).root
-        .version
+      const version = (sut as Record<string, Record<string, unknown>>)['root'][
+        'version'
+      ]
       expect(typeof version).toBe('string')
       expect(version).toBe('42')
     })
@@ -92,7 +93,7 @@ describe('xmlHelper', () => {
       const sut = parseXml(xmlWithAttrNumber)
 
       // Assert
-      const count = (sut as Record<string, Record<string, unknown>>).root[
+      const count = (sut as Record<string, Record<string, unknown>>)['root'][
         '@_count'
       ]
       expect(typeof count).toBe('string')
@@ -109,9 +110,9 @@ describe('xmlHelper', () => {
       const sut = parseXml(xmlWithSpaces)
 
       // Assert
-      expect((sut as Record<string, Record<string, unknown>>).root.a).toBe(
-        'hello'
-      )
+      expect(
+        (sut as Record<string, Record<string, unknown>>)['root']['a']
+      ).toBe('hello')
     })
   })
 
@@ -124,7 +125,9 @@ describe('xmlHelper', () => {
       const sut = parseXml(xmlWithEntity)
 
       // Assert
-      const value = (sut as Record<string, Record<string, unknown>>).root.a
+      const value = (sut as Record<string, Record<string, unknown>>)['root'][
+        'a'
+      ]
       expect(value).toBe('foo &amp; bar')
     })
   })
@@ -140,9 +143,10 @@ describe('xmlHelper', () => {
       const sut = parseXml(xml)
 
       // Assert
-      const wrap = (sut as Record<string, Record<string, unknown>>).root
-        .wrap as Record<string, unknown>
-      expect(wrap.a).toEqual(['1', '2', '3'])
+      const wrap = (sut as Record<string, Record<string, unknown>>)['root'][
+        'wrap'
+      ] as Record<string, unknown>
+      expect(wrap['a']).toEqual(['1', '2', '3'])
     })
 
     it('When parsing two siblings of the same name, Then the scalar→array upgrade branch fires (txmlAdapter L82)', () => {
@@ -154,10 +158,9 @@ describe('xmlHelper', () => {
       const sut = parseXml(xml)
 
       // Assert
-      expect((sut as Record<string, Record<string, unknown>>).root.a).toEqual([
-        'x',
-        'y',
-      ])
+      expect(
+        (sut as Record<string, Record<string, unknown>>)['root']['a']
+      ).toEqual(['x', 'y'])
     })
 
     it('When parsing three sibling comments nested in a wrapper, Then addComment array.push fires (txmlAdapter L91-93)', () => {
@@ -168,8 +171,9 @@ describe('xmlHelper', () => {
       const sut = parseXml(xml)
 
       // Assert
-      const wrap = (sut as Record<string, Record<string, unknown>>).root
-        .wrap as Record<string, unknown>
+      const wrap = (sut as Record<string, Record<string, unknown>>)['root'][
+        'wrap'
+      ] as Record<string, unknown>
       expect(wrap['#comment']).toEqual([' a ', ' b ', ' c '])
     })
 
@@ -204,7 +208,9 @@ describe('xmlHelper', () => {
       const sut = parseXml(xml)
 
       // Assert
-      const inner = (sut as Record<string, Record<string, unknown>>).root.inner
+      const inner = (sut as Record<string, Record<string, unknown>>)['root'][
+        'inner'
+      ]
       expect(inner).toEqual({ '@_attr': 'x' })
     })
 
@@ -222,7 +228,7 @@ describe('xmlHelper', () => {
         '@_version': '1.0',
         '@_encoding': 'UTF-8',
       })
-      expect(sut.Root).toBe('x')
+      expect(sut['Root']).toBe('x')
     })
 
     it('When parsing three top-level <Root/> siblings, Then top-level addChild array.push fires (txmlAdapter L153-154 at top level)', () => {
@@ -234,7 +240,7 @@ describe('xmlHelper', () => {
       const sut = parseXml(xml)
 
       // Assert
-      expect(sut.A).toEqual(['1', '2', '3'])
+      expect(sut['A']).toEqual(['1', '2', '3'])
     })
 
     it('When the source has top-level whitespace between elements, Then the top-level whitespace branch is taken (txmlAdapter L158-159)', () => {

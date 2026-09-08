@@ -341,7 +341,7 @@ describe('inFileHandler', () => {
           )
         ).toBe(false)
         expect(
-          result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+          result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
         ).toBe(false)
       })
 
@@ -416,7 +416,7 @@ describe('inFileHandler', () => {
           )
           expect(
             result.copies.some(
-              c => c.kind === CopyOperationKind.ComputedContent
+              c => c.kind === CopyOperationKind.StreamedContent
             )
           ).toBe(false)
         })
@@ -578,7 +578,7 @@ describe('inFileHandler', () => {
       ).toBe(false)
       expect(mockRun).toHaveBeenCalled()
       expect(
-        result.copies.some(c => c.kind === CopyOperationKind.ComputedContent)
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
       ).toBe(false)
     })
     describe('when metadata in file is prune Only', () => {

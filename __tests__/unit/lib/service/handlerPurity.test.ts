@@ -16,9 +16,18 @@ import type { Config } from '../../../../src/types/config'
 import type { RunContext } from '../../../../src/types/runContext'
 import ChangeSet from '../../../../src/utils/changeSet'
 import { readDirs } from '../../../../src/utils/fsHelper'
+import type { MetadataElement } from '../../../../src/utils/metadataElement'
 import { createElement } from '../../../__utils__/testElement'
 import { createMetadataRepositoryMock } from '../../../__utils__/testMetadataRepository'
 import { getConfig, getContext } from '../../../__utils__/testWork'
+
+// MetadataElement has a private constructor and private fields; `Readonly<T>`
+// on a class with private members drops them from the mapped type entirely
+// (not just marks them readonly), so `Object.freeze` alone loses the
+// nominal type. The freeze itself is the point of this suite (handlers must
+// not mutate their element) — only the static type needs restoring.
+const frozen = (element: MetadataElement): MetadataElement =>
+  Object.freeze(element) as unknown as MetadataElement
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
@@ -101,7 +110,7 @@ const families: Family[] = [
         classType,
         globalMetadata
       )
-      return new StandardHandler(changeType, Object.freeze(element), ctx)
+      return new StandardHandler(changeType, frozen(element), ctx)
     },
   },
   {
@@ -112,7 +121,7 @@ const families: Family[] = [
         workflowType,
         globalMetadata
       )
-      return new InFileHandler(changeType, Object.freeze(element), ctx)
+      return new InFileHandler(changeType, frozen(element), ctx)
     },
   },
   {
@@ -123,7 +132,7 @@ const families: Family[] = [
         staticResourceType,
         globalMetadata
       )
-      return new InResourceHandler(changeType, Object.freeze(element), ctx)
+      return new InResourceHandler(changeType, frozen(element), ctx)
     },
   },
   {
@@ -134,7 +143,7 @@ const families: Family[] = [
         documentType,
         globalMetadata
       )
-      return new InFolderHandler(changeType, Object.freeze(element), ctx)
+      return new InFolderHandler(changeType, frozen(element), ctx)
     },
   },
   {
@@ -145,7 +154,7 @@ const families: Family[] = [
         discoveryType,
         globalMetadata
       )
-      return new SharedFolderHandler(changeType, Object.freeze(element), ctx)
+      return new SharedFolderHandler(changeType, frozen(element), ctx)
     },
   },
   {
@@ -156,7 +165,7 @@ const families: Family[] = [
         recordTypeWithParent,
         globalMetadata
       )
-      return new DecomposedHandler(changeType, Object.freeze(element), ctx)
+      return new DecomposedHandler(changeType, frozen(element), ctx)
     },
   },
   {
@@ -167,11 +176,7 @@ const families: Family[] = [
         globalMetadata.get('permissionsets')!,
         globalMetadata
       )
-      return new ContainedDecomposedHandler(
-        changeType,
-        Object.freeze(element),
-        ctx
-      )
+      return new ContainedDecomposedHandler(changeType, frozen(element), ctx)
     },
   },
 ]
