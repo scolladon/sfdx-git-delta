@@ -242,7 +242,7 @@
         "tooling/**",
         "src/**/*.ts",
         "stryker.conf.mjs",
-        "**/tsconfig.json",
+        "tsconfig.json",
         "package.json",
         "package-lock.json"
       ],

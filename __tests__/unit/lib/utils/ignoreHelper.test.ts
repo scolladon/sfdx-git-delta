@@ -350,10 +350,12 @@ describe('ignoreHelper', () => {
         )
         mockedReadFile.mockRejectedValue(error)
         config.ignore = '.missing-ignore-file'
-        const sut = buildIgnoreHelper
+        const buildFromConfig = buildIgnoreHelper
 
         // Act & Assert
-        await expect(sut(config)).rejects.toThrow('ENOENT')
+        await expect(buildFromConfig(config)).rejects.toMatchObject({
+          code: 'ENOENT',
+        })
       })
     })
   })

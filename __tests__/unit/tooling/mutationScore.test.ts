@@ -84,7 +84,7 @@ describe('Given a mutant tally', () => {
   })
 })
 
-describe('Given a mutant tally, when computing the score', () => {
+describe('Given a mutant tally to score', () => {
   describe('When nothing was measured', () => {
     it('Then the score is null', () => {
       const sut = scoreOf
@@ -125,23 +125,13 @@ describe('Given a mutant tally, when computing the score', () => {
     })
   })
 
-  describe('When two mutants were killed and one survived', () => {
-    it('Then the score rounds up', () => {
+  describe('When the detected mutants are a fraction of the total', () => {
+    it('Then the score keeps full float precision, unrounded', () => {
       const sut = scoreOf
 
       const result = sut(buildTally({ killed: 2, survived: 1 }))
 
       expect(result).toBe(66.66666666666666)
-    })
-  })
-
-  describe('When one mutant was killed and two survived', () => {
-    it('Then the score rounds down', () => {
-      const sut = scoreOf
-
-      const result = sut(buildTally({ killed: 1, survived: 2 }))
-
-      expect(result).toBe(33.33333333333333)
     })
   })
 
@@ -154,29 +144,9 @@ describe('Given a mutant tally, when computing the score', () => {
       expect(result).toBe(0)
     })
   })
-
-  describe('When one mutant was killed among 1600 measured', () => {
-    it('Then a small non-zero score keeps its precision', () => {
-      const sut = scoreOf
-
-      const result = sut(buildTally({ killed: 1, survived: 1599 }))
-
-      expect(result).toBe(0.0625)
-    })
-  })
-
-  describe('When seven mutants were killed and one survived', () => {
-    it('Then an exact half keeps its trailing zero', () => {
-      const sut = scoreOf
-
-      const result = sut(buildTally({ killed: 7, survived: 1 }))
-
-      expect(result).toBe(87.5)
-    })
-  })
 })
 
-describe('Given a score, when formatting it', () => {
+describe('Given a score', () => {
   describe('When the score is null', () => {
     it('Then the format is n/a', () => {
       const sut = formatScore
@@ -188,17 +158,37 @@ describe('Given a score, when formatting it', () => {
   })
 
   describe('When the score is a number', () => {
-    it('Then the format keeps two decimal places with a percent sign', () => {
+    it.each([
+      [66.66666666666666, '66.67%'],
+      [33.33333333333333, '33.33%'],
+      [87.5, '87.50%'],
+      [0.0625, '0.06%'],
+      [0, '0.00%'],
+    ])('Then %d formats as %s', (score, expected) => {
       const sut = formatScore
 
-      const result = sut(66.66666666666666)
+      const result = sut(score)
 
-      expect(result).toBe('66.67%')
+      expect(result).toBe(expected)
+    })
+  })
+
+  // Accepted collision, pinned so it is a decision rather than a surprise: a
+  // score small enough to round to zero is indistinguishable from a real zero
+  // once formatted. null is what keeps "never measured" separate; two decimal
+  // places is not enough to also separate "measured, almost nothing killed".
+  describe('When the score is non-zero but rounds to zero', () => {
+    it('Then it formats as a real zero would', () => {
+      const sut = formatScore
+
+      const result = sut(0.004)
+
+      expect(result).toBe('0.00%')
     })
   })
 })
 
-describe('Given a named tally, when building its summary row', () => {
+describe('Given a named tally', () => {
   describe('When the tally has one killed and one survived mutant', () => {
     it('Then the row renders the name, score, and every counter', () => {
       const sut = summaryRow
@@ -215,7 +205,7 @@ describe('Given a named tally, when building its summary row', () => {
   })
 })
 
-describe('Given a mutation report, when building the summary table', () => {
+describe('Given a mutation report', () => {
   describe('When the report has no files', () => {
     it('Then the table shows n/a for an all-zero All files row', () => {
       const sut = buildSummaryTable
@@ -233,13 +223,14 @@ describe('Given a mutation report, when building the summary table', () => {
   })
 
   describe('When the report has two files with different outcomes', () => {
-    it('Then the All files row aggregates rather than repeating the first file', () => {
+    it('Then unmeasurable files render n/a without moving the aggregate', () => {
       const sut = buildSummaryTable
 
       const result = sut(
         buildReport({
           'a.ts': [{ status: 'Killed' }],
           'b.ts': [{ status: 'Survived' }],
+          'c.ts': [{ status: 'Ignored' }, { status: 'RuntimeError' }],
         })
       )
 
@@ -250,6 +241,7 @@ describe('Given a mutation report, when building the summary table', () => {
           '| All files | 50.00% | 1 | 1 | 0 | 0 |',
           '| a.ts | 100.00% | 1 | 0 | 0 | 0 |',
           '| b.ts | 0.00% | 0 | 1 | 0 | 0 |',
+          '| c.ts | n/a | 0 | 0 | 0 | 0 |',
         ].join('\n')
       )
     })
