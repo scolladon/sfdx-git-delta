@@ -327,16 +327,6 @@
     },
     "test:perf": {
       "command": "vitest bench --config vitest.config.perf.ts",
-      "files": [
-        "src/**/*.ts",
-        "__tests__/perf/**",
-        "tsconfig.json",
-        "__tests__/tsconfig.json",
-        "tooling/tsconfig.json",
-        "vitest.config.perf.ts",
-        "package.json",
-        "package-lock.json"
-      ],
       "output": [
         "perf-runtime.json",
         "perf-memory.json"
