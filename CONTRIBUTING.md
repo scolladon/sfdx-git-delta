@@ -168,6 +168,12 @@ Performance benchmarks live in `__tests__/perf/`. Each bench is a vitest
 test that calls the `bench` fixture through
 `__tests__/perf/harness/perfBench.ts`, which pins the sample budget
 (`time: 1000`, `iterations: 64`, `warmupTime: 250`, `warmupIterations: 16`).
+`perfBench(name, fn, hooks?)` takes its hooks as one named object —
+`{ beforeEach?, afterRun? }` — never positionally. `beforeEach` runs before
+every iteration, warmup included, outside the timed window, so it is the
+place to build a sample's inputs (or a per-iteration cold registry) without
+that setup counting toward the measured cost; `afterRun` runs once after
+every sample is in, for a budget assertion over the whole run.
 `__tests__/perf/perfReporter.ts` writes `perf-runtime.json`
 (`{name, unit: 'ops/sec', value: round(1000 / latency.mean), range: '±rme%'}`)
 and `perf-memory.json` (`{name, unit: 'ms', value: latency.mean to 4 dp,
@@ -182,8 +188,9 @@ then discards all 50 series for that commit.
 
 The `name` is the `bench()` registration name and the join key for
 `compareBaseline.mjs`, `preview.mjs` and the gh-pages history, so renaming a
-bench orphans its history. A throwing bench body fails the run and nothing is
-written; a `-t` filter writes partial files.
+bench orphans its history, and is reported under *Benchmarks missing from
+this run*. A throwing bench body fails the run and nothing is written; a
+`-t` filter writes partial files.
 
 ```bash
 npm run test:perf
@@ -192,8 +199,12 @@ npm run test:perf
 ### Mutation Testing
 
 Mutation testing runs via Stryker against the unit-test bucket. The
-configured thresholds are `break: 90`, `low: 90`, `high: 95`; CI fails
-when the mutation score drops below 90%.
+configured thresholds are `break: 90`, `low: 90`, `high: 95`. The CI job
+is opt-in via the `mutation-testing` label and advisory
+(`continue-on-error: true`) — a low score never blocks a PR, but a run
+that executes no tests against a covered mutant is reported as an
+**error**, never as a score: a runner defect must not be mistaken for a
+regression.
 
 ```bash
 npm run test:mutation              # full run (~6 min)
@@ -227,21 +238,41 @@ Base scenarios are implemented in the `e2e/base` branch.
 Updates to the metadata are implemented in `e2e/head`.
 
 To run the E2E tests locally, clone the repository in another folder and checkout the branch `e2e/head`.
+If your own checkout also has local branches named `e2e/base` or `e2e/head` (for example a worktree of this same repository), those are decoys: the E2E commands only ever read the branches inside the cloned folder, so always run git commands there with `git -C e2e …` and compare against `git -C e2e ls-remote origin` before trusting what a ref points to.
 Then execute:
 
 ```bash
 # remove expected content
 npm run clean
-# run the test
-sf sgd source delta --from "e2e/base" --to "e2e/head" --output "expected" --generate-delta
+# run the test — prefer the package script, which already carries every flag
+npm run test:e2e:local
 # check expected is back to normal
-npm run test:e2e
+npm run validate
 ```
+
+Run it through the package script rather than by hand. The scripts in
+`e2e/package.json` carry flags the baseline depends on — in particular
+`--source-dir test`, which keeps the committed `expected/` tree out of the diff
+model rather than filtering it back out afterwards. Invoking the CLI directly
+without that flag regenerates `expected/` from a diff that contains `expected/`
+itself, and the copy it produces is what `npm run validate` then fails on. The
+equivalent long form, if you do need to run it by hand:
+
+```bash
+sf sgd source delta --from "e2e/base" --to "e2e/head" --output-dir "expected" \
+  --generate-delta --repo-dir . --source-dir test \
+  --include-file .sgdinclude --include-destructive-file .sgdincludeDestructive \
+  --ignore-file .sgdignore --ignore-destructive-file .sgdignoreDestructive \
+  --ignore-whitespace
+```
+
+`e2e/.sgdignore` keeps its `/expected` line on purpose: `--source-dir test` is what scopes the diff away from the baseline, and the ignore line stays as live `--ignore-file` coverage against a real, populated directory, so do not delete it as redundant.
 
 Note: you may want to execute the local plugin using `node` if you have not linked the folder used to develop locally with the plugin.
 
 ```bash
-node path/to/sfdx-git-delta/bin/run sgd:source:delta --from "e2e/base" --to "e2e/head" --output "expected" -d
+node path/to/sfdx-git-delta/bin/run.js sgd source delta --from "e2e/base" --to "e2e/head" \
+  --output-dir "expected" --generate-delta --repo-dir . --source-dir test
 ```
 
 ## Editor Configurations

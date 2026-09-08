@@ -13,8 +13,8 @@ import {
 import { buildLwcDiffRepo } from './fixtures/lwcRepoFixture.js'
 import {
   assertMeanWithinCeiling,
+  deriveCeilingMs,
   perfBench,
-  RUNNER_NOISE_FACTOR,
 } from './harness/perfBench.js'
 
 const metadata = await getDefinition({})
@@ -48,15 +48,21 @@ vi.mock('../../src/metadata/metadataManager.js', async importOriginal => ({
 
 const BUNDLE_COUNTS = [100, 1_000] as const
 
-const deriveCeilingMs = (worstMeanMs: number): number =>
-  Math.ceil((worstMeanMs * RUNNER_NOISE_FACTOR) / 100) * 100
-
-// Measured over three runs against the packed fixture (worst-of-three means):
-// 100 bundles 9.61/9.60/9.46ms, 1000 bundles 53.00/50.71/50.10ms. Ceiling is
-// the worst mean × RUNNER_NOISE_FACTOR, rounded up to the next 100ms.
+// Derived from the live gh-pages series (dev/bench/runtime, 48 runs on
+// ubuntu-latest, the runner assertMeanWithinCeiling actually runs on) rather
+// than a developer machine: a local Apple M3 mean under-measures this bench
+// by 3.0-3.45x relative to CI, which alone consumed all of
+// RUNNER_NOISE_FACTOR's headroom and made the old dev-machine-derived
+// ceilings breach on CI 3 of 4 times. CI-observed means for
+// pipeline-100-bundles: 26.88/31.56/33.30/33.18ms (max 33.30); for
+// pipeline-1000-bundles: 140.46/160.29/166.77/167.90ms (max 167.90). Ceiling
+// is the CI max × RUNNER_NOISE_FACTOR, rounded up to two significant figures
+// (see deriveCeilingMs). Rule: re-derive this from the gh-pages series, never
+// from a developer machine — a local mean is not a stand-in for what CI
+// actually measures.
 const WORST_MEAN_MS: Record<(typeof BUNDLE_COUNTS)[number], number> = {
-  100: 9.61,
-  1_000: 53.0036,
+  100: 33.3,
+  1_000: 167.9,
 }
 
 const SGD_NO_DELTA_CEILING_MS: Record<(typeof BUNDLE_COUNTS)[number], number> =
@@ -95,12 +101,14 @@ for (const count of BUNDLE_COUNTS) {
         await sgd(input)
         elapsedMs.push(performance.now() - start)
       },
-      () =>
-        assertMeanWithinCeiling(
-          `sgd-no-delta-${count}-bundles`,
-          elapsedMs,
-          SGD_NO_DELTA_CEILING_MS[count]
-        )
+      {
+        afterRun: () =>
+          assertMeanWithinCeiling(
+            `sgd-no-delta-${count}-bundles`,
+            elapsedMs,
+            SGD_NO_DELTA_CEILING_MS[count]
+          ),
+      }
     )
   })
 }

@@ -29,10 +29,16 @@ const trackedTempDir = async (prefix: string): Promise<string> => {
   return dir
 }
 
+// Building the fixture repo is fixture I/O, not the behaviour under test,
+// and the default 10s hook timeout has a documented flake of exactly this
+// shape on a cold Windows runner. The assertions keep the tight default so
+// they stay regression detectors.
+const FIXTURE_HOOK_BUDGET_MS = 30_000
+
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-lifecycle-fixture-')
   refs = buildFixtureRepo(fixtureDir)
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterAll(async () => {
   await Promise.all(

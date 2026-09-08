@@ -67,7 +67,7 @@
     "@salesforce/dev-config": "4.3.3",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
-    "@types/node": "26.4.1",
+    "@types/node": "26.5.0",
     "@vitest/coverage-v8": "5.0.0",
     "husky": "9.1.7",
     "knip": "6.34.0",
@@ -174,8 +174,9 @@
       ]
     },
     "lint": {
-      "command": "npx @biomejs/biome check --error-on-warnings src __tests__ messages",
+      "command": "npx @biomejs/biome check --error-on-warnings tooling src __tests__ messages",
       "files": [
+        "tooling/**",
         "src/**",
         "__tests__/**/*.ts",
         "messages/**",
@@ -318,30 +319,36 @@
       "files": [
         "src/**/*.ts",
         "__tests__/**/*.ts",
+        "tooling/**/*.ts",
+        "stryker.conf.mjs",
         "messages/**",
         "**/tsconfig.json",
         "package.json",
         "package-lock.json"
       ],
       "output": [
-        ".stryker-tmp/**"
+        ".stryker-tmp/**",
+        "reports/mutation/**"
       ],
       "dependencies": [
         "lint"
       ]
     },
     "test:mutation:incremental": {
-      "command": "FILES=$(git --no-pager diff --name-only --diff-filter=AM --merge-base origin/main src | grep '.ts$' | paste -sd ',' -); if [ -n \"$FILES\" ]; then stryker run --mutate \"$FILES\"; else echo 'No source files changed — skipping mutation testing'; fi",
+      "command": "node tooling/mutationIncremental.ts",
       "files": [
         "src/**/*.ts",
         "__tests__/**/*.ts",
+        "tooling/**/*.ts",
+        "stryker.conf.mjs",
         "messages/**",
         "**/tsconfig.json",
         "package.json",
         "package-lock.json"
       ],
       "output": [
-        ".stryker-tmp/**"
+        ".stryker-tmp/**",
+        "reports/mutation/**"
       ],
       "dependencies": [
         "lint"

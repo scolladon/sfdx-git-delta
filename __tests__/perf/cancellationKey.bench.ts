@@ -5,19 +5,21 @@ import { getDefinition } from '../../src/metadata/metadataManager.js'
 import type { Config } from '../../src/types/config.js'
 import RepoGitDiff from '../../src/utils/repoGitDiff.js'
 import { sourceDirs } from '../__utils__/sourceDirs.js'
+import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.js'
 import { buildPath, SHAPES, type Shape } from './fixtures/registryShapes.js'
 import { perfBench } from './harness/perfBench.js'
 
 // Pins the cost of deriving a cancellation key on a COLD registry — the
 // worst case getLines() actually pays once per sgd() invocation. It
 // deliberately does not reuse:
-//  - phase.bench.ts: one MetadataRepository built at module load and reused
-//    across every sample, over paths pre-stripped of their diff-status
-//    prefix. Both choices are exactly what a registry-lookup or line-shape
-//    regression would hide behind: warm pathCache, no prefix to strip.
-//  - gitAdapter.bench.ts: diffs this very repository's own `HEAD~20..HEAD`,
-//    which grows with every commit landed on a feature branch and is
-//    self-referential rather than a stable ceiling.
+//  - phase.bench.ts: its cold benches already rebuild a fresh registry and
+//    fresh lines per iteration, but over MetadataRepository lookups, not
+//    the cancellation-key derivation this file measures — a different seam
+//    entirely, not a blindness to route around here.
+//  - gitAdapter.bench.ts: benches GitAdapter's own git IO (resolveCommit,
+//    streamDiffLines, getBufferContent, buildTreeIndex) against a fixed
+//    synthetic repository — a different seam entirely, not the
+//    key-derivation logic this file measures over synthetic diff lines.
 // Comparing this bench's number against the same file run over `main` (no
 // such file exists there, so the comparison happens in a throwaway checkout)
 // is what evidences the key-derivation budget.
@@ -40,9 +42,6 @@ class CancellationKeyProbe extends RepoGitDiff {
 // tenth or less), so a regression in the key reads at close to its true
 // multiple instead of being diluted — without abandoning a cold registry.
 const LINES_PER_ROUND = 1500
-// Wide enough that the counter never outgrows its padding over a whole
-// benchmark run, so every sample keys a path of constant length.
-const ROUND_COUNTER_PAD = 7
 
 // Encapsulates the round counter so freshness is an invariant of this one
 // generator rather than a module-level mutable a later edit could read out

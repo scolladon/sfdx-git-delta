@@ -560,6 +560,8 @@ export type IgnoreFixtureRefs = {
   // the bundle's two other files stay where they are — a stale ignored copy
   // of a component that is still alive.
   staleCopy: string
+  // From `root`: the class pair removed outright, nothing re-added.
+  deleted: string
 }
 
 export const IGNORE_SOURCE_CLASS =
@@ -650,7 +652,17 @@ export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
     ]
   )
 
-  return { root, moved, staleCopy }
+  // `staleCopy` above left the index holding its own tree, not `root`'s —
+  // re-seed it from `root` so this sibling commit branches off `root`
+  // instead of continuing from `staleCopy`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const deleted = makeCommit(dir, root, 'delete the class pair', [
+    { kind: 'delete', path: IGNORE_SOURCE_CLASS },
+    { kind: 'delete', path: IGNORE_SOURCE_CLASS_META },
+  ])
+
+  return { root, moved, staleCopy, deleted }
 }
 
 export type LiveContainerFixtureRefs = {
