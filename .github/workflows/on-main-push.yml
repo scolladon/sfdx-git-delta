@@ -36,13 +36,16 @@ jobs:
   perf:
     needs: [prepare-release]
     if: ${{ needs.prepare-release.outputs.release_created != 'true' }}
-    # reusable-perf.yml's perf-publish job pushes benchmark data to
-    # gh-pages, so this grant needs contents: write; a reusable workflow
-    # cannot exceed the caller's grant. It does nothing else here — a main
-    # push never runs perf-comment.
+    # A ceiling, not a use. reusable-perf.yml's perf-publish job pushes
+    # benchmark data to gh-pages, so contents: write is genuinely needed
+    # here. pull-requests: write is not used on a main push — perf-comment
+    # never runs — but the grant is validated against every job the callee
+    # declares, not only the reachable ones, so it has to cover that
+    # declaration too. What actually scopes each token is the per-job
+    # permissions block in reusable-perf.yml.
     permissions:
       contents: write
+      pull-requests: write
     uses: ./.github/workflows/reusable-perf.yml
-    secrets: inherit
     with:
       auto-push: true
