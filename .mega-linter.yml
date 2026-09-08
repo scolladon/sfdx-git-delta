@@ -20,6 +20,10 @@ MARKDOWN_MARKDOWNLINT_FILTER_REGEX_EXCLUDE: "messages/"
 # code paths in MetadataDiff and the streaming reader. xmllint flags
 # them as malformed which is correct — that's the point of the fixture.
 XML_XMLLINT_FILTER_REGEX_EXCLUDE: "byteEquality/fixtures/profile-(addition|from-empty)/from\\.xml"
+# tsconfig files are JSONC by TypeScript's own spec — comments are valid there and
+# these carry the reason each compiler option is present. jsonlint enforces strict
+# JSON and rejects them; prettier, biome and tsc all read them fine.
+JSON_JSONLINT_FILTER_REGEX_EXCLUDE: "tsconfig\\.json$"
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 # DISABLE_ERRORS: true # Uncomment if you want MegaLinter to detect errors but not block CI to pass
