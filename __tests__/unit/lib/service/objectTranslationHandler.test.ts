@@ -347,12 +347,13 @@ describe('ObjectTranslation', () => {
     })
 
     it('Given flat-layout objectTranslation addition and writer undefined, When collectAddition, Then the fallback GitCopy targets the file itself', async () => {
-      // Arrange
+      // Arrange — the key is omitted rather than set to `undefined`, which is
+      // both what `MetadataDiff.run` actually produces (`...(writer ? { writer } : {})`)
+      // and the only spelling `exactOptionalPropertyTypes` accepts.
       config.generateDelta = true
       mockRun.mockResolvedValue({
         manifests: { added: [], modified: [], deleted: [] },
         hasPackageContent: true,
-        writer: undefined,
       })
       const { changeType, element } = createElement(
         flatLine,
