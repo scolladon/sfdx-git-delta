@@ -326,6 +326,8 @@ Like InResourceHandler but skips files directly in the type directory (e.g. top-
 
 Field translation files are not independently deployable, so the parent `objectTranslation` file must always accompany its field-translation children in the output. When the parent has its own surviving changes, the handler emits a pruned version containing only the changed field translations as computed content; when it has none (a child-only change), it falls back to copying the whole parent file verbatim at the target revision.
 
+Both layouts SDR resolves to one component are supported: the sub-folder spelling `objectTranslations/Account-fr/Account-fr.objectTranslation-meta.xml`, which also hosts the sibling `fieldTranslation` files, and the flat spelling `objectTranslations/Account-fr.objectTranslation-meta.xml`. **Layout-independence is the invariant here** — the parent file is located by the component name in the changed file's own directory, never by a fixed path position. A positional expression (`pathAfterType[0]` for the member, `parts.at(-2)` for the parent path) reads the file's own base name and the type directory respectively in the flat spelling, which leaks the `.objectTranslation-meta.xml` suffix into the manifest member and resolves the parent to a path that matches nothing — the file then silently never reaches the package. That was the regression in #1198 (v6.32.0 through v7.4.0), fixed in #1408.
+
 #### DecomposedHandler
 
 **Extends**: StandardHandler
