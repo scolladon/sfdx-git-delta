@@ -121,7 +121,7 @@ jobs:
       # on top: the job's only remaining failure mode must stay "the
       # comment genuinely did not post".
       - name: Download benchmark report
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: perf-report
@@ -201,7 +201,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Download benchmark report
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: perf-report
 
