@@ -118,6 +118,13 @@ and run without coverage.
 npm run test:integration
 ```
 
+Integration tests must not depend on network reachability. The check is a command,
+not a convention — run it behind a dead proxy and it must be fully green:
+
+```bash
+HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 npm run test:integration
+```
+
 ### NUT Testing
 
 NUT tests (Salesforce CLI plugin testkit) live in `__tests__/nut/` as
