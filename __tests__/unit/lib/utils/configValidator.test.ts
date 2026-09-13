@@ -457,9 +457,8 @@ describe('Given a ConfigValidator', () => {
           await expect(sut['_handleDefault']()).rejects.toThrow(
             expect.objectContaining({
               name: 'ConfigError',
-              message: expect.stringContaining(
-                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org'
-              ),
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org',
             })
           )
         })
@@ -478,6 +477,111 @@ describe('Given a ConfigValidator', () => {
               message: expect.stringContaining(
                 'error.ApiVersionRetrievalFailed'
               ),
+            })
+          )
+        })
+      })
+
+      describe('when the failure carries a cause', () => {
+        it('When the lookup rejects with an Error carrying an Error cause, Then the refusal names the cause in parentheses', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: Object.assign(
+                  new Error('connect ECONNREFUSED 127.0.0.1:9'),
+                  { code: 'ECONNREFUSED' }
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org (connect ECONNREFUSED 127.0.0.1:9)',
+            })
+          )
+        })
+
+        it('When the cause message carries a control character, Then the refusal carries its escaped form and never the raw character', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error('connect\nECONNREFUSED'),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act
+          const error = await sut['_handleDefault']().catch(
+            (thrown: unknown) => thrown
+          )
+
+          // Assert
+          expect((error as Error).message).toContain(
+            'connect\\u{a}ECONNREFUSED'
+          )
+          expect((error as Error).message).not.toContain(
+            'connect\nECONNREFUSED'
+          )
+        })
+
+        it('When the cause is not an Error, Then the bare SDR message renders', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              { cause: 'ECONNREFUSED' }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org',
+            })
+          )
+        })
+
+        it('When the rejection itself is not an Error, Then the bare stringified rejection renders with no cause suffix', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            'offline'
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message: 'error.ApiVersionRetrievalFailed:offline',
             })
           )
         })

@@ -286,21 +286,17 @@ export default class ConfigValidator {
     return warnings
   }
 
-  // Resolves the latest supported API version, falling back gracefully when the
-  // appexchange lookup is unreachable (offline/firewalled environments).
+  // A user-supplied version is kept when the lookup fails: the cap is lost, the
+  // manifest is still the user's choice. With nothing to keep, the run is refused —
+  // this tool cannot vouch for a <version> it did not resolve, and a wrong one is
+  // authoritative at deploy time.
   protected async _resolveLatestSupportedVersion(): Promise<
     number | undefined
   > {
     try {
       return await getLatestSupportedVersion()
     } catch (ex) {
-      // A usable apiVersion is already set: keep it, we just can't cap it.
-      // Stryker disable ConditionalExpression -- equivalent: the '!== undefined' clause exists only for TS narrowing (isNaN requires a number); !isNaN already returns false for both undefined and NaN, so replacing the left operand with true preserves behavior for every reachable apiVersion
-      if (
-        this.config.apiVersion !== undefined &&
-        !isNaN(this.config.apiVersion)
-      ) {
-        // Stryker restore ConditionalExpression
+      if (this._hasUsableApiVersion()) {
         Logger.debug(
           // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
           lazy`_resolveLatestSupportedVersion: keeping provided apiVersion, latest version lookup failed: ${ex}`
@@ -309,10 +305,28 @@ export default class ConfigValidator {
       }
       throw new ConfigError(
         this.message.getMessage('error.ApiVersionRetrievalFailed', [
-          getErrorMessage(ex),
+          this._describeLookupFailure(ex),
         ])
       )
     }
+  }
+
+  private _hasUsableApiVersion(): boolean {
+    // Stryker disable ConditionalExpression -- equivalent: the '!== undefined' clause exists only for TS narrowing (isNaN requires a number); !isNaN already returns false for both undefined and NaN, so replacing the left operand with true preserves behavior for every reachable apiVersion
+    return (
+      this.config.apiVersion !== undefined && !isNaN(this.config.apiVersion)
+    )
+    // Stryker restore ConditionalExpression
+  }
+
+  // SDR wraps got's RequestError as `cause`; its message carries the code
+  // (connect ECONNREFUSED …, connect ETIMEDOUT, getaddrinfo ENOTFOUND …), which is
+  // the only thing that tells a proxy misconfiguration from a firewall drop from DNS.
+  private _describeLookupFailure(ex: unknown): string {
+    const message = getErrorMessage(ex)
+    const cause = ex instanceof Error ? ex.cause : undefined
+    if (!(cause instanceof Error)) return message
+    return `${message} (${sanitizeForMessage(cause.message)})`
   }
 
   protected _sanitizeConfig() {
