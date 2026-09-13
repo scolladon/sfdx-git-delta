@@ -239,6 +239,15 @@ const testContext = [
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"><quickActions><label>Nouvelle Relation</label><name>NewRelationship</name></quickActions></CustomObjectTranslation>`,
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></CustomObjectTranslation>`,
   ],
+  // Flat layout: no component sub-folder. SDR resolves this to the same
+  // component ('Account-fr') as the sub-folder layout above.
+  [
+    'force-app/main/default/objectTranslations/Account-fr.objectTranslation-meta.xml',
+    new Set(['Account-fr']),
+    'CustomObjectTranslation',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"><quickActions><label>Nouvelle Relation</label><name>NewRelationship</name></quickActions></CustomObjectTranslation>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><CustomObjectTranslation xmlns="http://soap.sforce.com/2006/04/metadata"></CustomObjectTranslation>`,
+  ],
   [
     'force-app/main/default/dashboards/folder/file.dashboard-meta.xml',
     new Set(['folder/file']),

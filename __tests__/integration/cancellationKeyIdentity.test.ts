@@ -124,13 +124,10 @@ const pathsFor = (meta: Metadata): string[][] => {
 
   // Checked before the DECOMPOSED_ADAPTER branch and the generic tail: a
   // decomposed holder's own file and its decomposed children are one
-  // component, spelled every way a repository lays it out. The flat
-  // `objectTranslations/<name>.objectTranslation-meta.xml` layout is
-  // deliberately not emitted here — its descriptor answers a garbage member
-  // (`CustomObjectTranslation/<name>.objectTranslation-meta.xml`) because
-  // that layout is unsupported by SFDX. The key is right for that path; only
-  // the descriptor is not, so this generator does not compare them. See
-  // "Given the unsupported flat CustomObjectTranslation layout" below.
+  // component, spelled every way a repository lays it out. Both holder-scoped
+  // types carry a flat spelling alongside the sub-folder one — SDR's
+  // MetadataResolver answers the same component for either — so both are
+  // emitted here and round-tripped against each other. See ADR-035.
   if (HOLDER_SCOPED_XML_NAMES.has(meta.xmlName!)) {
     return meta.xmlName === PERMISSION_SET_XML_NAME
       ? NAMES.map(name => [
@@ -139,6 +136,7 @@ const pathsFor = (meta: Metadata): string[][] => {
           `${base}/${name}/objectSettings/Account.objectSettings${METAFILE_SUFFIX}`,
         ])
       : NAMES.map(name => [
+          `${base}/${name}.objectTranslation${METAFILE_SUFFIX}`,
           `${base}/${name}/${name}.objectTranslation${METAFILE_SUFFIX}`,
           `${base}/${name}/Account.fieldTranslation${METAFILE_SUFFIX}`,
         ])
@@ -399,11 +397,14 @@ describe('Given the residual collision between a report and its reporting folder
   })
 })
 
-describe('Given the unsupported flat CustomObjectTranslation layout', () => {
-  it('When its key and descriptor are derived, Then the key names the holder while the descriptor answers a garbage member', async () => {
-    // Arrange — `objectTranslations/<name>.objectTranslation-meta.xml` is not
-    // a layout SFDX accepts, so the generator above never emits it; this pins
-    // why the two sides are not compared there rather than leaving it unsaid.
+describe('Given the flat CustomObjectTranslation layout', () => {
+  it('When its key and descriptor are derived, Then neither carries the file extension', async () => {
+    // Arrange — `objectTranslations/<name>.objectTranslation-meta.xml` is a
+    // layout SDR resolves to the same component as the sub-folder spelling,
+    // so key and descriptor must both name that component and agree. The
+    // generator above round-trips the two spellings; this spells the expected
+    // strings out literally, so a regression reports the shape that broke
+    // rather than only that two derived values drifted apart. See ADR-035.
     const flat = `${SOURCE}/objectTranslations/Alpha-fr.objectTranslation${METAFILE_SUFFIX}`
 
     // Act
@@ -412,9 +413,7 @@ describe('Given the unsupported flat CustomObjectTranslation layout', () => {
 
     // Assert
     expect(key).toBe('objecttranslations/alpha-fr')
-    expect(id).toBe(
-      `customobjecttranslation/alpha-fr.objecttranslation${METAFILE_SUFFIX}`
-    )
+    expect(id).toBe('customobjecttranslation/alpha-fr')
   })
 })
 
