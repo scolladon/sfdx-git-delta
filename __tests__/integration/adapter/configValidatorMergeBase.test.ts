@@ -1,7 +1,15 @@
 'use strict'
 import { rm } from 'node:fs/promises'
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
@@ -12,6 +20,17 @@ import {
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir, runGitText } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
+
+// The one seam that leaves the process: ConfigValidator caps apiVersion
+// against SDR's live coverage lookup. Pinned so the run is offline and
+// deterministic; everything else (git, registry, handlers, writers) is real.
+const API_VERSION = 60
+vi.mock('../../../src/metadata/metadataManager', async importOriginal => ({
+  ...(await importOriginal<
+    typeof import('../../../src/metadata/metadataManager')
+  >()),
+  getLatestSupportedVersion: async () => API_VERSION,
+}))
 
 // The NUTs for --merge-base (delta.nut.ts) only prove oclif accepts the
 // flag: they run it against HEAD~2..HEAD, and merge-base(HEAD~2, HEAD) is

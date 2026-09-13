@@ -2,7 +2,7 @@
 import { rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
 import type { Config } from '../../../src/types/config'
@@ -12,6 +12,17 @@ import { sanitizePath } from '../../../src/utils/fsUtils'
 import { buildRefNameFixtureRepo } from '../../__utils__/gitFixtureRepo'
 import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
+
+// The one seam that leaves the process: ConfigValidator caps apiVersion
+// against SDR's live coverage lookup. Pinned so the run is offline and
+// deterministic; everything else (git, registry, handlers, writers) is real.
+const API_VERSION = 60
+vi.mock('../../../src/metadata/metadataManager', async importOriginal => ({
+  ...(await importOriginal<
+    typeof import('../../../src/metadata/metadataManager')
+  >()),
+  getLatestSupportedVersion: async () => API_VERSION,
+}))
 
 // A missing oid that parses as a well-formed git object id shape but never
 // resolves: tsgit rejects it with `OBJECT_NOT_FOUND: object not found:
