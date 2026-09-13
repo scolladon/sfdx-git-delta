@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788907231275,
+  "lastUpdate": 1789327040837,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -12829,6 +12829,336 @@ window.BENCHMARK_DATA = {
             "name": "writeXmlDocument-largeProfile",
             "value": 4.5709,
             "range": "±0.91%",
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "codefriar@users.noreply.github.com",
+            "name": "Kevin Poorman",
+            "username": "codefriar"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d008dab67ee400bfff7df987198e7d316b7846c3",
+          "message": "fix(object-translation): resolve component name for flat objectTranslation layout (#1408)\n\nObjectTranslationHandler assumed a CustomObjectTranslation always lives in its own\nsub-folder under objectTranslations/. Two positional path expressions encoded that\nassumption and both misread the flat layout\n(objectTranslations/Account-en_US.objectTranslation-meta.xml), which SDR resolves to\nthe same component as the sub-folder form:\n\n- _getElementName() returned pathAfterType[0], the file's own base name when there is\n  no sub-folder, leaking \".objectTranslation-meta.xml\" into the package.xml member.\n- _getObjectTranslationPath() built the parent path from parts.at(-2), which reads the\n  type directory itself, so the file silently never reached the deployment package.\n\nThe override is removed (ResourceHandler already resolves both layouts) and the parent\npath is derived from the component name rather than a fixed path position.\n\nLayout-independence is now stated as the handler's invariant in DESIGN.md, and the flat\nspelling joins the cancellation-key generator group next to PermissionSet, so the\ngeneric identity harness covers it. That also corrects a residual recorded in #1414 as\nunfixable: the flat descriptor now agrees with its key instead of carrying the file\nextension.\n\nRegression introduced in #1198, first released in v6.32.0.\n\ncloses #1407\n\nFix authored by Kevin Poorman (@codefriar).",
+          "timestamp": "2026-09-13T21:10:42+02:00",
+          "tree_id": "8a3dcf5248b8bf796dd1f29564db3a779a182dfa",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/d008dab67ee400bfff7df987198e7d316b7846c3"
+        },
+        "date": 1789327040808,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "cancellation-key-derivation-cold-plain-type",
+            "value": 3.9828,
+            "range": "±0.90%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-content-container",
+            "value": 4.4217,
+            "range": "±0.85%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-in-folder-type",
+            "value": 5.2253,
+            "range": "±0.72%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-nested-content-type",
+            "value": 4.6937,
+            "range": "±0.91%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-composed-type",
+            "value": 4.4213,
+            "range": "±0.78%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-holder-scoped-type",
+            "value": 4.8387,
+            "range": "±0.75%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-equal",
+            "value": 0.0003,
+            "range": "±0.61%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 0.0003,
+            "range": "±0.25%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-equal",
+            "value": 0.0022,
+            "range": "±0.26%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 0.0011,
+            "range": "±0.10%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 0.0222,
+            "range": "±0.22%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 0.0013,
+            "range": "±0.31%",
+            "unit": "ms"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 0.0001,
+            "range": "±0.07%",
+            "unit": "ms"
+          },
+          {
+            "name": "resolveCommit-fixture-HEAD~20-and-HEAD",
+            "value": 3.5129,
+            "range": "±5.93%",
+            "unit": "ms"
+          },
+          {
+            "name": "streamDiffLines-fixture-HEAD~20..HEAD",
+            "value": 13.7181,
+            "range": "±4.62%",
+            "unit": "ms"
+          },
+          {
+            "name": "getBufferContent-fixture-HEAD~20-and-HEAD",
+            "value": 15.6375,
+            "range": "±4.90%",
+            "unit": "ms"
+          },
+          {
+            "name": "buildTreeIndex-fixture-HEAD-cold",
+            "value": 11.5977,
+            "range": "±4.45%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.1956,
+            "range": "±0.74%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 1.0647,
+            "range": "±0.99%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 4.0532,
+            "range": "±0.80%",
+            "unit": "ms"
+          },
+          {
+            "name": "visibility-pass-cold-10000-paths",
+            "value": 38.0166,
+            "range": "±0.88%",
+            "unit": "ms"
+          },
+          {
+            "name": "visibility-pass-cold-50000-paths",
+            "value": 212.3161,
+            "range": "±1.20%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.1501,
+            "range": "±0.31%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-cold-large",
+            "value": 0.7382,
+            "range": "±0.62%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-cold-large",
+            "value": 1.2931,
+            "range": "±0.55%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-warm-small",
+            "value": 0.0064,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-warm-small",
+            "value": 0.0283,
+            "range": "±0.38%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-warm-medium",
+            "value": 0.0498,
+            "range": "±0.19%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-warm-medium",
+            "value": 0.1807,
+            "range": "±0.34%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-warm-large",
+            "value": 0.2044,
+            "range": "±0.12%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-warm-large",
+            "value": 0.7361,
+            "range": "±0.41%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.0447,
+            "range": "±0.32%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0029,
+            "range": "±14.76%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.1318,
+            "range": "±0.26%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.0115,
+            "range": "±8.19%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 0.4474,
+            "range": "±0.31%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0447,
+            "range": "±5.81%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-sgd-no-delta-100-bundles",
+            "value": 24.1638,
+            "range": "±6.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-sgd-no-delta-1000-bundles",
+            "value": 116.4912,
+            "range": "±2.08%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 0.049,
+            "range": "±0.31%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 0.0541,
+            "range": "±0.32%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 0.0536,
+            "range": "±0.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 0.7341,
+            "range": "±0.64%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 0.7452,
+            "range": "±0.34%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 0.7511,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 8.005,
+            "range": "±0.89%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 7.475,
+            "range": "±0.81%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 7.4377,
+            "range": "±0.48%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 0.0383,
+            "range": "±0.64%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 0.6051,
+            "range": "±0.62%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 6.6372,
+            "range": "±0.95%",
             "unit": "ms"
           }
         ]
