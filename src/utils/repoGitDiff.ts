@@ -83,7 +83,15 @@ export default class RepoGitDiff {
       }
     }
 
-    yield* await this._uncancelledDeletions(pending, ignoreHelper)
+    const vouching = await this._vouchingHeldNames(
+      pending.heldAdditionNames,
+      pending.deferredDeletions,
+      pending.additionNames,
+      ignoreHelper
+    )
+    for (const { line, name } of pending.deferredDeletions) {
+      if (!pending.additionNames.has(name) && !vouching.has(name)) yield line
+    }
   }
 
   private _resetRunState(): void {
@@ -133,30 +141,6 @@ export default class RepoGitDiff {
     }
     pending.additionNames.add(name)
     return addition
-  }
-
-  private async _uncancelledDeletions(
-    pending: PendingCancellation,
-    ignoreHelper: IgnoreHelper
-  ): Promise<readonly string[]> {
-    const vouching = await this._vouchingHeldNames(
-      pending.heldAdditionNames,
-      pending.deferredDeletions,
-      pending.additionNames,
-      ignoreHelper
-    )
-    if (vouching.size > 0) {
-      // A cancelled deletion appears in neither manifest, so without this
-      // line a debug run cannot explain why a destructive entry is missing.
-      Logger.debug(
-        lazy`getLines: held addition(s) '${[...vouching].join("', '")}' survive only under ignored paths at '${this.config.to}', cancelling their deletions`
-      )
-    }
-    return pending.deferredDeletions
-      .filter(
-        ({ name }) => !pending.additionNames.has(name) && !vouching.has(name)
-      )
-      .map(({ line }) => line)
   }
 
   public getRenamePairs(): readonly RenamePathPair[] {
@@ -221,7 +205,15 @@ export default class RepoGitDiff {
     )
     if (candidates.size === 0) return candidates
     const visible = await this._visibleNamesAtTo(candidates, ignoreHelper)
-    return new Set([...candidates].filter(name => !visible.has(name)))
+    const vouching = new Set([...candidates].filter(name => !visible.has(name)))
+    if (vouching.size > 0) {
+      // A cancelled deletion appears in neither manifest, so without this
+      // line a debug run cannot explain why a destructive entry is missing.
+      Logger.debug(
+        lazy`getLines: held addition(s) '${[...vouching].join("', '")}' survive only under ignored paths at '${this.config.to}', cancelling their deletions`
+      )
+    }
+    return vouching
   }
 
   // Visibility is decided by the global ignore, never the destructive one:

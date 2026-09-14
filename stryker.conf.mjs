@@ -48,7 +48,7 @@ const config = {
   //
   // More documented survivors, found triaging the ignored-addition
   // visibility probe in src/utils/repoGitDiff.ts, also keyed by symbol:
-  //   - RepoGitDiff._uncancelledDeletions, the `if (vouching.size > 0)` guard
+  //   - RepoGitDiff._vouchingHeldNames, the `if (vouching.size > 0)` guard
   //     around the "held addition(s) survive" Logger.debug call (including its
   //     EqualityOperator and BlockStatement variants, and the ArrayDeclaration/
   //     StringLiteral mutants on the message it builds), and the matching
