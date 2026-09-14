@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest'
 // proxy nothing listens on. The live API version lookup is the one network
 // call sgd makes, so it is the probe: if it can reach appexchange, a test
 // that forgot its mock can too, and would pass online and fail offline.
+// A refused loopback connect returns in milliseconds on POSIX, but Windows
+// retries it before giving up; the budget stays above SDR's own 10 s request
+// timeout so a hang reports as that timeout rather than vitest's default 5 s.
 const LOOKUP_REFUSAL_BUDGET_MS = 15_000
 
 describe('Given the integration bucket environment', () => {

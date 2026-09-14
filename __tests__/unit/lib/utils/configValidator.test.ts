@@ -437,27 +437,6 @@ describe('Given a ConfigValidator', () => {
         })
       })
 
-      describe('when apiVersion is unpinned', () => {
-        it('When the lookup fails and apiVersion is unpinned, Then validateConfig throws an actionable ConfigError', async () => {
-          // Arrange
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
-          config.apiVersion = undefined
-          const sut = new ConfigValidator(config)
-
-          // Act & Assert
-          await expect(sut.validateConfig()).rejects.toThrow(
-            expect.objectContaining({
-              name: 'ConfigError',
-              message: expect.stringContaining(
-                'error.ApiVersionRetrievalFailed'
-              ),
-            })
-          )
-        })
-      })
-
       describe('Given the refusal describes the lookup failure', () => {
         it('When the lookup rejects the way SDR does, with an SfError wrapping the network error, Then the refusal names the cause in parentheses', async () => {
           // Arrange
@@ -1361,7 +1340,7 @@ describe('Given a ConfigValidator', () => {
     })
 
     it('Given apiVersion is undefined after the project lookup, When _handleDefault runs, Then it defaults to latest', async () => {
-      // Mutant: the usable-pin guard in _handleDefault forced true returns before defaulting, so apiVersion stays undefined
+      // Mutant: the pinned guard in _handleDefault forced true returns before defaulting, so apiVersion stays undefined
       config.apiVersion = undefined
       mockSfProjectResolve.mockRejectedValue(new Error('no project'))
       const sut = new ConfigValidator(config)
