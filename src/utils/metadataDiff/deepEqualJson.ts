@@ -10,6 +10,7 @@ const pushArrayChildPairs = (
 ): boolean => {
   const len = arrA.length
   if (len !== arrB.length) return false
+  // Stryker disable next-line EqualityOperator -- `i <= len` is equivalent: both arrays have length len, so the extra pass reads arrA[len] and arrB[len], both undefined, and `va === vb` continues out of the loop (the object loop's twin is killable: keysA[len] is undefined and Object.hasOwn(objB, undefined) refuses). `i >= len` shares the mutator name; on a non-empty array it skips the loop exactly like the killed ConditionalExpression false-flip on this condition
   for (let i = 0; i < len; i++) {
     const va = arrA[i]
     const vb = arrB[i]

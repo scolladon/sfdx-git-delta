@@ -64,6 +64,34 @@ describe('deepEqualJson', () => {
     })
   })
 
+  // Each side of the "both are objects" guard must refuse on its own: a null
+  // or primitive slipping past it reaches the child walk, which either
+  // throws on Object.keys(null) or sees two empty key lists and reports a
+  // match.
+  describe('Given a null or a primitive paired with an object', () => {
+    it.each<[string, unknown, unknown]>([
+      ['a null array child against an object', [null], [{}]],
+      ['an object array child against a null', [{}], [null]],
+      ['a primitive array child against an object', [1], [{}]],
+      ['an object array child against a primitive', [{}], [1]],
+      ['a null object child against an object', { a: null }, { a: {} }],
+      ['an object child against a null', { a: {} }, { a: null }],
+      ['a primitive object child against an object', { a: 1 }, { a: {} }],
+      ['an object child against a primitive', { a: {} }, { a: 1 }],
+      ['a top-level object against a primitive', {}, 1],
+      ['a top-level primitive against an object', 1, {}],
+    ])('When comparing %s, Then returns false', (_label, a, b) => {
+      // Arrange
+      const sut = deepEqualJson
+
+      // Act
+      const result = sut(a, b)
+
+      // Assert
+      expect(result).toBe(false)
+    })
+  })
+
   describe('Given identical references', () => {
     it('When same object reference, Then short-circuits to true', () => {
       const o = { a: { b: 1 } }
