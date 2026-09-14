@@ -1,5 +1,62 @@
 'use strict'
 
+// The push helpers return false on the first child pair already known to
+// differ, so children are walked once rather than scanned then pushed.
+const pushArrayChildPairs = (
+  arrA: unknown[],
+  arrB: unknown[],
+  stackA: object[],
+  stackB: object[]
+): boolean => {
+  const len = arrA.length
+  if (len !== arrB.length) return false
+  for (let i = 0; i < len; i++) {
+    const va = arrA[i]
+    const vb = arrB[i]
+    if (va === vb) continue
+    if (
+      va === null ||
+      vb === null ||
+      typeof va !== 'object' ||
+      typeof vb !== 'object'
+    ) {
+      return false
+    }
+    stackA.push(va as object)
+    stackB.push(vb as object)
+  }
+  return true
+}
+
+const pushObjectChildPairs = (
+  objA: Record<string, unknown>,
+  objB: Record<string, unknown>,
+  stackA: object[],
+  stackB: object[]
+): boolean => {
+  const keysA = Object.keys(objA)
+  const len = keysA.length
+  if (len !== Object.keys(objB).length) return false
+  for (let i = 0; i < len; i++) {
+    const key = keysA[i] as string
+    if (!Object.hasOwn(objB, key)) return false
+    const va = objA[key]
+    const vb = objB[key]
+    if (va === vb) continue
+    if (
+      va === null ||
+      vb === null ||
+      typeof va !== 'object' ||
+      typeof vb !== 'object'
+    ) {
+      return false
+    }
+    stackA.push(va as object)
+    stackB.push(vb as object)
+  }
+  return true
+}
+
 /**
  * Iterative structural equality for JSON-like values (plain objects,
  * arrays, primitives). Order-sensitive for arrays. Replaces the narrow
@@ -55,62 +112,5 @@ export const deepEqualJson = (a: unknown, b: unknown): boolean => {
     if (!childrenMatch) return false
   }
 
-  return true
-}
-
-// The push helpers return false on the first child pair already known to
-// differ, so children are walked once rather than scanned then pushed.
-const pushArrayChildPairs = (
-  arrA: unknown[],
-  arrB: unknown[],
-  stackA: object[],
-  stackB: object[]
-): boolean => {
-  const len = arrA.length
-  if (len !== arrB.length) return false
-  for (let i = 0; i < len; i++) {
-    const va = arrA[i]
-    const vb = arrB[i]
-    if (va === vb) continue
-    if (
-      va === null ||
-      vb === null ||
-      typeof va !== 'object' ||
-      typeof vb !== 'object'
-    ) {
-      return false
-    }
-    stackA.push(va as object)
-    stackB.push(vb as object)
-  }
-  return true
-}
-
-const pushObjectChildPairs = (
-  objA: Record<string, unknown>,
-  objB: Record<string, unknown>,
-  stackA: object[],
-  stackB: object[]
-): boolean => {
-  const keysA = Object.keys(objA)
-  const len = keysA.length
-  if (len !== Object.keys(objB).length) return false
-  for (let i = 0; i < len; i++) {
-    const key = keysA[i] as string
-    if (!Object.hasOwn(objB, key)) return false
-    const va = objA[key]
-    const vb = objB[key]
-    if (va === vb) continue
-    if (
-      va === null ||
-      vb === null ||
-      typeof va !== 'object' ||
-      typeof vb !== 'object'
-    ) {
-      return false
-    }
-    stackA.push(va as object)
-    stackB.push(vb as object)
-  }
   return true
 }

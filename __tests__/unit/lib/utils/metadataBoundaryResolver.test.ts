@@ -742,7 +742,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('scanAndCreateElement dirIndex boundary (L64)', () => {
+  describe('scanAndCreateElement dirIndex boundary', () => {
     it('Given typeDir in path with suffix (dirIndex >= 0 && suffix), When scanning, Then calls getFilesPath with typeDir', async () => {
       // Mutant "dirIndex > 0" would skip when dirIndex = 0
       const path =
@@ -769,7 +769,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('scanAndCreateElement pathAfterType loop (L82, L83)', () => {
+  describe('findNameUnderTypeDirectory pathAfterType loop', () => {
     it('Given component is at index 0 of pathAfterType (i=0 >= 0), When scanning, Then found at boundary (L83 i > 0 mutant killed)', async () => {
       // pathAfterType = ['MyResource', 'deep.txt']
       // Loop: i = length-2 = 0 >= 0 → checks pathAfterType[0] = 'MyResource' → found!
@@ -909,7 +909,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('scanAndCreateElement metaSuffix filtering (L72/L76 mutation contrast)', () => {
+  describe('componentNamesUnder metaSuffix filtering (mutation contrast)', () => {
     // Both id=126 (metaSuffix → ``) and id=128 (file.endsWith → true) cause
     // every file to feed componentNames (not just `*.${suffix}-meta.xml`).
     // Construct a scenario where a non-meta file's name matches a directory
@@ -937,7 +937,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('scanAndCreateElement loop bounds (L82/L83 mutation contrast)', () => {
+  describe('findNameUnderTypeDirectory loop bounds (mutation contrast)', () => {
     it('Given typeDir at index >= 1 and a pre-dir part collides with a component name, When scanning, Then only post-typeDir parts are searched (kills L82 MethodExpression mutant 132)', async () => {
       // Mutant id=132: `parts.slice(dirIndex+1)` becomes `parts` — the loop
       // sees segments BEFORE the typeDir. We exploit that with a pre-dir
@@ -1026,7 +1026,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('scanAndCreateElement getFilesPath fallback (L67 ArrayDeclaration mutation contrast)', () => {
+  describe('componentNamesUnder empty listing (ArrayDeclaration mutation contrast)', () => {
     it('Given a revision with no built tree index, When scanning a typeDir path directly, Then the per-file suffix-filter loop performs zero iterations (kills the getFilesPath ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
       // Arrange — call scanAndCreateElement directly (protected, cast like
       // isNameInPath above) to isolate the fallback loop's iteration count
@@ -1061,7 +1061,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('scanAndCreateElement listChildren fallback (L106 ArrayDeclaration mutation contrast)', () => {
+  describe('siblingsOf empty listing (ArrayDeclaration mutation contrast)', () => {
     it('Given a revision with no built tree index, When walking up from a single directory level, Then findComponentName never consults metadataRepo.get (kills the listChildren ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
       // Arrange — a one-level path keeps the directory walk to exactly one
       // listChildren fallback, so the get() spy count maps 1:1 to the

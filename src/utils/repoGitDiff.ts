@@ -101,8 +101,10 @@ export default class RepoGitDiff {
     this.probeFailure = undefined
   }
 
-  // Returns the line when it can stream right away. Additions are recorded
-  // (or held, when ignored) and deletions deferred into `pending` instead.
+  // Returns the line when it streams right away, and records what the
+  // cancellation rule needs into `pending`: every addition name (held when
+  // ignored) and every kept deletion. Routing and recording share one pass
+  // because the generator must decide per line whether to yield it now.
   private _routeLine(
     expanded: string,
     ignoreHelper: IgnoreHelper,

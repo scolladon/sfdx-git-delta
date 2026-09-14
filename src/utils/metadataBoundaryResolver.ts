@@ -85,15 +85,15 @@ export class MetadataBoundaryResolver {
     dirIndex: number,
     suffix: string,
     revision: string
-  ): string | undefined {
+  ): string | null {
     const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
     const componentNames = this.componentNamesUnder(typeDir, suffix, revision)
     const pathAfterType = parts.slice(dirIndex + 1)
-    // Stryker disable next-line UpdateOperator -- equivalent: reverse-iterate from the second-to-last segment back to root; flipping i++ to i++ means the loop never enters (i starts at length-2, which is < length but i++ goes up while guard is i >= 0 which is always true) — but in practice the test paths have length 1-2 so the loop body executes 0-1 times, observably the same in either direction
+    // Stryker disable next-line UpdateOperator -- unaffordable rather than equivalent: with two or more segments after the type directory, i++ keeps `i >= 0` true forever and the mutant hangs until Stryker's timeout; with fewer, the loop never runs in either direction
     for (let i = pathAfterType.length - 2; i >= 0; i--) {
       if (componentNames.has(pathAfterType[i])) return pathAfterType[i]
     }
-    return undefined
+    return null
   }
 
   protected componentNamesUnder(
@@ -116,16 +116,16 @@ export class MetadataBoundaryResolver {
     path: string,
     parts: string[],
     revision: string
-  ): string | undefined {
+  ): string | null {
     let currentDir = dirname(path)
-    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- equivalent: directory walk termination; this loop walks up from the file's dirname to the repo root, emptying the body skips the walk and falls through to the post-loop fallback (which produces a generic MetadataElement); the test surface only exercises the walk path for nested directory metadata, and the fallback path is also tested
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- equivalent: directory walk termination; this loop walks up from the file's dirname to the repo root, emptying the body skips the walk so this helper returns null and scanAndCreateElement falls back to the file name; the test surface only exercises the walk path for nested directory metadata, and the fallback path is also tested
     while (currentDir && currentDir !== '.') {
       const siblings = this.siblingsOf(currentDir, revision)
       const componentName = this.findComponentName(siblings, parts)
       if (componentName) return componentName
       currentDir = dirname(currentDir)
     }
-    return undefined
+    return null
   }
 
   protected siblingsOf(dir: string, revision: string): string[] {

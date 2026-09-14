@@ -23,11 +23,11 @@ const MANIFEST_TARGETS = [
   ManifestTarget.Package,
   ManifestTarget.DestructiveChanges,
 ] as const
-const ADD_KINDS: readonly AddKind[] = [
+const ADD_KINDS = [
   ChangeKind.Add,
   ChangeKind.Modify,
   ChangeKind.Delete,
-]
+] as const
 const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
 
 /**
@@ -99,16 +99,16 @@ export default class ChangeSet {
   // maintained as a hot-path structure, so call it once per pass, not per
   // element.
   toElements(): ManifestElement[] {
-    return MANIFEST_TARGETS.flatMap(target => this._elementsOf(target))
+    return MANIFEST_TARGETS.flatMap(target => this._targetElements(target))
   }
 
-  private _elementsOf(target: ManifestTarget): ManifestElement[] {
+  private _targetElements(target: ManifestTarget): ManifestElement[] {
     return [...this.byTarget[target]].flatMap(([type, members]) =>
-      [...members].flatMap(member => this._elementOf(target, type, member))
+      [...members].flatMap(member => this._memberElements(target, type, member))
     )
   }
 
-  private _elementOf(
+  private _memberElements(
     target: ManifestTarget,
     type: string,
     member: string

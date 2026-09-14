@@ -8,6 +8,8 @@ import { resolve } from 'node:path'
 import { registry } from '@salesforce/source-deploy-retrieve'
 import internalRegistry from '../src/metadata/internalRegistry.ts'
 
+type RegistryEntry = (typeof internalRegistry)[number]
+
 const SPECIAL_FIELDS = [
   'xmlTag',
   'key',
@@ -18,7 +20,7 @@ const SPECIAL_FIELDS = [
   'childXmlNames',
 ] as const
 
-function isSimpleGapFiller(entry: (typeof internalRegistry)[number]): boolean {
+function isSimpleGapFiller(entry: RegistryEntry): boolean {
   if (!entry.directoryName || !entry.suffix) return false
   return !SPECIAL_FIELDS.some(
     field => (entry as Record<string, unknown>)[field] != null
@@ -74,7 +76,7 @@ const remaining = internalRegistry.filter(
 )
 
 // Group by category for organized output
-function categorize(entry: (typeof internalRegistry)[number]): string {
+function categorize(entry: RegistryEntry): string {
   if (entry.xmlName?.startsWith('Virtual')) return 'virtual'
   if (entry.content) return 'virtual'
   if (entry.pruneOnly) return 'pruneOnly'
@@ -93,7 +95,6 @@ function categorize(entry: (typeof internalRegistry)[number]): string {
   return 'specialHandling'
 }
 
-type RegistryEntry = (typeof internalRegistry)[number]
 type EntryFieldSerializer = (entry: RegistryEntry) => readonly string[]
 
 const serializeContent = (

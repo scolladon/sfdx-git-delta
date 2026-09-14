@@ -108,8 +108,11 @@ const spellingsOf = (meta: Metadata, path: string): string[] =>
     ? [path, `${path}${METAFILE_SUFFIX}`]
     : [`${path}${METAFILE_SUFFIX}`]
 
-const inFolderPathsFor = (meta: Metadata, base: string): string[][] => {
-  const contentSuffixes = contentSuffixesOf(meta)
+const inFolderPathsFor = (
+  meta: Metadata,
+  base: string,
+  contentSuffixes: readonly string[]
+): string[][] => {
   const items = (contentSuffixes.length ? contentSuffixes : [meta.suffix])
     .filter((suffix): suffix is string => Boolean(suffix))
     .filter(suffix => !suffix.endsWith(INFOLDER_SUFFIX))
@@ -183,7 +186,7 @@ const pathsFor = (meta: Metadata): string[][] => {
     ])
   }
 
-  if (meta.inFolder) return inFolderPathsFor(meta, base)
+  if (meta.inFolder) return inFolderPathsFor(meta, base, contentSuffixes)
 
   if (meta.adapter && CONTAINER_ADAPTERS.has(meta.adapter)) {
     return NAMES.map(name => [
