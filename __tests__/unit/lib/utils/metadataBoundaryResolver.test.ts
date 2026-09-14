@@ -482,7 +482,7 @@ describe('MetadataBoundaryResolver', () => {
         // Arrange
         const path = 'force-app/main/any/path/here/MyAsset/images/logo.png'
         const revision = 'HEAD'
-        mockChildren.mockImplementation(dir => {
+        mockChildren.mockImplementation((_revision, dir) => {
           if (dir === 'force-app/main/any/path/here') {
             return ['OtherAsset', 'OtherAsset.resource-meta.xml']
           }
@@ -501,6 +501,7 @@ describe('MetadataBoundaryResolver', () => {
 
         // Assert
         expect(element.componentName).toBe('logo')
+        expect(element.pathAfterType[0]).toBe('MyAsset')
       })
 
       it('Given no metadata boundary found, When creating element, Then should fallback to last segment', async () => {
