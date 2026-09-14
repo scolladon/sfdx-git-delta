@@ -312,11 +312,7 @@ export default class ConfigValidator {
   }
 
   private _hasUsableApiVersion(): boolean {
-    // Stryker disable ConditionalExpression -- equivalent: the '!== undefined' clause exists only for TS narrowing (isNaN requires a number); !isNaN already returns false for both undefined and NaN, so replacing the left operand with true preserves behavior for every reachable apiVersion
-    return (
-      this.config.apiVersion !== undefined && !isNaN(this.config.apiVersion)
-    )
-    // Stryker restore ConditionalExpression
+    return !Number.isNaN(this.config.apiVersion ?? Number.NaN)
   }
 
   // SDR wraps got's RequestError as `cause`; its message carries the code
