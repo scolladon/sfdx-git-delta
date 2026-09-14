@@ -56,7 +56,7 @@ const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]{0,31}:\/{2,})[^/?#]*@/gi
 // text shaped like a keyword followed by "<word>@" is over-redacted, which
 // fails safe.
 const PAC_ENTRY_USERINFO_REGEX =
-  /\b((?:PROXY|HTTPS?|SOCKS(?:4A?|5H?)?)(?=((?:\s|\\[tnrf]|\\u000b)+))\2)(?:[^\s"\\]|\\(?![tnrf]|u000b)[\s\S])*@/gi
+  /\b((?:PROXY|HTTPS?|SOCKS(?:4A?|5H?)?)(?=((?:\s|\\[tnrf]|\\u000b)+))\2)(?:[^\s"\\]|\\(?![tnrf]|u000b)\S)*@/gi
 // Still not covered, and why each stays open. A raw '/', '?' or '#' inside a
 // password is echoed only under a scheme proxy-agent rejects, with nothing but
 // digits before the delimiter; closing it would redact URL paths. A special

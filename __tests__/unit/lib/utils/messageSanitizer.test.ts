@@ -473,7 +473,9 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
       // Arrange — the list pac-proxy-agent echoes when every entry fails
       const entry = 'PROXY\tx'
       const hostileList = JSON.stringify(
-        Array(PAC_LONG_INPUT_LENGTH / (entry.length + 3)).fill(entry)
+        Array(
+          Math.floor(PAC_LONG_INPUT_LENGTH / (JSON.stringify(entry).length + 1))
+        ).fill(entry)
       )
       const startedAt = performance.now()
 
