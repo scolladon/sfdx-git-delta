@@ -118,16 +118,14 @@ and run without coverage.
 npm run test:integration
 ```
 
-Integration tests must not depend on network reachability. The check is a command,
-not a convention — run it behind a dead proxy and it must be fully green:
-
-```bash
-HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 npx vitest run --config vitest.integration.config.ts
-```
-
-Call vitest directly rather than `npm run test:integration`: wireit does not fingerprint
-the proxy variables, so after any earlier green run the script is skipped as fresh and
-the check passes without running a single test.
+Integration tests must not depend on network reachability, and the bucket enforces
+it rather than asking for it: `vitest.integration.config.ts` routes every
+proxy-honouring client through a proxy nothing listens on, and
+`__tests__/integration/networkIsolation.test.ts` fails if that stops being true.
+`npm run test:integration` is therefore the offline check, locally and in CI; the
+config file is part of wireit's fingerprint, so a run skipped as fresh replays one
+that was itself offline. A test that genuinely needs the network does not belong in
+this bucket.
 
 ### NUT Testing
 
