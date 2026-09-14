@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 
+import { SfError } from '@salesforce/core/sfError'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
@@ -272,11 +273,12 @@ describe('Given a ConfigValidator', () => {
         '58'
       )
     })
-    describe('when apiVersion parameter is set with supported value', () => {
-      it.each([46, 52, 55])(
-        'config.apiVersion (%s) equals the parameter',
+    describe('Given a usable pinned apiVersion', () => {
+      it.each([46, 70])(
+        'When _handleDefault runs with %s, Then no lookup is made and the pin is kept without warning',
         async version => {
           // Arrange
+          const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
           config.apiVersion = version
           const sut = new ConfigValidator(config)
 
@@ -284,25 +286,9 @@ describe('Given a ConfigValidator', () => {
           const warnings = await sut['_handleDefault']()
 
           // Assert
-          expect(config.apiVersion).toEqual(version)
-          expect(warnings.length).toEqual(0)
-        }
-      )
-    })
-    describe('when apiVersion parameter is set with unsupported value', () => {
-      it.each([40, 55.1, 0])(
-        `config.apiVersion (%s) equals the parameter `,
-        async version => {
-          // Arrange
-          config.apiVersion = version
-          const sut = new ConfigValidator(config)
-
-          // Act
-          const warnings = await sut['_handleDefault']()
-
-          // Assert
-          expect(config.apiVersion).toEqual(version)
-          expect(warnings.length).toEqual(0)
+          expect(lookup).not.toHaveBeenCalled()
+          expect(config.apiVersion).toBe(version)
+          expect(warnings).toEqual([])
         }
       )
     })
@@ -337,7 +323,7 @@ describe('Given a ConfigValidator', () => {
           )
         })
         describe('when "sourceApiVersion" attribute is set with invalid value', () => {
-          it.each(['NaN', 'awesome', ''])(
+          it.each(['NaN', 'awesome', '', '0.0', '-1.0'])(
             'config.apiVersion (%s) defaults to latest version with warning',
             async version => {
               // Arrange
@@ -371,10 +357,11 @@ describe('Given a ConfigValidator', () => {
           })
         })
 
-        describe('when "sourceApiVersion" attribute exceeds latest version', () => {
-          it('config.apiVersion is overridden to latest with warning', async () => {
+        describe('Given sourceApiVersion is set and nothing else is pinned', () => {
+          it('When _handleDefault runs, Then the project version is kept and no lookup is made', async () => {
             // Arrange
-            mockSfProject('1000000000')
+            const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+            mockSfProject('52.0')
             config.apiVersion = undefined
             const sut = new ConfigValidator(config)
 
@@ -382,8 +369,9 @@ describe('Given a ConfigValidator', () => {
             const warnings = await sut['_handleDefault']()
 
             // Assert
-            expect(config.apiVersion).toEqual(latestAPIVersionSupported)
-            expect(warnings.length).toEqual(1)
+            expect(lookup).not.toHaveBeenCalled()
+            expect(config.apiVersion).toBe(52)
+            expect(warnings).toEqual([])
           })
         })
 
@@ -429,21 +417,6 @@ describe('Given a ConfigValidator', () => {
         )
       })
 
-      describe('when apiVersion is provided', () => {
-        it('When the lookup fails, Then the provided apiVersion is kept without warning', async () => {
-          // Arrange
-          config.apiVersion = 46
-          const sut = new ConfigValidator(config)
-
-          // Act
-          const warnings = await sut['_handleDefault']()
-
-          // Assert
-          expect(config.apiVersion).toEqual(46)
-          expect(warnings).toHaveLength(0)
-        })
-      })
-
       describe('when apiVersion is not resolvable', () => {
         it('When the lookup fails and no version is available, Then it throws an actionable ConfigError', async () => {
           // Arrange
@@ -457,68 +430,429 @@ describe('Given a ConfigValidator', () => {
           await expect(sut['_handleDefault']()).rejects.toThrow(
             expect.objectContaining({
               name: 'ConfigError',
-              message: expect.stringContaining(
-                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org'
-              ),
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org',
             })
           )
         })
       })
 
-      describe('when apiVersion is NaN', () => {
-        it('When the lookup fails and apiVersion is NaN, Then it throws an actionable ConfigError', async () => {
+      describe('Given the refusal describes the lookup failure', () => {
+        it('When the lookup rejects the way SDR does, with an SfError wrapping the network error, Then the refusal names the cause in parentheses', async () => {
           // Arrange
-          config.apiVersion = NaN
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new SfError(
+              'Unable to get a current API version from the appexchange org',
+              'ApiVersionRetrievalError',
+              ['Provide an API version explicitly'],
+              Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'), {
+                code: 'ECONNREFUSED',
+              })
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
           // Act & Assert
           await expect(sut['_handleDefault']()).rejects.toThrow(
             expect.objectContaining({
               name: 'ConfigError',
-              message: expect.stringContaining(
-                'error.ApiVersionRetrievalFailed'
-              ),
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org (connect ECONNREFUSED 127.0.0.1:9)',
+            })
+          )
+        })
+
+        it('When the cause message carries a control character, Then the refusal carries its escaped form and never the raw character', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error('connect\nECONNREFUSED'),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act
+          const error = await sut['_handleDefault']().catch(
+            (thrown: unknown) => thrown
+          )
+
+          // Assert
+          expect((error as Error).message).toContain(
+            'connect\\u{a}ECONNREFUSED'
+          )
+          expect((error as Error).message).not.toContain(
+            'connect\nECONNREFUSED'
+          )
+        })
+
+        it('When the cause message echoes a proxy URL carrying credentials, Then the refusal redacts them', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error(
+                  'Unsupported protocol for proxy URL: tcp://alice:s3cr3tPass@127.0.0.1:9'
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org (Unsupported protocol for proxy URL: tcp://<redacted>@127.0.0.1:9)',
+            })
+          )
+        })
+
+        it('When the cause lists a credentialed PAC proxy entry, Then the refusal redacts it', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error(
+                  'Failed to establish a socket connection to proxies: ["PROXY alice:s3cr3tPass@127.0.0.1:9"]'
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org (Failed to establish a socket connection to proxies: ["PROXY <redacted>@127.0.0.1:9"])',
+            })
+          )
+        })
+
+        it('When the echoed credentials are longer than the message length cap, Then they are redacted before the cap can cut them loose from their at sign', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error(
+                  `Unsupported protocol for proxy URL: tcp://alice:${'p'.repeat(200)}@127.0.0.1:9`
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act
+          const error = await sut['_handleDefault']().catch(
+            (thrown: unknown) => thrown
+          )
+
+          // Assert
+          expect((error as Error).message).toContain('tcp://<redacted>@')
+          expect((error as Error).message).not.toContain('alice:')
+        })
+
+        it('When the cause is not an Error, Then the bare SDR message renders', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              { cause: 'ECONNREFUSED' }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org',
+            })
+          )
+        })
+
+        it('When the rejection is not an Error yet carries an Error cause, Then the cause is ignored and the bare stringified rejection renders', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            {
+              cause: new Error('connect ECONNREFUSED 127.0.0.1:9'),
+            }
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message: 'error.ApiVersionRetrievalFailed:[object Object]',
             })
           )
         })
       })
     })
 
-    describe('when apiVersion equals the latest supported version', () => {
-      it('When apiVersion equals latestVersion, Then no warning and no override', async () => {
+    describe('Given a library caller whose apiVersion bypasses the number type', () => {
+      it.each<[unknown, number | undefined]>([
+        ['', undefined],
+        [null, undefined],
+        ['abc', undefined],
+        [0, undefined],
+        [-1, undefined],
+        [undefined, undefined],
+        ['67.0', 67],
+        ['67', 67],
+        [67, 67],
+        [66.5, 66],
+      ])(
+        'When the config is sanitised from %j, Then apiVersion becomes %j',
+        (input, expected) => {
+          // Arrange
+          Object.assign(config, { apiVersion: input })
+          const sut = new ConfigValidator(config)
+
+          // Act
+          sut['_sanitizeConfig']()
+
+          // Assert
+          expect(config.apiVersion).toBe(expected)
+        }
+      )
+
+      it('When apiVersion is an empty string and no sfdx-project.json exists, Then validateConfig defaults to the latest version and returns the defaulted warning', async () => {
         // Arrange
-        config.apiVersion = latestAPIVersionSupported
+        Object.assign(config, { apiVersion: '' })
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut.validateConfig()
+
+        // Assert
+        expect(config.apiVersion).toBe(58)
+        expect(warnings).toHaveLength(1)
+        expect(warnings[0]!.message).toBe('warning.ApiVersionDefaulted:58')
+      })
+
+      it('When apiVersion is an empty string and the lookup fails, Then validateConfig refuses instead of keeping it', async () => {
+        // Arrange
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+          new Error(
+            'Unable to get a current API version from the appexchange org'
+          )
+        )
+        Object.assign(config, { apiVersion: '' })
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'ConfigError',
+            message:
+              'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org',
+          })
+        )
+      })
+    })
+
+    describe('Given the lookup succeeds with a value that is not a usable API version', () => {
+      it.each(['NaN', '0', '-1'])(
+        'When the lookup answers %s and nothing is pinned, Then the run is refused naming what came back',
+        async answer => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+            answer
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message: `error.ApiVersionRetrievalFailed:error.ApiVersionLookupUnusable:${answer}`,
+            })
+          )
+        }
+      )
+
+      it('When the lookup answers 1 and nothing is pinned, Then 1 is the defaulted version', async () => {
+        // Arrange
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+          '1'
+        )
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        config.apiVersion = undefined
         const sut = new ConfigValidator(config)
 
         // Act
         const warnings = await sut['_handleDefault']()
 
         // Assert
-        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(warnings).toHaveLength(0)
+        expect(config.apiVersion).toBe(1)
+        expect(warnings).toHaveLength(1)
+      })
+    })
+
+    describe('Given the API version cannot be resolved while the input is also invalid', () => {
+      const REFUSAL =
+        'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org'
+
+      beforeEach(() => {
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+          new Error(
+            'Unable to get a current API version from the appexchange org'
+          )
+        )
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        config.apiVersion = undefined
+      })
+
+      it('When --to does not resolve, Then the sha-pointer error and the refusal are both reported, the sha-pointer error first', async () => {
+        // Arrange
+        mockResolveCommit.mockImplementation((ref: string) =>
+          ref === 'bad-to'
+            ? Promise.reject(new Error('bad sha'))
+            : Promise.resolve('ref')
+        )
+        const sut = new ConfigValidator({
+          ...config,
+          from: 'HEAD',
+          to: 'bad-to',
+        })
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'ConfigError',
+            message: `error.ParameterIsNotGitSHA:to,bad-to, ${REFUSAL}`,
+          })
+        )
+      })
+
+      it('When the repository has no .git, Then PathIsNotGit and the refusal are both reported', async () => {
+        // Arrange
+        mockedPathExists.mockResolvedValue(false as never)
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            message: `error.PathIsNotGit:${MOCK_REPOSITORY_KEY_ESCAPED}, ${REFUSAL}`,
+          })
+        )
+      })
+
+      it('When mergeBase is set and --to does not resolve, Then both are reported and getMergeBase is never called', async () => {
+        // Arrange
+        mockResolveCommit.mockImplementation((ref: string) =>
+          ref === 'bad-to'
+            ? Promise.reject(new Error('bad sha'))
+            : Promise.resolve('ref')
+        )
+        const sut = new ConfigValidator({
+          ...config,
+          from: 'HEAD',
+          to: 'bad-to',
+          mergeBase: true,
+        })
+
+        // Act
+        const error = await sut
+          .validateConfig()
+          .catch((thrown: unknown) => thrown)
+
+        // Assert
+        expect((error as Error).message).toBe(
+          `error.ParameterIsNotGitSHA:to,bad-to, ${REFUSAL}`
+        )
+        expect(mockGetMergeBase).not.toHaveBeenCalled()
+      })
+
+      it('When the input is valid, Then the refusal is thrown alone and byte-identical', async () => {
+        // Arrange
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({ name: 'ConfigError', message: REFUSAL })
+        )
+      })
+
+      it('When defaulting the API version fails with something other than a ConfigError, Then that error propagates untouched', async () => {
+        // Arrange — with valid input, the defaulted warning is the first and
+        // only message rendered, so a one-shot implementation reaches it.
+        const defect = new TypeError('boom')
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+          '58'
+        )
+        mockGetMessage.mockImplementationOnce(() => {
+          throw defect
+        })
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toBe(defect)
       })
     })
 
     describe('when apiVersion is explicitly NaN', () => {
-      it('When apiVersion is NaN, Then it defaults to latest with defaulted warning', async () => {
-        // Arrange
-        config.apiVersion = NaN
-        const sut = new ConfigValidator(config)
-
-        // Act
-        const warnings = await sut['_handleDefault']()
-
-        // Assert
-        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(warnings).toHaveLength(1)
-        expect(warnings[0].message).toContain('warning.ApiVersionDefaulted')
-      })
-
       it('When apiVersion is NaN, Then validateConfig returns that same warning to its caller', async () => {
         // Arrange — validateConfig is the only surface main() sees, so the
         // warnings it returns are what reaches the user. Assert the channel,
         // not just the value the private helper computed.
         config.apiVersion = NaN
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
         const sut = new ConfigValidator(config)
 
         // Act
@@ -539,22 +873,6 @@ describe('Given a ConfigValidator', () => {
 
         // Assert
         expect(warnings).toEqual([])
-      })
-    })
-
-    describe('when apiVersion exceeds latest supported version', () => {
-      it('When apiVersion exceeds latest, Then warning message contains override details', async () => {
-        // Arrange
-        config.apiVersion = 100
-        const sut = new ConfigValidator(config)
-
-        // Act
-        const warnings = await sut['_handleDefault']()
-
-        // Assert
-        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(warnings).toHaveLength(1)
-        expect(warnings[0].message).toContain('warning.ApiVersionOverridden')
       })
     })
 
@@ -589,26 +907,6 @@ describe('Given a ConfigValidator', () => {
         await sut['_getApiVersion']()
 
         // Assert
-        expect(Logger.debug).toHaveBeenCalledOnce()
-      })
-    })
-
-    describe('_resolveLatestSupportedVersion diagnostic logging (L267)', () => {
-      it('When the latest version lookup fails but a usable apiVersion is already set, Then the fallback is logged for diagnostics', async () => {
-        // Arrange
-        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
-          new Error('offline')
-        )
-        config.apiVersion = 46
-        const sut = new ConfigValidator(config)
-
-        // Act
-        const latest = await sut['_resolveLatestSupportedVersion']()
-
-        // Assert — content is not asserted (see the StringLiteral disable
-        // on this call site); presence of the call is what a
-        // CallExpression removal mutant would drop.
-        expect(latest).toBeUndefined()
         expect(Logger.debug).toHaveBeenCalledOnce()
       })
     })
@@ -927,7 +1225,7 @@ describe('Given a ConfigValidator', () => {
     })
   })
 
-  describe('getMessage token arrays contain correct values (L46, L72, L109, L152, L165)', () => {
+  describe('getMessage token arrays contain correct values (L46, L72, L109, L165)', () => {
     it('Given invalid SHA for "to", When error thrown, Then message contains the SHA parameter name and value (kills L46 [] mutant)', async () => {
       // L46 mutant: getMessage(..., []) → message = 'error.ParameterIsNotGitSHA:'
       // Real: getMessage(..., ['to', 'bad-to']) → 'error.ParameterIsNotGitSHA:to,bad-to'
@@ -943,19 +1241,6 @@ describe('Given a ConfigValidator', () => {
           message: expect.stringContaining('to'),
         })
       )
-    })
-
-    it('Given apiVersion exceeds latest, When _handleDefault, Then warning message contains both version values (kills L152 [] mutant)', async () => {
-      // L152 mutant: getMessage(..., []) → message = 'warning.ApiVersionOverridden:'
-      // Real: getMessage(..., ['100', '58']) → 'warning.ApiVersionOverridden:100,58'
-      vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
-        '58'
-      )
-      config.apiVersion = 100
-      const sut = new ConfigValidator(config)
-      const warnings = await sut['_handleDefault']()
-
-      expect(warnings[0].message).toContain('100')
     })
 
     it('Given apiVersion defaults to latest, When _handleDefault, Then warning message contains latestVersion (kills L165 [] mutant)', async () => {
@@ -1047,46 +1332,15 @@ describe('Given a ConfigValidator', () => {
     })
   })
 
-  describe('_apiVersionDefault logical operators (L146, L161)', () => {
+  describe('_apiVersionDefault defaulting', () => {
     beforeEach(() => {
       vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
         '58'
       )
     })
 
-    it('Given apiVersion is defined, valid, and less than latest, When _apiVersionDefault, Then no warning and no override (L146 &&)', async () => {
-      // Mutant "||" instead of "&&": undefined || !isNaN(undefined)=true → still false since undefined > 58 is false
-      // Key: test that apiVersion < latest stays unchanged (no false positive override)
-      config.apiVersion = 55
-      const sut = new ConfigValidator(config)
-      const warnings = await sut['_handleDefault']()
-
-      expect(config.apiVersion).toBe(55)
-      expect(warnings).toHaveLength(0)
-    })
-
-    it('Given apiVersion is defined and equal to latest, When _apiVersionDefault, Then no override (L146 boundary)', async () => {
-      // Confirms the > operator (not >= in mutant "anchorIndex > 2")
-      config.apiVersion = 58
-      const sut = new ConfigValidator(config)
-      const warnings = await sut['_handleDefault']()
-
-      expect(config.apiVersion).toBe(58)
-      expect(warnings).toHaveLength(0)
-    })
-
-    it('Given apiVersion is NaN, When _apiVersionDefault, Then defaults to latest (L161 ConditionalExpression)', async () => {
-      // Mutant ConditionalExpression false: the defaulting block never runs → apiVersion stays NaN
-      config.apiVersion = NaN
-      const sut = new ConfigValidator(config)
-      const warnings = await sut['_handleDefault']()
-
-      expect(config.apiVersion).toBe(58)
-      expect(warnings).toHaveLength(1)
-    })
-
-    it('Given apiVersion is undefined after project lookup, When _apiVersionDefault, Then defaults to latest (L161)', async () => {
-      // Mutant false: if block skipped → apiVersion stays undefined
+    it('Given apiVersion is undefined after the project lookup, When _handleDefault runs, Then it defaults to latest', async () => {
+      // Mutant: the pinned guard in _handleDefault forced true returns before defaulting, so apiVersion stays undefined
       config.apiVersion = undefined
       mockSfProjectResolve.mockRejectedValue(new Error('no project'))
       const sut = new ConfigValidator(config)
@@ -1210,21 +1464,13 @@ describe('Given a ConfigValidator', () => {
       )
     })
 
-    it('Given numeric falsy sourceApiVersion (0), When _handleDefault runs, Then projectApiVersion truthy guard skips parseInt (kills L132 cond=true mutant)', async () => {
-      // Real: `if (projectApiVersion)` is false for 0 (numeric), apiVersion
-      //       stays undefined → defaults to latest with warning.
-      // Mutant `if (true)`: enters branch, parseInt(0, 10) = 0, apiVersion
-      //       becomes 0 (a falsy but defined number). The downstream
-      //       _apiVersionDefault then sees 0 !== undefined && !isNaN(0)
-      //       && 0 > 58 = false → no override. 0 === undefined || isNaN(0)
-      //       = false → no defaulting. apiVersion stays 0 with no warning.
-      // Observable difference: real => 58 with warning, mutant => 0 with
-      // no warning.
+    it('Given numeric falsy sourceApiVersion (0), When _handleDefault runs, Then it is not a usable pin and defaults to latest with a warning', async () => {
+      // sourceApiVersion is typed string; a numeric 0 still parses to no positive version.
       mockSfProjectResolve.mockResolvedValue({
         getSfProjectJson: () => ({
-          // numeric 0 (intentionally bypassing the string contract for the
-          // truthiness guard) — the production code's truthy check exists
-          // exactly to handle this ill-typed shape gracefully.
+          // numeric 0 (intentionally bypassing the string contract) —
+          // toApiVersion's parseInt/isPositiveVersion check handles this
+          // ill-typed shape the same as any other non-positive value.
           getContents: () =>
             ({ sourceApiVersion: 0 }) as unknown as Record<string, unknown>,
         }),
@@ -1264,24 +1510,6 @@ describe('Given a ConfigValidator', () => {
       // call resolveCommit with undefined for the empty key)
       expect(mockResolveCommit).toHaveBeenCalledWith('invalid-from')
       expect(mockResolveCommit).toHaveBeenCalledWith('invalid-to')
-    })
-
-    it('Given apiVersion is NaN with a working SfProject, When _handleDefault runs, Then it is reset to latest with a single warning (kills L161 cond=false mutant)', async () => {
-      // Mutant L161 cond=false: the NaN-detection block never fires →
-      // apiVersion stays NaN and the defaulted warning is never pushed.
-      // Concretely contrast the two outcomes via two separate asserts —
-      // value AND warning count — so neither survives in isolation.
-      config.apiVersion = NaN
-      mockSfProjectResolve.mockResolvedValue({
-        getSfProjectJson: () => ({ getContents: () => ({}) }),
-      })
-      const sut = new ConfigValidator(config)
-
-      const warnings = await sut['_handleDefault']()
-
-      expect(config.apiVersion).toBe(58)
-      expect(Number.isNaN(config.apiVersion)).toBe(false)
-      expect(warnings).toHaveLength(1)
     })
   })
 

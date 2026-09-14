@@ -642,7 +642,7 @@ const work = await sgd({
   from: '', // (required) commit sha from where the diff is done. [default : git rev-list --max-parents=0 HEAD]
   mergeBase: false, // (required) resolve `from` to the merge base of `from`/`to` first. [default : false]
   output: '', // source package specific output. [default : "./output"]
-  apiVersion: '', // salesforce API version. [default : latest]
+  apiVersion: undefined, // salesforce API version, as a number (e.g. 67). [default : sfdx-project.json "sourceApiVersion", else latest]
   repo: '', // git repository location. [default : "."]
   source: ['.'], // (required) one or more repo-relative folders to scope the diff to; '.' (or an empty array) means the whole repository
 })

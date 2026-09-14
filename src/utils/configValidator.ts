@@ -8,7 +8,6 @@ import GitAdapter from '../adapter/GitAdapter.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
-import { pushAll } from './arrayUtils.js'
 import {
   ConfigError,
   getErrorMessage,
@@ -19,7 +18,10 @@ import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import { MessageService } from './MessageService.js'
-import { sanitizeForMessage } from './messageSanitizer.js'
+import {
+  redactProxyCredentials,
+  sanitizeForMessage,
+} from './messageSanitizer.js'
 import type {
   SourceDirRejection,
   SourceDirRejectionReason,
@@ -37,6 +39,22 @@ const SOURCE_DIR_REJECTION_MESSAGE_KEYS: Record<
   wildcard: 'error.SourceDirContainsWildcard',
   absolute: 'error.SourceDirIsAbsolute',
   escapes: 'error.SourceDirEscapesRepository',
+}
+
+const isPositiveVersion = (version: number): boolean => version > 0
+
+type ApiVersionOutcome =
+  | { readonly warnings: readonly Error[] }
+  | { readonly refusal: string }
+
+// Two values arrive unparsed: a JavaScript library caller's apiVersion, which
+// the number type does not bind (e.g. '' or '67.0'), and sfdx-project.json's
+// sourceApiVersion string. Parse the way the --api-version flag path does, so
+// a value that does not parse to a positive version means "not provided"
+// rather than rendering <version>.0</version>.
+const toApiVersion = (value: unknown): number | undefined => {
+  const parsed = parseInt(String(value), 10)
+  return isPositiveVersion(parsed) ? parsed : undefined
 }
 
 export default class ConfigValidator {
@@ -112,54 +130,69 @@ export default class ConfigValidator {
     const requestedFrom = this.config.from
     const requestedTo = this.config.to
     this._sanitizeConfig()
-
-    // Short-circuits before any git object is read: _validateGitSha below
-    // calls resolveCommit, which opens the repository. A bad --source-dir is
-    // the actionable error and the one that today produces a silent empty
-    // manifest, so it is reported alone even if the SHAs are also invalid.
-    const sourceErrors = this._validateSource()
-    if (sourceErrors.length > 0) {
-      throw new ConfigError(sourceErrors.join(', '))
-    }
-
-    const [defaultWarnings, repoExists, gitErrors, changesManifestErrors] =
-      await Promise.all([
-        this._handleDefault(),
-        pathExists(join(this.config.repo, GIT_FOLDER)),
-        this._validateGitSha(),
-        this._validateChangesManifest(),
-      ])
-
-    const errors: string[] = []
-    if (!repoExists) {
-      // Rendered from the adapter's own absolute repository key — not
-      // this.config.repo, which is only sanitizePath-normalized, never
-      // resolved to absolute — so this collapses with the identical
-      // RepositoryRefusalError message a same-repository resolveCommit failure
-      // produces below, instead of reporting the missing repository twice
-      // in two different forms.
-      errors.push(
-        this.message.getMessage('error.PathIsNotGit', [
-          sanitizeForMessage(this.gitAdapter.repositoryKey),
-        ])
-      )
-    }
-    pushAll(errors, gitErrors)
-    pushAll(errors, changesManifestErrors)
-
-    if (errors.length > 0) {
-      // Two SHA keys against one repository produce the same refusal twice,
-      // and a missing .git makes the config check and the engine say the
-      // same sentence. Identical strings carry no extra information.
-      throw new ConfigError([...new Set(errors)].join(', '))
-    }
+    this._assertSourceDirs()
+    const warnings = await this._validateInputsAndApiVersion()
 
     // Runs after the SHA validation above so a typo in either ref surfaces
     // as the precise ParameterIsNotGitSHA message instead of the vaguer
     // MergeBaseNotFound.
     await this._resolveMergeBase(requestedFrom, requestedTo)
 
-    return defaultWarnings
+    return warnings
+  }
+
+  // Short-circuits before any git object is read: _validateGitSha below
+  // calls resolveCommit, which opens the repository. A bad --source-dir is
+  // the actionable error and the one that today produces a silent empty
+  // manifest, so it is reported alone even if the SHAs are also invalid.
+  private _assertSourceDirs(): void {
+    const sourceErrors = this._validateSource()
+    if (sourceErrors.length > 0) {
+      throw new ConfigError(sourceErrors.join(', '))
+    }
+  }
+
+  private async _validateInputsAndApiVersion(): Promise<readonly Error[]> {
+    const [apiVersionOutcome, inputErrors] = await Promise.all([
+      this._settleApiVersion(),
+      this._collectInputErrors(),
+    ])
+    // The refusal is about the environment, the input errors about what the
+    // user typed: report both in one run, the typing first.
+    if ('refusal' in apiVersionOutcome) {
+      throw this._configError([...inputErrors, apiVersionOutcome.refusal])
+    }
+    if (inputErrors.length > 0) {
+      throw this._configError(inputErrors)
+    }
+    return apiVersionOutcome.warnings
+  }
+
+  private async _collectInputErrors(): Promise<readonly string[]> {
+    const errorGroups = await Promise.all([
+      this._validateRepository(),
+      this._validateGitSha(),
+      this._validateChangesManifest(),
+    ])
+    return errorGroups.flat()
+  }
+
+  // Only a ConfigError is a refusal to report alongside the input errors; any
+  // other rejection is a defect and propagates untouched.
+  private async _settleApiVersion(): Promise<ApiVersionOutcome> {
+    try {
+      return { warnings: await this._handleDefault() }
+    } catch (error) {
+      if (!(error instanceof ConfigError)) throw error
+      return { refusal: error.message }
+    }
+  }
+
+  // Two SHA keys against one repository produce the same refusal twice, and a
+  // missing .git makes the config check and the engine say the same sentence.
+  // Identical strings carry no extra information.
+  private _configError(errors: readonly string[]): ConfigError {
+    return new ConfigError([...new Set(errors)].join(', '))
   }
 
   // --merge-base resolves --from to the merge base of --from and --to (git
@@ -186,6 +219,20 @@ export default class ConfigValidator {
       )
     }
     this.config.from = base
+  }
+
+  // Rendered from the adapter's own absolute repository key — not
+  // this.config.repo, which is only sanitizePath-normalized, never resolved to
+  // absolute — so this collapses with the identical RepositoryRefusalError
+  // message a same-repository resolveCommit failure produces, instead of
+  // reporting the missing repository twice in two different forms.
+  protected async _validateRepository(): Promise<string[]> {
+    if (await pathExists(join(this.config.repo, GIT_FOLDER))) return []
+    return [
+      this.message.getMessage('error.PathIsNotGit', [
+        sanitizeForMessage(this.gitAdapter.repositoryKey),
+      ]),
+    ]
   }
 
   // oclif cannot natively validate --changes-manifest (it uses a string flag
@@ -224,20 +271,21 @@ export default class ConfigValidator {
 
   protected async _handleDefault(): Promise<readonly Error[]> {
     await this._getApiVersion()
+    // A version the user pinned is emitted as pinned: capping it would need the
+    // network, and a manifest that changes with network reachability is one the
+    // user cannot reproduce.
+    if (this._isPinned()) return []
     return await this._apiVersionDefault()
   }
 
   protected async _getApiVersion() {
-    if (this.config.apiVersion !== undefined) return
+    if (this._isPinned()) return
 
     try {
       const sfProject = await SfProject.resolve(this.config.repo)
-      const projectApiVersion = sfProject
-        .getSfProjectJson()
-        .getContents().sourceApiVersion
-      if (projectApiVersion) {
-        this.config.apiVersion = parseInt(projectApiVersion, 10)
-      }
+      this.config.apiVersion = toApiVersion(
+        sfProject.getSfProjectJson().getContents().sourceApiVersion
+      )
     } catch (ex) {
       Logger.debug(
         // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
@@ -248,74 +296,62 @@ export default class ConfigValidator {
 
   protected async _apiVersionDefault(): Promise<readonly Error[]> {
     const latestVersion = await this._resolveLatestSupportedVersion()
-    // Stryker disable next-line ConditionalExpression -- equivalent: undefined signals the lookup failed while a usable apiVersion is already set; flipping the guard would fall through to clamp against an undefined ceiling, which the offline test surface forbids
-    if (latestVersion === undefined) return []
-
-    const warnings: Error[] = []
-
-    // Stryker disable ConditionalExpression,LogicalOperator -- equivalent: this triple-AND gate ensures we only override a numeric, defined, above-latest apiVersion; flipping individual conditions to true falls into the override branch when apiVersion is undefined or NaN, but the second `if (apiVersion === undefined || isNaN())` block immediately resets to latestVersion, producing the same observable apiVersion in both arms (only the warning content differs, which the test surface doesn't disambiguate)
-    if (
-      this.config.apiVersion !== undefined &&
-      !isNaN(this.config.apiVersion) &&
-      this.config.apiVersion > latestVersion
-    ) {
-      // Stryker restore ConditionalExpression,LogicalOperator
-      warnings.push(
-        new Error(
-          this.message.getMessage('warning.ApiVersionOverridden', [
-            String(this.config.apiVersion),
-            String(latestVersion),
-          ])
-        )
-      )
-      this.config.apiVersion = latestVersion
-    }
-
-    // Stryker disable next-line ConditionalExpression -- equivalent: defaulting fallback when apiVersion is unset/NaN; flipping to false skips the default and the apiVersion stays as-is, but the only test fixtures with apiVersion already set hit the early-return at _getApiVersion start, so the default branch is unreachable for those test cases
-    if (this.config.apiVersion === undefined || isNaN(this.config.apiVersion)) {
-      this.config.apiVersion = latestVersion
-      warnings.push(
-        new Error(
-          this.message.getMessage('warning.ApiVersionDefaulted', [
-            String(latestVersion),
-          ])
-        )
-      )
-    }
-
-    return warnings
+    this.config.apiVersion = latestVersion
+    return [
+      new Error(
+        this.message.getMessage('warning.ApiVersionDefaulted', [
+          String(latestVersion),
+        ])
+      ),
+    ]
   }
 
-  // Resolves the latest supported API version, falling back gracefully when the
-  // appexchange lookup is unreachable (offline/firewalled environments).
-  protected async _resolveLatestSupportedVersion(): Promise<
-    number | undefined
-  > {
+  // Only an unpinned run looks the version up, so there is nothing to fall back
+  // to: a lookup that fails, or that answers with something that is not a
+  // positive version, refuses the run. This tool cannot vouch for a <version> it
+  // did not resolve, and a wrong one is authoritative at deploy time.
+  protected async _resolveLatestSupportedVersion(): Promise<number> {
+    const latestVersion = await this._lookUpLatestVersion()
+    if (isPositiveVersion(latestVersion)) return latestVersion
+    throw this._refusal(
+      this.message.getMessage('error.ApiVersionLookupUnusable', [
+        String(latestVersion),
+      ])
+    )
+  }
+
+  private async _lookUpLatestVersion(): Promise<number> {
     try {
       return await getLatestSupportedVersion()
     } catch (ex) {
-      // A usable apiVersion is already set: keep it, we just can't cap it.
-      // Stryker disable ConditionalExpression -- equivalent: the '!== undefined' clause exists only for TS narrowing (isNaN requires a number); !isNaN already returns false for both undefined and NaN, so replacing the left operand with true preserves behavior for every reachable apiVersion
-      if (
-        this.config.apiVersion !== undefined &&
-        !isNaN(this.config.apiVersion)
-      ) {
-        // Stryker restore ConditionalExpression
-        Logger.debug(
-          // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
-          lazy`_resolveLatestSupportedVersion: keeping provided apiVersion, latest version lookup failed: ${ex}`
-        )
-        return undefined
-      }
-      throw new ConfigError(
-        this.message.getMessage('error.ApiVersionRetrievalFailed', [
-          getErrorMessage(ex),
-        ])
-      )
+      throw this._refusal(this._describeLookupFailure(ex))
     }
   }
 
+  private _refusal(detail: string): ConfigError {
+    return new ConfigError(
+      this.message.getMessage('error.ApiVersionRetrievalFailed', [detail])
+    )
+  }
+
+  private _isPinned(): boolean {
+    return this.config.apiVersion !== undefined
+  }
+
+  // SDR wraps got's RequestError as `cause`; its message carries the code
+  // (connect ECONNREFUSED …, connect ETIMEDOUT, getaddrinfo ENOTFOUND …), which is
+  // the only thing that tells a proxy misconfiguration from a firewall drop from DNS.
+  private _describeLookupFailure(ex: unknown): string {
+    const message = getErrorMessage(ex)
+    const cause = ex instanceof Error ? ex.cause : undefined
+    if (!(cause instanceof Error)) return message
+    // Redact before sanitising: the length cap could otherwise cut between the
+    // credentials and their '@', leaving a fragment the redaction cannot match.
+    return `${message} (${sanitizeForMessage(redactProxyCredentials(cause.message))})`
+  }
+
   protected _sanitizeConfig() {
+    this.config.apiVersion = toApiVersion(this.config.apiVersion)
     this.config.repo = sanitizePath(this.config.repo)!
     this.config.output = sanitizePath(this.config.output)!
     this.config.ignore = sanitizePath(this.config.ignore)

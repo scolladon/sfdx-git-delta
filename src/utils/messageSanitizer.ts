@@ -29,6 +29,56 @@ const escapeControlChar = (char: string): string => {
   return `\\u{${codePoint.toString(16)}}`
 }
 
+// Some network errors echo the offending proxy verbatim, credentials included:
+// proxy-agent's "Unsupported protocol for proxy URL: <url>" carries a URL's
+// user:password userinfo, and pac-proxy-agent's "Failed to establish a socket
+// connection to proxies: [...]" lists a PAC resolver's entries as written.
+// Redact both before the value reaches a message; both patterns stay linear
+// because they run on network-supplied text before any length cap.
+//
+// The URL userinfo match runs up to the last '@' before an authority terminator
+// ('/', '?', '#') and deliberately crosses whitespace, because a URL parser
+// accepts a password with a space in it; over-redacting a later '@' fails safe.
+// The scheme is capped at 32 characters: an uncapped scheme backtracks
+// quadratically on a long letter run.
+const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]{0,31}:\/{2,})[^/?#]*@/gi
+// A PAC entry has no scheme to anchor on, so its keyword anchors instead,
+// matched case-insensitively because a mis-cased or unsupported entry (such as
+// SOCKS5H) is rejected yet still echoed. pac-proxy-agent splits an entry on any
+// whitespace but echoes the list through JSON.stringify, so the separator
+// arrives either as whitespace or as a JSON escape (\t, \n, \r, \f, \u000b).
+// The separator is consumed atomically (lookahead then backreference) so the
+// engine can never hand it back to the userinfo run. That run stops at
+// whitespace, at a closing quote and at an escaped separator, and reads any
+// other backslash pair (such as an escaped quote in a password) as one
+// character: a match stays inside its own entry, which keeps every other
+// entry's host visible and the scan linear over a long echoed list. Ordinary
+// text shaped like a keyword followed by "<word>@" is over-redacted, which
+// fails safe.
+const PAC_ENTRY_USERINFO_REGEX =
+  /\b((?:PROXY|HTTPS?|SOCKS(?:4A?|5H?)?)(?=((?:\s|\\[tnrf]|\\u000b)+))\2)(?:[^\s"\\]|\\(?![tnrf]|u000b)\S)*@/gi
+// Still not covered, and why each stays open. A raw '/', '?' or '#' inside a
+// password is echoed only under a scheme proxy-agent rejects, with nothing but
+// digits before the delimiter; closing it would redact URL paths. A special
+// scheme written with fewer than two slashes ("ftp:user:pass@host") reaches a
+// message only when the value also carries a later "://", because
+// proxy-from-env prefixes a scheme to any value without one; closing it would
+// mean matching any "word:" followed by an '@' in ordinary message text.
+// Entries that never parse as a working proxy are echoed yet may stay
+// unredacted: a literal backslash escape used as the separator
+// ("PROXY\\tuser:pass@host"), a password containing whitespace (the target
+// then has no '@'), or a non-whitespace character before the keyword or as the
+// separator. Letting the userinfo run cross escaped separators would cover a
+// tab, newline, carriage return, form feed or vertical tab inside a password
+// (a space arrives raw and stays uncovered either way), but it backtracks
+// quadratically.
+const REDACTED_USERINFO = '<redacted>'
+
+export const redactProxyCredentials = (value: string): string =>
+  value
+    .replace(URL_USERINFO_REGEX, `$1${REDACTED_USERINFO}@`)
+    .replace(PAC_ENTRY_USERINFO_REGEX, `$1${REDACTED_USERINFO}@`)
+
 export const sanitizeForMessage = (value: string): string => {
   // Truncate on code points (not UTF-16 code units) before escaping: a
   // surrogate pair must never be split, and escaping only the already-

@@ -134,10 +134,6 @@ no merge base found between --from '%s' and --to '%s' (If in CI/CD context, chec
 
 --source-dir does not accept git pathspec magic (e.g. ':(exclude)', ':!'); use a literal repository-relative path instead (received: '%s')
 
-# warning.ApiVersionOverridden
-
-API version '%s' is not supported, using '%s' instead
-
 # warning.ApiVersionDefaulted
 
 No API version found (no --api-version flag, no sourceApiVersion in sfdx-project.json), using '%s'
@@ -145,6 +141,10 @@ No API version found (no --api-version flag, no sourceApiVersion in sfdx-project
 # error.ApiVersionRetrievalFailed
 
 Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: %s
+
+# error.ApiVersionLookupUnusable
+
+The appexchange org returned '%s', which is not a usable Salesforce API version
 
 # warning.MalformedXML
 

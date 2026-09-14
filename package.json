@@ -55,7 +55,7 @@
     "@scolladon/tsgit": "4.0.0",
     "ignore": "7.0.9",
     "txml": "6.0.3",
-    "zod": "4.6.4"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
@@ -292,6 +292,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.functional.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json"
       ],
@@ -309,6 +310,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.integration.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json",
         "__tests__/__utils__/**/*.ts"
@@ -347,7 +349,9 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "package.json",
-        "package-lock.json"
+        "package-lock.json",
+        "vitest.config.ts",
+        "vitest.shared.ts"
       ],
       "output": [
         ".stryker-tmp/**",
@@ -369,7 +373,9 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "package.json",
-        "package-lock.json"
+        "package-lock.json",
+        "vitest.config.ts",
+        "vitest.shared.ts"
       ],
       "output": [
         ".stryker-tmp/**",
@@ -389,6 +395,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.nut.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json"
       ],
@@ -408,6 +415,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json"
       ],

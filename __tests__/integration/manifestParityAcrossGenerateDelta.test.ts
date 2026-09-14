@@ -63,16 +63,9 @@ type FlattenRevisionHost = {
   flattenRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
-// The one seam that leaves the process: ConfigValidator caps apiVersion
-// against SDR's live coverage lookup. Pinned so the run is offline and
-// deterministic; everything else (git, registry, handlers, writers) is real.
+// makeInput pins apiVersion, so ConfigValidator's appexchange lookup is never
+// reached for any run built through it.
 const API_VERSION = 60
-vi.mock('../../src/metadata/metadataManager', async importOriginal => ({
-  ...(await importOriginal<
-    typeof import('../../src/metadata/metadataManager')
-  >()),
-  getLatestSupportedVersion: async () => API_VERSION,
-}))
 
 let fixtureDir: string
 let refs: LiveContainerFixtureRefs
