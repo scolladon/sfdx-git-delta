@@ -84,14 +84,13 @@ const skipPrologueMisc = (xml: string, start: number): number | null => {
     // Naive boundary at the next `>` — none of our metadata payloads use
     // bracketed internal subsets, so a more elaborate scan would be
     // unused work.
-    // Stryker disable MethodExpression,ArithmeticOperator,ConditionalExpression,EqualityOperator -- equivalent: this branch handles `<!DOCTYPE>` style prologue elements; SF metadata never includes DOCTYPE declarations, so the branch body is unreachable for the test corpus
     if (xml.startsWith('<!', i) && !xml.startsWith('<!--', i)) {
       const end = xml.indexOf('>', i + 2)
+      // Stryker disable next-line EqualityOperator -- `end <= 0` is equivalent: the search starts at i + 2, so indexOf returns -1 or an offset of at least 2, never 0. `end >= 0` shares the mutator name; whenever a `>` exists it returns null exactly like the killed ConditionalExpression true-flip on this condition
       if (end < 0) return null
       i = end + 1
       continue
     }
-    // Stryker restore MethodExpression,ArithmeticOperator,ConditionalExpression,EqualityOperator
     break
   }
   return i
@@ -249,14 +248,13 @@ const verifyTail = (
       i++
       continue
     }
-    // Stryker disable ConditionalExpression,StringLiteral,EqualityOperator,ArithmeticOperator -- equivalent: trailing-comment branch; metadata XML doesn't have trailing comments after root close, so the branch body is unreachable for the tested fixtures
     if (xml.startsWith('<!--', i)) {
       const end = xml.indexOf('-->', i + 4)
+      // Stryker disable next-line EqualityOperator -- `end <= 0` is equivalent: the search starts at i + 4, so indexOf returns -1 or an offset of at least 4, never 0. `end >= 0` shares the mutator name; whenever the comment is terminated it throws exactly like the killed ConditionalExpression true-flip on this condition
       if (end < 0) throw new Error('unterminated comment after root close')
       i = end + 3
       continue
     }
-    // Stryker restore ConditionalExpression,StringLiteral,EqualityOperator,ArithmeticOperator
     // Stryker disable MethodExpression,ArithmeticOperator,StringLiteral -- equivalent: this throw fires for unexpected content after root close; the slice with Math.min(i+30, xml.length) caps the message preview at 30 chars; mutants change the preview length/content which is observability only — tests assert that the throw fires
     throw new Error(
       `unexpected content after root close: ${xml.slice(i, Math.min(i + 30, xml.length))}`

@@ -119,8 +119,57 @@ describe('xmlEventReader', () => {
       )
     })
 
+    it('Given trailing text after the root close, When parseToSidePropagating runs, Then it rejects naming the unexpected content', async () => {
+      // Arrange — only a `<!--` opener may divert verifyTail from this error.
+      const onElement = vi.fn()
+      const source = '<Root></Root>extra'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'unexpected content after root close'
+      )
+    })
+
+    it('Given a trailing `<!-->` whose dashes belong to its opener, When parseToSidePropagating runs, Then it rejects it as an unterminated comment', async () => {
+      // Arrange — the `-->` search starts after the four-character opener,
+      // so the opener's own dashes cannot close the comment.
+      const onElement = vi.fn()
+      const source = '<Root></Root><!-->'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'unterminated comment after root close'
+      )
+    })
+
+    it('Given an unterminated comment holding a `>` before the root, When parseToSidePropagating runs, Then skipPrologueMisc does not skip it as a `<!...>` declaration and no root is found', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<!-- never closed > <Root>x</Root>'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'to-side document has no root element'
+      )
+    })
+
+    it('Given a DOCTYPE declaration after the XML declaration, When parseToSidePropagating runs, Then both the header and the root are captured', async () => {
+      // Arrange — the `>` closing the XML declaration sits right before the
+      // DOCTYPE, so the declaration's `>` search must start past its `<!`.
+      const onElement = vi.fn()
+      const source =
+        '<?xml version="1.0"?><!DOCTYPE root SYSTEM "ext.dtd"><Root>x</Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(sut.xmlHeader).toEqual({ '?xml': { '@_version': '1.0' } })
+    })
+
     it('Given a leading DOCTYPE declaration, When parseToSidePropagating runs, Then the prologue skips it and parses the root', async () => {
-      // Arrange — exercises the `<!...>` branch in parsePrologue.
+      // Arrange — exercises the `<!...>` branch in skipPrologueMisc.
       const onElement = vi.fn()
       const source = '<!DOCTYPE root SYSTEM "ext.dtd"><Root>x</Root>'
 
