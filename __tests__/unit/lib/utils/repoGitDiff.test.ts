@@ -315,11 +315,7 @@ describe('Given a RepoGitDiff', () => {
     expect(result).toStrictEqual(lines)
   })
 
-  it('Given expanded array initialization (L39 ArrayDeclaration mutation), When getLines with no R-lines, Then no extra stray entries appear in result', async () => {
-    // Mutant: const expanded: string[] = ["Stryker was here"] instead of []
-    // "Stryker was here" is not a known metadata path so metadata.has filters it,
-    // but if the initial stale entry bypasses filtering (e.g. due to a different mutant
-    // interplay), the result count would differ. We verify exact result.
+  it('Given a single addition line, When getLines, Then exactly that line is yielded with no stray entries', async () => {
     const filePath = 'force-app/main/default/classes/MyClass.cls'
     mockGetDiffLines.mockReturnValue([`${ADDITION}${TAB}${filePath}`])
     const sut = new RepoGitDiff(config, globalMetadata)
@@ -331,11 +327,10 @@ describe('Given a RepoGitDiff', () => {
     expect(result[0]).toBe(`${ADDITION}${TAB}${filePath}`)
   })
 
-  it('Given non-rename line startsWith check (L41 ConditionalExpression false), When getLines with normal A/D lines, Then normal lines pass through unchanged', async () => {
-    // Mutant false: !line.startsWith(RENAMED) → false, so all lines fall into the rename block.
-    // For a normal 'A\tpath' line: parts = ['A', 'path'], parts.length = 2 < 3 → pushed unchanged.
-    // However if the line has no TAB (unlikely) or rename processing changes it, output differs.
-    // We verify exact content of result — any mutation to normal lines would alter it.
+  it('Given non-rename addition and deletion lines, When getLines, Then _expandRename passes each through unchanged', async () => {
+    // A non-rename line splits into two tab-separated parts, so even through
+    // _expandRename's rename branch it is yielded as-is; the exact output
+    // pins that no line is rewritten or duplicated.
     const addPath = 'force-app/main/default/classes/MyClass.cls'
     const delPath = 'force-app/main/default/classes/OtherClass.cls'
     mockGetDiffLines.mockReturnValue([
@@ -353,28 +348,18 @@ describe('Given a RepoGitDiff', () => {
     ])
   })
 
-  it('Given ?? [] fallback for ADDITION (L78 ArrayDeclaration mutation), When only DELETION lines exist, Then ADDITION set is empty (no stray Stryker entries)', async () => {
-    // Mutant: ?? ["Stryker was here"] instead of ?? []
-    // With the mutant, AfileNames = new Set(["Stryker was here"])
-    // Then a DELETION line whose _extractComparisonName === "stryker was here" (lowercased)
-    // would be incorrectly filtered. We use a distinct DELETION path.
+  it('Given only a deletion line, When getLines, Then no addition name cancels it and the deferred deletion is yielded', async () => {
     const delPath = 'force-app/main/default/classes/Stryker.cls'
     mockGetDiffLines.mockReturnValue([`${DELETION}${TAB}${delPath}`])
     const sut = new RepoGitDiff(config, globalMetadata)
 
     const result = await collect(sut.getLines())
 
-    // Deletion must NOT be filtered (no corresponding ADDITION, ?? [] means empty AfileNames)
+    // Nothing registered in pending.additionNames, so the deletion survives
     expect(result).toEqual([`${DELETION}${TAB}${delPath}`])
   })
 
-  it('Given ?? [] fallback for DELETION (L80 ArrayDeclaration mutation), When only ADDITION lines exist, Then deletedRenamed is empty', async () => {
-    // Mutant: (linesPerDiffType.get(DELETION) ?? ["Stryker was here"]).filter(...)
-    // With the mutant, the filter runs on ["Stryker was here"] instead of [].
-    // _extractComparisonName("S") → metadata.getFullyQualifiedName("S")...
-    // Even if "Stryker was here" doesn't match AfileNames, the deletedRenamed Set
-    // would be correctly empty — BUT if it did match, deletedRenamed would be non-empty.
-    // We verify: a DELETION whose name matches would normally not appear with ADDITION only.
+  it('Given only an addition line, When getLines, Then no deferred deletion is yielded after it', async () => {
     const addPath = 'force-app/main/default/classes/StrykerWasHere.cls'
     mockGetDiffLines.mockReturnValue([`${ADDITION}${TAB}${addPath}`])
     const sut = new RepoGitDiff(config, globalMetadata)
@@ -559,8 +544,8 @@ describe('Given a RepoGitDiff', () => {
 
     it('Given getLines is called twice, When second call has no renames, Then renamePairs is reset to empty (not accumulated)', async () => {
       // Arrange — first call has a rename, second has none.
-      // The `this.renamePairs = []` assignment at the start of _expandRenames
-      // must reset the field; if mutated to a non-reset the pairs from the
+      // The `this.renamePairs = []` assignment in _resetRunState must reset
+      // the field; if mutated to a non-reset the pairs from the
       // first call would leak into the second.
       const sut = new RepoGitDiff(config, globalMetadata)
       mockGetDiffLines.mockReturnValueOnce([
@@ -579,11 +564,8 @@ describe('Given a RepoGitDiff', () => {
       expect(sut.getRenamePairs()).toEqual([])
     })
 
-    it('Given only ADDITION lines, When _getRenamedElements is called, Then AfileNames is populated and deletedRenamed is empty', async () => {
-      // Arrange — no DELETION lines means (linesPerDiffType.get(DELETION) ?? [])
-      // returns []. The `?? []` fallback for ADDITION lines (line 78) is
-      // exercised when ADDITION is missing, but here we exercise the DELETION
-      // fallback path: only ADDITION exists, DELETION map entry is absent.
+    it('Given only addition lines, When getLines, Then _routeAddition streams both and no deferred deletion follows', async () => {
+      // Arrange
       mockGetDiffLines.mockReturnValue([
         `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
         `${ADDITION}${TAB}force-app/main/default/classes/Contact.cls`,
@@ -597,10 +579,8 @@ describe('Given a RepoGitDiff', () => {
       expect(result).toHaveLength(2)
     })
 
-    it('Given only DELETION lines, When getLines, Then ADDITION set is empty (built from ?? [] fallback) and no deletion is filtered', async () => {
-      // Arrange — no ADDITION lines: linesPerDiffType.get(ADDITION) returns
-      // undefined, so the `?? []` on line 78 provides the empty fallback.
-      // AfileNames will be empty → no deletion matches → deletions pass through.
+    it('Given only deletion lines, When getLines, Then no addition name cancels them and both deferred deletions are yielded', async () => {
+      // Arrange
       mockGetDiffLines.mockReturnValue([
         `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
         `${DELETION}${TAB}force-app/main/default/classes/Contact.cls`,
@@ -614,10 +594,8 @@ describe('Given a RepoGitDiff', () => {
       expect(result).toHaveLength(2)
     })
 
-    it('Given multiple lines with same diff type, When _spreadLinePerDiffType, Then all lines are grouped under the same key', async () => {
-      // Arrange — exercises the `if (!acc.has(idx)) acc.set(idx, [])` guard.
-      // If the guard is removed (BlockStatement {}), acc.get(idx) would be
-      // undefined on first encounter and .push would throw.
+    it('Given several addition lines, When getLines, Then _routeLine streams every one of them', async () => {
+      // Arrange
       mockGetDiffLines.mockReturnValue([
         `${ADDITION}${TAB}force-app/main/default/classes/A.cls`,
         `${ADDITION}${TAB}force-app/main/default/classes/B.cls`,
@@ -625,7 +603,7 @@ describe('Given a RepoGitDiff', () => {
       ])
       const sut = new RepoGitDiff(config, globalMetadata)
 
-      // Act — if grouping is broken, getLines throws; otherwise we get 3 results
+      // Act
       const result = await collect(sut.getLines())
 
       // Assert
