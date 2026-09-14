@@ -44,53 +44,73 @@ export const deepEqualJson = (a: unknown, b: unknown): boolean => {
 
     const aIsArr = Array.isArray(ai)
     if (aIsArr !== Array.isArray(bi)) return false
-
-    if (aIsArr) {
-      const arrA = ai as unknown[]
-      const arrB = bi as unknown[]
-      const len = arrA.length
-      if (len !== arrB.length) return false
-      for (let i = 0; i < len; i++) {
-        const va = arrA[i]
-        const vb = arrB[i]
-        if (va === vb) continue
-        if (
-          va === null ||
-          vb === null ||
-          typeof va !== 'object' ||
-          typeof vb !== 'object'
-        ) {
-          return false
-        }
-        stackA.push(va as object)
-        stackB.push(vb as object)
-      }
-      continue
-    }
-
-    const objA = ai as Record<string, unknown>
-    const objB = bi as Record<string, unknown>
-    const keysA = Object.keys(objA)
-    const len = keysA.length
-    if (len !== Object.keys(objB).length) return false
-    for (let i = 0; i < len; i++) {
-      const key = keysA[i] as string
-      if (!Object.hasOwn(objB, key)) return false
-      const va = objA[key]
-      const vb = objB[key]
-      if (va === vb) continue
-      if (
-        va === null ||
-        vb === null ||
-        typeof va !== 'object' ||
-        typeof vb !== 'object'
-      ) {
-        return false
-      }
-      stackA.push(va as object)
-      stackB.push(vb as object)
-    }
+    const childrenMatch = aIsArr
+      ? pushArrayChildPairs(ai as unknown[], bi as unknown[], stackA, stackB)
+      : pushObjectChildPairs(
+          ai as Record<string, unknown>,
+          bi as Record<string, unknown>,
+          stackA,
+          stackB
+        )
+    if (!childrenMatch) return false
   }
 
+  return true
+}
+
+// The push helpers return false on the first child pair already known to
+// differ, so children are walked once rather than scanned then pushed.
+const pushArrayChildPairs = (
+  arrA: unknown[],
+  arrB: unknown[],
+  stackA: object[],
+  stackB: object[]
+): boolean => {
+  const len = arrA.length
+  if (len !== arrB.length) return false
+  for (let i = 0; i < len; i++) {
+    const va = arrA[i]
+    const vb = arrB[i]
+    if (va === vb) continue
+    if (
+      va === null ||
+      vb === null ||
+      typeof va !== 'object' ||
+      typeof vb !== 'object'
+    ) {
+      return false
+    }
+    stackA.push(va as object)
+    stackB.push(vb as object)
+  }
+  return true
+}
+
+const pushObjectChildPairs = (
+  objA: Record<string, unknown>,
+  objB: Record<string, unknown>,
+  stackA: object[],
+  stackB: object[]
+): boolean => {
+  const keysA = Object.keys(objA)
+  const len = keysA.length
+  if (len !== Object.keys(objB).length) return false
+  for (let i = 0; i < len; i++) {
+    const key = keysA[i] as string
+    if (!Object.hasOwn(objB, key)) return false
+    const va = objA[key]
+    const vb = objB[key]
+    if (va === vb) continue
+    if (
+      va === null ||
+      vb === null ||
+      typeof va !== 'object' ||
+      typeof vb !== 'object'
+    ) {
+      return false
+    }
+    stackA.push(va as object)
+    stackB.push(vb as object)
+  }
   return true
 }
