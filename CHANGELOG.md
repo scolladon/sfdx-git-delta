@@ -4,6 +4,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.0...v7.4.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* build tree indexes in every mode so manifests do not depend on --generate-delta ([#1426](https://github.com/scolladon/sfdx-git-delta/issues/1426)) ([fa374df](https://github.com/scolladon/sfdx-git-delta/commit/fa374df4e4a84b64174d4c4d19ea3c8d2fb5500b))
+* **config:** resolve the API version deterministically without network calls for pins ([f0f4860](https://github.com/scolladon/sfdx-git-delta/commit/f0f48606417a816e1c575d16854814b535d5e1da))
+* memoise the pending tree walk so concurrent callers share one flatten ([#1428](https://github.com/scolladon/sfdx-git-delta/issues/1428)) ([4605716](https://github.com/scolladon/sfdx-git-delta/commit/4605716d9562e3d5f78b1c290b99d3a9d2c7797c))
+* **metadata:** key the cancellation index on component identity ([#1414](https://github.com/scolladon/sfdx-git-delta/issues/1414)) ([2c00aef](https://github.com/scolladon/sfdx-git-delta/commit/2c00aeff82f1e69debeefd815433bcd1f19d4ce1))
+* **metadata:** let an ignored addition cancel its deletion when no file of its component survives ([#1419](https://github.com/scolladon/sfdx-git-delta/issues/1419)) ([05bac7c](https://github.com/scolladon/sfdx-git-delta/commit/05bac7c86eee458cb2f2f732694bffe8ce321dbe))
+* **object-translation:** resolve component name for flat objectTranslation layout ([#1408](https://github.com/scolladon/sfdx-git-delta/issues/1408)) ([d008dab](https://github.com/scolladon/sfdx-git-delta/commit/d008dab67ee400bfff7df987198e7d316b7846c3))
+* reject a --from/--to revision that does not resolve to a commit ([#1429](https://github.com/scolladon/sfdx-git-delta/issues/1429)) ([43f1000](https://github.com/scolladon/sfdx-git-delta/commit/43f100031f9afccc5a9f2b77d76c8a9edc11a8b8))
+
 ## [7.4.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.3.0...v7.4.0) (2026-08-24)
 
 
