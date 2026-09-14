@@ -100,10 +100,8 @@ export default class RepoGitDiff {
     ignoreHelper: IgnoreHelper,
     pending: PendingCancellation
   ): string | undefined {
-    // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
+    // Stryker disable next-line ConditionalExpression -- equivalent: on the false-flip an empty line reaches metadata.has, which rejects it, so the line is dropped (return undefined) either way
     if (!expanded) return undefined
-    // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — _expandRename emits paths that are routed through the metadata index by the producing test fixtures, so the false-flip (always continue) is unreachable when the test corpus is in use
-    /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
     if (!this.metadata.has(expanded)) return undefined
     if (expanded.startsWith(ADDITION)) {
       return this._routeAddition(expanded, ignoreHelper, pending)

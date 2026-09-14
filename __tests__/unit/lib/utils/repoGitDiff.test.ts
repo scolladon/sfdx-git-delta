@@ -412,6 +412,22 @@ describe('Given a RepoGitDiff', () => {
     expect(work).toHaveLength(1)
   })
 
+  it('Given a file outside the metadata registry, When getLines, Then the line is dropped', async () => {
+    // Arrange
+    const metadataLine = `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`
+    mockGetDiffLines.mockReturnValue([
+      `${ADDITION}${TAB}README.md`,
+      metadataLine,
+    ])
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    const result = await collect(sut.getLines())
+
+    // Assert
+    expect(result).toStrictEqual([metadataLine])
+  })
+
   it('groups lines by diff type for rename detection', async () => {
     // Arrange
     const output: string[] = [
