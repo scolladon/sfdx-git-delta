@@ -19,7 +19,7 @@ import { pathExists, sanitizePath } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import { MessageService } from './MessageService.js'
-import { sanitizeForMessage } from './messageSanitizer.js'
+import { redactUrlCredentials, sanitizeForMessage } from './messageSanitizer.js'
 import type {
   SourceDirRejection,
   SourceDirRejectionReason,
@@ -326,7 +326,9 @@ export default class ConfigValidator {
     const message = getErrorMessage(ex)
     const cause = ex instanceof Error ? ex.cause : undefined
     if (!(cause instanceof Error)) return message
-    return `${message} (${sanitizeForMessage(cause.message)})`
+    // Redact before sanitising: the length cap could otherwise cut between the
+    // credentials and their '@', leaving a fragment the redaction cannot match.
+    return `${message} (${sanitizeForMessage(redactUrlCredentials(cause.message))})`
   }
 
   protected _sanitizeConfig() {

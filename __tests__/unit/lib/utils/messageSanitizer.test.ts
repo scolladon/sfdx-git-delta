@@ -1,7 +1,10 @@
 'use strict'
 import { describe, expect, it } from 'vitest'
 
-import { sanitizeForMessage } from '../../../../src/utils/messageSanitizer'
+import {
+  redactUrlCredentials,
+  sanitizeForMessage,
+} from '../../../../src/utils/messageSanitizer'
 
 const ESC = String.fromCharCode(27)
 
@@ -171,6 +174,56 @@ describe('Given a value bound for an error or warning message', () => {
       expect(shortResult).toBe('\\u{6}00')
       expect(longResult).toBe('\\u{600}')
       expect(shortResult).not.toBe(longResult)
+    })
+  })
+})
+
+describe('Given a value that may embed a URL carrying credentials', () => {
+  const sut = redactUrlCredentials
+
+  describe('When a URL carries a username and password', () => {
+    it('Then the userinfo is redacted and the scheme and host are kept', () => {
+      // Act
+      const result = sut(
+        'Unsupported protocol for proxy URL: tcp://alice:s3cr3tPass@127.0.0.1:9'
+      )
+
+      // Assert
+      expect(result).toBe(
+        'Unsupported protocol for proxy URL: tcp://<redacted>@127.0.0.1:9'
+      )
+    })
+  })
+
+  describe('When the password itself contains an unencoded at sign', () => {
+    it('Then everything up to the host separator is redacted', () => {
+      // Act
+      const result = sut('http://alice:p@ss@proxy:8080')
+
+      // Assert
+      expect(result).toBe('http://<redacted>@proxy:8080')
+    })
+  })
+
+  describe('When a URL carries no userinfo', () => {
+    it('Then it is returned unchanged, even with an at sign in its path', () => {
+      // Act
+      const result = sut('connect ECONNREFUSED http://proxy:8080/path@segment')
+
+      // Assert
+      expect(result).toBe('connect ECONNREFUSED http://proxy:8080/path@segment')
+    })
+  })
+
+  describe('When the value embeds several URLs carrying credentials', () => {
+    it('Then each one is redacted', () => {
+      // Act
+      const result = sut('https://a:b@one.example and socks5://c:d@two.example')
+
+      // Assert
+      expect(result).toBe(
+        'https://<redacted>@one.example and socks5://<redacted>@two.example'
+      )
     })
   })
 })

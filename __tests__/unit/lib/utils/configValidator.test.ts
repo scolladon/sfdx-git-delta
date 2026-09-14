@@ -542,6 +542,34 @@ describe('Given a ConfigValidator', () => {
           )
         })
 
+        it('When the cause message echoes a proxy URL carrying credentials, Then the refusal redacts them', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error(
+                  'Unsupported protocol for proxy URL: tcp://alice:s3cr3tPass@127.0.0.1:9'
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org (Unsupported protocol for proxy URL: tcp://<redacted>@127.0.0.1:9)',
+            })
+          )
+        })
+
         it('When the cause is not an Error, Then the bare SDR message renders', async () => {
           // Arrange
           vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(

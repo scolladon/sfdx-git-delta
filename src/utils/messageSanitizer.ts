@@ -29,6 +29,17 @@ const escapeControlChar = (char: string): string => {
   return `\\u{${codePoint.toString(16)}}`
 }
 
+// Some network errors echo the offending URL verbatim: proxy-agent's
+// "Unsupported protocol for proxy URL: <url>" carries any user:password
+// userinfo. Redact it before the value reaches a message. The match is greedy
+// up to the last '@' before the host, so a raw '@' inside a password cannot
+// leave a fragment of it behind.
+const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]*:\/\/)[^\s/?#]*@/gi
+const REDACTED_USERINFO = '<redacted>'
+
+export const redactUrlCredentials = (value: string): string =>
+  value.replace(URL_USERINFO_REGEX, `$1${REDACTED_USERINFO}@`)
+
 export const sanitizeForMessage = (value: string): string => {
   // Truncate on code points (not UTF-16 code units) before escaping: a
   // surrogate pair must never be split, and escaping only the already-
