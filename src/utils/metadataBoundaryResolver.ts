@@ -62,71 +62,80 @@ export class MetadataBoundaryResolver {
   ): Promise<MetadataElement> {
     const parts = path.split(PATH_SEP)
     const dirIndex = parts.lastIndexOf(metadataDef.directoryName)
-
-    if (dirIndex >= 0 && metadataDef.suffix) {
-      const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
-      const allFiles = this.trees.filesUnder(revision, typeDir)
-      const metaSuffix = `.${metadataDef.suffix}${METAFILE_SUFFIX}`
-
-      const componentNames = new Set<string>()
-      for (const file of allFiles) {
-        if (file.endsWith(metaSuffix)) {
-          const fileName = file.split(PATH_SEP).pop()!
-          componentNames.add(this.extractName(fileName, metadataDef.suffix))
-        }
-      }
-
-      const pathAfterType = parts.slice(dirIndex + 1)
-      // Stryker disable next-line UpdateOperator -- equivalent: reverse-iterate from the second-to-last segment back to root; flipping i++ to i++ means the loop never enters (i starts at length-2, which is < length but i++ goes up while guard is i >= 0 which is always true) — but in practice the test paths have length 1-2 so the loop body executes 0-1 times, observably the same in either direction
-      for (let i = pathAfterType.length - 2; i >= 0; i--) {
-        if (componentNames.has(pathAfterType[i])) {
-          return MetadataElement.fromScan(
-            path,
-            metadataDef,
-            this.metadata,
-            pathAfterType[i]
+    const componentName =
+      dirIndex >= 0 && metadataDef.suffix
+        ? this.findNameUnderTypeDirectory(
+            parts,
+            dirIndex,
+            metadataDef.suffix,
+            revision
           )
-        }
-      }
-
-      return MetadataElement.fromScan(
-        path,
-        metadataDef,
-        this.metadata,
-        parse(path).name
-      )
-    }
-
-    let currentDir = dirname(path)
-    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- equivalent: directory walk termination; this loop walks up from the file's dirname to the repo root, emptying the body skips the walk and falls through to the post-loop fallback (which produces a generic MetadataElement); the test surface only exercises the walk path for nested directory metadata, and the fallback path is also tested
-    while (currentDir && currentDir !== '.') {
-      const cacheKey = `${revision}:${currentDir}`
-
-      let siblings = this.dirCache.get(cacheKey)
-      if (siblings === undefined) {
-        siblings = this.trees.children(revision, currentDir)
-        this.dirCache.set(cacheKey, siblings)
-      }
-
-      const componentName = this.findComponentName(siblings, parts)
-      if (componentName) {
-        return MetadataElement.fromScan(
-          path,
-          metadataDef,
-          this.metadata,
-          componentName
-        )
-      }
-
-      currentDir = dirname(currentDir)
-    }
+        : this.findNameInAncestors(path, parts, revision)
 
     return MetadataElement.fromScan(
       path,
       metadataDef,
       this.metadata,
-      parse(path).name
+      componentName ?? parse(path).name
     )
+  }
+
+  protected findNameUnderTypeDirectory(
+    parts: string[],
+    dirIndex: number,
+    suffix: string,
+    revision: string
+  ): string | null {
+    const typeDir = parts.slice(0, dirIndex + 1).join(PATH_SEP)
+    const componentNames = this.componentNamesUnder(typeDir, suffix, revision)
+    const pathAfterType = parts.slice(dirIndex + 1)
+    // Stryker disable next-line UpdateOperator -- unaffordable rather than equivalent: with two or more segments after the type directory, i++ keeps `i >= 0` true forever and the mutant hangs until Stryker's timeout; with fewer, the loop never runs in either direction
+    for (let i = pathAfterType.length - 2; i >= 0; i--) {
+      if (componentNames.has(pathAfterType[i])) return pathAfterType[i]
+    }
+    return null
+  }
+
+  protected componentNamesUnder(
+    typeDir: string,
+    suffix: string,
+    revision: string
+  ): Set<string> {
+    const metaSuffix = `.${suffix}${METAFILE_SUFFIX}`
+    const componentNames = new Set<string>()
+    for (const file of this.trees.filesUnder(revision, typeDir)) {
+      if (file.endsWith(metaSuffix)) {
+        const fileName = file.split(PATH_SEP).pop()!
+        componentNames.add(this.extractName(fileName, suffix))
+      }
+    }
+    return componentNames
+  }
+
+  protected findNameInAncestors(
+    path: string,
+    parts: string[],
+    revision: string
+  ): string | null {
+    let currentDir = dirname(path)
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- unaffordable rather than equivalent: an emptied body, the `''` literal, the `||` swap and the operand true-flip never let `currentDir` reach '.', so those mutants hang until Stryker's timeout (dirname('.') is '.'). The whole-condition false-flip is suppressed as a side effect; it skips the walk, and the tests asserting pathAfterType[0] from a walk would kill it
+    while (currentDir && currentDir !== '.') {
+      const siblings = this.siblingsOf(currentDir, revision)
+      const componentName = this.findComponentName(siblings, parts)
+      if (componentName) return componentName
+      currentDir = dirname(currentDir)
+    }
+    return null
+  }
+
+  protected siblingsOf(dir: string, revision: string): string[] {
+    const cacheKey = `${revision}:${dir}`
+    let siblings = this.dirCache.get(cacheKey)
+    if (siblings === undefined) {
+      siblings = this.trees.children(revision, dir)
+      this.dirCache.set(cacheKey, siblings)
+    }
+    return siblings
   }
 
   protected isNameInPath(parts: string[], componentName: string): boolean {

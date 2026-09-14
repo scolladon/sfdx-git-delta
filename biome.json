@@ -25,6 +25,10 @@
     "rules": {
       "recommended": false,
       "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": { "maxAllowedComplexity": 15 }
+        },
         "noExtraBooleanCast": "error",
         "noUselessCatch": "error",
         "noUselessThisAlias": "error",

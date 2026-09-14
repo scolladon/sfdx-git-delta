@@ -17,6 +17,14 @@ export type HeldAdditionProbeFailure = Readonly<{ candidateCount: number }>
 
 type DeferredDeletion = Readonly<{ line: string; name: string }>
 
+// Filled while the diff streams and resolved only once it is drained: a D
+// line can be classified only against every addition name in the diff.
+type PendingCancellation = Readonly<{
+  additionNames: Set<string>
+  heldAdditionNames: Set<string>
+  deferredDeletions: DeferredDeletion[]
+}>
+
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
   private renamePairs: RenamePathPair[] = []
@@ -56,14 +64,13 @@ export default class RepoGitDiff {
    * getRenamePairs() once iteration completes.
    */
   public async *getLines(): AsyncGenerator<string> {
-    this.renamePairs = []
-    this.diffScopeVerdict.changesSeen = 0
-    this.diffScopeVerdict.linesYielded = 0
-    this.probeFailure = undefined
+    this._resetRunState()
     const ignoreHelper = await buildIgnoreHelper(this.config)
-    const additionNames = new Set<string>()
-    const heldAdditionNames = new Set<string>()
-    const deferredDeletions: DeferredDeletion[] = []
+    const pending: PendingCancellation = {
+      additionNames: new Set<string>(),
+      heldAdditionNames: new Set<string>(),
+      deferredDeletions: [],
+    }
 
     for await (const rawLine of this.gitAdapter.streamDiffLines({
       spec: this.diffSpec(),
@@ -71,55 +78,71 @@ export default class RepoGitDiff {
       scopes: this.config.source,
     })) {
       for (const expanded of this._expandRename(rawLine)) {
-        // Stryker disable next-line ConditionalExpression -- equivalent: _expandRename never yields empty/falsy strings — it yields the original line or the synthetic D/A pair, both non-empty; the false-flip falls through to metadata.has which would return false on empty paths, observably the same continue
-        if (!expanded) continue
-        // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — _expandRename emits paths that are routed through the metadata index by the producing test fixtures, so the false-flip (always continue) is unreachable when the test corpus is in use
-        /* v8 ignore next -- defensive: upstream RepoGitDiff already filters non-metadata paths via _expandRename, but kept as safety net */
-        if (!this.metadata.has(expanded)) continue
-        const kept = ignoreHelper.keep(expanded)
-        if (expanded.startsWith(ADDITION)) {
-          const name = this._extractComparisonName(expanded)
-          // An ignored addition is held rather than dropped: it may be the
-          // destination of a move into the ignore set, which can only be
-          // told from a stale copy once the whole diff has been seen.
-          if (!kept) {
-            heldAdditionNames.add(name)
-            continue
-          }
-          additionNames.add(name)
-          yield expanded
-        } else if (!kept) {
-          continue
-        } else if (expanded.startsWith(DELETION)) {
-          // Defer: the D line might cancel against an A line we haven't
-          // seen yet (rename-collapse case).
-          deferredDeletions.push({
-            line: expanded,
-            name: this._extractComparisonName(expanded),
-          })
-        } else {
-          yield expanded
-        }
+        const streamable = this._routeLine(expanded, ignoreHelper, pending)
+        if (streamable !== undefined) yield streamable
       }
     }
 
     const vouching = await this._vouchingHeldNames(
-      heldAdditionNames,
-      deferredDeletions,
-      additionNames,
+      pending.heldAdditionNames,
+      pending.deferredDeletions,
+      pending.additionNames,
       ignoreHelper
     )
-    if (vouching.size > 0) {
-      // A cancelled deletion appears in neither manifest, so without this
-      // line a debug run cannot explain why a destructive entry is missing.
-      Logger.debug(
-        lazy`getLines: held addition(s) '${[...vouching].join("', '")}' survive only under ignored paths at '${this.config.to}', cancelling their deletions`
-      )
+    for (const { line, name } of pending.deferredDeletions) {
+      if (!pending.additionNames.has(name) && !vouching.has(name)) yield line
     }
-    for (const name of vouching) additionNames.add(name)
-    for (const { line, name } of deferredDeletions) {
-      if (!additionNames.has(name)) yield line
+  }
+
+  private _resetRunState(): void {
+    this.renamePairs = []
+    this.diffScopeVerdict.changesSeen = 0
+    this.diffScopeVerdict.linesYielded = 0
+    this.probeFailure = undefined
+  }
+
+  // Returns the line when it streams right away, and records what the
+  // cancellation rule needs into `pending`: every addition name (held when
+  // ignored) and every kept deletion. Routing and recording share one pass
+  // because the generator must decide per line whether to yield it now.
+  private _routeLine(
+    expanded: string,
+    ignoreHelper: IgnoreHelper,
+    pending: PendingCancellation
+  ): string | undefined {
+    // Stryker disable next-line ConditionalExpression -- equivalent: on the false-flip an empty line reaches metadata.has, which rejects it, so the line is dropped (return undefined) either way
+    if (!expanded) return undefined
+    if (!this.metadata.has(expanded)) return undefined
+    if (expanded.startsWith(ADDITION)) {
+      return this._routeAddition(expanded, ignoreHelper, pending)
     }
+    if (!ignoreHelper.keep(expanded)) return undefined
+    if (!expanded.startsWith(DELETION)) return expanded
+    // Defer: the D line might cancel against an A line we haven't
+    // seen yet (rename-collapse case).
+    pending.deferredDeletions.push({
+      line: expanded,
+      name: this._extractComparisonName(expanded),
+    })
+    return undefined
+  }
+
+  // An ignored addition is held rather than dropped: it may be the
+  // destination of a move into the ignore set, which can only be
+  // told from a stale copy once the whole diff has been seen.
+  private _routeAddition(
+    addition: string,
+    ignoreHelper: IgnoreHelper,
+    pending: PendingCancellation
+  ): string | undefined {
+    const kept = ignoreHelper.keep(addition)
+    const name = this._extractComparisonName(addition)
+    if (!kept) {
+      pending.heldAdditionNames.add(name)
+      return undefined
+    }
+    pending.additionNames.add(name)
+    return addition
   }
 
   public getRenamePairs(): readonly RenamePathPair[] {
@@ -184,7 +207,15 @@ export default class RepoGitDiff {
     )
     if (candidates.size === 0) return candidates
     const visible = await this._visibleNamesAtTo(candidates, ignoreHelper)
-    return new Set([...candidates].filter(name => !visible.has(name)))
+    const vouching = new Set([...candidates].filter(name => !visible.has(name)))
+    if (vouching.size > 0) {
+      // A cancelled deletion appears in neither manifest, so without this
+      // line a debug run cannot explain why a destructive entry is missing.
+      Logger.debug(
+        lazy`getLines: held addition(s) '${[...vouching].join("', '")}' survive only under ignored paths at '${this.config.to}', cancelling their deletions`
+      )
+    }
+    return vouching
   }
 
   // Visibility is decided by the global ignore, never the destructive one:

@@ -8,6 +8,8 @@ import { resolve } from 'node:path'
 import { registry } from '@salesforce/source-deploy-retrieve'
 import internalRegistry from '../src/metadata/internalRegistry.ts'
 
+type RegistryEntry = (typeof internalRegistry)[number]
+
 const SPECIAL_FIELDS = [
   'xmlTag',
   'key',
@@ -18,7 +20,7 @@ const SPECIAL_FIELDS = [
   'childXmlNames',
 ] as const
 
-function isSimpleGapFiller(entry: (typeof internalRegistry)[number]): boolean {
+function isSimpleGapFiller(entry: RegistryEntry): boolean {
   if (!entry.directoryName || !entry.suffix) return false
   return !SPECIAL_FIELDS.some(
     field => (entry as Record<string, unknown>)[field] != null
@@ -74,7 +76,7 @@ const remaining = internalRegistry.filter(
 )
 
 // Group by category for organized output
-function categorize(entry: (typeof internalRegistry)[number]): string {
+function categorize(entry: RegistryEntry): string {
   if (entry.xmlName?.startsWith('Virtual')) return 'virtual'
   if (entry.content) return 'virtual'
   if (entry.pruneOnly) return 'pruneOnly'
@@ -93,44 +95,51 @@ function categorize(entry: (typeof internalRegistry)[number]): string {
   return 'specialHandling'
 }
 
-function serializeEntry(entry: (typeof internalRegistry)[number]): string {
-  const lines: string[] = []
-  lines.push('  {')
+type EntryFieldSerializer = (entry: RegistryEntry) => readonly string[]
 
-  if (entry.childXmlNames) {
-    lines.push(
-      `    childXmlNames: [${entry.childXmlNames.map(n => `'${n}'`).join(', ')}],`
-    )
-  }
-  if (entry.content) {
-    lines.push('    content: [')
-    for (const c of entry.content) {
-      lines.push('      {')
-      if (c.suffix) lines.push(`        suffix: '${c.suffix}',`)
-      if (c.xmlName) lines.push(`        xmlName: '${c.xmlName}',`)
-      lines.push('      },')
-    }
-    lines.push('    ],')
-  }
-  if (entry.directoryName !== undefined)
-    lines.push(`    directoryName: '${entry.directoryName}',`)
-  if (entry.excluded) lines.push(`    excluded: ${entry.excluded},`)
-  lines.push(`    inFolder: ${entry.inFolder},`)
-  if (entry.key) lines.push(`    key: '${entry.key}',`)
-  lines.push(`    metaFile: ${entry.metaFile},`)
-  if (entry.parentXmlName)
-    lines.push(`    parentXmlName: '${entry.parentXmlName}',`)
-  if (entry.pruneOnly) lines.push(`    pruneOnly: ${entry.pruneOnly},`)
-  if (entry.suffix) lines.push(`    suffix: '${entry.suffix}',`)
-  if (entry.xmlName) lines.push(`    xmlName: '${entry.xmlName}',`)
-  if (entry.xmlTag !== undefined) {
-    lines.push(
-      `    xmlTag: ${entry.xmlTag === undefined ? 'undefined' : `'${entry.xmlTag}'`},`
-    )
-  }
+const serializeContent = (
+  content: NonNullable<RegistryEntry['content']>
+): readonly string[] => [
+  '    content: [',
+  ...content.flatMap(c => [
+    '      {',
+    ...(c.suffix ? [`        suffix: '${c.suffix}',`] : []),
+    ...(c.xmlName ? [`        xmlName: '${c.xmlName}',`] : []),
+    '      },',
+  ]),
+  '    ],',
+]
 
-  lines.push('  },')
-  return lines.join('\n')
+// Order is the generated file's field order; reordering rewrites every entry.
+const ENTRY_FIELD_SERIALIZERS: readonly EntryFieldSerializer[] = [
+  e =>
+    e.childXmlNames
+      ? [
+          `    childXmlNames: [${e.childXmlNames.map(n => `'${n}'`).join(', ')}],`,
+        ]
+      : [],
+  e => (e.content ? serializeContent(e.content) : []),
+  e =>
+    e.directoryName !== undefined
+      ? [`    directoryName: '${e.directoryName}',`]
+      : [],
+  e => (e.excluded ? [`    excluded: ${e.excluded},`] : []),
+  e => [`    inFolder: ${e.inFolder},`],
+  e => (e.key ? [`    key: '${e.key}',`] : []),
+  e => [`    metaFile: ${e.metaFile},`],
+  e => (e.parentXmlName ? [`    parentXmlName: '${e.parentXmlName}',`] : []),
+  e => (e.pruneOnly ? [`    pruneOnly: ${e.pruneOnly},`] : []),
+  e => (e.suffix ? [`    suffix: '${e.suffix}',`] : []),
+  e => (e.xmlName ? [`    xmlName: '${e.xmlName}',`] : []),
+  e => (e.xmlTag !== undefined ? [`    xmlTag: '${e.xmlTag}',`] : []),
+]
+
+function serializeEntry(entry: RegistryEntry): string {
+  return [
+    '  {',
+    ...ENTRY_FIELD_SERIALIZERS.flatMap(serialize => serialize(entry)),
+    '  },',
+  ].join('\n')
 }
 
 const groups: Record<string, typeof internalRegistry> = {}

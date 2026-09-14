@@ -48,15 +48,8 @@ const config = {
   //
   // More documented survivors, found triaging the ignored-addition
   // visibility probe in src/utils/repoGitDiff.ts, also keyed by symbol:
-  //   - RepoGitDiff.getLines, the routing loop's `else if (!kept) { continue }`
-  //     arm: equivalent. That arm is the last statement of the if/else-if
-  //     chain, which is itself the last statement of the
-  //     `for (const expanded of this._expandRename(rawLine))` body, so an
-  //     emptied block falls through to the same place `continue` would have
-  //     jumped to for every value `_expandRename` can yield — there is no
-  //     statement after the chain for control to skip.
-  //   - RepoGitDiff.getLines, the `if (vouching.size > 0)` guard around the
-  //     "held addition(s) survive" Logger.debug call (including its
+  //   - RepoGitDiff._vouchingHeldNames, the `if (vouching.size > 0)` guard
+  //     around the "held addition(s) survive" Logger.debug call (including its
   //     EqualityOperator and BlockStatement variants, and the ArrayDeclaration/
   //     StringLiteral mutants on the message it builds), and the matching
   //     StringLiteral on _visibleNamesAtTo's fail-closed debug message: same

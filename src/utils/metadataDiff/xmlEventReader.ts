@@ -48,8 +48,8 @@ const parseDeclaration = (decl: string): XmlContent => {
     // Stryker disable ConditionalExpression,LogicalOperator,StringLiteral -- equivalent: this guard discriminates the declaration node from txml's tree output; the SF metadata declaration is always the first/only TxmlNode with tagName XML_HEADER_ATTRIBUTE_KEY, so the AND-vs-OR and 'string' literal mutants find the same node
     (n): n is TxmlNode =>
       typeof n !== 'string' && n.tagName === XML_HEADER_ATTRIBUTE_KEY
-    // Stryker restore ConditionalExpression,LogicalOperator,StringLiteral
   )
+  // Stryker restore ConditionalExpression,LogicalOperator,StringLiteral
   // Stryker disable next-line ConditionalExpression,ObjectLiteral -- equivalent: defensive fallback when txml returns no declaration node; SF metadata always provides a declaration so the fallback is unreachable, and the empty-object replacement is symmetric with the populated headerAttrs result downstream
   if (!declNode) return { [XML_HEADER_ATTRIBUTE_KEY]: {} }
   const headerAttrs: XmlContent = {}
@@ -61,32 +61,23 @@ const parseDeclaration = (decl: string): XmlContent => {
   return { [XML_HEADER_ATTRIBUTE_KEY]: headerAttrs }
 }
 
-// Walks the prologue (BOM, optional declaration, leading whitespace,
-// comments, and `<!...>` declarations such as DOCTYPE) and stops at the
-// root opening tag. Returns the root name, its attributes, the byte
-// offset where the root's body starts so the streaming loop can pick up
-// from there, and whether the root is self-closing.
-const parsePrologue = (xml: string): Prologue | null => {
-  let i = 0
-  let xmlHeader: XmlContent | undefined
+type RootOpenTag = {
+  rootName: string
+  attrsRaw: string
+  bodyStart: number
+  isSelfClosing: boolean
+}
 
-  const declMatch = XML_DECL_RE.exec(xml)
-  // Stryker disable next-line ConditionalExpression -- equivalent: the index === 0 anchor is symmetric with the regex's `^` anchor; for the only inputs reachable here both produce identical (declMatch.index === 0) outcomes
-  if (declMatch && declMatch.index === 0) {
-    xmlHeader = parseDeclaration(declMatch[0])
-    i += declMatch[0].length
-  }
-
-  // Stryker disable next-line BlockStatement,EqualityOperator -- equivalent: prologue scan loop; emptying the body returns null on missing root which is semantically equivalent to falling out the bottom and returning null via the unmatched ROOT_OPEN_RE; <= vs < changes the iteration boundary by one position which matters only when xml ends in whitespace right at the root tag boundary, a case not present in test fixtures
+// Returns the offset of the first character that is not whitespace, a
+// comment or a `<!...>` declaration, or null when a declaration never closes.
+const skipPrologueMisc = (xml: string, start: number): number | null => {
+  let i = start
+  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `i`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at i === xml.length matches nothing and breaks at the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
   while (i < xml.length) {
-    const wsMatch = WS_RE.exec(xml.slice(i))
-    if (wsMatch) {
-      i += wsMatch[0].length
-      continue
-    }
-    const commentMatch = COMMENT_RE.exec(xml.slice(i))
-    if (commentMatch) {
-      i += commentMatch[0].length
+    const rest = xml.slice(i)
+    const skippable = WS_RE.exec(rest) ?? COMMENT_RE.exec(rest)
+    if (skippable) {
+      i += skippable[0].length
       continue
     }
     // `<!...>` declarations (DOCTYPE, ENTITY, etc.) before the root.
@@ -103,25 +94,40 @@ const parsePrologue = (xml: string): Prologue | null => {
     // Stryker restore MethodExpression,ArithmeticOperator,ConditionalExpression,EqualityOperator
     break
   }
+  return i
+}
 
-  ROOT_OPEN_RE.lastIndex = i
+const matchRootOpenTag = (xml: string, start: number): RootOpenTag | null => {
+  ROOT_OPEN_RE.lastIndex = start
   const rootMatch = ROOT_OPEN_RE.exec(xml)
   // Stryker disable next-line ConditionalExpression -- equivalent: rootMatch validation; flipping to false continues with rootMatch undefined which throws on the next destructure — but the prologue function returns null in either case (the throw is caught by driveParse which surfaces it)
-  if (!rootMatch || rootMatch.index !== i) return null
+  if (!rootMatch || rootMatch.index !== start) return null
   const [full, rootName, attrsRaw] = rootMatch
-  // Stryker disable next-line MethodExpression -- equivalent: trimEnd().endsWith('/') checks if attrs end with self-closing slash; trimStart instead would not affect SF metadata test fixtures because the trailing slash detection still works on the original attrsRaw whose trailing whitespace doesn't include the slash
-  const isSelfClosing = attrsRaw!.trimEnd().endsWith('/')
-  const bodyStart = i + full.length
+  return {
+    rootName: rootName!,
+    attrsRaw: attrsRaw!,
+    bodyStart: start + full.length,
+    // Stryker disable next-line MethodExpression -- equivalent: trimEnd().endsWith('/') checks if attrs end with self-closing slash; trimStart instead would not affect SF metadata test fixtures because the trailing slash detection still works on the original attrsRaw whose trailing whitespace doesn't include the slash
+    isSelfClosing: attrsRaw!.trimEnd().endsWith('/'),
+  }
+}
 
-  // Reuse txml to parse just the root open tag's attributes consistently
-  // with how it parses every other tag. Wrapping it as self-closing gives
-  // us a clean parse target that always returns one node.
+// Reuse txml to parse just the root open tag's attributes consistently
+// with how it parses every other tag. Wrapping it as self-closing gives
+// us a clean parse target that always returns one node.
+const syntheticRootTag = ({
+  rootName,
+  attrsRaw,
+  isSelfClosing,
+}: RootOpenTag): string => {
   // Stryker disable Regex -- equivalent: the trailing slash strip lets us re-wrap as a self-closing tag; mutants on /\/\s*$/ produce a regex with broader/narrower whitespace matching but SF metadata's self-closing root tag has no trailing whitespace before the `/`, so the strip is a no-op either way
-  const synthetic = isSelfClosing
-    ? `<${rootName!}${attrsRaw!.replace(/\/\s*$/, '')}/>`
-    : `<${rootName!}${attrsRaw!}/>`
+  const attributes = isSelfClosing ? attrsRaw.replace(/\/\s*$/, '') : attrsRaw
   // Stryker restore Regex
-  const syntheticTree = txmlParse(synthetic) as TxmlChild[]
+  return `<${rootName}${attributes}/>`
+}
+
+const parseRootAttributes = (rootTag: RootOpenTag): Record<string, string> => {
+  const syntheticTree = txmlParse(syntheticRootTag(rootTag)) as TxmlChild[]
   const syntheticNode = syntheticTree.find(
     // Stryker disable next-line ConditionalExpression,StringLiteral -- equivalent: txml's parse always returns one TxmlNode for our well-formed self-closing synthetic tag; the type-narrowing predicate is symmetric (true also picks the same node since there's only one)
     (n): n is TxmlNode => typeof n !== 'string'
@@ -137,13 +143,32 @@ const parsePrologue = (xml: string): Prologue | null => {
         value === null ? 'true' : value
     }
   }
+  return rootAttributes
+}
+
+// Walks the prologue (BOM, optional declaration, leading whitespace,
+// comments, and `<!...>` declarations such as DOCTYPE) and stops at the
+// root opening tag. Returns the root name, its attributes, the byte
+// offset where the root's body starts so the streaming loop can pick up
+// from there, and whether the root is self-closing.
+const parsePrologue = (xml: string): Prologue | null => {
+  const declMatch = XML_DECL_RE.exec(xml)
+  // Stryker disable next-line ConditionalExpression -- equivalent: the index === 0 anchor is symmetric with the regex's `^` anchor; for the only inputs reachable here both produce identical (declMatch.index === 0) outcomes
+  const declaration = declMatch && declMatch.index === 0 ? declMatch[0] : ''
+  const xmlHeader = declaration ? parseDeclaration(declaration) : undefined
+
+  const rootStart = skipPrologueMisc(xml, declaration.length)
+  // Stryker disable next-line ConditionalExpression -- the false-flip is equivalent: matchRootOpenTag receives null, and its `rootMatch.index !== start` guard can never match null, so it returns null as well. The true-flip is suppressed as a side effect; the always-return-null behaviour it produces is killed through the EqualityOperator mutant on the same condition
+  if (rootStart === null) return null
+  const rootTag = matchRootOpenTag(xml, rootStart)
+  if (rootTag === null) return null
 
   return {
     xmlHeader,
-    rootName: rootName!,
-    rootAttributes,
-    bodyStart,
-    isSelfClosing,
+    rootName: rootTag.rootName,
+    rootAttributes: parseRootAttributes(rootTag),
+    bodyStart: rootTag.bodyStart,
+    isSelfClosing: rootTag.isSelfClosing,
   }
 }
 
@@ -236,9 +261,9 @@ const verifyTail = (
     throw new Error(
       `unexpected content after root close: ${xml.slice(i, Math.min(i + 30, xml.length))}`
     )
-    // Stryker restore MethodExpression,ArithmeticOperator,StringLiteral
   }
 }
+// Stryker restore MethodExpression,ArithmeticOperator,StringLiteral
 
 const driveParse = (
   source: Buffer | string,
