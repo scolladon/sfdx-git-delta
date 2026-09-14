@@ -2,9 +2,11 @@
 import { rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
+import { SfError } from '@salesforce/core/sfError'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
+import { getLatestSupportedVersion } from '../../../src/metadata/metadataManager'
 import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
 import { NotACommitError } from '../../../src/utils/errorUtils'
@@ -14,14 +16,15 @@ import { createTempDir, runGit } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
 // ConfigValidator resolves the latest API version through SDR's live
-// appexchange lookup, the only network call these tests reach. Pinned so the
-// git refusal under test is always assembled, whether the network is up or not.
+// appexchange lookup, the only network call these tests reach. Mocked so
+// the git refusal under test is always assembled; one case makes it reject
+// to pin the combined message.
 const API_VERSION = 60
 vi.mock('../../../src/metadata/metadataManager', async importOriginal => ({
   ...(await importOriginal<
     typeof import('../../../src/metadata/metadataManager')
   >()),
-  getLatestSupportedVersion: async () => API_VERSION,
+  getLatestSupportedVersion: vi.fn(async () => API_VERSION),
 }))
 
 // A missing oid that parses as a well-formed git object id shape but never
@@ -124,6 +127,40 @@ describe('Given the released error-message contract (validated surface)', () => 
       // Assert
       expect((error as Error).message).toBe(
         "--to is not a valid sha pointer: 'not-a-real-ref-zzz' (If in CI/CD context, check the fetch depth is properly set)"
+      )
+    })
+  })
+
+  describe('When ConfigValidator validates a non-existent ref while the API version lookup fails', () => {
+    it('Then it throws the released sha-pointer message followed by the released refusal, in one error', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-refusal-')
+      initRepoWithCommit(repoDir)
+      const config = makeConfig({
+        repo: repoDir,
+        to: 'not-a-real-ref-zzz',
+        from: 'HEAD',
+      })
+      vi.mocked(getLatestSupportedVersion).mockRejectedValueOnce(
+        new SfError(
+          'Unable to get a current API version from the appexchange org',
+          'ApiVersionRetrievalError',
+          [],
+          Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'), {
+            code: 'ECONNREFUSED',
+          })
+        )
+      )
+      const sut = new ConfigValidator(config)
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        '--to is not a valid sha pointer: \'not-a-real-ref-zzz\' (If in CI/CD context, check the fetch depth is properly set), Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: Unable to get a current API version from the appexchange org (connect ECONNREFUSED 127.0.0.1:9)'
       )
     })
   })

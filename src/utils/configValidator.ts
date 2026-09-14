@@ -8,7 +8,6 @@ import GitAdapter from '../adapter/GitAdapter.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
 import type { Config } from '../types/config.js'
-import { pushAll } from './arrayUtils.js'
 import {
   ConfigError,
   getErrorMessage,
@@ -40,6 +39,10 @@ const SOURCE_DIR_REJECTION_MESSAGE_KEYS: Record<
 }
 
 const isPositiveVersion = (version: number): boolean => version > 0
+
+type ApiVersionOutcome =
+  | { readonly warnings: readonly Error[] }
+  | { readonly refusal: string }
 
 // Two values arrive unparsed: a JavaScript library caller's apiVersion, which
 // the number type does not bind (the documented sample passed ''), and
@@ -134,36 +137,22 @@ export default class ConfigValidator {
       throw new ConfigError(sourceErrors.join(', '))
     }
 
-    const [defaultWarnings, repoExists, gitErrors, changesManifestErrors] =
+    const [apiVersion, repositoryErrors, gitErrors, changesManifestErrors] =
       await Promise.all([
-        this._handleDefault(),
-        pathExists(join(this.config.repo, GIT_FOLDER)),
+        this._settleApiVersion(),
+        this._validateRepository(),
         this._validateGitSha(),
         this._validateChangesManifest(),
       ])
 
-    const errors: string[] = []
-    if (!repoExists) {
-      // Rendered from the adapter's own absolute repository key — not
-      // this.config.repo, which is only sanitizePath-normalized, never
-      // resolved to absolute — so this collapses with the identical
-      // RepositoryRefusalError message a same-repository resolveCommit failure
-      // produces below, instead of reporting the missing repository twice
-      // in two different forms.
-      errors.push(
-        this.message.getMessage('error.PathIsNotGit', [
-          sanitizeForMessage(this.gitAdapter.repositoryKey),
-        ])
-      )
+    const errors = [...repositoryErrors, ...gitErrors, ...changesManifestErrors]
+    // The refusal is about the environment, the input errors about what the
+    // user typed: report both in one run, the typing first.
+    if ('refusal' in apiVersion) {
+      throw this._configError([...errors, apiVersion.refusal])
     }
-    pushAll(errors, gitErrors)
-    pushAll(errors, changesManifestErrors)
-
     if (errors.length > 0) {
-      // Two SHA keys against one repository produce the same refusal twice,
-      // and a missing .git makes the config check and the engine say the
-      // same sentence. Identical strings carry no extra information.
-      throw new ConfigError([...new Set(errors)].join(', '))
+      throw this._configError(errors)
     }
 
     // Runs after the SHA validation above so a typo in either ref surfaces
@@ -171,7 +160,25 @@ export default class ConfigValidator {
     // MergeBaseNotFound.
     await this._resolveMergeBase(requestedFrom, requestedTo)
 
-    return defaultWarnings
+    return apiVersion.warnings
+  }
+
+  // Only a ConfigError is a refusal to report alongside the input errors; any
+  // other rejection is a defect and propagates untouched.
+  private async _settleApiVersion(): Promise<ApiVersionOutcome> {
+    try {
+      return { warnings: await this._handleDefault() }
+    } catch (error) {
+      if (!(error instanceof ConfigError)) throw error
+      return { refusal: error.message }
+    }
+  }
+
+  // Two SHA keys against one repository produce the same refusal twice, and a
+  // missing .git makes the config check and the engine say the same sentence.
+  // Identical strings carry no extra information.
+  private _configError(errors: readonly string[]): ConfigError {
+    return new ConfigError([...new Set(errors)].join(', '))
   }
 
   // --merge-base resolves --from to the merge base of --from and --to (git
@@ -198,6 +205,20 @@ export default class ConfigValidator {
       )
     }
     this.config.from = base
+  }
+
+  // Rendered from the adapter's own absolute repository key — not
+  // this.config.repo, which is only sanitizePath-normalized, never resolved to
+  // absolute — so this collapses with the identical RepositoryRefusalError
+  // message a same-repository resolveCommit failure produces, instead of
+  // reporting the missing repository twice in two different forms.
+  protected async _validateRepository(): Promise<string[]> {
+    if (await pathExists(join(this.config.repo, GIT_FOLDER))) return []
+    return [
+      this.message.getMessage('error.PathIsNotGit', [
+        sanitizeForMessage(this.gitAdapter.repositoryKey),
+      ]),
+    ]
   }
 
   // oclif cannot natively validate --changes-manifest (it uses a string flag

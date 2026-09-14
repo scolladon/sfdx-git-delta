@@ -38,7 +38,7 @@ Validates and normalizes user inputs:
 - Resolves `apiVersion`. A version passed in (`--api-version`, `SF_ORG_API_VERSION`, or a library caller's `apiVersion`, which is parsed the way the flag is) counts only if it is a positive version; without one, `sourceApiVersion` from `sfdx-project.json` is used, under the same rule. A pinned version is emitted as pinned and never looked up, so the manifest does not depend on network reachability. Only an unpinned run looks the latest version up, through a live call to the appexchange org, and defaults to it with `warning.ApiVersionDefaulted`; when that call fails (offline/firewalled) or answers with something that is not a positive version, a `ConfigError` advises supplying one and names the cause (connection refused, timed out, DNS, or the unusable value), with any credentials in an echoed proxy URL redacted
 - Sanitizes file paths (output dir, source dirs, ignore files)
 
-Fatal errors (`ConfigError`) at this stage abort the pipeline entirely. This is one of only two places where exceptions propagate to the CLI layer.
+Fatal errors (`ConfigError`) at this stage abort the pipeline entirely. An unresolvable API version is reported in the same error as any invalid `--from`/`--to`, repository or `--changes-manifest` problem, after them. This is one of only two places where exceptions propagate to the CLI layer.
 
 ---
 

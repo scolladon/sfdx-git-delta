@@ -730,6 +730,110 @@ describe('Given a ConfigValidator', () => {
       })
     })
 
+    describe('Given the API version cannot be resolved while the input is also invalid', () => {
+      const REFUSAL =
+        'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org'
+
+      beforeEach(() => {
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+          new Error(
+            'Unable to get a current API version from the appexchange org'
+          )
+        )
+        mockSfProjectResolve.mockRejectedValue(
+          new Error('No sfdx-project.json found')
+        )
+        config.apiVersion = undefined
+      })
+
+      it('When --to does not resolve, Then the sha-pointer error and the refusal are both reported, the sha-pointer error first', async () => {
+        // Arrange
+        mockResolveCommit.mockImplementation((ref: string) =>
+          ref === 'bad-to'
+            ? Promise.reject(new Error('bad sha'))
+            : Promise.resolve('ref')
+        )
+        const sut = new ConfigValidator({
+          ...config,
+          from: 'HEAD',
+          to: 'bad-to',
+        })
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'ConfigError',
+            message: `error.ParameterIsNotGitSHA:to,bad-to, ${REFUSAL}`,
+          })
+        )
+      })
+
+      it('When the repository has no .git, Then PathIsNotGit and the refusal are both reported', async () => {
+        // Arrange
+        mockedPathExists.mockResolvedValue(false as never)
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            message: `error.PathIsNotGit:${MOCK_REPOSITORY_KEY_ESCAPED}, ${REFUSAL}`,
+          })
+        )
+      })
+
+      it('When mergeBase is set and --to does not resolve, Then both are reported and getMergeBase is never called', async () => {
+        // Arrange
+        mockResolveCommit.mockImplementation((ref: string) =>
+          ref === 'bad-to'
+            ? Promise.reject(new Error('bad sha'))
+            : Promise.resolve('ref')
+        )
+        const sut = new ConfigValidator({
+          ...config,
+          from: 'HEAD',
+          to: 'bad-to',
+          mergeBase: true,
+        })
+
+        // Act
+        const error = await sut
+          .validateConfig()
+          .catch((thrown: unknown) => thrown)
+
+        // Assert
+        expect((error as Error).message).toBe(
+          `error.ParameterIsNotGitSHA:to,bad-to, ${REFUSAL}`
+        )
+        expect(mockGetMergeBase).not.toHaveBeenCalled()
+      })
+
+      it('When the input is valid, Then the refusal is thrown alone and byte-identical', async () => {
+        // Arrange
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({ name: 'ConfigError', message: REFUSAL })
+        )
+      })
+
+      it('When defaulting the API version fails with something other than a ConfigError, Then that error propagates untouched', async () => {
+        // Arrange — with valid input, the defaulted warning is the first and
+        // only message rendered, so a one-shot implementation reaches it.
+        const defect = new TypeError('boom')
+        vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
+          '58'
+        )
+        mockGetMessage.mockImplementationOnce(() => {
+          throw defect
+        })
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toBe(defect)
+      })
+    })
+
     describe('when apiVersion is explicitly NaN', () => {
       it('When apiVersion is NaN, Then it defaults to latest with defaulted warning', async () => {
         // Arrange
