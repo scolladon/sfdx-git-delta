@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  redactUrlCredentials,
+  redactProxyCredentials,
   sanitizeForMessage,
 } from '../../../../src/utils/messageSanitizer'
 
@@ -11,6 +11,9 @@ const ESC = String.fromCharCode(27)
 // few milliseconds even on a slow runner, so the budget separates them cleanly.
 const LONG_INPUT_LENGTH = 50_000
 const LINEAR_TIME_BUDGET_MS = 500
+// A plausible quadratic rewrite of the PAC pattern still finishes a 50k input
+// inside the budget; at 200k it takes seconds.
+const PAC_LONG_INPUT_LENGTH = 200_000
 
 describe('Given a value bound for an error or warning message', () => {
   const sut = sanitizeForMessage
@@ -183,7 +186,7 @@ describe('Given a value bound for an error or warning message', () => {
 })
 
 describe('Given a value that may embed a URL carrying credentials', () => {
-  const sut = redactUrlCredentials
+  const sut = redactProxyCredentials
 
   describe('When a URL carries a username and password', () => {
     it('Then the userinfo is redacted and the scheme and host are kept', () => {
@@ -281,6 +284,116 @@ describe('Given a value that may embed a URL carrying credentials', () => {
       expect(result).toBe(
         'https://<redacted>@one.example and socks5://<redacted>@two.example'
       )
+    })
+  })
+})
+
+describe('Given a value that may embed a PAC proxy entry carrying credentials', () => {
+  const sut = redactProxyCredentials
+
+  describe('When pac-proxy-agent lists a credentialed PROXY entry', () => {
+    it('Then the userinfo is redacted and the keyword and host are kept', () => {
+      // Act
+      const result = sut(
+        'Failed to establish a socket connection to proxies: ["PROXY alice:pw@127.0.0.1:9"]'
+      )
+
+      // Assert
+      expect(result).toBe(
+        'Failed to establish a socket connection to proxies: ["PROXY <redacted>@127.0.0.1:9"]'
+      )
+    })
+  })
+
+  describe('When the keyword is lowercase', () => {
+    it('Then the userinfo is still redacted, because a mis-cased entry is rejected yet still echoed', () => {
+      // Act
+      const result = sut(
+        'Failed to establish a socket connection to proxies: ["proxy alice:lower@127.0.0.1:9"]'
+      )
+
+      // Assert
+      expect(result).toBe(
+        'Failed to establish a socket connection to proxies: ["proxy <redacted>@127.0.0.1:9"]'
+      )
+    })
+  })
+
+  describe('When the entry uses any keyword a PAC resolver may return', () => {
+    it.each(['PROXY', 'HTTP', 'HTTPS', 'SOCKS', 'SOCKS4', 'SOCKS5'])(
+      'Then a %s entry has its userinfo redacted',
+      keyword => {
+        // Act
+        const result = sut(`${keyword} alice:pw@127.0.0.1:9`)
+
+        // Assert
+        expect(result).toBe(`${keyword} <redacted>@127.0.0.1:9`)
+      }
+    )
+  })
+
+  describe('When several entries are listed', () => {
+    it('Then each credentialed entry is redacted on its own and DIRECT is untouched', () => {
+      // Act
+      const result = sut('["PROXY alice:pw@h:9","SOCKS5 bob:x@h:9","DIRECT"]')
+
+      // Assert
+      expect(result).toBe(
+        '["PROXY <redacted>@h:9","SOCKS5 <redacted>@h:9","DIRECT"]'
+      )
+    })
+  })
+
+  describe('When the password contains an at sign', () => {
+    it('Then everything up to the host separator is redacted', () => {
+      // Act
+      const result = sut('PROXY alice:p@ss@h:9')
+
+      // Assert
+      expect(result).toBe('PROXY <redacted>@h:9')
+    })
+  })
+
+  describe('When no entry carries userinfo', () => {
+    it.each([
+      '["PROXY 127.0.0.1:9","DIRECT"]',
+      'Response code 407 (Proxy Authentication Required)',
+      'getaddrinfo ENOTFOUND alice',
+    ])('Then %s is returned unchanged', value => {
+      // Act
+      const result = sut(value)
+
+      // Assert
+      expect(result).toBe(value)
+    })
+  })
+
+  describe('When a keyword is only the tail of a longer word', () => {
+    it('Then it is not read as an entry keyword', () => {
+      // Act
+      const result = sut('HTTPS_PROXY alice@corp.example')
+
+      // Assert
+      expect(result).toBe('HTTPS_PROXY alice@corp.example')
+    })
+  })
+
+  describe('When the value is a long run of PAC keywords with no at sign', () => {
+    it('Then it completes in linear time instead of backtracking quadratically', () => {
+      // Arrange
+      const keyword = 'PROXY '
+      const hostileEntries = keyword.repeat(
+        PAC_LONG_INPUT_LENGTH / keyword.length
+      )
+      const startedAt = performance.now()
+
+      // Act
+      const result = sut(hostileEntries)
+      const elapsedMs = performance.now() - startedAt
+
+      // Assert
+      expect(result).toBe(hostileEntries)
+      expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
     })
   })
 })

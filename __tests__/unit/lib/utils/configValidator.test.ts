@@ -542,6 +542,34 @@ describe('Given a ConfigValidator', () => {
           )
         })
 
+        it('When the cause lists a credentialed PAC proxy entry, Then the refusal redacts it', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error(
+                  'Failed to establish a socket connection to proxies: ["PROXY alice:s3cr3tPass@127.0.0.1:9"]'
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut['_handleDefault']()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message:
+                'error.ApiVersionRetrievalFailed:Unable to get a current API version from the appexchange org (Failed to establish a socket connection to proxies: ["PROXY <redacted>@127.0.0.1:9"])',
+            })
+          )
+        })
+
         it('When the echoed credentials are longer than the message length cap, Then they are redacted before the cap can cut them loose from their at sign', async () => {
           // Arrange
           vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
