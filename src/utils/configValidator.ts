@@ -153,29 +153,28 @@ export default class ConfigValidator {
   }
 
   private async _validateInputsAndApiVersion(): Promise<readonly Error[]> {
-    const [
-      apiVersionOutcome,
-      repositoryErrors,
-      gitErrors,
-      changesManifestErrors,
-    ] = await Promise.all([
+    const [apiVersionOutcome, inputErrors] = await Promise.all([
       this._settleApiVersion(),
+      this._collectInputErrors(),
+    ])
+    // The refusal is about the environment, the input errors about what the
+    // user typed: report both in one run, the typing first.
+    if ('refusal' in apiVersionOutcome) {
+      throw this._configError([...inputErrors, apiVersionOutcome.refusal])
+    }
+    if (inputErrors.length > 0) {
+      throw this._configError(inputErrors)
+    }
+    return apiVersionOutcome.warnings
+  }
+
+  private async _collectInputErrors(): Promise<readonly string[]> {
+    const errorGroups = await Promise.all([
       this._validateRepository(),
       this._validateGitSha(),
       this._validateChangesManifest(),
     ])
-
-    const errors = [...repositoryErrors, ...gitErrors, ...changesManifestErrors]
-    // The refusal is about the environment, the input errors about what the
-    // user typed: report both in one run, the typing first.
-    if ('refusal' in apiVersionOutcome) {
-      throw this._configError([...errors, apiVersionOutcome.refusal])
-    }
-    if (errors.length > 0) {
-      throw this._configError(errors)
-    }
-
-    return apiVersionOutcome.warnings
+    return errorGroups.flat()
   }
 
   // Only a ConfigError is a refusal to report alongside the input errors; any
