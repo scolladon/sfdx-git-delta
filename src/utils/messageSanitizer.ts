@@ -68,8 +68,10 @@ const PAC_ENTRY_USERINFO_REGEX =
 // unredacted: a literal backslash escape used as the separator
 // ("PROXY\\tuser:pass@host"), a password containing whitespace (the target
 // then has no '@'), or a non-whitespace character before the keyword or as the
-// separator. Letting the userinfo run cross escaped separators would cover the
-// whitespace-in-password shape, but it backtracks quadratically.
+// separator. Letting the userinfo run cross escaped separators would cover a
+// tab, newline, carriage return, form feed or vertical tab inside a password
+// (a space arrives raw and stays uncovered either way), but it backtracks
+// quadratically.
 const REDACTED_USERINFO = '<redacted>'
 
 export const redactProxyCredentials = (value: string): string =>

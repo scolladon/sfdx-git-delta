@@ -488,22 +488,35 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
   })
 
   describe('When one entry repeats a backslash-prefixed keyword and an escaped separator with no at sign', () => {
-    it('Then it completes in linear time because a userinfo run stops at the next escaped separator', () => {
-      // Arrange — a backslash before a keyword gives it a word boundary, so
-      // every repetition starts a match attempt
-      const hostileEntry = JSON.stringify([
-        `PROXY\t${'\\PROXY\t'.repeat(PAC_LONG_INPUT_LENGTH / 9)}`,
-      ])
-      const startedAt = performance.now()
+    it.each([
+      ['a tab', '\t'],
+      ['a newline', '\n'],
+      ['a carriage return', '\r'],
+      ['a form feed', '\f'],
+      ['a vertical tab', '\v'],
+    ])(
+      'Then an entry repeating %s completes in linear time because a userinfo run stops at the next escaped separator',
+      (_, separator) => {
+        // Arrange — a backslash before a keyword gives it a word boundary, so
+        // every repetition starts a match attempt
+        const unit = `\\PROXY${separator}`
+        const repetitions = Math.floor(
+          PAC_LONG_INPUT_LENGTH / (JSON.stringify(unit).length - 2)
+        )
+        const hostileEntry = JSON.stringify([
+          `PROXY${separator}${unit.repeat(repetitions)}`,
+        ])
+        const startedAt = performance.now()
 
-      // Act
-      const result = sut(hostileEntry)
-      const elapsedMs = performance.now() - startedAt
+        // Act
+        const result = sut(hostileEntry)
+        const elapsedMs = performance.now() - startedAt
 
-      // Assert
-      expect(result).toBe(hostileEntry)
-      expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
-    })
+        // Assert
+        expect(result).toBe(hostileEntry)
+        expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
+      }
+    )
   })
 
   describe('When a keyword is followed by a long run of escaped separators with no at sign', () => {
