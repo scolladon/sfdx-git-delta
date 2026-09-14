@@ -339,6 +339,8 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
       ['a carriage return', '\r'],
       ['a form feed', '\f'],
       ['a vertical tab', '\v'],
+      ['two spaces', '  '],
+      ['a tab then a space', '\t '],
     ])(
       'Then an entry separated by %s has its userinfo redacted',
       (_, separator) => {
@@ -370,6 +372,54 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
         expect(result).toBe(`${keyword} <redacted>@127.0.0.1:9`)
       }
     )
+  })
+
+  describe('When two credentialed entries are separated by escaped whitespace', () => {
+    it('Then each entry is redacted on its own and both hosts are kept', () => {
+      // Arrange
+      const prefix = 'Failed to establish a socket connection to proxies: '
+      const echoed = `${prefix}${JSON.stringify(['PROXY\talice:pw@10.0.0.1:9', 'PROXY\tbob:pw@10.0.0.2:9'])}`
+
+      // Act
+      const result = sut(echoed)
+
+      // Assert
+      expect(result).toBe(
+        `${prefix}${JSON.stringify(['PROXY\t<redacted>@10.0.0.1:9', 'PROXY\t<redacted>@10.0.0.2:9'])}`
+      )
+    })
+  })
+
+  describe('When a later listed entry holds an at sign but no keyword', () => {
+    it('Then the credentialed entry is redacted without running into the next entry', () => {
+      // Arrange — an entry pac-proxy-agent rejects is still echoed in the list
+      const prefix = 'Failed to establish a socket connection to proxies: '
+      const echoed = `${prefix}${JSON.stringify(['PROXY\talice:pw@10.0.0.1:9', 'user@corp.example'])}`
+
+      // Act
+      const result = sut(echoed)
+
+      // Assert
+      expect(result).toBe(
+        `${prefix}${JSON.stringify(['PROXY\t<redacted>@10.0.0.1:9', 'user@corp.example'])}`
+      )
+    })
+  })
+
+  describe('When the password contains a double quote that JSON.stringify escaped', () => {
+    it('Then the whole userinfo, escape included, is redacted', () => {
+      // Arrange
+      const prefix = 'Failed to establish a socket connection to proxies: '
+      const echoed = `${prefix}${JSON.stringify(['PROXY\talice:p"w@127.0.0.1:9'])}`
+
+      // Act
+      const result = sut(echoed)
+
+      // Assert
+      expect(result).toBe(
+        `${prefix}${JSON.stringify(['PROXY\t<redacted>@127.0.0.1:9'])}`
+      )
+    })
   })
 
   describe('When several entries are listed', () => {
@@ -415,6 +465,44 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
 
       // Assert
       expect(result).toBe('HTTPS_PROXY alice@corp.example')
+    })
+  })
+
+  describe('When many escape-separated entries carry no at sign', () => {
+    it('Then it completes in linear time instead of scanning every later entry from each keyword', () => {
+      // Arrange — the list pac-proxy-agent echoes when every entry fails
+      const entry = 'PROXY\tx'
+      const hostileList = JSON.stringify(
+        Array(PAC_LONG_INPUT_LENGTH / (entry.length + 3)).fill(entry)
+      )
+      const startedAt = performance.now()
+
+      // Act
+      const result = sut(hostileList)
+      const elapsedMs = performance.now() - startedAt
+
+      // Assert
+      expect(result).toBe(hostileList)
+      expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
+    })
+  })
+
+  describe('When one entry repeats a backslash-prefixed keyword and an escaped separator with no at sign', () => {
+    it('Then it completes in linear time because a userinfo run stops at the next escaped separator', () => {
+      // Arrange — a backslash before a keyword gives it a word boundary, so
+      // every repetition starts a match attempt
+      const hostileEntry = JSON.stringify([
+        `PROXY\t${'\\PROXY\t'.repeat(PAC_LONG_INPUT_LENGTH / 9)}`,
+      ])
+      const startedAt = performance.now()
+
+      // Act
+      const result = sut(hostileEntry)
+      const elapsedMs = performance.now() - startedAt
+
+      // Assert
+      expect(result).toBe(hostileEntry)
+      expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
     })
   })
 
