@@ -1026,7 +1026,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('componentNamesUnder empty listing (ArrayDeclaration mutation contrast)', () => {
+  describe('componentNamesUnder given an empty listing', () => {
     it('Given a revision with no built tree index, When scanning a typeDir path directly, Then the per-file suffix-filter loop performs zero iterations (kills the getFilesPath ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
       // Arrange — call scanAndCreateElement directly (protected, cast like
       // isNameInPath above) to isolate the fallback loop's iteration count
@@ -1061,7 +1061,7 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('siblingsOf empty listing (ArrayDeclaration mutation contrast)', () => {
+  describe('siblingsOf given an empty listing', () => {
     it('Given a revision with no built tree index, When walking up from a single directory level, Then findComponentName never consults metadataRepo.get (kills the listChildren ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
       // Arrange — a one-level path keeps the directory walk to exactly one
       // listChildren fallback, so the get() spy count maps 1:1 to the

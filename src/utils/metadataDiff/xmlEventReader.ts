@@ -72,7 +72,7 @@ type RootOpenTag = {
 // comment or a `<!...>` declaration, or null when a declaration never closes.
 const skipPrologueMisc = (xml: string, start: number): number | null => {
   let i = start
-  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `i`, so the mutant hangs until Stryker's timeout. EqualityOperator is equivalent: `<=` adds one pass at i === xml.length, where nothing matches and the loop breaks at the same offset
+  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `i`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at i === xml.length matches nothing and breaks at the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
   while (i < xml.length) {
     const rest = xml.slice(i)
     const skippable = WS_RE.exec(rest) ?? COMMENT_RE.exec(rest)
@@ -158,7 +158,7 @@ const parsePrologue = (xml: string): Prologue | null => {
   const xmlHeader = declaration ? parseDeclaration(declaration) : undefined
 
   const rootStart = skipPrologueMisc(xml, declaration.length)
-  // Stryker disable next-line ConditionalExpression -- equivalent: on the false-flip matchRootOpenTag receives null, and its `rootMatch.index !== start` guard can never match null, so it returns null as well
+  // Stryker disable next-line ConditionalExpression -- the false-flip is equivalent: matchRootOpenTag receives null, and its `rootMatch.index !== start` guard can never match null, so it returns null as well. The true-flip is suppressed as a side effect; the always-return-null behaviour it produces is killed through the EqualityOperator mutant on the same condition
   if (rootStart === null) return null
   const rootTag = matchRootOpenTag(xml, rootStart)
   if (rootTag === null) return null

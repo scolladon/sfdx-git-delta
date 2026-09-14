@@ -118,7 +118,7 @@ export class MetadataBoundaryResolver {
     revision: string
   ): string | null {
     let currentDir = dirname(path)
-    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- equivalent: directory walk termination; this loop walks up from the file's dirname to the repo root, emptying the body skips the walk so this helper returns null and scanAndCreateElement falls back to the file name; the test surface only exercises the walk path for nested directory metadata, and the fallback path is also tested
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement,StringLiteral -- unaffordable rather than equivalent: an emptied body, the `''` literal, the `||` swap and the operand true-flip never let `currentDir` reach '.', so those mutants hang until Stryker's timeout (dirname('.') is '.'). The whole-condition false-flip is suppressed as a side effect; it skips the walk, and the tests asserting pathAfterType[0] from a walk would kill it
     while (currentDir && currentDir !== '.') {
       const siblings = this.siblingsOf(currentDir, revision)
       const componentName = this.findComponentName(siblings, parts)
