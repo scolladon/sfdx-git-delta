@@ -48,8 +48,8 @@ const parseDeclaration = (decl: string): XmlContent => {
     // Stryker disable ConditionalExpression,LogicalOperator,StringLiteral -- equivalent: this guard discriminates the declaration node from txml's tree output; the SF metadata declaration is always the first/only TxmlNode with tagName XML_HEADER_ATTRIBUTE_KEY, so the AND-vs-OR and 'string' literal mutants find the same node
     (n): n is TxmlNode =>
       typeof n !== 'string' && n.tagName === XML_HEADER_ATTRIBUTE_KEY
-    // Stryker restore ConditionalExpression,LogicalOperator,StringLiteral
   )
+  // Stryker restore ConditionalExpression,LogicalOperator,StringLiteral
   // Stryker disable next-line ConditionalExpression,ObjectLiteral -- equivalent: defensive fallback when txml returns no declaration node; SF metadata always provides a declaration so the fallback is unreachable, and the empty-object replacement is symmetric with the populated headerAttrs result downstream
   if (!declNode) return { [XML_HEADER_ATTRIBUTE_KEY]: {} }
   const headerAttrs: XmlContent = {}
@@ -262,9 +262,9 @@ const verifyTail = (
     throw new Error(
       `unexpected content after root close: ${xml.slice(i, Math.min(i + 30, xml.length))}`
     )
-    // Stryker restore MethodExpression,ArithmeticOperator,StringLiteral
   }
 }
+// Stryker restore MethodExpression,ArithmeticOperator,StringLiteral
 
 const driveParse = (
   source: Buffer | string,
