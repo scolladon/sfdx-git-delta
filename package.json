@@ -55,7 +55,7 @@
     "@scolladon/tsgit": "4.0.0",
     "ignore": "7.0.9",
     "txml": "6.0.3",
-    "zod": "4.6.4"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
