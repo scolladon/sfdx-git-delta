@@ -21,9 +21,9 @@ import {
 import { createTempDir, runGitText } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
-// The one seam that leaves the process: ConfigValidator caps apiVersion
-// against SDR's live coverage lookup. Pinned so the run is offline and
-// deterministic; everything else (git, registry, handlers, writers) is real.
+// ConfigValidator resolves the latest API version through SDR's live
+// appexchange lookup, the only network call these tests reach. Pinned so the
+// git refusal under test is always assembled, whether the network is up or not.
 const API_VERSION = 60
 vi.mock('../../../src/metadata/metadataManager', async importOriginal => ({
   ...(await importOriginal<

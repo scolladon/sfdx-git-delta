@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 
+import { SfError } from '@salesforce/core/sfError'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
@@ -482,18 +483,17 @@ describe('Given a ConfigValidator', () => {
         })
       })
 
-      describe('when the failure carries a cause', () => {
-        it('When the lookup rejects with an Error carrying an Error cause, Then the refusal names the cause in parentheses', async () => {
+      describe('Given the refusal describes the lookup failure', () => {
+        it('When the lookup rejects the way SDR does, with an SfError wrapping the network error, Then the refusal names the cause in parentheses', async () => {
           // Arrange
           vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
-            new Error(
+            new SfError(
               'Unable to get a current API version from the appexchange org',
-              {
-                cause: Object.assign(
-                  new Error('connect ECONNREFUSED 127.0.0.1:9'),
-                  { code: 'ECONNREFUSED' }
-                ),
-              }
+              'ApiVersionRetrievalError',
+              ['Provide an API version explicitly'],
+              Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'), {
+                code: 'ECONNREFUSED',
+              })
             )
           )
           mockSfProjectResolve.mockRejectedValue(
@@ -594,10 +594,12 @@ describe('Given a ConfigValidator', () => {
           )
         })
 
-        it('When the rejection itself is not an Error, Then the bare stringified rejection renders with no cause suffix', async () => {
+        it('When the rejection is not an Error yet carries an Error cause, Then the cause is ignored and the bare stringified rejection renders', async () => {
           // Arrange
           vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
-            'offline'
+            {
+              cause: new Error('connect ECONNREFUSED 127.0.0.1:9'),
+            }
           )
           mockSfProjectResolve.mockRejectedValue(
             new Error('No sfdx-project.json found')
@@ -609,7 +611,7 @@ describe('Given a ConfigValidator', () => {
           await expect(sut['_handleDefault']()).rejects.toThrow(
             expect.objectContaining({
               name: 'ConfigError',
-              message: 'error.ApiVersionRetrievalFailed:offline',
+              message: 'error.ApiVersionRetrievalFailed:[object Object]',
             })
           )
         })
