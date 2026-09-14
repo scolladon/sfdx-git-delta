@@ -7,6 +7,10 @@ import {
 } from '../../../../src/utils/messageSanitizer'
 
 const ESC = String.fromCharCode(27)
+// Quadratic backtracking on this length takes seconds; linear matching takes a
+// few milliseconds even on a slow runner, so the budget separates them cleanly.
+const LONG_INPUT_LENGTH = 50_000
+const LINEAR_TIME_BUDGET_MS = 500
 
 describe('Given a value bound for an error or warning message', () => {
   const sut = sanitizeForMessage
@@ -206,12 +210,64 @@ describe('Given a value that may embed a URL carrying credentials', () => {
   })
 
   describe('When a URL carries no userinfo', () => {
-    it('Then it is returned unchanged, even with an at sign in its path', () => {
+    it.each([
+      'connect ECONNREFUSED http://proxy:8080/path@segment',
+      'http://proxy:8080?q=a@b',
+      'http://proxy:8080#f@g',
+    ])(
+      'Then %s is returned unchanged, because the at sign sits past an authority terminator',
+      value => {
+        // Act
+        const result = sut(value)
+
+        // Assert
+        expect(result).toBe(value)
+      }
+    )
+  })
+
+  describe('When the scheme is a single uppercase letter', () => {
+    it('Then the userinfo is still redacted', () => {
       // Act
-      const result = sut('connect ECONNREFUSED http://proxy:8080/path@segment')
+      const result = sut('X://alice:secret@proxy')
 
       // Assert
-      expect(result).toBe('connect ECONNREFUSED http://proxy:8080/path@segment')
+      expect(result).toBe('X://<redacted>@proxy')
+    })
+  })
+
+  describe('When the password contains whitespace, which a URL parser still accepts', () => {
+    it('Then the whole userinfo is redacted', () => {
+      // Act
+      const result = sut('tcp://alice:pa ss@127.0.0.1:9')
+
+      // Assert
+      expect(result).toBe('tcp://<redacted>@127.0.0.1:9')
+    })
+  })
+
+  describe('When the scheme is followed by more than two slashes', () => {
+    it('Then the userinfo is still redacted', () => {
+      // Act
+      const result = sut('ftp:///alice:s3cr3t@127.0.0.1:9')
+
+      // Assert
+      expect(result).toBe('ftp:///<redacted>@127.0.0.1:9')
+    })
+  })
+
+  describe('When the value is a long run of scheme-like characters with no separator', () => {
+    it('Then it completes in linear time instead of backtracking quadratically', () => {
+      // Arrange
+      const hostileHeader = 'a'.repeat(LONG_INPUT_LENGTH)
+      const startedAt = performance.now()
+
+      // Act
+      const result = sut(hostileHeader)
+
+      // Assert
+      expect(result).toBe(hostileHeader)
+      expect(performance.now() - startedAt).toBeLessThan(LINEAR_TIME_BUDGET_MS)
     })
   })
 

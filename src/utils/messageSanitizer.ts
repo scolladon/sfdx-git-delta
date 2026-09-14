@@ -31,10 +31,15 @@ const escapeControlChar = (char: string): string => {
 
 // Some network errors echo the offending URL verbatim: proxy-agent's
 // "Unsupported protocol for proxy URL: <url>" carries any user:password
-// userinfo. Redact it before the value reaches a message. The match is greedy
-// up to the last '@' before the host, so a raw '@' inside a password cannot
-// leave a fragment of it behind.
-const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]*:\/\/)[^\s/?#]*@/gi
+// userinfo. Redact it before the value reaches a message. The userinfo match
+// runs up to the last '@' before an authority terminator ('/', '?', '#') and
+// deliberately crosses whitespace, because a URL parser accepts a password with
+// a space in it; over-redacting a later '@' fails safe. The scheme is capped at
+// 32 characters because this runs on network-supplied text before any length
+// cap, and an uncapped scheme backtracks quadratically on a long letter run.
+// Not covered: a scheme-less credential (a PAC "PROXY user:pass@host" entry)
+// and a raw '/', '?' or '#' inside a password.
+const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]{0,31}:\/{2,})[^/?#]*@/gi
 const REDACTED_USERINFO = '<redacted>'
 
 export const redactUrlCredentials = (value: string): string =>
