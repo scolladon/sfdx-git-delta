@@ -48,6 +48,25 @@ const scopeForType = (parts: string[], type: Metadata): string | null => {
   return parts.slice(0, dirIndex + 1).join(PATH_SEP)
 }
 
+// A child type (parentXmlName) is indexed through its parent: the parent's
+// type directory is the one the index must cover.
+const scopeForLine = (
+  line: string,
+  metadata: MetadataRepository,
+  parentIndex: Map<string, Metadata>
+): string | null => {
+  const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
+  const type = metadata.get(path)
+  if (!type) return null
+
+  const indexedType = type.parentXmlName
+    ? parentIndex.get(type.parentXmlName)
+    : type
+  if (!indexedType || !needsTreeIndex(indexedType)) return null
+
+  return scopeForType(path.split(PATH_SEP), indexedType)
+}
+
 export const computeTreeIndexScope = (
   lines: Iterable<string>,
   metadata: MetadataRepository
@@ -56,26 +75,7 @@ export const computeTreeIndexScope = (
   const parentIndex = buildParentIndex(metadata)
 
   for (const line of lines) {
-    const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
-    const type = metadata.get(path)
-    if (!type) continue
-
-    const parts = path.split(PATH_SEP)
-
-    if (type.parentXmlName) {
-      const parent = parentIndex.get(type.parentXmlName)
-      if (parent && needsTreeIndex(parent)) {
-        const result = scopeForType(parts, parent)
-        if (result) {
-          scope.add(result)
-        }
-      }
-      continue
-    }
-
-    if (!needsTreeIndex(type)) continue
-
-    const result = scopeForType(parts, type)
+    const result = scopeForLine(line, metadata, parentIndex)
     if (result) {
       scope.add(result)
     }
