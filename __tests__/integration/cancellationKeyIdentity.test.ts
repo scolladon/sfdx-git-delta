@@ -98,6 +98,40 @@ type Component = {
   readonly paths: readonly string[]
 }
 
+const contentSuffixesOf = (meta: Metadata): string[] =>
+  (meta.content ?? [])
+    .map(entry => entry.suffix)
+    .filter((suffix): suffix is string => Boolean(suffix))
+
+const spellingsOf = (meta: Metadata, path: string): string[] =>
+  meta.metaFile
+    ? [path, `${path}${METAFILE_SUFFIX}`]
+    : [`${path}${METAFILE_SUFFIX}`]
+
+const inFolderPathsFor = (meta: Metadata, base: string): string[][] => {
+  const contentSuffixes = contentSuffixesOf(meta)
+  const items = (contentSuffixes.length ? contentSuffixes : [meta.suffix])
+    .filter((suffix): suffix is string => Boolean(suffix))
+    .filter(suffix => !suffix.endsWith(INFOLDER_SUFFIX))
+  return [
+    ...items.flatMap(suffix =>
+      NAMES.map(name =>
+        spellingsOf(meta, `${base}/${SUB_FOLDER}/${name}.${suffix}`)
+      )
+    ),
+    ...contentSuffixes
+      .filter(suffix => suffix.endsWith(INFOLDER_SUFFIX))
+      .map(suffix => [`${base}/${SUB_FOLDER}.${suffix}${METAFILE_SUFFIX}`]),
+    ...(meta.adapter === MIXED_CONTENT_ADAPTER
+      ? NAMES.map(name =>
+          ARBITRARY_CONTENT_EXTENSIONS.map(
+            extension => `${base}/${SUB_FOLDER}/${name}.${extension}`
+          )
+        )
+      : []),
+  ]
+}
+
 // The paths a registry entry can appear under, derived from the entry alone.
 // Each returned group is one component, spelled every way that entry allows:
 //   - no `directoryName`: an in-file child, it owns no path of its own
@@ -114,13 +148,7 @@ const pathsFor = (meta: Metadata): string[][] => {
   const directory = meta.directoryName
   if (!directory) return []
   const base = `${SOURCE}/${directory}`
-  const contentSuffixes = (meta.content ?? [])
-    .map(entry => entry.suffix)
-    .filter((suffix): suffix is string => Boolean(suffix))
-  const spellings = (path: string) =>
-    meta.metaFile
-      ? [path, `${path}${METAFILE_SUFFIX}`]
-      : [`${path}${METAFILE_SUFFIX}`]
+  const contentSuffixes = contentSuffixesOf(meta)
 
   // Checked before the DECOMPOSED_ADAPTER branch and the generic tail: a
   // decomposed holder's own file and its decomposed children are one
@@ -155,26 +183,7 @@ const pathsFor = (meta: Metadata): string[][] => {
     ])
   }
 
-  if (meta.inFolder) {
-    const items = (contentSuffixes.length ? contentSuffixes : [meta.suffix])
-      .filter((suffix): suffix is string => Boolean(suffix))
-      .filter(suffix => !suffix.endsWith(INFOLDER_SUFFIX))
-    return [
-      ...items.flatMap(suffix =>
-        NAMES.map(name => spellings(`${base}/${SUB_FOLDER}/${name}.${suffix}`))
-      ),
-      ...contentSuffixes
-        .filter(suffix => suffix.endsWith(INFOLDER_SUFFIX))
-        .map(suffix => [`${base}/${SUB_FOLDER}.${suffix}${METAFILE_SUFFIX}`]),
-      ...(meta.adapter === MIXED_CONTENT_ADAPTER
-        ? NAMES.map(name =>
-            ARBITRARY_CONTENT_EXTENSIONS.map(
-              extension => `${base}/${SUB_FOLDER}/${name}.${extension}`
-            )
-          )
-        : []),
-    ]
-  }
+  if (meta.inFolder) return inFolderPathsFor(meta, base)
 
   if (meta.adapter && CONTAINER_ADAPTERS.has(meta.adapter)) {
     return NAMES.map(name => [
@@ -195,14 +204,14 @@ const pathsFor = (meta: Metadata): string[][] => {
   if (contentSuffixes.length) {
     return contentSuffixes.flatMap(suffix =>
       NAMES.map(name => [
-        ...spellings(`${base}/${name}.${suffix}`),
+        ...spellingsOf(meta, `${base}/${name}.${suffix}`),
         `${base}/${SUB_FOLDER}/${name}.${suffix}`,
       ])
     )
   }
 
   if (!meta.suffix) return []
-  return NAMES.map(name => spellings(`${base}/${name}.${meta.suffix}`))
+  return NAMES.map(name => spellingsOf(meta, `${base}/${name}.${meta.suffix}`))
 }
 
 // Every suffix declared under more than one type directory, mapped to those
