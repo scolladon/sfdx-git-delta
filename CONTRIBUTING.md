@@ -255,6 +255,7 @@ Updates to the metadata are implemented in `e2e/head`.
 
 To run the E2E tests locally, clone the repository in another folder and checkout the branch `e2e/head`.
 If your own checkout also has local branches named `e2e/base` or `e2e/head` (for example a worktree of this same repository), those are decoys: the E2E commands only ever read the branches inside the cloned folder, so always run git commands there with `git -C e2e …` and compare against `git -C e2e ls-remote origin` before trusting what a ref points to.
+The fixture's `<version>` is frozen (see [The e2e fixture's API version is frozen](#the-e2e-fixtures-api-version-is-frozen)); a red local `validate` is far more often a stale local `e2e/*` ref than a real regression.
 Then execute:
 
 ```bash
@@ -279,7 +280,7 @@ sf sgd source delta --from "e2e/base" --to "e2e/head" --output-dir "expected" \
   --generate-delta --repo-dir . --source-dir test \
   --include-file .sgdinclude --include-destructive-file .sgdincludeDestructive \
   --ignore-file .sgdignore --ignore-destructive-file .sgdignoreDestructive \
-  --ignore-whitespace
+  --ignore-whitespace --api-version 67.0
 ```
 
 `e2e/.sgdignore` keeps its `/expected` line on purpose: `--source-dir test` is what scopes the diff away from the baseline, and the ignore line stays as live `--ignore-file` coverage against a real, populated directory, so do not delete it as redundant.
@@ -288,7 +289,7 @@ Note: you may want to execute the local plugin using `node` if you have not link
 
 ```bash
 node path/to/sfdx-git-delta/bin/run.js sgd source delta --from "e2e/base" --to "e2e/head" \
-  --output-dir "expected" --generate-delta --repo-dir . --source-dir test
+  --output-dir "expected" --generate-delta --repo-dir . --source-dir test --api-version 67.0
 ```
 
 ## Editor Configurations
@@ -479,14 +480,15 @@ script cannot run or if it leaves `internalRegistry.ts` modified. It also runs
 unattended when dependabot upgrades the SDR dependency, where it gates the
 `feat(metadata)` retitle and auto-merge.
 
-## Update Salesforce API version
+## The e2e fixture's API version is frozen
 
-The repo contains a script to increment the Salesforce API version supported by SGD.
-To upgrade the API version, run the following command:
+The e2e baseline pins Salesforce API version `67.0`: in the three `<version>` tags under
+`expected/` on the `e2e/head` branch, and in the `--api-version 67.0` flag carried
+identically by both scripts in `e2e/package.json`. Nothing recomputes either copy.
 
-```bash
-npm run increment:apiversion
-```
+This fixture asserts sgd's diff behaviour, not Salesforce's current API version, so the
+calendar advancing is not a reason to bump it. The only trigger that should reopen this
+decision is sgd's output becoming genuinely version-dependent.
 
 ## CLI parameters convention
 
