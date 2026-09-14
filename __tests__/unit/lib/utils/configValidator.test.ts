@@ -570,6 +570,34 @@ describe('Given a ConfigValidator', () => {
           )
         })
 
+        it('When the echoed credentials are longer than the message length cap, Then they are redacted before the cap can cut them loose from their at sign', async () => {
+          // Arrange
+          vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(
+            new Error(
+              'Unable to get a current API version from the appexchange org',
+              {
+                cause: new Error(
+                  `Unsupported protocol for proxy URL: tcp://alice:${'p'.repeat(200)}@127.0.0.1:9`
+                ),
+              }
+            )
+          )
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
+          const sut = new ConfigValidator(config)
+
+          // Act
+          const error = await sut['_handleDefault']().catch(
+            (thrown: unknown) => thrown
+          )
+
+          // Assert
+          expect((error as Error).message).toContain('tcp://<redacted>@')
+          expect((error as Error).message).not.toContain('alice:')
+        })
+
         it('When the cause is not an Error, Then the bare SDR message renders', async () => {
           // Arrange
           vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockRejectedValue(

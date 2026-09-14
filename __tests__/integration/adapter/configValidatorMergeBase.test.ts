@@ -23,7 +23,7 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 
 // ConfigValidator resolves the latest API version through SDR's live
 // appexchange lookup, the only network call these tests reach. Pinned so the
-// git refusal under test is always assembled, whether the network is up or not.
+// merge-base rewrite under test is always reached, whether the network is up or not.
 const API_VERSION = 60
 vi.mock('../../../src/metadata/metadataManager', async importOriginal => ({
   ...(await importOriginal<
