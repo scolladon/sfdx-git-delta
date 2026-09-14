@@ -43,12 +43,17 @@ const escapeControlChar = (char: string): string => {
 // quadratically on a long letter run.
 const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]{0,31}:\/{2,})[^/?#]*@/gi
 // A PAC entry has no scheme to anchor on, so its keyword anchors instead,
-// matched case-insensitively because a mis-cased entry is rejected yet still
-// echoed. \S* cannot cross whitespace, and every entry separates its keyword
-// from its target with some, so a match never runs into the next entry and
-// stays linear. Ordinary text shaped like a keyword followed by "<word>@" is
-// over-redacted, which fails safe.
-const PAC_ENTRY_USERINFO_REGEX = /\b((?:PROXY|HTTPS?|SOCKS[45]?)\s+)\S*@/gi
+// matched case-insensitively because a mis-cased or unsupported entry (such as
+// SOCKS5H) is rejected yet still echoed. pac-proxy-agent splits an entry on any
+// whitespace but echoes the list through JSON.stringify, so the separator
+// arrives either as whitespace or as a JSON escape (\t, \n, \r, \f, \u000b).
+// The separator is consumed atomically (lookahead then backreference): it
+// overlaps \S*, and letting the engine give it back would backtrack
+// quadratically on a long run of escapes. \S* cannot cross whitespace, so a
+// match never runs into the next entry. Ordinary text shaped like a keyword
+// followed by "<word>@" is over-redacted, which fails safe.
+const PAC_ENTRY_USERINFO_REGEX =
+  /\b((?:PROXY|HTTPS?|SOCKS(?:4A?|5H?)?)(?=((?:\s|\\[tnrf]|\\u000b)+))\2)\S*@/gi
 // Still not covered, and why each stays open. A raw '/', '?' or '#' inside a
 // password is echoed only under a scheme proxy-agent rejects, with nothing but
 // digits before the delimiter; closing it would redact URL paths. A special
@@ -56,6 +61,9 @@ const PAC_ENTRY_USERINFO_REGEX = /\b((?:PROXY|HTTPS?|SOCKS[45]?)\s+)\S*@/gi
 // message only when the value also carries a later "://", because
 // proxy-from-env prefixes a scheme to any value without one; closing it would
 // mean matching any "word:" followed by an '@' in ordinary message text.
+// A PAC entry written with a literal backslash escape instead of whitespace
+// ("PROXY\\tuser:pass@host") is never a working entry, yet is echoed; closing
+// it would mean reading every backslash sequence as a separator.
 const REDACTED_USERINFO = '<redacted>'
 
 export const redactProxyCredentials = (value: string): string =>

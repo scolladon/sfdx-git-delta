@@ -332,6 +332,46 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
     )
   })
 
+  describe('When pac-proxy-agent echoes an entry whose separator JSON.stringify escaped', () => {
+    it.each([
+      ['a tab', '\t'],
+      ['a newline', '\n'],
+      ['a carriage return', '\r'],
+      ['a form feed', '\f'],
+      ['a vertical tab', '\v'],
+    ])(
+      'Then an entry separated by %s has its userinfo redacted',
+      (_, separator) => {
+        // Arrange — pac-proxy-agent splits an entry on any whitespace, then
+        // lists failed entries through JSON.stringify, which writes these
+        // separators as escapes rather than whitespace
+        const prefix = 'Failed to establish a socket connection to proxies: '
+        const echoed = `${prefix}${JSON.stringify([`PROXY${separator}alice:pw@127.0.0.1:9`])}`
+
+        // Act
+        const result = sut(echoed)
+
+        // Assert
+        expect(result).toBe(
+          `${prefix}${JSON.stringify([`PROXY${separator}<redacted>@127.0.0.1:9`])}`
+        )
+      }
+    )
+  })
+
+  describe('When the keyword is a SOCKS scheme variant pac-proxy-agent rejects yet still echoes', () => {
+    it.each(['SOCKS4A', 'SOCKS5H'])(
+      'Then a %s entry has its userinfo redacted',
+      keyword => {
+        // Act
+        const result = sut(`${keyword} alice:pw@127.0.0.1:9`)
+
+        // Assert
+        expect(result).toBe(`${keyword} <redacted>@127.0.0.1:9`)
+      }
+    )
+  })
+
   describe('When several entries are listed', () => {
     it('Then each credentialed entry is redacted on its own and DIRECT is untouched', () => {
       // Act
@@ -375,6 +415,22 @@ describe('Given a value that may embed a PAC proxy entry carrying credentials', 
 
       // Assert
       expect(result).toBe('HTTPS_PROXY alice@corp.example')
+    })
+  })
+
+  describe('When a keyword is followed by a long run of escaped separators with no at sign', () => {
+    it('Then it completes in linear time instead of backtracking into the separator', () => {
+      // Arrange
+      const hostileEntry = `PROXY${'\\t'.repeat(LONG_INPUT_LENGTH)}`
+      const startedAt = performance.now()
+
+      // Act
+      const result = sut(hostileEntry)
+      const elapsedMs = performance.now() - startedAt
+
+      // Assert
+      expect(result).toBe(hostileEntry)
+      expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
     })
   })
 
