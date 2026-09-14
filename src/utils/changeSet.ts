@@ -19,6 +19,15 @@ export type RenameTriple = Readonly<{ type: string; from: string; to: string }>
 export type RenameBucket = Map<string, Map<string, RenamePair>>
 
 const KEY_SEPARATOR = '\0'
+const MANIFEST_TARGETS = [
+  ManifestTarget.Package,
+  ManifestTarget.DestructiveChanges,
+] as const
+const ADD_KINDS: readonly AddKind[] = [
+  ChangeKind.Add,
+  ChangeKind.Modify,
+  ChangeKind.Delete,
+]
 const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
 
 /**
@@ -90,35 +99,27 @@ export default class ChangeSet {
   // maintained as a hot-path structure, so call it once per pass, not per
   // element.
   toElements(): ManifestElement[] {
-    const targets = [
-      ManifestTarget.Package,
-      ManifestTarget.DestructiveChanges,
-    ] as const
-    const kinds = [
-      ChangeKind.Add,
-      ChangeKind.Modify,
-      ChangeKind.Delete,
-    ] as const
-    const out: ManifestElement[] = []
-    for (const target of targets) {
-      for (const [type, members] of this.byTarget[target]) {
-        for (const member of members) {
-          let kind: AddKind | undefined
-          for (const k of kinds) {
-            if (this.byKind[k].get(type)?.has(member)) {
-              kind = k
-              break
-            }
-          }
-          // Stryker disable next-line ConditionalExpression -- equivalent: see v8 ignore — the kind === undefined branch is unreachable because addElement keeps byTarget and byKind in lockstep
-          /* v8 ignore next -- defensive: addElement always pairs byTarget and byKind, so every (type, member) in byTarget has a corresponding byKind entry */
-          if (kind !== undefined) {
-            out.push({ target, type, member, changeKind: kind })
-          }
-        }
-      }
-    }
-    return out
+    return MANIFEST_TARGETS.flatMap(target => this._elementsOf(target))
+  }
+
+  private _elementsOf(target: ManifestTarget): ManifestElement[] {
+    return [...this.byTarget[target]].flatMap(([type, members]) =>
+      [...members].flatMap(member => this._elementOf(target, type, member))
+    )
+  }
+
+  private _elementOf(
+    target: ManifestTarget,
+    type: string,
+    member: string
+  ): ManifestElement[] {
+    const changeKind = ADD_KINDS.find(kind =>
+      this.byKind[kind].get(type)?.has(member)
+    )
+    // Stryker disable next-line ConditionalExpression,ArrayDeclaration -- equivalent: see v8 ignore — the changeKind === undefined branch is unreachable because addElement keeps byTarget and byKind in lockstep
+    /* v8 ignore next -- defensive: addElement always pairs byTarget and byKind, so every (type, member) in byTarget has a corresponding byKind entry */
+    if (changeKind === undefined) return []
+    return [{ target, type, member, changeKind }]
   }
 
   private _recordRename(type: string, from: string, to: string): void {
