@@ -9,7 +9,7 @@ We encourage the developer community to contribute to this repository. This guid
 - [Editor Configurations](#editor-configurations)
 - [Git Workflow](#git-workflow)
 - [Metadata Registry](#metadata-registry)
-- [Update Salesforce API version](#update-salesforce-api-version)
+- [The e2e fixture's API version is frozen](#the-e2e-fixtures-api-version-is-frozen)
 - [CLI parameters convention](#cli-parameters-convention)
 - [Testing the plugin from a pull request](#testing-the-plugin-from-a-pull-request)
 
@@ -122,8 +122,12 @@ Integration tests must not depend on network reachability. The check is a comman
 not a convention — run it behind a dead proxy and it must be fully green:
 
 ```bash
-HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 npm run test:integration
+HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 npx vitest run --config vitest.integration.config.ts
 ```
+
+Call vitest directly rather than `npm run test:integration`: wireit does not fingerprint
+the proxy variables, so after any earlier green run the script is skipped as fresh and
+the check passes without running a single test.
 
 ### NUT Testing
 
