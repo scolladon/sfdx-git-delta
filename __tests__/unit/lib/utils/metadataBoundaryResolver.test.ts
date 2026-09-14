@@ -1,5 +1,13 @@
 'use strict'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import type { TreeReader } from '../../../../src/adapter/treeReader'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -97,6 +105,13 @@ describe('MetadataBoundaryResolver', () => {
     sut = new MetadataBoundaryResolver(
       getContext({ metadata: globalMetadata, trees: treeReader })
     )
+  })
+
+  // Spies on shared objects (MetadataElement statics, the global registry)
+  // must be restored even when an assertion fails first, or they leak into
+  // every later test in the file.
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('createElement', () => {
@@ -883,7 +898,6 @@ describe('MetadataBoundaryResolver', () => {
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml'
       await sut.createElement(path, permissionSetType, 'HEAD')
       expect(fromScanSpy).not.toHaveBeenCalled()
-      fromScanSpy.mockRestore()
     })
 
     it('Given depth-2 path where folder != componentName, When createElement, Then fromScan IS called with extracted name (kills L40 mutant 109 + L38 mutants 106/108)', async () => {
@@ -905,7 +919,6 @@ describe('MetadataBoundaryResolver', () => {
         expect.anything(),
         'OtherName'
       )
-      fromScanSpy.mockRestore()
     })
   })
 
@@ -1027,48 +1040,33 @@ describe('MetadataBoundaryResolver', () => {
   })
 
   describe('componentNamesUnder given an empty listing', () => {
-    it('Given a revision with no built tree index, When scanning a typeDir path directly, Then the per-file suffix-filter loop performs zero iterations (kills the getFilesPath ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
-      // Arrange — call scanAndCreateElement directly (protected, cast like
-      // isNameInPath above) to isolate the fallback loop's iteration count
-      // from the extra endsWith call MetadataElement.fromPath's constructor
-      // makes on the full createElement path. The mutant's placeholder
-      // string never contains a dot, so componentNames ends up empty
-      // either way — the suffix filter itself can't tell the two apart.
-      // Only the number of times the filter *runs* proves allFiles is
-      // genuinely empty, not a phantom one-element array.
+    it('Given a revision with no built tree index, When creating an element nested under its type directory, Then no component is found and the file itself is the boundary', async () => {
+      // Arrange
       const path =
         'force-app/main/default/staticresources/MyResource/images/logo.png'
       mockFilesUnder.mockReturnValueOnce([])
-      const scan = (
-        sut as unknown as {
-          scanAndCreateElement: (
-            path: string,
-            metadataDef: Metadata,
-            revision: string
-          ) => Promise<MetadataElement>
-        }
-      ).scanAndCreateElement.bind(sut)
-      const endsWithSpy = vi.spyOn(String.prototype, 'endsWith')
 
       // Act
-      await scan(path, staticResourceType, 'UNBUILT')
+      const element = await sut.createElement(
+        path,
+        staticResourceType,
+        'UNBUILT'
+      )
 
-      // Assert — the sole remaining call is MetadataElement's own
-      // isMetaFile check inside the fallback fromScan() constructor; a
-      // non-empty allFiles fallback would add one call per phantom entry.
-      expect(endsWithSpy).toHaveBeenCalledTimes(1)
-      endsWithSpy.mockRestore()
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledWith(
+        'UNBUILT',
+        'force-app/main/default/staticresources'
+      )
+      expect(element.componentName).toBe('logo')
+      expect(element.componentPath).toBe(path)
     })
   })
 
   describe('siblingsOf given an empty listing', () => {
-    it('Given a revision with no built tree index, When walking up from a single directory level, Then findComponentName never consults metadataRepo.get (kills the listChildren ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
+    it('Given a revision with no built tree index, When walking up from a single directory level, Then no sibling is consulted and the file itself is the boundary', async () => {
       // Arrange — a one-level path keeps the directory walk to exactly one
-      // listChildren fallback, so the get() spy count maps 1:1 to the
-      // fallback array's length. "Stryker was here" also fails
-      // findComponentName's suffix filter, but for the wrong reason (it
-      // has no dot) — only the metadataRepo.get() call count proves the
-      // fallback array is genuinely empty, not a phantom one-element list.
+      // empty listing, so no sibling can reach metadataRepo.get.
       const path = 'unknownDir/file.txt'
       mockChildren.mockReturnValueOnce([])
       const getSpy = vi.spyOn(globalMetadata, 'get')
@@ -1081,9 +1079,10 @@ describe('MetadataBoundaryResolver', () => {
       )
 
       // Assert
+      expect(mockChildren).toHaveBeenCalledWith('UNBUILT', 'unknownDir')
       expect(getSpy).not.toHaveBeenCalled()
       expect(element.componentName).toBe('file')
-      getSpy.mockRestore()
+      expect(element.pathAfterType).toEqual(['file.txt'])
     })
   })
 
