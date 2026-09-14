@@ -292,6 +292,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.functional.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json"
       ],
@@ -309,6 +310,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.integration.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json",
         "__tests__/__utils__/**/*.ts"
@@ -389,6 +391,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.nut.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json"
       ],
@@ -408,6 +411,7 @@
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
         "vitest.config.ts",
+        "vitest.shared.ts",
         "package.json",
         "package-lock.json"
       ],

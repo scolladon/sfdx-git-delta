@@ -120,7 +120,7 @@ npm run test:integration
 
 Integration tests must not depend on network reachability, and the bucket enforces
 it rather than asking for it: `vitest.integration.config.ts` routes every
-proxy-honouring client through a proxy nothing listens on, and
+proxy-honouring HTTPS client through a proxy nothing listens on, and
 `__tests__/integration/networkIsolation.test.ts` fails if that stops being true.
 `npm run test:integration` is therefore the offline check, locally and in CI; the
 config file is part of wireit's fingerprint, so a run skipped as fresh replays one
