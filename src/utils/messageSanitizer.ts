@@ -37,8 +37,10 @@ const escapeControlChar = (char: string): string => {
 // a space in it; over-redacting a later '@' fails safe. The scheme is capped at
 // 32 characters because this runs on network-supplied text before any length
 // cap, and an uncapped scheme backtracks quadratically on a long letter run.
-// Not covered: a scheme-less credential (a PAC "PROXY user:pass@host" entry)
-// and a raw '/', '?' or '#' inside a password.
+// Not covered: a scheme-less credential (a PAC "PROXY user:pass@host" entry), a
+// raw '/', '?' or '#' inside a password, and a special scheme written with fewer
+// than two slashes ("ftp:user:pass@host"), which would otherwise mean matching
+// any "word:" followed by an '@' in ordinary message text.
 const URL_USERINFO_REGEX = /([a-z][a-z\d+.-]{0,31}:\/{2,})[^/?#]*@/gi
 const REDACTED_USERINFO = '<redacted>'
 

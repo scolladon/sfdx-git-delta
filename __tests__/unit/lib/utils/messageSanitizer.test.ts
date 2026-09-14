@@ -264,10 +264,11 @@ describe('Given a value that may embed a URL carrying credentials', () => {
 
       // Act
       const result = sut(hostileHeader)
+      const elapsedMs = performance.now() - startedAt
 
       // Assert
       expect(result).toBe(hostileHeader)
-      expect(performance.now() - startedAt).toBeLessThan(LINEAR_TIME_BUDGET_MS)
+      expect(elapsedMs).toBeLessThan(LINEAR_TIME_BUDGET_MS)
     })
   })
 
