@@ -108,13 +108,15 @@ describe('xmlEventReader', () => {
       expect(sut.rootKey).toBe('Root')
     })
 
-    it('Given an unterminated trailing comment, When parseToSidePropagating runs, Then it rejects', async () => {
+    it('Given an unterminated trailing comment, When parseToSidePropagating runs, Then it rejects naming the unterminated comment', async () => {
       // Arrange — comment opened after root close but never terminated.
       const onElement = vi.fn()
       const source = '<Root></Root><!-- never closed'
 
       // Act & Assert
-      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'unterminated comment after root close'
+      )
     })
 
     it('Given a leading DOCTYPE declaration, When parseToSidePropagating runs, Then the prologue skips it and parses the root', async () => {
