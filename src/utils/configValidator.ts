@@ -48,10 +48,10 @@ type ApiVersionOutcome =
   | { readonly refusal: string }
 
 // Two values arrive unparsed: a JavaScript library caller's apiVersion, which
-// the number type does not bind (the documented sample passed ''), and
-// sfdx-project.json's sourceApiVersion string. Parse the way the
-// --api-version flag path does, so a value that does not parse to a positive
-// version means "not provided" rather than rendering <version>.0</version>.
+// the number type does not bind (e.g. '' or '67.0'), and sfdx-project.json's
+// sourceApiVersion string. Parse the way the --api-version flag path does, so
+// a value that does not parse to a positive version means "not provided"
+// rather than rendering <version>.0</version>.
 const toApiVersion = (value: unknown): number | undefined => {
   const parsed = parseInt(String(value), 10)
   return isPositiveVersion(parsed) ? parsed : undefined
@@ -130,40 +130,52 @@ export default class ConfigValidator {
     const requestedFrom = this.config.from
     const requestedTo = this.config.to
     this._sanitizeConfig()
-
-    // Short-circuits before any git object is read: _validateGitSha below
-    // calls resolveCommit, which opens the repository. A bad --source-dir is
-    // the actionable error and the one that today produces a silent empty
-    // manifest, so it is reported alone even if the SHAs are also invalid.
-    const sourceErrors = this._validateSource()
-    if (sourceErrors.length > 0) {
-      throw new ConfigError(sourceErrors.join(', '))
-    }
-
-    const [apiVersion, repositoryErrors, gitErrors, changesManifestErrors] =
-      await Promise.all([
-        this._settleApiVersion(),
-        this._validateRepository(),
-        this._validateGitSha(),
-        this._validateChangesManifest(),
-      ])
-
-    const errors = [...repositoryErrors, ...gitErrors, ...changesManifestErrors]
-    // The refusal is about the environment, the input errors about what the
-    // user typed: report both in one run, the typing first.
-    if ('refusal' in apiVersion) {
-      throw this._configError([...errors, apiVersion.refusal])
-    }
-    if (errors.length > 0) {
-      throw this._configError(errors)
-    }
+    this._assertSourceDirs()
+    const warnings = await this._validateInputsAndApiVersion()
 
     // Runs after the SHA validation above so a typo in either ref surfaces
     // as the precise ParameterIsNotGitSHA message instead of the vaguer
     // MergeBaseNotFound.
     await this._resolveMergeBase(requestedFrom, requestedTo)
 
-    return apiVersion.warnings
+    return warnings
+  }
+
+  // Short-circuits before any git object is read: _validateGitSha below
+  // calls resolveCommit, which opens the repository. A bad --source-dir is
+  // the actionable error and the one that today produces a silent empty
+  // manifest, so it is reported alone even if the SHAs are also invalid.
+  private _assertSourceDirs(): void {
+    const sourceErrors = this._validateSource()
+    if (sourceErrors.length > 0) {
+      throw new ConfigError(sourceErrors.join(', '))
+    }
+  }
+
+  private async _validateInputsAndApiVersion(): Promise<readonly Error[]> {
+    const [
+      apiVersionOutcome,
+      repositoryErrors,
+      gitErrors,
+      changesManifestErrors,
+    ] = await Promise.all([
+      this._settleApiVersion(),
+      this._validateRepository(),
+      this._validateGitSha(),
+      this._validateChangesManifest(),
+    ])
+
+    const errors = [...repositoryErrors, ...gitErrors, ...changesManifestErrors]
+    // The refusal is about the environment, the input errors about what the
+    // user typed: report both in one run, the typing first.
+    if ('refusal' in apiVersionOutcome) {
+      throw this._configError([...errors, apiVersionOutcome.refusal])
+    }
+    if (errors.length > 0) {
+      throw this._configError(errors)
+    }
+
+    return apiVersionOutcome.warnings
   }
 
   // Only a ConfigError is a refusal to report alongside the input errors; any
@@ -263,12 +275,12 @@ export default class ConfigValidator {
     // A version the user pinned is emitted as pinned: capping it would need the
     // network, and a manifest that changes with network reachability is one the
     // user cannot reproduce.
-    if (this._hasUsableApiVersion()) return []
+    if (this._isPinned()) return []
     return await this._apiVersionDefault()
   }
 
   protected async _getApiVersion() {
-    if (this.config.apiVersion !== undefined) return
+    if (this._isPinned()) return
 
     try {
       const sfProject = await SfProject.resolve(this.config.repo)
@@ -323,8 +335,8 @@ export default class ConfigValidator {
     )
   }
 
-  private _hasUsableApiVersion(): boolean {
-    return !Number.isNaN(this.config.apiVersion ?? Number.NaN)
+  private _isPinned(): boolean {
+    return this.config.apiVersion !== undefined
   }
 
   // SDR wraps got's RequestError as `cause`; its message carries the code
