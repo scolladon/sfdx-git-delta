@@ -63,9 +63,10 @@ type FlattenRevisionHost = {
   flattenRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
-// The one seam that leaves the process: ConfigValidator caps apiVersion
-// against SDR's live coverage lookup. Pinned so the run is offline and
-// deterministic; everything else (git, registry, handlers, writers) is real.
+// ConfigValidator's appexchange lookup is the one seam that leaves the
+// process. makeInput pins apiVersion, so the lookup is never reached; the mock
+// keeps the run offline and deterministic if a future edit drops that pin.
+// Everything else (git, registry, handlers, writers) is real.
 const API_VERSION = 60
 vi.mock('../../src/metadata/metadataManager', async importOriginal => ({
   ...(await importOriginal<

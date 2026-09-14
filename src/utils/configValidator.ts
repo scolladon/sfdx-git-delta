@@ -39,6 +39,18 @@ const SOURCE_DIR_REJECTION_MESSAGE_KEYS: Record<
   escapes: 'error.SourceDirEscapesRepository',
 }
 
+const isPositiveVersion = (version: number): boolean => version > 0
+
+// Two values arrive unparsed: a JavaScript library caller's apiVersion, which
+// the number type does not bind (the documented sample passed ''), and
+// sfdx-project.json's sourceApiVersion string. Parse the way the
+// --api-version flag path does, so a value that does not parse to a positive
+// version means "not provided" rather than rendering <version>.0</version>.
+const toApiVersion = (value: unknown): number | undefined => {
+  const parsed = parseInt(String(value), 10)
+  return isPositiveVersion(parsed) ? parsed : undefined
+}
+
 export default class ConfigValidator {
   protected readonly gitAdapter: GitAdapter
   protected readonly message: MessageService
@@ -224,6 +236,10 @@ export default class ConfigValidator {
 
   protected async _handleDefault(): Promise<readonly Error[]> {
     await this._getApiVersion()
+    // A version the user pinned is emitted as pinned: capping it would need the
+    // network, and a manifest that changes with network reachability is one the
+    // user cannot reproduce.
+    if (this._hasUsableApiVersion()) return []
     return await this._apiVersionDefault()
   }
 
@@ -232,12 +248,9 @@ export default class ConfigValidator {
 
     try {
       const sfProject = await SfProject.resolve(this.config.repo)
-      const projectApiVersion = sfProject
-        .getSfProjectJson()
-        .getContents().sourceApiVersion
-      if (projectApiVersion) {
-        this.config.apiVersion = parseInt(projectApiVersion, 10)
-      }
+      this.config.apiVersion = toApiVersion(
+        sfProject.getSfProjectJson().getContents().sourceApiVersion
+      )
     } catch (ex) {
       Logger.debug(
         // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
@@ -248,67 +261,42 @@ export default class ConfigValidator {
 
   protected async _apiVersionDefault(): Promise<readonly Error[]> {
     const latestVersion = await this._resolveLatestSupportedVersion()
-    // Stryker disable next-line ConditionalExpression -- equivalent: undefined signals the lookup failed while a usable apiVersion is already set; flipping the guard would fall through to clamp against an undefined ceiling, which the offline test surface forbids
-    if (latestVersion === undefined) return []
-
-    const warnings: Error[] = []
-
-    // Stryker disable ConditionalExpression,LogicalOperator -- equivalent: this triple-AND gate ensures we only override a numeric, defined, above-latest apiVersion; flipping individual conditions to true falls into the override branch when apiVersion is undefined or NaN, but the second `if (apiVersion === undefined || isNaN())` block immediately resets to latestVersion, producing the same observable apiVersion in both arms (only the warning content differs, which the test surface doesn't disambiguate)
-    if (
-      this.config.apiVersion !== undefined &&
-      !isNaN(this.config.apiVersion) &&
-      this.config.apiVersion > latestVersion
-    ) {
-      // Stryker restore ConditionalExpression,LogicalOperator
-      warnings.push(
-        new Error(
-          this.message.getMessage('warning.ApiVersionOverridden', [
-            String(this.config.apiVersion),
-            String(latestVersion),
-          ])
-        )
-      )
-      this.config.apiVersion = latestVersion
-    }
-
-    // Stryker disable next-line ConditionalExpression -- equivalent: defaulting fallback when apiVersion is unset/NaN; flipping to false skips the default and the apiVersion stays as-is, but the only test fixtures with apiVersion already set hit the early-return at _getApiVersion start, so the default branch is unreachable for those test cases
-    if (this.config.apiVersion === undefined || isNaN(this.config.apiVersion)) {
-      this.config.apiVersion = latestVersion
-      warnings.push(
-        new Error(
-          this.message.getMessage('warning.ApiVersionDefaulted', [
-            String(latestVersion),
-          ])
-        )
-      )
-    }
-
-    return warnings
+    this.config.apiVersion = latestVersion
+    return [
+      new Error(
+        this.message.getMessage('warning.ApiVersionDefaulted', [
+          String(latestVersion),
+        ])
+      ),
+    ]
   }
 
-  // A user-supplied version is kept when the lookup fails: the cap is lost, the
-  // manifest is still the user's choice. With nothing to keep, the run is refused —
-  // this tool cannot vouch for a <version> it did not resolve, and a wrong one is
-  // authoritative at deploy time.
-  protected async _resolveLatestSupportedVersion(): Promise<
-    number | undefined
-  > {
+  // Only an unpinned run looks the version up, so there is nothing to fall back
+  // to: a lookup that fails, or that answers with something that is not a
+  // positive version, refuses the run. This tool cannot vouch for a <version> it
+  // did not resolve, and a wrong one is authoritative at deploy time.
+  protected async _resolveLatestSupportedVersion(): Promise<number> {
+    const latestVersion = await this._lookUpLatestVersion()
+    if (isPositiveVersion(latestVersion)) return latestVersion
+    throw this._refusal(
+      this.message.getMessage('error.ApiVersionLookupUnusable', [
+        String(latestVersion),
+      ])
+    )
+  }
+
+  private async _lookUpLatestVersion(): Promise<number> {
     try {
       return await getLatestSupportedVersion()
     } catch (ex) {
-      if (this._hasUsableApiVersion()) {
-        Logger.debug(
-          // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
-          lazy`_resolveLatestSupportedVersion: keeping provided apiVersion, latest version lookup failed: ${ex}`
-        )
-        return undefined
-      }
-      throw new ConfigError(
-        this.message.getMessage('error.ApiVersionRetrievalFailed', [
-          this._describeLookupFailure(ex),
-        ])
-      )
+      throw this._refusal(this._describeLookupFailure(ex))
     }
+  }
+
+  private _refusal(detail: string): ConfigError {
+    return new ConfigError(
+      this.message.getMessage('error.ApiVersionRetrievalFailed', [detail])
+    )
   }
 
   private _hasUsableApiVersion(): boolean {
@@ -328,6 +316,7 @@ export default class ConfigValidator {
   }
 
   protected _sanitizeConfig() {
+    this.config.apiVersion = toApiVersion(this.config.apiVersion)
     this.config.repo = sanitizePath(this.config.repo)!
     this.config.output = sanitizePath(this.config.output)!
     this.config.ignore = sanitizePath(this.config.ignore)

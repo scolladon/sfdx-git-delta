@@ -36,8 +36,9 @@ for (const size of sizes) {
   })
 }
 
-// Same seam the parity integration test pins: the apiVersion cap is a live
-// SDR coverage lookup; pinned so every sample measures sgd, not the network.
+// Same seam the parity integration test mocks: the input pins apiVersion, so
+// the live appexchange lookup is never reached, and the mock keeps every
+// sample measuring sgd rather than the network if a future edit drops the pin.
 const API_VERSION = 60
 vi.mock('../../src/metadata/metadataManager.js', async importOriginal => ({
   ...(await importOriginal<
