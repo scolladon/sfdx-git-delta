@@ -165,6 +165,27 @@ describe('Given the released error-message contract (validated surface)', () => 
     })
   })
 
+  describe('When ConfigValidator validates while the API version lookup answers something unusable', () => {
+    it('Then it throws the released refusal naming what the lookup returned', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-lookup-nan-')
+      initRepoWithCommit(repoDir)
+      const config = makeConfig({ repo: repoDir, from: 'HEAD', to: 'HEAD' })
+      vi.mocked(getLatestSupportedVersion).mockResolvedValueOnce(Number.NaN)
+      const sut = new ConfigValidator(config)
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        'Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: The appexchange org returned \'NaN\', which is not a usable Salesforce API version'
+      )
+    })
+  })
+
   describe('When ConfigValidator validates a repo path with no .git directory', () => {
     it('Then it throws the released error.PathIsNotGit message exactly once, not twice', async () => {
       // Arrange

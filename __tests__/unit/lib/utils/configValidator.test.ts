@@ -437,14 +437,17 @@ describe('Given a ConfigValidator', () => {
         })
       })
 
-      describe('when apiVersion is NaN', () => {
-        it('When the lookup fails and apiVersion is NaN, Then it throws an actionable ConfigError', async () => {
+      describe('when apiVersion is unpinned', () => {
+        it('When the lookup fails and apiVersion is unpinned, Then validateConfig throws an actionable ConfigError', async () => {
           // Arrange
-          config.apiVersion = NaN
+          mockSfProjectResolve.mockRejectedValue(
+            new Error('No sfdx-project.json found')
+          )
+          config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
           // Act & Assert
-          await expect(sut['_handleDefault']()).rejects.toThrow(
+          await expect(sut.validateConfig()).rejects.toThrow(
             expect.objectContaining({
               name: 'ConfigError',
               message: expect.stringContaining(
@@ -863,20 +866,6 @@ describe('Given a ConfigValidator', () => {
     })
 
     describe('when apiVersion is explicitly NaN', () => {
-      it('When apiVersion is NaN, Then it defaults to latest with defaulted warning', async () => {
-        // Arrange
-        config.apiVersion = NaN
-        const sut = new ConfigValidator(config)
-
-        // Act
-        const warnings = await sut['_handleDefault']()
-
-        // Assert
-        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(warnings).toHaveLength(1)
-        expect(warnings[0].message).toContain('warning.ApiVersionDefaulted')
-      })
-
       it('When apiVersion is NaN, Then validateConfig returns that same warning to its caller', async () => {
         // Arrange — validateConfig is the only surface main() sees, so the
         // warnings it returns are what reaches the user. Assert the channel,
@@ -1371,16 +1360,6 @@ describe('Given a ConfigValidator', () => {
       )
     })
 
-    it('Given apiVersion is NaN, When _handleDefault runs, Then it defaults to latest', async () => {
-      // Mutant: the usable-pin guard in _handleDefault forced true returns before defaulting, so apiVersion stays NaN
-      config.apiVersion = NaN
-      const sut = new ConfigValidator(config)
-      const warnings = await sut['_handleDefault']()
-
-      expect(config.apiVersion).toBe(58)
-      expect(warnings).toHaveLength(1)
-    })
-
     it('Given apiVersion is undefined after the project lookup, When _handleDefault runs, Then it defaults to latest', async () => {
       // Mutant: the usable-pin guard in _handleDefault forced true returns before defaulting, so apiVersion stays undefined
       config.apiVersion = undefined
@@ -1552,23 +1531,6 @@ describe('Given a ConfigValidator', () => {
       // call resolveCommit with undefined for the empty key)
       expect(mockResolveCommit).toHaveBeenCalledWith('invalid-from')
       expect(mockResolveCommit).toHaveBeenCalledWith('invalid-to')
-    })
-
-    it('Given apiVersion is NaN with a working SfProject, When _handleDefault runs, Then it is reset to latest with a single warning', async () => {
-      // NaN is not a usable pin, so _handleDefault defaults it. Value AND
-      // warning count are asserted so the usable-pin guard forced true
-      // cannot survive either assertion alone.
-      config.apiVersion = NaN
-      mockSfProjectResolve.mockResolvedValue({
-        getSfProjectJson: () => ({ getContents: () => ({}) }),
-      })
-      const sut = new ConfigValidator(config)
-
-      const warnings = await sut['_handleDefault']()
-
-      expect(config.apiVersion).toBe(58)
-      expect(Number.isNaN(config.apiVersion)).toBe(false)
-      expect(warnings).toHaveLength(1)
     })
   })
 

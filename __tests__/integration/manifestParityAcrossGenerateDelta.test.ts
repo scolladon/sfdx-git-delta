@@ -63,17 +63,9 @@ type FlattenRevisionHost = {
   flattenRevision: (revision: string) => Promise<ReadonlyMap<string, ObjectId>>
 }
 
-// ConfigValidator's appexchange lookup is the one seam that leaves the
-// process. makeInput pins apiVersion, so the lookup is never reached; the mock
-// keeps the run offline and deterministic if a future edit drops that pin.
-// Everything else (git, registry, handlers, writers) is real.
+// makeInput pins apiVersion, so ConfigValidator's appexchange lookup is never
+// reached for any run built through it.
 const API_VERSION = 60
-vi.mock('../../src/metadata/metadataManager', async importOriginal => ({
-  ...(await importOriginal<
-    typeof import('../../src/metadata/metadataManager')
-  >()),
-  getLatestSupportedVersion: async () => API_VERSION,
-}))
 
 let fixtureDir: string
 let refs: LiveContainerFixtureRefs
