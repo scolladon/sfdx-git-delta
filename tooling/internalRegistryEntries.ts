@@ -23,7 +23,19 @@ export function isSimpleGapFiller(entry: Metadata): boolean {
   )
 }
 
-export function categorize(entry: Metadata): string {
+// The section keys syncInternalRegistryWithSdr.ts emits, in its sectionOrder;
+// an entry whose category is missing there is silently dropped from the file.
+export type RegistryCategory =
+  | 'specialHandling'
+  | 'pruneOnly'
+  | 'profileChildren'
+  | 'translationsChildren'
+  | 'marketingAppExt'
+  | 'valueTranslation'
+  | 'virtual'
+  | 'gapFiller'
+
+export function categorize(entry: Metadata): RegistryCategory {
   if (entry.xmlName?.startsWith('Virtual')) return 'virtual'
   if (entry.content) return 'virtual'
   if (entry.pruneOnly) return 'pruneOnly'

@@ -10,6 +10,7 @@ import internalRegistry from '../src/metadata/internalRegistry.ts'
 import {
   categorize,
   isSimpleGapFiller,
+  type RegistryCategory,
   serializeEntry,
 } from './internalRegistryEntries.ts'
 
@@ -62,7 +63,7 @@ const remaining = internalRegistry.filter(
 )
 
 // Group by category for organized output
-const groups: Record<string, typeof internalRegistry> = {}
+const groups: Partial<Record<RegistryCategory, typeof internalRegistry>> = {}
 for (const entry of remaining) {
   const cat = categorize(entry)
   if (!groups[cat]) {
@@ -74,7 +75,7 @@ for (const entry of remaining) {
 // Generate output
 const sections: string[] = []
 
-const sectionOrder: [string, string][] = [
+const sectionOrder: readonly (readonly [RegistryCategory, string])[] = [
   ['specialHandling', '// Special handling overrides'],
   [
     'pruneOnly',
