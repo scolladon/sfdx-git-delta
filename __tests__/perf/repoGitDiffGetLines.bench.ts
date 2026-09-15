@@ -19,8 +19,9 @@ import { perfBench } from './harness/perfBench.js'
 // Pins the per-line cost of RepoGitDiff.getLines itself: _expandRename's
 // non-rename pass-through, _routeLine / _routeAddition (registry membership,
 // ignore check, key derivation) and the deferred-deletion tail that runs once
-// the stream is drained. No stream carries an R line, so rename expansion
-// (detectRenames) is not measured here. It deliberately does not reuse:
+// the stream is drained. No stream carries an R line, so _expandRename's
+// rename branch (D/A synthesis and rename-pair capture) is not measured here.
+// It deliberately does not reuse:
 //  - pipeline.bench.ts's no-delta pipelines: they diff a real repository, so
 //    the git tree walk dominates and a routing regression reads diluted.
 //  - cancellationKey.bench.ts: it measures _extractComparisonName alone,
