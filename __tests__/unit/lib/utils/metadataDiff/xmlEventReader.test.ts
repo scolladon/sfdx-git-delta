@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   parseFromSideSwallowing,
@@ -68,7 +68,6 @@ describe('xmlEventReader', () => {
       ['inner tag mismatch', '<Root><a></b></Root>'],
       ['multiple top-level roots', '<A/><B/>'],
       ['sibling after closed root', '<Root></Root><Sibling/>'],
-      ['trailing text after root close', '<Root></Root>extra'],
       ['unterminated tag', '<Root'],
       ['closing tag before opening', '</Root>'],
       ['no name in open tag', '<>foo</>'],
@@ -401,12 +400,11 @@ describe('xmlEventReader', () => {
 
     it('Given a document without root element (only declaration), When parseToSidePropagating runs, Then it rejects with "no root element"', async () => {
       // A document with no root element makes driveParse return null, which
-      // parseToSidePropagating turns into its "no root element" rejection.
+      // parseToSidePropagating's null-capture guard turns into this rejection.
       const onElement = vi.fn()
-      // An XML declaration with no root tag produces an empty parsed object
       await expect(
         parseToSidePropagating('<?xml version="1.0"?>', onElement)
-      ).rejects.toThrow(/no root element|parse|invalid/i)
+      ).rejects.toThrow('to-side document has no root element')
     })
 
     it('Given a string source, When parseToSidePropagating runs, Then driveParse uses it as-is and resolves', async () => {
@@ -423,14 +421,6 @@ describe('xmlEventReader', () => {
       const sut = await parseToSidePropagating(source, onElement)
       expect(sut.rootKey).toBe('Root')
       expect(onElement).toHaveBeenCalledWith('item', 'hello')
-    })
-
-    it('Given malformed XML that results in null capture, When parseToSidePropagating runs, Then its null-capture guard rejects', async () => {
-      // Skipping the `capture === null` guard would resolve null instead.
-      const onElement = vi.fn()
-      await expect(
-        parseToSidePropagating('<?xml version="1.0"?>', onElement)
-      ).rejects.toThrow()
     })
 
     it('Given a declaration with a no-value (boolean) attribute, When parseToSidePropagating runs, Then parseDeclaration round-trips the attribute as `true`', async () => {
@@ -479,9 +469,8 @@ describe('xmlEventReader', () => {
       expect(sut.rootAttributes).toEqual({ '@_flag': 'true' })
     })
 
-    it('Given a bare self-closing root, When parseToSidePropagating runs, Then driveParse skips streamRootChildren and emits nothing', async () => {
-      // Arrange — a self-closing root has no body, so driveParse takes
-      // bodyStart as the end position without walking any children.
+    it('Given a bare self-closing root, When parseToSidePropagating runs, Then the root is captured and nothing is emitted', async () => {
+      // Arrange
       const onElement = vi.fn()
       const source = '<Root/>'
 
@@ -495,14 +484,18 @@ describe('xmlEventReader', () => {
   })
 
   describe('parseDeclaration defensive guard', () => {
+    // The txml mock must not outlive this test even when an assertion fails.
+    afterEach(() => {
+      vi.doUnmock('txml/txml')
+      vi.resetModules()
+    })
+
     it('Given a declaration string that produces no decl node, When parsePrologue runs, Then xmlHeader contains an empty header object', async () => {
       // Arrange — the XML_DECL_RE matches `<?xml ... ?>` shape but if the
       // captured slice produces no decl node (defensive guard), the
-      // fallback returns an empty header object. Reaching this branch
-      // requires bypassing the parseDeclaration call directly: feed input
-      // where the regex matches but the parsed tree contains no `?xml`
-      // tag. txml does emit a `?xml` node for a well-formed declaration,
-      // so we test the unreachable defensive arm via direct module access.
+      // fallback returns an empty header object. txml does emit a `?xml`
+      // node for a well-formed declaration, so the defensive arm is reached
+      // by mocking txml and re-importing the module.
       vi.resetModules()
       vi.doMock('txml/txml', () => ({
         // First call (parseDeclaration) returns an empty tree → declNode
@@ -521,12 +514,9 @@ describe('xmlEventReader', () => {
         onElement
       )
 
-      // Assert — under the mock, parsePrologue may bail when the synthetic
-      // root parse also yields nothing; the swallowing path then returns
-      // null. That still exercises the `!declNode` fallback inside parseDeclaration.
-      expect(sut === null || sut?.xmlHeader !== undefined).toBe(true)
-      vi.doUnmock('txml/txml')
-      vi.resetModules()
+      // Assert — parseRootAttributes tolerates the empty synthetic tree, so
+      // the capture survives and carries the `!declNode` fallback header.
+      expect(sut?.xmlHeader).toEqual({ '?xml': {} })
     })
   })
 })

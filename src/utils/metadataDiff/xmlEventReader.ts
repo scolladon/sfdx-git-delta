@@ -255,13 +255,13 @@ const verifyTail = (
       i = end + 3
       continue
     }
-    // Stryker disable MethodExpression,ArithmeticOperator,StringLiteral -- equivalent: this throw fires for unexpected content after root close; the slice with Math.min(i+30, xml.length) caps the message preview at 30 chars; mutants change the preview length/content which is observability only — tests assert that the throw fires
+    // Stryker disable MethodExpression,ArithmeticOperator -- equivalent: the slice with Math.min(i+30, xml.length) caps the message preview at 30 chars; these mutants change only that preview, which is observability only — tests pin the message prefix, not the preview
     throw new Error(
       `unexpected content after root close: ${xml.slice(i, Math.min(i + 30, xml.length))}`
     )
   }
 }
-// Stryker restore MethodExpression,ArithmeticOperator,StringLiteral
+// Stryker restore MethodExpression,ArithmeticOperator
 
 const driveParse = (
   source: Buffer | string,
