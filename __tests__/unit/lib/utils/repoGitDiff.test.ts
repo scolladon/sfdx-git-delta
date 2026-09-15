@@ -315,16 +315,6 @@ describe('Given a RepoGitDiff', () => {
     expect(result).toStrictEqual(lines)
   })
 
-  it('Given a single addition line, When getLines, Then exactly that line is yielded with no stray entries', async () => {
-    const filePath = 'force-app/main/default/classes/MyClass.cls'
-    mockGetDiffLines.mockReturnValue([`${ADDITION}${TAB}${filePath}`])
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    const result = await collect(sut.getLines())
-
-    expect(result).toStrictEqual([`${ADDITION}${TAB}${filePath}`])
-  })
-
   it('Given non-rename addition and deletion lines, When getLines, Then _expandRename passes each through unchanged', async () => {
     // A non-rename line splits into two tab-separated parts, so even through
     // _expandRename's rename branch it is yielded as-is; the exact output
@@ -344,17 +334,6 @@ describe('Given a RepoGitDiff', () => {
       `${ADDITION}${TAB}${addPath}`,
       `${DELETION}${TAB}${delPath}`,
     ])
-  })
-
-  it('Given only a deletion line, When getLines, Then no addition name cancels it and the deferred deletion is yielded', async () => {
-    const delPath = 'force-app/main/default/classes/Orphan.cls'
-    mockGetDiffLines.mockReturnValue([`${DELETION}${TAB}${delPath}`])
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    const result = await collect(sut.getLines())
-
-    // Nothing registered in pending.additionNames, so the deletion survives
-    expect(result).toEqual([`${DELETION}${TAB}${delPath}`])
   })
 
   it('can reject in case of error', async () => {

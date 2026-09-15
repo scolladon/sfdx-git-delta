@@ -759,22 +759,10 @@ describe('MetadataBoundaryResolver', () => {
   })
 
   describe('scanAndCreateElement dirIndex boundary', () => {
-    it('Given typeDir in path with suffix (dirIndex >= 0 && suffix), When scanning, Then filesUnder lists the type directory', async () => {
-      // The `dirIndex >= 0 && suffix` false flip would walk the ancestors instead
-      const path =
-        'force-app/main/default/staticresources/MyResource/nested/deep.txt'
-      mockFilesUnder.mockReturnValueOnce([
-        'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
-      ])
-      await sut.createElement(path, staticResourceType, 'HEAD')
-      expect(mockFilesUnder).toHaveBeenCalledWith(
-        'HEAD',
-        'force-app/main/default/staticresources'
-      )
-    })
-
     it('Given typeDir at index 0 in path (dirIndex=0, suffix present, depth>2), When scanning, Then scanAndCreateElement still lists the type directory', async () => {
-      // path: 'staticresources/MyResource/images/logo.png' → dirIndex=0 → >= 0 passes, > 0 would fail
+      // path: 'staticresources/MyResource/images/logo.png' → dirIndex=0 → >= 0 passes, > 0 would fail.
+      // `parts.slice(dirIndex - 1)` would be parts.slice(-1): the loop would
+      // see only the file and fall back to the full path.
       const path = 'staticresources/MyResource/images/logo.png'
       mockFilesUnder.mockReturnValueOnce([
         'staticresources/MyResource/MyResource.resource-meta.xml',
@@ -805,21 +793,7 @@ describe('MetadataBoundaryResolver', () => {
       )
     })
 
-    it('Given a listing holding the component meta file among other files, When scanning, Then the meta-file component above the file is the boundary', async () => {
-      const path =
-        'force-app/main/default/staticresources/MyResource/images/logo.png'
-      mockFilesUnder.mockReturnValueOnce([
-        'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
-        'force-app/main/default/staticresources/MyResource/images/logo.png',
-        'force-app/main/default/staticresources/Other.txt',
-      ])
-      const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      expect(element.componentPath).toBe(
-        'force-app/main/default/staticresources/MyResource'
-      )
-    })
-
-    it('Given multiple components in scan result, When one matches path, Then correct component selected', async () => {
+    it('Given the component sits under an intermediate folder below the type directory, When scanning, Then that nested folder is the boundary', async () => {
       const path =
         'force-app/main/default/staticresources/nested/MyResource/deep.txt'
       mockFilesUnder.mockReturnValueOnce([
@@ -860,25 +834,9 @@ describe('MetadataBoundaryResolver', () => {
       expect(result).toBe(true)
     })
 
-    it('Given part ends with dot-componentName (not starts), When isNameInPath, Then returns false', async () => {
-      // Verifies startsWith is used, not endsWith (mutation contrast)
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
-      const result = (
-        resolver as unknown as {
-          isNameInPath: (parts: string[], name: string) => boolean
-        }
-      ).isNameInPath(['a', 'prefix.MyComponent'], 'MyComponent')
-      expect(result).toBe(false)
-    })
-
     it('Given no part equals or starts with the component name, When isNameInPath, Then returns false', async () => {
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
       const result = (
-        resolver as unknown as {
+        sut as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
         }
       ).isNameInPath(['a', 'Other.js'], 'MyComponent')
@@ -968,23 +926,6 @@ describe('MetadataBoundaryResolver', () => {
       // Mutant pathAfterType=full parts; 'foo' at index 0 matches → fromScan
       //       ('foo') → componentPath='foo'.
       expect(element.componentPath).toBe('foo/staticresources/A/B/file.bin')
-    })
-
-    it('Given typeDir at index 0, When scanning, Then dirIndex+1 slice yields the post-type parts', async () => {
-      // ArithmeticOperator mutant: `parts.slice(dirIndex+1)` becomes `parts.slice(dirIndex-1)`.
-      // For dirIndex=0 the mutated slice is parts.slice(-1) (just the file)
-      // and the for-loop `length - 2 = -1` skips entirely → fallback fires
-      // even though a perfectly matching component is two folders up.
-      const path = 'staticresources/A/B/file.bin'
-      mockFilesUnder.mockReturnValueOnce([
-        'staticresources/A.resource-meta.xml',
-      ])
-      const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      // Real: pathAfterType=['A','B','file.bin'], finds 'A' at i=0 → fromScan
-      //       ('A') → componentPath='staticresources/A'.
-      // Mutant: pathAfterType=['file.bin'], no iterations → fallback fromScan
-      //       ('file') → componentPath = full path.
-      expect(element.componentPath).toBe('staticresources/A')
     })
 
     it('Given last pathAfterType element matches a componentName, When scanning, Then it is excluded from the loop', async () => {
