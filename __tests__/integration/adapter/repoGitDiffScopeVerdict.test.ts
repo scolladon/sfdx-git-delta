@@ -10,6 +10,7 @@ import type { Config } from '../../../src/types/config'
 import RepoGitDiff from '../../../src/utils/repoGitDiff'
 import {
   buildFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   type FixtureRefs,
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir } from '../../__utils__/gitTestHarness'
@@ -61,7 +62,7 @@ beforeAll(async () => {
   // not the behaviour under test, and the default 10s hook timeout has a
   // documented flake of exactly this shape under CPU contention. The
   // assertions keep the tight default so they stay regression detectors.
-}, 30_000)
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   // Closing after every test drops the cached repo handle and the

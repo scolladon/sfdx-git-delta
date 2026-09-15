@@ -11,6 +11,12 @@ import { join, relative, sep } from 'node:path'
 
 import { runGit, runGitText } from './gitTestHarness'
 
+// Building a fixture repo spawns dozens of blocking git processes: fixture
+// I/O, not the behaviour under test. A cold Windows runner outruns vitest's
+// 10s default hookTimeout doing it, so every hook that builds one takes this
+// budget while the tests keep the tight default and stay regression detectors.
+export const FIXTURE_HOOK_BUDGET_MS = 30_000
+
 export type RepoFormat = {
   // The name that appears in vitest output, so a reduced run names itself.
   readonly name: string

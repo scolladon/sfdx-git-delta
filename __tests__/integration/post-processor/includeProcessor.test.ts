@@ -28,6 +28,7 @@ import { MetadataElement } from '../../../src/utils/metadataElement'
 import {
   buildMetadataFixtureRepo,
   EXISTING_RESOURCE_FILE,
+  FIXTURE_HOOK_BUDGET_MS,
   type MetadataFixtureRefs,
   NEW_RESOURCE_FILE,
 } from '../../__utils__/gitFixtureRepo'
@@ -101,7 +102,7 @@ beforeAll(async () => {
   includeDir = await trackedTempDir('sgd-include-patterns-')
   await mkdir(includeDir, { recursive: true })
   metadata = await getDefinition({})
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   // Both GitAdapter and IgnoreHelper.buildInclude cache singletons keyed on

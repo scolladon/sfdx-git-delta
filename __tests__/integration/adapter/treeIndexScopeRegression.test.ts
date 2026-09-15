@@ -14,6 +14,7 @@ import { MetadataBoundaryResolver } from '../../../src/utils/metadataBoundaryRes
 import { computeTreeIndexScope } from '../../../src/utils/treeIndexScope'
 import {
   buildMetadataFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   type MetadataFixtureRefs,
   NEW_RESOURCE_FILE,
   NEW_RESOURCE_META,
@@ -64,7 +65,7 @@ beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-scope-regression-fixture-')
   refs = buildMetadataFixtureRepo(fixtureDir)
   metadata = await getDefinition({})
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   await GitAdapter.closeAll()

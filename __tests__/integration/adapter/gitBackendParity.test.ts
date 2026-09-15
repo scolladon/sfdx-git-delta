@@ -12,6 +12,7 @@ import { NotACommitError } from '../../../src/utils/errorUtils'
 import {
   ARCHIVE_SCOPE,
   buildFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   type FixtureRefs,
   GREP_MARKER,
   PREFIX_COLLISION_PATH,
@@ -138,7 +139,7 @@ const trackedTempDir = async (prefix: string): Promise<string> => {
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-parity-fixture-')
   refs = buildFixtureRepo(fixtureDir)
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   // Instances are cached per repo: closing after every test forces the
