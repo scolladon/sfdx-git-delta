@@ -32,6 +32,7 @@ import {
   buildInFileFanOutFixtureRepo,
   buildLiveContainerFixtureRepo,
   buildUnreadableSubtreeFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   IN_FILE_FAN_OUT_ADDED_ALERT,
   type InFileFanOutFixtureRefs,
   inFileFanOutWorkflowName,
@@ -177,7 +178,7 @@ beforeAll(async () => {
   metadata = await getDefinition({})
   // ~61 git spawns plus the SDR registry load; the default 10s hook timeout
   // has a documented Windows-runner flake of exactly this shape.
-}, 30_000)
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   await GitAdapter.closeAll()
@@ -462,7 +463,7 @@ describe('Given a diff whose tree-index scope is empty and whose handlers read c
     fanOut = buildInFileFanOutFixtureRepo(fanOutDir, FAN_OUT_FILE_COUNT)
     // ~50 git spawns; same Windows hook-timeout flake shape as the top-level
     // beforeAll.
-  }, 30_000)
+  }, FIXTURE_HOOK_BUDGET_MS)
 
   it.each([false, true])(
     'When sgd runs with generateDelta=%s, Then every handler asks indexRevision for both revisions but each revision is walked exactly once',
@@ -571,7 +572,7 @@ describe('Given an unreadable subtree that the diff never opens at either revisi
   beforeAll(async () => {
     unreadableDir = await trackedTempDir('sgd-parity-unreadable-')
     unreadable = buildUnreadableSubtreeFixtureRepo(unreadableDir)
-  }, 30_000)
+  }, FIXTURE_HOOK_BUDGET_MS)
 
   it('When sgd runs with --generate-delta, Then exactly one TreeIndexUnavailable warning is raised, the builder walks to once and the copy batch retries it once more', async () => {
     // Arrange — with fewer queue slots than copies the copies would run

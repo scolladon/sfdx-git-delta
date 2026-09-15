@@ -10,6 +10,7 @@ import type { Config } from '../../../src/types/config'
 import RepoGitDiff from '../../../src/utils/repoGitDiff'
 import {
   buildRootAnchoredFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   type RootAnchoredFixtureRefs,
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir } from '../../__utils__/gitTestHarness'
@@ -51,7 +52,7 @@ beforeAll(async () => {
   fixtureDir = await createTempDir('sgd-root-anchored-fixture-')
   refs = buildRootAnchoredFixtureRepo(fixtureDir)
   globalMetadata = await getDefinition({})
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   await GitAdapter.closeAll()

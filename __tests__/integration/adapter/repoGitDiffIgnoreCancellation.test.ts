@@ -12,6 +12,7 @@ import { IgnoreHelper } from '../../../src/utils/ignoreHelper'
 import RepoGitDiff from '../../../src/utils/repoGitDiff'
 import {
   buildIgnoreFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   IGNORE_BUNDLE_MARKUP,
   IGNORE_BUNDLE_STALE_MARKUP,
   IGNORE_MOVED_CLASS,
@@ -97,7 +98,7 @@ beforeAll(async () => {
   await writeFile(unrelatedDestructivePatternPath, 'nothing-here/\n')
   sourceClassesPatternPath = join(fixtureDir, '.sgdignore-source-classes')
   await writeFile(sourceClassesPatternPath, 'force-app/main/default/classes/\n')
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   // Both GitAdapter and IgnoreHelper cache a singleton keyed on the first

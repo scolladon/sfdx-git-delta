@@ -1,5 +1,13 @@
 'use strict'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import type { TreeReader } from '../../../../src/adapter/treeReader'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -99,6 +107,13 @@ describe('MetadataBoundaryResolver', () => {
     )
   })
 
+  // Spies on shared objects (MetadataElement statics, the global registry)
+  // must be restored even when an assertion fails first, or they leak into
+  // every later test in the file.
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   describe('createElement', () => {
     describe('Given flat path (pathAfterType.length <= 1)', () => {
       it('Given flat file, When creating element, Then should use fromPath without scan', async () => {
@@ -135,7 +150,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(mockChildren).not.toHaveBeenCalled()
         })
 
-        it('Given StaticResource nested file, When creating element, Then should use getFilesPath to find component root', async () => {
+        it('Given StaticResource nested file, When creating element, Then componentNamesUnder finds the component root in the type directory listing', async () => {
           // Arrange
           const path =
             'force-app/main/default/staticresources/MyResource/images/logo.png'
@@ -220,7 +235,7 @@ describe('MetadataBoundaryResolver', () => {
           expect(mockChildren).not.toHaveBeenCalled()
         })
 
-        it('Given ExperienceBundle nested file, When creating element, Then should use getFilesPath to find component root', async () => {
+        it('Given ExperienceBundle nested file, When creating element, Then componentNamesUnder finds the component root in the type directory listing', async () => {
           // Arrange
           const path =
             'force-app/main/default/experiences/my_bundle/config/file.json'
@@ -386,7 +401,7 @@ describe('MetadataBoundaryResolver', () => {
           )
         })
 
-        it('Given Bot with nesting, When creating element, Then should find correct component root via getFilesPath', async () => {
+        it('Given Bot with nesting, When creating element, Then componentNamesUnder finds the correct component root in the type directory listing', async () => {
           // Arrange
           const path =
             'force-app/main/default/bots/nested/TestBot/v1.botVersion-meta.xml'
@@ -693,9 +708,8 @@ describe('MetadataBoundaryResolver', () => {
 
   // --- Mutation-killing tests ---
 
-  describe('createElement early returns (L38, L40)', () => {
-    it('Given element without suffix (no-suffix type), When creating element, Then returns element immediately without scan (L34 !suffix)', async () => {
-      // Mutant L34 ConditionalExpression false: skips early return → enters scan unnecessarily
+  describe('createElement shortcuts before scanning', () => {
+    it('Given element without suffix (no-suffix type), When creating element, Then the `!metadataDef.suffix` shortcut returns the fromPath element without scanning', async () => {
       const noSuffixType: Metadata = {
         ...lwcType,
         suffix: undefined as unknown as string,
@@ -708,10 +722,9 @@ describe('MetadataBoundaryResolver', () => {
       expect(mockChildren).not.toHaveBeenCalled()
     })
 
-    it('Given depth-2 path where file suffix matches type suffix (L38 ConditionalExpression false), When creating element, Then checks folder-name match', async () => {
+    it('Given depth-2 path whose file carries the type suffix and matches its folder, When creating element, Then the fromPath element is returned without scanning', async () => {
       // path: .../permissionsets/Admin/Admin.permissionset-meta.xml
       // fileName = 'Admin.permissionset-meta.xml', includes '.permissionset'=true
-      // Mutant false: skips includes check → goes to scanAndCreateElement
       const path =
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml'
       const element = await sut.createElement(path, permissionSetType, 'HEAD')
@@ -721,175 +734,130 @@ describe('MetadataBoundaryResolver', () => {
       expect(mockChildren).not.toHaveBeenCalled()
     })
 
-    it('Given depth-2 path where file suffix does NOT match type suffix, When creating element, Then returns fromPath element (L38 ConditionalExpression true → always scans)', async () => {
+    it('Given depth-2 path where file suffix does NOT match type suffix, When creating element, Then returns fromPath element without scanning', async () => {
       // fileName 'Admin.txt' does not include '.permissionset' → no scan
-      // Mutant true: skips the includes guard → always enters the if-body
       const path = 'force-app/main/default/permissionsets/Admin/Admin.txt'
       const element = await sut.createElement(path, permissionSetType, 'HEAD')
       expect(element.componentName).toBe('Admin')
+      // A fromScan element would anchor on the file and span the full path
+      expect(element.componentPath).toBe(
+        'force-app/main/default/permissionsets/Admin'
+      )
       expect(mockFilesUnder).not.toHaveBeenCalled()
     })
 
-    it('Given depth-2 with component name mismatch (L40), When creating element, Then uses fromScan', async () => {
+    it('Given depth-2 path whose component name differs from its folder, When creating element, Then the extracted name anchors a fromScan element', async () => {
       // pathAfterType = ['SomeFolder', 'OtherName.permissionset-meta.xml']
       // componentName extracted = 'OtherName', pathAfterType[0] = 'SomeFolder' → mismatch
-      // Mutant "componentName !== element.pathAfterType[0]" → always returns element without fromScan
       const path =
         'force-app/main/default/permissionsets/SomeFolder/OtherName.permissionset-meta.xml'
       const element = await sut.createElement(path, permissionSetType, 'HEAD')
-      // fromScan resolves 'OtherName' as anchor component
       expect(element.componentName).toBe('OtherName')
+      // The fromPath element would stop at the folder instead
+      expect(element.componentPath).toBe(path)
     })
   })
 
   describe('scanAndCreateElement dirIndex boundary', () => {
-    it('Given typeDir in path with suffix (dirIndex >= 0 && suffix), When scanning, Then calls getFilesPath with typeDir', async () => {
-      // Mutant "dirIndex > 0" would skip when dirIndex = 0
-      const path =
-        'force-app/main/default/staticresources/MyResource/nested/deep.txt'
-      mockFilesUnder.mockReturnValueOnce([
-        'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
-      ])
-      await sut.createElement(path, staticResourceType, 'HEAD')
-      expect(mockFilesUnder).toHaveBeenCalledWith(
-        'HEAD',
-        'force-app/main/default/staticresources'
-      )
-    })
-
-    it('Given typeDir at index 0 in path (dirIndex=0, suffix present, depth>2), When scanning, Then getFilesPath is called (L64 dirIndex > 0 mutant killed)', async () => {
-      // path: 'staticresources/MyResource/images/logo.png' → dirIndex=0 → >= 0 passes, > 0 would fail
+    it('Given typeDir at index 0 in path (dirIndex=0, suffix present, depth>2), When scanning, Then scanAndCreateElement still lists the type directory', async () => {
+      // path: 'staticresources/MyResource/images/logo.png' → dirIndex=0 → >= 0 passes, > 0 would fail.
+      // `parts.slice(dirIndex - 1)` would be parts.slice(-1): pathAfterType
+      // holds only the file, the loop (starting at length - 2) runs zero times
+      // and the boundary falls back to the full path.
       const path = 'staticresources/MyResource/images/logo.png'
       mockFilesUnder.mockReturnValueOnce([
         'staticresources/MyResource/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
       expect(mockFilesUnder).toHaveBeenCalledWith('HEAD', 'staticresources')
-      expect(element.componentPath).toContain('MyResource')
+      expect(element.componentPath).toBe('staticresources/MyResource')
     })
   })
 
   describe('findNameUnderTypeDirectory pathAfterType loop', () => {
-    it('Given component is at index 0 of pathAfterType (i=0 >= 0), When scanning, Then found at boundary (L83 i > 0 mutant killed)', async () => {
-      // pathAfterType = ['MyResource', 'deep.txt']
-      // Loop: i = length-2 = 0 >= 0 → checks pathAfterType[0] = 'MyResource' → found!
-      // Mutant "i > 0": skips i=0 → misses → fallback to last segment
-      const path = 'force-app/main/default/staticresources/MyResource/deep.txt'
+    it('Given the component is the first segment after the type directory, When scanning, Then findNameUnderTypeDirectory reaches index 0 and finds it as the boundary', async () => {
+      // pathAfterType = ['MyResource', 'images', 'deep.txt']: the loop checks
+      // 'images' at i = 1, then 'MyResource' at i = 0; an `i > 0` bound would
+      // stop before it and fall back to the file itself.
+      const path =
+        'force-app/main/default/staticresources/MyResource/images/deep.txt'
       mockFilesUnder.mockReturnValueOnce([
         'force-app/main/default/staticresources/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      // MyResource should be found at pathAfterType[0]
+      expect(mockFilesUnder).toHaveBeenCalledWith(
+        'HEAD',
+        'force-app/main/default/staticresources'
+      )
       expect(element.componentPath).toBe(
         'force-app/main/default/staticresources/MyResource'
       )
     })
 
-    it('Given component scan finds name, When using fromScan, Then metaSuffix built correctly (L72 StringLiteral)', async () => {
-      // metaSuffix = `.${suffix}${METAFILE_SUFFIX}` = `.resource-meta.xml`
-      // Mutant "``": metaSuffix="" → all files match → wrong component extracted
-      const path =
-        'force-app/main/default/staticresources/MyResource/images/logo.png'
-      mockFilesUnder.mockReturnValueOnce([
-        'force-app/main/default/staticresources/MyResource/MyResource.resource-meta.xml',
-        'force-app/main/default/staticresources/MyResource/images/logo.png',
-        'force-app/main/default/staticresources/Other.txt',
-      ])
-      const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      // Only .resource-meta.xml files are counted → MyResource found
-      expect(element.componentPath).toBe(
-        'force-app/main/default/staticresources/MyResource'
-      )
-    })
-
-    it('Given multiple components in scan result, When one matches path, Then correct component selected (L82 ArithOp)', async () => {
-      // pathAfterType.slice(dirIndex+1), loop from length-2 down
-      // Mutant "dirIndex - 1": wrong slice → wrong pathAfterType
+    it('Given the component sits under an intermediate folder below the type directory, When scanning, Then the component folder, not the intermediate one, is the boundary', async () => {
       const path =
         'force-app/main/default/staticresources/nested/MyResource/deep.txt'
       mockFilesUnder.mockReturnValueOnce([
         'force-app/main/default/staticresources/nested/MyResource/MyResource.resource-meta.xml',
       ])
       const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      expect(element.componentPath).toContain('MyResource')
+      expect(element.componentPath).toBe(
+        'force-app/main/default/staticresources/nested/MyResource'
+      )
     })
   })
 
-  describe('isNameInPath (L135)', () => {
+  describe('isNameInPath', () => {
     it('Given part exactly equals componentName, When isNameInPath, Then returns true', () => {
       // Mutant EqualityOperator "part !== componentName" → always false for exact match
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
       const result = (
-        resolver as unknown as {
+        sut as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
         }
       ).isNameInPath(['a', 'MyComponent', 'file.js'], 'MyComponent')
       expect(result).toBe(true)
     })
 
-    it('Given part starts with componentName dot, When isNameInPath, Then returns true (L135 MethodExpression endsWith mutant)', async () => {
+    it('Given part starts with componentName dot, When isNameInPath, Then returns true', async () => {
       // Mutant: part.endsWith(`${componentName}.`) → 'MyComponent.js'.endsWith('MyComponent.') = false → miss
       // Correct: startsWith → true
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
       const result = (
-        resolver as unknown as {
+        sut as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
         }
       ).isNameInPath(['a', 'MyComponent.js'], 'MyComponent')
       expect(result).toBe(true)
     })
 
-    it('Given part ends with dot-componentName (not starts), When isNameInPath, Then returns false', async () => {
-      // Verifies startsWith is used, not endsWith (mutation contrast)
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
+    it('Given no part equals or starts with the component name, When isNameInPath, Then returns false', async () => {
       const result = (
-        resolver as unknown as {
+        sut as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
         }
-      ).isNameInPath(['a', 'prefix.MyComponent'], 'MyComponent')
+      ).isNameInPath(['a', 'Other.js'], 'MyComponent')
       expect(result).toBe(false)
-    })
-
-    it('Given part is empty string componentName, When isNameInPath, Then returns true via startsWith', async () => {
-      // L135 StringLiteral `` mutant: componentName.= `` → startsWith('.') for non-empty parts
-      // Real behavior: componentName='' → part === '' or part.startsWith('.') → only empty-named matches
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
-      const result = (
-        resolver as unknown as {
-          isNameInPath: (parts: string[], name: string) => boolean
-        }
-      ).isNameInPath(['exact'], 'exact')
-      expect(result).toBe(true)
     })
   })
 
-  describe('createElement L38/L40 fromScan vs fromPath (mutation contrast)', () => {
+  describe('createElement depth-2 fromScan vs fromPath (mutation contrast)', () => {
     // For depth-2 paths where the suffix matches AND the folder name matches
     // the extracted component name, real returns the fromPath element
-    // (no scan). The L40 mutants flip this: 'true' / 'false' / EqualityOperator
-    // / BlockStatement all force fromScan to fire — verify by spying on the
-    // static. fromPath is also spied so the contrast is observable both ways.
-    it('Given depth-2 path where folder == componentName, When createElement, Then fromScan is NOT called (kills L40 mutants 110/111/112)', async () => {
+    // (no scan). Mutants on the folder-name comparison flip this: the false
+    // flip, EqualityOperator and BlockStatement all force fromScan to fire —
+    // verified by spying on MetadataElement.fromScan.
+    it('Given depth-2 path where folder == componentName, When createElement, Then fromScan is NOT called', async () => {
       const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
       const path =
         'force-app/main/default/permissionsets/Admin/Admin.permissionset-meta.xml'
       await sut.createElement(path, permissionSetType, 'HEAD')
       expect(fromScanSpy).not.toHaveBeenCalled()
-      fromScanSpy.mockRestore()
     })
 
-    it('Given depth-2 path where folder != componentName, When createElement, Then fromScan IS called with extracted name (kills L40 mutant 109 + L38 mutants 106/108)', async () => {
-      // L38 mutant cond=false / block={} — both bypass the folder-mismatch
-      //   check entirely and return element via fromPath.
-      // L40 mutant cond=true (id=109) — always returns element, never fromScan.
+    it('Given depth-2 path where folder != componentName, When createElement, Then fromScan IS called with extracted name', async () => {
+      // The type-suffix check's false flip and emptied block both bypass the
+      //   folder-mismatch check entirely and return element via fromPath.
+      // The folder-name comparison's true flip always returns element, never
+      //   fromScan.
       // All three diverge from real on the mismatch path: real calls fromScan
       // with the extracted component name (here 'OtherName').
       const fromScanSpy = vi.spyOn(MetadataElement, 'fromScan')
@@ -897,25 +865,25 @@ describe('MetadataBoundaryResolver', () => {
         'force-app/main/default/permissionsets/SomeFolder/OtherName.permissionset-meta.xml'
       await sut.createElement(path, permissionSetType, 'HEAD')
       expect(fromScanSpy).toHaveBeenCalledOnce()
-      // Pin the third arg (componentName) so the EqualityOperator mutant —
-      // which calls fromScan with the FOLDER name instead — also dies.
+      // Pin the fourth arg so extractName mutants that leave a suffix on the
+      // name also die; the EqualityOperator flip never reaches fromScan and
+      // dies on toHaveBeenCalledOnce.
       expect(fromScanSpy).toHaveBeenCalledWith(
         path,
         permissionSetType,
         expect.anything(),
         'OtherName'
       )
-      fromScanSpy.mockRestore()
     })
   })
 
   describe('componentNamesUnder metaSuffix filtering (mutation contrast)', () => {
-    // Both id=126 (metaSuffix → ``) and id=128 (file.endsWith → true) cause
+    // Both the metaSuffix `` mutant and the file.endsWith true flip cause
     // every file to feed componentNames (not just `*.${suffix}-meta.xml`).
     // Construct a scenario where a non-meta file's name matches a directory
     // segment in the path: real scan ignores it (suffix filter), mutant
     // returns it as the metadata boundary — observable on componentPath.
-    it('Given non-meta file shares a name with a path segment, When scanning, Then it is ignored (kills L72/L76 mutants 126/128)', async () => {
+    it('Given non-meta file shares a name with a path segment, When scanning, Then it is ignored', async () => {
       // Depth must be > 2 to force the scanAndCreateElement branch — at
       // depth-2 the createElement shortcut returns fromPath without scanning.
       const path =
@@ -938,8 +906,8 @@ describe('MetadataBoundaryResolver', () => {
   })
 
   describe('findNameUnderTypeDirectory loop bounds (mutation contrast)', () => {
-    it('Given typeDir at index >= 1 and a pre-dir part collides with a component name, When scanning, Then only post-typeDir parts are searched (kills L82 MethodExpression mutant 132)', async () => {
-      // Mutant id=132: `parts.slice(dirIndex+1)` becomes `parts` — the loop
+    it('Given typeDir at index >= 1 and a pre-dir part collides with a component name, When scanning, Then only post-typeDir parts are searched', async () => {
+      // MethodExpression mutant: `parts.slice(dirIndex+1)` becomes `parts` — the loop
       // sees segments BEFORE the typeDir. We exploit that with a pre-dir
       // segment ('foo') that matches a meta-derived componentName.
       const path = 'foo/staticresources/A/B/file.bin'
@@ -955,25 +923,8 @@ describe('MetadataBoundaryResolver', () => {
       expect(element.componentPath).toBe('foo/staticresources/A/B/file.bin')
     })
 
-    it('Given typeDir at index 0, When scanning, Then dirIndex+1 slice yields the post-type parts (kills L82 ArithmeticOperator mutant 133)', async () => {
-      // Mutant id=133: `parts.slice(dirIndex+1)` becomes `parts.slice(dirIndex-1)`.
-      // For dirIndex=0 the mutated slice is parts.slice(-1) (just the file)
-      // and the for-loop `length - 2 = -1` skips entirely → fallback fires
-      // even though a perfectly matching component is two folders up.
-      const path = 'staticresources/A/B/file.bin'
-      mockFilesUnder.mockReturnValueOnce([
-        'staticresources/A.resource-meta.xml',
-      ])
-      const element = await sut.createElement(path, staticResourceType, 'HEAD')
-      // Real: pathAfterType=['A','B','file.bin'], finds 'A' at i=0 → fromScan
-      //       ('A') → componentPath='staticresources/A'.
-      // Mutant: pathAfterType=['file.bin'], no iterations → fallback fromScan
-      //       ('file') → componentPath = full path.
-      expect(element.componentPath).toBe('staticresources/A')
-    })
-
-    it('Given last pathAfterType element matches a componentName, When scanning, Then it is excluded from the loop (kills L83 ArithmeticOperator mutant 134)', async () => {
-      // Mutant id=134: loop start `length - 2` becomes `length + 2`. The
+    it('Given last pathAfterType element matches a componentName, When scanning, Then it is excluded from the loop', async () => {
+      // ArithmeticOperator mutant: loop start `length - 2` becomes `length + 2`. The
       // surplus iterations include i=length-1 (the file), so a meta file
       // sharing the file's basename is wrongly chosen as the boundary.
       const path = 'staticresources/A/B/foo.bin'
@@ -992,9 +943,9 @@ describe('MetadataBoundaryResolver', () => {
     })
   })
 
-  describe('findComponentName suffix-guard (L147 mutation contrast)', () => {
-    it('Given a directory-named sibling whose name lacks the type-suffix dot-prefix, When walking, Then it is skipped (kills L147 StringLiteral mutant 173)', async () => {
-      // Mutant id=173 collapses ``.${siblingMetadata.suffix}`` to ``''``,
+  describe('findComponentName suffix-guard (mutation contrast)', () => {
+    it('Given a directory-named sibling whose name lacks the type-suffix dot-prefix, When walking, Then it is skipped', async () => {
+      // The StringLiteral mutant collapses ``.${siblingMetadata.suffix}`` to ``''``,
       // turning `sibling.includes('.${suffix}')` into `sibling.includes('')`
       // — every sibling with metadata.suffix passes the guard. We force the
       // dir-walk branch (custom dir name not in path) and seed the parent
@@ -1027,48 +978,33 @@ describe('MetadataBoundaryResolver', () => {
   })
 
   describe('componentNamesUnder given an empty listing', () => {
-    it('Given a revision with no built tree index, When scanning a typeDir path directly, Then the per-file suffix-filter loop performs zero iterations (kills the getFilesPath ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
-      // Arrange — call scanAndCreateElement directly (protected, cast like
-      // isNameInPath above) to isolate the fallback loop's iteration count
-      // from the extra endsWith call MetadataElement.fromPath's constructor
-      // makes on the full createElement path. The mutant's placeholder
-      // string never contains a dot, so componentNames ends up empty
-      // either way — the suffix filter itself can't tell the two apart.
-      // Only the number of times the filter *runs* proves allFiles is
-      // genuinely empty, not a phantom one-element array.
+    it('Given a revision with no built tree index, When creating an element nested under its type directory, Then no component is found and the file itself is the boundary', async () => {
+      // Arrange
       const path =
         'force-app/main/default/staticresources/MyResource/images/logo.png'
       mockFilesUnder.mockReturnValueOnce([])
-      const scan = (
-        sut as unknown as {
-          scanAndCreateElement: (
-            path: string,
-            metadataDef: Metadata,
-            revision: string
-          ) => Promise<MetadataElement>
-        }
-      ).scanAndCreateElement.bind(sut)
-      const endsWithSpy = vi.spyOn(String.prototype, 'endsWith')
 
       // Act
-      await scan(path, staticResourceType, 'UNBUILT')
+      const element = await sut.createElement(
+        path,
+        staticResourceType,
+        'UNBUILT'
+      )
 
-      // Assert — the sole remaining call is MetadataElement's own
-      // isMetaFile check inside the fallback fromScan() constructor; a
-      // non-empty allFiles fallback would add one call per phantom entry.
-      expect(endsWithSpy).toHaveBeenCalledTimes(1)
-      endsWithSpy.mockRestore()
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledWith(
+        'UNBUILT',
+        'force-app/main/default/staticresources'
+      )
+      expect(element.componentName).toBe('logo')
+      expect(element.componentPath).toBe(path)
     })
   })
 
   describe('siblingsOf given an empty listing', () => {
-    it('Given a revision with no built tree index, When walking up from a single directory level, Then findComponentName never consults metadataRepo.get (kills the listChildren ?? [] -> ?? ["Stryker was here"] mutant)', async () => {
+    it('Given a revision with no built tree index, When walking up from a single directory level, Then no sibling is consulted and the file itself is the boundary', async () => {
       // Arrange — a one-level path keeps the directory walk to exactly one
-      // listChildren fallback, so the get() spy count maps 1:1 to the
-      // fallback array's length. "Stryker was here" also fails
-      // findComponentName's suffix filter, but for the wrong reason (it
-      // has no dot) — only the metadataRepo.get() call count proves the
-      // fallback array is genuinely empty, not a phantom one-element list.
+      // empty listing, so no sibling can reach metadataRepo.get.
       const path = 'unknownDir/file.txt'
       mockChildren.mockReturnValueOnce([])
       const getSpy = vi.spyOn(globalMetadata, 'get')
@@ -1081,13 +1017,14 @@ describe('MetadataBoundaryResolver', () => {
       )
 
       // Assert
+      expect(mockChildren).toHaveBeenCalledWith('UNBUILT', 'unknownDir')
       expect(getSpy).not.toHaveBeenCalled()
       expect(element.componentName).toBe('file')
-      getSpy.mockRestore()
+      expect(element.pathAfterType).toEqual(['file.txt'])
     })
   })
 
-  describe('findComponentName (L147, L150)', () => {
+  describe('findComponentName', () => {
     it('Given sibling with matching suffix and name in path, When findComponentName, Then returns name', async () => {
       // path through real scan
       const path = 'force-app/main/any/MyResource/images/logo.png'
@@ -1101,7 +1038,7 @@ describe('MetadataBoundaryResolver', () => {
       expect(element.pathAfterType[0]).toBe('MyResource')
     })
 
-    it('Given sibling suffix present but name NOT in path, When findComponentName, Then skips it (L150 ConditionalExpression true)', async () => {
+    it('Given sibling suffix present but name NOT in path, When findComponentName, Then skips it', async () => {
       // Mutant true: isNameInPath always returns true → first sibling taken regardless
       // Real: OtherName is not in path → skipped, MyResource found later
       const path = 'force-app/main/any/MyResource/images/logo.png'

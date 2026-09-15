@@ -12,6 +12,7 @@ import {
 import type { Config } from '../../../src/types/config'
 import {
   buildFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   type FixtureRefs,
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir } from '../../__utils__/gitTestHarness'
@@ -64,7 +65,7 @@ const buildReaderForOnly = async (
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-treeindex-fixture-')
   refs = buildFixtureRepo(fixtureDir)
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   await GitAdapter.closeAll()

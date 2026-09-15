@@ -1,5 +1,5 @@
 'use strict'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   parseFromSideSwallowing,
@@ -68,7 +68,6 @@ describe('xmlEventReader', () => {
       ['inner tag mismatch', '<Root><a></b></Root>'],
       ['multiple top-level roots', '<A/><B/>'],
       ['sibling after closed root', '<Root></Root><Sibling/>'],
-      ['trailing text after root close', '<Root></Root>extra'],
       ['unterminated tag', '<Root'],
       ['closing tag before opening', '</Root>'],
       ['no name in open tag', '<>foo</>'],
@@ -108,17 +107,68 @@ describe('xmlEventReader', () => {
       expect(sut.rootKey).toBe('Root')
     })
 
-    it('Given an unterminated trailing comment, When parseToSidePropagating runs, Then it rejects', async () => {
+    it('Given an unterminated trailing comment, When parseToSidePropagating runs, Then it rejects naming the unterminated comment', async () => {
       // Arrange — comment opened after root close but never terminated.
       const onElement = vi.fn()
       const source = '<Root></Root><!-- never closed'
 
       // Act & Assert
-      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'unterminated comment after root close'
+      )
+    })
+
+    it('Given trailing text after the root close, When parseToSidePropagating runs, Then it rejects naming the unexpected content', async () => {
+      // Arrange — only a `<!--` opener may divert verifyTail from this error.
+      const onElement = vi.fn()
+      const source = '<Root></Root>extra'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'unexpected content after root close'
+      )
+    })
+
+    it('Given a trailing `<!-->` whose dashes belong to its opener, When parseToSidePropagating runs, Then it rejects it as an unterminated comment', async () => {
+      // Arrange — the `-->` search starts after the four-character opener,
+      // so the opener's own dashes cannot close the comment.
+      const onElement = vi.fn()
+      const source = '<Root></Root><!-->'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'unterminated comment after root close'
+      )
+    })
+
+    it('Given an unterminated comment holding a `>` before the root, When parseToSidePropagating runs, Then skipPrologueMisc does not skip it as a `<!...>` declaration and no root is found', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<!-- never closed > <Root>x</Root>'
+
+      // Act & Assert
+      await expect(parseToSidePropagating(source, onElement)).rejects.toThrow(
+        'to-side document has no root element'
+      )
+    })
+
+    it('Given a DOCTYPE declaration after the XML declaration, When parseToSidePropagating runs, Then both the header and the root are captured', async () => {
+      // Arrange — the `>` closing the XML declaration sits right before the
+      // DOCTYPE, so the declaration's `>` search must start past its `<!`.
+      const onElement = vi.fn()
+      const source =
+        '<?xml version="1.0"?><!DOCTYPE root SYSTEM "ext.dtd"><Root>x</Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(sut.xmlHeader).toEqual({ '?xml': { '@_version': '1.0' } })
     })
 
     it('Given a leading DOCTYPE declaration, When parseToSidePropagating runs, Then the prologue skips it and parses the root', async () => {
-      // Arrange — exercises the `<!...>` branch in parsePrologue.
+      // Arrange — exercises the `<!...>` branch in skipPrologueMisc.
       const onElement = vi.fn()
       const source = '<!DOCTYPE root SYSTEM "ext.dtd"><Root>x</Root>'
 
@@ -205,7 +255,7 @@ describe('xmlEventReader', () => {
       expect(onElement).not.toHaveBeenCalled()
     })
 
-    it('Given a leading <!-- comment --> before the root, When parseFromSideSwallowing runs, Then the prologue advances past it (xmlEventReader L80-81)', async () => {
+    it('Given a leading <!-- comment --> before the root, When parseFromSideSwallowing runs, Then skipPrologueMisc advances past it', async () => {
       // Arrange — leading comment between the declaration and the root.
       const onElement = vi.fn()
       const source = `<?xml version="1.0"?><!-- intro -->\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"><a/></Profile>`
@@ -218,7 +268,7 @@ describe('xmlEventReader', () => {
       expect(onElement).toHaveBeenCalledWith('a', expect.any(Object))
     })
 
-    it('Given an unterminated comment in the body, When parseFromSideSwallowing runs, Then the loop exits cleanly (xmlEventReader L137 end<0 path)', async () => {
+    it('Given an unterminated comment in the body, When parseFromSideSwallowing runs, Then streamRootChildren stops at the end of input after emitting the elements before it', async () => {
       const onElement = vi.fn()
       const source = `<Profile><a/><!-- truncated`
       const sut = await parseFromSideSwallowing(source, onElement)
@@ -227,7 +277,7 @@ describe('xmlEventReader', () => {
       expect(tags).toEqual(['a'])
     })
 
-    it('Given input that throws inside driveParse, When parseFromSideSwallowing runs, Then it logs at debug and resolves null (xmlEventReader L202-205)', async () => {
+    it('Given input that throws inside driveParse, When parseFromSideSwallowing runs, Then its catch resolves null', async () => {
       // Arrange — Buffer-like source whose toString throws so the catch
       // arm in parseFromSideSwallowing fires.
       const onElement = vi.fn()
@@ -308,8 +358,9 @@ describe('xmlEventReader', () => {
     })
 
     it('Given a document with xml declaration, When parseFromSideSwallowing runs, Then xmlHeader is populated on RootCapture', async () => {
-      // Kills L56 ConditionalExpression false: declContent===undefined ? undefined : {...}
-      // If mutated to false, xmlHeader would always be undefined even when declaration exists.
+      // parsePrologue's `declaration ? parseDeclaration(...) : undefined` is a
+      // ternary on a bare identifier, which Stryker does not mutate; this pins
+      // the populated side of it directly.
       const onElement = vi.fn()
       const source = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
       const sut = await parseFromSideSwallowing(source, onElement)
@@ -318,7 +369,7 @@ describe('xmlEventReader', () => {
     })
 
     it('Given a document without xml declaration, When parseFromSideSwallowing runs, Then xmlHeader is undefined', async () => {
-      // Ensures the true-branch of L56 also works (xmlHeader undefined for no-decl docs)
+      // The undefined side of the same parsePrologue ternary.
       const onElement = vi.fn()
       const source = `<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
       const sut = await parseFromSideSwallowing(source, onElement)
@@ -326,8 +377,7 @@ describe('xmlEventReader', () => {
     })
 
     it('Given a Buffer source with non-ASCII content, When parseFromSideSwallowing runs, Then it decodes correctly via toString utf8', async () => {
-      // Kills L79 ConditionalExpression/EqualityOperator: typeof source === 'string'
-      // If mutated to true (always string branch) → Buffer.toString not called → garbled
+      // driveParse must decode a Buffer as utf8 rather than use it as a string.
       const onElement = vi.fn()
       const content = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata">\n  <fieldPermissions>\n    <field>café</field>\n  </fieldPermissions>\n</Profile>`
       const buf = Buffer.from(content, 'utf8')
@@ -342,7 +392,6 @@ describe('xmlEventReader', () => {
 
   describe('parseToSidePropagating', () => {
     it('Given a document with xml declaration, When parseToSidePropagating runs, Then xmlHeader is populated', async () => {
-      // Kills L56 ConditionalExpression false on to-side path
       const onElement = vi.fn()
       const source = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
       const sut = await parseToSidePropagating(source, onElement)
@@ -350,19 +399,15 @@ describe('xmlEventReader', () => {
     })
 
     it('Given a document without root element (only declaration), When parseToSidePropagating runs, Then it rejects with "no root element"', async () => {
-      // Kills L129 StringLiteral "": error message in parseToSidePropagating
-      // A document that produces no root key after parsing → capture=null → throws
+      // A document with no root element makes driveParse return null, which
+      // parseToSidePropagating's null-capture guard turns into this rejection.
       const onElement = vi.fn()
-      // An XML declaration with no root tag produces an empty parsed object
       await expect(
         parseToSidePropagating('<?xml version="1.0"?>', onElement)
-      ).rejects.toThrow(/no root element|parse|invalid/i)
+      ).rejects.toThrow('to-side document has no root element')
     })
 
-    it('Given a string source, When parseToSidePropagating runs, Then it resolves (kills L79 EqualityOperator typeof!==string)', async () => {
-      // Kills L79 EqualityOperator: typeof source !== 'string' mutant would invert the check,
-      // causing strings to go through Buffer.toString and Buffers to be used as-is.
-      // This verifies a plain string source is handled correctly (not treated as Buffer).
+    it('Given a string source, When parseToSidePropagating runs, Then driveParse uses it as-is and resolves', async () => {
       const onElement = vi.fn()
       const source = `<Root><child>val</child></Root>`
       const sut = await parseToSidePropagating(source, onElement)
@@ -370,9 +415,7 @@ describe('xmlEventReader', () => {
       expect(onElement).toHaveBeenCalledWith('child', 'val')
     })
 
-    it('Given a Buffer source, When parseToSidePropagating runs, Then it decodes and parses correctly (kills L79 ConditionalExpression)', async () => {
-      // Kills L79 ConditionalExpression false: if always-false, Buffer.toString never called →
-      // Buffer treated as string → garbled. Verify Buffer path produces correct output.
+    it('Given a Buffer source, When parseToSidePropagating runs, Then driveParse decodes it and parses correctly', async () => {
       const onElement = vi.fn()
       const source = Buffer.from(`<Root><item>hello</item></Root>`, 'utf8')
       const sut = await parseToSidePropagating(source, onElement)
@@ -380,16 +423,7 @@ describe('xmlEventReader', () => {
       expect(onElement).toHaveBeenCalledWith('item', 'hello')
     })
 
-    it('Given malformed XML that results in null capture, When parseToSidePropagating runs, Then it throws (kills L105 ConditionalExpression false)', async () => {
-      // Kills L105 ConditionalExpression false: mutant skips the null guard, so null.rootKey
-      // would throw a different uncaught error rather than our explicit message.
-      const onElement = vi.fn()
-      await expect(
-        parseToSidePropagating('<?xml version="1.0"?>', onElement)
-      ).rejects.toThrow()
-    })
-
-    it('Given a declaration with a no-value (boolean) attribute, When parseToSidePropagating runs, Then the declaration attribute round-trips as `true` (xmlEventReader L53 sub 0)', async () => {
+    it('Given a declaration with a no-value (boolean) attribute, When parseToSidePropagating runs, Then parseDeclaration round-trips the attribute as `true`', async () => {
       // Arrange — `<?xml standalone?>` produces a tNode with attribute
       // value === null. parseDeclaration's ternary maps that back to `true`.
       // (txml folds the trailing `?` into the attribute name; we just
@@ -406,9 +440,9 @@ describe('xmlEventReader', () => {
       expect(Object.values(declAttrs)).toContain(true)
     })
 
-    it('Given a self-closing root element, When parseToSidePropagating runs, Then it parses and returns RootCapture (xmlEventReader L96 sub 0 — isSelfClosing=true)', async () => {
-      // Arrange — `<Root attr="x"/>` exercises the self-closing branch in
-      // parsePrologue's synthetic-tag construction.
+    it('Given a self-closing root element, When parseToSidePropagating runs, Then syntheticRootTag strips the slash and the attributes are captured', async () => {
+      // Arrange — `<Root attr="x"/>` exercises the self-closing branch of
+      // syntheticRootTag.
       const onElement = vi.fn()
       const source = '<Root attr="x"/>'
 
@@ -421,7 +455,7 @@ describe('xmlEventReader', () => {
       expect(onElement).not.toHaveBeenCalled()
     })
 
-    it('Given a root with a no-value (boolean) attribute, When parseToSidePropagating runs, Then the attribute is rendered as the string "true" (xmlEventReader L110 sub 0)', async () => {
+    it('Given a root with a no-value (boolean) attribute, When parseToSidePropagating runs, Then parseRootAttributes renders the attribute as the string "true"', async () => {
       // Arrange — `<Root flag>x</Root>` round-trips the boolean attribute as
       // 'true'. The writer renders `attr="value"`, so the value must be a
       // string, not the JS literal `true`.
@@ -434,36 +468,21 @@ describe('xmlEventReader', () => {
       // Assert
       expect(sut.rootAttributes).toEqual({ '@_flag': 'true' })
     })
-
-    it('Given streamRootChildren reaches a body with no `<` at all, When parseToSidePropagating runs, Then the inner loop exits via the lt<0 branch (xmlEventReader L131 sub 0)', async () => {
-      // Arrange — `<Root>plain text</Root>` has no further `<` until the
-      // closing `</Root>`. The body slice from bodyStart up to the closing
-      // tag contains text only, so xml.indexOf('<', pos) inside the body
-      // is found (the closing `</Root>`) but the `</` branch breaks first.
-      // To force the lt<0 path, build a payload where bodyStart equals
-      // xml.length: a self-closing root has bodyStart pointing past the
-      // close already, so no further `<` exists → lt<0.
-      const onElement = vi.fn()
-      const source = '<Root/>'
-
-      // Act
-      const sut = await parseToSidePropagating(source, onElement)
-
-      // Assert
-      expect(sut.rootKey).toBe('Root')
-      expect(onElement).not.toHaveBeenCalled()
-    })
   })
 
-  describe('parseDeclaration defensive guard (xmlEventReader L49 sub 0)', () => {
+  describe('parseDeclaration defensive guard', () => {
+    // The txml mock must not outlive this test even when an assertion fails.
+    afterEach(() => {
+      vi.doUnmock('txml/txml')
+      vi.resetModules()
+    })
+
     it('Given a declaration string that produces no decl node, When parsePrologue runs, Then xmlHeader contains an empty header object', async () => {
       // Arrange — the XML_DECL_RE matches `<?xml ... ?>` shape but if the
       // captured slice produces no decl node (defensive guard), the
-      // fallback returns an empty header object. Reaching this branch
-      // requires bypassing the parseDeclaration call directly: feed input
-      // where the regex matches but the parsed tree contains no `?xml`
-      // tag. txml does emit a `?xml` node for a well-formed declaration,
-      // so we test the unreachable defensive arm via direct module access.
+      // fallback returns an empty header object. txml does emit a `?xml`
+      // node for a well-formed declaration, so the defensive arm is reached
+      // by mocking txml and re-importing the module.
       vi.resetModules()
       vi.doMock('txml/txml', () => ({
         // First call (parseDeclaration) returns an empty tree → declNode
@@ -482,12 +501,9 @@ describe('xmlEventReader', () => {
         onElement
       )
 
-      // Assert — under the mock, parsePrologue may bail when the synthetic
-      // root parse also yields nothing; the swallowing path then returns
-      // null. That still exercises the L49 fallback inside parseDeclaration.
-      expect(sut === null || sut?.xmlHeader !== undefined).toBe(true)
-      vi.doUnmock('txml/txml')
-      vi.resetModules()
+      // Assert — parseRootAttributes tolerates the empty synthetic tree, so
+      // the capture survives and carries the `!declNode` fallback header.
+      expect(sut?.xmlHeader).toEqual({ '?xml': {} })
     })
   })
 })

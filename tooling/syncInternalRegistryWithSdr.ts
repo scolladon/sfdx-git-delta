@@ -7,25 +7,12 @@ import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { registry } from '@salesforce/source-deploy-retrieve'
 import internalRegistry from '../src/metadata/internalRegistry.ts'
-
-type RegistryEntry = (typeof internalRegistry)[number]
-
-const SPECIAL_FIELDS = [
-  'xmlTag',
-  'key',
-  'content',
-  'excluded',
-  'pruneOnly',
-  'parentXmlName',
-  'childXmlNames',
-] as const
-
-function isSimpleGapFiller(entry: RegistryEntry): boolean {
-  if (!entry.directoryName || !entry.suffix) return false
-  return !SPECIAL_FIELDS.some(
-    field => (entry as Record<string, unknown>)[field] != null
-  )
-}
+import {
+  categorize,
+  isSimpleGapFiller,
+  type RegistryCategory,
+  serializeEntry,
+} from './internalRegistryEntries.ts'
 
 // Collect all xmlNames from SDR
 const sdrXmlNames = new Set<string>()
@@ -76,73 +63,7 @@ const remaining = internalRegistry.filter(
 )
 
 // Group by category for organized output
-function categorize(entry: RegistryEntry): string {
-  if (entry.xmlName?.startsWith('Virtual')) return 'virtual'
-  if (entry.content) return 'virtual'
-  if (entry.pruneOnly) return 'pruneOnly'
-  if (entry.parentXmlName === 'Profile') return 'profileChildren'
-  if (entry.parentXmlName === 'Translations') return 'translationsChildren'
-  if (entry.parentXmlName === 'MarketingAppExtension') return 'marketingAppExt'
-  if (entry.parentXmlName === 'GlobalValueSetTranslation')
-    return 'valueTranslation'
-  if (
-    entry.xmlName === 'CustomLabel' ||
-    entry.xmlName === 'CustomFieldTranslation'
-  )
-    return 'specialHandling'
-  if (entry.xmlName === 'CustomObjectTranslation') return 'specialHandling'
-  if (isSimpleGapFiller(entry)) return 'gapFiller'
-  return 'specialHandling'
-}
-
-type EntryFieldSerializer = (entry: RegistryEntry) => readonly string[]
-
-const serializeContent = (
-  content: NonNullable<RegistryEntry['content']>
-): readonly string[] => [
-  '    content: [',
-  ...content.flatMap(c => [
-    '      {',
-    ...(c.suffix ? [`        suffix: '${c.suffix}',`] : []),
-    ...(c.xmlName ? [`        xmlName: '${c.xmlName}',`] : []),
-    '      },',
-  ]),
-  '    ],',
-]
-
-// Order is the generated file's field order; reordering rewrites every entry.
-const ENTRY_FIELD_SERIALIZERS: readonly EntryFieldSerializer[] = [
-  e =>
-    e.childXmlNames
-      ? [
-          `    childXmlNames: [${e.childXmlNames.map(n => `'${n}'`).join(', ')}],`,
-        ]
-      : [],
-  e => (e.content ? serializeContent(e.content) : []),
-  e =>
-    e.directoryName !== undefined
-      ? [`    directoryName: '${e.directoryName}',`]
-      : [],
-  e => (e.excluded ? [`    excluded: ${e.excluded},`] : []),
-  e => [`    inFolder: ${e.inFolder},`],
-  e => (e.key ? [`    key: '${e.key}',`] : []),
-  e => [`    metaFile: ${e.metaFile},`],
-  e => (e.parentXmlName ? [`    parentXmlName: '${e.parentXmlName}',`] : []),
-  e => (e.pruneOnly ? [`    pruneOnly: ${e.pruneOnly},`] : []),
-  e => (e.suffix ? [`    suffix: '${e.suffix}',`] : []),
-  e => (e.xmlName ? [`    xmlName: '${e.xmlName}',`] : []),
-  e => (e.xmlTag !== undefined ? [`    xmlTag: '${e.xmlTag}',`] : []),
-]
-
-function serializeEntry(entry: RegistryEntry): string {
-  return [
-    '  {',
-    ...ENTRY_FIELD_SERIALIZERS.flatMap(serialize => serialize(entry)),
-    '  },',
-  ].join('\n')
-}
-
-const groups: Record<string, typeof internalRegistry> = {}
+const groups: Partial<Record<RegistryCategory, typeof internalRegistry>> = {}
 for (const entry of remaining) {
   const cat = categorize(entry)
   if (!groups[cat]) {
@@ -154,33 +75,28 @@ for (const entry of remaining) {
 // Generate output
 const sections: string[] = []
 
-const sectionOrder: [string, string][] = [
-  ['specialHandling', '// Special handling overrides'],
-  [
-    'pruneOnly',
+// Key order is the generated file's section order. Typing the map by
+// RegistryCategory makes a category without a section a compile error instead
+// of silently dropping its entries from the file.
+const SECTION_COMMENTS: Readonly<Record<RegistryCategory, string>> = {
+  specialHandling: '// Special handling overrides',
+  pruneOnly:
     '// pruneOnly types - only handled for deletions (destructiveChanges)',
-  ],
-  [
-    'profileChildren',
+  profileChildren:
     "// Profile children - SDR doesn't define these, needed for granular diff",
-  ],
-  [
-    'translationsChildren',
+  translationsChildren:
     "// Translations children - SDR doesn't define these, needed for granular diff",
-  ],
-  [
-    'marketingAppExt',
+  marketingAppExt:
     '// MarketingAppExtActivity - child type with special handling',
-  ],
-  ['valueTranslation', ''],
-  ['virtual', ''],
-  [
-    'gapFiller',
-    `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.`,
-  ],
-]
+  valueTranslation: '',
+  virtual: '',
+  gapFiller: `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.`,
+}
 
-for (const [key, comment] of sectionOrder) {
+for (const [key, comment] of Object.entries(SECTION_COMMENTS) as [
+  RegistryCategory,
+  string,
+][]) {
   const entries = groups[key]
   if (!entries?.length) continue
   const block: string[] = []

@@ -16,6 +16,7 @@ import type { Config } from '../../../src/types/config'
 import ConfigValidator from '../../../src/utils/configValidator'
 import {
   buildFixtureRepo,
+  FIXTURE_HOOK_BUDGET_MS,
   type FixtureRefs,
 } from '../../__utils__/gitFixtureRepo'
 import { createTempDir, runGitText } from '../../__utils__/gitTestHarness'
@@ -78,7 +79,7 @@ beforeAll(async () => {
     ['commit-tree', forkTreeOid, '-p', refs.diffTo, '-m', 'divergent branch'],
     { cwd: fixtureDir }
   )
-})
+}, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
   // Closing after every test drops the cached repo handle and the
