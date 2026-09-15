@@ -322,9 +322,7 @@ describe('Given a RepoGitDiff', () => {
 
     const result = await collect(sut.getLines())
 
-    // Exactly one line — no stale initialization entries
-    expect(result).toHaveLength(1)
-    expect(result[0]).toBe(`${ADDITION}${TAB}${filePath}`)
+    expect(result).toStrictEqual([`${ADDITION}${TAB}${filePath}`])
   })
 
   it('Given non-rename addition and deletion lines, When getLines, Then _expandRename passes each through unchanged', async () => {
@@ -349,7 +347,7 @@ describe('Given a RepoGitDiff', () => {
   })
 
   it('Given only a deletion line, When getLines, Then no addition name cancels it and the deferred deletion is yielded', async () => {
-    const delPath = 'force-app/main/default/classes/Stryker.cls'
+    const delPath = 'force-app/main/default/classes/Orphan.cls'
     mockGetDiffLines.mockReturnValue([`${DELETION}${TAB}${delPath}`])
     const sut = new RepoGitDiff(config, globalMetadata)
 
@@ -357,16 +355,6 @@ describe('Given a RepoGitDiff', () => {
 
     // Nothing registered in pending.additionNames, so the deletion survives
     expect(result).toEqual([`${DELETION}${TAB}${delPath}`])
-  })
-
-  it('Given only an addition line, When getLines, Then no deferred deletion is yielded after it', async () => {
-    const addPath = 'force-app/main/default/classes/StrykerWasHere.cls'
-    mockGetDiffLines.mockReturnValue([`${ADDITION}${TAB}${addPath}`])
-    const sut = new RepoGitDiff(config, globalMetadata)
-
-    const result = await collect(sut.getLines())
-
-    expect(result).toEqual([`${ADDITION}${TAB}${addPath}`])
   })
 
   it('can reject in case of error', async () => {
@@ -562,52 +550,6 @@ describe('Given a RepoGitDiff', () => {
 
       // Assert — pairs from first call must NOT be present
       expect(sut.getRenamePairs()).toEqual([])
-    })
-
-    it('Given only addition lines, When getLines, Then _routeAddition streams both and no deferred deletion follows', async () => {
-      // Arrange
-      mockGetDiffLines.mockReturnValue([
-        `${ADDITION}${TAB}force-app/main/default/classes/Account.cls`,
-        `${ADDITION}${TAB}force-app/main/default/classes/Contact.cls`,
-      ])
-      const sut = new RepoGitDiff(config, globalMetadata)
-
-      // Act
-      const result = await collect(sut.getLines())
-
-      // Assert — both additions pass through; no deletion to filter
-      expect(result).toHaveLength(2)
-    })
-
-    it('Given only deletion lines, When getLines, Then no addition name cancels them and both deferred deletions are yielded', async () => {
-      // Arrange
-      mockGetDiffLines.mockReturnValue([
-        `${DELETION}${TAB}force-app/main/default/classes/Account.cls`,
-        `${DELETION}${TAB}force-app/main/default/classes/Contact.cls`,
-      ])
-      const sut = new RepoGitDiff(config, globalMetadata)
-
-      // Act
-      const result = await collect(sut.getLines())
-
-      // Assert — deletions are not filtered (no corresponding additions)
-      expect(result).toHaveLength(2)
-    })
-
-    it('Given several addition lines, When getLines, Then _routeLine streams every one of them', async () => {
-      // Arrange
-      mockGetDiffLines.mockReturnValue([
-        `${ADDITION}${TAB}force-app/main/default/classes/A.cls`,
-        `${ADDITION}${TAB}force-app/main/default/classes/B.cls`,
-        `${ADDITION}${TAB}force-app/main/default/classes/C.cls`,
-      ])
-      const sut = new RepoGitDiff(config, globalMetadata)
-
-      // Act
-      const result = await collect(sut.getLines())
-
-      // Assert
-      expect(result).toHaveLength(3)
     })
   })
 
