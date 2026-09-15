@@ -75,33 +75,28 @@ for (const entry of remaining) {
 // Generate output
 const sections: string[] = []
 
-const sectionOrder: readonly (readonly [RegistryCategory, string])[] = [
-  ['specialHandling', '// Special handling overrides'],
-  [
-    'pruneOnly',
+// Key order is the generated file's section order. Typing the map by
+// RegistryCategory makes a category without a section a compile error instead
+// of silently dropping its entries from the file.
+const SECTION_COMMENTS: Readonly<Record<RegistryCategory, string>> = {
+  specialHandling: '// Special handling overrides',
+  pruneOnly:
     '// pruneOnly types - only handled for deletions (destructiveChanges)',
-  ],
-  [
-    'profileChildren',
+  profileChildren:
     "// Profile children - SDR doesn't define these, needed for granular diff",
-  ],
-  [
-    'translationsChildren',
+  translationsChildren:
     "// Translations children - SDR doesn't define these, needed for granular diff",
-  ],
-  [
-    'marketingAppExt',
+  marketingAppExt:
     '// MarketingAppExtActivity - child type with special handling',
-  ],
-  ['valueTranslation', ''],
-  ['virtual', ''],
-  [
-    'gapFiller',
-    `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.`,
-  ],
-]
+  valueTranslation: '',
+  virtual: '',
+  gapFiller: `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.`,
+}
 
-for (const [key, comment] of sectionOrder) {
+for (const [key, comment] of Object.entries(SECTION_COMMENTS) as [
+  RegistryCategory,
+  string,
+][]) {
   const entries = groups[key]
   if (!entries?.length) continue
   const block: string[] = []

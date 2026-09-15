@@ -23,8 +23,8 @@ export function isSimpleGapFiller(entry: Metadata): boolean {
   )
 }
 
-// The section keys syncInternalRegistryWithSdr.ts emits, in its sectionOrder;
-// an entry whose category is missing there is silently dropped from the file.
+// Each category is one section of the generated registry file;
+// syncInternalRegistryWithSdr.ts keys its section headers by this type.
 export type RegistryCategory =
   | 'specialHandling'
   | 'pruneOnly'
