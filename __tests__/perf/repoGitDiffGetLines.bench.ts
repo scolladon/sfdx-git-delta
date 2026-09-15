@@ -16,10 +16,11 @@ import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.js'
 import { buildPath, SHAPES } from './fixtures/registryShapes.js'
 import { perfBench } from './harness/perfBench.js'
 
-// Pins the per-line cost of RepoGitDiff.getLines itself: _expandRename,
-// _routeLine / _routeAddition (registry membership, ignore check, key
-// derivation) and the deferred-deletion tail that runs once the stream is
-// drained. It deliberately does not reuse:
+// Pins the per-line cost of RepoGitDiff.getLines itself: _expandRename's
+// non-rename pass-through, _routeLine / _routeAddition (registry membership,
+// ignore check, key derivation) and the deferred-deletion tail that runs once
+// the stream is drained. No stream carries an R line, so rename expansion
+// (detectRenames) is not measured here. It deliberately does not reuse:
 //  - pipeline.bench.ts's no-delta pipelines: they diff a real repository, so
 //    the git tree walk dominates and a routing regression reads diluted.
 //  - cancellationKey.bench.ts: it measures _extractComparisonName alone,
@@ -49,7 +50,8 @@ class StreamedDiffProbe extends RepoGitDiff {
 // Per-line cost is flat from 12.5k to 100k lines, so a larger stream buys no
 // extra signal: at 25k a case keeps well inside vitest's 60s bench timeout on
 // a CI runner (~2.2x slower than a local run on this path), which 100k does
-// not.
+// not. Cost: ~9-14s per case locally, so roughly 40-60s added to each CI
+// test:perf run, paid twice on a PR (baseline and head).
 const LINE_COUNT = 25_000
 const STATUS_ROTATION = [ADDITION, MODIFICATION, DELETION] as const
 const LINES_PER_COMPONENT = STATUS_ROTATION.length
@@ -102,8 +104,9 @@ const deletionLine = (index: number, round: string): StreamLine => {
 // amortises. The round number rides one directory segment (`round<N>`) that
 // no resolution rule reads, so it cannot change which shape a path resolves
 // to. It is shared by the whole stream rather than varied per line: the
-// ignore matcher memoises every parent directory, so a unique directory per
-// line would make it pay for a directory per line a real diff never has.
+// ignore matcher memoises every ancestor directory, so a per-line root would
+// make it pay for a whole ancestor chain per line, which a real diff sharing
+// one source root never has.
 const createFreshStream = (
   lineAt: (index: number, round: string) => StreamLine
 ) => {
