@@ -4,6 +4,7 @@ import type { Metadata } from '../../../src/types/metadata.ts'
 import {
   categorize,
   isSimpleGapFiller,
+  type RegistryCategory,
   serializeEntry,
 } from '../../../tooling/internalRegistryEntries.ts'
 
@@ -28,7 +29,7 @@ const lines = (...body: readonly string[]): string =>
   ['  {', ...body, '  },'].join('\n')
 
 describe('Given a registry entry to serialize', () => {
-  describe('When every field is populated', () => {
+  describe('When every field it serializes is populated', () => {
     it('Then fields render in the generated file order, strings quoted and booleans bare', () => {
       const sut = serializeEntry
       const entry = buildEntry({
@@ -230,7 +231,7 @@ describe('Given a registry entry to classify as a simple gap-filler', () => {
     ['parentXmlName', { parentXmlName: '' }],
     ['childXmlNames', { childXmlNames: [] }],
   ])(
-    'When the special field %s is set, even to a falsy value',
+    'When the special field %s is present, even as an empty or false value',
     (_field, special) => {
       it('Then it is not a simple gap-filler', () => {
         const sut = isSimpleGapFiller
@@ -244,7 +245,7 @@ describe('Given a registry entry to classify as a simple gap-filler', () => {
 })
 
 describe('Given a registry entry to categorize', () => {
-  describe.each<[string, Partial<Metadata>, string]>([
+  describe.each<[string, Partial<Metadata>, RegistryCategory]>([
     ['an xmlName prefixed Virtual', { xmlName: 'VirtualWidget' }, 'virtual'],
     ['a content list', { content: [], pruneOnly: true }, 'virtual'],
     ['pruneOnly', { pruneOnly: true, parentXmlName: 'Profile' }, 'pruneOnly'],
