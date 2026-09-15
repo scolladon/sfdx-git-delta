@@ -761,8 +761,9 @@ describe('MetadataBoundaryResolver', () => {
   describe('scanAndCreateElement dirIndex boundary', () => {
     it('Given typeDir at index 0 in path (dirIndex=0, suffix present, depth>2), When scanning, Then scanAndCreateElement still lists the type directory', async () => {
       // path: 'staticresources/MyResource/images/logo.png' → dirIndex=0 → >= 0 passes, > 0 would fail.
-      // `parts.slice(dirIndex - 1)` would be parts.slice(-1): the loop would
-      // see only the file and fall back to the full path.
+      // `parts.slice(dirIndex - 1)` would be parts.slice(-1): pathAfterType
+      // holds only the file, the loop (starting at length - 2) runs zero times
+      // and the boundary falls back to the full path.
       const path = 'staticresources/MyResource/images/logo.png'
       mockFilesUnder.mockReturnValueOnce([
         'staticresources/MyResource/MyResource.resource-meta.xml',
@@ -793,7 +794,7 @@ describe('MetadataBoundaryResolver', () => {
       )
     })
 
-    it('Given the component sits under an intermediate folder below the type directory, When scanning, Then that nested folder is the boundary', async () => {
+    it('Given the component sits under an intermediate folder below the type directory, When scanning, Then the component folder, not the intermediate one, is the boundary', async () => {
       const path =
         'force-app/main/default/staticresources/nested/MyResource/deep.txt'
       mockFilesUnder.mockReturnValueOnce([
@@ -809,11 +810,8 @@ describe('MetadataBoundaryResolver', () => {
   describe('isNameInPath', () => {
     it('Given part exactly equals componentName, When isNameInPath, Then returns true', () => {
       // Mutant EqualityOperator "part !== componentName" → always false for exact match
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
       const result = (
-        resolver as unknown as {
+        sut as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
         }
       ).isNameInPath(['a', 'MyComponent', 'file.js'], 'MyComponent')
@@ -823,11 +821,8 @@ describe('MetadataBoundaryResolver', () => {
     it('Given part starts with componentName dot, When isNameInPath, Then returns true', async () => {
       // Mutant: part.endsWith(`${componentName}.`) → 'MyComponent.js'.endsWith('MyComponent.') = false → miss
       // Correct: startsWith → true
-      const resolver = new MetadataBoundaryResolver(
-        getContext({ metadata: globalMetadata, trees: treeReader })
-      )
       const result = (
-        resolver as unknown as {
+        sut as unknown as {
           isNameInPath: (parts: string[], name: string) => boolean
         }
       ).isNameInPath(['a', 'MyComponent.js'], 'MyComponent')
