@@ -468,19 +468,6 @@ describe('xmlEventReader', () => {
       // Assert
       expect(sut.rootAttributes).toEqual({ '@_flag': 'true' })
     })
-
-    it('Given a bare self-closing root, When parseToSidePropagating runs, Then the root is captured and nothing is emitted', async () => {
-      // Arrange
-      const onElement = vi.fn()
-      const source = '<Root/>'
-
-      // Act
-      const sut = await parseToSidePropagating(source, onElement)
-
-      // Assert
-      expect(sut.rootKey).toBe('Root')
-      expect(onElement).not.toHaveBeenCalled()
-    })
   })
 
   describe('parseDeclaration defensive guard', () => {

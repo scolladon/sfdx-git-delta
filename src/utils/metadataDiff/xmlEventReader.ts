@@ -50,7 +50,6 @@ const parseDeclaration = (decl: string): XmlContent => {
       typeof n !== 'string' && n.tagName === XML_HEADER_ATTRIBUTE_KEY
   )
   // Stryker restore ConditionalExpression,LogicalOperator,StringLiteral
-  // Stryker disable next-line ConditionalExpression,ObjectLiteral -- equivalent: defensive fallback when txml returns no declaration node; SF metadata always provides a declaration so the fallback is unreachable, and the empty-object replacement is symmetric with the populated headerAttrs result downstream
   if (!declNode) return { [XML_HEADER_ATTRIBUTE_KEY]: {} }
   const headerAttrs: XmlContent = {}
   for (const key of Object.keys(declNode.attributes)) {
@@ -132,7 +131,6 @@ const parseRootAttributes = (rootTag: RootOpenTag): Record<string, string> => {
     (n): n is TxmlNode => typeof n !== 'string'
   )
   const rootAttributes: Record<string, string> = {}
-  // Stryker disable next-line ConditionalExpression -- equivalent: syntheticNode presence guard; txml always returns one node for our synthetic self-closing tag, so the false-flip is unreachable
   if (syntheticNode) {
     for (const key of Object.keys(syntheticNode.attributes)) {
       const value = syntheticNode.attributes[key]
