@@ -95,79 +95,227 @@ afterAll(async () => {
   )
 })
 
-describe('Given a report and dashboard folder move', () => {
-  it('When sgd runs in default mode, Then the destructive manifest keeps only the true deletions, drops the DeveloperName-matched survivors, folder descriptors still delete, Document/EmailTemplate folder moves still emit, and the review view agrees', async () => {
+describe('Given a report folder move', () => {
+  it('When a report moves between folders, Then its former path is dropped', async () => {
     // Act
-    const { work, destructiveXml } = await runSgd()
+    const { work } = await runSgd()
 
     // Assert
     const destructive = work.changes.forDestructiveManifest()
-    const pkg = work.changes.forPackageManifest()
+    expect(members(destructive, 'Report')).not.toContain(
+      'OldFolder/My_Report_A'
+    )
+    expect(members(destructive, 'Report')).not.toContain(
+      'OldFolder/My_Report_B'
+    )
+  })
 
-    expect(members(destructive, 'Report')).toEqual(['OldFolder/My_Report_C'])
+  it('When a report moves between folders, Then destructiveChanges.xml carries no member for it', async () => {
+    // Act
+    const { destructiveXml } = await runSgd()
+
+    // Assert
     expect(destructiveXml).not.toContain('OldFolder/My_Report_A')
-    expect(members(pkg, 'Report')).toEqual([
+    expect(destructiveXml).not.toContain('OldFolder/My_Report_B')
+  })
+
+  it('When a report move also changes its DeveloperName, Then its former path is kept', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert — the deploy cannot match My_Report_C_Renamed to My_Report_C,
+    // so the old member is a real deletion rather than a relocation.
+    expect(members(work.changes.forDestructiveManifest(), 'Report')).toEqual([
+      'OldFolder/My_Report_C',
+    ])
+  })
+
+  it('When a report moves between folders, Then the package manifest carries its new path', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert — the new path is what performs the move on deploy.
+    expect(members(work.changes.forPackageManifest(), 'Report')).toEqual([
       'NewFolder/My_Report_A',
       'NewFolder/My_Report_B',
       'NewFolder/My_Report_C_Renamed',
     ])
+  })
 
-    expect(members(destructive, 'Dashboard')).toEqual(['OldDash/My_Dash2'])
-    expect(members(pkg, 'Dashboard')).toEqual([
-      'NewDash/My_Dash',
-      'NewDash/My_Dash2_Renamed',
-    ])
+  it('When a report moves between folders, Then the review view agrees with the destructive manifest', async () => {
+    // Act
+    const { work } = await runSgd()
 
-    expect(members(destructive, 'Document')).toEqual(['OldDocFolder/My_Doc'])
-    expect(members(destructive, 'EmailTemplate')).toEqual([
-      'OldEmailFolder/My_Tpl',
-    ])
-
-    expect(members(destructive, 'ReportFolder')).toEqual(['OldFolder'])
-    expect(members(destructive, 'DashboardFolder')).toEqual(['OldDash'])
-
+    // Assert — the two public views must never disagree about a suppression.
     expect(
       members(work.changes.byChangeKind()[ChangeKind.Delete], 'Report')
     ).toEqual(['OldFolder/My_Report_C'])
   })
 
-  it('When --changes-manifest is set, Then the destructive manifest still keeps only the true deletions, the JSON rename bucket keeps every Report pair, and the JSON delete bucket drops Report entirely', async () => {
-    // Arrange
+  it('When the emptied report folder is deleted, Then the folder descriptor still emits', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert — a folder is not relocated by the deploy, so it really goes.
+    expect(
+      members(work.changes.forDestructiveManifest(), 'ReportFolder')
+    ).toEqual(['OldFolder'])
+  })
+})
+
+describe('Given a dashboard folder move', () => {
+  it('When a dashboard moves between folders, Then its former path is dropped', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert
+    expect(
+      members(work.changes.forDestructiveManifest(), 'Dashboard')
+    ).not.toContain('OldDash/My_Dash')
+  })
+
+  it('When a dashboard move also changes its DeveloperName, Then its former path is kept', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert
+    expect(members(work.changes.forDestructiveManifest(), 'Dashboard')).toEqual(
+      ['OldDash/My_Dash2']
+    )
+  })
+
+  it('When a dashboard moves between folders, Then the package manifest carries its new path', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert
+    expect(members(work.changes.forPackageManifest(), 'Dashboard')).toEqual([
+      'NewDash/My_Dash',
+      'NewDash/My_Dash2_Renamed',
+    ])
+  })
+
+  it('When the emptied dashboard folder is deleted, Then the folder descriptor still emits', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert
+    expect(
+      members(work.changes.forDestructiveManifest(), 'DashboardFolder')
+    ).toEqual(['OldDash'])
+  })
+})
+
+describe('Given a document folder move', () => {
+  it('When a document moves between folders, Then its former path still emits', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert — move-on-deploy is documented for reports and dashboards only,
+    // so a document really is destroyed at its former path.
+    expect(members(work.changes.forDestructiveManifest(), 'Document')).toEqual([
+      'OldDocFolder/My_Doc',
+    ])
+  })
+})
+
+describe('Given an email template folder move', () => {
+  it('When an email template moves between folders, Then its former path still emits', async () => {
+    // Act
+    const { work } = await runSgd()
+
+    // Assert
+    expect(
+      members(work.changes.forDestructiveManifest(), 'EmailTemplate')
+    ).toEqual(['OldEmailFolder/My_Tpl'])
+  })
+})
+
+describe('Given a report and dashboard folder move reported through a changes manifest', () => {
+  const runWithManifest = async (): Promise<{
+    work: Awaited<ReturnType<typeof sgd>>
+    payload: ChangesManifestJson
+  }> => {
     const changesManifest = join(
       await trackedTempDir('sgd-folder-move-manifest-'),
       'changes.manifest.json'
     )
-
-    // Act
     const { work } = await runSgd({ changesManifest })
     const payload = JSON.parse(
       await readFile(changesManifest, 'utf8')
     ) as ChangesManifestJson
+    return { work, payload }
+  }
+
+  it('When --changes-manifest is set, Then a moved report still has its former path dropped', async () => {
+    // Act
+    const { work } = await runWithManifest()
+
+    // Assert — rename detection is on in this mode, so the former path also
+    // arrives as a rename source; it must be dropped there too.
+    expect(members(work.changes.forDestructiveManifest(), 'Report')).toEqual([
+      'OldFolder/My_Report_C',
+    ])
+  })
+
+  it('When --changes-manifest is set, Then a moved dashboard still has its former path dropped', async () => {
+    // Act
+    const { work } = await runWithManifest()
 
     // Assert
-    const destructive = work.changes.forDestructiveManifest()
-    expect(members(destructive, 'Report')).toEqual(['OldFolder/My_Report_C'])
-    expect(members(destructive, 'Dashboard')).toEqual(['OldDash/My_Dash2'])
+    expect(members(work.changes.forDestructiveManifest(), 'Dashboard')).toEqual(
+      ['OldDash/My_Dash2']
+    )
+  })
 
+  it('When --changes-manifest is set, Then the rename bucket still reports every moved report', async () => {
+    // Act
+    const { payload } = await runWithManifest()
+
+    // Assert — suppression is a manifest concern; the move itself must stay
+    // fully reported.
     expect(payload[ChangeKind.Rename]['Report']).toEqual([
       { from: 'OldFolder/My_Report_A', to: 'NewFolder/My_Report_A' },
       { from: 'OldFolder/My_Report_B', to: 'NewFolder/My_Report_B' },
       { from: 'OldFolder/My_Report_C', to: 'NewFolder/My_Report_C_Renamed' },
     ])
+  })
+
+  it('When --changes-manifest is set, Then the delete bucket carries no report', async () => {
+    // Act
+    const { payload } = await runWithManifest()
+
+    // Assert
     expect(payload[ChangeKind.Delete]['Report']).toBeUndefined()
   })
 })
 
 describe('Given a report whose DeveloperName equals its own folder name', () => {
-  it('When the folder is collapsed into the move destination, Then the ReportFolder deletion still emits and the report is not double-classified', async () => {
+  it('When the folder is collapsed into the move destination, Then the folder deletion still emits', async () => {
+    // Act
+    const { work } = await runSgd({ to: refs.folderCollapse })
+
+    // Assert — the folder and the report are distinct types, so naming them
+    // alike cannot make the folder's deletion look like a relocation.
+    expect(
+      members(work.changes.forDestructiveManifest(), 'ReportFolder')
+    ).toEqual(['Foo'])
+  })
+
+  it('When the folder is collapsed into the move destination, Then the report keeps no destructive member', async () => {
     // Act
     const { work } = await runSgd({ to: refs.folderCollapse })
 
     // Assert
-    const destructive = work.changes.forDestructiveManifest()
+    expect(work.changes.forDestructiveManifest().has('Report')).toBe(false)
+  })
+
+  it('When the folder is collapsed into the move destination, Then the package manifest carries the new report and folder', async () => {
+    // Act
+    const { work } = await runSgd({ to: refs.folderCollapse })
+
+    // Assert
     const pkg = work.changes.forPackageManifest()
-    expect(members(destructive, 'ReportFolder')).toEqual(['Foo'])
-    expect(destructive.has('Report')).toBe(false)
     expect(members(pkg, 'Report')).toEqual(['Bar/Foo'])
     expect(members(pkg, 'ReportFolder')).toEqual(['Bar'])
   })
@@ -185,8 +333,8 @@ describe('Given a report moved into a globally ignored path', () => {
     // Act
     const { work } = await runSgd({ ignore })
 
-    // Assert — a Report moved into a globally-ignored path keeps its
-    // deletion: the fail-safe direction is preserved.
+    // Assert — a report moved into an ignored path keeps its deletion: the
+    // destination never reaches the package view, so nothing vouches for it.
     expect(members(work.changes.forDestructiveManifest(), 'Report')).toEqual([
       'OldFolder/My_Report_A',
       'OldFolder/My_Report_B',
