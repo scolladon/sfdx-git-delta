@@ -5,17 +5,34 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 // sgd's manifests are a deployment artifact: the same repository at the same
-// commits must produce the same bytes on every machine. Locale-aware string
-// APIs read the host default locale, so they silently make that untrue — a
-// Turkish host folds 'I' to a dotless 'ı', and ICU collation tailorings order
-// even pure-ASCII names differently. Guarding the source rather than a single
-// call site is what keeps the next one from being written.
+// commits must produce the same bytes on every machine. APIs that read the
+// HOST DEFAULT locale silently make that untrue — a Turkish host folds 'I' to
+// a dotless 'ı', and ICU collation tailorings order even pure-ASCII names
+// differently. Guarding the source rather than a single call site is what
+// keeps the next one from being written.
+//
+// An explicitly pinned locale is the sanctioned escape hatch and is not
+// flagged: packageHelper builds its package.xml member collator with one on
+// purpose, so its ordering is a deliberate choice rather than a property of
+// whoever ran the command.
 const FORBIDDEN = [
   { pattern: /\.toLocaleLowerCase\(/g, use: 'toLowerCase()' },
   { pattern: /\.toLocaleUpperCase\(/g, use: 'toUpperCase()' },
   {
+    pattern: /\.toLocale(String|DateString|TimeString)\(/g,
+    use: 'an ISO rendering, or the toLocale* form with an explicit locale',
+  },
+  {
     pattern: /\.localeCompare\([^,)]*\)/g,
     use: 'a code-unit comparison, or localeCompare with an explicit locale',
+  },
+  {
+    pattern: /\.localeCompare\([^)]*,\s*undefined\s*[,)]/g,
+    use: 'localeCompare with an explicit locale instead of undefined',
+  },
+  {
+    pattern: /new Intl\.\w+\(\s*(undefined\s*)?[,)]/g,
+    use: 'the same Intl constructor with an explicitly pinned locale',
   },
 ]
 
@@ -30,7 +47,7 @@ const lineOf = (content: string, index: number): number =>
   content.slice(0, index).split('\n').length
 
 describe('Given the shipped source', () => {
-  it('When it is scanned for locale-aware string APIs, Then none are used', () => {
+  it('When it is scanned for host-default-locale APIs, Then none are used', () => {
     // Arrange
     const sut = sourceFiles('src')
 
