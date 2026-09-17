@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.2](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.1...v7.4.2) (2026-09-17)
+
+
+### Bug Fixes
+
+* **manifest:** keep a report or dashboard moved between folders out of destructive changes ([#1448](https://github.com/scolladon/sfdx-git-delta/issues/1448)) ([50ad641](https://github.com/scolladon/sfdx-git-delta/commit/50ad641173e679b7acde15af93c7abd8762aed5e)), closes [#1445](https://github.com/scolladon/sfdx-git-delta/issues/1445)
+
 ## [7.4.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.0...v7.4.1) (2026-09-14)
 
 
