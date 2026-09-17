@@ -786,7 +786,7 @@ describe('ChangeSet', () => {
   })
 
   describe('Given two reports sharing a DeveloperName under different folders', () => {
-    it('When one is deleted and the other added, Then the surviving component is a different one and the deletion is still dropped', () => {
+    it('When one is deleted and the other added, Then the deletion is still dropped', () => {
       // Arrange
       const sut = ChangeSet.from([
         {

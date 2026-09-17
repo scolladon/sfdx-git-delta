@@ -433,7 +433,7 @@ describe('Given a RepoGitDiff', () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe(elPath.replace(/\//g, '').toLocaleLowerCase())
+        expect(result).toBe(elPath.replace(/\//g, '').toLowerCase())
       })
     })
 

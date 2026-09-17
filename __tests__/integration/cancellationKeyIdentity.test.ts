@@ -264,7 +264,7 @@ const descriptorOf = async (
 ): Promise<{ id: string; type: string }> => {
   const handler = await factory.getTypeHandler(asLine(path))
   const { type, member } = handler.getElementDescriptor()
-  return { id: `${type}/${member}`.toLocaleLowerCase(), type }
+  return { id: `${type}/${member}`.toLowerCase(), type }
 }
 
 beforeAll(async () => {

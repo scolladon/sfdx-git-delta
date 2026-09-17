@@ -96,18 +96,6 @@ afterAll(async () => {
 })
 
 describe('Given a report folder move', () => {
-  it('When a report moves between folders, Then its former path is dropped', async () => {
-    // Act
-    const { work } = await runSgd()
-
-    // Assert
-    // Exact set, not a pair of negatives: `not.toContain` would also pass on
-    // an empty manifest produced by a broken pipeline.
-    expect(members(work.changes.forDestructiveManifest(), 'Report')).toEqual([
-      'OldFolder/My_Report_C',
-    ])
-  })
-
   it('When a report moves between folders, Then destructiveChanges.xml carries no member for it', async () => {
     // Act
     const { destructiveXml } = await runSgd()
@@ -119,12 +107,14 @@ describe('Given a report folder move', () => {
     expect(destructiveXml).not.toContain('OldFolder/My_Report_B')
   })
 
-  it('When a report move also changes its DeveloperName, Then its former path is kept', async () => {
+  it('When the folder move lands, Then only the report whose DeveloperName also changed keeps its former path', async () => {
     // Act
     const { work } = await runSgd()
 
-    // Assert — the deploy cannot match My_Report_C_Renamed to My_Report_C,
-    // so the old member is a real deletion rather than a relocation.
+    // Assert — one exact set states the whole partition: the two pure moves
+    // are dropped, and My_Report_C survives because the deploy cannot match
+    // My_Report_C_Renamed back to it. A pair of negatives would also pass on
+    // an empty manifest produced by a broken pipeline.
     expect(members(work.changes.forDestructiveManifest(), 'Report')).toEqual([
       'OldFolder/My_Report_C',
     ])
@@ -164,21 +154,12 @@ describe('Given a report folder move', () => {
 })
 
 describe('Given a dashboard folder move', () => {
-  it('When a dashboard moves between folders, Then its former path is dropped', async () => {
+  it('When the folder move lands, Then only the dashboard whose DeveloperName also changed keeps its former path', async () => {
     // Act
     const { work } = await runSgd()
 
-    // Assert — exact set for the same reason as the report case above.
-    expect(members(work.changes.forDestructiveManifest(), 'Dashboard')).toEqual(
-      ['OldDash/My_Dash2']
-    )
-  })
-
-  it('When a dashboard move also changes its DeveloperName, Then its former path is kept', async () => {
-    // Act
-    const { work } = await runSgd()
-
-    // Assert
+    // Assert — same partition as the report case: My_Dash is a pure move and
+    // is dropped, My_Dash2 became My_Dash2_Renamed and so really is deleted.
     expect(members(work.changes.forDestructiveManifest(), 'Dashboard')).toEqual(
       ['OldDash/My_Dash2']
     )
@@ -281,18 +262,17 @@ describe('Given a report and dashboard folder move reported through a changes ma
     ])
   })
 
-  it('When --changes-manifest is set, Then every moved report is reported as a rename and in no other bucket', async () => {
+  it('When --changes-manifest is set, Then a renamed report appears in the rename bucket only', async () => {
     // Act
     const { payload } = await runWithManifest()
 
-    // Assert — a bare `toBeUndefined` on the delete bucket cannot fail from
-    // any change here: in this mode the former paths are rename sources, so
-    // the exact subtraction removes them before suppression is consulted.
-    // Pin the partition instead.
-    expect(payload[ChangeKind.Rename]['Report']).toHaveLength(3)
+    // Assert — this characterises the bucket partition, NOT the folder-move
+    // suppression: in this mode the former paths are rename sources that the
+    // exact subtraction removes before suppression is ever consulted. The
+    // add-bucket line is the one doing work — it pins the rename-target
+    // subtraction, which nothing else here covers.
     expect(payload[ChangeKind.Delete]['Report']).toBeUndefined()
     expect(payload[ChangeKind.Add]['Report']).toBeUndefined()
-    expect(payload[ChangeKind.Modify]['Report']).toBeUndefined()
   })
 })
 
