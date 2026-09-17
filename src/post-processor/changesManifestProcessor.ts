@@ -59,7 +59,11 @@ export default class ChangesManifestProcessor extends BaseProcessor {
     for (const type of [...renames.keys()].sort()) {
       const pairs = [...renames.get(type)!.values()]
         .map(({ from, to }) => ({ from, to }))
-        .sort((a, b) => a.to.localeCompare(b.to))
+        // Code-unit order, matching the bare .sort() on the type keys above:
+        // a locale-aware comparison would order the emitted manifest
+        // differently depending on the machine that generated it. Written
+        // branchlessly so the equal case needs no separate arm.
+        .sort((a, b) => Number(a.to > b.to) - Number(a.to < b.to))
       bucket[type] = pairs
     }
     return bucket
