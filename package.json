@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@oclif/core": "5.0.0",
-    "@salesforce/core": "9.1.11",
+    "@salesforce/core": "9.2.0",
     "@salesforce/sf-plugins-core": "13.0.4",
     "@salesforce/source-deploy-retrieve": "13.4.0",
     "@scolladon/tsgit": "4.0.0",
