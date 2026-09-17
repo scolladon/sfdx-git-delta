@@ -1,7 +1,11 @@
 'use strict'
 
-import { DOT } from '../constant/fsConstants.js'
-import { BOT_TYPE, BOT_VERSION_TYPE } from '../constant/metadataConstants.js'
+import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import {
+  BOT_TYPE,
+  BOT_VERSION_TYPE,
+  FOLDER_MOVE_ON_DEPLOY_TYPES,
+} from '../constant/metadataConstants.js'
 import {
   type AddKind,
   ChangeKind,
@@ -29,6 +33,14 @@ const ADD_KINDS = [
   ChangeKind.Delete,
 ] as const
 const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
+// Locale-invariant on purpose: Salesforce API names are ASCII and the
+// manifest must not depend on the machine that generated it.
+// The direction is load-bearing, not a coin flip: upper-casing is not
+// injective, so it would merge distinct components (both 'ss' and 'ß' fold
+// to 'SS', and 'ff' and 'ﬀ' to 'FF') and suppress a deletion that must
+// survive. Lower-casing keeps them apart.
+const developerName = (member: string): string =>
+  member.slice(member.lastIndexOf(PATH_SEP) + 1).toLowerCase()
 
 /**
  * Domain object that collects every component change observed in a diff and
@@ -142,8 +154,12 @@ export default class ChangeSet {
       this.byTarget[ManifestTarget.DestructiveChanges],
       this._renameSourcesByType(),
     ])
+    const packaged = this.forPackageManifest()
     return this._suppressVersionsOfDeletedBots(
-      this._subtractByType(baseDeletes, this.forPackageManifest())
+      this._suppressMovedFolderMembers(
+        this._subtractByType(baseDeletes, packaged),
+        packaged
+      )
     )
   }
 
@@ -172,6 +188,33 @@ export default class ChangeSet {
     return result
   }
 
+  // For Report/Dashboard, the Metadata API relocates the component when the
+  // package lists it under a new folder, so a destructive entry for its
+  // former path would delete the component the same deploy just moved.
+  // Membership is compared on DeveloperName alone, deliberately not as a
+  // rename-pair match, so it also fires in the default run where no rename
+  // pair exists.
+  private _suppressMovedFolderMembers(
+    deletes: Manifest,
+    surviving: Manifest
+  ): Manifest {
+    const result = new Map(deletes)
+    for (const type of FOLDER_MOVE_ON_DEPLOY_TYPES) {
+      const members = result.get(type)
+      const kept = surviving.get(type)
+      if (!members || !kept) continue
+      // A member whose last segment is empty yields an empty name, which
+      // would otherwise match every other malformed member.
+      const names = new Set([...kept].map(developerName).filter(Boolean))
+      const remaining = new Set(
+        [...members].filter(member => !names.has(developerName(member)))
+      )
+      if (remaining.size > 0) result.set(type, remaining)
+      else result.delete(type)
+    }
+    return result
+  }
+
   // Whether either manifest view would carry at least one member — the
   // "did this run actually produce anything" signal callers need without
   // reaching into both views themselves.
@@ -193,22 +236,26 @@ export default class ChangeSet {
     // Delete subtracts Add ∪ Modify (cancelled deletions) and rename sources.
     const targets = this._renameTargetsByType()
     const sources = this._renameSourcesByType()
+    const surviving = this._unionByType([
+      this.byKind[ChangeKind.Add],
+      this.byKind[ChangeKind.Modify],
+    ])
     return {
       [ChangeKind.Add]: this._subtractByType(
         this.byKind[ChangeKind.Add],
         targets
       ),
       // Clone so callers that mutate the returned Modify view cannot corrupt
-      // ChangeSet internal state. Add and Delete buckets are already new
-      // Map instances returned by _subtractByType.
+      // ChangeSet internal state. Add is the new Map returned by
+      // _subtractByType, Delete the one returned by
+      // _suppressMovedFolderMembers.
       [ChangeKind.Modify]: this._cloneManifest(this.byKind[ChangeKind.Modify]),
-      [ChangeKind.Delete]: this._subtractByType(
-        this.byKind[ChangeKind.Delete],
-        this._unionByType([
-          this.byKind[ChangeKind.Add],
-          this.byKind[ChangeKind.Modify],
-          sources,
-        ])
+      [ChangeKind.Delete]: this._suppressMovedFolderMembers(
+        this._subtractByType(
+          this.byKind[ChangeKind.Delete],
+          this._unionByType([surviving, sources])
+        ),
+        surviving
       ),
       [ChangeKind.Rename]: this._cloneRenames(),
     }

@@ -264,8 +264,11 @@ describe('Given a RepoGitDiff', () => {
   })
 
   it('Given two reports sharing a basename under different folders, When getLines, Then both lines survive', async () => {
-    // Arrange — the reported collision: a filename-only key wrongly
-    // cancelled these because both reports are named Quarterly.
+    // Arrange — pins the line-level rule only: the comparison key is
+    // folder-scoped, so two reports sharing a DeveloperName under different
+    // folders do not cancel each other at diff collection. Whether the former
+    // path reaches destructiveChanges.xml is decided one stage later, in the
+    // manifest projection — pinned in the ChangeSet suite.
     const lines = [
       `${DELETION}${TAB}force-app/main/default/reports/Sales/Quarterly.report-meta.xml`,
       `${ADDITION}${TAB}force-app/main/default/reports/Archive/Quarterly.report-meta.xml`,
@@ -430,7 +433,7 @@ describe('Given a RepoGitDiff', () => {
         const result = sut['_extractComparisonName'](line)
 
         // Assert
-        expect(result).toBe(elPath.replace(/\//g, '').toLocaleLowerCase())
+        expect(result).toBe(elPath.replace(/\//g, '').toLowerCase())
       })
     })
 

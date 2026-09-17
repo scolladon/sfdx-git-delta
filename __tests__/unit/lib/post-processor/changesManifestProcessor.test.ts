@@ -141,6 +141,34 @@ describe('ChangesManifestProcessor', () => {
     })
   })
 
+  describe('Given two rename pairs share the same `to` under one type', () => {
+    it('When process runs, Then the equal-`to` pairs keep their insertion order in the output', async () => {
+      // Arrange — two different `from` values renamed onto the same `to`
+      // (ChangeSet._recordRename dedupes on `${from}\0${to}`, so both
+      // survive). The comparator on line 66 is branchless specifically so
+      // the equal-`to` arm never diverges from a plain stable sort: pin that
+      // by registering the later-alphabetical `from` first and asserting
+      // insertion order is preserved rather than re-sorted by `from`.
+      config.changesManifest = 'changes.json'
+      changes = addRename(changes, 'ApexClass', 'BetaOld', 'SharedNew')
+      changes = addRename(changes, 'ApexClass', 'AlphaOld', 'SharedNew')
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
+
+      // Act
+      await sut.process(changes)
+
+      // Assert
+      const [, payload] = vi.mocked(outputFile).mock.calls[0]
+      const parsed = JSON.parse(payload as string)
+      expect(parsed.rename).toEqual({
+        ApexClass: [
+          { from: 'BetaOld', to: 'SharedNew' },
+          { from: 'AlphaOld', to: 'SharedNew' },
+        ],
+      })
+    })
+  })
+
   describe('Given renames across multiple types registered in non-alphabetical order', () => {
     it('When process runs, Then the rename bucket keys are emitted in a stable, reproducible order so CI diffs stay noise-free', async () => {
       // Arrange — output key order is part of the JSON manifest's contract:

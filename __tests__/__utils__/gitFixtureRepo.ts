@@ -684,7 +684,10 @@ export type LiveContainerFixtureRefs = {
   head: string
 }
 
-const LIVE_ROOT = 'force-app/main/default'
+// The default SFDX package layout, shared by every fixture below that
+// needs a realistic source path.
+const SFDX_DEFAULT_ROOT = 'force-app/main/default'
+const LIVE_ROOT = SFDX_DEFAULT_ROOT
 export const LIVE_STILL_SCRIPT = `${LIVE_ROOT}/lwc/still/still.js`
 export const LIVE_STILL_META = `${LIVE_ROOT}/lwc/still/still.js-meta.xml`
 export const LIVE_FOO_SCRIPT = `${LIVE_ROOT}/lwc/foo/foo.js`
@@ -1006,4 +1009,227 @@ export const unlinkTreeObjectAt = (
     )
   }
   unlinkSync(objectPath)
+}
+
+export type FolderMoveFixtureRefs = {
+  // Adds the report, dashboard, document and email-template components under
+  // their original folders, plus the report whose DeveloperName equals its
+  // own folder's name.
+  root: string
+  // From `root`: the folder moves — two reports and one dashboard keep their
+  // DeveloperName, one report and one dashboard are renamed on the way, and
+  // the document and the email template move too.
+  moved: string
+  // From `root`: the report named like its own folder moves to a new folder
+  // while its former folder descriptor is deleted.
+  folderCollapse: string
+}
+
+const FOLDER_MOVE_ROOT = SFDX_DEFAULT_ROOT
+
+const REPORT_FOLDER_META_CONTENT =
+  '<ReportFolder xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const REPORT_META_CONTENT =
+  '<Report xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const DASHBOARD_FOLDER_META_CONTENT =
+  '<DashboardFolder xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const DASHBOARD_META_CONTENT =
+  '<Dashboard xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const DOCUMENT_META_CONTENT =
+  '<Document xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const EMAIL_TEMPLATE_META_CONTENT =
+  '<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
+const EMAIL_BODY_CONTENT = 'Hello\n'
+
+const FOLDER_MOVE_OLD_REPORT_FOLDER = `${FOLDER_MOVE_ROOT}/reports/OldFolder.reportFolder-meta.xml`
+const FOLDER_MOVE_OLD_REPORT_A = `${FOLDER_MOVE_ROOT}/reports/OldFolder/My_Report_A.report-meta.xml`
+const FOLDER_MOVE_OLD_REPORT_B = `${FOLDER_MOVE_ROOT}/reports/OldFolder/My_Report_B.report-meta.xml`
+const FOLDER_MOVE_OLD_REPORT_C = `${FOLDER_MOVE_ROOT}/reports/OldFolder/My_Report_C.report-meta.xml`
+const FOLDER_MOVE_NEW_REPORT_FOLDER = `${FOLDER_MOVE_ROOT}/reports/NewFolder.reportFolder-meta.xml`
+const FOLDER_MOVE_NEW_REPORT_A = `${FOLDER_MOVE_ROOT}/reports/NewFolder/My_Report_A.report-meta.xml`
+const FOLDER_MOVE_NEW_REPORT_B = `${FOLDER_MOVE_ROOT}/reports/NewFolder/My_Report_B.report-meta.xml`
+const FOLDER_MOVE_NEW_REPORT_C_RENAMED = `${FOLDER_MOVE_ROOT}/reports/NewFolder/My_Report_C_Renamed.report-meta.xml`
+
+const FOLDER_MOVE_OLD_DASH_FOLDER = `${FOLDER_MOVE_ROOT}/dashboards/OldDash.dashboardFolder-meta.xml`
+const FOLDER_MOVE_OLD_DASH = `${FOLDER_MOVE_ROOT}/dashboards/OldDash/My_Dash.dashboard-meta.xml`
+const FOLDER_MOVE_OLD_DASH2 = `${FOLDER_MOVE_ROOT}/dashboards/OldDash/My_Dash2.dashboard-meta.xml`
+const FOLDER_MOVE_NEW_DASH_FOLDER = `${FOLDER_MOVE_ROOT}/dashboards/NewDash.dashboardFolder-meta.xml`
+const FOLDER_MOVE_NEW_DASH = `${FOLDER_MOVE_ROOT}/dashboards/NewDash/My_Dash.dashboard-meta.xml`
+const FOLDER_MOVE_NEW_DASH2_RENAMED = `${FOLDER_MOVE_ROOT}/dashboards/NewDash/My_Dash2_Renamed.dashboard-meta.xml`
+
+const FOLDER_MOVE_OLD_DOC = `${FOLDER_MOVE_ROOT}/documents/OldDocFolder/My_Doc.document-meta.xml`
+const FOLDER_MOVE_NEW_DOC = `${FOLDER_MOVE_ROOT}/documents/NewDocFolder/My_Doc.document-meta.xml`
+
+const FOLDER_MOVE_OLD_EMAIL_BODY = `${FOLDER_MOVE_ROOT}/email/OldEmailFolder/My_Tpl.email`
+const FOLDER_MOVE_OLD_EMAIL_META = `${FOLDER_MOVE_ROOT}/email/OldEmailFolder/My_Tpl.email-meta.xml`
+const FOLDER_MOVE_NEW_EMAIL_BODY = `${FOLDER_MOVE_ROOT}/email/NewEmailFolder/My_Tpl.email`
+const FOLDER_MOVE_NEW_EMAIL_META = `${FOLDER_MOVE_ROOT}/email/NewEmailFolder/My_Tpl.email-meta.xml`
+
+const FOLDER_MOVE_FOO_FOLDER = `${FOLDER_MOVE_ROOT}/reports/Foo.reportFolder-meta.xml`
+const FOLDER_MOVE_FOO_REPORT = `${FOLDER_MOVE_ROOT}/reports/Foo/Foo.report-meta.xml`
+const FOLDER_MOVE_BAR_REPORT = `${FOLDER_MOVE_ROOT}/reports/Bar/Foo.report-meta.xml`
+const FOLDER_MOVE_BAR_FOLDER = `${FOLDER_MOVE_ROOT}/reports/Bar.reportFolder-meta.xml`
+
+/**
+ * Report/Dashboard folder moves, Document/EmailTemplate folder moves (in-folder
+ * types with no folder-descriptor pendant), and the shape where a report's
+ * DeveloperName equals its own folder's name — the layout that rejected the
+ * cancellation-key-rewrite design alternative. `moved` renames every path so
+ * `git diff -M` reports R100 throughout, keeping rename detection available
+ * whether or not sgd asks for it; `folderCollapse` instead deletes the old
+ * folder descriptor outright and only renames the report, so the descriptor
+ * deletion has no rename pair to hide behind.
+ */
+export const buildFolderMoveFixtureRepo = (
+  dir: string
+): FolderMoveFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'root', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_REPORT_FOLDER,
+      content: REPORT_FOLDER_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_REPORT_A,
+      content: REPORT_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_REPORT_B,
+      content: REPORT_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_REPORT_C,
+      content: REPORT_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_FOO_FOLDER,
+      content: REPORT_FOLDER_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_FOO_REPORT,
+      content: REPORT_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_DASH_FOLDER,
+      content: DASHBOARD_FOLDER_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_DASH,
+      content: DASHBOARD_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_DASH2,
+      content: DASHBOARD_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_DOC,
+      content: DOCUMENT_META_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_EMAIL_BODY,
+      content: EMAIL_BODY_CONTENT,
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: FOLDER_MOVE_OLD_EMAIL_META,
+      content: EMAIL_TEMPLATE_META_CONTENT,
+    },
+  ])
+
+  const moved = makeCommit(dir, root, 'move report and dashboard folders', [
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_REPORT_FOLDER,
+      to: FOLDER_MOVE_NEW_REPORT_FOLDER,
+    },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_REPORT_A,
+      to: FOLDER_MOVE_NEW_REPORT_A,
+    },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_REPORT_B,
+      to: FOLDER_MOVE_NEW_REPORT_B,
+    },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_REPORT_C,
+      to: FOLDER_MOVE_NEW_REPORT_C_RENAMED,
+    },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_DASH_FOLDER,
+      to: FOLDER_MOVE_NEW_DASH_FOLDER,
+    },
+    { kind: 'rename', from: FOLDER_MOVE_OLD_DASH, to: FOLDER_MOVE_NEW_DASH },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_DASH2,
+      to: FOLDER_MOVE_NEW_DASH2_RENAMED,
+    },
+    { kind: 'rename', from: FOLDER_MOVE_OLD_DOC, to: FOLDER_MOVE_NEW_DOC },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_EMAIL_BODY,
+      to: FOLDER_MOVE_NEW_EMAIL_BODY,
+    },
+    {
+      kind: 'rename',
+      from: FOLDER_MOVE_OLD_EMAIL_META,
+      to: FOLDER_MOVE_NEW_EMAIL_META,
+    },
+  ])
+
+  // `moved` above left the index holding its own tree, not `root`'s — the
+  // index is a single persistent file across these plumbing-only commits,
+  // not reset per commit. Re-seed it from `root` so this sibling commit
+  // branches off `root` instead of continuing from `moved`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const folderCollapse = makeCommit(
+    dir,
+    root,
+    'collapse the folder-named report into its move destination',
+    [
+      { kind: 'delete', path: FOLDER_MOVE_FOO_FOLDER },
+      {
+        kind: 'rename',
+        from: FOLDER_MOVE_FOO_REPORT,
+        to: FOLDER_MOVE_BAR_REPORT,
+      },
+      {
+        kind: 'add',
+        mode: '100644',
+        path: FOLDER_MOVE_BAR_FOLDER,
+        content: REPORT_FOLDER_META_CONTENT,
+      },
+    ]
+  )
+
+  return { root, moved, folderCollapse }
 }
