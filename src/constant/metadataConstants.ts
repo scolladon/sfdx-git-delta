@@ -3,6 +3,14 @@ export const BOT_TYPE = 'Bot'
 export const BOT_VERSION_TYPE = 'BotVersion'
 export const CUSTOM_APPLICATION_SUFFIX = 'app'
 export const CUSTOM_METADATA_SUFFIX = 'md'
+export const DASHBOARD_TYPE = 'Dashboard'
+export const REPORT_TYPE = 'Report'
+// The Metadata API relocates these when the package lists them under a new
+// folder, so their former path must not be destroyed alongside the move.
+export const FOLDER_MOVE_ON_DEPLOY_TYPES = new Set([
+  REPORT_TYPE,
+  DASHBOARD_TYPE,
+])
 // A component named by the single segment below its type directory: every
 // content-container adapter except digitalExperience (depths below), and the
 // holder-scoped composed types, whose every file keys on that one segment.
