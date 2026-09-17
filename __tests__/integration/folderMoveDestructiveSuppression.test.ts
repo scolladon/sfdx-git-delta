@@ -101,20 +101,20 @@ describe('Given a report folder move', () => {
     const { work } = await runSgd()
 
     // Assert
-    const destructive = work.changes.forDestructiveManifest()
-    expect(members(destructive, 'Report')).not.toContain(
-      'OldFolder/My_Report_A'
-    )
-    expect(members(destructive, 'Report')).not.toContain(
-      'OldFolder/My_Report_B'
-    )
+    // Exact set, not a pair of negatives: `not.toContain` would also pass on
+    // an empty manifest produced by a broken pipeline.
+    expect(members(work.changes.forDestructiveManifest(), 'Report')).toEqual([
+      'OldFolder/My_Report_C',
+    ])
   })
 
   it('When a report moves between folders, Then destructiveChanges.xml carries no member for it', async () => {
     // Act
     const { destructiveXml } = await runSgd()
 
-    // Assert
+    // Assert — the positive member pins the writer itself, so a truncated or
+    // empty document cannot satisfy the two negatives alone.
+    expect(destructiveXml).toContain('<members>OldFolder/My_Report_C</members>')
     expect(destructiveXml).not.toContain('OldFolder/My_Report_A')
     expect(destructiveXml).not.toContain('OldFolder/My_Report_B')
   })
@@ -168,10 +168,10 @@ describe('Given a dashboard folder move', () => {
     // Act
     const { work } = await runSgd()
 
-    // Assert
-    expect(
-      members(work.changes.forDestructiveManifest(), 'Dashboard')
-    ).not.toContain('OldDash/My_Dash')
+    // Assert — exact set for the same reason as the report case above.
+    expect(members(work.changes.forDestructiveManifest(), 'Dashboard')).toEqual(
+      ['OldDash/My_Dash2']
+    )
   })
 
   it('When a dashboard move also changes its DeveloperName, Then its former path is kept', async () => {
@@ -281,12 +281,18 @@ describe('Given a report and dashboard folder move reported through a changes ma
     ])
   })
 
-  it('When --changes-manifest is set, Then the delete bucket carries no report', async () => {
+  it('When --changes-manifest is set, Then every moved report is reported as a rename and in no other bucket', async () => {
     // Act
     const { payload } = await runWithManifest()
 
-    // Assert
+    // Assert — a bare `toBeUndefined` on the delete bucket cannot fail from
+    // any change here: in this mode the former paths are rename sources, so
+    // the exact subtraction removes them before suppression is consulted.
+    // Pin the partition instead.
+    expect(payload[ChangeKind.Rename]['Report']).toHaveLength(3)
     expect(payload[ChangeKind.Delete]['Report']).toBeUndefined()
+    expect(payload[ChangeKind.Add]['Report']).toBeUndefined()
+    expect(payload[ChangeKind.Modify]['Report']).toBeUndefined()
   })
 })
 
@@ -324,10 +330,13 @@ describe('Given a report whose DeveloperName equals its own folder name', () => 
 describe('Given a report moved into a globally ignored path', () => {
   it('When --ignore-file covers the move destination, Then the source deletion survives for every moved report', async () => {
     // Arrange — _buildIgnore reads this with a plain fs.readFile, which
-    // resolves a relative path against process.cwd() rather than the
-    // fixture directory, so the path handed to config.ignore must be
-    // absolute.
-    const ignore = join(fixtureDir, '.sgdignore-new-folder')
+    // resolves a relative path against process.cwd(), so config.ignore must
+    // get an absolute path. Kept out of the shared fixture repo so no test
+    // mutates it after beforeAll.
+    const ignore = join(
+      await trackedTempDir('sgd-folder-move-ignore-'),
+      '.sgdignore-new-folder'
+    )
     await writeFile(ignore, 'force-app/main/default/reports/NewFolder/\n')
 
     // Act

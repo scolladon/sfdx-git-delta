@@ -684,7 +684,10 @@ export type LiveContainerFixtureRefs = {
   head: string
 }
 
-const LIVE_ROOT = 'force-app/main/default'
+// The default SFDX package layout, shared by every fixture below that
+// needs a realistic source path.
+const SFDX_DEFAULT_ROOT = 'force-app/main/default'
+const LIVE_ROOT = SFDX_DEFAULT_ROOT
 export const LIVE_STILL_SCRIPT = `${LIVE_ROOT}/lwc/still/still.js`
 export const LIVE_STILL_META = `${LIVE_ROOT}/lwc/still/still.js-meta.xml`
 export const LIVE_FOO_SCRIPT = `${LIVE_ROOT}/lwc/foo/foo.js`
@@ -1022,7 +1025,7 @@ export type FolderMoveFixtureRefs = {
   folderCollapse: string
 }
 
-const FOLDER_MOVE_ROOT = 'force-app/main/default'
+const FOLDER_MOVE_ROOT = SFDX_DEFAULT_ROOT
 
 const REPORT_FOLDER_META_CONTENT =
   '<ReportFolder xmlns="http://soap.sforce.com/2006/04/metadata"/>\n'
