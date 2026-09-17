@@ -403,6 +403,34 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given two reports whose DeveloperNames differ only by a fold', () => {
+    it('When the destructive manifest is read, Then the deletion survives', () => {
+      // Arrange — upper-casing would merge these two ('ss' and 'ß' both fold
+      // to 'SS'), so this pins the direction of the fold, not merely that
+      // one exists.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'Report',
+          member: 'Sales/ss',
+          changeKind: ChangeKind.Add,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Report',
+          member: 'Archive/\u00df',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('Report')).toEqual(new Set(['Archive/\u00df']))
+    })
+  })
+
   describe('Given reports whose members carry no DeveloperName', () => {
     it('When the destructive manifest is read, Then one malformed member does not cancel another', () => {
       // Arrange — a file named only by its suffix leaves a trailing separator,

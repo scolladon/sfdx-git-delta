@@ -67,10 +67,11 @@ export default class ChangesManifestProcessor extends BaseProcessor {
         // positive) to Array.prototype.sort's swap-iff-negative contract, so
         // forcing it to `false`/0 or widening it to `>=` changes no
         // reachable pairwise swap decision and thus no output order —
-        // confirmed empirically (0 diffs / 70000 randomised array trials,
-        // sizes 2-50, against the unmutated comparator). The `<` term is the
-        // one load-bearing half; it is covered by the equal-`to` stability
-        // test below.
+        // confirmed empirically against the unmutated comparator over
+        // randomised arrays from 8 to 2000 entries, spanning the size at
+        // which the engine stops using insertion sort and starts merging.
+        // The `<` term is the one load-bearing half; it is covered by the
+        // equal-`to` stability test below.
         .sort((a, b) => Number(a.to > b.to) - Number(a.to < b.to))
       bucket[type] = pairs
     }

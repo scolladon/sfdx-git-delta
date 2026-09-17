@@ -35,13 +35,10 @@ const ADD_KINDS = [
 const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
 // Locale-invariant on purpose: Salesforce API names are ASCII and the
 // manifest must not depend on the machine that generated it.
-// toLowerCase() here is interchangeable with toUpperCase(): the only call
-// site (_suppressMovedFolderMembers) folds both operands of every comparison
-// through this same function before testing Set membership, and for ASCII
-// input the upper/lower case mapping is a 1:1 per-character bijection, so
-// the two foldings define the same equality partition — no reachable input
-// distinguishes them, confirmed by exhaustive suite run with the fold
-// flipped to toUpperCase() (1883/1883 tests still pass).
+// The direction is load-bearing, not a coin flip: upper-casing is not
+// injective, so it would merge distinct components (both 'ss' and 'ß' fold
+// to 'SS', and 'ff' and 'ﬀ' to 'FF') and suppress a deletion that must
+// survive. Lower-casing keeps them apart.
 const developerName = (member: string): string =>
   member.slice(member.lastIndexOf(PATH_SEP) + 1).toLowerCase()
 
