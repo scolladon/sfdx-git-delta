@@ -1,14 +1,18 @@
 'use strict'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
-import { CONTENT_CONTAINER_ADAPTERS } from '../constant/metadataConstants.js'
+import {
+  CONTENT_CONTAINER_ADAPTERS,
+  DASHBOARD_TYPE,
+  REPORT_TYPE,
+} from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Metadata } from '../types/metadata.js'
 
 const TREE_INDEX_XML_NAMES = new Set([
   'CustomObject',
-  'Dashboard',
-  'Report',
+  DASHBOARD_TYPE,
+  REPORT_TYPE,
   'AuraDefinitionBundle',
   'LightningComponentBundle',
   'GenAiFunction',
