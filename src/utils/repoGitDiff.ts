@@ -183,8 +183,10 @@ export default class RepoGitDiff {
     yield `${ADDITION}${TAB}${toPath}`
   }
 
+  // Locale-invariant on purpose: a locale-sensitive fold makes the
+  // cancellation key depend on the machine that ran the diff.
   protected _extractComparisonName(line: string) {
-    return this.metadata.getFullyQualifiedName(line).toLocaleLowerCase()
+    return this.metadata.getFullyQualifiedName(line).toLowerCase()
   }
 
   // A held name vouches for its component only when nothing of that

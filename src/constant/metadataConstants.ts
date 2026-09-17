@@ -4,13 +4,6 @@ export const BOT_VERSION_TYPE = 'BotVersion'
 export const CUSTOM_APPLICATION_SUFFIX = 'app'
 export const CUSTOM_METADATA_SUFFIX = 'md'
 export const DASHBOARD_TYPE = 'Dashboard'
-export const REPORT_TYPE = 'Report'
-// The Metadata API relocates these when the package lists them under a new
-// folder, so their former path must not be destroyed alongside the move.
-export const FOLDER_MOVE_ON_DEPLOY_TYPES = new Set([
-  REPORT_TYPE,
-  DASHBOARD_TYPE,
-])
 // A component named by the single segment below its type directory: every
 // content-container adapter except digitalExperience (depths below), and the
 // holder-scoped composed types, whose every file keys on that one segment.
@@ -47,6 +40,16 @@ export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_S
 export const OBJECT_TRANSLATION_TYPE = 'CustomObjectTranslation'
 export const OBJECT_TYPE = 'CustomObject'
 export const PERMISSIONSET_TYPE = 'PermissionSet'
+export const REPORT_TYPE = 'Report'
+// The Metadata API relocates these when the package lists them under a new
+// folder, so their former path must not be destroyed alongside the move.
+// Declared out of alphabetical order on purpose: the Set dereferences both
+// members at module evaluation, so filing it under F would read REPORT_TYPE
+// before its initialiser has run.
+export const FOLDER_MOVE_ON_DEPLOY_TYPES: ReadonlySet<string> = new Set([
+  REPORT_TYPE,
+  DASHBOARD_TYPE,
+])
 export const SHARING_RULE_TYPE = 'SharingRules'
 export const SUB_OBJECT_TYPES = [
   'BusinessProcess',

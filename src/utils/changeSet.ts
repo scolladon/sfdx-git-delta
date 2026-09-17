@@ -33,8 +33,10 @@ const ADD_KINDS = [
   ChangeKind.Delete,
 ] as const
 const renameKey = (from: string, to: string) => `${from}${KEY_SEPARATOR}${to}`
+// Locale-invariant on purpose: Salesforce API names are ASCII and the
+// manifest must not depend on the machine that generated it.
 const developerName = (member: string): string =>
-  member.slice(member.lastIndexOf(PATH_SEP) + 1).toLocaleLowerCase()
+  member.slice(member.lastIndexOf(PATH_SEP) + 1).toLowerCase()
 
 /**
  * Domain object that collects every component change observed in a diff and
@@ -197,7 +199,9 @@ export default class ChangeSet {
       const members = result.get(type)
       const kept = surviving.get(type)
       if (!members || !kept) continue
-      const names = new Set([...kept].map(developerName))
+      // A member whose last segment is empty yields an empty name, which
+      // would otherwise match every other malformed member.
+      const names = new Set([...kept].map(developerName).filter(Boolean))
       const remaining = new Set(
         [...members].filter(member => !names.has(developerName(member)))
       )
@@ -238,8 +242,9 @@ export default class ChangeSet {
         targets
       ),
       // Clone so callers that mutate the returned Modify view cannot corrupt
-      // ChangeSet internal state. Add and Delete buckets are already new
-      // Map instances returned by _subtractByType.
+      // ChangeSet internal state. Add is the new Map returned by
+      // _subtractByType, Delete the one returned by
+      // _suppressMovedFolderMembers.
       [ChangeKind.Modify]: this._cloneManifest(this.byKind[ChangeKind.Modify]),
       [ChangeKind.Delete]: this._suppressMovedFolderMembers(
         this._subtractByType(

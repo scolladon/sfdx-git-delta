@@ -602,15 +602,11 @@ describe('ChangeSet', () => {
     })
 
     it('When the move arrives as a rename pair, Then the former path is still dropped', () => {
-      // Arrange
+      // Arrange — no Package element on purpose: the rename target is the only
+      // thing that can vouch here, so this pins the rename arm of the
+      // suppression reference rather than riding on a handler-emitted addition.
       const sut = ChangeSet.from(
         [
-          {
-            target: ManifestTarget.Package,
-            type: 'Report',
-            member: 'NewFolder/My_Report_A',
-            changeKind: ChangeKind.Add,
-          },
           {
             target: ManifestTarget.DestructiveChanges,
             type: 'Report',
@@ -790,7 +786,7 @@ describe('ChangeSet', () => {
   })
 
   describe('Given two reports sharing a DeveloperName under different folders', () => {
-    it('When one is deleted and the other added, Then the destructive manifest drops the deletion', () => {
+    it('When one is deleted and the other added, Then the surviving component is a different one and the deletion is still dropped', () => {
       // Arrange
       const sut = ChangeSet.from([
         {
@@ -917,6 +913,91 @@ describe('ChangeSet', () => {
 
       // Assert
       expect(result.has('Report')).toBe(false)
+    })
+  })
+
+  describe('Given a Report deleted outright beside an unrelated Report rename seen through the destructive manifest', () => {
+    it('When the destructive manifest is read, Then both deletions survive', () => {
+      // Arrange — the rename source must not vouch for anything: it is not a
+      // surviving component, and its DeveloperName is by definition the
+      // DeveloperName of a member still being deleted.
+      const sut = ChangeSet.from(
+        [
+          {
+            target: ManifestTarget.DestructiveChanges,
+            type: 'Report',
+            member: 'Old/Foo',
+            changeKind: ChangeKind.Delete,
+          },
+          {
+            target: ManifestTarget.DestructiveChanges,
+            type: 'Report',
+            member: 'Other/Foo',
+            changeKind: ChangeKind.Delete,
+          },
+        ],
+        [{ type: 'Report', from: 'Other/Foo', to: 'Elsewhere/Bar' }]
+      )
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('Report')).toEqual(new Set(['Old/Foo', 'Other/Foo']))
+    })
+  })
+
+  describe('Given a Report already at the destination folder that is modified', () => {
+    it('When the change-kind view is read, Then the moved member is still dropped', () => {
+      // Arrange — the surviving side is a Modify, not an Add: a component that
+      // was already there and was edited still explains the deletion away.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'Report',
+          member: 'NewFolder/My_Report_A',
+          changeKind: ChangeKind.Modify,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Report',
+          member: 'OldFolder/My_Report_A',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.byChangeKind()
+
+      // Assert
+      expect(result[ChangeKind.Delete].has('Report')).toBe(false)
+    })
+  })
+
+  describe('Given reports whose members carry no DeveloperName', () => {
+    it('When the destructive manifest is read, Then one malformed member does not cancel another', () => {
+      // Arrange — a file named only by its suffix leaves a trailing separator,
+      // so the derived DeveloperName is empty on both sides.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'Report',
+          member: 'Sales/',
+          changeKind: ChangeKind.Add,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Report',
+          member: 'Archive/',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('Report')).toEqual(new Set(['Archive/']))
     })
   })
 
