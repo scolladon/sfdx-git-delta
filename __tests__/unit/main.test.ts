@@ -17,6 +17,7 @@ import {
 } from '../../src/types/handlerResult'
 import type { RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
+import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import { Logger } from '../../src/utils/LoggingService'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
 
@@ -165,6 +166,7 @@ const asAsyncIterable = (lines: string[]): AsyncIterable<string> => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  IgnoreHelper.resetIgnoreInstance()
   mockValidateConfig.mockResolvedValue([])
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
