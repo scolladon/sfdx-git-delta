@@ -1233,3 +1233,106 @@ export const buildFolderMoveFixtureRepo = (
 
   return { root, moved, folderCollapse }
 }
+
+export type RenameIgnoreFixtureRefs = {
+  // Adds Foo.cls (+ meta) and Baz.cls (+ meta) under the default classes directory.
+  root: string
+  // From `root`: renames Foo.cls (+ meta) to Bar.cls (+ meta), same directory.
+  classRename: string
+  // From `root`: renames Baz.cls (+ meta) to Qux.cls (+ meta) under a sibling
+  // archive directory — a move and a rename in the same commit.
+  archiveMove: string
+}
+
+export const RENAME_IGNORE_FOO_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Foo.cls`
+export const RENAME_IGNORE_FOO_META = `${SFDX_DEFAULT_ROOT}/classes/Foo.cls-meta.xml`
+export const RENAME_IGNORE_BAR_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Bar.cls`
+export const RENAME_IGNORE_BAR_META = `${SFDX_DEFAULT_ROOT}/classes/Bar.cls-meta.xml`
+export const RENAME_IGNORE_BAZ_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Baz.cls`
+export const RENAME_IGNORE_BAZ_META = `${SFDX_DEFAULT_ROOT}/classes/Baz.cls-meta.xml`
+export const RENAME_IGNORE_ARCHIVE_ROOT = 'force-app/archive'
+export const RENAME_IGNORE_QUX_CLASS = `${RENAME_IGNORE_ARCHIVE_ROOT}/classes/Qux.cls`
+export const RENAME_IGNORE_QUX_META = `${RENAME_IGNORE_ARCHIVE_ROOT}/classes/Qux.cls-meta.xml`
+
+/**
+ * Two independent ApexClass pairs under the default source directory. Each
+ * class's `-meta.xml` content differs (`apiVersion` 60 vs 59), so every
+ * file's blob is unique within the fixture — the pairing-ambiguity trap the
+ * installed tsgit can fall into on byte-identical blobs never applies here.
+ * `classRename` renames Foo -> Bar in place; `archiveMove` renames Baz -> Qux
+ * into a sibling directory, so one sibling proves a same-directory rename
+ * and the other proves a move-and-rename.
+ */
+export const buildRenameIgnoreFixtureRepo = (
+  dir: string
+): RenameIgnoreFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'add class pair', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_FOO_CLASS,
+      content: 'public class Foo {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_FOO_META,
+      content:
+        '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>60.0</apiVersion></ApexClass>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_BAZ_CLASS,
+      content: 'public class Baz {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_BAZ_META,
+      content:
+        '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>59.0</apiVersion></ApexClass>\n',
+    },
+  ])
+
+  const classRename = makeCommit(dir, root, 'rename Foo to Bar', [
+    {
+      kind: 'rename',
+      from: RENAME_IGNORE_FOO_CLASS,
+      to: RENAME_IGNORE_BAR_CLASS,
+    },
+    {
+      kind: 'rename',
+      from: RENAME_IGNORE_FOO_META,
+      to: RENAME_IGNORE_BAR_META,
+    },
+  ])
+
+  // `classRename` above left the index holding its own tree, not `root`'s —
+  // the index is a single persistent file across these plumbing-only
+  // commits, not reset per commit. Re-seed it from `root` so this sibling
+  // commit branches off `root` instead of continuing from `classRename`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const archiveMove = makeCommit(
+    dir,
+    root,
+    'move and rename Baz to the archive as Qux',
+    [
+      {
+        kind: 'rename',
+        from: RENAME_IGNORE_BAZ_CLASS,
+        to: RENAME_IGNORE_QUX_CLASS,
+      },
+      {
+        kind: 'rename',
+        from: RENAME_IGNORE_BAZ_META,
+        to: RENAME_IGNORE_QUX_META,
+      },
+    ]
+  )
+
+  return { root, classRename, archiveMove }
+}
