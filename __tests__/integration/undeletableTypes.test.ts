@@ -11,6 +11,7 @@ import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import { MessageService } from '../../src/utils/MessageService'
+import type { ChangesManifestJson } from '../__utils__/changesManifestHelpers'
 import {
   buildUndeletableTypeFixtureRepo,
   FIXTURE_HOOK_BUDGET_MS,
@@ -18,17 +19,6 @@ import {
   type UndeletableTypeFixtureRefs,
 } from '../__utils__/gitFixtureRepo'
 import { createTempDir } from '../__utils__/gitTestHarness'
-
-// Mirrors the private shape ChangesManifestProcessor writes to disk, so the
-// whole-payload assertion below can read the file back typed rather than as
-// `unknown`.
-type RenamePairJson = { from: string; to: string }
-type ChangesManifestJson = {
-  [ChangeKind.Add]: Record<string, string[]>
-  [ChangeKind.Modify]: Record<string, string[]>
-  [ChangeKind.Delete]: Record<string, string[]>
-  [ChangeKind.Rename]: Record<string, RenamePairJson[]>
-}
 
 // makeInput pins apiVersion, so ConfigValidator's appexchange lookup is never
 // reached for any run built through it — this bucket runs behind an

@@ -11,22 +11,15 @@ import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import {
+  type ChangesManifestJson,
+  runBothModes as runBothModesWithHelpers,
+} from '../__utils__/changesManifestHelpers'
+import {
   buildFolderMoveFixtureRepo,
   FIXTURE_HOOK_BUDGET_MS,
   type FolderMoveFixtureRefs,
 } from '../__utils__/gitFixtureRepo'
 import { createTempDir } from '../__utils__/gitTestHarness'
-
-// Mirrors the private shape ChangesManifestProcessor writes to disk, so the
-// rename-bucket assertions below can read the file back typed rather than as
-// `unknown`.
-type RenamePairJson = { from: string; to: string }
-type ChangesManifestJson = {
-  [ChangeKind.Add]: Record<string, string[]>
-  [ChangeKind.Modify]: Record<string, string[]>
-  [ChangeKind.Delete]: Record<string, string[]>
-  [ChangeKind.Rename]: Record<string, RenamePairJson[]>
-}
 
 // makeInput pins apiVersion, so ConfigValidator's appexchange lookup is never
 // reached for any run built through it — this bucket runs behind an
@@ -81,27 +74,15 @@ const runSgd = async (
 const members = (manifest: Manifest, type: string): string[] =>
   [...(manifest.get(type) ?? [])].sort()
 
-// Both halves must share identical overrides: IgnoreHelper caches its
-// singleton on first call regardless of arguments, so the `off` and `on`
-// runs below share one cached helper.
-const runBothModes = async (
+const runBothModes = (
   overrides: Partial<ConfigInput> = {}
-): Promise<{
-  off: Awaited<ReturnType<typeof runSgd>>
-  on: Awaited<ReturnType<typeof runSgd>>
-  payload: ChangesManifestJson
-}> => {
-  const off = await runSgd(overrides)
-  const changesManifest = join(
-    await trackedTempDir('sgd-folder-move-manifest-'),
-    'changes.manifest.json'
+): ReturnType<typeof runBothModesWithHelpers> =>
+  runBothModesWithHelpers(
+    runSgd,
+    trackedTempDir,
+    'sgd-folder-move-manifest-',
+    overrides
   )
-  const on = await runSgd({ ...overrides, changesManifest })
-  const payload = JSON.parse(
-    await readFile(changesManifest, 'utf8')
-  ) as ChangesManifestJson
-  return { off, on, payload }
-}
 
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-folder-move-fixture-')
