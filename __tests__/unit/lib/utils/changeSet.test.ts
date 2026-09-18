@@ -672,6 +672,86 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given a record type deleted alongside its holder object', () => {
+    it('When reading undeletable deletions, Then the member is not reported because the deploy destroys its holder', () => {
+      // Arrange — deleting a decomposed object folder emits the holder and
+      // its record type as two independent destructive entries.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObject',
+          member: 'Account',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+
+    it('When only a sibling holder is deleted, Then the member is still reported', () => {
+      // Arrange — Contact goes, Account stays, so Account.Alpha really is
+      // orphaned and still needs manual removal.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObject',
+          member: 'Contact',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.get('RecordType')).toEqual(new Set(['Account.Alpha']))
+    })
+  })
+
+  describe('Given a record type the package view already covers', () => {
+    it('When reading undeletable deletions, Then nothing is reported because nothing is omitted', () => {
+      // Arrange — the member is both deleted and packaged, so the
+      // subtraction inside the orphaned-deletes projection cancels it and
+      // the destructive view never omits it in the first place.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.Package,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Add,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+  })
+
   describe('Given a change set with no undeletable member', () => {
     it('When reading undeletable deletions, Then it reports nothing', () => {
       // Arrange

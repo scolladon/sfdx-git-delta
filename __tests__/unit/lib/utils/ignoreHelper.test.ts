@@ -106,6 +106,19 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(true)
       })
+
+      it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should keep deleted "%s" line: no built-in destructive pattern exists',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(true)
+        }
+      )
     })
     describe('when config does not have ignore and have destructive ignore', () => {
       beforeAll(async () => {
@@ -234,6 +247,19 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(false)
       })
+
+      it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should keep deleted "%s" line: no built-in destructive pattern exists',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(true)
+        }
+      )
     })
     describe('when config has ignore and destructive ignore', () => {
       beforeAll(async () => {
@@ -303,6 +329,19 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(false)
       })
+
+      it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should keep deleted "%s" line: no built-in destructive pattern exists',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(true)
+        }
+      )
     })
 
     describe('Given a missing ignore file', () => {

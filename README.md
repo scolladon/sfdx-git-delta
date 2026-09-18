@@ -609,7 +609,7 @@ Produces (bare form example) `incremental/changes.manifest.json`. Setting `--cha
 }
 ```
 
-`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged, and the manifests are identical whether or not `--changes-manifest` is set. Both sides of a rename still pass through the ignore files: a `from` path covered by `--ignore-destructive-file` keeps its member out of `destructiveChanges.xml`, a `to` path covered by `--ignore-file` keeps its member out of `package.xml`, and in either case the change is reported in the `add`/`delete` buckets of `changes.manifest.json` instead of the `rename` bucket.
+`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged, and the manifests are identical whether or not `--changes-manifest` is set. Both sides of a rename still pass through the ignore files: a `from` path covered by `--ignore-destructive-file` keeps its member out of `destructiveChanges.xml`, a `to` path covered by `--ignore-file` keeps its member out of `package.xml`, and the change is then reported in `changes.manifest.json` as a plain addition or deletion rather than a rename: an ignored `from` leaves `to` in the `add` bucket, an ignored `to` leaves `from` in the `delete` bucket. When the move keeps the component name, the deletion is cancelled against the ignored addition and neither side is reported at all.
 
 Two default-configuration behaviours changed with no dedicated changelog entry — the kind of thing you notice the first time you diff a JSON manifest across the upgrade:
 

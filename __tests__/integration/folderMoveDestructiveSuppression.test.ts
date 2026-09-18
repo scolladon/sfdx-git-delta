@@ -475,8 +475,15 @@ describe('Given a report folder move reported through a changes manifest and a g
     // can no longer vouch for the source path's deletion. Comparing against
     // the same run with the flag omitted (rather than a copied literal)
     // pins this to the answer the no-flag case above already establishes.
+    const offReports = members(
+      off.work.changes.forDestructiveManifest(),
+      'Report'
+    )
+    // Guard the equality below: without this the assertion would also pass
+    // if both runs produced nothing at all.
+    expect(offReports).toHaveLength(3)
     expect(members(on.work.changes.forDestructiveManifest(), 'Report')).toEqual(
-      members(off.work.changes.forDestructiveManifest(), 'Report')
+      offReports
     )
   })
 

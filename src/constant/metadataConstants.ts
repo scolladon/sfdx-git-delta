@@ -40,9 +40,6 @@ export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_S
 export const OBJECT_TRANSLATION_TYPE = 'CustomObjectTranslation'
 export const OBJECT_TYPE = 'CustomObject'
 export const PERMISSIONSET_TYPE = 'PermissionSet'
-// RATIONALE: Why are recordTypes excluded from destructive changes?
-// The Metadata API does not support deleting RecordType via destructiveChanges.xml.
-// See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#recordtype-destructive-changes
 export const RECORD_TYPE = 'RecordType'
 export const REPORT_TYPE = 'Report'
 // The Metadata API relocates these when the package lists them under a new
@@ -54,9 +51,6 @@ export const FOLDER_MOVE_ON_DEPLOY_TYPES: ReadonlySet<string> = new Set([
   REPORT_TYPE,
   DASHBOARD_TYPE,
 ])
-// The Metadata API cannot delete these, so a destructive entry for one is a
-// component failure that fails the whole deploy.
-export const UNDELETABLE_TYPES: ReadonlySet<string> = new Set([RECORD_TYPE])
 export const SHARING_RULE_TYPE = 'SharingRules'
 export const SUB_OBJECT_TYPES = [
   'BusinessProcess',
@@ -83,6 +77,15 @@ export const SUB_OBJECT_TYPES = [
   'WorkflowSend',
   'WorkflowTask',
 ]
+// The Metadata API cannot delete these, so a destructive entry for one is a
+// component failure that fails the whole deploy: the destructive view omits
+// them and a warning names them instead.
+// See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#recordtype-destructive-changes
+// Must stay disjoint from FOLDER_MOVE_ON_DEPLOY_TYPES, BOT_TYPE and
+// BOT_VERSION_TYPE: undeletableDeletions() reports from the pre-suppressor
+// view, so an overlap would let the warning name a member those suppressors
+// drop anyway, and the manifest and the warning would disagree.
+export const UNDELETABLE_TYPES: ReadonlySet<string> = new Set([RECORD_TYPE])
 export const TRANSLATION_EXTENSION = 'translation'
 export const TRANSLATION_TYPE = 'Translations'
 export const VIRTUAL_BOT_TYPE = 'VirtualBot'

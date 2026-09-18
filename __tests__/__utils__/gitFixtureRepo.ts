@@ -1344,6 +1344,10 @@ export type UndeletableTypeFixtureRefs = {
   recordTypeDeleted: string
   // From `root`: renames the Account.Alpha record type to Account.Beta.
   recordTypeRenamed: string
+  // From `root`: deletes the Account object together with its Alpha record
+  // type — the deploy destroys the holder, so the record type needs no
+  // manual cleanup and must not be reported as orphaned.
+  holderDeleted: string
   // From `root`: only the Anchor class is touched; every record type is
   // untouched here — reached only through an include-destructive walk.
   anchorTouched: string
@@ -1364,8 +1368,10 @@ export const UNDELETABLE_CONTACT_RECORD_TYPES_GLOB = `${SFDX_DEFAULT_ROOT}/objec
  * `recordTypeRenamed` renames Alpha to Beta (unique blob, so the exact pass
  * pairs it deterministically); `anchorTouched` only modifies the Anchor
  * class, leaving every record type reachable solely through an
- * include-destructive walk. Alpha and Delta carry distinct content and never
- * share a diff, so every sibling stays pairing-ambiguity-free.
+ * include-destructive walk; `holderDeleted` removes the Account object and
+ * Alpha together. Every blob in this fixture is distinct, so no sibling can
+ * present two same-type components sharing one blob — the shape that makes
+ * rename pairing arbitrary.
  */
 export const buildUndeletableTypeFixtureRepo = (
   dir: string
@@ -1391,7 +1397,7 @@ export const buildUndeletableTypeFixtureRepo = (
       mode: '100644',
       path: UNDELETABLE_ACCOUNT_OBJECT,
       content:
-        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"><label>Account</label></CustomObject>\n',
     },
     {
       kind: 'add',
@@ -1405,7 +1411,7 @@ export const buildUndeletableTypeFixtureRepo = (
       mode: '100644',
       path: UNDELETABLE_CONTACT_OBJECT,
       content:
-        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"><label>Contact</label></CustomObject>\n',
     },
     {
       kind: 'add',
@@ -1460,7 +1466,25 @@ export const buildUndeletableTypeFixtureRepo = (
   // with "HEAD: not a valid git revision". Every sibling here shares `root`
   // as its parent, so which one HEAD points at does not change which commit
   // the walk finds as the root.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const holderDeleted = makeCommit(
+    dir,
+    root,
+    'delete the Account object and its Alpha record type',
+    [
+      { kind: 'delete', path: UNDELETABLE_ACCOUNT_OBJECT },
+      { kind: 'delete', path: UNDELETABLE_ALPHA_RECORD_TYPE },
+    ]
+  )
+
   runGit(['update-ref', 'HEAD', anchorTouched], { cwd: dir })
 
-  return { root, recordTypeDeleted, recordTypeRenamed, anchorTouched }
+  return {
+    root,
+    recordTypeDeleted,
+    recordTypeRenamed,
+    holderDeleted,
+    anchorTouched,
+  }
 }

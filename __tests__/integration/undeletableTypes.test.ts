@@ -129,6 +129,30 @@ describe('Given a record type deleted with no flags at all', () => {
     expect(members(work.changes.forPackageManifest(), 'RecordType')).toEqual([])
   })
 
+  it('When the run also reports a changes manifest, Then the deleted member surfaces in the delete bucket', async () => {
+    // Arrange
+    const changesManifest = join(
+      await trackedTempDir('sgd-undeletable-deleted-manifest-'),
+      'changes.manifest.json'
+    )
+
+    // Act
+    const { work } = await runSgd({
+      to: refs.recordTypeDeleted,
+      changesManifest,
+    })
+    const payload = JSON.parse(
+      await readFile(changesManifest, 'utf8')
+    ) as ChangesManifestJson
+
+    // Assert — the accepted default-configuration change README states: the
+    // deletion is omitted from destructiveChanges.xml yet visible in the
+    // review manifest, where it previously appeared nowhere at all.
+    expect(work.changes.forDestructiveManifest().has('RecordType')).toBe(false)
+    expect(payload[ChangeKind.Delete]['RecordType']).toEqual(['Account.Alpha'])
+    expect(payload[ChangeKind.Rename]['RecordType']).toBeUndefined()
+  })
+
   it('When the run produces both manifests, Then a warning names the record type and the orphaned member through the real catalogue', async () => {
     // Act
     const { work } = await runSgd({ to: refs.recordTypeDeleted })
@@ -142,6 +166,22 @@ describe('Given a record type deleted with no flags at all', () => {
     expect(work.warnings.map(warning => warning.message)).toEqual([
       expectedWarning,
     ])
+  })
+})
+
+describe('Given a record type deleted together with its holder object', () => {
+  it('When the run produces both manifests, Then the holder is destroyed and no orphan warning fires', async () => {
+    // Act
+    const { work, destructiveXml } = await runSgd({ to: refs.holderDeleted })
+
+    // Assert — the same deploy deletes the CustomObject, which takes its
+    // record types with it, so telling the user to remove one by hand in
+    // Setup would send them after something that will not be there.
+    expect(
+      members(work.changes.forDestructiveManifest(), 'CustomObject')
+    ).toEqual(['Account'])
+    expect(destructiveXml).not.toContain('<name>RecordType</name>')
+    expect(work.warnings).toEqual([])
   })
 })
 
@@ -176,9 +216,14 @@ describe('Given a record type renamed with no ignore file configured', () => {
     expect(payload[ChangeKind.Add]['RecordType']).toBeUndefined()
     expect(payload[ChangeKind.Modify]['RecordType']).toBeUndefined()
     expect(payload[ChangeKind.Delete]['RecordType']).toBeUndefined()
-    expect(payload[ChangeKind.Rename]['RecordType']).toEqual([
-      { from: 'Account.Alpha', to: 'Account.Beta' },
-    ])
+    // A literal pair is safe here for one reason only, and it is not blob
+    // uniqueness: this diff holds exactly one delete and one add, so the
+    // pairing is forced whatever the detection algorithm does. The set-level
+    // assertions below are the pairing-invariant ones.
+    const renamed = payload[ChangeKind.Rename]['RecordType']!
+    expect(renamed.map(pair => pair.from).sort()).toEqual(['Account.Alpha'])
+    expect(renamed.map(pair => pair.to).sort()).toEqual(['Account.Beta'])
+    expect(renamed).toEqual([{ from: 'Account.Alpha', to: 'Account.Beta' }])
   })
 
   it('When the run also reports a changes manifest, Then a warning names the orphaned rename source through the real catalogue', async () => {

@@ -5,6 +5,7 @@ import {
   BOT_TYPE,
   BOT_VERSION_TYPE,
   FOLDER_MOVE_ON_DEPLOY_TYPES,
+  OBJECT_TYPE,
   UNDELETABLE_TYPES,
 } from '../constant/metadataConstants.js'
 import {
@@ -186,18 +187,36 @@ export default class ChangeSet {
   }
 
   // Members omitted from the destructive view because their type cannot be
-  // deleted through the Metadata API. Reads the same input the strip
-  // consumes, so a member the package view already covers is neither
-  // stripped nor reported here. A query, never an emitter: main.ts turns
-  // the result into a warning.
+  // deleted through the Metadata API, and which therefore need removing by
+  // hand. Reads the same input the strip consumes, so a member the package
+  // view already covers is neither stripped nor reported here. A query,
+  // never an emitter: main.ts turns the result into a warning.
   undeletableDeletions(): Manifest {
     const orphaned = this._orphanedDeletes(this.forPackageManifest())
+    const deletedHolders = orphaned.get(OBJECT_TYPE)
     const result: Manifest = new Map()
     for (const type of UNDELETABLE_TYPES) {
       const members = orphaned.get(type)
-      if (members?.size) result.set(type, new Set(members))
+      if (!members) continue
+      const orphans = this._withoutDeletedHolders(members, deletedHolders)
+      if (orphans.size > 0) result.set(type, orphans)
     }
     return result
+  }
+
+  // A deleted CustomObject takes its record types with it, so a member whose
+  // holder the same deploy destroys needs no manual cleanup and must not be
+  // reported. Same shape as _suppressVersionsOfDeletedBots: the member is
+  // `<holder>.<name>` and an API name cannot contain a dot, so the segment
+  // before the first one names the holder.
+  private _withoutDeletedHolders(
+    members: ReadonlySet<string>,
+    deletedHolders: ReadonlySet<string> | undefined
+  ): Set<string> {
+    if (!deletedHolders?.size) return new Set(members)
+    return new Set(
+      [...members].filter(member => !deletedHolders.has(member.split(DOT)[0]!))
+    )
   }
 
   // A deleted Bot takes its versions with it, so a BotVersion listed beside
