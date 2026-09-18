@@ -40,6 +40,10 @@ export const OBJECT_TRANSLATION_META_XML_SUFFIX = `objectTranslation${METAFILE_S
 export const OBJECT_TRANSLATION_TYPE = 'CustomObjectTranslation'
 export const OBJECT_TYPE = 'CustomObject'
 export const PERMISSIONSET_TYPE = 'PermissionSet'
+// RATIONALE: Why are recordTypes excluded from destructive changes?
+// The Metadata API does not support deleting RecordType via destructiveChanges.xml.
+// See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#recordtype-destructive-changes
+export const RECORD_TYPE = 'RecordType'
 export const REPORT_TYPE = 'Report'
 // The Metadata API relocates these when the package lists them under a new
 // folder, so their former path must not be destroyed alongside the move.
@@ -50,6 +54,9 @@ export const FOLDER_MOVE_ON_DEPLOY_TYPES: ReadonlySet<string> = new Set([
   REPORT_TYPE,
   DASHBOARD_TYPE,
 ])
+// The Metadata API cannot delete these, so a destructive entry for one is a
+// component failure that fails the whole deploy.
+export const UNDELETABLE_TYPES: ReadonlySet<string> = new Set([RECORD_TYPE])
 export const SHARING_RULE_TYPE = 'SharingRules'
 export const SUB_OBJECT_TYPES = [
   'BusinessProcess',
@@ -58,7 +65,7 @@ export const SUB_OBJECT_TYPES = [
   'FieldSet',
   'Index',
   'ListView',
-  'RecordType',
+  RECORD_TYPE,
   'SharingCriteriaRule',
   'SharingGuestRule',
   'SharingOwnerRule',

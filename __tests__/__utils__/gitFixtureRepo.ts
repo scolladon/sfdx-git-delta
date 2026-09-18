@@ -1336,3 +1336,131 @@ export const buildRenameIgnoreFixtureRepo = (
 
   return { root, classRename, archiveMove }
 }
+
+export type UndeletableTypeFixtureRefs = {
+  // Adds the Anchor class, two CustomObjects and their Alpha/Delta record types.
+  root: string
+  // From `root`: deletes the Account.Alpha record type outright.
+  recordTypeDeleted: string
+  // From `root`: renames the Account.Alpha record type to Account.Beta.
+  recordTypeRenamed: string
+  // From `root`: only the Anchor class is touched; every record type is
+  // untouched here — reached only through an include-destructive walk.
+  anchorTouched: string
+}
+
+export const UNDELETABLE_ANCHOR_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Anchor.cls`
+export const UNDELETABLE_ANCHOR_META = `${SFDX_DEFAULT_ROOT}/classes/Anchor.cls-meta.xml`
+export const UNDELETABLE_ACCOUNT_OBJECT = `${SFDX_DEFAULT_ROOT}/objects/Account/Account.object-meta.xml`
+export const UNDELETABLE_ALPHA_RECORD_TYPE = `${SFDX_DEFAULT_ROOT}/objects/Account/recordTypes/Alpha.recordType-meta.xml`
+export const UNDELETABLE_BETA_RECORD_TYPE = `${SFDX_DEFAULT_ROOT}/objects/Account/recordTypes/Beta.recordType-meta.xml`
+export const UNDELETABLE_CONTACT_OBJECT = `${SFDX_DEFAULT_ROOT}/objects/Contact/Contact.object-meta.xml`
+export const UNDELETABLE_DELTA_RECORD_TYPE = `${SFDX_DEFAULT_ROOT}/objects/Contact/recordTypes/Delta.recordType-meta.xml`
+export const UNDELETABLE_CONTACT_RECORD_TYPES_GLOB = `${SFDX_DEFAULT_ROOT}/objects/Contact/recordTypes/**`
+
+/**
+ * An Anchor ApexClass plus two CustomObjects, each carrying one RecordType
+ * (Account/Alpha, Contact/Delta). `recordTypeDeleted` deletes Alpha outright;
+ * `recordTypeRenamed` renames Alpha to Beta (unique blob, so the exact pass
+ * pairs it deterministically); `anchorTouched` only modifies the Anchor
+ * class, leaving every record type reachable solely through an
+ * include-destructive walk. Alpha and Delta carry distinct content and never
+ * share a diff, so every sibling stays pairing-ambiguity-free.
+ */
+export const buildUndeletableTypeFixtureRepo = (
+  dir: string
+): UndeletableTypeFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'add anchor class and record types', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ANCHOR_CLASS,
+      content: 'public class Anchor { }\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ANCHOR_META,
+      content:
+        '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>60.0</apiVersion></ApexClass>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ACCOUNT_OBJECT,
+      content:
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ALPHA_RECORD_TYPE,
+      content:
+        '<RecordType xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Alpha</fullName></RecordType>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_CONTACT_OBJECT,
+      content:
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"/>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_DELTA_RECORD_TYPE,
+      content:
+        '<RecordType xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Delta</fullName></RecordType>\n',
+    },
+  ])
+
+  const recordTypeDeleted = makeCommit(
+    dir,
+    root,
+    'delete the Alpha record type outright',
+    [{ kind: 'delete', path: UNDELETABLE_ALPHA_RECORD_TYPE }]
+  )
+
+  // `recordTypeDeleted` above left the index holding its own tree, not
+  // `root`'s — the index is a single persistent file across these
+  // plumbing-only commits, not reset per commit. Re-seed it from `root` so
+  // this sibling commit branches off `root` instead of continuing from
+  // `recordTypeDeleted`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const recordTypeRenamed = makeCommit(
+    dir,
+    root,
+    'rename the Alpha record type to Beta',
+    [
+      {
+        kind: 'rename',
+        from: UNDELETABLE_ALPHA_RECORD_TYPE,
+        to: UNDELETABLE_BETA_RECORD_TYPE,
+      },
+    ]
+  )
+
+  runGit(['read-tree', root], { cwd: dir })
+
+  const anchorTouched = makeCommit(dir, root, 'touch only the anchor class', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ANCHOR_CLASS,
+      content: 'public class Anchor { /* touched */ }\n',
+    },
+  ])
+
+  // The include-destructive walk resolves its "first commit" boundary via
+  // HEAD (GitAdapter.getFirstCommitRef), so a repo built purely from
+  // plumbing commands — no ref ever pointed anywhere — fails that lookup
+  // with "HEAD: not a valid git revision". Every sibling here shares `root`
+  // as its parent, so which one HEAD points at does not change which commit
+  // the walk finds as the root.
+  runGit(['update-ref', 'HEAD', anchorTouched], { cwd: dir })
+
+  return { root, recordTypeDeleted, recordTypeRenamed, anchorTouched }
+}

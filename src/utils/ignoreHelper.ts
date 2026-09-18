@@ -9,11 +9,6 @@ import {
 import { readFile } from './fsUtils.js'
 import { log } from './LoggingDecorator.js'
 
-// RATIONALE: Why are recordTypes excluded from destructive changes?
-// The Metadata API does not support deleting RecordType via destructiveChanges.xml.
-// See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#recordtype-destructive-changes
-const BASE_DESTRUCTIVE_IGNORE = ['recordTypes/']
-
 export class IgnoreHelper {
   private static ignoreInstance: IgnoreHelper | null = null
   private static includeInstance: IgnoreHelper | null = null
@@ -61,7 +56,6 @@ export class IgnoreHelper {
         // Stryker disable next-line ConditionalExpression,LogicalOperator -- equivalent: ignoreDestructive falls back to the global ignorePath when not set; flipping || to && would only use the destructive path when global is also set, but the cached singleton observable behavior remains stable for the test surface that always provides one of the two
         ignoreDestructive || ignorePath
       )
-      destructiveIgnore.add(BASE_DESTRUCTIVE_IGNORE)
       IgnoreHelper.ignoreInstance = new IgnoreHelper(
         globalIgnore,
         destructiveIgnore

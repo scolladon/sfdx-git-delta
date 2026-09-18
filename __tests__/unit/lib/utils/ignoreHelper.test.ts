@@ -158,19 +158,6 @@ describe('ignoreHelper', () => {
       )
 
       it.each([
-        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])(
-        'should not keep deleted "%s" line matching default ignore pattern',
-        line => {
-          // Act
-          const keep = sut.keep(line)
-
-          // Assert
-          expect(keep).toBe(false)
-        }
-      )
-
-      it.each([
         `${ADDITION} path/to/file.ext`,
         `${MODIFICATION} path/to/file.ext`,
       ])('should keep changed "%s" line', line => {
@@ -247,19 +234,6 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(false)
       })
-
-      it.each([
-        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])(
-        'should not keep deleted "%s" line matching default ignore pattern',
-        line => {
-          // Act
-          const keep = sut.keep(line)
-
-          // Assert
-          expect(keep).toBe(false)
-        }
-      )
     })
     describe('when config has ignore and destructive ignore', () => {
       beforeAll(async () => {
@@ -329,19 +303,6 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(false)
       })
-
-      it.each([
-        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])(
-        'should not keep deleted "%s" line matching default ignore pattern',
-        line => {
-          // Act
-          const keep = sut.keep(line)
-
-          // Assert
-          expect(keep).toBe(false)
-        }
-      )
     })
 
     describe('Given a missing ignore file', () => {

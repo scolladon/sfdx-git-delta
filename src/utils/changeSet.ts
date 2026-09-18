@@ -5,6 +5,7 @@ import {
   BOT_TYPE,
   BOT_VERSION_TYPE,
   FOLDER_MOVE_ON_DEPLOY_TYPES,
+  UNDELETABLE_TYPES,
 } from '../constant/metadataConstants.js'
 import {
   type AddKind,
@@ -150,17 +151,38 @@ export default class ChangeSet {
   }
 
   forDestructiveManifest(): Manifest {
-    const baseDeletes = this._unionByType([
-      this.byTarget[ManifestTarget.DestructiveChanges],
-      this._renameSourcesByType(),
-    ])
     const packaged = this.forPackageManifest()
     return this._suppressVersionsOfDeletedBots(
       this._suppressMovedFolderMembers(
-        this._subtractByType(baseDeletes, packaged),
+        this._stripUndeletableTypes(this._orphanedDeletes(packaged)),
         packaged
       )
     )
+  }
+
+  // Everything the destructive view would carry before any suppressor runs:
+  // the destructive-target members unioned with the rename sources, minus
+  // whatever the package view already covers. Extracted because the
+  // undeletable-type strip and its reporting query must agree on exactly
+  // this input.
+  private _orphanedDeletes(packaged: Manifest): Manifest {
+    return this._subtractByType(
+      this._unionByType([
+        this.byTarget[ManifestTarget.DestructiveChanges],
+        this._renameSourcesByType(),
+      ]),
+      packaged
+    )
+  }
+
+  // The Metadata API refuses to delete these types, and one such member
+  // fails the whole deploy — so the destructive view drops the type
+  // wholesale. The review view (byChangeKind) deliberately keeps it,
+  // mirroring _suppressVersionsOfDeletedBots: the file really was deleted.
+  private _stripUndeletableTypes(deletes: Manifest): Manifest {
+    const result = new Map(deletes)
+    for (const type of UNDELETABLE_TYPES) result.delete(type)
+    return result
   }
 
   // A deleted Bot takes its versions with it, so a BotVersion listed beside
