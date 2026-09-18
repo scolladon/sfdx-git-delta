@@ -487,6 +487,12 @@ If SGD cannot read the file listing at `--to`, the move check is skipped, the de
 
 Note: when only using the `--ignore-file [-i]` parameter (and not `--ignore-destructive-file [-D]`) the plugin will apply it to added/changed/deleted elements.
 
+Independently of any ignore file, SGD also keeps components of a type the Metadata API cannot delete — today only `RecordType` — out of `destructiveChanges.xml` on every route: an ordinary deletion, a rename, and `--include-destructive-file` alike. A destructive entry for one of these is a component failure (`Cannot delete record type through API`) that fails the whole deployment. The component is not deleted anywhere; it is only omitted from the manifest SGD would otherwise emit, so it remains in the target org until you remove it by hand in Setup. SGD raises a warning naming the type and the affected members:
+
+```
+Warning: 'RecordType' components cannot be deleted through the Metadata API, so 'Account.Alpha' are omitted from destructiveChanges.xml and will remain in the target org. Remove them manually in Setup.
+```
+
 ### Explicitly including specific files for inclusion or destruction regardless of diff
 
 The `--include-file [-n]` parameter allows you to specify a file based on [gitignore glob matching](https://git-scm.com/docs/gitignore) to include specific files. Regardless whether they appears in the diff or not.
@@ -603,7 +609,14 @@ Produces (bare form example) `incremental/changes.manifest.json`. Setting `--cha
 }
 ```
 
-`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged.
+`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged, and the manifests are identical whether or not `--changes-manifest` is set. Both sides of a rename still pass through the ignore files: a `from` path covered by `--ignore-destructive-file` keeps its member out of `destructiveChanges.xml`, a `to` path covered by `--ignore-file` keeps its member out of `package.xml`, and in either case the change is reported in the `add`/`delete` buckets of `changes.manifest.json` instead of the `rename` bucket.
+
+Two default-configuration behaviours changed with no dedicated changelog entry — the kind of thing you notice the first time you diff a JSON manifest across the upgrade:
+
+- a **renamed** record type is still reported in the `rename` bucket, but its former name is no longer emitted into `destructiveChanges.xml` — that entry previously made the whole deployment fail;
+- a **deleted** record type now appears in the `delete` bucket, where previously it appeared nowhere.
+
+Both are consequences of the undeletable-component warning described above: `RecordType` (today's only such type) is kept out of `destructiveChanges.xml`, but still reported in `changes.manifest.json` for review.
 
 Works for file-backed metadata, in-file sub-components (CustomLabels members, Workflow rules, etc.), decomposed metadata, in-resource bundles and in-folder metadata.
 
