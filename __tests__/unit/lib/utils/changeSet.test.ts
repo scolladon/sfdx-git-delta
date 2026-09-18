@@ -724,6 +724,27 @@ describe('ChangeSet', () => {
     })
   })
 
+  describe('Given a holder object deleted with no record type beside it', () => {
+    it('When reading undeletable deletions, Then it reports nothing without reaching for absent members', () => {
+      // Arrange — deleting an object that carries no record types is the
+      // ordinary case; the undeletable type is simply absent from the view.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObject',
+          member: 'Account',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+  })
+
   describe('Given a record type the package view already covers', () => {
     it('When reading undeletable deletions, Then nothing is reported because nothing is omitted', () => {
       // Arrange — the member is both deleted and packaged, so the
