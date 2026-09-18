@@ -490,7 +490,7 @@ Note: when only using the `--ignore-file [-i]` parameter (and not `--ignore-dest
 Independently of any ignore file, SGD also keeps components of a type the Metadata API cannot delete — today only `RecordType` — out of `destructiveChanges.xml` on every route: an ordinary deletion, a rename, and `--include-destructive-file` alike. A destructive entry for one of these is a component failure (`Cannot delete record type through API`) that fails the whole deployment. The component is not deleted anywhere; it is only omitted from the manifest SGD would otherwise emit, so it remains in the target org until you remove it by hand in Setup. SGD raises a warning naming the type and the affected members:
 
 ```
-Warning: 'RecordType' components cannot be deleted through the Metadata API, so 'Account.Alpha' are omitted from destructiveChanges.xml and will remain in the target org. Remove them manually in Setup.
+Warning: The Metadata API cannot delete 'RecordType' components, so destructiveChanges.xml omits 'Account.Alpha'. Remove them from the target org manually in Setup.
 ```
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff
