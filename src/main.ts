@@ -167,6 +167,24 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       () => [sanitizeForMessage(requestedTo)]
     )
 
+    // The Metadata API refuses to delete these, so the destructive manifest
+    // omits them — but the components really are gone from the source and
+    // stay in the org, so the user has to remove them by hand. One warning
+    // per type, listing its members: fifty orphaned record types must not
+    // produce fifty lines.
+    const undeletableWarnings = [...changes.undeletableDeletions()].map(
+      ([type, members]) =>
+        new Error(
+          messages.getMessage('warning.UndeletableComponentsOmitted', [
+            type,
+            // Sanitize each member before joining: the length cap in
+            // sanitizeForMessage applies per value, so a single long member
+            // name would otherwise silently elide every member after it.
+            [...members].map(sanitizeForMessage).join(', '),
+          ])
+        )
+    )
+
     const work: Work = {
       config,
       changes,
@@ -177,6 +195,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ...sourceScopeWarnings,
         ...ignoredMoveWarnings,
         ...treeIndexWarnings,
+        ...undeletableWarnings,
       ],
     }
     // Stryker disable next-line StringLiteral -- equivalent: log content is observability only

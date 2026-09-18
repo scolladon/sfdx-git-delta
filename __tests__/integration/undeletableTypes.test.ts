@@ -10,6 +10,7 @@ import type { ConfigInput } from '../../src/types/config'
 import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
+import { MessageService } from '../../src/utils/MessageService'
 import {
   buildUndeletableTypeFixtureRepo,
   FIXTURE_HOOK_BUDGET_MS,
@@ -127,6 +128,21 @@ describe('Given a record type deleted with no flags at all', () => {
     expect(destructiveXml).not.toContain('<name>RecordType</name>')
     expect(members(work.changes.forPackageManifest(), 'RecordType')).toEqual([])
   })
+
+  it('When the run produces both manifests, Then a warning names the record type and the orphaned member through the real catalogue', async () => {
+    // Act
+    const { work } = await runSgd({ to: refs.recordTypeDeleted })
+
+    // Assert — exact-array equality proves this is the only warning: the
+    // fixture's anchor exists precisely to guarantee nothing else fires.
+    const expectedWarning = new MessageService().getMessage(
+      'warning.UndeletableComponentsOmitted',
+      ['RecordType', 'Account.Alpha']
+    )
+    expect(work.warnings.map(warning => warning.message)).toEqual([
+      expectedWarning,
+    ])
+  })
 })
 
 describe('Given a record type renamed with no ignore file configured', () => {
@@ -164,6 +180,31 @@ describe('Given a record type renamed with no ignore file configured', () => {
       { from: 'Account.Alpha', to: 'Account.Beta' },
     ])
   })
+
+  it('When the run also reports a changes manifest, Then a warning names the orphaned rename source through the real catalogue', async () => {
+    // Arrange
+    const changesManifest = join(
+      await trackedTempDir('sgd-undeletable-types-manifest-'),
+      'changes.manifest.json'
+    )
+
+    // Act
+    const { work } = await runSgd({
+      to: refs.recordTypeRenamed,
+      changesManifest,
+    })
+
+    // Assert — a renamed record type is orphaned exactly as a deleted one
+    // is: the rename bucket still reports the move, this warning reports
+    // its consequence.
+    const expectedWarning = new MessageService().getMessage(
+      'warning.UndeletableComponentsOmitted',
+      ['RecordType', 'Account.Alpha']
+    )
+    expect(work.warnings.map(warning => warning.message)).toEqual([
+      expectedWarning,
+    ])
+  })
 })
 
 describe('Given an include-destructive pattern covering a record type directory', () => {
@@ -189,6 +230,30 @@ describe('Given an include-destructive pattern covering a record type directory'
     // Positive control proving the run really produced a manifest.
     expect(members(work.changes.forPackageManifest(), 'ApexClass')).toEqual([
       'Anchor',
+    ])
+  })
+
+  it('When the run has no rename and no changes manifest, Then a warning names the member found through the include walk', async () => {
+    // Arrange
+    const includeDestructive = await writePatterns(
+      '.sgdinclude-destructive-contact-record-types',
+      `${UNDELETABLE_CONTACT_RECORD_TYPES_GLOB}\n`
+    )
+
+    // Act
+    const { work } = await runSgd({
+      to: refs.anchorTouched,
+      includeDestructive,
+    })
+
+    // Assert — R8 covers all three routes, not just the two the rename
+    // work touches.
+    const expectedWarning = new MessageService().getMessage(
+      'warning.UndeletableComponentsOmitted',
+      ['RecordType', 'Contact.Delta']
+    )
+    expect(work.warnings.map(warning => warning.message)).toEqual([
+      expectedWarning,
     ])
   })
 })

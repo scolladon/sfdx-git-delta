@@ -612,6 +612,24 @@ describe('ChangeSet', () => {
       // Assert
       expect(result).toEqual(new Set(['Account.Alpha']))
     })
+
+    it('When reading undeletable deletions, Then it carries the omitted member', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.get('RecordType')).toEqual(new Set(['Account.Alpha']))
+    })
   })
 
   describe('Given a record type rename', () => {
@@ -633,6 +651,44 @@ describe('ChangeSet', () => {
       expect([...renames.values()]).toEqual([
         { from: 'Account.Alpha', to: 'Account.Beta' },
       ])
+    })
+
+    it('When reading undeletable deletions, Then the rename source is reported while the rename pair still survives', () => {
+      // Arrange
+      const sut = ChangeSet.from(
+        [],
+        [{ type: 'RecordType', from: 'Account.Alpha', to: 'Account.Beta' }]
+      )
+
+      // Act
+      const undeletable = sut.undeletableDeletions()
+      const renames = sut.byChangeKind()[ChangeKind.Rename].get('RecordType')!
+
+      // Assert
+      expect(undeletable.get('RecordType')).toEqual(new Set(['Account.Alpha']))
+      expect([...renames.values()]).toEqual([
+        { from: 'Account.Alpha', to: 'Account.Beta' },
+      ])
+    })
+  })
+
+  describe('Given a change set with no undeletable member', () => {
+    it('When reading undeletable deletions, Then it reports nothing', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'ApexClass',
+          member: 'Foo',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
     })
   })
 

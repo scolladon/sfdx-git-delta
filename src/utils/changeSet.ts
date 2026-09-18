@@ -185,6 +185,21 @@ export default class ChangeSet {
     return result
   }
 
+  // Members omitted from the destructive view because their type cannot be
+  // deleted through the Metadata API. Reads the same input the strip
+  // consumes, so a member the package view already covers is neither
+  // stripped nor reported here. A query, never an emitter: main.ts turns
+  // the result into a warning.
+  undeletableDeletions(): Manifest {
+    const orphaned = this._orphanedDeletes(this.forPackageManifest())
+    const result: Manifest = new Map()
+    for (const type of UNDELETABLE_TYPES) {
+      const members = orphaned.get(type)
+      if (members?.size) result.set(type, new Set(members))
+    }
+    return result
+  }
+
   // A deleted Bot takes its versions with it, so a BotVersion listed beside
   // its own deleted parent is redundant. A BotVersion member is
   // `<bot>.<version>`, and a Bot API name cannot contain a dot, so the
