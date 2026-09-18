@@ -17,6 +17,7 @@ import {
 } from '../../src/types/handlerResult'
 import type { RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
+import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import { Logger } from '../../src/utils/LoggingService'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
 
@@ -165,6 +166,7 @@ const asAsyncIterable = (lines: string[]): AsyncIterable<string> => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  IgnoreHelper.resetIgnoreInstance()
   mockValidateConfig.mockResolvedValue([])
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
@@ -957,6 +959,96 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(result.warnings[0]?.message).not.toContain('\x07')
+    })
+  })
+
+  describe('undeletable component warning', () => {
+    it('Given a run whose destructive view omits undeletable components, When sgd runs, Then exactly one warning names the type and every omitted member', async () => {
+      // Arrange
+      mockProcess.mockResolvedValueOnce(
+        makeHandlerResult({
+          manifests: [
+            {
+              target: ManifestTarget.DestructiveChanges,
+              type: 'RecordType',
+              member: 'Account.Alpha',
+              changeKind: ChangeKind.Delete,
+            },
+            {
+              target: ManifestTarget.DestructiveChanges,
+              type: 'RecordType',
+              member: 'Account.Gamma',
+              changeKind: ChangeKind.Delete,
+            },
+          ],
+        })
+      )
+
+      // Act
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
+
+      // Assert — the length-1 assertion is what kills a per-member raise.
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        'warning.UndeletableComponentsOmitted:RecordType,Account.Alpha, Account.Gamma'
+      )
+    })
+
+    it('Given a run with no undeletable component, When sgd runs, Then no undeletable-component warning is pushed', async () => {
+      // Arrange
+      mockProcess.mockResolvedValueOnce(
+        makeHandlerResult({
+          manifests: [
+            {
+              target: ManifestTarget.DestructiveChanges,
+              type: 'ApexClass',
+              member: 'Foo',
+              changeKind: ChangeKind.Delete,
+            },
+          ],
+        })
+      )
+
+      // Act
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
+
+      // Assert
+      expect(result.warnings).toEqual([])
+    })
+
+    it('Given undeletable members where the first exceeds the sanitizer length cap, When sgd runs, Then the second member still appears in its escaped form', async () => {
+      // Arrange — the cap must apply per member before joining; capping the
+      // joined aggregate instead would elide the second member's control
+      // character behind the first member's truncation.
+      const longMember = 'a'.repeat(250)
+      const controlCharMember = 'Account.Delta\x0A'
+      mockProcess.mockResolvedValueOnce(
+        makeHandlerResult({
+          manifests: [
+            {
+              target: ManifestTarget.DestructiveChanges,
+              type: 'RecordType',
+              member: longMember,
+              changeKind: ChangeKind.Delete,
+            },
+            {
+              target: ManifestTarget.DestructiveChanges,
+              type: 'RecordType',
+              member: controlCharMember,
+              changeKind: ChangeKind.Delete,
+            },
+          ],
+        })
+      )
+
+      // Act
+      const result = await sgd({ source: [] } as unknown as ConfigInput)
+
+      // Assert
+      expect(result.warnings).toHaveLength(1)
+      expect(result.warnings[0]?.message).toBe(
+        `warning.UndeletableComponentsOmitted:RecordType,${'a'.repeat(200)}…, Account.Delta\\u{a}`
+      )
     })
   })
 

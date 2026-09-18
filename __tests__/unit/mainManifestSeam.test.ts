@@ -8,6 +8,7 @@ import type { Config } from '../../src/types/config'
 import type { HandlerResult } from '../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
+import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import PackageBuilder from '../../src/utils/packageHelper'
 
 // The manifest seam guard: the ChangeSet placed on the returned Work.changes
@@ -154,6 +155,7 @@ const pathByStream = new Map<PassThrough, string>()
 
 beforeEach(() => {
   vi.clearAllMocks()
+  IgnoreHelper.resetIgnoreInstance()
   mockValidateConfig.mockResolvedValue([])
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])

@@ -11,22 +11,15 @@ import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import {
+  type ChangesManifestJson,
+  runBothModes as runBothModesWithHelpers,
+} from '../__utils__/changesManifestHelpers'
+import {
   buildFolderMoveFixtureRepo,
   FIXTURE_HOOK_BUDGET_MS,
   type FolderMoveFixtureRefs,
 } from '../__utils__/gitFixtureRepo'
 import { createTempDir } from '../__utils__/gitTestHarness'
-
-// Mirrors the private shape ChangesManifestProcessor writes to disk, so the
-// rename-bucket assertions below can read the file back typed rather than as
-// `unknown`.
-type RenamePairJson = { from: string; to: string }
-type ChangesManifestJson = {
-  [ChangeKind.Add]: Record<string, string[]>
-  [ChangeKind.Modify]: Record<string, string[]>
-  [ChangeKind.Delete]: Record<string, string[]>
-  [ChangeKind.Rename]: Record<string, RenamePairJson[]>
-}
 
 // makeInput pins apiVersion, so ConfigValidator's appexchange lookup is never
 // reached for any run built through it — this bucket runs behind an
@@ -62,19 +55,34 @@ const runSgd = async (
   overrides: Partial<ConfigInput> = {}
 ): Promise<{
   work: Awaited<ReturnType<typeof sgd>>
+  packageXml: string
   destructiveXml: string
 }> => {
   const input = await makeInput(overrides)
   const work = await sgd(input)
+  const packageXml = await readFile(
+    join(input.output, 'package', 'package.xml'),
+    'utf8'
+  )
   const destructiveXml = await readFile(
     join(input.output, 'destructiveChanges', 'destructiveChanges.xml'),
     'utf8'
   )
-  return { work, destructiveXml }
+  return { work, packageXml, destructiveXml }
 }
 
 const members = (manifest: Manifest, type: string): string[] =>
   [...(manifest.get(type) ?? [])].sort()
+
+const runBothModes = (
+  overrides: Partial<ConfigInput> = {}
+): ReturnType<typeof runBothModesWithHelpers> =>
+  runBothModesWithHelpers(
+    runSgd,
+    trackedTempDir,
+    'sgd-folder-move-manifest-',
+    overrides
+  )
 
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-folder-move-fixture-')
@@ -329,5 +337,146 @@ describe('Given a report moved into a globally ignored path', () => {
       'OldFolder/My_Report_B',
       'OldFolder/My_Report_C',
     ])
+  })
+})
+
+describe('Given a report folder move reported through a changes manifest and a destructive ignore covering the source folder', () => {
+  const sourceFolderIgnoreOverrides = async (): Promise<
+    Partial<ConfigInput>
+  > => {
+    // Arrange — _buildIgnore reads this with a plain fs.readFile, which
+    // resolves a relative path against process.cwd(), so config.ignoreDestructive
+    // must get an absolute path.
+    const ignoreDestructive = join(
+      await trackedTempDir('sgd-folder-move-ignore-'),
+      '.sgdignore-old-folder'
+    )
+    await writeFile(
+      ignoreDestructive,
+      'force-app/main/default/reports/OldFolder/\n'
+    )
+    return { ignoreDestructive }
+  }
+
+  it('When the run runs in both modes, Then the destructive view drops every report while the folder descriptor and the dashboard survive as controls', async () => {
+    // Arrange
+    const overrides = await sourceFolderIgnoreOverrides()
+
+    // Act
+    const { off, on } = await runBothModes(overrides)
+
+    // Assert — the folder descriptor and the untouched dashboard prove the
+    // run really produced a destructive view, so an empty Report bucket
+    // cannot be explained by a broken pipeline.
+    for (const result of [off, on]) {
+      expect(
+        members(result.work.changes.forDestructiveManifest(), 'Report')
+      ).toEqual([])
+      expect(
+        members(result.work.changes.forDestructiveManifest(), 'ReportFolder')
+      ).toEqual(['OldFolder'])
+      expect(
+        members(result.work.changes.forDestructiveManifest(), 'Dashboard')
+      ).toEqual(['OldDash/My_Dash2'])
+    }
+  })
+
+  it('When the run also reports a changes manifest, Then both xml manifests are byte-identical to the run without it', async () => {
+    // Arrange
+    const overrides = await sourceFolderIgnoreOverrides()
+
+    // Act
+    const { off, on } = await runBothModes(overrides)
+
+    // Assert
+    expect(on.packageXml).toEqual(off.packageXml)
+    expect(on.destructiveXml).toEqual(off.destructiveXml)
+  })
+
+  it('When the run also reports a changes manifest, Then every report relocates to the add bucket instead of surviving as a rename or a deletion', async () => {
+    // Arrange
+    const overrides = await sourceFolderIgnoreOverrides()
+
+    // Act
+    const { payload } = await runBothModes(overrides)
+
+    // Assert — every Report triple's source lies under the ignored folder,
+    // so all three drop whatever tsgit's blob pairing produced; the
+    // surviving targets resurface as plain adds instead.
+    expect(payload[ChangeKind.Rename]['Report']).toBeUndefined()
+    expect(payload[ChangeKind.Delete]['Report']).toBeUndefined()
+    expect([...payload[ChangeKind.Add]['Report']].sort()).toEqual([
+      'NewFolder/My_Report_A',
+      'NewFolder/My_Report_B',
+      'NewFolder/My_Report_C_Renamed',
+    ])
+  })
+})
+
+describe('Given a report folder move reported through a changes manifest and a global ignore covering the destination folder', () => {
+  const destinationFolderIgnoreOverrides = async (): Promise<
+    Partial<ConfigInput>
+  > => {
+    // Arrange — same absolute-path requirement as the destructive side, and
+    // the same pattern the no-flag case above already runs.
+    const ignore = join(
+      await trackedTempDir('sgd-folder-move-ignore-'),
+      '.sgdignore-new-folder'
+    )
+    await writeFile(ignore, 'force-app/main/default/reports/NewFolder/\n')
+    return { ignore }
+  }
+
+  it('When the run runs in both modes, Then the package view drops every report while the folder descriptor survives as a control', async () => {
+    // Arrange
+    const overrides = await destinationFolderIgnoreOverrides()
+
+    // Act
+    const { off, on } = await runBothModes(overrides)
+
+    // Assert
+    for (const result of [off, on]) {
+      expect(
+        members(result.work.changes.forPackageManifest(), 'Report')
+      ).toEqual([])
+      expect(
+        members(result.work.changes.forPackageManifest(), 'ReportFolder')
+      ).toEqual(['NewFolder'])
+    }
+  })
+
+  it('When the run also reports a changes manifest, Then the destructive view matches what the run without it already keeps', async () => {
+    // Arrange
+    const overrides = await destinationFolderIgnoreOverrides()
+
+    // Act
+    const { off, on } = await runBothModes(overrides)
+
+    // Assert — the rename target no longer reaches the package view, so it
+    // can no longer vouch for the source path's deletion. Comparing against
+    // the same run with the flag omitted (rather than a copied literal)
+    // pins this to the answer the no-flag case above already establishes.
+    const offReports = members(
+      off.work.changes.forDestructiveManifest(),
+      'Report'
+    )
+    // Guard the equality below: without this the assertion would also pass
+    // if both runs produced nothing at all.
+    expect(offReports).toHaveLength(3)
+    expect(members(on.work.changes.forDestructiveManifest(), 'Report')).toEqual(
+      offReports
+    )
+  })
+
+  it('When the run also reports a changes manifest, Then both xml manifests are byte-identical to the run without it', async () => {
+    // Arrange
+    const overrides = await destinationFolderIgnoreOverrides()
+
+    // Act
+    const { off, on } = await runBothModes(overrides)
+
+    // Assert
+    expect(on.packageXml).toEqual(off.packageXml)
+    expect(on.destructiveXml).toEqual(off.destructiveXml)
   })
 })

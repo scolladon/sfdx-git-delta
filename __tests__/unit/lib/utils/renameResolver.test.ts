@@ -17,6 +17,14 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => ({
   }),
 }))
 
+const { mockKeep, mockBuildIgnoreHelper } = vi.hoisted(() => ({
+  mockKeep: vi.fn(),
+  mockBuildIgnoreHelper: vi.fn(),
+}))
+vi.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: mockBuildIgnoreHelper,
+}))
+
 describe('RenameResolver', () => {
   let config: Config
   let metadata: MetadataRepository
@@ -25,6 +33,10 @@ describe('RenameResolver', () => {
     config = getConfig()
     metadata = await getDefinition({})
     mockGetTypeHandler.mockReset()
+    mockKeep.mockReset()
+    mockKeep.mockReturnValue(true)
+    mockBuildIgnoreHelper.mockReset()
+    mockBuildIgnoreHelper.mockResolvedValue({ keep: mockKeep })
   })
 
   describe('Given a rename pair where both sides resolve to the same type but different members', () => {
@@ -119,23 +131,136 @@ describe('RenameResolver', () => {
     })
   })
 
-  describe('Given a rename pair where getTypeHandler throws (ignored path)', () => {
+  describe('Given a rename pair whose path resolves to an unknown metadata type', () => {
     it('When resolve runs, Then the pair is skipped and a warning is logged', async () => {
       // Arrange
       const loggerWarn = vi.spyOn(Logger, 'warn')
       mockGetTypeHandler.mockRejectedValueOnce(
-        new Error('Unknown metadata type for path: ignored/path')
+        new Error('Unknown metadata type for path: unknown/path')
       )
       const sut = new RenameResolver(getContext({ config, metadata }))
 
       // Act & Assert — resolve settles without throwing
       await expect(
-        sut.resolve([{ fromPath: 'ignored/path', toPath: 'other/path.cls' }])
+        sut.resolve([{ fromPath: 'unknown/path', toPath: 'other/path.cls' }])
       ).resolves.toEqual([])
       // Logger.warn is a genuine boundary (module-mocked); asserting the
       // call is the observable channel for the catch block's side effect.
       // Emptying the catch block would swallow the error silently.
       expect(loggerWarn).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('Given a rename pair whose source the destructive ignore rejects', () => {
+    it('When resolve runs, Then no triple is returned and the type handlers are never consulted', async () => {
+      // Arrange
+      mockGetTypeHandler
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Old' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
+        })
+      mockKeep.mockImplementation((line: string) => !line.startsWith('D'))
+      const sut = new RenameResolver(getContext({ config, metadata }))
+
+      // Act
+      const triples = await sut.resolve([
+        { fromPath: 'old/path.cls', toPath: 'new/path.cls' },
+      ])
+
+      // Assert — the guard drops the whole triple before any handler
+      // resolution is attempted.
+      expect(triples).toEqual([])
+      expect(mockGetTypeHandler).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given a rename pair whose target the global ignore rejects', () => {
+    it('When resolve runs, Then no triple is returned', async () => {
+      // Arrange
+      mockGetTypeHandler
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Old' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
+        })
+      mockKeep.mockImplementation((line: string) => !line.startsWith('A'))
+      const sut = new RenameResolver(getContext({ config, metadata }))
+
+      // Act
+      const triples = await sut.resolve([
+        { fromPath: 'old/path.cls', toPath: 'new/path.cls' },
+      ])
+
+      // Assert
+      expect(triples).toEqual([])
+    })
+  })
+
+  describe('Given a rename pair both ignore files reject', () => {
+    it('When resolve runs, Then no triple is returned', async () => {
+      // Arrange
+      mockGetTypeHandler
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'Old' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'New' }),
+        })
+      mockKeep.mockReturnValue(false)
+      const sut = new RenameResolver(getContext({ config, metadata }))
+
+      // Act
+      const triples = await sut.resolve([
+        { fromPath: 'old/path.cls', toPath: 'new/path.cls' },
+      ])
+
+      // Assert
+      expect(triples).toEqual([])
+    })
+  })
+
+  describe('Given several rename pairs in one resolve call', () => {
+    it('When resolve runs, Then the ignore helper is built once regardless of pair count', async () => {
+      // Arrange
+      mockGetTypeHandler
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'A1' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'A2' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'B1' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'B2' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'C1' }),
+        })
+        .mockResolvedValueOnce({
+          getElementDescriptor: () => ({ type: 'ApexClass', member: 'C2' }),
+        })
+      const sut = new RenameResolver(getContext({ config, metadata }))
+
+      // Act
+      const triples = await sut.resolve([
+        { fromPath: 'a1.cls', toPath: 'a2.cls' },
+        { fromPath: 'b1.cls', toPath: 'b2.cls' },
+        { fromPath: 'c1.cls', toPath: 'c2.cls' },
+      ])
+
+      // Assert — buildIgnoreHelper is a genuine module boundary, so the call
+      // count is the only observable channel for the hoist out of the loop.
+      expect(mockBuildIgnoreHelper).toHaveBeenCalledOnce()
+      expect(triples).toEqual([
+        { type: 'ApexClass', from: 'A1', to: 'A2' },
+        { type: 'ApexClass', from: 'B1', to: 'B2' },
+        { type: 'ApexClass', from: 'C1', to: 'C2' },
+      ])
     })
   })
 })

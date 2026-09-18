@@ -575,4 +575,277 @@ describe('ChangeSet', () => {
       expect(result.has('BotVersion')).toBe(false)
     })
   })
+
+  describe('Given a record type deleted outright', () => {
+    it('When reading the destructive manifest, Then it carries no record type member', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.has('RecordType')).toBe(false)
+    })
+
+    it('When reading the review view, Then the record type deletion is still visible', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.byChangeKind()[ChangeKind.Delete].get('RecordType')
+
+      // Assert
+      expect(result).toEqual(new Set(['Account.Alpha']))
+    })
+
+    it('When reading undeletable deletions, Then it carries the omitted member', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.get('RecordType')).toEqual(new Set(['Account.Alpha']))
+    })
+  })
+
+  describe('Given a record type rename', () => {
+    it('When reading every view, Then the destructive view drops it, the package view keeps the target, and the rename pair survives', () => {
+      // Arrange
+      const sut = ChangeSet.from(
+        [],
+        [{ type: 'RecordType', from: 'Account.Alpha', to: 'Account.Beta' }]
+      )
+
+      // Act
+      const destructive = sut.forDestructiveManifest()
+      const pkg = sut.forPackageManifest()
+      const renames = sut.byChangeKind()[ChangeKind.Rename].get('RecordType')!
+
+      // Assert
+      expect(destructive.has('RecordType')).toBe(false)
+      expect(pkg.get('RecordType')).toEqual(new Set(['Account.Beta']))
+      expect([...renames.values()]).toEqual([
+        { from: 'Account.Alpha', to: 'Account.Beta' },
+      ])
+    })
+
+    it('When reading undeletable deletions, Then the rename source is reported while the rename pair still survives', () => {
+      // Arrange
+      const sut = ChangeSet.from(
+        [],
+        [{ type: 'RecordType', from: 'Account.Alpha', to: 'Account.Beta' }]
+      )
+
+      // Act
+      const undeletable = sut.undeletableDeletions()
+      const renames = sut.byChangeKind()[ChangeKind.Rename].get('RecordType')!
+
+      // Assert
+      expect(undeletable.get('RecordType')).toEqual(new Set(['Account.Alpha']))
+      expect([...renames.values()]).toEqual([
+        { from: 'Account.Alpha', to: 'Account.Beta' },
+      ])
+    })
+  })
+
+  describe('Given a record type deleted alongside its holder object', () => {
+    it('When reading undeletable deletions, Then the member is not reported because the deploy destroys its holder', () => {
+      // Arrange — deleting a decomposed object folder emits the holder and
+      // its record type as two independent destructive entries.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObject',
+          member: 'Account',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+
+    it('When only a sibling holder is deleted, Then the member is still reported', () => {
+      // Arrange — Contact goes, Account stays, so Account.Alpha really is
+      // orphaned and still needs manual removal.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObject',
+          member: 'Contact',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.get('RecordType')).toEqual(new Set(['Account.Alpha']))
+    })
+  })
+
+  describe('Given a holder object deleted with no record type beside it', () => {
+    it('When reading undeletable deletions, Then it reports nothing without reaching for absent members', () => {
+      // Arrange — deleting an object that carries no record types is the
+      // ordinary case; the undeletable type is simply absent from the view.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObject',
+          member: 'Account',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+  })
+
+  describe('Given a record type the package view already covers', () => {
+    it('When reading undeletable deletions, Then nothing is reported because nothing is omitted', () => {
+      // Arrange — the member is both deleted and packaged, so the
+      // subtraction inside the orphaned-deletes projection cancels it and
+      // the destructive view never omits it in the first place.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.Package,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Add,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+  })
+
+  describe('Given a change set with no undeletable member', () => {
+    it('When reading undeletable deletions, Then it reports nothing', () => {
+      // Arrange
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'ApexClass',
+          member: 'Foo',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.undeletableDeletions()
+
+      // Assert
+      expect(result.size).toBe(0)
+    })
+  })
+
+  describe('Given report, bot and record type members in one destructive view', () => {
+    it('When reading the destructive manifest, Then the sibling suppressors are unaffected and only the record type is stripped', () => {
+      // Arrange — a Report suppressed by the folder-move suppressor (its
+      // DeveloperName survives under the new package member), a Report that
+      // survives untouched, a Bot/BotVersion pair suppressed by the bot
+      // suppressor, and a RecordType only the new strip should remove.
+      const sut = ChangeSet.from([
+        {
+          target: ManifestTarget.Package,
+          type: 'Report',
+          member: 'NewFolder/My_Report',
+          changeKind: ChangeKind.Add,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Report',
+          member: 'OldFolder/My_Report',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Report',
+          member: 'OldFolder/Other_Report',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'Bot',
+          member: 'X',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'BotVersion',
+          member: 'X.v1',
+          changeKind: ChangeKind.Delete,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'RecordType',
+          member: 'Account.Alpha',
+          changeKind: ChangeKind.Delete,
+        },
+      ])
+
+      // Act
+      const result = sut.forDestructiveManifest()
+
+      // Assert
+      expect(result.get('Report')).toEqual(new Set(['OldFolder/Other_Report']))
+      expect(result.get('Bot')).toEqual(new Set(['X']))
+      expect(result.has('BotVersion')).toBe(false)
+      expect(result.has('RecordType')).toBe(false)
+    })
+  })
 })

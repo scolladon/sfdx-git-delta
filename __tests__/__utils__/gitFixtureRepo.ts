@@ -1233,3 +1233,258 @@ export const buildFolderMoveFixtureRepo = (
 
   return { root, moved, folderCollapse }
 }
+
+export type RenameIgnoreFixtureRefs = {
+  // Adds Foo.cls (+ meta) and Baz.cls (+ meta) under the default classes directory.
+  root: string
+  // From `root`: renames Foo.cls (+ meta) to Bar.cls (+ meta), same directory.
+  classRename: string
+  // From `root`: renames Baz.cls (+ meta) to Qux.cls (+ meta) under a sibling
+  // archive directory — a move and a rename in the same commit.
+  archiveMove: string
+}
+
+export const RENAME_IGNORE_FOO_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Foo.cls`
+export const RENAME_IGNORE_FOO_META = `${SFDX_DEFAULT_ROOT}/classes/Foo.cls-meta.xml`
+export const RENAME_IGNORE_BAR_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Bar.cls`
+export const RENAME_IGNORE_BAR_META = `${SFDX_DEFAULT_ROOT}/classes/Bar.cls-meta.xml`
+export const RENAME_IGNORE_BAZ_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Baz.cls`
+export const RENAME_IGNORE_BAZ_META = `${SFDX_DEFAULT_ROOT}/classes/Baz.cls-meta.xml`
+export const RENAME_IGNORE_ARCHIVE_ROOT = 'force-app/archive'
+export const RENAME_IGNORE_QUX_CLASS = `${RENAME_IGNORE_ARCHIVE_ROOT}/classes/Qux.cls`
+export const RENAME_IGNORE_QUX_META = `${RENAME_IGNORE_ARCHIVE_ROOT}/classes/Qux.cls-meta.xml`
+
+/**
+ * Two independent ApexClass pairs under the default source directory. Each
+ * class's `-meta.xml` content differs (`apiVersion` 60 vs 59), so every
+ * file's blob is unique within the fixture — the pairing-ambiguity trap the
+ * installed tsgit can fall into on byte-identical blobs never applies here.
+ * `classRename` renames Foo -> Bar in place; `archiveMove` renames Baz -> Qux
+ * into a sibling directory, so one sibling proves a same-directory rename
+ * and the other proves a move-and-rename.
+ */
+export const buildRenameIgnoreFixtureRepo = (
+  dir: string
+): RenameIgnoreFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'add class pair', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_FOO_CLASS,
+      content: 'public class Foo {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_FOO_META,
+      content:
+        '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>60.0</apiVersion></ApexClass>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_BAZ_CLASS,
+      content: 'public class Baz {}\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: RENAME_IGNORE_BAZ_META,
+      content:
+        '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>59.0</apiVersion></ApexClass>\n',
+    },
+  ])
+
+  const classRename = makeCommit(dir, root, 'rename Foo to Bar', [
+    {
+      kind: 'rename',
+      from: RENAME_IGNORE_FOO_CLASS,
+      to: RENAME_IGNORE_BAR_CLASS,
+    },
+    {
+      kind: 'rename',
+      from: RENAME_IGNORE_FOO_META,
+      to: RENAME_IGNORE_BAR_META,
+    },
+  ])
+
+  // `classRename` above left the index holding its own tree, not `root`'s —
+  // the index is a single persistent file across these plumbing-only
+  // commits, not reset per commit. Re-seed it from `root` so this sibling
+  // commit branches off `root` instead of continuing from `classRename`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const archiveMove = makeCommit(
+    dir,
+    root,
+    'move and rename Baz to the archive as Qux',
+    [
+      {
+        kind: 'rename',
+        from: RENAME_IGNORE_BAZ_CLASS,
+        to: RENAME_IGNORE_QUX_CLASS,
+      },
+      {
+        kind: 'rename',
+        from: RENAME_IGNORE_BAZ_META,
+        to: RENAME_IGNORE_QUX_META,
+      },
+    ]
+  )
+
+  return { root, classRename, archiveMove }
+}
+
+export type UndeletableTypeFixtureRefs = {
+  // Adds the Anchor class, two CustomObjects and their Alpha/Delta record types.
+  root: string
+  // From `root`: deletes the Account.Alpha record type outright.
+  recordTypeDeleted: string
+  // From `root`: renames the Account.Alpha record type to Account.Beta.
+  recordTypeRenamed: string
+  // From `root`: deletes the Account object together with its Alpha record
+  // type — the deploy destroys the holder, so the record type needs no
+  // manual cleanup and must not be reported as orphaned.
+  holderDeleted: string
+  // From `root`: only the Anchor class is touched; every record type is
+  // untouched here — reached only through an include-destructive walk.
+  anchorTouched: string
+}
+
+export const UNDELETABLE_ANCHOR_CLASS = `${SFDX_DEFAULT_ROOT}/classes/Anchor.cls`
+export const UNDELETABLE_ANCHOR_META = `${SFDX_DEFAULT_ROOT}/classes/Anchor.cls-meta.xml`
+export const UNDELETABLE_ACCOUNT_OBJECT = `${SFDX_DEFAULT_ROOT}/objects/Account/Account.object-meta.xml`
+export const UNDELETABLE_ALPHA_RECORD_TYPE = `${SFDX_DEFAULT_ROOT}/objects/Account/recordTypes/Alpha.recordType-meta.xml`
+export const UNDELETABLE_BETA_RECORD_TYPE = `${SFDX_DEFAULT_ROOT}/objects/Account/recordTypes/Beta.recordType-meta.xml`
+export const UNDELETABLE_CONTACT_OBJECT = `${SFDX_DEFAULT_ROOT}/objects/Contact/Contact.object-meta.xml`
+export const UNDELETABLE_DELTA_RECORD_TYPE = `${SFDX_DEFAULT_ROOT}/objects/Contact/recordTypes/Delta.recordType-meta.xml`
+export const UNDELETABLE_CONTACT_RECORD_TYPES_GLOB = `${SFDX_DEFAULT_ROOT}/objects/Contact/recordTypes/**`
+
+/**
+ * An Anchor ApexClass plus two CustomObjects, each carrying one RecordType
+ * (Account/Alpha, Contact/Delta). `recordTypeDeleted` deletes Alpha outright;
+ * `recordTypeRenamed` renames Alpha to Beta (unique blob, so the exact pass
+ * pairs it deterministically); `anchorTouched` only modifies the Anchor
+ * class, leaving every record type reachable solely through an
+ * include-destructive walk; `holderDeleted` removes the Account object and
+ * Alpha together. Every blob in this fixture is distinct, so no sibling can
+ * present two same-type components sharing one blob — the shape that makes
+ * rename pairing arbitrary.
+ */
+export const buildUndeletableTypeFixtureRepo = (
+  dir: string
+): UndeletableTypeFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'add anchor class and record types', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ANCHOR_CLASS,
+      content: 'public class Anchor { }\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ANCHOR_META,
+      content:
+        '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>60.0</apiVersion></ApexClass>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ACCOUNT_OBJECT,
+      content:
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"><label>Account</label></CustomObject>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ALPHA_RECORD_TYPE,
+      content:
+        '<RecordType xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Alpha</fullName></RecordType>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_CONTACT_OBJECT,
+      content:
+        '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata"><label>Contact</label></CustomObject>\n',
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_DELTA_RECORD_TYPE,
+      content:
+        '<RecordType xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Delta</fullName></RecordType>\n',
+    },
+  ])
+
+  const recordTypeDeleted = makeCommit(
+    dir,
+    root,
+    'delete the Alpha record type outright',
+    [{ kind: 'delete', path: UNDELETABLE_ALPHA_RECORD_TYPE }]
+  )
+
+  // `recordTypeDeleted` above left the index holding its own tree, not
+  // `root`'s — the index is a single persistent file across these
+  // plumbing-only commits, not reset per commit. Re-seed it from `root` so
+  // this sibling commit branches off `root` instead of continuing from
+  // `recordTypeDeleted`.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const recordTypeRenamed = makeCommit(
+    dir,
+    root,
+    'rename the Alpha record type to Beta',
+    [
+      {
+        kind: 'rename',
+        from: UNDELETABLE_ALPHA_RECORD_TYPE,
+        to: UNDELETABLE_BETA_RECORD_TYPE,
+      },
+    ]
+  )
+
+  runGit(['read-tree', root], { cwd: dir })
+
+  const anchorTouched = makeCommit(dir, root, 'touch only the anchor class', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: UNDELETABLE_ANCHOR_CLASS,
+      content: 'public class Anchor { /* touched */ }\n',
+    },
+  ])
+
+  // The include-destructive walk resolves its "first commit" boundary via
+  // HEAD (GitAdapter.getFirstCommitRef), so a repo built purely from
+  // plumbing commands — no ref ever pointed anywhere — fails that lookup
+  // with "HEAD: not a valid git revision". Every sibling here shares `root`
+  // as its parent, so which one HEAD points at does not change which commit
+  // the walk finds as the root.
+  runGit(['read-tree', root], { cwd: dir })
+
+  const holderDeleted = makeCommit(
+    dir,
+    root,
+    'delete the Account object and its Alpha record type',
+    [
+      { kind: 'delete', path: UNDELETABLE_ACCOUNT_OBJECT },
+      { kind: 'delete', path: UNDELETABLE_ALPHA_RECORD_TYPE },
+    ]
+  )
+
+  runGit(['update-ref', 'HEAD', anchorTouched], { cwd: dir })
+
+  return {
+    root,
+    recordTypeDeleted,
+    recordTypeRenamed,
+    holderDeleted,
+    anchorTouched,
+  }
+}

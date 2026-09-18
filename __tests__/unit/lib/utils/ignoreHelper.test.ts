@@ -106,6 +106,19 @@ describe('ignoreHelper', () => {
         // Assert
         expect(keep).toBe(true)
       })
+
+      it.each([
+        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
+      ])(
+        'should keep deleted "%s" line: no built-in destructive pattern exists',
+        line => {
+          // Act
+          const keep = sut.keep(line)
+
+          // Assert
+          expect(keep).toBe(true)
+        }
+      )
     })
     describe('when config does not have ignore and have destructive ignore', () => {
       beforeAll(async () => {
@@ -148,19 +161,6 @@ describe('ignoreHelper', () => {
 
       it.each([`${DELETION} path/to/ignoreFile.ext`])(
         'should not keep deleted "%s" line matching ignoreDestructive pattern',
-        line => {
-          // Act
-          const keep = sut.keep(line)
-
-          // Assert
-          expect(keep).toBe(false)
-        }
-      )
-
-      it.each([
-        `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
-      ])(
-        'should not keep deleted "%s" line matching default ignore pattern',
         line => {
           // Act
           const keep = sut.keep(line)
@@ -251,13 +251,13 @@ describe('ignoreHelper', () => {
       it.each([
         `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
       ])(
-        'should not keep deleted "%s" line matching default ignore pattern',
+        'should keep deleted "%s" line: no built-in destructive pattern exists',
         line => {
           // Act
           const keep = sut.keep(line)
 
           // Assert
-          expect(keep).toBe(false)
+          expect(keep).toBe(true)
         }
       )
     })
@@ -333,13 +333,13 @@ describe('ignoreHelper', () => {
       it.each([
         `${DELETION} path/to/objects/Account/recordTypes/IT.recordType-meta.xml`,
       ])(
-        'should not keep deleted "%s" line matching default ignore pattern',
+        'should keep deleted "%s" line: no built-in destructive pattern exists',
         line => {
           // Act
           const keep = sut.keep(line)
 
           // Assert
-          expect(keep).toBe(false)
+          expect(keep).toBe(true)
         }
       )
     })
