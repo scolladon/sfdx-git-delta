@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.3](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.2...v7.4.3) (2026-09-18)
+
+
+### Bug Fixes
+
+* **manifest:** apply the ignore files to renamed components ([#1451](https://github.com/scolladon/sfdx-git-delta/issues/1451)) ([a182b21](https://github.com/scolladon/sfdx-git-delta/commit/a182b214001e490aadf56273af960e9c7c5c073d)), closes [#1447](https://github.com/scolladon/sfdx-git-delta/issues/1447)
+
 ## [7.4.2](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.1...v7.4.2) (2026-09-17)
 
 
