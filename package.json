@@ -67,7 +67,7 @@
     "@salesforce/dev-config": "4.3.3",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
-    "@types/node": "26.6.1",
+    "@types/node": "26.6.2",
     "@vitest/coverage-v8": "5.0.1",
     "husky": "9.1.7",
     "knip": "6.37.0",
