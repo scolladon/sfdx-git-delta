@@ -55,13 +55,12 @@
   - [Explicitly including specific files for inclusion or destruction regardless of diff](#explicitly-including-specific-files-for-inclusion-or-destruction-regardless-of-diff)
   - [Scoping delta generation to a specific folder](#scoping-delta-generation-to-a-specific-folder)
   - [Scope delta generation to the sfdx-project.json package directories](#scope-delta-generation-to-the-sfdx-projectjson-package-directories)
-  - [Generate a comma-separated list of the added and modified Apex classes](#generate-a-comma-separated-list-of-the-added-and-modified-apex-classes)
+  - [Run specified tests using the SGD manifest](#run-specified-tests-using-the-sgd-manifest)
   - [Condition deployment on package.xml and destructiveChange content](#condition-deployment-on-packagexml-and-destructivechange-content)
   - [Use the module in your own node application](#use-the-module-in-your-own-node-application)
   - [Handle flow deletion](#handle-flow-deletion)
   - [Decomposed Metadata Types](#decomposed-metadata-types)
   - [Debugging](#debugging)
-- [Complementary Plugins](#complementary-plugins)
 - [Changelog](#changelog)
 - [Built With](#built-with)
 - [Used by](#used-by)
@@ -575,12 +574,46 @@ sf sgd source delta --from baseline --to HEAD --output-dir ./delta --generate-de
 > See [Scoping delta generation to specific folders](#scoping-delta-generation-to-specific-folders) for the `--source-dir` behavior.
 > Prefer `--ignore-file [-i]` when you only need to skip a few known paths (e.g. `**/.claude/**`) without coupling to `sfdx-project.json`.
 
-### Generate a comma-separated list of the added and modified Apex classes
+### Run specified tests using the SGD manifest
 
-Depending on your testing strategy, [you may want to generate a comma-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126). This list can feed the `sf project deploy start --testlevel RunSpecifiedTests` command, for example.
-To cover this need, parse the content of the package.xml file produced by SGD using [yq](https://github.com/kislyuk/yq):
+Depending on your testing strategy, you may want to run only the Apex tests related to the delta instead of every local test. Three options use the `package.xml` produced by SGD to drive the test selection:
 
-`xq . < package/package.xml | jq '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(",")'`
+#### 1. Build the test list from the added and modified Apex classes
+
+[Generate a space-separated list of the added and modified Apex classes](https://github.com/scolladon/sfdx-git-delta/issues/126) by parsing the `package.xml` produced by SGD with [yq](https://github.com/kislyuk/yq):
+
+```sh
+TESTS=$(xq . < package/package.xml | jq -r '.Package.types | [.] | flatten | map(select(.name=="ApexClass")) | .[] | .members | [.] | flatten | map(select(. | index("*") | not)) | unique | join(" ")')
+sf project deploy start -x package/package.xml --test-level RunSpecifiedTests --tests $TESTS
+```
+
+`--tests` expects a space-separated list, so `$TESTS` is left unquoted to expand into one argument per class. This only works when the delta contains the test classes themselves, or when your test class names can be derived from the changed classes.
+
+#### 2. Resolve tests from annotations with apex-test-list
+
+The [apex-test-list](https://github.com/renatoliveira/apex-test-list) plugin (by [renatoliveira](https://github.com/renatoliveira)) reads `@Tests:` / `@TestSuites:` annotations in your Apex classes and resolves the tests to run for the components listed in the SGD manifest:
+
+```apex
+// @Tests: AccountServiceTest, AccountTriggerTest
+public class AccountService { }
+```
+
+```sh
+echo y | sf plugins install apextestlist
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output-dir "."
+sf project deploy start -x package/package.xml --test-level RunSpecifiedTests $(sf apextests list -x package/package.xml --format sf)
+```
+
+#### 3. Let Salesforce pick with RunRelevantTests
+
+Salesforce's [`RunRelevantTests`](https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_run_relevant_tests.htm&release=260&type=5) test level (beta, Spring '26) analyzes the deployment payload server-side and runs only the tests relevant to it. Deploy the SGD manifest with it:
+
+```sh
+sf sgd source delta --to "HEAD" --from "HEAD~1" --output-dir "."
+sf project deploy start -x package/package.xml --test-level RunRelevantTests
+```
+
+Use `@IsTest(critical=true)` for tests that must always run, and `@IsTest(testFor='ApexClass:ClassName, ApexTrigger:TriggerName')` to force a test whenever given classes or triggers are in the payload.
 
 ### Review-centric: list components by change kind
 
@@ -778,13 +811,6 @@ example:
 ```sh
 DEBUG=sfdx-git-delta SF_LOG_LEVEL=trace sf sgd source delta --from "HEAD~1" --to "HEAD"
 ```
-
-## Complementary Plugins
-
-These plugins have been designed to work with SGD:
-
-- [apex-test-list](https://github.com/renatoliveira/apex-test-list) - Developer: [renatoliveira](https://github.com/renatoliveira) - This plugin determines the specified Apex tests by reading test annotations made anywhere inside your Apex classes. You can have this plugin scan the package.xml created by SGD to determine the required Apex tests to run during deployment.
-- [apex-tests-git-delta](https://github.com/mcarvin8/apex-tests-git-delta) - Developer: [mcarvin8](https://github.com/mcarvin8) - This plugin determines the specified Apex tests by reading the commit messages in the commit range. You can use the same `--from` and `--to` commit hashes when using SGD and apex-tests-git-delta to determine the required Apex tests to run during deployment.
 
 ## Changelog
 
