@@ -606,14 +606,7 @@ sf project deploy start -x package/package.xml --test-level RunSpecifiedTests $(
 
 #### 3. Let Salesforce pick with RunRelevantTests
 
-Salesforce's [`RunRelevantTests`](https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_run_relevant_tests.htm&release=260&type=5) test level (beta, Spring '26) analyzes the deployment payload server-side and runs only the tests relevant to it. Deploy the SGD manifest with it:
-
-```sh
-sf sgd source delta --to "HEAD" --from "HEAD~1" --output-dir "."
-sf project deploy start -x package/package.xml --test-level RunRelevantTests
-```
-
-Use `@IsTest(critical=true)` for tests that must always run, and `@IsTest(testFor='ApexClass:ClassName, ApexTrigger:TriggerName')` to force a test whenever given classes or triggers are in the payload.
+Salesforce's [`RunRelevantTests`](https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_run_relevant_tests.htm&release=260&type=5) test level (beta, Spring '26) analyzes the deployment payload server-side and runs only the tests relevant to it. Deploy the SGD manifest with it.
 
 ### Review-centric: list components by change kind
 
