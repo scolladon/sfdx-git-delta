@@ -1,21 +1,21 @@
 import { rm } from 'node:fs/promises'
 import { afterAll, describe, vi } from 'vitest'
-import sgd from '../../src/main.js'
-import { getDefinition } from '../../src/metadata/metadataManager.js'
-import type { ConfigInput } from '../../src/types/config.js'
-import ChangeSet from '../../src/utils/changeSet.js'
-import { computeTreeIndexScope } from '../../src/utils/treeIndexScope.js'
-import { createTempDir } from '../__utils__/gitTestHarness.js'
+import sgd from '../../lib/main.js'
+import { getDefinition } from '../../lib/metadata/metadataManager.js'
+import type { ConfigInput } from '../../lib/types/config.js'
+import ChangeSet from '../../lib/utils/changeSet.js'
+import { computeTreeIndexScope } from '../../lib/utils/treeIndexScope.js'
+import { createTempDir } from '../__utils__/gitTestHarness.ts'
 import {
   generateDiffFixtures,
   generateManifestElements,
-} from './fixtures/generateFixtures.js'
-import { buildLwcDiffRepo } from './fixtures/lwcRepoFixture.js'
+} from './fixtures/generateFixtures.ts'
+import { buildLwcDiffRepo } from './fixtures/lwcRepoFixture.ts'
 import {
   assertMeanWithinCeiling,
   deriveCeilingMs,
   perfBench,
-} from './harness/perfBench.js'
+} from './harness/perfBench.ts'
 
 const metadata = await getDefinition({})
 
@@ -40,9 +40,9 @@ for (const size of sizes) {
 // the live appexchange lookup is never reached, and the mock keeps every
 // sample measuring sgd rather than the network if a future edit drops the pin.
 const API_VERSION = 60
-vi.mock('../../src/metadata/metadataManager.js', async importOriginal => ({
+vi.mock('../../lib/metadata/metadataManager.js', async importOriginal => ({
   ...(await importOriginal<
-    typeof import('../../src/metadata/metadataManager.js')
+    typeof import('../../lib/metadata/metadataManager.js')
   >()),
   getLatestSupportedVersion: async () => API_VERSION,
 }))

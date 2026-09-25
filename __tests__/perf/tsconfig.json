@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // TS6059 without it: declaration is inherited and rootDir is src.
+    "rootDir": "../..",
+    "noEmit": true,
+    // Benches run under Node's native loader (viteModuleRunner: false), so
+    // resolution must be Node's: explicit extensions, TS2835 otherwise.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    // Sibling .ts files are imported by their real extension (TS5097).
+    "allowImportingTsExtensions": true,
+    // Node strips types and cannot run enums, namespaces or parameter
+    // properties (TS1294).
+    "erasableSyntaxOnly": true,
+    // A type imported without `type` is a runtime SyntaxError under
+    // stripping (TS1484).
+    "verbatimModuleSyntax": true
+  },
+  "include": ["./**/*"]
+}

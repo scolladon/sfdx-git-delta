@@ -16,5 +16,8 @@
     // this it is TS5097 under `bundler` resolution.
     "allowImportingTsExtensions": true
   },
-  "include": ["./**/*"]
+  "include": ["./**/*"],
+  // perf runs under Node's native loader and is type-checked by its own
+  // project (perf/tsconfig.json); bundler resolution would hide its errors.
+  "exclude": ["./perf/**"]
 }

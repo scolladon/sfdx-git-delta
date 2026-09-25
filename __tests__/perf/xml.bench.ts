@@ -2,9 +2,9 @@ import { describe } from 'vitest'
 import {
   parseFromSideSwallowing,
   parseToSidePropagating,
-} from '../../src/utils/metadataDiff/xmlEventReader.js'
-import { parseXml } from '../../src/utils/txmlAdapter.js'
-import { perfBench } from './harness/perfBench.js'
+} from '../../lib/utils/metadataDiff/xmlEventReader.js'
+import { parseXml } from '../../lib/utils/txmlAdapter.js'
+import { perfBench } from './harness/perfBench.ts'
 
 // Salesforce-shaped XML payloads at three rough sizes. The fixtures are
 // generated in-memory rather than read from disk so the benchmark

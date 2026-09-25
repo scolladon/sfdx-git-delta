@@ -186,7 +186,8 @@
         "**/biome.json",
         "tsconfig.json",
         "__tests__/tsconfig.json",
-        "tooling/tsconfig.json"
+        "tooling/tsconfig.json",
+        "__tests__/perf/tsconfig.json"
       ],
       "output": [],
       "dependencies": [
@@ -203,7 +204,8 @@
         "**/biome.json",
         "tsconfig.json",
         "__tests__/tsconfig.json",
-        "tooling/tsconfig.json"
+        "tooling/tsconfig.json",
+        "__tests__/perf/tsconfig.json"
       ],
       "output": [],
       "dependencies": [
@@ -219,6 +221,7 @@
         "tsconfig.json",
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
+        "__tests__/perf/tsconfig.json",
         "knip.config.ts"
       ],
       "output": [],
@@ -245,7 +248,7 @@
       "output": []
     },
     "lint:types": {
-      "command": "tsc -p tooling && tsc -p __tests__",
+      "command": "tsc -p tooling && tsc -p __tests__ && tsc -p __tests__/perf",
       "files": [
         "tooling/**",
         "src/**/*.ts",
@@ -254,10 +257,14 @@
         "tsconfig.json",
         "__tests__/tsconfig.json",
         "tooling/tsconfig.json",
+        "__tests__/perf/tsconfig.json",
         "package.json",
         "package-lock.json"
       ],
-      "output": []
+      "output": [],
+      "dependencies": [
+        "build"
+      ]
     },
     "prepack": {
       "command": "oclif manifest && oclif readme",
@@ -334,7 +341,8 @@
         "perf-memory.json"
       ],
       "dependencies": [
-        "build"
+        "build",
+        "lint:types"
       ]
     },
     "test:mutation": {

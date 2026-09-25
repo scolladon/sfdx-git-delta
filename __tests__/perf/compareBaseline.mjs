@@ -58,16 +58,35 @@ const regressions = []
 const improvements = []
 const stable = []
 
+const NOT_APPLICABLE = 'n/a'
+
+// A mean below the reporter's rounding precision is written as 0, and a
+// ratio against 0 is not a measurement: 0/x reads as -100%, x/0 as Infinity
+// and 0/0 as NaN. Such a row is listed, never classified.
+const hasZeroSide = (baseVal, prVal) => baseVal === 0 || prVal === 0
+const withoutRatio = row => ({
+  ...row,
+  ratio: NOT_APPLICABLE,
+  change: NOT_APPLICABLE,
+})
+
 for (const entry of prRuntime) {
   const baseVal = baseRuntimeMap.get(entry.name)
   if (baseVal == null) continue
-  const ratio = baseVal / entry.value
-  const pct = ((ratio - 1) * 100).toFixed(1)
-  const row = {
+  const values = {
     name: entry.name,
     base: baseVal,
     pr: entry.value,
     unit: 'ops/sec',
+  }
+  if (hasZeroSide(baseVal, entry.value)) {
+    stable.push(withoutRatio(values))
+    continue
+  }
+  const ratio = baseVal / entry.value
+  const pct = ((ratio - 1) * 100).toFixed(1)
+  const row = {
+    ...values,
     ratio: ratio.toFixed(2),
     change: ratio > 1 ? `-${pct}%` : `+${Math.abs(pct)}%`,
   }
@@ -79,13 +98,20 @@ for (const entry of prRuntime) {
 for (const entry of prMemory) {
   const baseVal = baseMemoryMap.get(entry.name)
   if (baseVal == null) continue
-  const ratio = entry.value / baseVal
-  const pct = ((ratio - 1) * 100).toFixed(1)
-  const row = {
+  const values = {
     name: `${entry.name} (mean)`,
     base: `${baseVal}ms`,
     pr: `${entry.value}ms`,
     unit: 'ms',
+  }
+  if (hasZeroSide(baseVal, entry.value)) {
+    stable.push(withoutRatio(values))
+    continue
+  }
+  const ratio = entry.value / baseVal
+  const pct = ((ratio - 1) * 100).toFixed(1)
+  const row = {
+    ...values,
     ratio: ratio.toFixed(2),
     change: ratio > 1 ? `+${pct}%` : `-${Math.abs(pct)}%`,
   }

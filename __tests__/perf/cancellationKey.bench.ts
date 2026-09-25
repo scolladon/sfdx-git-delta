@@ -1,13 +1,13 @@
 import { describe } from 'vitest'
-import { TAB } from '../../src/constant/cliConstants.js'
-import { ADDITION } from '../../src/constant/gitConstants.js'
-import { getDefinition } from '../../src/metadata/metadataManager.js'
-import type { Config } from '../../src/types/config.js'
-import RepoGitDiff from '../../src/utils/repoGitDiff.js'
-import { sourceDirs } from '../__utils__/sourceDirs.js'
-import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.js'
-import { buildPath, SHAPES, type Shape } from './fixtures/registryShapes.js'
-import { perfBench } from './harness/perfBench.js'
+import { TAB } from '../../lib/constant/cliConstants.js'
+import { ADDITION } from '../../lib/constant/gitConstants.js'
+import { getDefinition } from '../../lib/metadata/metadataManager.js'
+import type { Config } from '../../lib/types/config.js'
+import RepoGitDiff from '../../lib/utils/repoGitDiff.js'
+import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.ts'
+import { buildPath, SHAPES, type Shape } from './fixtures/registryShapes.ts'
+import { perfBench } from './harness/perfBench.ts'
+import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Pins the cost of deriving a cancellation key on a COLD registry — the
 // worst case getLines() actually pays once per sgd() invocation. It

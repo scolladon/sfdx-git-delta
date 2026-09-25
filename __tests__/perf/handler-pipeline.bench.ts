@@ -1,13 +1,13 @@
 import { describe, vi } from 'vitest'
-import { getDefinition } from '../../src/metadata/metadataManager.js'
-import DiffLineInterpreter from '../../src/service/diffLineInterpreter.js'
-import type { Config } from '../../src/types/config.js'
-import { sourceDirs } from '../__utils__/sourceDirs.js'
-import { getContext } from '../__utils__/testWork.js'
-import { generateDiffFixtures } from './fixtures/generateFixtures.js'
-import { perfBench } from './harness/perfBench.js'
+import { EMPTY_TREE_READER } from '../../lib/adapter/treeReader.js'
+import { getDefinition } from '../../lib/metadata/metadataManager.js'
+import DiffLineInterpreter from '../../lib/service/diffLineInterpreter.js'
+import type { Config } from '../../lib/types/config.js'
+import { generateDiffFixtures } from './fixtures/generateFixtures.ts'
+import { perfBench } from './harness/perfBench.ts'
+import { sourceDirs } from './harness/sourceDirs.ts'
 
-vi.mock('../../src/adapter/GitAdapter.js', () => {
+vi.mock('../../lib/adapter/GitAdapter.js', () => {
   const mockAdapter = {
     pathExists: vi.fn().mockResolvedValue(true),
     getStringContent: vi.fn().mockResolvedValue('<xml>mock</xml>'),
@@ -50,9 +50,11 @@ for (const size of sizes) {
   describe(`pipeline-handler-${size}`, () => {
     perfBench(`pipeline-handler-dispatch-${size}`, async () => {
       const config = createConfig()
-      const interpreter = new DiffLineInterpreter(
-        getContext({ config, metadata })
-      )
+      const interpreter = new DiffLineInterpreter({
+        config,
+        metadata,
+        trees: EMPTY_TREE_READER,
+      })
       await interpreter.process(lines)
     })
   })

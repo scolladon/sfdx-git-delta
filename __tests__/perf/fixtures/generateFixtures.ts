@@ -2,13 +2,13 @@ import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} from '../../../src/constant/gitConstants.js'
+} from '../../../lib/constant/gitConstants.js'
 import {
   type AddKind,
   ChangeKind,
   type ManifestElement,
   ManifestTarget,
-} from '../../../src/types/handlerResult.js'
+} from '../../../lib/types/handlerResult.js'
 
 const CHANGE_KIND_BY_GIT: Record<string, AddKind> = {
   [ADDITION]: ChangeKind.Add,

@@ -1,19 +1,19 @@
 import ignore from 'ignore'
 import { describe } from 'vitest'
-import { TAB } from '../../src/constant/cliConstants.js'
-import { ADDITION } from '../../src/constant/gitConstants.js'
-import type { MetadataRepository } from '../../src/metadata/MetadataRepository.js'
-import { getDefinition } from '../../src/metadata/metadataManager.js'
-import type { Config } from '../../src/types/config.js'
-import { IgnoreHelper } from '../../src/utils/ignoreHelper.js'
-import RepoGitDiff from '../../src/utils/repoGitDiff.js'
-import { sourceDirs } from '../__utils__/sourceDirs.js'
-import { buildPath, SHAPES } from './fixtures/registryShapes.js'
+import { TAB } from '../../lib/constant/cliConstants.js'
+import { ADDITION } from '../../lib/constant/gitConstants.js'
+import type { MetadataRepository } from '../../lib/metadata/MetadataRepository.js'
+import { getDefinition } from '../../lib/metadata/metadataManager.js'
+import type { Config } from '../../lib/types/config.js'
+import { IgnoreHelper } from '../../lib/utils/ignoreHelper.js'
+import RepoGitDiff from '../../lib/utils/repoGitDiff.js'
+import { buildPath, SHAPES } from './fixtures/registryShapes.ts'
 import {
   assertMeanWithinCeiling,
   perfBench,
   RUNNER_NOISE_FACTOR,
-} from './harness/perfBench.js'
+} from './harness/perfBench.ts'
+import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Pins the cost of the visibility pass the fix introduced: one linear walk
 // over every in-scope file at `to`, doing a registry-membership check plus
@@ -29,12 +29,15 @@ import {
 // reached through `protected` from a subclass that replaces the one git
 // read with a synthetic listing — no repository, no tsgit flatten, no trie.
 class VisibilityProbe extends RepoGitDiff {
+  private readonly listing: readonly string[]
+
   constructor(
     config: Config,
     metadata: MetadataRepository,
-    private readonly listing: readonly string[]
+    listing: readonly string[]
   ) {
     super(config, metadata)
+    this.listing = listing
   }
 
   protected override async _listFilesAt(): Promise<
