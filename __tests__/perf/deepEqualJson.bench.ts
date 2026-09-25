@@ -1,6 +1,6 @@
 import { describe } from 'vitest'
-import { deepEqualJson } from '../../src/utils/metadataDiff/deepEqualJson.js'
-import { perfBench } from './harness/perfBench.js'
+import { deepEqualJson } from '../../lib/utils/metadataDiff/deepEqualJson.js'
+import { perfBench } from './harness/perfBench.ts'
 
 // XML-shaped fixtures matching txml output: nested objects with @_attr
 // keys and arrays of repeated tags. The diff hot path compares

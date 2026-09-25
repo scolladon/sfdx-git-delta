@@ -1,11 +1,11 @@
 import { Writable } from 'node:stream'
 import { describe } from 'vitest'
-import type { RootCapture } from '../../src/utils/metadataDiff/xmlEventReader.js'
+import type { RootCapture } from '../../lib/utils/metadataDiff/xmlEventReader.js'
 import {
   type WriteOptions,
   writeXmlDocument,
-} from '../../src/utils/metadataDiff/xmlWriter.js'
-import { perfBench } from './harness/perfBench.js'
+} from '../../lib/utils/metadataDiff/xmlWriter.js'
+import { perfBench } from './harness/perfBench.ts'
 
 // A /dev/null Writable: counts bytes but throws nothing away that
 // matters. Backpressure path is exercised by toggling highWaterMark.

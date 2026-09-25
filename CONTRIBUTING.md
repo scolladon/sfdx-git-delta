@@ -201,6 +201,18 @@ bench orphans its history, and is reported under *Benchmarks missing from
 this run*. A throwing bench body fails the run and nothing is written; a
 `-t` filter writes partial files.
 
+Benches import the tsc-compiled `lib/`, never `src/`, and run under Node's
+native loader (`experimental.viteModuleRunner: false` in
+`vitest.config.perf.ts`), so a number measures sgd rather than Vite's export
+getters. `npm run test:perf` builds `lib/` and type-checks the perf tree
+first; running `vitest bench --config vitest.config.perf.ts` directly
+benches whatever `lib/` is on disk, stale or missing. Under the native
+loader, imports between perf files use the real `.ts` extension, type-only
+imports are marked `type`, and enums, namespaces and parameter properties
+are unavailable. `__tests__/perf/tsconfig.json` (run by `npm run
+lint:types`) enforces all of this except a `.js` extension on a `.ts`
+sibling, which fails the run at module load instead.
+
 ```bash
 npm run test:perf
 ```

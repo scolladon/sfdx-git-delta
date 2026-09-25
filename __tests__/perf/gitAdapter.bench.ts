@@ -1,12 +1,12 @@
 import { rm } from 'node:fs/promises'
 import { afterAll, describe } from 'vitest'
-import GitAdapter from '../../src/adapter/GitAdapter.js'
-import type { Config } from '../../src/types/config.js'
-import type { FileGitRef } from '../../src/types/git.js'
-import { createTempDir } from '../__utils__/gitTestHarness.js'
-import { sourceDirs } from '../__utils__/sourceDirs.js'
-import { buildHistoryRepo } from './fixtures/historyRepoFixture.js'
-import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.js'
+import GitAdapter from '../../lib/adapter/GitAdapter.js'
+import type { Config } from '../../lib/types/config.js'
+import type { FileGitRef } from '../../lib/types/git.js'
+import { createTempDir } from '../__utils__/gitTestHarness.ts'
+import { buildHistoryRepo } from './fixtures/historyRepoFixture.ts'
+import { assertMeanWithinCeiling, perfBench } from './harness/perfBench.ts'
+import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Regression bench over a FIXED synthetic history (historyRepoFixture.ts),
 // never over this repository's own commits: a lightweight per-run sanity

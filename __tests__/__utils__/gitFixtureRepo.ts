@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 
-import { runGit, runGitText } from './gitTestHarness'
+import { runGit, runGitText } from './gitTestHarness.ts'
 
 // Building a fixture repo spawns dozens of blocking git processes: fixture
 // I/O, not the behaviour under test. A cold Windows runner outruns vitest's

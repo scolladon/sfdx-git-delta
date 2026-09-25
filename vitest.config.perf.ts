@@ -1,18 +1,16 @@
 import { defineConfig } from 'vitest/config'
 
-import { oxc } from './vitest.shared.ts'
-
 export default defineConfig({
   test: {
     benchmark: {
       include: ['__tests__/perf/**/*.bench.ts'],
-      // Every export read inside src/ (Logger, lazy, PATH_SEP, ...) goes
-      // through a module-runner getter. The tracker behind this warning wraps
-      // each of those getters with a counter and measured 1.4-1.7x slower on
-      // the registry benches; no bench file can bind that away, so it stays off.
-      suppressExportGetterWarnings: true,
+    },
+    // Vite's module runner turns every export into a getter, so a bench
+    // over src/ timed the getter hops as much as the code. The benches
+    // import the tsc-compiled lib/ and run under Node's native loader.
+    experimental: {
+      viteModuleRunner: false,
     },
     reporters: ['default', './__tests__/perf/perfReporter.ts'],
   },
-  oxc,
 })

@@ -1,6 +1,6 @@
 'use strict'
-import { initRepo } from '../../__utils__/gitFixtureRepo.js'
-import { runGit, runGitText } from '../../__utils__/gitTestHarness.js'
+import { initRepo } from '../../__utils__/gitFixtureRepo.ts'
+import { runGit, runGitText } from '../../__utils__/gitTestHarness.ts'
 
 export type LwcDiffRepoRefs = Readonly<{ root: string; head: string }>
 

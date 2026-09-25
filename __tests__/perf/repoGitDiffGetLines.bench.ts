@@ -1,20 +1,20 @@
 import { describe } from 'vitest'
-import type GitAdapter from '../../src/adapter/GitAdapter.js'
-import { TAB } from '../../src/constant/cliConstants.js'
+import type GitAdapter from '../../lib/adapter/GitAdapter.js'
+import { TAB } from '../../lib/constant/cliConstants.js'
 import {
   ADDITION,
   DELETION,
   MODIFICATION,
-} from '../../src/constant/gitConstants.js'
-import type { MetadataRepository } from '../../src/metadata/MetadataRepository.js'
-import { getDefinition } from '../../src/metadata/metadataManager.js'
-import type { Config } from '../../src/types/config.js'
-import { IgnoreHelper } from '../../src/utils/ignoreHelper.js'
-import RepoGitDiff from '../../src/utils/repoGitDiff.js'
-import { sourceDirs } from '../__utils__/sourceDirs.js'
-import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.js'
-import { buildPath, SHAPES } from './fixtures/registryShapes.js'
-import { perfBench } from './harness/perfBench.js'
+} from '../../lib/constant/gitConstants.js'
+import type { MetadataRepository } from '../../lib/metadata/MetadataRepository.js'
+import { getDefinition } from '../../lib/metadata/metadataManager.js'
+import type { Config } from '../../lib/types/config.js'
+import { IgnoreHelper } from '../../lib/utils/ignoreHelper.js'
+import RepoGitDiff from '../../lib/utils/repoGitDiff.js'
+import { ROUND_COUNTER_PAD } from './fixtures/generateFixtures.ts'
+import { buildPath, SHAPES } from './fixtures/registryShapes.ts'
+import { perfBench } from './harness/perfBench.ts'
+import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Pins the per-line cost of RepoGitDiff.getLines itself: _expandRename's
 // non-rename pass-through, _routeLine / _routeAddition (registry membership,

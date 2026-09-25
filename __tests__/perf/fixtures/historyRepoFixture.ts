@@ -1,6 +1,6 @@
 'use strict'
-import { initRepo } from '../../__utils__/gitFixtureRepo.js'
-import { runGit } from '../../__utils__/gitTestHarness.js'
+import { initRepo } from '../../__utils__/gitFixtureRepo.ts'
+import { runGit } from '../../__utils__/gitTestHarness.ts'
 
 export type HistoryRepoRefs = Readonly<{
   from: string

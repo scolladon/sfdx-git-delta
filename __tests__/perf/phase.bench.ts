@@ -1,12 +1,12 @@
 import { describe } from 'vitest'
-import type { MetadataRepository } from '../../src/metadata/MetadataRepository.js'
-import { getDefinition } from '../../src/metadata/metadataManager.js'
+import type { MetadataRepository } from '../../lib/metadata/MetadataRepository.js'
+import { getDefinition } from '../../lib/metadata/metadataManager.js'
 import {
   createDistinctRoundLines,
   createSameContentLines,
   type FixtureSize,
-} from './fixtures/generateFixtures.js'
-import { perfBench } from './harness/perfBench.js'
+} from './fixtures/generateFixtures.ts'
+import { perfBench } from './harness/perfBench.ts'
 
 // Replaces a bench that hid three regressions behind a warm instance: one
 // MetadataRepository built at module load and reused across every sample
