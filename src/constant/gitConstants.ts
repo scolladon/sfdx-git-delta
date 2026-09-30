@@ -9,3 +9,6 @@ export const GIT_DIFF_TYPE_REGEX = /^.\s+/u
 export const GIT_FOLDER = '.git'
 export const HEAD = 'HEAD'
 export const MODIFICATION = 'M'
+// The object id git gives a tree with no entries. It stands for "nothing"
+// where a pass needs a revision holding no path at all.
+export const EMPTY_TREE_OID = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'

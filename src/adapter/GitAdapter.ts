@@ -5,7 +5,6 @@
  *
  *   git rev-parse --verify <ref>^{commit} -> repo.revParse(ref) + peelToCommit
  *   git ls-tree --name-only -r <rev>    -> repo.primitives.flattenTree
- *   git rev-list --max-parents=0 HEAD   -> repo.primitives.walkCommits
  *   git cat-file --batch / blob         -> repo.primitives.readBlob / streamBlob
  *   git diff --name-status -M -w        -> repo.diff({ recursive,
  *                                            detectRenames, ignoreWhitespace })
@@ -41,7 +40,7 @@ import {
 } from '@scolladon/tsgit'
 
 import { UTF8_ENCODING } from '../constant/fsConstants.js'
-import { HEAD } from '../constant/gitConstants.js'
+import { EMPTY_TREE_OID } from '../constant/gitConstants.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import { getErrorMessage, NotACommitError } from '../utils/errorUtils.js'
@@ -70,6 +69,10 @@ import { mapTsgitError } from './tsgitErrorMap.js'
 // walkTree yields directories and gitlinks too; only blob-bearing modes
 // belong in the path -> blob id index (ls-tree -r parity).
 const BLOB_MODES = new Set(['100644', '100755', '120000'])
+
+// flattenRevision peels a revision to a commit, which the empty tree is not,
+// so its index — by definition empty — is served without resolving it.
+const EMPTY_BLOB_IDS: ReadonlyMap<string, ObjectId> = new Map()
 
 // Owned by the caller (RepoGitDiff in production, one instance per sgd()
 // invocation) rather than by the cached GitAdapter singleton: the pool key
@@ -345,6 +348,9 @@ export default class GitAdapter implements GitBlobReader {
   protected async flattenRevision(
     revision: string
   ): Promise<ReadonlyMap<string, ObjectId>> {
+    if (revision === EMPTY_TREE_OID) {
+      return EMPTY_BLOB_IDS
+    }
     const repo = await this.getRepo()
     const commit = await this.peelRevision(revision)
     const { entries } = await repo.primitives.flattenTree(commit.data.tree)
@@ -388,26 +394,6 @@ export default class GitAdapter implements GitBlobReader {
       return base
     } catch (error) {
       throw this.mapError(error, `${from}...${to}`)
-    }
-  }
-
-  @log
-  public async getFirstCommitRef(): Promise<string> {
-    try {
-      const repo = await this.getRepo()
-      const head = await repo.revParse(HEAD)
-      let firstCommit = head
-      for await (const commit of repo.primitives.walkCommits({
-        from: [head],
-      })) {
-        if (commit.data.parents.length === 0) {
-          firstCommit = commit.id
-          break
-        }
-      }
-      return firstCommit
-    } catch (error) {
-      throw this.mapError(error, HEAD)
     }
   }
 

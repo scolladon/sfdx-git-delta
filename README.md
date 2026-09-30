@@ -235,7 +235,6 @@ sf sgd source delta --from "HEAD~1" # right git shortcut with windows because it
 In CI/CD pipelines, for most of the CI/CD providers, the checkout operation fetches only the last commit of the branch currently evaluated.
 You need to fetch all the needed commits as the plugin needs access to the branch being compared.
 Example for Github action checkout [here](https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches).
-If you use `-n` (`--include-file`) with metadata contained inside files you will need to have the full repo locally for the command to fully work.
 With `--merge-base [-b]`, a shallow clone is an even sharper trap: `--from` and `--to` can each resolve to a valid commit while their histories still don't connect within the fetched depth, so SGD reports "no merge base found" even though the refs themselves are fine. Fetch enough history for the two branches to actually share an ancestor, not just enough for each ref to resolve.
 
 GitHub Actions' `pull_request` trigger checks out a synthetic merge commit whose parent already **is** the base branch tip, so `merge-base(HEAD, main)` resolves to `main`'s tip and `--merge-base` silently becomes a no-op (`--from main --merge-base` behaves like `--from main`). If you need true divergence semantics in that context, target the PR head commit directly — `--to <head sha>` (from the `pull_request` event payload) — or check out `ref: <head sha>` instead of the default merge ref.
@@ -504,7 +503,7 @@ As with `--ignore-file`, you may need different policies for the `package.xml` a
 
 Use the `--include-destructive-file` parameter to specify a dedicated include file to handle deletions. Related metadata will appear in the `destructiveChanges.xml` output.
 
-/!\ In order to work properly with metadata contained inside files (Labels, Workflow, MatchingRules, etc) the local repo must have the full historic.
+For metadata contained inside files (Labels, Workflow, MatchingRules, etc.), every element the file holds at `--to` is included: in `package.xml` with `--include-file`, in `destructiveChanges.xml` with `--include-destructive-file`. The file's history plays no part, so a shallow clone is enough.
 
 Consider the following:
 
