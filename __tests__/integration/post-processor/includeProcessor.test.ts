@@ -150,7 +150,7 @@ describe('Given a fixture repo with a resource added on top of the root commit',
   })
 
   describe('When only --include-destructive forces a path onto the DELETION pass', () => {
-    it('Then transformAndCollect resolves it through the DELETION pass GitAdapter instance keyed on the first commit', async () => {
+    it('Then transformAndCollect resolves it through the DELETION pass against the empty tree', async () => {
       // Arrange
       const includeDestructivePath = await writeIncludePatterns(
         'include-deletion.txt',
@@ -226,7 +226,7 @@ describe('Given a fixture repo with a resource added on top of the root commit',
   })
 
   describe('When --include-destructive forces a nested resource file onto the DELETION pass under generateDelta: true', () => {
-    it('Then the metadata boundary resolves against the populated config.to tree index, not the unindexed first commit', async () => {
+    it('Then the metadata boundary resolves against the populated config.to tree index, not the empty tree', async () => {
       // Arrange — EXISTING_RESOURCE_FILE is nested two levels below its type
       // directory (bundle/subfolder/file), so createElement cannot resolve it
       // via a plain fromPath lookup and must fall into

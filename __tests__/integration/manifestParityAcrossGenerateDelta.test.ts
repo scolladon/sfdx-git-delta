@@ -353,12 +353,11 @@ describe('Given --include-destructive-file naming the untouched still bundle and
 })
 
 describe('Given --include-destructive-file naming the still bundle and a from that IS the first commit', () => {
-  it('When sgd runs without and with --generate-delta, Then the forced deletion lands in destructiveChanges.xml and not in package.xml in both modes, even though the first commit is indexed', async () => {
+  it('When sgd runs without and with --generate-delta, Then the forced deletion lands in destructiveChanges.xml and not in package.xml in both modes, even though the bundle exists at the indexed from', async () => {
     // Arrange — config.from IS genesis here, so the run's tree reader
-    // carries a real entry for it. Before the fix this made the DELETION
-    // pass's liveness check read the bundle as alive and reclassify the
-    // forced deletion into package.xml; the mask must force that check to
-    // answer false regardless.
+    // carries a real entry for the first commit. The DELETION pass's
+    // liveness check must still read the bundle as gone rather than
+    // reclassify the forced deletion into package.xml.
     const includeDestructive = await writePatterns(
       'include-destructive-genesis.txt',
       ['force-app/main/default/lwc/still/**']
@@ -392,8 +391,8 @@ describe('Given --include-destructive-file naming the still bundle and a from th
     // manifest. Without this, moving `still`'s addition from genesis to
     // root would still pass every assertion above — it would enter the
     // genesis..head range as its own addition and get cancelled against
-    // the forced deletion, a different mechanism than the mask this fix
-    // adds.
+    // the forced deletion, a different mechanism than the one pinned
+    // here.
     const baseline = await runSgd({ generateDelta: false, from: refs.genesis })
     const baselinePkg = baseline.work.changes.forPackageManifest()
     const baselineDestructive = baseline.work.changes.forDestructiveManifest()
@@ -406,12 +405,11 @@ describe('Given --include-destructive-file naming the still bundle and a from th
   })
 })
 
-describe('Given the live-container fixture cloned shallow so getFirstCommitRef resolves to the graft boundary', () => {
+describe('Given the live-container fixture cloned shallow so the graft boundary is the first reachable commit', () => {
   it('When --include-destructive-file names the still bundle and from is the boundary commit, Then sgd still reports the forced deletion in destructiveChanges.xml, not package.xml, in both modes', async () => {
     // Arrange — a depth-2 clone of the 3-commit fixture grafts `root` as a
-    // parentless boundary: getFirstCommitRef() returns `root`, which IS
-    // indexed here because it equals config.from — the exact accident
-    // `actions/checkout`'s default shallow clone reproduces in CI.
+    // parentless boundary, indexed here because it equals config.from — the
+    // shape `actions/checkout`'s default shallow clone reproduces in CI.
     const shallowDir = await trackedTempDir('sgd-parity-shallow-')
     runGit([
       'clone',

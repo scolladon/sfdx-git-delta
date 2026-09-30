@@ -350,25 +350,6 @@ describe('Given the released error-message contract (validated surface)', () => 
 })
 
 describe('Given a wrapped GitAdapter method that bypasses ConfigValidator (non-validated surface)', () => {
-  describe('When getFirstCommitRef runs against a repo with no commits', () => {
-    it('Then it rejects with a mapped error that never leaks the raw tsgit shape', async () => {
-      // Arrange
-      const repoDir = await trackedTempDir('sgd-error-parity-empty-')
-      runGit(['init', '--quiet'], { cwd: repoDir })
-      const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
-
-      // Act
-      const error = await sut
-        .getFirstCommitRef()
-        .catch((thrown: unknown) => thrown)
-
-      // Assert
-      expect(error).toBeInstanceOf(Error)
-      expect((error as Error).message).toBe('HEAD: not a valid git revision')
-      expect((error as Error).message).not.toMatch(RAW_CODE_LEAK_PATTERN)
-    })
-  })
-
   describe('When resolveCommit runs against a missing oid', () => {
     it('Then it rejects with a mapped error that never leaks the raw tsgit shape', async () => {
       // Arrange

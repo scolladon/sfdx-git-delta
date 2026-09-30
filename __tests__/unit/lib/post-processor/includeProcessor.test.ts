@@ -5,10 +5,10 @@ import {
   createTreeReader,
   type TreeReader,
 } from '../../../../src/adapter/treeReader'
+import { EMPTY_TREE_OID } from '../../../../src/constant/gitConstants'
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import IncludeProcessor from '../../../../src/post-processor/includeProcessor'
-import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import type { Config } from '../../../../src/types/config'
 import {
   ChangeKind,
@@ -25,22 +25,19 @@ import {
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
-const { mockProcess, mockFilesUnder, mockGetFirstCommitRef } = vi.hoisted(
-  () => ({
-    // Matches DiffLineInterpreter.process's real signature — the mock must
-    // accept the (lines, revisions?) it is actually called with so calls[]
-    // captures the real argument shape, not an empty tuple.
-    mockProcess:
-      vi.fn<
-        (
-          lines: Iterable<string> | AsyncIterable<string>,
-          revisions?: { from: string; to: string }
-        ) => Promise<HandlerResult>
-      >(),
-    mockFilesUnder: vi.fn(),
-    mockGetFirstCommitRef: vi.fn<() => Promise<string>>(),
-  })
-)
+const { mockProcess, mockFilesUnder } = vi.hoisted(() => ({
+  // Matches DiffLineInterpreter.process's real signature — the mock must
+  // accept the (lines, revisions?) it is actually called with so calls[]
+  // captures the real argument shape, not an empty tuple.
+  mockProcess:
+    vi.fn<
+      (
+        lines: Iterable<string> | AsyncIterable<string>,
+        revisions?: { from: string; to: string }
+      ) => Promise<HandlerResult>
+    >(),
+  mockFilesUnder: vi.fn(),
+}))
 
 vi.mock('../../../../src/service/diffLineInterpreter', () => {
   return {
@@ -51,14 +48,6 @@ vi.mock('../../../../src/service/diffLineInterpreter', () => {
     }),
   }
 })
-
-vi.mock('../../../../src/adapter/GitAdapter', () => ({
-  default: {
-    getInstance: vi.fn(() => ({
-      getFirstCommitRef: mockGetFirstCommitRef,
-    })),
-  },
-}))
 
 vi.mock('../../../../src/utils/ignoreHelper')
 const mockedBuildIncludeHelper = vi.mocked(buildIncludeHelper)
@@ -386,7 +375,7 @@ describe('IncludeProcessor', () => {
     describe('_collectIncludes emptyResult guard (kills L70:9 false, L70:34 BlockStatement {})', () => {
       it('When includeLines is empty, Then emptyResult is returned (L70 false mutant would call process unnecessarily)', async () => {
         // L70:9 false: if(false) → always proceeds past the emptyResult guard
-        // → getFirstCommitRef() and DiffLineInterpreter.process() would be called even with no lines
+        // → DiffLineInterpreter.process() would be called even with no lines
         // L70:34 {}: the emptyResult() return is a no-op → same effect
         mockKeep.mockReturnValue(true) // keep all = nothing included
         config.include = '.sgdinclude'
@@ -425,15 +414,12 @@ describe('IncludeProcessor', () => {
       })
     })
 
-    describe('process revisions passed to DiffLineInterpreter (kills L79:79 and L87:79 ObjectLiteral {})', () => {
-      const firstSHA = 'first-sha-000'
-
+    describe('process revisions passed to DiffLineInterpreter: each pass compares against the empty tree', () => {
       beforeEach(() => {
         mockFilesUnder.mockReturnValue(['test'])
-        mockGetFirstCommitRef.mockResolvedValue(firstSHA)
       })
 
-      it('Then ADDITION process is called with from=firstSHA, to=config.to', async () => {
+      it('Then ADDITION process is called with from=empty tree, to=config.to', async () => {
         // Arrange — keep only deletion lines so only ADDITION lines are collected
         config.include = '.sgdinclude'
         config.to = 'HEAD'
@@ -446,14 +432,14 @@ describe('IncludeProcessor', () => {
         // Act
         await sut.transformAndCollect(new ChangeSet())
 
-        // Assert — kills ObjectLiteral {} replacing { from: firstSHA, to: config.to }
-        expect(mockProcess).toHaveBeenCalledWith(
-          expect.any(Array),
-          expect.objectContaining({ from: firstSHA, to: 'HEAD' })
-        )
+        // Assert
+        expect(mockProcess).toHaveBeenCalledWith(expect.any(Array), {
+          from: EMPTY_TREE_OID,
+          to: 'HEAD',
+        })
       })
 
-      it('Then DELETION process is called with from=config.to, to=firstSHA', async () => {
+      it('Then DELETION process is called with from=config.to, to=empty tree', async () => {
         // Arrange — keep only addition lines so only DELETION lines are collected
         config.include = '.sgdinclude'
         config.to = 'HEAD'
@@ -466,59 +452,11 @@ describe('IncludeProcessor', () => {
         // Act
         await sut.transformAndCollect(new ChangeSet())
 
-        // Assert — kills ObjectLiteral {} replacing { from: config.to, to: firstSHA }
-        expect(mockProcess).toHaveBeenCalledWith(
-          expect.any(Array),
-          expect.objectContaining({ from: 'HEAD', to: firstSHA })
-        )
-      })
-    })
-
-    describe('DELETION pass masks firstSHA out of trees, ADDITION pass does not', () => {
-      const firstSHA = 'first-sha-000'
-      const stillPath = 'force-app/lwc/still/still.js'
-
-      beforeEach(() => {
-        mockGetFirstCommitRef.mockResolvedValue(firstSHA)
-        mockKeep.mockReturnValue(false) // keep neither: both ADDITION and DELETION lines are collected
-      })
-
-      it('Then the ADDITION DiffLineInterpreter is built on the original, unmasked ctx', async () => {
-        // Arrange
-        mockFilesUnder.mockReturnValue(['test'])
-        config.include = '.sgdinclude'
-        const ctx = getContext({ config, metadata, trees: treeReader })
-        const sut = new IncludeProcessor(ctx)
-
-        // Act
-        await sut.transformAndCollect(new ChangeSet())
-
         // Assert
-        const additionCtx = vi.mocked(DiffLineInterpreter).mock.calls[0][0]
-        expect(additionCtx.trees).toBe(treeReader)
-      })
-
-      it('Then the DELETION DiffLineInterpreter is built on a ctx whose trees report firstSHA absent, although the real reader holds a live entry for it', async () => {
-        // Arrange — pathExists really does answer true for (firstSHA,
-        // stillPath) on the unmasked reader, proving the mask overrides a
-        // real answer rather than matching an already-empty one.
-        const liveAtFirstSHA: TreeReader = {
-          pathExists: (rev, path) => rev === firstSHA && path === stillPath,
-          filesUnder: () => [stillPath],
-          children: () => [],
-        }
-        config.includeDestructive = '.sgdincludedestructive'
-        const sut = new IncludeProcessor(
-          getContext({ config, metadata, trees: liveAtFirstSHA })
-        )
-
-        // Act
-        await sut.transformAndCollect(new ChangeSet())
-
-        // Assert
-        const deletionCtx = vi.mocked(DiffLineInterpreter).mock.calls[1][0]
-        expect(deletionCtx.trees).not.toBe(liveAtFirstSHA)
-        expect(deletionCtx.trees.pathExists(firstSHA, stillPath)).toBe(false)
+        expect(mockProcess).toHaveBeenCalledWith(expect.any(Array), {
+          from: 'HEAD',
+          to: EMPTY_TREE_OID,
+        })
       })
     })
   })

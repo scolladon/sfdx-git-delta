@@ -1,12 +1,9 @@
 'use strict'
-import GitAdapter from '../adapter/GitAdapter.js'
 import { TAB } from '../constant/cliConstants.js'
-import { ADDITION, DELETION } from '../constant/gitConstants.js'
+import { ADDITION, DELETION, EMPTY_TREE_OID } from '../constant/gitConstants.js'
 import DiffLineInterpreter from '../service/diffLineInterpreter.js'
 import type { HandlerResult } from '../types/handlerResult.js'
 import { emptyResult, mergeResults } from '../types/handlerResult.js'
-import type { RunContext } from '../types/runContext.js'
-import { withMaskedTreeRevision } from '../types/runContext.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { buildIncludeHelper } from '../utils/ignoreHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
@@ -19,12 +16,6 @@ import BaseProcessor, {
 type GitChange = typeof ADDITION | typeof DELETION
 
 export default class IncludeProcessor extends BaseProcessor {
-  protected readonly gitAdapter: GitAdapter
-  constructor(ctx: RunContext) {
-    super(ctx)
-    this.gitAdapter = GitAdapter.getInstance(this.config)
-  }
-
   override get isCollector(): boolean {
     return true
   }
@@ -78,33 +69,29 @@ export default class IncludeProcessor extends BaseProcessor {
   protected async _collectIncludes(
     includeLines: Map<GitChange, string[]>
   ): Promise<HandlerResult> {
-    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: empty-input fast path; flipping to false continues into the gitAdapter.getFirstCommitRef + DiffLineInterpreter walk with no entries, which produces an empty result anyway
+    // Stryker disable next-line ConditionalExpression,BlockStatement -- equivalent: empty-input fast path; flipping to false continues into the DiffLineInterpreter walk with no entries, which produces an empty result anyway
     if (includeLines.size === 0) {
       return emptyResult()
     }
 
-    const firstSHA = await this.gitAdapter.getFirstCommitRef()
     const results: HandlerResult[] = []
 
+    // Each pass compares the included files against nothing, so an in-file
+    // type yields every member it holds at `to`, whatever its history.
     if (includeLines.has(ADDITION)) {
       const additionProcessor = new DiffLineInterpreter(this.ctx)
       const result = await additionProcessor.process(
         includeLines.get(ADDITION)!,
-        { from: firstSHA, to: this.config.to }
+        { from: EMPTY_TREE_OID, to: this.config.to }
       )
       results.push(result)
     }
 
     if (includeLines.has(DELETION)) {
-      // The pass's effective `to` becomes firstSHA: mask it so a container's
-      // liveness answers false by construction, not by firstSHA happening to
-      // be unindexed (see withMaskedTreeRevision).
-      const deletionProcessor = new DiffLineInterpreter(
-        withMaskedTreeRevision(this.ctx, firstSHA)
-      )
+      const deletionProcessor = new DiffLineInterpreter(this.ctx)
       const result = await deletionProcessor.process(
         includeLines.get(DELETION)!,
-        { from: this.config.to, to: firstSHA }
+        { from: this.config.to, to: EMPTY_TREE_OID }
       )
       results.push(result)
     }

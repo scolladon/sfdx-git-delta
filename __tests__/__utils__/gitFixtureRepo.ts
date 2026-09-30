@@ -378,7 +378,7 @@ export const buildFixtureRepo = (dir: string): FixtureRefs => {
 }
 
 export type MetadataFixtureRefs = {
-  // The very first commit — no parents. What getFirstCommitRef() resolves to.
+  // The very first commit — no parents.
   root: string
   // HEAD — carries both the root commit's resource and a second one added
   // on top of it.
@@ -672,10 +672,9 @@ export const buildIgnoreFixtureRepo = (dir: string): IgnoreFixtureRefs => {
 }
 
 export type LiveContainerFixtureRefs = {
-  // Parentless — what getFirstCommitRef() resolves to. Carries the `still`
-  // bundle so a run whose `from` IS the first commit can reproduce the
-  // include re-entry residual: the forced-deletion target has to exist at
-  // that revision for the honest index to answer true.
+  // Parentless. Carries the `still` bundle so a run whose `from` IS the
+  // first commit indexes a revision where the forced-deletion target exists:
+  // the include DELETION pass must still read it as gone.
   genesis: string
   // Every other container shape, all alive.
   root: string
@@ -729,9 +728,9 @@ const APEX_CLASS_META_CONTENT =
  * shared-folder container (static resource, digital experience bundle). One
  * file is deleted from each surviving container at `head`; `gone` loses both
  * of its files and truly disappears. `still` lives only at `genesis`, the
- * parentless commit `getFirstCommitRef()` resolves to — it exists so a run
- * whose `--from` IS the first commit can reproduce the include re-entry
- * residual (see manifestParityAcrossGenerateDelta.test.ts, Leg E).
+ * parentless commit — it exists so a run whose `--from` IS the first commit
+ * indexes a revision holding it (see manifestParityAcrossGenerateDelta.test.ts,
+ * Leg E).
  */
 export const buildLiveContainerFixtureRepo = (
   dir: string
@@ -1460,12 +1459,6 @@ export const buildUndeletableTypeFixtureRepo = (
     },
   ])
 
-  // The include-destructive walk resolves its "first commit" boundary via
-  // HEAD (GitAdapter.getFirstCommitRef), so a repo built purely from
-  // plumbing commands — no ref ever pointed anywhere — fails that lookup
-  // with "HEAD: not a valid git revision". Every sibling here shares `root`
-  // as its parent, so which one HEAD points at does not change which commit
-  // the walk finds as the root.
   runGit(['read-tree', root], { cwd: dir })
 
   const holderDeleted = makeCommit(
@@ -1490,7 +1483,8 @@ export const buildUndeletableTypeFixtureRepo = (
 }
 
 export type InFileDestructiveIgnoreFixtureRefs = {
-  // Adds a monolithic CustomLabels file holding the Keep and Gone labels.
+  // Adds a monolithic CustomLabels file holding the Keep and Gone labels, and
+  // a Workflow file no later commit touches.
   root: string
   // From `root`: rewrites that same file to hold Keep and Added — git reports
   // one modification line, while Gone is deleted inside the file.
@@ -1498,9 +1492,12 @@ export type InFileDestructiveIgnoreFixtureRefs = {
 }
 
 export const IN_FILE_IGNORE_LABELS = `${SFDX_DEFAULT_ROOT}/labels/CustomLabels.labels-meta.xml`
-const IN_FILE_IGNORE_KEPT_LABEL = 'Keep'
+export const IN_FILE_IGNORE_KEPT_LABEL = 'Keep'
 export const IN_FILE_IGNORE_DELETED_LABEL = 'Gone'
 export const IN_FILE_IGNORE_ADDED_LABEL = 'Added'
+export const IN_FILE_UNTOUCHED_WORKFLOW = `${SFDX_DEFAULT_ROOT}/workflows/Account.workflow-meta.xml`
+export const IN_FILE_UNTOUCHED_WORKFLOW_NAME = 'Account'
+export const IN_FILE_UNTOUCHED_WORKFLOW_ALERTS = ['Alpha', 'Beta']
 
 const customLabels = (names: string[]): string =>
   [
@@ -1535,6 +1532,12 @@ export const buildInFileDestructiveIgnoreFixtureRepo = (
         IN_FILE_IGNORE_DELETED_LABEL,
         IN_FILE_IGNORE_KEPT_LABEL,
       ]),
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IN_FILE_UNTOUCHED_WORKFLOW,
+      content: workflowXml(IN_FILE_UNTOUCHED_WORKFLOW_ALERTS),
     },
   ])
 

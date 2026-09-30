@@ -15,6 +15,7 @@ import {
   EscalateToStreamingSignal,
   SIZE_THRESHOLD,
 } from '../../../../src/adapter/gitBlobReader'
+import { EMPTY_TREE_OID } from '../../../../src/constant/gitConstants'
 import { MASTER_DETAIL_TAG } from '../../../../src/constant/metadataConstants'
 import type { Config } from '../../../../src/types/config'
 import {
@@ -696,65 +697,6 @@ describe('GitAdapter', () => {
       // Assert
       expect((error as Error).message).toBe('ghost: not a valid git revision')
       expect(error).not.toBeInstanceOf(NotACommitError)
-    })
-  })
-
-  describe('Given getFirstCommitRef', () => {
-    it('When a parentless commit is found while walking history, Then it returns that commit id', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('head-oid')
-      fakeRepo.primitives.walkCommits.mockReturnValue(
-        (async function* () {
-          yield { id: 'mid-oid', data: { parents: ['head-oid'] } }
-          yield { id: 'root-oid', data: { parents: [] } }
-        })()
-      )
-
-      // Act
-      const result = await sut.getFirstCommitRef()
-
-      // Assert
-      expect(result).toBe('root-oid')
-      expect(fakeRepo.primitives.walkCommits).toHaveBeenCalledWith({
-        from: ['head-oid'],
-      })
-    })
-
-    it('When no parentless commit is found, Then it returns HEAD', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('head-oid')
-      fakeRepo.primitives.walkCommits.mockReturnValue(
-        (async function* () {
-          yield { id: 'mid-oid', data: { parents: ['head-oid'] } }
-        })()
-      )
-
-      // Act
-      const result = await sut.getFirstCommitRef()
-
-      // Assert
-      expect(result).toBe('head-oid')
-    })
-
-    it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockRejectedValue(
-        Object.assign(new Error('object not found: HEAD'), {
-          data: { code: 'OBJECT_NOT_FOUND' },
-        })
-      )
-
-      // Act
-      const error = await sut
-        .getFirstCommitRef()
-        .catch((thrown: unknown) => thrown)
-
-      // Assert
-      expect((error as Error).message).toBe('HEAD: not a valid git revision')
-      expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
     })
   })
 
@@ -1738,6 +1680,23 @@ describe('GitAdapter', () => {
 
       // Assert
       expect((error as Error).message).not.toContain('OBJECT_NOT_FOUND')
+    })
+
+    it('When the revision is the empty tree, Then it rejects as a missing path without resolving the revision', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+
+      // Act
+      const error = await sut
+        .getStringContent({ path: 'force-app/foo.cls', oid: EMPTY_TREE_OID })
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toContain(
+        `Path 'force-app/foo.cls' not found at '${EMPTY_TREE_OID}'`
+      )
+      expect(fakeRepo.revParse).not.toHaveBeenCalled()
+      expect(fakeRepo.primitives.flattenTree).not.toHaveBeenCalled()
     })
   })
 

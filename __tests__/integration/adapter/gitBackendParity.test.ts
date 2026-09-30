@@ -1,5 +1,4 @@
 'use strict'
-import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Readable } from 'node:stream'
@@ -7,6 +6,7 @@ import type { Readable } from 'node:stream'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
+import { EMPTY_TREE_OID } from '../../../src/constant/gitConstants'
 import type { Config } from '../../../src/types/config'
 import { NotACommitError } from '../../../src/utils/errorUtils'
 import {
@@ -26,7 +26,6 @@ import {
   runGit,
   runGitLines,
   runGitText,
-  toFileUrl,
 } from '../../__utils__/gitTestHarness'
 import { sourceDirs } from '../../__utils__/sourceDirs'
 
@@ -36,7 +35,6 @@ const TAR_SIZE_OFFSET = 124
 const TAR_SIZE_LENGTH = 12
 const TAR_TYPEFLAG_OFFSET = 156
 const TAR_REGULAR_FILE_TYPEFLAGS = new Set(['0', '\0'])
-const SHALLOW_DEPTH = '3'
 
 let fixtureDir: string
 let refs: FixtureRefs
@@ -170,19 +168,15 @@ describe('Given a self-contained git fixture repository', () => {
       )
     })
 
-    it('Then getFirstCommitRef matches git rev-list --max-parents=0 HEAD', async () => {
-      // Arrange
-      const config = makeConfig()
-      const sut = GitAdapter.getInstance(config)
-
+    it('Then EMPTY_TREE_OID is the object id git hashes an empty tree to', () => {
       // Act
-      const actual = await sut.getFirstCommitRef()
+      const actual = runGitText(['hash-object', '-t', 'tree', '--stdin'], {
+        cwd: fixtureDir,
+        input: Buffer.alloc(0),
+      })
 
       // Assert
-      expect(actual).toBe(refs.root)
-      expect(actual).toBe(
-        runGitText(['rev-list', '--max-parents=0', 'HEAD'], { cwd: fixtureDir })
-      )
+      expect(actual).toBe(EMPTY_TREE_OID)
     })
   })
 
@@ -603,35 +597,6 @@ describe('Given a self-contained git fixture repository', () => {
       expect(error).toBeInstanceOf(NotACommitError)
       expect((error as NotACommitError).objectType).toBe('tree')
       expect((error as Error).message).toContain("'tree-tag'")
-    })
-  })
-
-  describe('When the repo is a shallow clone', () => {
-    it('Then getFirstCommitRef matches the graft boundary reported by git rev-list', async () => {
-      // Arrange: `--depth` is a documented no-op on local-path clones unless
-      // the source is addressed as a file:// URL.
-      const shallowDir = await trackedTempDir('sgd-parity-shallow-')
-      runGit([
-        'clone',
-        '--depth',
-        SHALLOW_DEPTH,
-        toFileUrl(fixtureDir),
-        shallowDir,
-      ])
-      const config = makeConfig({ repo: shallowDir })
-      const sut = GitAdapter.getInstance(config)
-
-      // Act
-      const actual = await sut.getFirstCommitRef()
-
-      // Assert — the clone must actually be shallow, otherwise the graft
-      // boundary silently degenerates to the fixture's true root and the
-      // scenario stops exercising `.git/shallow` at all.
-      expect(existsSync(join(shallowDir, '.git', 'shallow'))).toBe(true)
-      expect(actual).not.toBe(refs.root)
-      expect(actual).toBe(
-        runGitText(['rev-list', '--max-parents=0', 'HEAD'], { cwd: shallowDir })
-      )
     })
   })
 })
