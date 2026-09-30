@@ -1,7 +1,9 @@
 'use strict'
 import { basename } from 'node:path/posix'
 
+import { TAB } from '../constant/cliConstants.js'
 import { DOT } from '../constant/fsConstants.js'
+import { DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
 import type {
   AddKind,
@@ -17,6 +19,7 @@ import {
 import type { RunContext } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
+import { buildIgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
 import MetadataDiff from '../utils/metadataDiff/index.js'
@@ -55,12 +58,19 @@ export default class InFileHandler extends StandardHandler {
       const copies: CopyOperation[] = []
       const outcome = await this.metadataDiff.run(this.element.basePath)
 
-      this._collectManifestFromComparison(
-        elements,
-        ManifestTarget.DestructiveChanges,
-        ChangeKind.Delete,
-        outcome.manifests.deleted
-      )
+      // RATIONALE: members deleted inside a modified file arrive on an `M`
+      // line, which the upstream line filter checks against the global
+      // ignore only. The destructive ignore must still apply to them.
+      // Deletion lines are left alone: the main diff already filtered them,
+      // and the include pass's ones must win over the ignore.
+      if (await this._keepsDestructiveChanges()) {
+        this._collectManifestFromComparison(
+          elements,
+          ManifestTarget.DestructiveChanges,
+          ChangeKind.Delete,
+          outcome.manifests.deleted
+        )
+      }
       this._collectManifestFromComparison(
         elements,
         ManifestTarget.Package,
@@ -130,6 +140,12 @@ export default class InFileHandler extends StandardHandler {
         })
       }
     }
+  }
+
+  protected async _keepsDestructiveChanges(): Promise<boolean> {
+    if (this.changeType !== MODIFICATION) return true
+    const ignoreHelper = await buildIgnoreHelper(this.config)
+    return ignoreHelper.keep(`${DELETION}${TAB}${this.element.basePath}`)
   }
 
   protected _getQualifiedName() {

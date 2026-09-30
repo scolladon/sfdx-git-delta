@@ -1488,3 +1488,74 @@ export const buildUndeletableTypeFixtureRepo = (
     anchorTouched,
   }
 }
+
+export type InFileDestructiveIgnoreFixtureRefs = {
+  // Adds a monolithic CustomLabels file holding the Keep and Gone labels.
+  root: string
+  // From `root`: rewrites that same file to hold Keep and Added — git reports
+  // one modification line, while Gone is deleted inside the file.
+  labelsModified: string
+}
+
+export const IN_FILE_IGNORE_LABELS = `${SFDX_DEFAULT_ROOT}/labels/CustomLabels.labels-meta.xml`
+const IN_FILE_IGNORE_KEPT_LABEL = 'Keep'
+export const IN_FILE_IGNORE_DELETED_LABEL = 'Gone'
+export const IN_FILE_IGNORE_ADDED_LABEL = 'Added'
+
+const customLabels = (names: string[]): string =>
+  [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">',
+    ...names.map(name =>
+      [
+        '    <labels>',
+        `        <fullName>${name}</fullName>`,
+        '        <language>en_US</language>',
+        '        <protected>false</protected>',
+        `        <shortDescription>${name}</shortDescription>`,
+        `        <value>${name}</value>`,
+        '    </labels>',
+      ].join('\n')
+    ),
+    '</CustomLabels>',
+    '',
+  ].join('\n')
+
+export const buildInFileDestructiveIgnoreFixtureRepo = (
+  dir: string
+): InFileDestructiveIgnoreFixtureRefs => {
+  initRepo(dir)
+
+  const root = makeCommit(dir, null, 'add custom labels', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IN_FILE_IGNORE_LABELS,
+      content: customLabels([
+        IN_FILE_IGNORE_DELETED_LABEL,
+        IN_FILE_IGNORE_KEPT_LABEL,
+      ]),
+    },
+  ])
+
+  const labelsModified = makeCommit(
+    dir,
+    root,
+    'delete the Gone label and add the Added label',
+    [
+      {
+        kind: 'add',
+        mode: '100644',
+        path: IN_FILE_IGNORE_LABELS,
+        content: customLabels([
+          IN_FILE_IGNORE_ADDED_LABEL,
+          IN_FILE_IGNORE_KEPT_LABEL,
+        ]),
+      },
+    ]
+  )
+
+  runGit(['update-ref', 'HEAD', labelsModified], { cwd: dir })
+
+  return { root, labelsModified }
+}
