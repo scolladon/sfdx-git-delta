@@ -480,6 +480,8 @@ $ sf sgd source delta --from commit --ignore-destructive-file destructiveignore
 
 ```
 
+`--ignore-destructive-file [-D]` also covers sub-components deleted inside a modified file (a label removed from `CustomLabels.labels-meta.xml`, a workflow rule removed from a `.workflow-meta.xml`, etc.), while the additions and modifications of that same file still reach `package.xml`. Patterns match file paths, so a pattern matching `CustomLabels.labels-meta.xml` keeps every label deleted from that file out of `destructiveChanges.xml`, not a single label.
+
 `--ignore-destructive-file [-D]` does not affect the move detection described above. Whether a moved addition can cancel its deletion is decided purely against the `--ignore-file [-i]` patterns — the same file that held the addition in the first place — never the destructive-only one. A permissive `--ignore-destructive-file [-D]` does not turn the move back into a destructive change: as long as the component has no file outside `--ignore-file [-i]`'s patterns at `--to`, the deletion still cancels.
 
 If SGD cannot read the file listing at `--to`, the move check is skipped, the deletion is reported as usual, and SGD emits a warning noting the check could not run.
