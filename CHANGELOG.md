@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.4](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.3...v7.4.4) (2026-09-30)
+
+
+### Bug Fixes
+
+* **ignore:** apply the destructive ignore file to in-file deletions ([29e9037](https://github.com/scolladon/sfdx-git-delta/commit/29e9037ad8aecc3715d4373ba1b83814251bac79))
+
 ## [7.4.3](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.2...v7.4.3) (2026-09-18)
 
 
