@@ -1483,7 +1483,8 @@ export const buildUndeletableTypeFixtureRepo = (
 }
 
 export type InFileDestructiveIgnoreFixtureRefs = {
-  // Adds a monolithic CustomLabels file holding the Keep and Gone labels.
+  // Adds a monolithic CustomLabels file holding the Keep and Gone labels, and
+  // a Workflow file no later commit touches.
   root: string
   // From `root`: rewrites that same file to hold Keep and Added — git reports
   // one modification line, while Gone is deleted inside the file.
@@ -1494,6 +1495,9 @@ export const IN_FILE_IGNORE_LABELS = `${SFDX_DEFAULT_ROOT}/labels/CustomLabels.l
 export const IN_FILE_IGNORE_KEPT_LABEL = 'Keep'
 export const IN_FILE_IGNORE_DELETED_LABEL = 'Gone'
 export const IN_FILE_IGNORE_ADDED_LABEL = 'Added'
+export const IN_FILE_UNTOUCHED_WORKFLOW = `${SFDX_DEFAULT_ROOT}/workflows/Account.workflow-meta.xml`
+export const IN_FILE_UNTOUCHED_WORKFLOW_NAME = 'Account'
+export const IN_FILE_UNTOUCHED_WORKFLOW_ALERTS = ['Alpha', 'Beta']
 
 const customLabels = (names: string[]): string =>
   [
@@ -1528,6 +1532,12 @@ export const buildInFileDestructiveIgnoreFixtureRepo = (
         IN_FILE_IGNORE_DELETED_LABEL,
         IN_FILE_IGNORE_KEPT_LABEL,
       ]),
+    },
+    {
+      kind: 'add',
+      mode: '100644',
+      path: IN_FILE_UNTOUCHED_WORKFLOW,
+      content: workflowXml(IN_FILE_UNTOUCHED_WORKFLOW_ALERTS),
     },
   ])
 

@@ -6,6 +6,7 @@ import type { Readable } from 'node:stream'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
+import { EMPTY_TREE_OID } from '../../../src/constant/gitConstants'
 import type { Config } from '../../../src/types/config'
 import { NotACommitError } from '../../../src/utils/errorUtils'
 import {
@@ -165,6 +166,17 @@ describe('Given a self-contained git fixture repository', () => {
       expect(actual).toBe(
         runGitText(['rev-parse', '--verify', 'HEAD'], { cwd: fixtureDir })
       )
+    })
+
+    it('Then EMPTY_TREE_OID is the object id git hashes an empty tree to', () => {
+      // Act
+      const actual = runGitText(['hash-object', '-t', 'tree', '--stdin'], {
+        cwd: fixtureDir,
+        input: Buffer.alloc(0),
+      })
+
+      // Assert
+      expect(actual).toBe(EMPTY_TREE_OID)
     })
   })
 

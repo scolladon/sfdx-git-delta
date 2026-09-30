@@ -16,6 +16,9 @@ import {
   IN_FILE_IGNORE_DELETED_LABEL,
   IN_FILE_IGNORE_KEPT_LABEL,
   IN_FILE_IGNORE_LABELS,
+  IN_FILE_UNTOUCHED_WORKFLOW,
+  IN_FILE_UNTOUCHED_WORKFLOW_ALERTS,
+  IN_FILE_UNTOUCHED_WORKFLOW_NAME,
   type InFileDestructiveIgnoreFixtureRefs,
 } from '../__utils__/gitFixtureRepo'
 import { createTempDir } from '../__utils__/gitTestHarness'
@@ -24,6 +27,8 @@ import { createTempDir } from '../__utils__/gitTestHarness'
 // this bucket runs behind an unreachable proxy (vitest.integration.config.ts).
 const API_VERSION = 60
 const CUSTOM_LABEL = 'CustomLabel'
+const WORKFLOW = 'Workflow'
+const WORKFLOW_ALERT = 'WorkflowAlert'
 
 let fixtureDir: string
 let refs: InFileDestructiveIgnoreFixtureRefs
@@ -37,14 +42,17 @@ const trackedTempDir = async (prefix: string): Promise<string> => {
 
 // _buildInclude resolves a relative path against process.cwd(), so the path
 // handed to config must be absolute.
-const writeLabelsPattern = async (): Promise<string> => {
+const writePattern = async (path: string): Promise<string> => {
   const file = join(
     await trackedTempDir('sgd-in-file-include-patterns-'),
     'inc'
   )
-  await writeFile(file, `${IN_FILE_IGNORE_LABELS}\n`)
+  await writeFile(file, `${path}\n`)
   return file
 }
+
+const writeLabelsPattern = (): Promise<string> =>
+  writePattern(IN_FILE_IGNORE_LABELS)
 
 // The fixture's `root` is the repository's first commit AND already holds the
 // labels file: the shape where the include passes used to diff against that
@@ -63,8 +71,15 @@ const runSgd = async (overrides: Partial<ConfigInput>) =>
     ...overrides,
   })
 
+const membersOf = (manifest: Manifest, type: string): string[] =>
+  [...(manifest.get(type) ?? [])].sort()
+
 const labels = (manifest: Manifest): string[] =>
-  [...(manifest.get(CUSTOM_LABEL) ?? [])].sort()
+  membersOf(manifest, CUSTOM_LABEL)
+
+const qualifiedAlerts = IN_FILE_UNTOUCHED_WORKFLOW_ALERTS.map(
+  alert => `${IN_FILE_UNTOUCHED_WORKFLOW_NAME}.${alert}`
+)
 
 beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-in-file-include-fixture-')
@@ -152,5 +167,39 @@ describe('Given a CustomLabels file already present in the first commit', () => 
         IN_FILE_IGNORE_DELETED_LABEL,
       ])
     })
+  })
+})
+
+// Unlike CustomLabels, a Workflow's container is listed in package.xml
+// alongside its members, so this pins the container rule on both passes.
+describe('Given a Workflow file present in the first commit and never changed since', () => {
+  it('When an include covers it over an empty range, Then the Workflow and every alert are packaged and nothing is destructive', async () => {
+    // Arrange
+    const include = await writePattern(IN_FILE_UNTOUCHED_WORKFLOW)
+
+    // Act
+    const work = await runSgd({ from: refs.labelsModified, include })
+
+    // Assert
+    const pkg = work.changes.forPackageManifest()
+    expect(membersOf(pkg, WORKFLOW)).toEqual([IN_FILE_UNTOUCHED_WORKFLOW_NAME])
+    expect(membersOf(pkg, WORKFLOW_ALERT)).toEqual(qualifiedAlerts)
+    expect(
+      membersOf(work.changes.forDestructiveManifest(), WORKFLOW_ALERT)
+    ).toEqual([])
+  })
+
+  it('When an include destructive covers it over an empty range, Then every alert is destructive and the Workflow is not packaged', async () => {
+    // Arrange
+    const includeDestructive = await writePattern(IN_FILE_UNTOUCHED_WORKFLOW)
+
+    // Act
+    const work = await runSgd({ from: refs.labelsModified, includeDestructive })
+
+    // Assert
+    expect(
+      membersOf(work.changes.forDestructiveManifest(), WORKFLOW_ALERT)
+    ).toEqual(qualifiedAlerts)
+    expect(membersOf(work.changes.forPackageManifest(), WORKFLOW)).toEqual([])
   })
 })

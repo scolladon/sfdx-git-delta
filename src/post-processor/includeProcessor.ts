@@ -74,10 +74,10 @@ export default class IncludeProcessor extends BaseProcessor {
       return emptyResult()
     }
 
-    // Each included file is compared against nothing, so an in-file type
-    // yields every member it holds at `to`, whatever its history.
     const results: HandlerResult[] = []
 
+    // Each pass compares the included files against nothing, so an in-file
+    // type yields every member it holds at `to`, whatever its history.
     if (includeLines.has(ADDITION)) {
       const additionProcessor = new DiffLineInterpreter(this.ctx)
       const result = await additionProcessor.process(

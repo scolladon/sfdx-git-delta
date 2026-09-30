@@ -353,7 +353,7 @@ describe('Given --include-destructive-file naming the untouched still bundle and
 })
 
 describe('Given --include-destructive-file naming the still bundle and a from that IS the first commit', () => {
-  it('When sgd runs without and with --generate-delta, Then the forced deletion lands in destructiveChanges.xml and not in package.xml in both modes, even though the first commit is indexed', async () => {
+  it('When sgd runs without and with --generate-delta, Then the forced deletion lands in destructiveChanges.xml and not in package.xml in both modes, even though the bundle exists at the indexed from', async () => {
     // Arrange — config.from IS genesis here, so the run's tree reader
     // carries a real entry for the first commit. The DELETION pass's
     // liveness check must still read the bundle as gone rather than

@@ -414,7 +414,7 @@ describe('IncludeProcessor', () => {
       })
     })
 
-    describe('process revisions passed to DiffLineInterpreter (kills L79:79 and L87:79 ObjectLiteral {})', () => {
+    describe('process revisions passed to DiffLineInterpreter: each pass compares against the empty tree', () => {
       beforeEach(() => {
         mockFilesUnder.mockReturnValue(['test'])
       })
