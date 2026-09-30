@@ -14,13 +14,20 @@ import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
-const { mockGetMessage, mockRun, mockWriter } = vi.hoisted(() => ({
-  mockGetMessage: vi.fn(
-    (_key: string, tokens?: string[]) =>
-      `could not process '${tokens?.[0]}', please ensure it is properly formatted xml in both '${tokens?.[1]}' and '${tokens?.[2]}' revision`
-  ),
-  mockRun: vi.fn(),
-  mockWriter: vi.fn(),
+const { mockGetMessage, mockRun, mockWriter, mockKeep, mockBuildIgnoreHelper } =
+  vi.hoisted(() => ({
+    mockGetMessage: vi.fn(
+      (_key: string, tokens?: string[]) =>
+        `could not process '${tokens?.[0]}', please ensure it is properly formatted xml in both '${tokens?.[1]}' and '${tokens?.[2]}' revision`
+    ),
+    mockRun: vi.fn(),
+    mockWriter: vi.fn(),
+    mockKeep: vi.fn(),
+    mockBuildIgnoreHelper: vi.fn(),
+  }))
+
+vi.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: mockBuildIgnoreHelper,
 }))
 
 vi.mock('../../../../src/utils/MessageService', () => {
@@ -73,6 +80,8 @@ let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
+  mockKeep.mockReturnValue(true)
+  mockBuildIgnoreHelper.mockResolvedValue({ keep: mockKeep })
 })
 
 describe('inFileHandler', () => {
@@ -292,6 +301,65 @@ describe('inFileHandler', () => {
         expect(
           result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
         ).toBe(true)
+      })
+    })
+
+    describe('Given the file path is ignored by the destructive ignore', () => {
+      const workflowPath =
+        'force-app/main/default/workflows/Account.workflow-meta.xml'
+      beforeEach(() => {
+        // Arrange
+        const { changeType, element } = createElement(
+          `M\t${workflowPath}`,
+          workflowType,
+          globalMetadata
+        )
+        sut = new InFileHandler(changeType, element, getContext({ config }))
+        mockKeep.mockImplementation(
+          (line: string) => line !== `D\t${workflowPath}`
+        )
+        mockRun.mockImplementation(() =>
+          Promise.resolve({
+            manifests: {
+              added: [{ type: 'WorkflowAlert', member: 'added' }],
+              modified: [],
+              deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+            },
+            hasPackageContent: true,
+            writer: mockWriter,
+          })
+        )
+      })
+
+      it('When collecting the modification, Then no element targets destructiveChanges', async () => {
+        // Act
+        const result = await sut.collectModification()
+
+        // Assert
+        expect(
+          elementsOf(result).filter(
+            m => m.target === ManifestTarget.DestructiveChanges
+          )
+        ).toEqual([])
+      })
+
+      it('When collecting the modification, Then the added elements still target the package', async () => {
+        // Act
+        const result = await sut.collectModification()
+
+        // Assert
+        expect(elementsOf(result)).toEqual([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'WorkflowAlert',
+            member: 'Account.added',
+          }),
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'Workflow',
+            member: 'Account',
+          }),
+        ])
       })
     })
 
@@ -527,6 +595,49 @@ describe('inFileHandler', () => {
           ).toBe(true)
         })
       })
+    })
+  })
+
+  describe('Given a deletion line whose path the destructive ignore covers', () => {
+    const workflowPath =
+      'force-app/main/default/workflows/Account.workflow-meta.xml'
+    let sut: InFileHandler
+    beforeEach(() => {
+      // Arrange
+      const { changeType, element } = createElement(
+        `D\t${workflowPath}`,
+        workflowType,
+        globalMetadata
+      )
+      sut = new InFileHandler(changeType, element, getContext({ config }))
+      mockKeep.mockReturnValue(false)
+      mockRun.mockImplementation(() =>
+        Promise.resolve({
+          manifests: {
+            added: [],
+            modified: [],
+            deleted: [{ type: 'WorkflowAlert', member: 'deleted' }],
+          },
+          hasPackageContent: false,
+        })
+      )
+    })
+
+    // Upstream line filtering already applied the destructive ignore to a
+    // main-diff deletion, so a deletion reaching the handler comes from an
+    // explicit include that must win over the ignore.
+    it('When collecting the deletion, Then the deleted metadata still targets destructiveChanges', async () => {
+      // Act
+      const result = await sut.collectDeletion()
+
+      // Assert
+      expect(elementsOf(result)).toEqual([
+        expect.objectContaining({
+          target: ManifestTarget.DestructiveChanges,
+          type: 'WorkflowAlert',
+          member: 'Account.deleted',
+        }),
+      ])
     })
   })
 
