@@ -206,6 +206,12 @@ const REGISTRATION_ROWS: Required<Row>[] = [
     copies: [definition('SvcLeave')],
   },
   {
+    scenario: 'orphanSchemaDeleted',
+    packaged: {},
+    destructive: {},
+    copies: [],
+  },
+  {
     scenario: 'monolithicRegistrationModified',
     packaged: { [ESR]: ['SvcMono'] },
     destructive: {},

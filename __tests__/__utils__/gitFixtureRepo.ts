@@ -1741,6 +1741,7 @@ const DECOMPOSED_ROOT_OPS: FixtureOp[] = [
     registrationDefinition('SvcMono'),
     monolithicRegistrationXml('SvcMono', 'openapi: 3.0.0')
   ),
+  addFile(registrationSchema('Orphan'), registrationSchemaYaml('Orphan')),
 ]
 
 const DECOMPOSED_SCENARIOS = {
@@ -1840,6 +1841,10 @@ const DECOMPOSED_SCENARIOS = {
       ),
       { kind: 'delete', path: registrationSchema('SvcLeave') },
     ],
+  ],
+  orphanSchemaDeleted: [
+    'delete the schema that has no definition',
+    [{ kind: 'delete', path: registrationSchema('Orphan') }],
   ],
   monolithicRegistrationModified: [
     'edit the SvcMono label',
