@@ -153,9 +153,9 @@ describe('assembleChanges', () => {
   })
 
   describe('Given a rename whose source the collector pass also emits as a package member', () => {
-    it('When assembleChanges runs, Then the rename cancels the source out of the destructive view', () => {
-      // Arrange — the rename source is cancelled by whatever landed in the
-      // package view, including elements contributed by collectors.
+    it('When assembleChanges runs, Then the rename relabels the target out of the add bucket and the packaged source stays an addition', () => {
+      // Arrange — both sides are emitted, the source only as a package member
+      // contributed by a collector, so the triple is kept.
       const renameTriples: readonly RenameTriple[] = [
         { type: 'ApexClass', from: 'Old', to: 'New' },
       ]
@@ -169,8 +169,8 @@ describe('assembleChanges', () => {
       // Act
       const result = assembleChanges(handlerResult, postResult, renameTriples)
 
-      // Assert — the source is packaged by the collector pass, so it must not
-      // also appear as a deletion.
+      // Assert — the packaged source never appears as a deletion, and only the
+      // add bucket tells a kept triple from a dropped one.
       expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
         new Set(['Old', 'New'])
       )
