@@ -1891,3 +1891,98 @@ export const buildDecomposedSourceFormatsFixtureRepo = (
   // Keys come from DECOMPOSED_SCENARIOS itself, so the folded record is complete.
   return chain.refs as DecomposedSourceFormatsFixtureRefs
 }
+
+export type RenameUnprocessableFixtureRefs = {
+  // Adds the A and Bar classes (+ meta), two stray text files beside them, a
+  // one-label CustomLabels file and a stray text file beside it.
+  root: string
+  // From `root`: renames classes/notes.txt to classes/notes2.txt.
+  txtRenamed: string
+  // From `root`: renames classes/readme.txt to classes/Foo.cls.
+  txtToClass: string
+  // From `root`: renames classes/Bar.cls to classes/bar.txt; its meta stays.
+  classToTxt: string
+  // From `root`: renames labels/notes.txt to labels/notes2.txt.
+  labelsTxtRenamed: string
+  // From `root`: renames the CustomLabels file to Other.labels-meta.xml.
+  labelsFileRenamed: string
+}
+
+const UNPROCESSABLE_CLASS_A = rootPath('classes/A.cls')
+const UNPROCESSABLE_CLASS_A_META = rootPath('classes/A.cls-meta.xml')
+const UNPROCESSABLE_NOTES = rootPath('classes/notes.txt')
+const UNPROCESSABLE_NOTES_RENAMED = rootPath('classes/notes2.txt')
+const UNPROCESSABLE_README = rootPath('classes/readme.txt')
+const UNPROCESSABLE_README_AS_CLASS = rootPath('classes/Foo.cls')
+const UNPROCESSABLE_CLASS_BAR = rootPath('classes/Bar.cls')
+const UNPROCESSABLE_CLASS_BAR_META = rootPath('classes/Bar.cls-meta.xml')
+const UNPROCESSABLE_CLASS_BAR_AS_TEXT = rootPath('classes/bar.txt')
+const UNPROCESSABLE_LABELS = rootPath('labels/CustomLabels.labels-meta.xml')
+const UNPROCESSABLE_LABELS_RENAMED = rootPath('labels/Other.labels-meta.xml')
+const UNPROCESSABLE_LABELS_NOTES = rootPath('labels/notes.txt')
+const UNPROCESSABLE_LABELS_NOTES_RENAMED = rootPath('labels/notes2.txt')
+
+const apexClassMeta = (apiVersion: string): string =>
+  '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>' +
+  apiVersion +
+  '</apiVersion></ApexClass>\n'
+
+// Each scenario is a sibling of `root`: the index persists across these
+// plumbing-only commits, so it is re-seeded from `root` first.
+const renameOffRoot = (
+  dir: string,
+  root: string,
+  message: string,
+  rename: RenameFile
+): string => {
+  runGit(['read-tree', root], { cwd: dir })
+  return makeCommit(dir, root, message, [rename])
+}
+
+/**
+ * Every blob is unique (tsgit pairs byte-identical blobs ambiguously), and
+ * each scenario commit is a sibling of `root` renaming exactly one file.
+ */
+export const buildRenameUnprocessableFixtureRepo = (
+  dir: string
+): RenameUnprocessableFixtureRefs => {
+  initRepo(dir)
+  const root = makeCommit(dir, null, 'add classes, labels and stray files', [
+    addFile(UNPROCESSABLE_CLASS_A, 'public class A {}\n'),
+    addFile(UNPROCESSABLE_CLASS_A_META, apexClassMeta('60.0')),
+    addFile(UNPROCESSABLE_NOTES, 'class folder notes\n'),
+    addFile(UNPROCESSABLE_README, 'class folder readme\n'),
+    addFile(UNPROCESSABLE_CLASS_BAR, 'public class Bar {}\n'),
+    addFile(UNPROCESSABLE_CLASS_BAR_META, apexClassMeta('59.0')),
+    addFile(UNPROCESSABLE_LABELS, customLabels(['L1'])),
+    addFile(UNPROCESSABLE_LABELS_NOTES, 'labels folder notes\n'),
+  ])
+  return {
+    root,
+    txtRenamed: renameOffRoot(dir, root, 'rename the class folder notes', {
+      kind: 'rename',
+      from: UNPROCESSABLE_NOTES,
+      to: UNPROCESSABLE_NOTES_RENAMED,
+    }),
+    txtToClass: renameOffRoot(dir, root, 'rename a text file into a class', {
+      kind: 'rename',
+      from: UNPROCESSABLE_README,
+      to: UNPROCESSABLE_README_AS_CLASS,
+    }),
+    classToTxt: renameOffRoot(dir, root, 'rename a class into a text file', {
+      kind: 'rename',
+      from: UNPROCESSABLE_CLASS_BAR,
+      to: UNPROCESSABLE_CLASS_BAR_AS_TEXT,
+    }),
+    labelsTxtRenamed: renameOffRoot(dir, root, 'rename the labels notes', {
+      kind: 'rename',
+      from: UNPROCESSABLE_LABELS_NOTES,
+      to: UNPROCESSABLE_LABELS_NOTES_RENAMED,
+    }),
+    labelsFileRenamed: renameOffRoot(dir, root, 'rename the labels file', {
+      kind: 'rename',
+      from: UNPROCESSABLE_LABELS,
+      to: UNPROCESSABLE_LABELS_RENAMED,
+    }),
+  }
+}

@@ -2,6 +2,8 @@
 import {
   type CopyOperation,
   type HandlerResult,
+  type ManifestElement,
+  ManifestTarget,
   mergeResults,
 } from '../types/handlerResult.js'
 import { applyBundleRollup } from './bundleRollup.js'
@@ -13,12 +15,47 @@ export type ChangesAssemblyResult = Readonly<{
   warnings: readonly Error[]
 }>
 
+type MemberIndex = ReadonlyMap<string, ReadonlySet<string>>
+
+const indexMembers = (
+  elements: readonly ManifestElement[],
+  target: ManifestTarget
+): MemberIndex => {
+  const index = new Map<string, Set<string>>()
+  for (const element of elements) {
+    if (element.target !== target) continue
+    const members = index.get(element.type) ?? new Set<string>()
+    members.add(element.member)
+    index.set(element.type, members)
+  }
+  return index
+}
+
+const hasMember = (index: MemberIndex, type: string, member: string): boolean =>
+  index.get(type)?.has(member) ?? false
+
+// A rename may only relabel what the passes emitted: a triple whose sides
+// they did not emit would inject members a default run never produces.
+const corroboratedRenames = (
+  elements: readonly ManifestElement[],
+  triples: readonly RenameTriple[]
+): readonly RenameTriple[] => {
+  const packaged = indexMembers(elements, ManifestTarget.Package)
+  const deleted = indexMembers(elements, ManifestTarget.DestructiveChanges)
+  return triples.filter(
+    ({ type, from, to }) =>
+      hasMember(packaged, type, to) &&
+      (hasMember(packaged, type, from) || hasMember(deleted, type, from))
+  )
+}
+
 // Folds the handler pass and collector output into the single indexed read
-// model consumed downstream. Renames fold in here — on the combined set
-// (handler pass ∪ collectors), not the handler pass alone — because rename
-// targets participate in forPackageManifest() and rename sources in
-// forDestructiveManifest(), so folding renames any earlier would change
-// which deletions get cancelled.
+// model consumed downstream. Renames are corroborated against keptElements,
+// the combined set after the bundle roll-up: a triple survives only when that
+// set already holds its target as a package member and its source as a
+// package or destructive member of the same type, so a rename relabels
+// emitted members and never changes either xml manifest. Reading any earlier
+// set would let a triple re-add a member the roll-up dropped.
 export const assembleChanges = (
   handlerResult: HandlerResult,
   postResult: HandlerResult,
@@ -28,7 +65,10 @@ export const assembleChanges = (
   const { keptElements, warnings: rollupWarnings } = applyBundleRollup(
     combinedResult.elements
   )
-  const changes = ChangeSet.from(keptElements, renameTriples) // built exactly once
+  const changes = ChangeSet.from(
+    keptElements,
+    corroboratedRenames(keptElements, renameTriples)
+  ) // built exactly once
 
   return {
     changes,

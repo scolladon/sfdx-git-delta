@@ -10,11 +10,26 @@ import {
   CopyOperationKind,
   emptyResult,
   type GitCopyOperation,
+  type ManifestElement,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { RenameTriple } from '../../../../src/utils/changeSet'
 import { assembleChanges } from '../../../../src/utils/changesAssembly'
 import { makeHandlerResult } from '../../../__utils__/handlerResultView'
+
+const packaged = (type: string, member: string): ManifestElement => ({
+  target: ManifestTarget.Package,
+  type,
+  member,
+  changeKind: ChangeKind.Add,
+})
+
+const deleted = (type: string, member: string): ManifestElement => ({
+  target: ManifestTarget.DestructiveChanges,
+  type,
+  member,
+  changeKind: ChangeKind.Delete,
+})
 
 describe('assembleChanges', () => {
   describe('Given the handler pass and the collector pass each emit a warning, and a DigitalExperienceBundle deletion triggers a roll-up warning', () => {
@@ -101,21 +116,161 @@ describe('assembleChanges', () => {
   })
 
   describe('Given rename triples resolved alongside elements from both passes', () => {
-    it('When assembleChanges runs, Then the rename target unions with the package view and the rename source lands on the destructive view', () => {
-      // Arrange — renames and elements must land in the SAME construction
-      // pass: the rename target unions with whatever elements survived the
-      // roll-up rather than replacing them.
+    it('When assembleChanges runs, Then the rename relabels the emitted target and source out of the add and delete buckets', () => {
+      // Arrange — the handler pass emits the target and the collector pass the
+      // source: corroboration must read the merged set, and a rename only
+      // relabels members that were emitted.
       const renameTriples: readonly RenameTriple[] = [
         { type: 'ApexClass', from: 'Old', to: 'New' },
       ]
       const handlerResult = makeHandlerResult({
         manifests: [
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'Untouched',
-            changeKind: ChangeKind.Add,
-          },
+          packaged('ApexClass', 'Untouched'),
+          packaged('ApexClass', 'New'),
+        ],
+      })
+      const postResult = makeHandlerResult({
+        manifests: [deleted('ApexClass', 'Old')],
+      })
+
+      // Act
+      const result = assembleChanges(handlerResult, postResult, renameTriples)
+
+      // Assert
+      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Untouched', 'New'])
+      )
+      expect(result.changes.forDestructiveManifest().get('ApexClass')).toEqual(
+        new Set(['Old'])
+      )
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Add].get('ApexClass')
+      ).toEqual(new Set(['Untouched']))
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Delete].get('ApexClass')
+      ).toBeUndefined()
+    })
+  })
+
+  describe('Given a rename whose source the collector pass also emits as a package member', () => {
+    it('When assembleChanges runs, Then the rename cancels the source out of the destructive view', () => {
+      // Arrange — the rename source is cancelled by whatever landed in the
+      // package view, including elements contributed by collectors.
+      const renameTriples: readonly RenameTriple[] = [
+        { type: 'ApexClass', from: 'Old', to: 'New' },
+      ]
+      const handlerResult = makeHandlerResult({
+        manifests: [packaged('ApexClass', 'New')],
+      })
+      const postResult = makeHandlerResult({
+        manifests: [packaged('ApexClass', 'Old')],
+      })
+
+      // Act
+      const result = assembleChanges(handlerResult, postResult, renameTriples)
+
+      // Assert — the source is packaged by the collector pass, so it must not
+      // also appear as a deletion.
+      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['Old', 'New'])
+      )
+      expect(
+        result.changes.forDestructiveManifest().get('ApexClass')
+      ).toBeUndefined()
+      expect(
+        result.changes.byChangeKind()[ChangeKind.Add].get('ApexClass')
+      ).toEqual(new Set(['Old']))
+    })
+  })
+
+  describe('Given a rename whose target the passes did not emit', () => {
+    it('When assembleChanges runs, Then the rename is dropped and the target stays out of the package view', () => {
+      // Arrange
+      const renameTriples: readonly RenameTriple[] = [
+        { type: 'ApexClass', from: 'Old', to: 'New' },
+      ]
+      const handlerResult = makeHandlerResult({
+        manifests: [deleted('ApexClass', 'Old')],
+      })
+
+      // Act
+      const result = assembleChanges(
+        handlerResult,
+        emptyResult(),
+        renameTriples
+      )
+
+      // Assert
+      expect(
+        result.changes.forPackageManifest().get('ApexClass')
+      ).toBeUndefined()
+      expect(result.changes.forDestructiveManifest().get('ApexClass')).toEqual(
+        new Set(['Old'])
+      )
+    })
+  })
+
+  describe('Given a rename whose source the passes did not emit', () => {
+    it('When assembleChanges runs, Then the rename is dropped and the source stays out of the destructive view', () => {
+      // Arrange
+      const renameTriples: readonly RenameTriple[] = [
+        { type: 'ApexClass', from: 'Old', to: 'New' },
+      ]
+      const handlerResult = makeHandlerResult({
+        manifests: [packaged('ApexClass', 'New')],
+      })
+
+      // Act
+      const result = assembleChanges(
+        handlerResult,
+        emptyResult(),
+        renameTriples
+      )
+
+      // Assert
+      expect(
+        result.changes.forDestructiveManifest().get('ApexClass')
+      ).toBeUndefined()
+      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
+        new Set(['New'])
+      )
+    })
+  })
+
+  describe('Given a rename whose target the passes emitted only as a deletion', () => {
+    it('When assembleChanges runs, Then the rename is dropped and the target stays out of the package view', () => {
+      // Arrange
+      const renameTriples: readonly RenameTriple[] = [
+        { type: 'ApexClass', from: 'Old', to: 'New' },
+      ]
+      const handlerResult = makeHandlerResult({
+        manifests: [deleted('ApexClass', 'New'), deleted('ApexClass', 'Old')],
+      })
+
+      // Act
+      const result = assembleChanges(
+        handlerResult,
+        emptyResult(),
+        renameTriples
+      )
+
+      // Assert
+      expect(
+        result.changes.forPackageManifest().get('ApexClass')
+      ).toBeUndefined()
+    })
+  })
+
+  describe('Given a rename whose target the passes emitted under another type', () => {
+    it('When assembleChanges runs, Then the rename is dropped and the target stays out of the package view', () => {
+      // Arrange
+      const renameTriples: readonly RenameTriple[] = [
+        { type: 'ApexClass', from: 'Old', to: 'New' },
+      ]
+      const handlerResult = makeHandlerResult({
+        manifests: [
+          packaged('CustomObject', 'New'),
+          deleted('ApexClass', 'Old'),
         ],
       })
 
@@ -127,46 +282,50 @@ describe('assembleChanges', () => {
       )
 
       // Assert
-      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
-        new Set(['Untouched', 'New'])
-      )
-      expect(result.changes.forDestructiveManifest().get('ApexClass')).toEqual(
-        new Set(['Old'])
+      expect(
+        result.changes.forPackageManifest().get('ApexClass')
+      ).toBeUndefined()
+      expect(result.changes.forPackageManifest().get('CustomObject')).toEqual(
+        new Set(['New'])
       )
     })
   })
 
-  describe('Given a rename whose source is also emitted as an addition by the collector pass', () => {
-    it('When assembleChanges runs, Then the rename cancels the source out of the destructive view', () => {
-      // Arrange — this is the interaction that forces renames to fold on the
-      // combined set rather than the handler pass alone: the rename source is
-      // cancelled by whatever landed in the package view, including elements
-      // contributed by collectors.
+  describe('Given a DigitalExperience rename whose target the bundle roll-up drops', () => {
+    it('When assembleChanges runs, Then the rename is dropped and the covered target stays out of the package view', () => {
+      // Arrange
       const renameTriples: readonly RenameTriple[] = [
-        { type: 'ApexClass', from: 'Old', to: 'New' },
+        {
+          type: DIGITAL_EXPERIENCE_TYPE,
+          from: 'site/foo.sfdc_cms__view/old',
+          to: 'site/foo.sfdc_cms__view/home',
+        },
       ]
+      const handlerResult = makeHandlerResult({
+        manifests: [
+          packaged(DIGITAL_EXPERIENCE_BUNDLE_TYPE, 'site/foo'),
+          packaged(DIGITAL_EXPERIENCE_TYPE, 'site/foo.sfdc_cms__view/home'),
+        ],
+      })
       const postResult = makeHandlerResult({
         manifests: [
-          {
-            target: ManifestTarget.Package,
-            type: 'ApexClass',
-            member: 'Old',
-            changeKind: ChangeKind.Add,
-          },
+          deleted(DIGITAL_EXPERIENCE_TYPE, 'site/foo.sfdc_cms__view/old'),
         ],
       })
 
       // Act
-      const result = assembleChanges(emptyResult(), postResult, renameTriples)
+      const result = assembleChanges(handlerResult, postResult, renameTriples)
 
-      // Assert — the source is packaged by the collector pass, so it must not
-      // also appear as a deletion.
-      expect(result.changes.forPackageManifest().get('ApexClass')).toEqual(
-        new Set(['Old', 'New'])
-      )
+      // Assert
       expect(
-        result.changes.forDestructiveManifest().get('ApexClass')
+        result.changes.forPackageManifest().get(DIGITAL_EXPERIENCE_TYPE)
       ).toBeUndefined()
+      expect(
+        result.changes.forPackageManifest().get(DIGITAL_EXPERIENCE_BUNDLE_TYPE)
+      ).toEqual(new Set(['site/foo']))
+      expect(
+        result.changes.forDestructiveManifest().get(DIGITAL_EXPERIENCE_TYPE)
+      ).toEqual(new Set(['site/foo.sfdc_cms__view/old']))
     })
   })
 
