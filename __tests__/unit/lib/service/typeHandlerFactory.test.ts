@@ -8,6 +8,7 @@ import ContainedDecomposedHandler from '../../../../src/service/containedDecompo
 import CustomField from '../../../../src/service/customFieldHandler'
 import CustomObjectChildHandler from '../../../../src/service/customObjectChildHandler'
 import Decomposed from '../../../../src/service/decomposedHandler'
+import ExternalServiceRegistrationHandler from '../../../../src/service/externalServiceRegistrationHandler'
 import FlowHandler from '../../../../src/service/flowHandler'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
 import InFileHandler from '../../../../src/service/inFileHandler'
@@ -48,6 +49,7 @@ describe('the type handler factory', () => {
         'webLinks',
       ],
     ],
+    [ExternalServiceRegistrationHandler, ['externalServiceRegistrations']],
     [InFolder, ['documents']],
     [ReportingFolderHandler, ['dashboards', 'reports']],
     [InResource, ['staticresources', 'aura', 'lwc']],
@@ -85,6 +87,18 @@ describe('the type handler factory', () => {
         `Z       force-app/main/default/documents/classes/TestDocument`
       )
     ).toBeInstanceOf(InFolder)
+  })
+
+  it('Given a schema yaml line, When resolving handler, Then routes to the registration handler', async () => {
+    // Arrange
+    const line =
+      'A       force-app/main/default/externalServiceRegistrations/Svc.yaml'
+
+    // Act
+    const sut = await typeHandlerFactory.getTypeHandler(line)
+
+    // Assert
+    expect(sut).toBeInstanceOf(ExternalServiceRegistrationHandler)
   })
 
   it('can handle Flow', async () => {

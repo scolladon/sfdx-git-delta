@@ -79,6 +79,36 @@ describe('Given metadata definitions', () => {
     expect(metadata.get('do not exist')).toBeUndefined()
   })
 
+  describe('Given yaml paths and the default registry', () => {
+    it.each([
+      [
+        'force-app/main/default/externalServiceRegistrations/Svc.yaml',
+        'ExternalServiceRegistration',
+      ],
+      ['force-app/main/default/lwc/cmp/mock.yaml', 'LightningComponentBundle'],
+    ])('When resolving %s, Then it resolves to %s', async (path, xmlName) => {
+      // Arrange
+      const sut = await getDefinition({})
+
+      // Act
+      const result = sut.get(path)?.xmlName
+
+      // Assert
+      expect(result).toBe(xmlName)
+    })
+
+    it('When resolving a yaml outside any metadata directory, Then it is unresolved', async () => {
+      // Arrange
+      const sut = await getDefinition({})
+
+      // Act
+      const result = sut.get('ci.yaml')
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+  })
+
   it('Given SDR returns version, When getLatestSupportedVersion, Then returns parsed number', async () => {
     // Arrange
     vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue('58')

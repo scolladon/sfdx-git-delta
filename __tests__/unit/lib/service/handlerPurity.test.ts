@@ -7,6 +7,7 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import ContainedDecomposedHandler from '../../../../src/service/containedDecomposedHandler'
 import DecomposedHandler from '../../../../src/service/decomposedHandler'
+import ExternalServiceRegistrationHandler from '../../../../src/service/externalServiceRegistrationHandler'
 import InFileHandler from '../../../../src/service/inFileHandler'
 import InFolderHandler from '../../../../src/service/inFolderHandler'
 import InResourceHandler from '../../../../src/service/inResourceHandler'
@@ -177,6 +178,21 @@ const families: Family[] = [
         globalMetadata
       )
       return new ContainedDecomposedHandler(changeType, frozen(element), ctx)
+    },
+  },
+  {
+    name: 'ExternalServiceRegistrationHandler',
+    build: (ctx, globalMetadata) => {
+      const { changeType, element } = createElement(
+        'A       force-app/main/default/externalServiceRegistrations/Svc.yaml',
+        globalMetadata.get('externalServiceRegistrations')!,
+        globalMetadata
+      )
+      return new ExternalServiceRegistrationHandler(
+        changeType,
+        frozen(element),
+        ctx
+      )
     },
   },
 ]
