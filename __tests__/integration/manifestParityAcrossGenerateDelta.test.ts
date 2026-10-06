@@ -1,6 +1,6 @@
 'use strict'
 import { existsSync } from 'node:fs'
-import { readFile, rm, writeFile } from 'node:fs/promises'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { ObjectId } from '@scolladon/tsgit'
@@ -28,6 +28,7 @@ import { MessageService } from '../../src/utils/MessageService'
 import RepoGitDiff from '../../src/utils/repoGitDiff'
 import { computeTreeIndexScope } from '../../src/utils/treeIndexScope'
 import { buildRunTreeReader } from '../../src/utils/treeReaderBuilder'
+import { readManifestXml } from '../__utils__/changesManifestHelpers'
 import {
   buildInFileFanOutFixtureRepo,
   buildLiveContainerFixtureRepo,
@@ -113,14 +114,7 @@ const runSgd = async (
 }> => {
   const input = await makeInput(overrides)
   const work = await sgd(input)
-  const packageXml = await readFile(
-    join(input.output, 'package', 'package.xml'),
-    'utf8'
-  )
-  const destructiveXml = await readFile(
-    join(input.output, 'destructiveChanges', 'destructiveChanges.xml'),
-    'utf8'
-  )
+  const { packageXml, destructiveXml } = await readManifestXml(input.output)
   return { work, packageXml, destructiveXml }
 }
 

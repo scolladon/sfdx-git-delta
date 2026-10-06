@@ -1,6 +1,6 @@
 'use strict'
 import { existsSync, readdirSync } from 'node:fs'
-import { readFile, rm } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -11,7 +11,10 @@ import type { ConfigInput } from '../../src/types/config'
 import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
-import { runBothModes } from '../__utils__/changesManifestHelpers'
+import {
+  readManifestXml,
+  runBothModes,
+} from '../__utils__/changesManifestHelpers'
 import {
   buildDecomposedSourceFormatsFixtureRepo,
   DECOMPOSED_REGISTRATIONS_DIR,
@@ -68,14 +71,7 @@ const runSgdWithXml = async (
   overrides: Partial<ConfigInput>
 ) => {
   const { work, output } = await runSgd(scenario, overrides)
-  const packageXml = await readFile(
-    join(output, 'package', 'package.xml'),
-    'utf8'
-  )
-  const destructiveXml = await readFile(
-    join(output, 'destructiveChanges', 'destructiveChanges.xml'),
-    'utf8'
-  )
+  const { packageXml, destructiveXml } = await readManifestXml(output)
   return { work, packageXml, destructiveXml }
 }
 

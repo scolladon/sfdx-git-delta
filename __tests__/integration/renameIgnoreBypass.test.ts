@@ -1,5 +1,5 @@
 'use strict'
-import { readFile, rm, writeFile } from 'node:fs/promises'
+import { rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -10,7 +10,10 @@ import type { ConfigInput } from '../../src/types/config'
 import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
-import { runBothModes as runBothModesWithHelpers } from '../__utils__/changesManifestHelpers'
+import {
+  readManifestXml,
+  runBothModes as runBothModesWithHelpers,
+} from '../__utils__/changesManifestHelpers'
 import {
   buildRenameIgnoreFixtureRepo,
   FIXTURE_HOOK_BUDGET_MS,
@@ -74,14 +77,7 @@ const runSgd = async (
 }> => {
   const input = await makeInput(overrides)
   const work = await sgd(input)
-  const packageXml = await readFile(
-    join(input.output, 'package', 'package.xml'),
-    'utf8'
-  )
-  const destructiveXml = await readFile(
-    join(input.output, 'destructiveChanges', 'destructiveChanges.xml'),
-    'utf8'
-  )
+  const { packageXml, destructiveXml } = await readManifestXml(input.output)
   return { work, packageXml, destructiveXml }
 }
 
