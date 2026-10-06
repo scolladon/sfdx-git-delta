@@ -792,7 +792,7 @@ Supported decomposed presets:
 | `decomposeCustomLabelsBeta2` | CustomLabels | Individual `.label` files (flat layout) |
 | `decomposeWorkflowBeta` | Workflow | Each child (alerts, field updates, rules, etc.) in its own subdirectory |
 | `decomposeSharingRulesBeta` | SharingRules | Each child (criteria, owner, guest rules) in its own subdirectory |
-| `decomposeExternalServiceRegistrationBeta` | ExternalServiceRegistration | Decomposed YAML definitions |
+| `decomposeExternalServiceRegistrationBeta` | ExternalServiceRegistration | `.yaml` schema + `-meta.xml` definition; a change to either redeploys the registration, both files are copied with `--generate-delta` |
 
 No additional configuration is needed — SGD reads the file structure from the git diff and resolves the metadata types accordingly.
 
