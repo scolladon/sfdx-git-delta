@@ -265,3 +265,73 @@ describe('Given the CustomLabels file renamed', () => {
     expect(payload[ChangeKind.Delete]['CustomLabel']).toBeUndefined()
   })
 })
+
+describe('Given an Apex class renamed by case only', () => {
+  it('When the run runs in both modes, Then ApexClass package is [a] and destructive is []', async () => {
+    // Arrange
+    const to = refs.classCaseRenamed
+
+    // Act
+    const { off, on } = await runBothModes(to)
+
+    // Assert
+    for (const result of [off, on]) {
+      expect(
+        members(result.work.changes.forPackageManifest(), 'ApexClass')
+      ).toEqual(['a'])
+      expect(
+        members(result.work.changes.forDestructiveManifest(), 'ApexClass')
+      ).toEqual([])
+    }
+  })
+
+  it('When the run also reports a changes manifest, Then both xml manifests are byte-identical to the run without it and a is only reported as added', async () => {
+    // Arrange
+    const to = refs.classCaseRenamed
+
+    // Act
+    const { off, on, payload } = await runBothModes(to)
+
+    // Assert
+    expect(on.packageXml).toBe(off.packageXml)
+    expect(on.destructiveXml).toBe(off.destructiveXml)
+    expect(payload[ChangeKind.Rename]['ApexClass']).toBeUndefined()
+    expect(payload[ChangeKind.Add]['ApexClass']).toEqual(['a'])
+    expect(payload[ChangeKind.Delete]['ApexClass']).toBeUndefined()
+  })
+})
+
+describe('Given a workflow container renamed', () => {
+  it('When the run runs in both modes, Then Workflow package is [Contact] and destructive is []', async () => {
+    // Arrange
+    const to = refs.workflowRenamed
+
+    // Act
+    const { off, on } = await runBothModes(to)
+
+    // Assert
+    for (const result of [off, on]) {
+      expect(
+        members(result.work.changes.forPackageManifest(), 'Workflow')
+      ).toEqual(['Contact'])
+      expect(
+        members(result.work.changes.forDestructiveManifest(), 'Workflow')
+      ).toEqual([])
+    }
+  })
+
+  it('When the run also reports a changes manifest, Then both xml manifests are byte-identical to the run without it and the container is only reported as added', async () => {
+    // Arrange
+    const to = refs.workflowRenamed
+
+    // Act
+    const { off, on, payload } = await runBothModes(to)
+
+    // Assert
+    expect(on.packageXml).toBe(off.packageXml)
+    expect(on.destructiveXml).toBe(off.destructiveXml)
+    expect(payload[ChangeKind.Rename]['Workflow']).toBeUndefined()
+    expect(payload[ChangeKind.Add]['Workflow']).toEqual(['Contact'])
+    expect(payload[ChangeKind.Delete]['Workflow']).toBeUndefined()
+  })
+})

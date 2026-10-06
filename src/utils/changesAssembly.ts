@@ -51,11 +51,9 @@ const corroboratedRenames = (
 
 // Folds the handler pass and collector output into the single indexed read
 // model consumed downstream. Renames are corroborated against keptElements,
-// the combined set after the bundle roll-up: a triple survives only when that
-// set already holds its target as a package member and its source as a
-// package or destructive member of the same type, so a rename relabels
-// emitted members and never changes either xml manifest. Reading any earlier
-// set would let a triple re-add a member the roll-up dropped.
+// after the bundle roll-up, so neither xml manifest changes with or without
+// rename detection; reading any earlier set would let a triple re-add a
+// member the roll-up dropped.
 export const assembleChanges = (
   handlerResult: HandlerResult,
   postResult: HandlerResult,
