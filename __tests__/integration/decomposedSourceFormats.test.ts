@@ -1,6 +1,6 @@
 'use strict'
 import { existsSync, readdirSync } from 'node:fs'
-import { rm } from 'node:fs/promises'
+import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -8,8 +8,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import GitAdapter from '../../src/adapter/GitAdapter'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
+import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
+import { runBothModes } from '../__utils__/changesManifestHelpers'
 import {
   buildDecomposedSourceFormatsFixtureRepo,
   DECOMPOSED_REGISTRATIONS_DIR,
@@ -60,6 +62,31 @@ const runSgd = async (
   })
   return { work, output }
 }
+
+const runSgdWithXml = async (
+  scenario: keyof DecomposedSourceFormatsFixtureRefs,
+  overrides: Partial<ConfigInput>
+) => {
+  const { work, output } = await runSgd(scenario, overrides)
+  const packageXml = await readFile(
+    join(output, 'package', 'package.xml'),
+    'utf8'
+  )
+  const destructiveXml = await readFile(
+    join(output, 'destructiveChanges', 'destructiveChanges.xml'),
+    'utf8'
+  )
+  return { work, packageXml, destructiveXml }
+}
+
+const runScenarioBothModes = (
+  scenario: keyof DecomposedSourceFormatsFixtureRefs
+) =>
+  runBothModes(
+    overrides => runSgdWithXml(scenario, overrides),
+    trackedTempDir,
+    'sgd-decomposed-changes-'
+  )
 
 const manifestOf = (manifest: Manifest): Record<string, string[]> =>
   Object.fromEntries(
@@ -149,6 +176,12 @@ const REGISTRATION_ROWS: Required<Row>[] = [
     copies: [definition('SvcLive'), schema('SvcLive')],
   },
   {
+    scenario: 'registrationDefinitionModified',
+    packaged: { [ESR]: ['SvcLive'] },
+    destructive: {},
+    copies: [definition('SvcLive'), schema('SvcLive')],
+  },
+  {
     scenario: 'registrationSchemaRenamed',
     packaged: { [ESR]: ['SvcRen', 'SvcRen2'] },
     destructive: {},
@@ -165,6 +198,12 @@ const REGISTRATION_ROWS: Required<Row>[] = [
     packaged: {},
     destructive: { [ESR]: ['SvcGone'] },
     copies: [],
+  },
+  {
+    scenario: 'registrationLeavingPreset',
+    packaged: { [ESR]: ['SvcLeave'] },
+    destructive: {},
+    copies: [definition('SvcLeave')],
   },
   {
     scenario: 'monolithicRegistrationModified',
@@ -236,22 +275,39 @@ describe.each(REGISTRATION_ROWS)(
 )
 
 describe('Given the registrationSchemaRenamed diff', () => {
-  it('When sgd runs with a changes manifest, Then the rename source stays packaged and nothing is destructive', async () => {
-    // Arrange
-    const changesManifest = join(
-      await trackedTempDir('sgd-decomposed-changes-'),
-      'changes.json'
+  it('When sgd runs with a changes manifest, Then the manifests are unchanged and the rename never reaches the delete bucket', async () => {
+    // Act
+    const { off, on, payload } = await runScenarioBothModes(
+      'registrationSchemaRenamed'
     )
 
+    // Assert
+    expect(on.packageXml).toEqual(off.packageXml)
+    expect(on.destructiveXml).toEqual(off.destructiveXml)
+    expect(payload[ChangeKind.Delete][ESR]).toBeUndefined()
+    const renamed = (payload[ChangeKind.Rename][ESR] ?? []).flatMap(
+      ({ from, to }) => [from, to]
+    )
+    const listed = [
+      ...renamed,
+      ...(payload[ChangeKind.Add][ESR] ?? []),
+      ...(payload[ChangeKind.Modify][ESR] ?? []),
+    ]
+    expect(new Set(listed)).toEqual(new Set(['SvcRen', 'SvcRen2']))
+  })
+})
+
+describe('Given the registrationLeavingPreset diff', () => {
+  it('When sgd runs with a changes manifest, Then the registration is listed as modified and never as deleted', async () => {
     // Act
-    const { work } = await runSgd('registrationSchemaRenamed', {
-      changesManifest,
-    })
+    const { off, on, payload } = await runScenarioBothModes(
+      'registrationLeavingPreset'
+    )
 
     // Assert
-    expect(manifestOf(work.changes.forPackageManifest())).toEqual({
-      [ESR]: ['SvcRen', 'SvcRen2'],
-    })
-    expect(manifestOf(work.changes.forDestructiveManifest())).toEqual({})
+    expect(on.packageXml).toEqual(off.packageXml)
+    expect(on.destructiveXml).toEqual(off.destructiveXml)
+    expect(payload[ChangeKind.Modify][ESR]).toEqual(['SvcLeave'])
+    expect(payload[ChangeKind.Delete][ESR]).toBeUndefined()
   })
 })

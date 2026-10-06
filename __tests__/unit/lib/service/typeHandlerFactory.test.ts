@@ -94,11 +94,13 @@ describe('the type handler factory', () => {
     const line =
       'A       force-app/main/default/externalServiceRegistrations/Svc.yaml'
 
+    const sut = typeHandlerFactory
+
     // Act
-    const sut = await typeHandlerFactory.getTypeHandler(line)
+    const result = await sut.getTypeHandler(line)
 
     // Assert
-    expect(sut).toBeInstanceOf(ExternalServiceRegistrationHandler)
+    expect(result).toBeInstanceOf(ExternalServiceRegistrationHandler)
   })
 
   it('can handle Flow', async () => {
