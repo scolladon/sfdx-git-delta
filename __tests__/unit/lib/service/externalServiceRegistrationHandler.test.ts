@@ -168,7 +168,7 @@ describe('Given a deleted schema', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(result.elements).toEqual([
+    expect(elementsOf(result)).toEqual([
       {
         target: ManifestTarget.Package,
         type: TYPE,
@@ -203,7 +203,7 @@ describe('Given a deleted schema', () => {
     expect(mockedPathExists).toHaveBeenCalledWith(DEFINITION, ctx)
   })
 
-  it('When the definition is absent, Then the registration is destructive', async () => {
+  it('When the definition is absent, Then nothing is emitted and the definition deletion owns the destruction', async () => {
     // Arrange
     mockedPathExists.mockResolvedValue(false)
     const { sut } = buildSut(`D       ${SCHEMA}`)
@@ -212,22 +212,13 @@ describe('Given a deleted schema', () => {
     const result = await sut.collect()
 
     // Assert
-    expect(elementsOf(result)).toEqual([
-      {
-        target: ManifestTarget.DestructiveChanges,
-        type: TYPE,
-        member: 'Svc',
-        changeKind: ChangeKind.Delete,
-      },
-    ])
-    expect(result.copies).toEqual([])
+    expect(result).toEqual(emptyResult())
   })
 })
 
 describe('Given a deleted definition', () => {
-  it('When collect, Then the registration is destructive', async () => {
+  it('When collect, Then the registration is destructive without a liveness read', async () => {
     // Arrange
-    mockedPathExists.mockResolvedValue(false)
     const { sut } = buildSut(`D       ${DEFINITION}`)
 
     // Act
@@ -243,5 +234,6 @@ describe('Given a deleted definition', () => {
       },
     ])
     expect(result.copies).toEqual([])
+    expect(mockedPathExists).not.toHaveBeenCalled()
   })
 })
