@@ -1891,3 +1891,123 @@ export const buildDecomposedSourceFormatsFixtureRepo = (
   // Keys come from DECOMPOSED_SCENARIOS itself, so the folded record is complete.
   return chain.refs as DecomposedSourceFormatsFixtureRefs
 }
+
+const UNPROCESSABLE_CLASS_A = rootPath('classes/A.cls')
+const UNPROCESSABLE_CLASS_A_META = rootPath('classes/A.cls-meta.xml')
+const UNPROCESSABLE_CLASS_A_LOWERCASED = rootPath('classes/a.cls')
+const UNPROCESSABLE_NOTES = rootPath('classes/notes.txt')
+const UNPROCESSABLE_NOTES_RENAMED = rootPath('classes/notes2.txt')
+const UNPROCESSABLE_README = rootPath('classes/readme.txt')
+const UNPROCESSABLE_README_AS_CLASS = rootPath('classes/Foo.cls')
+const UNPROCESSABLE_CLASS_BAR = rootPath('classes/Bar.cls')
+const UNPROCESSABLE_CLASS_BAR_META = rootPath('classes/Bar.cls-meta.xml')
+const UNPROCESSABLE_CLASS_BAR_AS_TEXT = rootPath('classes/bar.txt')
+const UNPROCESSABLE_LABELS = rootPath('labels/CustomLabels.labels-meta.xml')
+const UNPROCESSABLE_LABELS_RENAMED = rootPath('labels/Other.labels-meta.xml')
+const UNPROCESSABLE_LABELS_NOTES = rootPath('labels/notes.txt')
+const UNPROCESSABLE_LABELS_NOTES_RENAMED = rootPath('labels/notes2.txt')
+const UNPROCESSABLE_WORKFLOW = rootPath('workflows/Account.workflow-meta.xml')
+const UNPROCESSABLE_WORKFLOW_RENAMED = rootPath(
+  'workflows/Contact.workflow-meta.xml'
+)
+
+const apexClassMeta = (apiVersion: string): string =>
+  '<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>' +
+  apiVersion +
+  '</apiVersion></ApexClass>\n'
+
+// Every blob is unique: tsgit pairs byte-identical blobs ambiguously.
+const UNPROCESSABLE_ROOT_OPS: FixtureOp[] = [
+  addFile(UNPROCESSABLE_CLASS_A, 'public class A {}\n'),
+  addFile(UNPROCESSABLE_CLASS_A_META, apexClassMeta('60.0')),
+  addFile(UNPROCESSABLE_NOTES, 'class folder notes\n'),
+  addFile(UNPROCESSABLE_README, 'class folder readme\n'),
+  addFile(UNPROCESSABLE_CLASS_BAR, 'public class Bar {}\n'),
+  addFile(UNPROCESSABLE_CLASS_BAR_META, apexClassMeta('59.0')),
+  addFile(UNPROCESSABLE_LABELS, customLabels(['L1'])),
+  addFile(UNPROCESSABLE_LABELS_NOTES, 'labels folder notes\n'),
+  addFile(UNPROCESSABLE_WORKFLOW, workflowXml(['Notify'])),
+]
+
+// Each entry is one sibling commit of `root` renaming exactly one file:
+// [commit message, renamed from, renamed to].
+const UNPROCESSABLE_SCENARIOS = {
+  txtRenamed: [
+    'rename the class folder notes',
+    UNPROCESSABLE_NOTES,
+    UNPROCESSABLE_NOTES_RENAMED,
+  ],
+  txtToClass: [
+    'rename a text file into a class',
+    UNPROCESSABLE_README,
+    UNPROCESSABLE_README_AS_CLASS,
+  ],
+  // Bar's meta stays behind.
+  classToTxt: [
+    'rename a class into a text file',
+    UNPROCESSABLE_CLASS_BAR,
+    UNPROCESSABLE_CLASS_BAR_AS_TEXT,
+  ],
+  labelsTxtRenamed: [
+    'rename the labels notes',
+    UNPROCESSABLE_LABELS_NOTES,
+    UNPROCESSABLE_LABELS_NOTES_RENAMED,
+  ],
+  labelsFileRenamed: [
+    'rename the labels file',
+    UNPROCESSABLE_LABELS,
+    UNPROCESSABLE_LABELS_RENAMED,
+  ],
+  // A's meta stays behind.
+  classCaseRenamed: [
+    'rename a class by case only',
+    UNPROCESSABLE_CLASS_A,
+    UNPROCESSABLE_CLASS_A_LOWERCASED,
+  ],
+  workflowRenamed: [
+    'rename the workflow container',
+    UNPROCESSABLE_WORKFLOW,
+    UNPROCESSABLE_WORKFLOW_RENAMED,
+  ],
+} as const satisfies Record<string, readonly [string, string, string]>
+
+type RenameUnprocessableScenario = keyof typeof UNPROCESSABLE_SCENARIOS
+
+export type RenameUnprocessableFixtureRefs = Readonly<
+  { root: string } & Record<RenameUnprocessableScenario, string>
+>
+
+// Each scenario is a sibling of `root`: the index persists across these
+// plumbing-only commits, so it is re-seeded from `root` first.
+const renameOffRoot = (
+  dir: string,
+  root: string,
+  message: string,
+  rename: RenameFile
+): string => {
+  runGit(['read-tree', root], { cwd: dir })
+  return makeCommit(dir, root, message, [rename])
+}
+
+export const buildRenameUnprocessableFixtureRepo = (
+  dir: string
+): RenameUnprocessableFixtureRefs => {
+  initRepo(dir)
+  const root = makeCommit(
+    dir,
+    null,
+    'add classes, labels, a workflow and stray files',
+    UNPROCESSABLE_ROOT_OPS
+  )
+  const scenarios = Object.entries(UNPROCESSABLE_SCENARIOS).map(
+    ([scenario, [message, from, to]]) => [
+      scenario,
+      renameOffRoot(dir, root, message, { kind: 'rename', from, to }),
+    ]
+  )
+  // Keys come from UNPROCESSABLE_SCENARIOS itself, so the record is complete.
+  return {
+    root,
+    ...Object.fromEntries(scenarios),
+  } as RenameUnprocessableFixtureRefs
+}

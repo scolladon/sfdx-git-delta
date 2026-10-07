@@ -23,6 +23,10 @@ const BLOB_PATH = 'big.bin'
 // and shared CI runners), so the ceiling sits well above that noise band
 // while staying far below the >300 MB a materialize regression measures.
 const RSS_DELTA_CEILING = 96 * 1024 * 1024
+// Inflating the blob is CPU-bound: ~0.2s idle, but past vitest's 5s default
+// on a starved host running the whole bucket in parallel. The assertion is
+// about memory, not latency, so this budget only has to bound a hang.
+const STREAM_READ_BUDGET_MS = 30_000
 
 const tempDirs: string[] = []
 
@@ -107,26 +111,30 @@ describe('Given a repository with a large non-LFS blob', () => {
       commitOid = commitLargeBlob(repoDir, content)
     }, 60_000)
 
-    it('Then RSS grows by only a bounded delta, not by the blob size', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
+    it(
+      'Then RSS grows by only a bounded delta, not by the blob size',
+      async () => {
+        // Arrange
+        const sut = GitAdapter.getInstance(makeConfig({ repo: repoDir }))
 
-      // Act
-      const baselineRss = process.memoryUsage().rss
-      let peakRss = baselineRss
-      let receivedBytes = 0
-      for await (const chunk of sut.streamContent({
-        oid: commitOid,
-        path: BLOB_PATH,
-      })) {
-        receivedBytes += (chunk as Buffer).length
-        const currentRss = process.memoryUsage().rss
-        if (currentRss > peakRss) peakRss = currentRss
-      }
+        // Act
+        const baselineRss = process.memoryUsage().rss
+        let peakRss = baselineRss
+        let receivedBytes = 0
+        for await (const chunk of sut.streamContent({
+          oid: commitOid,
+          path: BLOB_PATH,
+        })) {
+          receivedBytes += (chunk as Buffer).length
+          const currentRss = process.memoryUsage().rss
+          if (currentRss > peakRss) peakRss = currentRss
+        }
 
-      // Assert
-      expect(receivedBytes).toBe(BLOB_SIZE)
-      expect(peakRss - baselineRss).toBeLessThan(RSS_DELTA_CEILING)
-    })
+        // Assert
+        expect(receivedBytes).toBe(BLOB_SIZE)
+        expect(peakRss - baselineRss).toBeLessThan(RSS_DELTA_CEILING)
+      },
+      STREAM_READ_BUDGET_MS
+    )
   })
 })

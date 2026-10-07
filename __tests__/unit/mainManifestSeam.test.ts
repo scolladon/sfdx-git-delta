@@ -5,7 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import sgd from '../../src/main'
 import type { Config } from '../../src/types/config'
-import type { HandlerResult } from '../../src/types/handlerResult'
+import type {
+  HandlerResult,
+  ManifestElement,
+} from '../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
@@ -202,41 +205,43 @@ describe('main — manifest seam', () => {
   const destructiveBundleMember = 'site/Baz'
   const handlerWarning = new Error('handler warning')
 
+  const handlerElements: ManifestElement[] = [
+    {
+      target: ManifestTarget.Package,
+      type: 'DigitalExperienceBundle',
+      member: bundleMember,
+      changeKind: ChangeKind.Add,
+    },
+    {
+      target: ManifestTarget.Package,
+      type: 'DigitalExperience',
+      member: coveredMember,
+      changeKind: ChangeKind.Add,
+    },
+    {
+      target: ManifestTarget.Package,
+      type: 'DigitalExperience',
+      member: survivingMember,
+      changeKind: ChangeKind.Add,
+    },
+    {
+      target: ManifestTarget.DestructiveChanges,
+      type: 'DigitalExperienceBundle',
+      member: destructiveBundleMember,
+      changeKind: ChangeKind.Delete,
+    },
+    {
+      target: ManifestTarget.Package,
+      type: 'ApexClass',
+      member: 'Foo',
+      changeKind: ChangeKind.Add,
+    },
+  ]
+
   beforeEach(() => {
     buildPackageStreamSpy.mockResolvedValue(undefined)
     mockProcess.mockResolvedValue({
-      elements: [
-        {
-          target: ManifestTarget.Package,
-          type: 'DigitalExperienceBundle',
-          member: bundleMember,
-          changeKind: ChangeKind.Add,
-        },
-        {
-          target: ManifestTarget.Package,
-          type: 'DigitalExperience',
-          member: coveredMember,
-          changeKind: ChangeKind.Add,
-        },
-        {
-          target: ManifestTarget.Package,
-          type: 'DigitalExperience',
-          member: survivingMember,
-          changeKind: ChangeKind.Add,
-        },
-        {
-          target: ManifestTarget.DestructiveChanges,
-          type: 'DigitalExperienceBundle',
-          member: destructiveBundleMember,
-          changeKind: ChangeKind.Delete,
-        },
-        {
-          target: ManifestTarget.Package,
-          type: 'ApexClass',
-          member: 'Foo',
-          changeKind: ChangeKind.Add,
-        },
-      ],
+      elements: handlerElements,
       copies: [],
       warnings: [handlerWarning],
     })
@@ -270,9 +275,28 @@ describe('main — manifest seam', () => {
 
   it('Given a rename alongside the element channel, When sgd returns, Then Work.changes still agrees with what was written', async () => {
     // Arrange — the returned ChangeSet is built from two inputs, elements and
-    // renames. Exercising only the element channel would leave a regression
-    // that folds renames into one side of the seam but not the other
-    // invisible, since renames participate in both manifest views.
+    // renames. The handler pass emits both sides, because a rename only
+    // relabels emitted members: the manifests stay what the elements make
+    // them, and the rename is observable only through the change kinds.
+    mockProcess.mockResolvedValue({
+      elements: [
+        ...handlerElements,
+        {
+          target: ManifestTarget.Package,
+          type: 'ApexClass',
+          member: 'New',
+          changeKind: ChangeKind.Add,
+        },
+        {
+          target: ManifestTarget.DestructiveChanges,
+          type: 'ApexClass',
+          member: 'Old',
+          changeKind: ChangeKind.Delete,
+        },
+      ],
+      copies: [],
+      warnings: [handlerWarning],
+    })
     mockGetRenamePairs.mockReturnValue([
       { fromPath: 'force-app/Old.cls', toPath: 'force-app/New.cls' },
     ])
@@ -287,8 +311,12 @@ describe('main — manifest seam', () => {
     // Act
     const result = await sgd({ output: 'output' } as Config)
 
-    // Assert — the rename reached the written manifests, and both views still
-    // agree with what PackageGenerator serialised.
+    // Assert — the rename reached Work.changes (New is relabelled out of the
+    // additions), and both views still agree with what PackageGenerator
+    // serialised.
+    expect(
+      result.changes.byChangeKind()[ChangeKind.Add].get('ApexClass')
+    ).toEqual(new Set(['Foo']))
     const byPath = manifestByPath()
     expect(byPath.get('output/package/package.xml')!.get('ApexClass')).toEqual(
       new Set(['Foo', 'New'])

@@ -625,7 +625,7 @@ sf sgd source delta --from "origin/development" --to HEAD --output-dir increment
 sf sgd source delta --from "origin/development" --to HEAD --changes-manifest reports/changes.json
 ```
 
-Produces (bare form example) `incremental/changes.manifest.json`. Setting `--changes-manifest` also turns on git's `-M` rename detection for this run, so components renamed at the file level show up in their own bucket instead of being split into a fake delete+add pair. Default sgd runs (without the flag) keep the pre-feature behaviour — renames still appear as a delete on the old path + an add on the new path.
+Produces (bare form example) `incremental/changes.manifest.json`. Setting `--changes-manifest` also turns on git's `-M` rename detection for this run, so components renamed at the file level show up in their own bucket instead of being split into a fake delete+add pair. A rename lands in the `rename` bucket only when both sides are components the run itself detected; renaming a file that is not a component (e.g. a `.txt` inside `classes/`) leaves both manifests and buckets exactly as without the flag. Default sgd runs (without the flag) keep the pre-feature behaviour — renames still appear as a delete on the old path + an add on the new path.
 
 ```json
 {
