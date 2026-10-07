@@ -4,6 +4,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.6](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.5...v7.4.6) (2026-10-07)
+
+
+### Bug Fixes
+
+* **changes-manifest:** keep a rename only when both sides were emitted ([eed7a90](https://github.com/scolladon/sfdx-git-delta/commit/eed7a90fa61075b8c180062d52454eb0044cb93a))
+* **esr:** include decomposed schema yaml changes in the delta ([#1481](https://github.com/scolladon/sfdx-git-delta/issues/1481)) ([ca8111d](https://github.com/scolladon/sfdx-git-delta/commit/ca8111d0c91d2013d3787dac8680531e6a0c854b))
+
 ## [7.4.5](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.4...v7.4.5) (2026-09-30)
 
 
