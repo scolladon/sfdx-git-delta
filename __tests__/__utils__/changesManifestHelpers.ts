@@ -23,6 +23,20 @@ type RunSgdResult = {
   destructiveXml: string
 }
 
+export const readManifestXml = async (
+  output: string
+): Promise<{ packageXml: string; destructiveXml: string }> => {
+  const packageXml = await readFile(
+    join(output, 'package', 'package.xml'),
+    'utf8'
+  )
+  const destructiveXml = await readFile(
+    join(output, 'destructiveChanges', 'destructiveChanges.xml'),
+    'utf8'
+  )
+  return { packageXml, destructiveXml }
+}
+
 // Both halves must share identical overrides: IgnoreHelper caches its
 // singleton on first call regardless of arguments, so the `off` and `on`
 // runs below share one cached helper.

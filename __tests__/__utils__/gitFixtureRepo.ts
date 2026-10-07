@@ -1562,3 +1562,332 @@ export const buildInFileDestructiveIgnoreFixtureRepo = (
 
   return { root, labelsModified }
 }
+
+const rootPath = (relative: string): string =>
+  `${SFDX_DEFAULT_ROOT}/${relative}`
+
+export const DECOMPOSED_REGISTRATIONS_DIR = rootPath(
+  'externalServiceRegistrations'
+)
+
+const SF_XMLNS = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
+const XML_PROLOG = '<?xml version="1.0" encoding="UTF-8"?>'
+
+const xmlDocument = (lines: string[]): string =>
+  [XML_PROLOG, ...lines, ''].join('\n')
+
+const holderXml = (root: string): string =>
+  xmlDocument([`<${root} ${SF_XMLNS}></${root}>`])
+
+const workflowAlertXml = (description: string): string =>
+  xmlDocument([
+    `<WorkflowAlert ${SF_XMLNS}>`,
+    '    <fullName>MyAlert</fullName>',
+    `    <description>${description}</description>`,
+    '    <protected>false</protected>',
+    '    <senderType>CurrentUser</senderType>',
+    '    <template>unfiled$public/T</template>',
+    '</WorkflowAlert>',
+  ])
+
+const sharingOwnerRuleXml = (accessLevel: string): string =>
+  xmlDocument([
+    `<SharingOwnerRule ${SF_XMLNS}>`,
+    '    <fullName>MyOwner</fullName>',
+    `    <accessLevel>${accessLevel}</accessLevel>`,
+    '    <label>MyOwner</label>',
+    '    <sharedTo>',
+    '        <allInternalUsers></allInternalUsers>',
+    '    </sharedTo>',
+    '    <sharedFrom>',
+    '        <allInternalUsers></allInternalUsers>',
+    '    </sharedFrom>',
+    '</SharingOwnerRule>',
+  ])
+
+// Beta keeps the namespaced root SDR writes; Beta2 writes a bare root.
+const BETA_LABEL_TAG = `CustomLabel ${SF_XMLNS}`
+const BETA2_LABEL_TAG = 'CustomLabel'
+
+const labelXml = (openingTag: string, name: string, value: string): string =>
+  xmlDocument([
+    `<${openingTag}>`,
+    `    <fullName>${name}</fullName>`,
+    '    <language>en_US</language>',
+    '    <protected>false</protected>',
+    `    <shortDescription>${name}</shortDescription>`,
+    `    <value>${value}</value>`,
+    '</CustomLabel>',
+  ])
+
+const permissionSetXml = (label: string): string =>
+  xmlDocument([
+    `<PermissionSet ${SF_XMLNS}>`,
+    `    <label>${label}</label>`,
+    '    <hasActivationRequired>false</hasActivationRequired>',
+    `    <description>${label}</description>`,
+    '</PermissionSet>',
+  ])
+
+const userPermissionXml = (enabled: boolean): string =>
+  xmlDocument([
+    `<UserPermission ${SF_XMLNS}>`,
+    `    <enabled>${enabled}</enabled>`,
+    '    <name>ApiEnabled</name>',
+    '</UserPermission>',
+  ])
+
+const userPermissionsBeta2Xml = (enabled: boolean): string =>
+  xmlDocument([
+    '<PermissionSet>',
+    '    <userPermissions>',
+    `        <enabled>${enabled}</enabled>`,
+    '        <name>ApiEnabled</name>',
+    '    </userPermissions>',
+    '</PermissionSet>',
+  ])
+
+const registrationXml = (label: string, schemaLines: string[]): string =>
+  xmlDocument([
+    `<ExternalServiceRegistration ${SF_XMLNS}>`,
+    `    <label>${label}</label>`,
+    '    <namedCredential>NC</namedCredential>',
+    '    <registrationProviderType>Custom</registrationProviderType>',
+    ...schemaLines,
+    '    <status>Complete</status>',
+    '</ExternalServiceRegistration>',
+  ])
+
+const decomposedRegistrationXml = (label: string): string =>
+  registrationXml(label, [
+    '    <schemaType>OpenApi3</schemaType>',
+    '    <schemaUploadFileExtension>yaml</schemaUploadFileExtension>',
+  ])
+
+const monolithicRegistrationXml = (label: string, schema: string): string =>
+  registrationXml(label, [
+    `    <schema>${schema}</schema>`,
+    '    <schemaType>OpenApi3</schemaType>',
+  ])
+
+const registrationSchemaYaml = (title: string): string =>
+  [
+    'openapi: 3.0.0',
+    'info:',
+    `  title: ${title}`,
+    "  version: '1'",
+    'paths: {}',
+    '',
+  ].join('\n')
+
+const addFile = (path: string, content: string): FixtureOp => ({
+  kind: 'add',
+  mode: '100644',
+  path,
+  content,
+})
+
+const ALERT = rootPath(
+  'workflows/Account/workflowAlerts/MyAlert.workflowAlert-meta.xml'
+)
+const OWNER = rootPath(
+  'sharingRules/Account/sharingOwnerRules/MyOwner.sharingOwnerRule-meta.xml'
+)
+const LABEL_BETA = rootPath('labels/CustomLabels/LBeta.label-meta.xml')
+const LABEL_BETA2 = rootPath('labels/LBeta2.label-meta.xml')
+const PS_BETA_CHILD = rootPath(
+  'permissionsets/PSBeta/userPermissions/ApiEnabled.userPermission-meta.xml'
+)
+const PS_BETA2_CHILD = rootPath(
+  'permissionsets/PSBeta2/PSBeta2.userPermission-meta.xml'
+)
+const registrationDefinition = (name: string): string =>
+  `${DECOMPOSED_REGISTRATIONS_DIR}/${name}.externalServiceRegistration-meta.xml`
+const registrationSchema = (name: string): string =>
+  `${DECOMPOSED_REGISTRATIONS_DIR}/${name}.yaml`
+
+const DECOMPOSED_ROOT_OPS: FixtureOp[] = [
+  addFile(
+    rootPath('workflows/Account/Account.workflow-meta.xml'),
+    holderXml('Workflow')
+  ),
+  addFile(ALERT, workflowAlertXml('a')),
+  addFile(
+    rootPath('sharingRules/Account/Account.sharingRules-meta.xml'),
+    holderXml('SharingRules')
+  ),
+  addFile(OWNER, sharingOwnerRuleXml('Read')),
+  addFile(
+    rootPath('labels/CustomLabels/CustomLabels.labels-meta.xml'),
+    holderXml('CustomLabels')
+  ),
+  addFile(LABEL_BETA, labelXml(BETA_LABEL_TAG, 'LBeta', 'one')),
+  addFile(LABEL_BETA2, labelXml(BETA2_LABEL_TAG, 'LBeta2', 'two')),
+  addFile(
+    rootPath('permissionsets/PSBeta/PSBeta.permissionset-meta.xml'),
+    permissionSetXml('PSBeta')
+  ),
+  addFile(PS_BETA_CHILD, userPermissionXml(true)),
+  addFile(
+    rootPath('permissionsets/PSBeta2/PSBeta2.permissionset-meta.xml'),
+    permissionSetXml('PSBeta2')
+  ),
+  addFile(PS_BETA2_CHILD, userPermissionsBeta2Xml(true)),
+  ...['SvcLive', 'SvcGone', 'SvcRen', 'SvcLeave'].flatMap(name => [
+    addFile(registrationDefinition(name), decomposedRegistrationXml(name)),
+    addFile(registrationSchema(name), registrationSchemaYaml(name)),
+  ]),
+  addFile(
+    registrationDefinition('SvcMono'),
+    monolithicRegistrationXml('SvcMono', 'openapi: 3.0.0')
+  ),
+  addFile(registrationSchema('Orphan'), registrationSchemaYaml('Orphan')),
+]
+
+const DECOMPOSED_SCENARIOS = {
+  workflowAlertModified: [
+    'edit the workflow alert',
+    [addFile(ALERT, workflowAlertXml('b'))],
+  ],
+  workflowAlertDeleted: [
+    'delete the workflow alert',
+    [{ kind: 'delete', path: ALERT }],
+  ],
+  sharingOwnerRuleModified: [
+    'edit the sharing owner rule',
+    [addFile(OWNER, sharingOwnerRuleXml('Edit'))],
+  ],
+  sharingOwnerRuleDeleted: [
+    'delete the sharing owner rule',
+    [{ kind: 'delete', path: OWNER }],
+  ],
+  labelBetaModified: [
+    'edit the beta label',
+    [addFile(LABEL_BETA, labelXml(BETA_LABEL_TAG, 'LBeta', 'uno'))],
+  ],
+  labelBetaDeleted: [
+    'delete the beta label',
+    [{ kind: 'delete', path: LABEL_BETA }],
+  ],
+  labelBeta2Modified: [
+    'edit the beta2 label',
+    [addFile(LABEL_BETA2, labelXml(BETA2_LABEL_TAG, 'LBeta2', 'dos'))],
+  ],
+  labelBeta2Deleted: [
+    'delete the beta2 label',
+    [{ kind: 'delete', path: LABEL_BETA2 }],
+  ],
+  permissionSetBetaChildModified: [
+    'edit the beta permission child',
+    [addFile(PS_BETA_CHILD, userPermissionXml(false))],
+  ],
+  permissionSetBetaChildDeleted: [
+    'delete the beta permission child',
+    [{ kind: 'delete', path: PS_BETA_CHILD }],
+  ],
+  permissionSetBeta2ChildModified: [
+    'edit the beta2 permission child',
+    [addFile(PS_BETA2_CHILD, userPermissionsBeta2Xml(false))],
+  ],
+  permissionSetBeta2ChildDeleted: [
+    'delete the beta2 permission child',
+    [{ kind: 'delete', path: PS_BETA2_CHILD }],
+  ],
+  registrationSchemaModified: [
+    'edit the SvcLive schema',
+    [
+      addFile(
+        registrationSchema('SvcLive'),
+        registrationSchemaYaml('SvcLive v2')
+      ),
+    ],
+  ],
+  registrationDefinitionModified: [
+    'edit the SvcLive definition',
+    [
+      addFile(
+        registrationDefinition('SvcLive'),
+        decomposedRegistrationXml('SvcLive v2')
+      ),
+    ],
+  ],
+  registrationSchemaRenamed: [
+    'rename the SvcRen schema',
+    [
+      {
+        kind: 'rename',
+        from: registrationSchema('SvcRen'),
+        to: registrationSchema('SvcRen2'),
+      },
+    ],
+  ],
+  registrationSchemaDeleted: [
+    'delete the SvcLive schema',
+    [{ kind: 'delete', path: registrationSchema('SvcLive') }],
+  ],
+  registrationRemoved: [
+    'delete the SvcGone definition and schema',
+    [
+      { kind: 'delete', path: registrationDefinition('SvcGone') },
+      { kind: 'delete', path: registrationSchema('SvcGone') },
+    ],
+  ],
+  registrationLeavingPreset: [
+    'inline the SvcLeave schema and delete its schema file',
+    [
+      addFile(
+        registrationDefinition('SvcLeave'),
+        monolithicRegistrationXml('SvcLeave', 'openapi: 3.0.0')
+      ),
+      { kind: 'delete', path: registrationSchema('SvcLeave') },
+    ],
+  ],
+  orphanSchemaDeleted: [
+    'delete the schema that has no definition',
+    [{ kind: 'delete', path: registrationSchema('Orphan') }],
+  ],
+  monolithicRegistrationModified: [
+    'edit the SvcMono label',
+    [
+      addFile(
+        registrationDefinition('SvcMono'),
+        monolithicRegistrationXml('SvcMono v2', 'openapi: 3.0.0')
+      ),
+    ],
+  ],
+} satisfies Record<string, readonly [string, FixtureOp[]]>
+
+type DecomposedScenario = keyof typeof DECOMPOSED_SCENARIOS
+
+type FixtureRange = { readonly from: string; readonly to: string }
+
+export type DecomposedSourceFormatsFixtureRefs = Readonly<
+  Record<DecomposedScenario, FixtureRange>
+>
+
+type ScenarioChain = {
+  readonly refs: Partial<Record<DecomposedScenario, FixtureRange>>
+  readonly parent: string
+}
+
+export const buildDecomposedSourceFormatsFixtureRepo = (
+  dir: string
+): DecomposedSourceFormatsFixtureRefs => {
+  initRepo(dir)
+  const root = makeCommit(
+    dir,
+    null,
+    'add every decomposed layout',
+    DECOMPOSED_ROOT_OPS
+  )
+  const chain = Object.entries(DECOMPOSED_SCENARIOS).reduce<ScenarioChain>(
+    ({ refs, parent }, [scenario, [message, ops]]) => {
+      const to = makeCommit(dir, parent, message, ops)
+      return { refs: { ...refs, [scenario]: { from: parent, to } }, parent: to }
+    },
+    { refs: {}, parent: root }
+  )
+  runGit(['update-ref', 'HEAD', chain.parent], { cwd: dir })
+  // Keys come from DECOMPOSED_SCENARIOS itself, so the folded record is complete.
+  return chain.refs as DecomposedSourceFormatsFixtureRefs
+}

@@ -14,6 +14,7 @@ import CustomLabel from './customLabelHandler.js'
 import CustomObjectChildHandler from './customObjectChildHandler.js'
 import CustomObject from './customObjectHandler.js'
 import Decomposed from './decomposedHandler.js'
+import ExternalServiceRegistration from './externalServiceRegistrationHandler.js'
 import FlowHandler from './flowHandler.js'
 import InBundle from './inBundleHandler.js'
 import InFile from './inFileHandler.js'
@@ -36,6 +37,7 @@ const handlerMap: Record<string, typeof Standard> = {
   CustomObject: CustomObject,
   CustomObjectTranslation: ObjectTranslation,
   Dashboard: ReportingFolderHandler,
+  ExternalServiceRegistration: ExternalServiceRegistration,
   Flow: FlowHandler,
   GenAiFunction: Lwc,
   GlobalValueSetTranslation: InFile,

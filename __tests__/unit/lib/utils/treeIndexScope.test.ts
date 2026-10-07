@@ -157,6 +157,31 @@ describe('computeTreeIndexScope', () => {
     })
   })
 
+  describe('Given ExternalServiceRegistration diff lines', () => {
+    it.each([
+      [
+        'a schema addition',
+        'A\tforce-app/main/default/externalServiceRegistrations/Svc.yaml',
+      ],
+      [
+        'a definition deletion',
+        'D\tforce-app/main/default/externalServiceRegistrations/Svc.externalServiceRegistration-meta.xml',
+      ],
+    ])('When computed with %s, Then returns type directory', (_name, line) => {
+      // Arrange
+      const lines = [line]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, metadata)
+
+      // Assert
+      expect(
+        sut.has('force-app/main/default/externalServiceRegistrations')
+      ).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
   describe('Given multiple diff lines', () => {
     it('When computed, Then deduplicates type directories', () => {
       // Arrange
@@ -566,6 +591,12 @@ describe('computeTreeIndexScope', () => {
         directoryName: 'permissionsets',
         path: 'force-app/main/default/permissionsets/MyPS/MyPS.permissionset-meta.xml',
         expected: 'force-app/main/default/permissionsets',
+      },
+      {
+        xmlName: 'ExternalServiceRegistration',
+        directoryName: 'externalServiceRegistrations',
+        path: 'force-app/main/default/externalServiceRegistrations/Svc.externalServiceRegistration-meta.xml',
+        expected: 'force-app/main/default/externalServiceRegistrations',
       },
       {
         xmlName: 'Territory2Model',

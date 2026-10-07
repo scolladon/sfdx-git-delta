@@ -20,6 +20,7 @@ const TREE_INDEX_XML_NAMES = new Set([
   'GenAiFunction',
   PERMISSIONSET_TYPE,
   'Territory2Model',
+  'ExternalServiceRegistration',
 ])
 
 const needsTreeIndex = (type: Metadata): boolean => {

@@ -11,7 +11,10 @@ import { ChangeKind } from '../../src/types/handlerResult'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import { MessageService } from '../../src/utils/MessageService'
-import type { ChangesManifestJson } from '../__utils__/changesManifestHelpers'
+import {
+  type ChangesManifestJson,
+  readManifestXml,
+} from '../__utils__/changesManifestHelpers'
 import {
   buildUndeletableTypeFixtureRepo,
   FIXTURE_HOOK_BUDGET_MS,
@@ -74,14 +77,7 @@ const runSgd = async (
 }> => {
   const input = await makeInput(overrides)
   const work = await sgd(input)
-  const packageXml = await readFile(
-    join(input.output, 'package', 'package.xml'),
-    'utf8'
-  )
-  const destructiveXml = await readFile(
-    join(input.output, 'destructiveChanges', 'destructiveChanges.xml'),
-    'utf8'
-  )
+  const { packageXml, destructiveXml } = await readManifestXml(input.output)
   return { work, packageXml, destructiveXml }
 }
 
