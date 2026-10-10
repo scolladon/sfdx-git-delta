@@ -128,10 +128,47 @@ describe('Given containerUnion path rules', () => {
       expect(result.deletionBasePaths).toEqual([IN_B])
     })
 
-    it('When a from file is ignored for deletions, Then it leaves the bases', () => {
+    it.each([
+      ['present at --to and kept for deletions', true, true, true, true],
+      ['present at --to and ignored for deletions', true, false, true, false],
+      ['deleted and kept for deletions', false, true, true, true],
+      ['deleted and ignored for deletions', false, false, false, false],
+    ])(
+      'When a from file is %s, Then in the addition base: %s, in the deletion base: %s, deletion within addition',
+      (_title, present, keptForDeletion, inAddition, inDeletion) => {
+        // Arrange
+        const to = sideOf(present ? [IN_A, IN_B] : [IN_B])
+
+        // Act
+        const result = specOf({
+          to,
+          ignore: {
+            keep: line => keptForDeletion || line !== `D\t${IN_A}`,
+          },
+        })
+
+        // Assert
+        expect(result.additionBasePaths.includes(IN_A)).toBe(inAddition)
+        expect(result.deletionBasePaths.includes(IN_A)).toBe(inDeletion)
+        expect(
+          result.deletionBasePaths.every(path =>
+            result.additionBasePaths.includes(path)
+          )
+        ).toBe(true)
+      }
+    )
+
+    it('When an unchanged from file sits in another package directory at --to, Then it joins neither base', () => {
+      // Arrange
+      const movedEntries = SfdxProject.parse(
+        JSON.stringify({
+          packageDirectories: [{ path: 'force-app/a' }, { path: 'force-app' }],
+        })
+      )
+
       // Act
       const result = specOf({
-        ignore: { keep: line => line !== `D\t${IN_A}` },
+        to: { ...sideOf([IN_A, IN_B]), project: movedEntries },
       })
 
       // Assert

@@ -92,9 +92,23 @@ const candidates = (
     .sort()
 }
 
-const isKeptBoth = (ignore: Pick<IgnoreHelper, 'keep'>, path: string) =>
-  ignore.keep(`${ADDITION}${TAB}${path}`) &&
-  ignore.keep(`${DELETION}${TAB}${path}`)
+const keeps = (
+  ignore: Pick<IgnoreHelper, 'keep'>,
+  type: string,
+  path: string
+): boolean => ignore.keep(`${type}${TAB}${path}`)
+
+const staysInEntry = (input: UnionSpecInput, path: string): boolean =>
+  !input.to.blobIds.has(path) ||
+  input.to.project.packageDirectoryOf(path) === input.entry
+
+// A deleted file under the destructive ignore cannot vouch for additions.
+const vouchesForAdditions = (input: UnionSpecInput, path: string): boolean =>
+  keeps(input.ignore, ADDITION, path) &&
+  (input.to.blobIds.has(path) || keeps(input.ignore, DELETION, path))
+
+const vouchesForDeletions = (input: UnionSpecInput, path: string): boolean =>
+  keeps(input.ignore, ADDITION, path) && keeps(input.ignore, DELETION, path)
 
 const emitting = (lines: readonly string[]): ReadonlySet<string> =>
   new Set(
@@ -104,20 +118,26 @@ const emitting = (lines: readonly string[]): ReadonlySet<string> =>
   )
 
 export const buildUnionSpec = (input: UnionSpecInput): UnionSpec => {
-  const base = candidates(input, input.from).filter(path =>
-    isKeptBoth(input.ignore, path)
+  const fromPaths = candidates(input, input.from).filter(path =>
+    staysInEntry(input, path)
+  )
+  const additionBase = fromPaths.filter(path =>
+    vouchesForAdditions(input, path)
+  )
+  const deletionBase = fromPaths.filter(path =>
+    vouchesForDeletions(input, path)
   )
   const shields = candidates(input, input.to)
   const emitted = emitting(input.lines)
-  const inBase = new Set(base)
+  const inDeletionBase = new Set(deletionBase)
   return {
     entry: input.entry,
-    additionBasePaths: base,
-    deletionBasePaths: base,
+    additionBasePaths: additionBase,
+    deletionBasePaths: deletionBase,
     shieldPaths: shields,
     memberPaths: shields.filter(path => emitted.has(path)),
     droppedDeletions: input.lines.filter(
-      line => line.charAt(0) === DELETION && inBase.has(pathOf(line))
+      line => line.charAt(0) === DELETION && inDeletionBase.has(pathOf(line))
     ),
   }
 }
