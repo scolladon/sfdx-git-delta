@@ -21,7 +21,7 @@ const {
   mockGetMessage,
   mockResolveCommit,
   mockGetMergeBase,
-  mockSfProjectResolve,
+  mockGetRootFileContent,
   MOCK_REPOSITORY_KEY,
   MOCK_REPOSITORY_KEY_ESCAPED,
 } = vi.hoisted(() => ({
@@ -30,7 +30,7 @@ const {
   ),
   mockResolveCommit: vi.fn(),
   mockGetMergeBase: vi.fn(),
-  mockSfProjectResolve: vi.fn(),
+  mockGetRootFileContent: vi.fn(),
   // Stands in for GitAdapter's absolute repository key — a fixed,
   // recognizable value so PathIsNotGit assertions can pin exactly what
   // reaches the message, independent of the test's own config.repo. It
@@ -61,6 +61,7 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
       getInstance: () => ({
         resolveCommit: mockResolveCommit,
         getMergeBase: mockGetMergeBase,
+        getRootFileContent: mockGetRootFileContent,
         repositoryKey: MOCK_REPOSITORY_KEY,
       }),
     },
@@ -68,9 +69,6 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
 })
 
 vi.mock('@salesforce/core', () => ({
-  SfProject: {
-    resolve: (...args: unknown[]) => mockSfProjectResolve(...args),
-  },
   Logger: {
     childFromRoot: () => ({
       setLevel: vi.fn(),
@@ -295,13 +293,13 @@ describe('Given a ConfigValidator', () => {
 
     describe('when apiVersion parameter is not set', () => {
       describe('when sfdx-project.json file exist', () => {
-        const mockSfProject = (sourceApiVersion?: string) => {
-          mockSfProjectResolve.mockResolvedValue({
-            getSfProjectJson: () => ({
-              getContents: () =>
-                sourceApiVersion !== undefined ? { sourceApiVersion } : {},
-            }),
-          })
+        const mockProjectFile = (sourceApiVersion?: string) => {
+          mockGetRootFileContent.mockResolvedValue(
+            JSON.stringify({
+              packageDirectories: [{ path: 'force-app' }],
+              ...(sourceApiVersion !== undefined && { sourceApiVersion }),
+            })
+          )
         }
 
         describe('when "sourceApiVersion" attribute is set with supported value', () => {
@@ -309,7 +307,7 @@ describe('Given a ConfigValidator', () => {
             'config.apiVersion (%s) equals the "sourceApiVersion" attribute',
             async version => {
               // Arrange
-              mockSfProject(String(version))
+              mockProjectFile(String(version))
               config.apiVersion = undefined
               const sut = new ConfigValidator(config)
 
@@ -327,7 +325,7 @@ describe('Given a ConfigValidator', () => {
             'config.apiVersion (%s) defaults to latest version with warning',
             async version => {
               // Arrange
-              mockSfProject(version)
+              mockProjectFile(version)
               config.apiVersion = undefined
               const sut = new ConfigValidator(config)
 
@@ -344,7 +342,7 @@ describe('Given a ConfigValidator', () => {
         describe('when "sourceApiVersion" attribute is set with valid low value', () => {
           it('config.apiVersion equals the sourceApiVersion', async () => {
             // Arrange
-            mockSfProject('40')
+            mockProjectFile('40')
             config.apiVersion = undefined
             const sut = new ConfigValidator(config)
 
@@ -361,7 +359,7 @@ describe('Given a ConfigValidator', () => {
           it('When _handleDefault runs, Then the project version is kept and no lookup is made', async () => {
             // Arrange
             const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
-            mockSfProject('52.0')
+            mockProjectFile('52.0')
             config.apiVersion = undefined
             const sut = new ConfigValidator(config)
 
@@ -377,7 +375,7 @@ describe('Given a ConfigValidator', () => {
 
         it('when "sourceApiVersion" attribute is not set, defaults to latest with warning', async () => {
           // Arrange
-          mockSfProject()
+          mockProjectFile()
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -390,12 +388,71 @@ describe('Given a ConfigValidator', () => {
         })
       })
     })
+    describe('when sfdx-project.json is read at --to', () => {
+      it('Given sourceApiVersion 62.0 at --to, When validateConfig runs unpinned, Then apiVersion is 62 and no lookup happens', async () => {
+        // Arrange
+        mockGetRootFileContent.mockResolvedValue(
+          JSON.stringify({ sourceApiVersion: '62.0' })
+        )
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut['_handleDefault']()
+
+        // Assert
+        expect(config.apiVersion).toBe(62)
+        expect(warnings).toEqual([])
+      })
+
+      it('Given an unpinned run, When the version is read, Then the project file is read at config.to', async () => {
+        // Arrange
+        mockGetRootFileContent.mockResolvedValue(undefined)
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act
+        await sut['_getApiVersion']()
+
+        // Assert
+        expect(mockGetRootFileContent).toHaveBeenCalledWith(
+          config.to,
+          'sfdx-project.json'
+        )
+      })
+
+      it('Given sfdx-project.json is not valid JSON at --to, When _handleDefault runs, Then the lookup default applies', async () => {
+        // Arrange
+        mockGetRootFileContent.mockResolvedValue('{nope')
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut['_handleDefault']()
+
+        // Assert
+        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
+        expect(warnings[0]!.message).toContain('warning.ApiVersionDefaulted')
+      })
+
+      it('Given no sfdx-project.json at --to, When _handleDefault runs, Then ApiVersionDefaulted is raised', async () => {
+        // Arrange
+        mockGetRootFileContent.mockResolvedValue(undefined)
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const warnings = await sut['_handleDefault']()
+
+        // Assert
+        expect(warnings[0]!.message).toContain('warning.ApiVersionDefaulted')
+      })
+    })
+
     describe('when sfdx-project.json file does not exist', () => {
       it('config.apiVersion defaults to latest version with warning', async () => {
         // Arrange
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         config.apiVersion = undefined
         const sut = new ConfigValidator(config)
 
@@ -420,9 +477,7 @@ describe('Given a ConfigValidator', () => {
       describe('when apiVersion is not resolvable', () => {
         it('When the lookup fails and no version is available, Then it throws an actionable ConfigError', async () => {
           // Arrange
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -450,9 +505,7 @@ describe('Given a ConfigValidator', () => {
               })
             )
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -476,9 +529,7 @@ describe('Given a ConfigValidator', () => {
               }
             )
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -508,9 +559,7 @@ describe('Given a ConfigValidator', () => {
               }
             )
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -536,9 +585,7 @@ describe('Given a ConfigValidator', () => {
               }
             )
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -564,9 +611,7 @@ describe('Given a ConfigValidator', () => {
               }
             )
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -588,9 +633,7 @@ describe('Given a ConfigValidator', () => {
               { cause: 'ECONNREFUSED' }
             )
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -611,9 +654,7 @@ describe('Given a ConfigValidator', () => {
               cause: new Error('connect ECONNREFUSED 127.0.0.1:9'),
             }
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -658,9 +699,7 @@ describe('Given a ConfigValidator', () => {
       it('When apiVersion is an empty string and no sfdx-project.json exists, Then validateConfig defaults to the latest version and returns the defaulted warning', async () => {
         // Arrange
         Object.assign(config, { apiVersion: '' })
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         const sut = new ConfigValidator(config)
 
         // Act
@@ -680,9 +719,7 @@ describe('Given a ConfigValidator', () => {
           )
         )
         Object.assign(config, { apiVersion: '' })
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         const sut = new ConfigValidator(config)
 
         // Act & Assert
@@ -704,9 +741,7 @@ describe('Given a ConfigValidator', () => {
           vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
             answer
           )
-          mockSfProjectResolve.mockRejectedValue(
-            new Error('No sfdx-project.json found')
-          )
+          mockGetRootFileContent.mockResolvedValue(undefined)
           config.apiVersion = undefined
           const sut = new ConfigValidator(config)
 
@@ -725,9 +760,7 @@ describe('Given a ConfigValidator', () => {
         vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
           '1'
         )
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         config.apiVersion = undefined
         const sut = new ConfigValidator(config)
 
@@ -750,9 +783,7 @@ describe('Given a ConfigValidator', () => {
             'Unable to get a current API version from the appexchange org'
           )
         )
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         config.apiVersion = undefined
       })
 
@@ -850,9 +881,7 @@ describe('Given a ConfigValidator', () => {
         // warnings it returns are what reaches the user. Assert the channel,
         // not just the value the private helper computed.
         config.apiVersion = NaN
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         const sut = new ConfigValidator(config)
 
         // Act
@@ -879,9 +908,7 @@ describe('Given a ConfigValidator', () => {
     describe('when apiVersion defaults to latest', () => {
       it('When apiVersion is undefined and no project file, Then warning message contains default details', async () => {
         // Arrange
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue(undefined)
         config.apiVersion = undefined
         const sut = new ConfigValidator(config)
 
@@ -897,9 +924,7 @@ describe('Given a ConfigValidator', () => {
     describe('_getApiVersion diagnostic logging', () => {
       it('When sfdx-project.json resolution fails, Then the failure is logged for diagnostics', async () => {
         // Arrange
-        mockSfProjectResolve.mockRejectedValue(
-          new Error('No sfdx-project.json found')
-        )
+        mockGetRootFileContent.mockResolvedValue('{nope')
         config.apiVersion = undefined
         const sut = new ConfigValidator(config)
 
@@ -914,11 +939,9 @@ describe('Given a ConfigValidator', () => {
     describe('when apiVersion is set and project file exists', () => {
       it('When apiVersion is defined, Then project file sourceApiVersion is ignored', async () => {
         // Arrange
-        mockSfProjectResolve.mockResolvedValue({
-          getSfProjectJson: () => ({
-            getContents: () => ({ sourceApiVersion: '100' }),
-          }),
-        })
+        mockGetRootFileContent.mockResolvedValue(
+          JSON.stringify({ sourceApiVersion: '100' })
+        )
         config.apiVersion = 46
         const sut = new ConfigValidator(config)
 
@@ -1249,7 +1272,7 @@ describe('Given a ConfigValidator', () => {
       vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion').mockResolvedValue(
         '58'
       )
-      mockSfProjectResolve.mockRejectedValue(new Error('no project'))
+      mockGetRootFileContent.mockResolvedValue(undefined)
       config.apiVersion = undefined
       const sut = new ConfigValidator(config)
       const warnings = await sut['_handleDefault']()
@@ -1342,7 +1365,7 @@ describe('Given a ConfigValidator', () => {
     it('Given apiVersion is undefined after the project lookup, When _handleDefault runs, Then it defaults to latest', async () => {
       // Mutant: the pinned guard in _handleDefault forced true returns before defaulting, so apiVersion stays undefined
       config.apiVersion = undefined
-      mockSfProjectResolve.mockRejectedValue(new Error('no project'))
+      mockGetRootFileContent.mockResolvedValue(undefined)
       const sut = new ConfigValidator(config)
       const warnings = await sut['_handleDefault']()
 
@@ -1466,15 +1489,9 @@ describe('Given a ConfigValidator', () => {
 
     it('Given numeric falsy sourceApiVersion (0), When _handleDefault runs, Then it is not a usable pin and defaults to latest with a warning', async () => {
       // sourceApiVersion is typed string; a numeric 0 still parses to no positive version.
-      mockSfProjectResolve.mockResolvedValue({
-        getSfProjectJson: () => ({
-          // numeric 0 (intentionally bypassing the string contract) —
-          // toApiVersion's parseInt/isPositiveVersion check handles this
-          // ill-typed shape the same as any other non-positive value.
-          getContents: () =>
-            ({ sourceApiVersion: 0 }) as unknown as Record<string, unknown>,
-        }),
-      })
+      mockGetRootFileContent.mockResolvedValue(
+        JSON.stringify({ sourceApiVersion: 0 })
+      )
       config.apiVersion = undefined
       const sut = new ConfigValidator(config)
 
