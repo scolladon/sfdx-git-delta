@@ -407,6 +407,35 @@ describe('Given a self-contained git fixture repository', () => {
       })
     })
 
+    it('Then getRootFileContent matches git cat-file blob HEAD:README.md', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+
+      // Act
+      const result = await sut.getRootFileContent('HEAD', 'README.md')
+
+      // Assert
+      const expected = runGit(['cat-file', 'blob', 'HEAD:README.md'], {
+        cwd: fixtureDir,
+      })
+      expect(result).toBe(expected.toString('utf8'))
+    })
+
+    it('Then getRootFileContent resolves undefined for a path git ls-tree does not list at the root', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+
+      // Act
+      const result = await sut.getRootFileContent('HEAD', 'sfdx-project.json')
+
+      // Assert
+      const listed = runGitText(['ls-tree', 'HEAD', 'sfdx-project.json'], {
+        cwd: fixtureDir,
+      })
+      expect(listed).toBe('')
+      expect(result).toBeUndefined()
+    })
+
     it('Then streamContent forwards identical bytes to git cat-file blob', async () => {
       // Arrange
       const config = makeConfig()

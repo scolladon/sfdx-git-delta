@@ -317,6 +317,43 @@ export default class GitAdapter implements GitBlobReader {
     return await this.peelToCommit(oid, revision)
   }
 
+  // Reads one blob of the root tree without flattening the whole revision:
+  // callers such as the project descriptor lookup need a single file.
+  @log
+  public async getRootFileContent(
+    revision: string,
+    fileName: string
+  ): Promise<string | undefined> {
+    try {
+      const repo = await this.getRepo()
+      const commit = await this.peelRevision(revision)
+      const { entries } = await repo.primitives.readTree(commit.data.tree)
+      const entry = entries.find(
+        ({ name, mode }) => name === fileName && BLOB_MODES.has(mode)
+      )
+      if (!entry) {
+        return undefined
+      }
+      const { content } = await repo.primitives.readBlob(entry.id)
+      return Buffer.from(content).toString(UTF8_ENCODING)
+    } catch (error) {
+      throw this.mapError(error, revision)
+    }
+  }
+
+  // Shares the per-revision memo with buildTreeIndex, so a revision already
+  // indexed for the run is a memo hit.
+  @log
+  public async getBlobIds(
+    revision: string
+  ): Promise<ReadonlyMap<string, ObjectId>> {
+    try {
+      return await this.indexRevision(revision)
+    } catch (error) {
+      throw this.mapError(error, revision)
+    }
+  }
+
   // Not `async` on purpose: an `await` between the memo read and the memo
   // write is what let concurrent callers each re-walk the tree, and a
   // non-async function cannot contain one.
