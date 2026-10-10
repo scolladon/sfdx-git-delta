@@ -1,7 +1,7 @@
 'use strict'
 import { EMPTY_TREE_READER } from '../../src/adapter/treeReader'
 import type { Config } from '../../src/types/config'
-import type { RunContext } from '../../src/types/runContext'
+import { NO_UNIONS, type RunContext } from '../../src/types/runContext'
 import type { Work } from '../../src/types/work'
 import ChangeSet from '../../src/utils/changeSet'
 import { sourceDirs } from './sourceDirs'
@@ -35,5 +35,6 @@ export const getContext = (
   config: getConfig(),
   metadata: createMetadataRepositoryMock(),
   trees: EMPTY_TREE_READER,
+  unions: NO_UNIONS,
   ...overrides,
 })

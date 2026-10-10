@@ -3,8 +3,14 @@ import { describe, expect, it } from 'vitest'
 
 import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import { createTreeReader } from '../../../../src/adapter/treeReader'
-import { withRevisions } from '../../../../src/types/runContext'
+import { NO_UNIONS, withRevisions } from '../../../../src/types/runContext'
+import type { DiffOutcome } from '../../../../src/utils/metadataDiff/index'
 import { getContext } from '../../../__utils__/testWork'
+
+const outcome: DiffOutcome = {
+  manifests: { added: [], modified: [], deleted: [] },
+  hasPackageContent: false,
+}
 
 describe('withRevisions', () => {
   describe('Given a context and undefined revisions', () => {
@@ -17,6 +23,18 @@ describe('withRevisions', () => {
 
       // Assert
       expect(result).toBe(ctx)
+    })
+
+    it('When called, Then the union outcomes are the same map', () => {
+      // Arrange
+      const unions = new Map([['p', outcome]])
+      const ctx = getContext({ unions })
+
+      // Act
+      const result = withRevisions(ctx)
+
+      // Assert
+      expect(result.unions).toBe(unions)
     })
   })
 
@@ -55,6 +73,17 @@ describe('withRevisions', () => {
       expect(result.trees.filesUnder('headSHA', '')).toEqual([
         'force-app/Foo.cls',
       ])
+    })
+
+    it('When called, Then the derived context carries no union outcomes', () => {
+      // Arrange
+      const ctx = getContext({ unions: new Map([['p', outcome]]) })
+
+      // Act
+      const result = withRevisions(ctx, { from: 'firstSHA', to: 'headSHA' })
+
+      // Assert
+      expect(result.unions).toBe(NO_UNIONS)
     })
 
     it('When called, Then the original context is left unmutated', () => {

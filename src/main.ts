@@ -6,7 +6,7 @@ import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config, ConfigInput } from './types/config.js'
-import type { RunContext } from './types/runContext.js'
+import { NO_UNIONS, type RunContext } from './types/runContext.js'
 import type { Work } from './types/work.js'
 import ChangeSet from './utils/changeSet.js'
 import { assembleChanges } from './utils/changesAssembly.js'
@@ -100,7 +100,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       config,
       scopePaths
     )
-    const ctx: RunContext = { config, metadata, trees }
+    const ctx: RunContext = { config, metadata, trees, unions: NO_UNIONS }
 
     const lineProcessor = new DiffLineInterpreter(ctx)
     const postProcessors = getPostProcessors(ctx)
