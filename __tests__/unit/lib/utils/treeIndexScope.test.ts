@@ -4,7 +4,10 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import type { Metadata } from '../../../../src/types/metadata'
-import { computeTreeIndexScope } from '../../../../src/utils/treeIndexScope'
+import {
+  componentListingRoot,
+  computeTreeIndexScope,
+} from '../../../../src/utils/treeIndexScope'
 import {
   createMetadataRepositoryFromTypes,
   createMetadataRepositoryMock,
@@ -710,5 +713,47 @@ describe('computeTreeIndexScope', () => {
         expect(sut.size).toBe(1)
       }
     )
+  })
+})
+
+describe('componentListingRoot', () => {
+  let metadata: MetadataRepository
+
+  beforeAll(async () => {
+    metadata = await getDefinition({})
+  })
+
+  it.each([
+    [
+      'a class path',
+      'force-app/main/default/classes/Foo.cls',
+      'force-app/main/default/classes',
+    ],
+    [
+      'a field path, through its parent type',
+      'force-app/main/default/objects/Account/fields/Foo__c.field-meta.xml',
+      'force-app/main/default/objects',
+    ],
+    [
+      'a label file',
+      'force-app/a/labels/CustomLabels.labels-meta.xml',
+      'force-app/a/labels',
+    ],
+    [
+      'a path unknown to the registry',
+      'force-app/main/default/zzz/Foo.zzz',
+      null,
+    ],
+    ['a class outside its type directory', 'force-app/x/Foo.cls', null],
+    ['a root file', 'sfdx-project.json', null],
+  ])('Given %s, When resolved, Then returns %s', (_title, path, expected) => {
+    // Arrange
+    const sut = componentListingRoot
+
+    // Act
+    const result = sut(path, metadata)
+
+    // Assert
+    expect(result).toBe(expected)
   })
 })

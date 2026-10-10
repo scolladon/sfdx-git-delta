@@ -22,6 +22,11 @@ vi.mock('../../../../src/service/typeHandlerFactory', () => ({
   }),
 }))
 
+const mockKeep = vi.fn<(line: string) => boolean>()
+vi.mock('../../../../src/utils/ignoreHelper', () => ({
+  buildIgnoreHelper: vi.fn(async () => ({ keep: mockKeep })),
+}))
+
 const FROM = 'from-sha'
 const TO = 'to-sha'
 const OLD_DIR = 'force-app/main/default/classes'
@@ -100,6 +105,7 @@ describe('PureMoveResolver', () => {
     getRootFileContent = vi.fn<MovePorts['getRootFileContent']>()
     ports = { getBlobIds, getRootFileContent }
     mockGetTypeHandler.mockReset()
+    mockKeep.mockReset().mockReturnValue(true)
     vi.mocked(Logger.debug).mockClear()
     arrange()
   })
@@ -264,6 +270,167 @@ describe('PureMoveResolver', () => {
       expect(result.lines).toEqual([`A\t${barNew}`])
       expect(result.checkSkipped).toBe(false)
       expect(Logger.debug).toHaveBeenCalled()
+    })
+  })
+
+  describe('Given a move whose source or completeness is not established', () => {
+    it('When the moved source sits under the ignore file while its deletion survived, Then the additions are kept', async () => {
+      // Arrange
+      mockKeep.mockImplementation(line => line !== `A\t${OLD_CLS}`)
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual(lines)
+    })
+
+    it('When only the class file moved and its meta file stayed, Then the addition is kept', async () => {
+      // Arrange
+      const sut = newSut()
+      const input = [`A\t${NEW_CLS}`]
+
+      // Act
+      const result = await sut.resolve(input, [deletion(OLD_CLS)])
+
+      // Assert
+      expect(result.lines).toEqual(input)
+    })
+
+    it('When the destination holds an extra file of the component at --to, Then the additions are kept', async () => {
+      // Arrange
+      arrange({
+        from: sameBlobs.from,
+        to: { ...sameBlobs.to, [`${NEW_DIR}/sub/Foo.cls`]: 'a1' },
+      })
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual(lines)
+    })
+  })
+
+  describe('Given a move whose component cannot be listed', () => {
+    it('When the files live outside their type directory, Then the additions are kept', async () => {
+      // Arrange
+      const oldCls = 'force-app/x/Foo.cls'
+      const newCls = 'force-app/y/Foo.cls'
+      arrange({ from: { [oldCls]: 'a1' }, to: { [newCls]: 'a1' } })
+      const sut = newSut()
+      const input = [`A\t${newCls}`]
+
+      // Act
+      const result = await sut.resolve(input, [deletion(oldCls)])
+
+      // Assert
+      expect(result.lines).toEqual(input)
+    })
+  })
+
+  describe('Given revisions holding files foreign to the moved component', () => {
+    it('When they are not part of the component, Then the move is still pure', async () => {
+      // Arrange
+      arrange({
+        from: {
+          ...sameBlobs.from,
+          [`${OLD_DIR}/Other.cls`]: 'c3',
+          [`${OLD_DIR}/readme.txt`]: 'd4',
+          'elsewhere/classes/Foo.cls': 'e5',
+        },
+        to: {
+          ...sameBlobs.to,
+          [`${NEW_DIR}/Other.cls`]: 'c3',
+          [`${NEW_DIR}/readme.txt`]: 'd4',
+        },
+      })
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
+  describe('Given a move with unrelated ignore state', () => {
+    it('When an unrelated file sits under the ignore file at --from, Then the move is still pure', async () => {
+      // Arrange
+      mockKeep.mockImplementation(line => !line.endsWith('Other.cls'))
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+
+    it('When the destination sits under the destructive ignore only, Then the move is still pure', async () => {
+      // Arrange
+      mockKeep.mockImplementation(line => !line.startsWith('D'))
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
+  describe('Given pure and kept moves', () => {
+    const debugMessages = (): string[] =>
+      vi
+        .mocked(Logger.debug)
+        .mock.calls.map(([message]) =>
+          typeof message === 'function' ? String(message()) : String(message)
+        )
+
+    it('When a pure class move and a kept move are judged, Then one debug line names ApexClass:Foo only', async () => {
+      // Arrange
+      const barOld = `${OLD_DIR}/Bar.cls`
+      const barNew = `${NEW_DIR}/Bar.cls`
+      arrange({
+        from: { ...sameBlobs.from, [barOld]: 'c2' },
+        to: { ...sameBlobs.to, [barNew]: 'ff' },
+      })
+      mockGetTypeHandler.mockImplementation(async (line: string) => ({
+        getElementDescriptor: () => ({
+          type: 'ApexClass',
+          member: line.includes('Bar') ? 'Bar' : 'Foo',
+        }),
+        comparesElements: () => false,
+      }))
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(
+        [...lines, `A\t${barNew}`],
+        [...cancelled(), deletion(barOld)]
+      )
+
+      // Assert
+      const suppressed = debugMessages().filter(m => m.includes('suppressed'))
+      expect(suppressed).toHaveLength(1)
+      expect(suppressed[0]).toContain('ApexClass:Foo')
+      expect(suppressed[0]).not.toContain('Bar')
+    })
+
+    it('When no move is pure, Then no suppression line is logged', async () => {
+      // Arrange
+      arrange({ from: sameBlobs.from, to: { [NEW_CLS]: 'a1' } })
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(debugMessages().filter(m => m.includes('suppressed'))).toEqual([])
     })
   })
 })
