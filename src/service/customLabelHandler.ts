@@ -33,6 +33,10 @@ export default class CustomLabelHandler extends InFileHandler {
     return false
   }
 
+  public override comparesElements(): boolean {
+    return !this._isDecomposed()
+  }
+
   protected _isDecomposed() {
     return this.element.extension === LABEL_DECOMPOSED_SUFFIX
   }

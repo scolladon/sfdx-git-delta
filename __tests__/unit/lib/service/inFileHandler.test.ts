@@ -10,6 +10,7 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import type { UnionOutcomes } from '../../../../src/types/runContext'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
@@ -82,6 +83,124 @@ beforeEach(() => {
   config = getConfig()
   mockKeep.mockReturnValue(true)
   mockBuildIgnoreHelper.mockResolvedValue({ keep: mockKeep })
+})
+
+describe('inFileHandler element comparison', () => {
+  it('Given an in-file container, When asked whether it compares elements, Then it answers true', () => {
+    // Arrange
+    const { changeType, element } = createElement(
+      'force-app/main/default/workflows/Account.workflow-meta.xml',
+      workflowType,
+      globalMetadata
+    )
+    const sut = new InFileHandler(changeType, element, getContext({ config }))
+
+    // Act
+    const result = sut.comparesElements()
+
+    // Assert
+    expect(result).toBe(true)
+  })
+})
+
+describe('inFileHandler union outcomes', () => {
+  const path = 'force-app/main/default/workflows/Account.workflow-meta.xml'
+  const buildSut = (unions: UnionOutcomes) => {
+    const { changeType, element } = createElement(
+      path,
+      workflowType,
+      globalMetadata
+    )
+    return new InFileHandler(
+      changeType,
+      element,
+      getContext({ config, unions })
+    )
+  }
+
+  describe('Given a union outcome for the element path', () => {
+    it('When collect runs, Then elements and copies come from that outcome and run() is not called', async () => {
+      // Arrange
+      const sut = buildSut(
+        new Map([
+          [
+            path,
+            {
+              manifests: {
+                added: [{ type: 'WorkflowAlert', member: 'fromUnion' }],
+                modified: [],
+                deleted: [{ type: 'WorkflowTask', member: 'goneInUnion' }],
+              },
+              hasPackageContent: true,
+              writer: mockWriter,
+            },
+          ],
+        ])
+      )
+      mockRun.mockResolvedValue({
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'fromRun' }],
+          modified: [],
+          deleted: [],
+        },
+        hasPackageContent: true,
+        writer: mockWriter,
+      })
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(mockRun).not.toHaveBeenCalled()
+      expect(elementsOf(result)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: ManifestTarget.Package,
+            type: 'WorkflowAlert',
+            member: 'Account.fromUnion',
+          }),
+          expect.objectContaining({
+            target: ManifestTarget.DestructiveChanges,
+            type: 'WorkflowTask',
+            member: 'Account.goneInUnion',
+          }),
+        ])
+      )
+      expect(elementsOf(result).some(m => m.member === 'Account.fromRun')).toBe(
+        false
+      )
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.StreamedContent)
+      ).toBe(true)
+    })
+  })
+
+  describe('Given union outcomes that do not hold the element path', () => {
+    it('When collect runs, Then run() is used', async () => {
+      // Arrange
+      const sut = buildSut(new Map())
+      mockRun.mockResolvedValue({
+        manifests: {
+          added: [{ type: 'WorkflowFlowAction', member: 'fromRun' }],
+          modified: [],
+          deleted: [],
+        },
+        hasPackageContent: true,
+        writer: mockWriter,
+      })
+
+      // Act
+      const result = await sut.collectAddition()
+
+      // Assert
+      expect(mockRun).toHaveBeenCalledWith(path)
+      expect(elementsOf(result)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ member: 'Account.fromRun' }),
+        ])
+      )
+    })
+  })
 })
 
 describe('inFileHandler', () => {

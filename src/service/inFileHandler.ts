@@ -52,11 +52,17 @@ export default class InFileHandler extends StandardHandler {
     return await this.collectAddition()
   }
 
+  public override comparesElements(): boolean {
+    return true
+  }
+
   protected async _collectCompareResult(): Promise<HandlerResult> {
     try {
       const elements: ManifestElement[] = []
       const copies: CopyOperation[] = []
-      const outcome = await this.metadataDiff.run(this.element.basePath)
+      const outcome =
+        this.ctx.unions.get(this.element.basePath) ??
+        (await this.metadataDiff.run(this.element.basePath))
 
       // RATIONALE: members deleted inside a modified file arrive on an `M`
       // line, which the upstream line filter checks against the global

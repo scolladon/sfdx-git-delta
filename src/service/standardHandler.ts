@@ -114,6 +114,10 @@ export default class StandardHandler {
     }
   }
 
+  public comparesElements(): boolean {
+    return false
+  }
+
   protected _collectManifestElement(target: ManifestTarget) {
     return {
       target,
