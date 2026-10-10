@@ -10,6 +10,7 @@ import type {
   ManifestElement,
 } from '../../src/types/handlerResult'
 import { ChangeKind, ManifestTarget } from '../../src/types/handlerResult'
+import { NO_UNIONS } from '../../src/types/runContext'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import PackageBuilder from '../../src/utils/packageHelper'
@@ -95,10 +96,25 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
         getRenamePairs: mockGetRenamePairs,
         getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
         getHeldAdditionProbeFailure: mockGetHeldAdditionProbeFailure,
+        getCancelledDeletions: () => [],
       }
     }),
   }
 })
+
+// The move pairing reads git; this seam test stubs git, so the resolver is a
+// pass-through.
+vi.mock('../../src/utils/pureMoveResolver', () => ({
+  default: vi.fn().mockImplementation(function () {
+    return {
+      resolve: async (lines: readonly string[]) => ({
+        lines,
+        unions: NO_UNIONS,
+        checkSkipped: false,
+      }),
+    }
+  }),
+}))
 
 const mockGetTypeHandler = vi.hoisted(() => vi.fn())
 vi.mock('../../src/service/typeHandlerFactory', () => ({

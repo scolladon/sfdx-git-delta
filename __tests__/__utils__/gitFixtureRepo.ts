@@ -110,7 +110,7 @@ type FileMode = '100644' | '100755' | '120000'
 type AddFile = { kind: 'add'; mode: FileMode; path: string; content: string }
 type DeleteFile = { kind: 'delete'; path: string }
 type RenameFile = { kind: 'rename'; from: string; to: string }
-type FixtureOp = AddFile | DeleteFile | RenameFile
+export type FixtureOp = AddFile | DeleteFile | RenameFile
 
 const hashBlob = (dir: string, content: string): string =>
   runGitText(['hash-object', '-w', '--stdin'], {
@@ -151,7 +151,7 @@ const applyOp = (dir: string, op: FixtureOp): void => {
 // executable file or a symlink never touches OS-level file permissions or
 // symlink support — both are pure git tree-entry modes (100755 / 120000)
 // recorded directly in the index.
-const makeCommit = (
+export const makeCommit = (
   dir: string,
   parent: string | null,
   message: string,

@@ -183,6 +183,10 @@ Become a sponsor: https://github.com/sponsors/scolladon 💙
 
 Could not read the file list at '%s', so %s component(s) moved into an ignored directory could not be confirmed as moves and are reported as deletions. Check that --to resolves to a readable commit.
 
+# warning.PureMoveCheckSkipped
+
+Could not read the package directories or the file list at '%s' and '%s', so moved components are deployed as if they had changed. Check that sfdx-project.json is valid JSON with a packageDirectories array at both revisions.
+
 # warning.TreeIndexUnavailable
 
 Could not build the file tree index for '%s', so components that still exist there may be listed in destructiveChanges.xml as deleted. Check that the commit's tree objects are present locally (a partial clone created with --filter may not have them).
