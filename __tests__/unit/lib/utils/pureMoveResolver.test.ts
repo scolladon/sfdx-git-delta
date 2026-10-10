@@ -6,9 +6,13 @@ vi.mock('../../../../src/utils/LoggingService')
 import { ObjectId } from '@scolladon/tsgit'
 import type { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
-import { NO_UNIONS } from '../../../../src/types/runContext'
+import { NO_UNIONS, type UnionOutcomes } from '../../../../src/types/runContext'
 import { comparisonName } from '../../../../src/utils/comparisonName'
 import { Logger } from '../../../../src/utils/LoggingService'
+import type {
+  DiffOutcome,
+  UnionDiffInput,
+} from '../../../../src/utils/metadataDiff'
 import PureMoveResolver, {
   type MovePorts,
 } from '../../../../src/utils/pureMoveResolver'
@@ -68,6 +72,7 @@ describe('PureMoveResolver', () => {
   let ports: MovePorts
   let getBlobIds: Mock<MovePorts['getBlobIds']>
   let getRootFileContent: Mock<MovePorts['getRootFileContent']>
+  let runUnion: Mock<(spec: UnionDiffInput) => Promise<UnionOutcomes>>
 
   const deletion = (path: string): DeferredDeletion => {
     const line = `D\t${path}`
@@ -82,13 +87,21 @@ describe('PureMoveResolver', () => {
     mockGetTypeHandler.mockImplementation(async () => handlerAnswering('Foo'))
   }
 
+  const debugMessages = (): string[] =>
+    vi
+      .mocked(Logger.debug)
+      .mock.calls.map(([message]) =>
+        typeof message === 'function' ? String(message()) : String(message)
+      )
+
   const newSut = () =>
     new PureMoveResolver(
       getContext({
         config: { ...getConfig(), from: FROM, to: TO },
         metadata,
       }),
-      ports
+      ports,
+      { runUnion }
     )
 
   const lines = [
@@ -104,6 +117,7 @@ describe('PureMoveResolver', () => {
     getBlobIds = vi.fn<MovePorts['getBlobIds']>()
     getRootFileContent = vi.fn<MovePorts['getRootFileContent']>()
     ports = { getBlobIds, getRootFileContent }
+    runUnion = vi.fn().mockResolvedValue(new Map())
     mockGetTypeHandler.mockReset()
     mockKeep.mockReset().mockReturnValue(true)
     vi.mocked(Logger.debug).mockClear()
@@ -140,7 +154,7 @@ describe('PureMoveResolver', () => {
       // Assert
       expect(result.lines).toEqual([lines[1], lines[3]])
       expect(result.checkSkipped).toBe(false)
-      expect(result.unions).toBe(NO_UNIONS)
+      expect(result.unions).toEqual(NO_UNIONS)
     })
   })
 
@@ -384,13 +398,6 @@ describe('PureMoveResolver', () => {
   })
 
   describe('Given pure and kept moves', () => {
-    const debugMessages = (): string[] =>
-      vi
-        .mocked(Logger.debug)
-        .mock.calls.map(([message]) =>
-          typeof message === 'function' ? String(message()) : String(message)
-        )
-
     it('When a pure class move and a kept move are judged, Then one debug line names ApexClass:Foo only', async () => {
       // Arrange
       const barOld = `${OLD_DIR}/Bar.cls`
@@ -431,6 +438,189 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(debugMessages().filter(m => m.includes('suppressed'))).toEqual([])
+    })
+  })
+
+  describe('Given a labels file moved', () => {
+    const LABELS_OLD = 'force-app/a/labels/CustomLabels.labels-meta.xml'
+    const LABELS_NEW = 'force-app/x/labels/CustomLabels.labels-meta.xml'
+    const OTHER_OLD = 'force-app/b/labels/Other.labels-meta.xml'
+    const OTHER_NEW = 'force-app/y/labels/Other.labels-meta.xml'
+    const OUTSIDE_OLD = 'misc/a/labels/Other.labels-meta.xml'
+    const OUTSIDE_NEW = 'misc/x/labels/Other.labels-meta.xml'
+    const OUTCOME = {
+      manifests: { added: [], modified: [], deleted: [] },
+      hasPackageContent: false,
+    } satisfies DiffOutcome
+
+    const arrangeLabels = (layout: Layout, rootFile = PROJECT) => {
+      arrange(layout, rootFile)
+      mockGetTypeHandler.mockImplementation(async (line: string) => ({
+        getElementDescriptor: () => ({
+          type: 'CustomLabel',
+          member: line.includes('Other') ? 'Other' : 'CustomLabels',
+        }),
+        comparesElements: () => true,
+      }))
+    }
+
+    const labelsMove: Layout = {
+      from: { [LABELS_OLD]: 'a1' },
+      to: { [LABELS_NEW]: 'a1' },
+    }
+
+    it('When the file moves inside one entry, Then runUnion receives one spec for that entry, the result carries its outcomes and no line is dropped', async () => {
+      // Arrange
+      arrangeLabels(labelsMove)
+      runUnion.mockResolvedValue(new Map([[LABELS_NEW, OUTCOME]]))
+      const labelLines = [`A\t${LABELS_NEW}`]
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(labelLines, [deletion(LABELS_OLD)])
+
+      // Assert
+      expect(runUnion).toHaveBeenCalledTimes(1)
+      expect(runUnion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          additionBasePaths: [LABELS_OLD],
+          deletionBasePaths: [LABELS_OLD],
+          shieldPaths: [LABELS_NEW],
+          memberPaths: [LABELS_NEW],
+        })
+      )
+      expect(result.unions).toEqual(new Map([[LABELS_NEW, OUTCOME]]))
+      expect(result.lines).toEqual(labelLines)
+    })
+
+    it('When two labels keys land in one entry, Then one spec covers both', async () => {
+      // Arrange
+      arrangeLabels({
+        from: { ...labelsMove.from, [OTHER_OLD]: 'b1' },
+        to: { ...labelsMove.to, [OTHER_NEW]: 'b1' },
+      })
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(
+        [`A\t${LABELS_NEW}`, `A\t${OTHER_NEW}`],
+        [deletion(LABELS_OLD), deletion(OTHER_OLD)]
+      )
+
+      // Assert
+      expect(runUnion).toHaveBeenCalledTimes(1)
+      expect(runUnion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          additionBasePaths: [LABELS_OLD, OTHER_OLD],
+          shieldPaths: [LABELS_NEW, OTHER_NEW],
+        })
+      )
+    })
+
+    it('When the source deletion sits under the ignore file, Then no spec is built', async () => {
+      // Arrange
+      arrangeLabels(labelsMove)
+      mockKeep.mockImplementation(line => line !== `A\t${LABELS_OLD}`)
+      const sut = newSut()
+
+      // Act
+      await sut.resolve([`A\t${LABELS_NEW}`], [deletion(LABELS_OLD)])
+
+      // Assert
+      expect(runUnion).not.toHaveBeenCalled()
+    })
+
+    it('When the deletion and the addition sit in different entries, Then no spec is built', async () => {
+      // Arrange
+      arrangeLabels(
+        labelsMove,
+        JSON.stringify({
+          packageDirectories: [
+            { path: 'force-app/a' },
+            { path: 'force-app/x' },
+          ],
+        })
+      )
+      const sut = newSut()
+
+      // Act
+      await sut.resolve([`A\t${LABELS_NEW}`], [deletion(LABELS_OLD)])
+
+      // Assert
+      expect(runUnion).not.toHaveBeenCalled()
+    })
+
+    it('When one move is inside an entry and another outside every entry, Then two distinct specs are built', async () => {
+      // Arrange
+      arrangeLabels({
+        from: { ...labelsMove.from, [OUTSIDE_OLD]: 'b1' },
+        to: { ...labelsMove.to, [OUTSIDE_NEW]: 'b1' },
+      })
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(
+        [`A\t${LABELS_NEW}`, `A\t${OUTSIDE_NEW}`],
+        [deletion(LABELS_OLD), deletion(OUTSIDE_OLD)]
+      )
+
+      // Assert
+      expect(runUnion).toHaveBeenCalledTimes(2)
+      const entries = runUnion.mock.calls.map(([spec]) => spec)
+      expect(entries).toContainEqual(
+        expect.objectContaining({ entry: 'force-app' })
+      )
+      expect(entries).toContainEqual(expect.objectContaining({ entry: null }))
+    })
+
+    it('When the files live outside their type directory, Then no spec is built', async () => {
+      // Arrange
+      const stray = 'force-app/a/CustomLabels.labels-meta.xml'
+      const strayMoved = 'force-app/x/CustomLabels.labels-meta.xml'
+      arrangeLabels({ from: { [stray]: 'a1' }, to: { [strayMoved]: 'a1' } })
+      const sut = newSut()
+
+      // Act
+      await sut.resolve([`A\t${strayMoved}`], [deletion(stray)])
+
+      // Assert
+      expect(runUnion).not.toHaveBeenCalled()
+    })
+
+    it('When a non-cancelled deletion targets a base file, Then that line is dropped from the lines', async () => {
+      // Arrange
+      arrangeLabels({
+        from: { ...labelsMove.from, [OTHER_OLD]: 'b1' },
+        to: labelsMove.to,
+      })
+      const stillDeleted = `D\t${OTHER_OLD}`
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(
+        [`A\t${LABELS_NEW}`, stillDeleted],
+        [deletion(LABELS_OLD)]
+      )
+
+      // Assert
+      expect(result.lines).toEqual([`A\t${LABELS_NEW}`])
+    })
+
+    it('When runUnion rejects, Then the entry has no outcome, its lines are kept and the cause is logged', async () => {
+      // Arrange
+      arrangeLabels(labelsMove)
+      runUnion.mockRejectedValue(new Error('strict read failed'))
+      const labelLines = [`A\t${LABELS_NEW}`, `D\t${OTHER_OLD}`]
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(labelLines, [deletion(LABELS_OLD)])
+
+      // Assert
+      expect(result.unions.size).toBe(0)
+      expect(result.lines).toEqual(labelLines)
+      expect(result.checkSkipped).toBe(false)
+      expect(debugMessages().join('\n')).toContain('strict read failed')
     })
   })
 })

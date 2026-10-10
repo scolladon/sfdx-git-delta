@@ -88,11 +88,14 @@ const labelXml = ([name, value]: readonly [string, string]): string =>
 export const labelsXml = (labels: ReadonlyArray<[string, string]>): string =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">\n${labels.map(labelXml).join('')}</CustomLabels>\n`
 
-const alertXml = (name: string): string =>
-  `    <alerts>\n        <fullName>${name}</fullName>\n        <description>${name}</description>\n    </alerts>\n`
+const alertXml = (name: string, descriptionSuffix: string): string =>
+  `    <alerts>\n        <fullName>${name}</fullName>\n        <description>${name}${descriptionSuffix}</description>\n    </alerts>\n`
 
-export const workflowXml = (alerts: readonly string[]): string =>
-  `<?xml version="1.0" encoding="UTF-8"?>\n<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">\n${alerts.map(alertXml).join('')}</Workflow>\n`
+export const workflowXml = (
+  alerts: readonly string[],
+  descriptionSuffix = ''
+): string =>
+  `<?xml version="1.0" encoding="UTF-8"?>\n<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">\n${alerts.map(name => alertXml(name, descriptionSuffix)).join('')}</Workflow>\n`
 
 // Every scenario is its own parentless pair of commits over an emptied
 // index, so each one can carry its own sfdx-project.json.
