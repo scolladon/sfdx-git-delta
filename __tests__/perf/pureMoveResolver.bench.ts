@@ -20,10 +20,7 @@ import { sourceDirs } from './harness/sourceDirs.ts'
 // here: a bench with no CI history is seeded from one CI run of its branch,
 // never from a local number.
 
-// Not 2k: the check scans the whole revision listing once per moved group, so
-// one resolve at 2k components takes ~25s and the 64-sample budget cannot
-// finish inside vitest's bench timeout.
-const COMPONENT_COUNT = 100
+const COMPONENT_COUNT = 2000
 const NO_CANDIDATE_LINES = 10_000
 const LABELS_FILES = 20
 const LABELS_PER_FILE = 250
@@ -133,9 +130,9 @@ describe('pure-move-resolver-no-candidate', () => {
   })
 })
 
-runScenario('pure-move-100-components', COMPONENT_COUNT, 0)
+runScenario('pure-move-2k-components', COMPONENT_COUNT, 0)
 runScenario(
-  'mixed-moves-and-edits-100',
+  'mixed-moves-and-edits-2k',
   COMPONENT_COUNT / 2,
   COMPONENT_COUNT / 2
 )

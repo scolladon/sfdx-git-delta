@@ -62,6 +62,10 @@ type MovedPaths = Pick<MoveGroup, 'deletions' | 'additions'>
 
 type RevisionView = Readonly<{ from: RevisionSide; to: RevisionSide }>
 
+type ComponentIndex = ReadonlyMap<string, readonly string[]>
+
+type ComponentIndexes = Readonly<{ from: ComponentIndex; to: ComponentIndex }>
+
 type UnionTriggers = Map<string, Map<PackageDirectoryKey, Set<string>>>
 
 type Judgement = Readonly<{
@@ -248,8 +252,9 @@ export default class PureMoveResolver {
     const dropped = new Set<string>()
     const triggers: UnionTriggers = new Map()
     const members: string[] = []
+    const indexes = this.indexComponents(view, ignoreHelper)
     for (const group of groups) {
-      if (this.isPure(group, probes, view, ignoreHelper)) {
+      if (this.isPure(group, probes, view, ignoreHelper, indexes)) {
         for (const line of group.additions) dropped.add(line)
         members.push(this.labelOf(group, probes))
         continue
@@ -385,7 +390,8 @@ export default class PureMoveResolver {
     group: MoveGroup,
     probes: ReadonlyMap<string, Probe>,
     view: RevisionView,
-    ignoreHelper: IgnoreHelper
+    ignoreHelper: IgnoreHelper,
+    indexes: ComponentIndexes
   ): boolean {
     const known = this.probesOf(group, probes)
     if (!known || !sameIdentity(known)) return false
@@ -397,7 +403,7 @@ export default class PureMoveResolver {
     return (
       moved.deletions.every(path => this.isKept(path, ignoreHelper)) &&
       sameEntry(moved, view) &&
-      this.isComplete(group.name, moved, view, ignoreHelper) &&
+      this.isComplete(group.name, moved, indexes) &&
       sameContent(moved, view)
     )
   }
@@ -409,16 +415,16 @@ export default class PureMoveResolver {
   private isComplete(
     name: string,
     moved: MovedPaths,
-    view: RevisionView,
-    ignoreHelper: IgnoreHelper
+    indexes: ComponentIndexes
   ): boolean {
     const roots = this.listingRoots(moved)
     if (!roots) return false
-    const listed = (blobIds: BlobIds): string[] =>
-      this.listComponent(name, blobIds, roots, ignoreHelper)
+    const inRoots = buildScopeMatcher(roots)
+    const listed = (index: ComponentIndex): string[] =>
+      (index.get(name) ?? []).filter(inRoots)
     return (
-      sameSet(listed(view.from.blobIds), moved.deletions) &&
-      sameSet(listed(view.to.blobIds), moved.additions)
+      sameSet(listed(indexes.from), moved.deletions) &&
+      sameSet(listed(indexes.to), moved.additions)
     )
   }
 
@@ -432,23 +438,23 @@ export default class PureMoveResolver {
     return roots
   }
 
-  private listComponent(
-    name: string,
-    blobIds: BlobIds,
-    roots: readonly string[],
+  private indexComponents(
+    view: RevisionView,
     ignoreHelper: IgnoreHelper
-  ): string[] {
-    const inRoots = buildScopeMatcher(roots)
+  ): ComponentIndexes {
     const inSource = buildScopeMatcher(this.ctx.config.source)
-    return [...blobIds.keys()].filter(path => {
-      if (!inRoots(path) || !inSource(path)) return false
-      const line = `${ADDITION}${TAB}${path}`
-      return (
-        this.ctx.metadata.has(line) &&
-        ignoreHelper.keep(line) &&
-        comparisonName(this.ctx.metadata, line) === name
-      )
-    })
+    const indexOf = (blobIds: BlobIds): ComponentIndex => {
+      const index = new Map<string, string[]>()
+      for (const path of blobIds.keys()) {
+        const line = `${ADDITION}${TAB}${path}`
+        if (!inSource(path) || !this.ctx.metadata.has(line)) continue
+        if (!ignoreHelper.keep(line)) continue
+        const name = comparisonName(this.ctx.metadata, line)
+        index.set(name, [...(index.get(name) ?? []), path])
+      }
+      return index
+    }
+    return { from: indexOf(view.from.blobIds), to: indexOf(view.to.blobIds) }
   }
 
   private probesOf(

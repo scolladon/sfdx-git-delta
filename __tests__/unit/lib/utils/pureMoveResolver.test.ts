@@ -52,6 +52,27 @@ const blobs = (entries: Record<string, string>): Map<string, ObjectId> =>
     ])
   )
 
+class ScanCountingMap extends Map<string, ObjectId> {
+  constructor(private readonly onScan: () => void) {
+    super()
+  }
+
+  override keys(): MapIterator<string> {
+    this.onScan()
+    return super.keys()
+  }
+
+  override entries(): MapIterator<[string, ObjectId]> {
+    this.onScan()
+    return super.entries()
+  }
+
+  override [Symbol.iterator](): MapIterator<[string, ObjectId]> {
+    this.onScan()
+    return super[Symbol.iterator]()
+  }
+}
+
 type Layout = {
   from: Record<string, string>
   to: Record<string, string>
@@ -368,6 +389,59 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
+  describe('Given many moved components', () => {
+    it('When resolve runs, Then each revision listing is scanned once', async () => {
+      // Arrange
+      const scans = new Map<string, number>()
+      const names = ['Aa', 'Bb', 'Cc', 'Dd', 'Ee']
+      const pathsIn = (dir: string) =>
+        names.flatMap(name => [
+          `${dir}/${name}.cls`,
+          `${dir}/${name}.cls-meta.xml`,
+        ])
+      const countingBlobs = (rev: string, dir: string) => {
+        const map = new ScanCountingMap(() =>
+          scans.set(rev, (scans.get(rev) ?? 0) + 1)
+        )
+        for (const path of pathsIn(dir)) {
+          map.set(path, ObjectId.from('a1'.padEnd(40, '0')))
+        }
+        return map
+      }
+      getBlobIds.mockImplementation(async (rev: string) =>
+        countingBlobs(rev, rev === FROM ? OLD_DIR : NEW_DIR)
+      )
+      mockGetTypeHandler.mockImplementation(async (line: string) =>
+        handlerAnswering(line.split('/').pop()!.split('.')[0]!)
+      )
+      const input = pathsIn(NEW_DIR).map(path => `A\t${path}`)
+      const moved = pathsIn(OLD_DIR).map(path => deletion(path))
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(input, moved)
+
+      // Assert
+      expect(result.lines).toEqual([])
+      expect(scans.get(FROM)).toBe(1)
+      expect(scans.get(TO)).toBe(1)
+    })
+  })
+
+  describe('Given a moved component absent from the --to listing', () => {
+    it('When resolve runs, Then the additions are kept', async () => {
+      // Arrange
+      arrange({ from: sameBlobs.from, to: { [UNRELATED]: 'f6' } })
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual(lines)
     })
   })
 
