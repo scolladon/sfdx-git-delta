@@ -100,11 +100,12 @@ Have a look at this post on the Salesforce Developers Blog to dive into it: [Opt
 
 If you are not a Salesforce Architect or Developer, probably not, _sorry_.
 
-If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meeting the 3 conditions below:
+If you are a Technical Architect or Developer, then it’s a very useful tool for you, when meeting the 4 conditions below:
 
 1. Your Salesforce project uses a git repo as the source of truth.
 2. You use the Source (DX) format in the repo.
 3. Your metadata is unmanaged (in other words, you are not building a managed or unlocked package).
+4. Your repository is deployable at both `--from` and `--to`. A state that cannot be deployed (for example, two files declaring the same component in one package directory) gives an unspecified delta.
 
 SGD is designed to be part of a CI/CD pipeline (Jenkins, Bitbucket Pipelines, GitLab CI, GitHub Actions, Azure DevOps...) that handles the deployment of the sources to the Salesforce org(s).
 
@@ -160,7 +161,7 @@ FLAGS
   -N, --include-destructive-file=<value>      file listing paths to explicitly include for any destructive actions
   -W, --ignore-whitespace                     ignore git diff whitespace (space, tab, eol) changes
   -a, --api-version=<value>                   salesforce metadata API version, default to sfdx-project.json
-                                              "sourceApiVersion" attribute or latest version
+                                              "sourceApiVersion" at --to or latest version
   -b, --merge-base                            diff from the merge base of --from and --to instead of --from itself (git
                                               three-dot semantics)
   -c, --changes-manifest=<value>              path to a JSON file grouping changed components by kind (add, modify,
@@ -194,7 +195,7 @@ EXAMPLES
 FLAG DESCRIPTIONS
   -a, --api-version=<value>
 
-    salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribute or latest version
+    salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" at --to or latest version
 
     Override the api version used for api requests made by this command
 
@@ -493,6 +494,39 @@ Independently of any ignore file, SGD also keeps components of a type the Metada
 Warning: The Metadata API cannot delete 'RecordType' components, so destructiveChanges.xml omits 'Account.Alpha'. Remove them from the target org manually in Setup.
 ```
 
+### Moved components
+
+A component moved to another directory is not a change: SGD recognizes the move and leaves it out of `package.xml` and `destructiveChanges.xml`, so a refactoring commit does not redeploy (or delete) what did not change. A move is suppressed when all of these hold:
+
+- the deleted and the added files declare the same type and member;
+- every file is identical byte for byte, and the files keep the same layout relative to each other;
+- the component is complete: the move carries every file of the component;
+- the component stays in the same package directory of `sfdx-project.json`, each side being read at its own revision (when neither revision has an `sfdx-project.json`, all paths count as one package directory);
+- the source is visible to the ignore files: a source under `--ignore-file [-i]`, or only under `--ignore-destructive-file [-D]`, is deployed as usual. A destination under `--ignore-destructive-file [-D]` alone is still suppressed.
+
+```sh
+$ git mv force-app/main/default/classes/AccountService.cls force-app/shared/classes/AccountService.cls
+$ git mv force-app/main/default/classes/AccountService.cls-meta.xml force-app/shared/classes/AccountService.cls-meta.xml
+$ git commit -m "move AccountService"
+
+$ sf sgd source delta --from HEAD~1
+```
+
+Both manifests are empty. A move that also edits a file, leaves a file behind, or crosses package directories is not a pure move: it is reported as an addition and a deletion, as before.
+
+Labels are different, because a `CustomLabels` file holds many components. All the `CustomLabels` files of one package directory are treated as one component: labels moved between the files of a directory are not redeployed, and a label gone from every file is deleted.
+
+```xml
+<!-- before: labels/A.labels-meta.xml has L1, L2; labels/B.labels-meta.xml has L3 -->
+<!-- after:  labels/A.labels-meta.xml has L1;     labels/B.labels-meta.xml has L2, L3 -->
+```
+
+`L2` moved from one file to the other: `package.xml` and `destructiveChanges.xml` stay empty. If `L2` was also removed from every file, `destructiveChanges.xml` lists `CustomLabel/L2`. Merging two labels files into one gives the same result: only the labels that were changed or added reach `package.xml`, only the labels that vanished reach `destructiveChanges.xml`.
+
+A label moved to a file of another package directory is not a move: every label of the moved file deploys. With `--ignore-file [-i]`, a labels file matched by the pattern is out of the comparison and a label moved into it emits nothing; with `--ignore-destructive-file [-D]`, labels still deploy and only the deletions are filtered. A labels file whose package directory changed between `--from` and `--to` is left out of the comparison. Other types stored in one file (workflows, sharing rules...) follow the same rule file by file.
+
+If `sfdx-project.json` or the file listing cannot be read at either revision, the move check is skipped for the run, moved components are deployed as if they had changed, and SGD emits a warning.
+
 ### Explicitly including specific files for inclusion or destruction regardless of diff
 
 The `--include-file [-n]` parameter allows you to specify a file based on [gitignore glob matching](https://git-scm.com/docs/gitignore) to include specific files. Regardless whether they appears in the diff or not.
@@ -636,7 +670,7 @@ Produces (bare form example) `incremental/changes.manifest.json`. Setting `--cha
 }
 ```
 
-`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged, and the manifests are identical whether or not `--changes-manifest` is set. Both sides of a rename still pass through the ignore files: a `from` path covered by `--ignore-destructive-file` keeps its member out of `destructiveChanges.xml`, a `to` path covered by `--ignore-file` keeps its member out of `package.xml`, and the change is then reported in `changes.manifest.json` as a plain addition or deletion rather than a rename: an ignored `from` leaves `to` in the `add` bucket, an ignored `to` leaves `from` in the `delete` bucket. When the move keeps the component name, the deletion is cancelled against the ignored addition and neither side is reported at all.
+`package.xml` still lists `NewName` and `destructiveChanges.xml` still lists `OldName` for renames — the deployment contract is unchanged, and the manifests are identical whether or not `--changes-manifest` is set. Both sides of a rename still pass through the ignore files: a `from` path covered by `--ignore-destructive-file` keeps its member out of `destructiveChanges.xml`, a `to` path covered by `--ignore-file` keeps its member out of `package.xml`, and the change is then reported in `changes.manifest.json` as a plain addition or deletion rather than a rename: an ignored `from` leaves `to` in the `add` bucket, an ignored `to` leaves `from` in the `delete` bucket. When the move keeps the component name, the deletion is cancelled against the ignored addition and neither side is reported at all. A pure move (see [Moved components](#moved-components)) appears in no bucket.
 
 Two default-configuration behaviours changed with no dedicated changelog entry — the kind of thing you notice the first time you diff a JSON manifest across the upgrade:
 
@@ -682,7 +716,7 @@ const work = await sgd({
   from: '', // (required) commit sha from where the diff is done. [default : git rev-list --max-parents=0 HEAD]
   mergeBase: false, // (required) resolve `from` to the merge base of `from`/`to` first. [default : false]
   output: '', // source package specific output. [default : "./output"]
-  apiVersion: undefined, // salesforce API version, as a number (e.g. 67). [default : sfdx-project.json "sourceApiVersion", else latest]
+  apiVersion: undefined, // salesforce API version, as a number (e.g. 67). [default : sfdx-project.json "sourceApiVersion" at --to, else latest]
   repo: '', // git repository location. [default : "."]
   source: ['.'], // (required) one or more repo-relative folders to scope the diff to; '.' (or an empty array) means the whole repository
 })

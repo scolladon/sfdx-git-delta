@@ -35,7 +35,7 @@ Validates and normalizes user inputs:
 - Rejects a revision that resolves but does not peel to a commit (`HEAD^{tree}`, `HEAD:path`, a bare tree or blob oid, a tag pointing at a tree) with `error.ParameterIsNotCommit`, naming the flag and the value as typed; an unresolvable revision keeps `error.ParameterIsNotGitSHA` and its fetch-depth hint, which is the right advice only when the object is genuinely missing
 - Validates both flags identically, before the merge-base lookup, the diff and any tree walk
 - When `--merge-base` is set, resolves `from` to the merge base of `from` and `to` (git three-dot semantics) and rewrites `config.from` in place. This step runs **after** SHA validation/resolution, deliberately: a typo in either ref still surfaces as the precise `ParameterIsNotGitSHA` message (with its fetch-depth hint) instead of the vaguer `MergeBaseNotFound`, and the merge-base lookup itself runs against already-resolved SHAs. No common ancestor (`undefined`) throws `MergeBaseNotFound`, naming the refs the user typed rather than the resolved hashes
-- Resolves `apiVersion`. A version passed in (`--api-version`, `SF_ORG_API_VERSION`, or a library caller's `apiVersion`, which is parsed the way the flag is) counts only if it is a positive version; without one, `sourceApiVersion` from `sfdx-project.json` is used, under the same rule. A pinned version is emitted as pinned and never looked up, so the manifest does not depend on network reachability. Only an unpinned run looks the latest version up, through a live call to the appexchange org, and defaults to it with `warning.ApiVersionDefaulted`; when that call fails (offline/firewalled) or answers with something that is not a positive version, a `ConfigError` advises supplying one and names the cause (connection refused, timed out, DNS, or the unusable value), with any credentials in an echoed proxy URL or PAC proxy entry redacted
+- Resolves `apiVersion`. A version passed in (`--api-version`, `SF_ORG_API_VERSION`, or a library caller's `apiVersion`, which is parsed the way the flag is) counts only if it is a positive version; without one, `sourceApiVersion` from the `sfdx-project.json` committed at `--to` is used, under the same rule. It is read through git at that revision (`GitAdapter.getRootFileContent`), never from the working tree and never from a parent directory; an absent or unusable file falls back to the latest-version lookup. A pinned version is emitted as pinned and never looked up, so the manifest does not depend on network reachability. Only an unpinned run looks the latest version up, through a live call to the appexchange org, and defaults to it with `warning.ApiVersionDefaulted`; when that call fails (offline/firewalled) or answers with something that is not a positive version, a `ConfigError` advises supplying one and names the cause (connection refused, timed out, DNS, or the unusable value), with any credentials in an echoed proxy URL or PAC proxy entry redacted
 - Sanitizes file paths (output dir, source dirs, ignore files)
 
 Fatal errors (`ConfigError`) at this stage abort the pipeline entirely. An unresolvable API version is reported in the same error as any invalid `--from`/`--to`, repository or `--changes-manifest` problem, after them. This is one of only two places where exceptions propagate to the CLI layer.
@@ -102,7 +102,7 @@ Per upstream line, `getLines()` then applies four ordered gates:
 
 1. Expands rename lines into synthetic `A`/`D` pairs (capturing the rename-pair side-channel) — every pair git detected is captured here unconditionally; whether it survives to a rename triple is an ignore-file decision made later, in `RenameResolver.resolve()` (see the rename paragraph in the ChangeSet section below), not a filter applied at this stage.
 2. **Registry membership** — filters through the metadata registry; only paths that resolve to a known metadata type are yielded.
-3. **Ignore** (output policy) — applies `IgnoreHelper` (separate global and destructive-only ignore files). A `D` or `M` line the helper rejects is dropped. An `A` line it rejects is **held**, not dropped: it never yields, and it enters the cancellation index below only if, at `to`, the component it resolves to has no file the global ignore would keep — read once at upstream EOF through `GitAdapter.buildTreeIndex(config.to, config.source)`, and only when a held addition shares a key with a deferred deletion. A component that survives solely under ignored paths was moved into the ignore set and its deletions cancel; a component still visible at `to` keeps its deletions, so a stale ignored copy can never suppress a real one. `--ignore-destructive-file` plays no part in that visibility test. A name a kept (non-held) addition already registered is excluded from the read's candidates — its deletion is already cancelled, so the read cannot change the outcome. When the `to` listing itself cannot be read, the read fails closed: every pending candidate counts as visible, nothing vouches, and the deletions yield exactly as they do today; `main.ts` turns that failure into the `warning.IgnoredMoveCheckSkipped` warning.
+3. **Ignore** (output policy) — applies `IgnoreHelper` (separate global and destructive-only ignore files). A `D` or `M` line the helper rejects is dropped. An `A` line it rejects is **held**, not dropped: it never yields, and it enters the cancellation index below only if, at `to`, the component it resolves to has no file the global ignore would keep — read once at upstream EOF through `GitAdapter.buildTreeIndex(config.to, config.source)`, and only when a held addition shares a key with a deferred deletion. A component that survives solely under ignored paths was moved into the ignore set and its deletions cancel; a component still visible at `to` keeps its deletions, so a stale ignored copy can never suppress a real one. Every deletion cancelled this way is also exposed through `RepoGitDiff.getCancelledDeletions()` (the deleted line and its component key): that side output is the input of the pure-move resolution below. `--ignore-destructive-file` plays no part in that visibility test. A name a kept (non-held) addition already registered is excluded from the read's candidates — its deletion is already cancelled, so the read cannot change the outcome. When the `to` listing itself cannot be read, the read fails closed: every pending candidate counts as visible, nothing vouches, and the deletions yield exactly as they do today; `main.ts` turns that failure into the `warning.IgnoredMoveCheckSkipped` warning.
 4. **Cancellation index** — defers `D` lines until upstream EOF so the rule has the full A-name set. A/M lines yield as they arrive; D lines are buffered and yielded last, dropping any whose key matches an addition's key: the legacy file-move-same-component safety net, keyed on the Salesforce component identity `MetadataRepositoryImpl.getFullyQualifiedName` derives from the path, compared lowercased — not on the raw filename. True component renames (different keys) surface via tsgit's `detectRenames`. Held additions are folded in after the visibility read, before any `D` line is classified.
 
 The key per registry shape:
@@ -120,7 +120,7 @@ Three ordering constraints hold inside the rule: `inFolder` must be tested befor
 
 Two exclusions survive because a path-derived key genuinely cannot bridge them: `IntegrationHubSettingsType`, where two suffixes share one directory and the key (not the descriptor) is the precise side; and `WaveTemplateBundle`, declared under two different type directories that no path-derived key can unify. A further residual collision — `reports/Sales.report-meta.xml` and `reports/Sales.reportFolder-meta.xml` both keying `reports/Sales` — needs a report filed directly under `reports/`, which is not a valid SFDX layout. And a composed key anchors on the *first* registry-directory segment anywhere in the path, so a package root that happens to share a registry directory's name (e.g. `applications/objects/Account/fields/X.field-meta.xml`) drags that root into the key, producing two keys for the one component the descriptor sees — recorded as a residual, not fixed. Separately, an extensionless `inFolder` name ending in `Folder` (e.g. `logoFolder`) is deliberately keyed the same as its extension-bearing sibling, mirroring how `InFolderHandler` itself derives the name.
 
-When the orchestrator (`src/main.ts`) must compute the tree-index scope from the diff — every run without `--include` / `--include-destructive`, whatever `--generate-delta` says — it materializes the stream once into an array because both `computeTreeIndexScope` and `lineProcessor.process` need to walk the same lines; with an include file the scope is `config.source` and the async iterable feeds straight into the handler queue.
+`src/main.ts` always materializes the stream once into an array: the tree-index scope (`computeTreeIndexScope`, every run without `--include` / `--include-destructive`), the pure-move resolution and `lineProcessor.process` all walk the same lines, and the cancelled deletions the resolution reads exist only once the diff is drained. With an include file the scope is `config.source`, otherwise it is computed from the lines.
 
 ### Ignore System
 
@@ -130,6 +130,38 @@ When the orchestrator (`src/main.ts`) must compute the tree-index scope from the
 - **destructiveIgnore**: applied only to deletions; falls back to globalIgnore if `--ignore-destructive-file` is not provided; carries user patterns only — no hard-coded pattern is added. The Salesforce API limitation on undeletable types (today `RecordType`) is enforced downstream instead, as a type-level strip in `ChangeSet.forDestructiveManifest()` keyed on `UNDELETABLE_TYPES` (`src/constant/metadataConstants.ts`). That is the one code path every route converges on, including `--include-destructive-file`, which never reaches `RepoGitDiff._routeLine`'s ignore gate at all. One consumer applies it past the line gate: `InFileHandler` checks it (as a synthetic `D\t<path>` line) before emitting the sub-components its `MetadataDiff` found deleted inside a **modified** file — an `M` line the gate only ever matched against globalIgnore. It skips the check on `D` lines: the main diff already filtered those, and the include-destructive pass's must win over the ignore.
 
 The repository's own end-to-end baseline is the live proof of the held-addition ordering: `e2e/expected/` is both sgd's output directory and the committed baseline, and it sits inside the `e2e/base..e2e/head` range under the ignored `/expected` pattern, so every regenerated copy is an ignored addition sharing its key with a component still alive under `test/`. A regeneration that reaches a fixed point — a second run changes nothing — shows those copies did not vouch; a baseline that appears, disappears and reappears across runs is the signature of an ignored copy cancelling a real deletion.
+
+---
+
+## Pure-Move Suppression
+
+**Entry**: `PureMoveResolver.resolve(lines, cancelled)` (`src/utils/pureMoveResolver.ts`), called by `src/main.ts` between the diff collection and the handler pass.
+
+A component moved to another directory shows up in the diff as deletions plus additions of the same component. Stage 3 already pairs them by component key and cancels the deletions; the resolver decides which of those pairs are *pure* moves, in which case the additions are dropped too and the component reaches neither manifest. It returns a `MoveResolution`: the remaining `lines`, the precomputed in-file `unions` and a `checkSkipped` flag. With no cancelled deletion it returns the lines untouched.
+
+### Component checks
+
+A group (cancelled deletions plus additions sharing a key) is a pure move when all of these hold:
+
+- every file resolves to the same type and member (one handler probe per group);
+- the set of deleted and added files has the same relative layout, and the blobs are identical (`GitAdapter.getBlobIds` at each revision, compared by path relative to the common directory);
+- the component is complete: the files moved are exactly the files of the component listed at `from` and at `to` (component indexes built once per revision);
+- the component is in one `sfdx-project.json` package directory, each side resolved against its own revision's project (`loadSfdxProject`; no project at both revisions means one entry);
+- the source is visible to the global ignore (`--ignore-file`): a source under it, or covered only by `--ignore-destructive-file`, is not a move. A destination under the destructive-only ignore is still suppressed; a destination under the global ignore was already held in Stage 3 and emits nothing.
+
+An unusable `sfdx-project.json` or file list throws inside the resolver; `resolve` catches it, logs it at debug level and returns the lines unchanged with `checkSkipped: true`, which `main.ts` turns into `warning.PureMoveCheckSkipped`. Suppression is then off for the whole run.
+
+### Union entries
+
+In-file containers cannot be judged by blobs: a labels file can change while its labels only moved. The resolver collects a *union* per package directory for those groups:
+
+| Symbol | Meaning |
+| ------ | ------- |
+| `F_add` | files of the container added in the diff |
+| `F_del` | files of the container deleted in the diff |
+| `S` | files of the container surviving on both sides, modified or not, in the same entry |
+
+SDR exposes one `CustomLabels` component per package directory, whatever the file names, so for non-decomposed `CustomLabel` the union spans all the labels files of the entry; for other in-file types it is the file itself. `MetadataDiff.runUnion` diffs the elements of the to-side files against the union of the from-side files: only changed or added elements reach `package.xml`, elements gone from every to-side file reach `destructiveChanges.xml`, and an element merely moved between files of the entry is neither. Moves across entries are not unions: every element deploys. The `--ignore-file` and `--ignore-destructive-file` patterns split the union bases (a file under the global ignore is out of the comparison; the destructive-only ignore filters deletions only), and a labels file whose package directory differs between the revisions is left out. The outcomes are keyed by file path and placed in `RunContext.unions`.
 
 ---
 
@@ -244,6 +276,7 @@ Key behavior:
 - Additions/modifications: XML diff produces fine-grained manifest entries per changed sub-element
 - Deletions: if `pruneOnly` is set, treats as standard deletion; otherwise re-diffs to extract sub-element removals
 - File copy: disabled for standard git-copy; uses computed content (pruned XML) instead
+- Union outcome: when the file is part of a pure-move union, the outcome precomputed in `RunContext.unions` (keyed by path) replaces the per-file `MetadataDiff.run`; the rest of the handler consumes it unchanged
 - Container manifest entry: the container is listed in `package.xml` only when the to-side has a surviving add or modify in any bucket — including registry-excluded children and scalar/unknown tags, neither of which produce their own manifest entry. A diff whose only change is removed keyed or object-fingerprint children lists nothing in `package.xml` and emits no delta file; it produces `destructiveChanges.xml` entries only for children that are not registry-excluded. Whole-bucket subTypes (array/keyless/unknown) are compared wholesale, so removing an element there counts as a modify of the container: it lists the container, emits a pruned delta file and produces no destructive entry
 
 #### CustomLabelHandler
@@ -255,7 +288,7 @@ Handles `CustomLabel` which can exist in two formats:
 - **Monolithic**: single `CustomLabels.labels-meta.xml` — uses InFile XML diff behavior
 - **Decomposed**: individual `.label-meta.xml` files — uses StandardHandler behavior directly
 
-Detects the format by file extension and routes accordingly.
+Detects the format by file extension and routes accordingly. In the monolithic format a labels file covered by a union reads the precomputed outcome of the whole package directory instead of diffing alone, so labels moved between files are not redeployed.
 
 #### InFolderHandler
 
@@ -608,6 +641,14 @@ All user inputs flowing through the pipeline:
 | `ignore` / `ignoreDestructive` | `string` | Gitignore-style filter file paths |
 | `include` / `includeDestructive` | `string` | Force-include file paths |
 | `ignoreWhitespace` | `boolean` | Skip whitespace-only changes |
+
+### RunContext (`src/types/runContext.ts`)
+
+Read-only context handed to every reader of a run: `config`, `metadata`, `trees` (the revision tree readers) and `unions`. `unions` is a `UnionOutcomes` (`ReadonlyMap<path, DiffOutcome>`) computed by `PureMoveResolver`; `NO_UNIONS` is the empty map, and `withRevisions` resets it for the include passes since they do not run on the diff the outcomes were computed on.
+
+### MoveResolution (`src/utils/pureMoveResolver.ts`)
+
+`{ lines, unions, checkSkipped }`: the diff lines left after dropping pure-move additions, the union outcomes for the handlers, and whether the check could not run.
 
 ### Work (`src/types/work.ts`)
 

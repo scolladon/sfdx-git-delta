@@ -160,7 +160,7 @@ describe('Given the released error-message contract (validated surface)', () => 
 
       // Assert
       expect((error as Error).message).toBe(
-        '--to is not a valid sha pointer: \'not-a-real-ref-zzz\' (If in CI/CD context, check the fetch depth is properly set), Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: Unable to get a current API version from the appexchange org (connect ECONNREFUSED 127.0.0.1:9)'
+        '--to is not a valid sha pointer: \'not-a-real-ref-zzz\' (If in CI/CD context, check the fetch depth is properly set), Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json at --to. Caused by: Unable to get a current API version from the appexchange org (connect ECONNREFUSED 127.0.0.1:9)'
       )
     })
   })
@@ -181,7 +181,7 @@ describe('Given the released error-message contract (validated surface)', () => 
 
       // Assert
       expect((error as Error).message).toBe(
-        'Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: The appexchange org returned \'NaN\', which is not a usable Salesforce API version'
+        'Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json at --to. Caused by: The appexchange org returned \'NaN\', which is not a usable Salesforce API version'
       )
     })
   })

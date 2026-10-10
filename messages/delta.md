@@ -64,7 +64,7 @@ file listing paths to explicitly ignore for any destructive actions
 
 # flags.api-version.summary
 
-salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" attribute or latest version
+salesforce metadata API version, default to sfdx-project.json "sourceApiVersion" at --to or latest version
 
 # flags.generate-delta.summary
 
@@ -136,11 +136,11 @@ no merge base found between --from '%s' and --to '%s' (If in CI/CD context, chec
 
 # warning.ApiVersionDefaulted
 
-No API version found (no --api-version flag, no sourceApiVersion in sfdx-project.json), using '%s'
+No API version found (no --api-version flag, no sourceApiVersion in sfdx-project.json at --to), using '%s'
 
 # error.ApiVersionRetrievalFailed
 
-Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json. Caused by: %s
+Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json at --to. Caused by: %s
 
 # error.ApiVersionLookupUnusable
 
