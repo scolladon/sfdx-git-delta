@@ -14,7 +14,11 @@ import PureMoveResolver, {
 import type { DeferredDeletion } from '../../lib/utils/repoGitDiff.js'
 import { createTempDir } from '../__utils__/gitTestHarness.ts'
 import { buildLabelsUnionRepo } from './fixtures/labelsUnionRepoFixture.ts'
-import { perfBench } from './harness/perfBench.ts'
+import {
+  assertMeanWithinCeiling,
+  deriveCeilingMs,
+  perfBench,
+} from './harness/perfBench.ts'
 import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Cost rows of the pure-move check (design cost model). Ceilings are NOT set
@@ -101,17 +105,58 @@ const portsOf = (
     getRootFileContent: async () => rootFile,
   }) as unknown as MovePorts
 
-const runScenario = (name: string, movedCount: number, editedCount: number) =>
+// Seeded from the first ubuntu-latest CI run of these rows (perf-memory.json
+// means): a developer-machine mean under-measures CI, so the ceilings come
+// from CI only and are re-derived from the gh-pages series once it holds more
+// runs. no-candidate-10k-lines has no ceiling: its sub-microsecond mean is
+// dominated by timer noise, so any ceiling would only measure the runner.
+const WORST_MEAN_MS = {
+  'pure-move-2k-components': 97.02,
+  'mixed-moves-and-edits-2k': 96.58,
+  'pure-move-1-in-50k-tree': 51.92,
+  'container-moves-200-in-20k-tree': 25.28,
+  'one-folder-component-2k-files-moved': 69.25,
+  'labels-union-20-files-5k-labels': 106.31,
+} as const
+
+type CeiledRow = keyof typeof WORST_MEAN_MS
+
+const ceiled = (name: CeiledRow) => {
+  const elapsedMs: number[] = []
+  return {
+    timed: async (run: () => Promise<unknown>): Promise<void> => {
+      const start = performance.now()
+      await run()
+      elapsedMs.push(performance.now() - start)
+    },
+    afterRun: () =>
+      assertMeanWithinCeiling(
+        name,
+        elapsedMs,
+        deriveCeilingMs(WORST_MEAN_MS[name])
+      ),
+  }
+}
+
+const runScenario = (
+  name: CeiledRow,
+  movedCount: number,
+  editedCount: number
+) =>
   describe(name, () => {
     const nextRound = createScenario(movedCount, editedCount)
+    const ceiling = ceiled(name)
     let scenario: Scenario
     let sut: PureMoveResolver
     perfBench(
       name,
       async () => {
-        await sut.resolve(scenario.lines, scenario.cancelled)
+        await ceiling.timed(() =>
+          sut.resolve(scenario.lines, scenario.cancelled)
+        )
       },
       {
+        afterRun: ceiling.afterRun,
         beforeEach: () => {
           scenario = nextRound()
           sut = new PureMoveResolver(contextOf(baseConfig), portsOf(scenario))
@@ -184,12 +229,14 @@ describe('pure-move-resolver-large-tree', () => {
   const nextRound = largeTreeScenario()
   let scenario: Scenario
   let sut: PureMoveResolver
+  const ceiling = ceiled('pure-move-1-in-50k-tree')
   perfBench(
     'pure-move-1-in-50k-tree',
     async () => {
-      await sut.resolve(scenario.lines, scenario.cancelled)
+      await ceiling.timed(() => sut.resolve(scenario.lines, scenario.cancelled))
     },
     {
+      afterRun: ceiling.afterRun,
       beforeEach: () => {
         scenario = nextRound()
         sut = new PureMoveResolver(contextOf(baseConfig), portsOf(scenario))
@@ -228,12 +275,14 @@ describe('pure-move-resolver-container-moves', () => {
   const unionDiff: UnionDiffPort = { runUnion: async () => new Map() }
   let scenario: Scenario
   let sut: PureMoveResolver
+  const ceiling = ceiled('container-moves-200-in-20k-tree')
   perfBench(
     'container-moves-200-in-20k-tree',
     async () => {
-      await sut.resolve(scenario.lines, scenario.cancelled)
+      await ceiling.timed(() => sut.resolve(scenario.lines, scenario.cancelled))
     },
     {
+      afterRun: ceiling.afterRun,
       beforeEach: () => {
         scenario = nextRound()
         sut = new PureMoveResolver(
@@ -295,12 +344,14 @@ describe('pure-move-resolver-folder-component', () => {
   const nextRound = folderScenario()
   let scenario: Scenario
   let sut: PureMoveResolver
+  const ceiling = ceiled('one-folder-component-2k-files-moved')
   perfBench(
     'one-folder-component-2k-files-moved',
     async () => {
-      await sut.resolve(scenario.lines, scenario.cancelled)
+      await ceiling.timed(() => sut.resolve(scenario.lines, scenario.cancelled))
     },
     {
+      afterRun: ceiling.afterRun,
       beforeEach: () => {
         scenario = nextRound()
         sut = new PureMoveResolver(contextOf(baseConfig), portsOf(scenario))
@@ -331,12 +382,14 @@ describe('pure-move-resolver-labels-union', () => {
     await rm(REPO_ROOT, { recursive: true, force: true })
   })
 
+  const ceiling = ceiled('labels-union-20-files-5k-labels')
   perfBench(
     'labels-union-20-files-5k-labels',
     async () => {
-      await sut.resolve([addition], cancelled)
+      await ceiling.timed(() => sut.resolve([addition], cancelled))
     },
     {
+      afterRun: ceiling.afterRun,
       beforeEach: async () => {
         await GitAdapter.closeAll()
         sut = new PureMoveResolver(
